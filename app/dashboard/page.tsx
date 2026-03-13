@@ -1,12 +1,12 @@
 "use client";
 
-import Image from "next/image";
 import { useRouter } from "next/navigation";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { supabase } from "../../lib/supabaseClient";
 
 export default function DashboardPage() {
   const router = useRouter();
+  const [userName, setUserName] = useState("");
 
   // Check if user is logged in
   useEffect(() => {
@@ -16,64 +16,54 @@ export default function DashboardPage() {
       } = await supabase.auth.getSession();
 
       if (!session) {
-        // If no session, redirect back to login
         router.push("/login");
+      } else {
+        // Grab user info (e.g., email or custom metadata)
+        const email = session.user.email || "Guest";
+        setUserName(email.split("@")[0]); // show before @ as username
       }
     };
 
     checkSession();
   }, [router]);
 
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
+    router.push("/login");
+  };
+
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center bg-[url('/snowflakes.png')] bg-cover bg-center text-white">
-      <div className="bg-gradient-to-br from-green-500 via-red-400 to-pink-500 rounded-lg shadow-xl p-10 max-w-2xl w-full text-center relative ring-4 ring-red-200">
-        
-        {/* Festive header */}
-        <Image
-          src="/bells-holly.png"
-          alt="Bells Holly"
-          width={96}
-          height={96}
-          className="absolute -top-12 left-1/2 transform -translate-x-1/2 w-20 animate-bounce"
-        />
+    <main className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-b from-green-400 to-red-300 text-white relative">
+      {/* Snow background */}
+      <div className="absolute inset-0 bg-[url('/snowflakes.png')] opacity-20 z-0"></div>
 
-        <h1 className="text-4xl font-bold mb-4 drop-shadow-lg">🎁 GiftDraw Dashboard</h1>
-        <p className="mb-6 text-lg">Welcome to your Secret Santa hub!</p>
+      {/* Dashboard content */}
+      <div className="relative z-10 text-center max-w-2xl w-full p-10 rounded-lg shadow-xl bg-white/10 backdrop-blur-md">
+        <h1 className="text-4xl font-bold mb-4 drop-shadow-lg">
+          🎁 GiftDraw Dashboard 🎅
+        </h1>
+        <p className="text-lg mb-6">Welcome, {userName} 🎁</p>
 
-        {/* Example dashboard actions */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <button
-            onClick={() => router.push("/create-group")}
-            className="bg-white text-red-600 font-semibold py-4 rounded-lg shadow hover:bg-red-100 transition"
-          >
-            ➕ Create a Group
-          </button>
-          <button
-            onClick={() => router.push("/invitations")}
-            className="bg-white text-green-600 font-semibold py-4 rounded-lg shadow hover:bg-green-100 transition"
-          >
-            ✉️ Send Invitations
-          </button>
-          <button
-            onClick={() => router.push("/draw-names")}
-            className="bg-white text-blue-600 font-semibold py-4 rounded-lg shadow hover:bg-blue-100 transition"
-          >
-            🎲 Draw Names
-          </button>
-          <button
-            onClick={() => router.push("/results")}
-            className="bg-white text-purple-600 font-semibold py-4 rounded-lg shadow hover:bg-purple-100 transition"
-          >
-            🎁 Reveal Results
-          </button>
+        {/* Sections */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+          <div className="bg-white text-red-600 font-semibold py-6 rounded-lg shadow hover:bg-red-100 transition">
+            <h2 className="text-xl mb-2">Your Secret Santa</h2>
+            <p className="text-sm">Assignments will appear here</p>
+          </div>
+          <div className="bg-white text-green-600 font-semibold py-6 rounded-lg shadow hover:bg-green-100 transition">
+            <h2 className="text-xl mb-2">Gift Ideas</h2>
+            <p className="text-sm">Share and explore festive gift ideas</p>
+          </div>
         </div>
 
-        {/* Footer decorations */}
-        <div className="mt-10 flex gap-6 justify-center">
-          <Image src="/gifts.png" alt="Gifts" width={96} height={96} className="animate-pulse" />
-          <Image src="/santa-hat.png" alt="Santa Hat" width={96} height={96} className="animate-wiggle" />
-        </div>
+        {/* Logout */}
+        <button
+          onClick={handleLogout}
+          className="bg-red-600 text-white font-bold px-6 py-3 rounded-lg shadow-lg hover:bg-red-700 transition flex items-center justify-center gap-2"
+        >
+          🍭 Logout
+        </button>
       </div>
-    </div>
+    </main>
   );
 }
