@@ -36,7 +36,10 @@ export default function DashboardPage() {
       <div className="absolute inset-0 bg-[url('/snowflakes.png')] opacity-20 z-0"></div>
 
       <div className="relative z-10 text-center max-w-5xl w-full p-10 rounded-xl shadow-xl bg-white/40 backdrop-blur-md">
-        <h1 className="text-4xl font-bold mb-2 drop-shadow-lg" style={{ color: "#1E3A8A" }}>
+        <h1
+          className="text-4xl font-bold mb-2 drop-shadow-lg"
+          style={{ color: "#1E3A8A" }}
+        >
           🎁 GiftDraw Dashboard 🎅
         </h1>
         <p className="text-lg mb-8 font-semibold" style={{ color: "#334155" }}>
@@ -45,7 +48,7 @@ export default function DashboardPage() {
 
         {/* Christmas Palette Cards with Glow */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
-          {/* Secret Santa Card - Soft Christmas Red */}
+          {/* Secret Santa Card */}
           <div
             className="text-white rounded-t-[2rem] rounded-b-xl hover:scale-105 transition transform relative overflow-hidden"
             style={{
@@ -66,7 +69,7 @@ export default function DashboardPage() {
             </div>
           </div>
 
-          {/* Gift Ideas Card - Soft Christmas Green */}
+          {/* Gift Ideas Card */}
           <div
             className="text-white rounded-t-[2rem] rounded-b-xl hover:scale-105 transition transform relative overflow-hidden"
             style={{
@@ -87,7 +90,7 @@ export default function DashboardPage() {
             </div>
           </div>
 
-          {/* Create Group Card - Winter Blue */}
+          {/* Create Group Card */}
           <div
             onClick={() => router.push("/create-group")}
             className="cursor-pointer text-white rounded-t-[2rem] rounded-b-xl hover:scale-105 transition transform relative overflow-hidden"
@@ -110,7 +113,21 @@ export default function DashboardPage() {
           </div>
         </div>
 
-        {/* Centered Logout - Christmas Gold with Glow */}
+        {/* Create Account Button */}
+        <div className="flex justify-center mb-6">
+          <button
+            onClick={() => router.push("/create-account")}
+            className="text-white font-bold px-6 py-3 rounded-full hover:scale-105 transition flex items-center gap-2"
+            style={{
+              background: "linear-gradient(135deg, #86EFAC, #22C55E)", // festive green
+              boxShadow: "0 0 20px rgba(34, 197, 94, 0.7)", // green glow
+            }}
+          >
+            🎄 Create Account
+          </button>
+        </div>
+
+        {/* Centered Logout */}
         <div className="flex justify-center">
           <button
             onClick={handleLogout}
