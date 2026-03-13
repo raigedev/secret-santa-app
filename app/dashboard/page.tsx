@@ -35,7 +35,7 @@ export default function DashboardPage() {
       {/* subtle snow overlay */}
       <div className="absolute inset-0 bg-[url('/snowflakes.png')] opacity-20 z-0"></div>
 
-      <div className="relative z-10 text-center max-w-5xl w-full p-10 rounded-xl shadow-xl bg-white/40 backdrop-blur-md ring-4 ring-sky-300">
+      <div className="relative z-10 text-center max-w-5xl w-full p-10 rounded-xl shadow-xl bg-white/40 backdrop-blur-md">
         <h1 className="text-4xl font-bold mb-2 drop-shadow-lg" style={{ color: "#1E3A8A" }}>
           🎁 GiftDraw Dashboard 🎅
         </h1>
@@ -47,8 +47,11 @@ export default function DashboardPage() {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
           {/* Secret Santa Card - Soft Christmas Red */}
           <div
-            className="text-white rounded-t-[2rem] rounded-b-xl shadow-lg hover:scale-105 transition transform relative overflow-hidden ring-4 ring-red-300"
-            style={{ background: "linear-gradient(135deg, #F87171, #EF4444)" }}
+            className="text-white rounded-t-[2rem] rounded-b-xl hover:scale-105 transition transform relative overflow-hidden"
+            style={{
+              background: "linear-gradient(135deg, #F87171, #EF4444)",
+              boxShadow: "0 0 20px rgba(239, 68, 68, 0.7)", // red glow
+            }}
           >
             <div className="bg-white text-red-700 font-bold py-2 text-center rounded-t-[2rem]">
               🔍🎅 Your Secret Santa
@@ -65,8 +68,11 @@ export default function DashboardPage() {
 
           {/* Gift Ideas Card - Soft Christmas Green */}
           <div
-            className="text-white rounded-t-[2rem] rounded-b-xl shadow-lg hover:scale-105 transition transform relative overflow-hidden ring-4 ring-green-300"
-            style={{ background: "linear-gradient(135deg, #86EFAC, #22C55E)" }}
+            className="text-white rounded-t-[2rem] rounded-b-xl hover:scale-105 transition transform relative overflow-hidden"
+            style={{
+              background: "linear-gradient(135deg, #86EFAC, #22C55E)",
+              boxShadow: "0 0 20px rgba(34, 197, 94, 0.7)", // green glow
+            }}
           >
             <div className="bg-white text-green-700 font-bold py-2 text-center rounded-t-[2rem]">
               💡🎅 Gift Ideas
@@ -84,8 +90,11 @@ export default function DashboardPage() {
           {/* Create Group Card - Winter Blue */}
           <div
             onClick={() => router.push("/create-group")}
-            className="cursor-pointer text-white rounded-t-[2rem] rounded-b-xl shadow-lg hover:scale-105 transition transform relative overflow-hidden ring-4 ring-blue-300"
-            style={{ background: "linear-gradient(135deg, #60A5FA, #3B82F6)" }}
+            className="cursor-pointer text-white rounded-t-[2rem] rounded-b-xl hover:scale-105 transition transform relative overflow-hidden"
+            style={{
+              background: "linear-gradient(135deg, #60A5FA, #3B82F6)",
+              boxShadow: "0 0 20px rgba(59, 130, 246, 0.7)", // blue glow
+            }}
           >
             <div className="bg-white text-blue-700 font-bold py-2 text-center rounded-t-[2rem]">
               📋🎉 Create Group
@@ -105,8 +114,11 @@ export default function DashboardPage() {
         <div className="flex justify-center">
           <button
             onClick={handleLogout}
-            className="text-white font-bold px-6 py-3 rounded-full shadow-lg hover:scale-105 transition flex items-center gap-2 ring-4 ring-yellow-300"
-            style={{ background: "linear-gradient(135deg, #FBBF24, #F59E0B)" }}
+            className="text-white font-bold px-6 py-3 rounded-full hover:scale-105 transition flex items-center gap-2"
+            style={{
+              background: "linear-gradient(135deg, #FBBF24, #F59E0B)",
+              boxShadow: "0 0 20px rgba(251, 191, 36, 0.7)", // gold glow
+            }}
           >
             🍭 Logout
           </button>
