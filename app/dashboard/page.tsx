@@ -31,11 +31,11 @@ export default function DashboardPage() {
   };
 
   return (
-    <main className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-br from-sky-200 via-blue-300 to-indigo-400 text-gray-900 relative">
+    <main className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-b from-sky-100 via-sky-200 to-sky-300 text-gray-900 relative">
       {/* subtle snow overlay */}
       <div className="absolute inset-0 bg-[url('/snowflakes.png')] opacity-20 z-0"></div>
 
-      <div className="relative z-10 text-center max-w-2xl w-full p-10 rounded-lg shadow-xl bg-white/30 backdrop-blur-md ring-4 ring-sky-300">
+      <div className="relative z-10 text-center max-w-2xl w-full p-10 rounded-lg shadow-xl bg-white/40 backdrop-blur-md ring-4 ring-sky-300">
         <h1 className="text-4xl font-bold mb-4 drop-shadow-lg text-blue-900">
           🎁 GiftDraw Dashboard 🎅
         </h1>
@@ -47,19 +47,21 @@ export default function DashboardPage() {
             <h2 className="text-xl mb-2">Your Secret Santa</h2>
             <p className="text-sm">Assignments will appear here</p>
           </div>
-          <div className="bg-indigo-100 text-indigo-700 font-semibold py-6 rounded-lg shadow hover:bg-indigo-200 transition">
+          <div className="bg-sky-200 text-blue-800 font-semibold py-6 rounded-lg shadow hover:bg-sky-300 transition">
             <h2 className="text-xl mb-2">Gift Ideas</h2>
             <p className="text-sm">Share and explore festive gift ideas</p>
           </div>
         </div>
 
-        {/* Logout */}
-        <button
-          onClick={handleLogout}
-          className="bg-blue-600 text-white font-bold px-6 py-3 rounded-lg shadow-lg hover:bg-blue-700 transition flex items-center justify-center gap-2"
-        >
-          🍭 Logout
-        </button>
+        {/* Centered Logout */}
+        <div className="flex justify-center">
+          <button
+            onClick={handleLogout}
+            className="bg-blue-600 text-white font-bold px-6 py-3 rounded-lg shadow-lg hover:bg-blue-700 transition flex items-center gap-2"
+          >
+            🍭 Logout
+          </button>
+        </div>
       </div>
     </main>
   );
