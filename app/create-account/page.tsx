@@ -13,19 +13,19 @@ export default function CreateAccountPage() {
   const [confirmation, setConfirmation] = useState(false);
 
   const handleSignup = async () => {
-    const { data, error } = await supabase.auth.signUp({
+    const { error } = await supabase.auth.signUp({
       email,
       password,
       options: {
         data: { name },
-        emailRedirectTo: `${location.origin}/auth/callback`,
+        emailRedirectTo: `${location.origin}/auth/callback`, // ✅ confirmation link
       },
     });
 
     if (error) {
       setError(error.message);
     } else {
-      setConfirmation(true); // show confirmation message instead of redirect
+      setConfirmation(true); // ✅ show confirmation message
     }
   };
 
@@ -98,12 +98,12 @@ export default function CreateAccountPage() {
               Please check your email inbox for a confirmation link to activate your account.
             </p>
             <button
-              onClick={() => router.push("/dashboard")}
+              onClick={() => router.push("/login")}
               className="mt-4 px-6 py-2 rounded-lg text-white font-bold 
                          bg-gradient-to-r from-green-400 to-green-600 
                          shadow-lg hover:scale-105 transition"
             >
-              🎁 Go to Dashboard
+              🎁 Go to Login
             </button>
           </div>
         )}
