@@ -7,12 +7,11 @@ import { supabase } from "../../lib/supabaseClient";
 export default function DashboardPage() {
   const router = useRouter();
   const [userName, setUserName] = useState("");
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const checkSession = async () => {
-      const {
-        data: { session },
-      } = await supabase.auth.getSession();
+      const { data: { session } } = await supabase.auth.getSession();
 
       if (!session) {
         router.push("/login");
@@ -20,15 +19,40 @@ export default function DashboardPage() {
         const email = session.user.email || "Guest";
         setUserName(email.split("@")[0]);
       }
+      setLoading(false);
     };
 
     checkSession();
+
+    // ✅ Listen for auth state changes
+    const { data: authListener } = supabase.auth.onAuthStateChange(
+      async (_event, session) => {
+        if (!session) {
+          router.push("/login");
+        } else {
+          const email = session.user.email || "Guest";
+          setUserName(email.split("@")[0]);
+        }
+      }
+    );
+
+    return () => {
+      authListener.subscription.unsubscribe();
+    };
   }, [router]);
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
     router.push("/login");
   };
+
+  if (loading) {
+    return (
+      <main className="min-h-screen flex items-center justify-center bg-gray-100">
+        <p className="text-lg font-semibold text-blue-700">Loading dashboard...</p>
+      </main>
+    );
+  }
 
   return (
     <main className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-b from-sky-100 via-white to-sky-200 text-gray-900 relative">

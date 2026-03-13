@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { supabase } from "../../lib/supabaseClient";
 
 export default function LoginPage() {
@@ -10,6 +10,30 @@ export default function LoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
+
+  // ✅ Check if user is already logged in
+  useEffect(() => {
+    const checkSession = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session) {
+        router.push("/dashboard");
+      }
+    };
+    checkSession();
+
+    // ✅ Listen for auth state changes
+    const { data: authListener } = supabase.auth.onAuthStateChange(
+      async (event, session) => {
+        if (session) {
+          router.push("/dashboard");
+        }
+      }
+    );
+
+    return () => {
+      authListener.subscription.unsubscribe();
+    };
+  }, [router]);
 
   const handleGoogleLogin = async () => {
     await supabase.auth.signInWithOAuth({
@@ -27,6 +51,7 @@ export default function LoginPage() {
     if (error) {
       setError(error.message);
     } else {
+      // ✅ Session is persisted automatically
       router.push("/dashboard");
     }
   };
@@ -34,7 +59,6 @@ export default function LoginPage() {
   return (
     <div className="min-h-screen flex items-center justify-center bg-[url('/snowflakes.png')] bg-cover bg-center">
       <div className="bg-gradient-to-br from-white via-blue-100 to-gray-200 rounded-lg shadow-xl border-4 border-white p-8 max-w-md w-full relative ring-4 ring-blue-200">
-
         {/* Bells Holly */}
         <Image
           src="/bells-holly.png"
