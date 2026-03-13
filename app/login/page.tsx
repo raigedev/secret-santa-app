@@ -1,9 +1,9 @@
-"use client"; // Required for interactivity
+"use client";
 
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { supabase } from "../../lib/supabaseClient"; // ✅ Correct relative path
+import { supabase } from "../../lib/supabaseClient";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -11,7 +11,6 @@ export default function LoginPage() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
 
-  // Google login
   const handleGoogleLogin = async () => {
     await supabase.auth.signInWithOAuth({
       provider: "google",
@@ -19,7 +18,6 @@ export default function LoginPage() {
     });
   };
 
-  // Email login
   const handleEmailLogin = async () => {
     setError(null);
     const { error } = await supabase.auth.signInWithPassword({
@@ -36,8 +34,8 @@ export default function LoginPage() {
   return (
     <div className="min-h-screen flex items-center justify-center bg-[url('/snowflakes.png')] bg-cover bg-center">
       <div className="bg-gradient-to-br from-white via-blue-100 to-gray-200 rounded-lg shadow-xl border-4 border-white p-8 max-w-md w-full relative ring-4 ring-blue-200">
-        
-        {/* 🎄 Festive header */}
+
+        {/* Bells Holly */}
         <Image
           src="/bells-holly.png"
           alt="Bells Holly"
@@ -46,15 +44,16 @@ export default function LoginPage() {
           className="absolute -top-12 left-1/2 transform -translate-x-1/2 w-24 animate-bounce"
         />
 
+        {/* Title */}
         <h1 className="text-3xl font-bold text-center mb-2 text-blue-900 drop-shadow-lg">
           GiftDraw
         </h1>
         <p className="text-center text-gray-700 mb-6">Welcome to Secret Santa!</p>
 
-        {/* Email input */}
+        {/* Username or Email input */}
         <input
-          type="email"
-          placeholder="Enter your email"
+          type="text"
+          placeholder="Enter your username or email"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
           className="w-full border border-gray-300 rounded-md p-3 mb-4 focus:ring-2 focus:ring-blue-300"
@@ -114,7 +113,7 @@ export default function LoginPage() {
           </button>
         </div>
 
-        {/* Festive footer assets */}
+        {/* Footer decorations */}
         <Image
           src="/gifts.png"
           alt="Gift Box"
