@@ -43,11 +43,11 @@ export default function DashboardPage() {
           Welcome, {userName} 🎁
         </p>
 
-        {/* Christmas Palette Cards */}
+        {/* Christmas Palette Cards with Glow */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
           {/* Secret Santa Card - Soft Christmas Red */}
           <div
-            className="text-white rounded-t-[2rem] rounded-b-xl shadow-lg hover:scale-105 transition transform relative overflow-hidden"
+            className="text-white rounded-t-[2rem] rounded-b-xl shadow-lg hover:scale-105 transition transform relative overflow-hidden ring-4 ring-red-300"
             style={{ background: "linear-gradient(135deg, #F87171, #EF4444)" }}
           >
             <div className="bg-white text-red-700 font-bold py-2 text-center rounded-t-[2rem]">
@@ -65,7 +65,7 @@ export default function DashboardPage() {
 
           {/* Gift Ideas Card - Soft Christmas Green */}
           <div
-            className="text-white rounded-t-[2rem] rounded-b-xl shadow-lg hover:scale-105 transition transform relative overflow-hidden"
+            className="text-white rounded-t-[2rem] rounded-b-xl shadow-lg hover:scale-105 transition transform relative overflow-hidden ring-4 ring-green-300"
             style={{ background: "linear-gradient(135deg, #86EFAC, #22C55E)" }}
           >
             <div className="bg-white text-green-700 font-bold py-2 text-center rounded-t-[2rem]">
@@ -84,7 +84,7 @@ export default function DashboardPage() {
           {/* Create Group Card - Winter Blue */}
           <div
             onClick={() => router.push("/create-group")}
-            className="cursor-pointer text-white rounded-t-[2rem] rounded-b-xl shadow-lg hover:scale-105 transition transform relative overflow-hidden"
+            className="cursor-pointer text-white rounded-t-[2rem] rounded-b-xl shadow-lg hover:scale-105 transition transform relative overflow-hidden ring-4 ring-blue-300"
             style={{ background: "linear-gradient(135deg, #60A5FA, #3B82F6)" }}
           >
             <div className="bg-white text-blue-700 font-bold py-2 text-center rounded-t-[2rem]">
@@ -101,11 +101,11 @@ export default function DashboardPage() {
           </div>
         </div>
 
-        {/* Centered Logout - Christmas Gold */}
+        {/* Centered Logout - Christmas Gold with Glow */}
         <div className="flex justify-center">
           <button
             onClick={handleLogout}
-            className="text-white font-bold px-6 py-3 rounded-full shadow-lg hover:scale-105 transition flex items-center gap-2"
+            className="text-white font-bold px-6 py-3 rounded-full shadow-lg hover:scale-105 transition flex items-center gap-2 ring-4 ring-yellow-300"
             style={{ background: "linear-gradient(135deg, #FBBF24, #F59E0B)" }}
           >
             🍭 Logout
