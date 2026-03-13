@@ -35,14 +35,14 @@ export default function DashboardPage() {
       {/* subtle snow overlay */}
       <div className="absolute inset-0 bg-[url('/snowflakes.png')] opacity-20 z-0"></div>
 
-      <div className="relative z-10 text-center max-w-2xl w-full p-10 rounded-lg shadow-xl bg-white/40 backdrop-blur-md ring-4 ring-sky-300">
+      <div className="relative z-10 text-center max-w-3xl w-full p-10 rounded-lg shadow-xl bg-white/40 backdrop-blur-md ring-4 ring-sky-300">
         <h1 className="text-4xl font-bold mb-4 drop-shadow-lg text-blue-900">
           🎁 GiftDraw Dashboard 🎅
         </h1>
         <p className="text-lg mb-6">Welcome, {userName} 🎁</p>
 
         {/* Sections */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
           <div className="bg-sky-100 text-blue-700 font-semibold py-6 rounded-lg shadow hover:bg-sky-200 transition">
             <h2 className="text-xl mb-2">Your Secret Santa</h2>
             <p className="text-sm">Assignments will appear here</p>
@@ -51,16 +51,13 @@ export default function DashboardPage() {
             <h2 className="text-xl mb-2">Gift Ideas</h2>
             <p className="text-sm">Share and explore festive gift ideas</p>
           </div>
-        </div>
-
-        {/* Create Group Button */}
-        <div className="flex justify-center mb-6">
-          <button
+          <div
             onClick={() => router.push("/create-group")}
-            className="bg-green-600 text-white font-bold px-6 py-3 rounded-lg shadow-lg hover:bg-green-700 transition flex items-center gap-2"
+            className="cursor-pointer bg-sky-300 text-blue-900 font-semibold py-6 rounded-lg shadow hover:bg-sky-400 transition"
           >
-            ➕ Create Group
-          </button>
+            <h2 className="text-xl mb-2">Create Group</h2>
+            <p className="text-sm">Start a new Secret Santa event</p>
+          </div>
         </div>
 
         {/* Centered Logout */}
