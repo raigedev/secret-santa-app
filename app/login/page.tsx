@@ -56,7 +56,9 @@ export default function LoginPage() {
           placeholder="Enter your username or email"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
-          className="w-full border border-gray-300 rounded-md p-3 mb-4 focus:ring-2 focus:ring-blue-300"
+          className="w-full border border-gray-300 rounded-md p-3 mb-4 
+                     focus:ring-2 focus:ring-blue-300 
+                     bg-white text-black placeholder-gray-600"
         />
 
         {/* Password input */}
@@ -65,7 +67,9 @@ export default function LoginPage() {
           placeholder="Enter your password"
           value={password}
           onChange={(e) => setPassword(e.target.value)}
-          className="w-full border border-gray-300 rounded-md p-3 mb-6 focus:ring-2 focus:ring-blue-300"
+          className="w-full border border-gray-300 rounded-md p-3 mb-6 
+                     focus:ring-2 focus:ring-blue-300 
+                     bg-white text-black placeholder-gray-600"
         />
 
         {/* Login button */}
