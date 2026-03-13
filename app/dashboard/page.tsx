@@ -113,20 +113,6 @@ export default function DashboardPage() {
           </div>
         </div>
 
-        {/* Create Account Button */}
-        <div className="flex justify-center mb-6">
-          <button
-            onClick={() => router.push("/create-account")}
-            className="text-white font-bold px-6 py-3 rounded-full hover:scale-105 transition flex items-center gap-2"
-            style={{
-              background: "linear-gradient(135deg, #86EFAC, #22C55E)", // festive green
-              boxShadow: "0 0 20px rgba(34, 197, 94, 0.7)", // green glow
-            }}
-          >
-            🎄 Create Account
-          </button>
-        </div>
-
         {/* Centered Logout */}
         <div className="flex justify-center">
           <button
