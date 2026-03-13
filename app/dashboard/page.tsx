@@ -36,67 +36,77 @@ export default function DashboardPage() {
       <div className="absolute inset-0 bg-[url('/snowflakes.png')] opacity-20 z-0"></div>
 
       <div className="relative z-10 text-center max-w-5xl w-full p-10 rounded-xl shadow-xl bg-white/40 backdrop-blur-md ring-4 ring-sky-300">
-        <h1 className="text-4xl font-bold mb-2 drop-shadow-lg text-blue-900">
+        <h1 className="text-4xl font-bold mb-2 drop-shadow-lg" style={{ color: "#1E3A8A" }}>
           🎁 GiftDraw Dashboard 🎅
         </h1>
-        <p className="text-lg mb-8 font-semibold">Welcome, {userName} 🎁</p>
+        <p className="text-lg mb-8 font-semibold" style={{ color: "#334155" }}>
+          Welcome, {userName} 🎁
+        </p>
 
-        {/* Christmas-Themed Arched Cards */}
+        {/* Christmas Palette Cards */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
-          {/* Secret Santa Card */}
-          <div className="bg-red-600 text-white rounded-t-[2rem] rounded-b-xl shadow-lg hover:scale-105 transition transform relative overflow-hidden">
+          {/* Secret Santa Card - Soft Christmas Red */}
+          <div
+            className="text-white rounded-t-[2rem] rounded-b-xl shadow-lg hover:scale-105 transition transform relative overflow-hidden"
+            style={{ background: "linear-gradient(135deg, #F87171, #EF4444)" }}
+          >
             <div className="bg-white text-red-700 font-bold py-2 text-center rounded-t-[2rem]">
               🔍🎅 Your Secret Santa
             </div>
             <div className="p-4 text-center">
-              <p className="text-sm">Assignments will appear here</p>
+              <p className="text-sm" style={{ color: "#334155" }}>
+                Assignments will appear here
+              </p>
               <div className="mt-4 flex justify-center gap-2 text-xl">
                 🎁 🌲 🍬
               </div>
             </div>
-            <div className="absolute top-2 left-2 text-xl">🍭</div>
-            <div className="absolute bottom-2 right-2 text-xl">🎄</div>
           </div>
 
-          {/* Gift Ideas Card */}
-          <div className="bg-green-600 text-white rounded-t-[2rem] rounded-b-xl shadow-lg hover:scale-105 transition transform relative overflow-hidden">
+          {/* Gift Ideas Card - Soft Christmas Green */}
+          <div
+            className="text-white rounded-t-[2rem] rounded-b-xl shadow-lg hover:scale-105 transition transform relative overflow-hidden"
+            style={{ background: "linear-gradient(135deg, #86EFAC, #22C55E)" }}
+          >
             <div className="bg-white text-green-700 font-bold py-2 text-center rounded-t-[2rem]">
               💡🎅 Gift Ideas
             </div>
             <div className="p-4 text-center">
-              <p className="text-sm">Share and explore festive gift ideas</p>
+              <p className="text-sm" style={{ color: "#334155" }}>
+                Share and explore festive gift ideas
+              </p>
               <div className="mt-4 flex justify-center gap-2 text-xl">
                 ❄️ 🎁 🍬
               </div>
             </div>
-            <div className="absolute top-2 left-2 text-xl">🔔</div>
-            <div className="absolute bottom-2 right-2 text-xl">🎀</div>
           </div>
 
-          {/* Create Group Card */}
+          {/* Create Group Card - Winter Blue */}
           <div
             onClick={() => router.push("/create-group")}
-            className="cursor-pointer bg-blue-600 text-white rounded-t-[2rem] rounded-b-xl shadow-lg hover:scale-105 transition transform relative overflow-hidden"
+            className="cursor-pointer text-white rounded-t-[2rem] rounded-b-xl shadow-lg hover:scale-105 transition transform relative overflow-hidden"
+            style={{ background: "linear-gradient(135deg, #60A5FA, #3B82F6)" }}
           >
             <div className="bg-white text-blue-700 font-bold py-2 text-center rounded-t-[2rem]">
               📋🎉 Create Group
             </div>
             <div className="p-4 text-center">
-              <p className="text-sm">Start a new Secret Santa event</p>
+              <p className="text-sm" style={{ color: "#334155" }}>
+                Start a new Secret Santa event
+              </p>
               <div className="mt-4 flex justify-center gap-2 text-xl">
                 🎊 🎄 🎁
               </div>
             </div>
-            <div className="absolute top-2 right-2 text-xl">🎅</div>
-            <div className="absolute bottom-2 left-2 text-xl">⛄</div>
           </div>
         </div>
 
-        {/* Centered Logout */}
+        {/* Centered Logout - Christmas Gold */}
         <div className="flex justify-center">
           <button
             onClick={handleLogout}
-            className="bg-blue-600 text-white font-bold px-6 py-3 rounded-full shadow-lg hover:bg-blue-700 transition flex items-center gap-2"
+            className="text-white font-bold px-6 py-3 rounded-full shadow-lg hover:scale-105 transition flex items-center gap-2"
+            style={{ background: "linear-gradient(135deg, #FBBF24, #F59E0B)" }}
           >
             🍭 Logout
           </button>
