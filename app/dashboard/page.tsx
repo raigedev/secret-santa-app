@@ -41,11 +41,11 @@ export default function DashboardPage() {
         </h1>
         <p className="text-lg mb-8 font-semibold">Welcome, {userName} 🎁</p>
 
-        {/* Arched Festive Cards */}
+        {/* Christmas-Themed Arched Cards */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
           {/* Secret Santa Card */}
-          <div className="bg-red-500 text-white rounded-t-[2rem] rounded-b-xl shadow-lg hover:scale-105 transition transform relative overflow-hidden">
-            <div className="bg-white text-red-600 font-bold py-2 text-center rounded-t-[2rem]">
+          <div className="bg-red-600 text-white rounded-t-[2rem] rounded-b-xl shadow-lg hover:scale-105 transition transform relative overflow-hidden">
+            <div className="bg-white text-red-700 font-bold py-2 text-center rounded-t-[2rem]">
               🔍🎅 Your Secret Santa
             </div>
             <div className="p-4 text-center">
@@ -59,8 +59,8 @@ export default function DashboardPage() {
           </div>
 
           {/* Gift Ideas Card */}
-          <div className="bg-green-500 text-white rounded-t-[2rem] rounded-b-xl shadow-lg hover:scale-105 transition transform relative overflow-hidden">
-            <div className="bg-white text-green-600 font-bold py-2 text-center rounded-t-[2rem]">
+          <div className="bg-green-600 text-white rounded-t-[2rem] rounded-b-xl shadow-lg hover:scale-105 transition transform relative overflow-hidden">
+            <div className="bg-white text-green-700 font-bold py-2 text-center rounded-t-[2rem]">
               💡🎅 Gift Ideas
             </div>
             <div className="p-4 text-center">
@@ -76,9 +76,9 @@ export default function DashboardPage() {
           {/* Create Group Card */}
           <div
             onClick={() => router.push("/create-group")}
-            className="cursor-pointer bg-blue-500 text-white rounded-t-[2rem] rounded-b-xl shadow-lg hover:scale-105 transition transform relative overflow-hidden"
+            className="cursor-pointer bg-blue-600 text-white rounded-t-[2rem] rounded-b-xl shadow-lg hover:scale-105 transition transform relative overflow-hidden"
           >
-            <div className="bg-white text-blue-600 font-bold py-2 text-center rounded-t-[2rem]">
+            <div className="bg-white text-blue-700 font-bold py-2 text-center rounded-t-[2rem]">
               📋🎉 Create Group
             </div>
             <div className="p-4 text-center">
