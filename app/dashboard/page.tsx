@@ -53,6 +53,16 @@ export default function DashboardPage() {
           </div>
         </div>
 
+        {/* Create Group Button */}
+        <div className="flex justify-center mb-6">
+          <button
+            onClick={() => router.push("/create-group")}
+            className="bg-green-600 text-white font-bold px-6 py-3 rounded-lg shadow-lg hover:bg-green-700 transition flex items-center gap-2"
+          >
+            ➕ Create Group
+          </button>
+        </div>
+
         {/* Centered Logout */}
         <div className="flex justify-center">
           <button
