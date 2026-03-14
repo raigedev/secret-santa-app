@@ -14,7 +14,9 @@ export default function LoginPage() {
   // ✅ Check if user is already logged in
   useEffect(() => {
     const checkSession = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
       if (session) {
         router.push("/dashboard");
       }
@@ -135,7 +137,7 @@ export default function LoginPage() {
           </button>
           <button
             onClick={() => router.push("/forgot-password")}
-            className="w-[48%] text-center bg-gray-500 text-white py-2 rounded-md hover:bg-gray-600 transition font-medium shadow"
+            className="w-[48%] text-center bg-red-500 text-white py-2 rounded-md hover:bg-red-600 transition font-medium shadow"
           >
             Forgot Password?
           </button>
