@@ -4,7 +4,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 
-// ✅ Define a Group type to avoid `any`
+// ✅ Define Group type
 type Group = {
   id: string;
   name: string;
@@ -84,6 +84,7 @@ export default function DashboardPage() {
 
   return (
     <main className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-b from-sky-100 via-white to-sky-200 text-gray-900 relative">
+      {/* subtle snow overlay */}
       <div className="absolute inset-0 bg-[url('/snowflakes.png')] opacity-20 z-0"></div>
 
       <div className="relative z-10 text-center max-w-5xl w-full p-10 rounded-xl shadow-xl bg-white/40 backdrop-blur-md">
@@ -130,19 +131,32 @@ export default function DashboardPage() {
 
         {/* Groups List */}
         <div className="text-left mb-10">
-          <h2 className="text-2xl font-bold mb-4 text-blue-700">🎄 Your Groups</h2>
+          <h2 className="text-2xl font-bold mb-6 text-blue-700">🎄 Your Groups</h2>
           {groups.length === 0 ? (
             <p className="text-gray-600">No groups yet. Create one to get started!</p>
           ) : (
-            <ul className="space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {groups.map((group) => (
-                <li key={group.id} className="p-4 rounded-lg shadow bg-white">
-                  <h3 className="text-lg font-semibold">{group.name}</h3>
-                  <p className="text-sm text-gray-600">{group.description}</p>
-                  <p className="text-sm text-gray-500">Event Date: {group.event_date}</p>
-                </li>
+                <div
+                  key={group.id}
+                  onClick={() => router.push(`/group/${group.id}`)}
+                  className="cursor-pointer rounded-xl p-6 shadow-lg hover:scale-105 transition transform relative overflow-hidden text-white"
+                  style={{
+                    background: "linear-gradient(135deg, #FBBF24, #F59E0B)", // gold gradient
+                    boxShadow: "0 0 20px rgba(251, 191, 36, 0.7)", // gold glow
+                  }}
+                >
+                  <div className="bg-white text-yellow-700 font-bold py-2 px-4 rounded-t-lg text-center">
+                    🎁 {group.name}
+                  </div>
+                  <div className="p-4 text-center">
+                    <p className="text-sm text-gray-800 mb-2">{group.description}</p>
+                    <p className="text-sm text-gray-600">📅 Event Date: {group.event_date}</p>
+                    <div className="mt-4 flex justify-center gap-2 text-xl">🎄 🎁 🍬</div>
+                  </div>
+                </div>
               ))}
-            </ul>
+            </div>
           )}
         </div>
 
