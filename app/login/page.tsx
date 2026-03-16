@@ -18,7 +18,7 @@ export default function LoginPage() {
     const checkSession = async () => {
       const { data } = await supabase.auth.getSession();
       if (data.session) {
-        router.replace("/dashboard"); // use replace to avoid back button returning to login
+        router.replace("/dashboard");
       }
     };
     checkSession();
@@ -26,10 +26,18 @@ export default function LoginPage() {
 
   const handleGoogleLogin = async () => {
     setRedirecting(true);
-    await supabase.auth.signInWithOAuth({
+    const { error } = await supabase.auth.signInWithOAuth({
       provider: "google",
-      options: { redirectTo: `${window.location.origin}/auth/callback` },
+      options: {
+        // ✅ Must match your Supabase dashboard redirect URL exactly
+        redirectTo: `${window.location.origin}/auth/callback`,
+      },
     });
+    if (error) {
+      console.error("Google login error:", error.message);
+      setRedirecting(false);
+      setError(error.message);
+    }
   };
 
   const handleEmailLogin = async () => {
@@ -78,9 +86,7 @@ export default function LoginPage() {
           placeholder="Enter your username or email"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
-          className="w-full border-2 border-blue-600 rounded-md p-3 mb-4 
-                     focus:ring-2 focus:ring-blue-400 
-                     bg-white text-black placeholder-gray-600 shadow-sm"
+          className="w-full border-2 border-blue-600 rounded-md p-3 mb-4 focus:ring-2 focus:ring-blue-400 bg-white text-black placeholder-gray-600 shadow-sm"
         />
 
         {/* Password input */}
@@ -89,17 +95,18 @@ export default function LoginPage() {
           placeholder="Enter your password"
           value={password}
           onChange={(e) => setPassword(e.target.value)}
-          className="w-full border-2 border-blue-600 rounded-md p-3 mb-6 
-                     focus:ring-2 focus:ring-blue-400 
-                     bg-white text-black placeholder-gray-600 shadow-sm"
+          className="w-full border-2 border-blue-600 rounded-md p-3 mb-6 focus:ring-2 focus:ring-blue-400 bg-white text-black placeholder-gray-600 shadow-sm"
         />
 
         {/* Login button */}
         <button
           onClick={handleEmailLogin}
           disabled={loading || redirecting}
-          className={`w-full font-semibold py-3 rounded-md transition 
-            ${loading || redirecting ? "bg-gray-400 cursor-not-allowed text-white" : "bg-blue-600 text-white hover:bg-blue-700"}`}
+          className={`w-full font-semibold py-3 rounded-md transition ${
+            loading || redirecting
+              ? "bg-gray-400 cursor-not-allowed text-white"
+              : "bg-blue-600 text-white hover:bg-blue-700"
+          }`}
         >
           {loading ? "Logging in..." : "Login"}
         </button>
@@ -112,8 +119,11 @@ export default function LoginPage() {
         <button
           onClick={handleGoogleLogin}
           disabled={loading || redirecting}
-          className={`w-full flex items-center justify-center border border-gray-300 py-3 rounded-md transition shadow-sm 
-            ${loading || redirecting ? "bg-gray-200 text-gray-400 cursor-not-allowed" : "bg-white text-gray-700 hover:bg-gray-50"}`}
+          className={`w-full flex items-center justify-center border border-gray-300 py-3 rounded-md transition shadow-sm ${
+            loading || redirecting
+              ? "bg-gray-200 text-gray-400 cursor-not-allowed"
+              : "bg-white text-gray-700 hover:bg-gray-50"
+          }`}
         >
           <Image
             src="/google-logo.png"
@@ -132,20 +142,22 @@ export default function LoginPage() {
           <button
             onClick={() => router.push("/create-account")}
             disabled={loading || redirecting}
-            className={`w-[48%] text-center py-2 rounded-md transition font-medium shadow 
-              ${loading || redirecting 
-                ? "bg-gray-300 text-gray-500 cursor-not-allowed" 
-                : "bg-blue-500 text-white hover:bg-blue-600"}`}
+            className={`w-[48%] text-center py-2 rounded-md transition font-medium shadow ${
+              loading || redirecting
+                ? "bg-gray-300 text-gray-500 cursor-not-allowed"
+                : "bg-blue-500 text-white hover:bg-blue-600"
+            }`}
           >
             {loading || redirecting ? "Please wait…" : "Create Account"}
           </button>
           <button
             onClick={() => router.push("/forgot-password")}
             disabled={loading || redirecting}
-            className={`w-[48%] text-center py-2 rounded-md transition font-medium shadow 
-              ${loading || redirecting 
-                ? "bg-gray-300 text-gray-500 cursor-not-allowed" 
-                : "bg-red-500 text-white hover:bg-red-600"}`}
+            className={`w-[48%] text-center py-2 rounded-md transition font-medium shadow ${
+              loading || redirecting
+                ? "bg-gray-300 text-gray-500 cursor-not-allowed"
+                : "bg-red-500 text-white hover:bg-red-600"
+            }`}
           >
             {loading || redirecting ? "Please wait…" : "Forgot Password?"}
           </button>
