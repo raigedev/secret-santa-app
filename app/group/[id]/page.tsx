@@ -20,6 +20,7 @@ export default function GroupDetailsPage() {
   const [loading, setLoading] = useState(true);
   const [showConfirm, setShowConfirm] = useState(false);
   const [errorMsg, setErrorMsg] = useState("");
+  const [successMsg, setSuccessMsg] = useState("");
 
   useEffect(() => {
     const fetchGroup = async () => {
@@ -52,7 +53,11 @@ export default function GroupDetailsPage() {
       return;
     }
 
-    router.push("/dashboard"); // ✅ redirect after delete
+    // ✅ Show success message before redirect
+    setSuccessMsg("Group deleted successfully!");
+    setTimeout(() => {
+      router.push("/dashboard");
+    }, 1500); // wait 1.5s so user sees the toast
   };
 
   if (loading) {
@@ -82,6 +87,11 @@ export default function GroupDetailsPage() {
 
         {errorMsg && (
           <p className="text-red-600 font-semibold text-center mb-4">{errorMsg}</p>
+        )}
+        {successMsg && (
+          <p className="text-green-600 font-semibold text-center mb-4">
+            {successMsg}
+          </p>
         )}
 
         {members.length === 0 ? (
