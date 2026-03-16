@@ -10,6 +10,7 @@ export default function LoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
 
   // ✅ Check if user is already logged in
   useEffect(() => {
@@ -17,7 +18,9 @@ export default function LoginPage() {
       const {
         data: { session },
       } = await supabase.auth.getSession();
-      if (session) {
+
+      // Only redirect if we're still on the login page
+      if (session && window.location.pathname === "/login") {
         router.push("/dashboard");
       }
     };
@@ -26,7 +29,7 @@ export default function LoginPage() {
     // ✅ Listen for auth state changes
     const { data: authListener } = supabase.auth.onAuthStateChange(
       async (event, session) => {
-        if (session) {
+        if (session && window.location.pathname === "/login") {
           router.push("/dashboard");
         }
       }
@@ -38,14 +41,17 @@ export default function LoginPage() {
   }, [router]);
 
   const handleGoogleLogin = async () => {
+    setLoading(true);
     await supabase.auth.signInWithOAuth({
       provider: "google",
       options: { redirectTo: `${window.location.origin}/dashboard` },
     });
+    setLoading(false);
   };
 
   const handleEmailLogin = async () => {
     setError(null);
+    setLoading(true);
     const { error } = await supabase.auth.signInWithPassword({
       email,
       password,
@@ -53,9 +59,9 @@ export default function LoginPage() {
     if (error) {
       setError(error.message);
     } else {
-      // ✅ Session is persisted automatically
       router.push("/dashboard");
     }
+    setLoading(false);
   };
 
   return (
@@ -82,9 +88,9 @@ export default function LoginPage() {
           placeholder="Enter your username or email"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
-          className="w-full border border-gray-300 rounded-md p-3 mb-4 
-                     focus:ring-2 focus:ring-blue-300 
-                     bg-white text-black placeholder-gray-600"
+          className="w-full border-2 border-blue-600 rounded-md p-3 mb-4 
+                     focus:ring-2 focus:ring-blue-400 
+                     bg-white text-black placeholder-gray-600 shadow-sm"
         />
 
         {/* Password input */}
@@ -93,17 +99,19 @@ export default function LoginPage() {
           placeholder="Enter your password"
           value={password}
           onChange={(e) => setPassword(e.target.value)}
-          className="w-full border border-gray-300 rounded-md p-3 mb-6 
-                     focus:ring-2 focus:ring-blue-300 
-                     bg-white text-black placeholder-gray-600"
+          className="w-full border-2 border-blue-600 rounded-md p-3 mb-6 
+                     focus:ring-2 focus:ring-blue-400 
+                     bg-white text-black placeholder-gray-600 shadow-sm"
         />
 
         {/* Login button */}
         <button
           onClick={handleEmailLogin}
-          className="w-full bg-blue-600 text-white font-semibold py-3 rounded-md hover:bg-blue-700 transition"
+          disabled={loading}
+          className={`w-full font-semibold py-3 rounded-md transition 
+            ${loading ? "bg-gray-400 cursor-not-allowed text-white" : "bg-blue-600 text-white hover:bg-blue-700"}`}
         >
-          Login
+          {loading ? "Logging in..." : "Login"}
         </button>
 
         {/* Error message */}
@@ -115,7 +123,9 @@ export default function LoginPage() {
         {/* Google login button */}
         <button
           onClick={handleGoogleLogin}
-          className="w-full flex items-center justify-center border border-gray-300 bg-white text-gray-700 py-3 rounded-md hover:bg-gray-50 transition shadow-sm"
+          disabled={loading}
+          className={`w-full flex items-center justify-center border border-gray-300 py-3 rounded-md transition shadow-sm 
+            ${loading ? "bg-gray-200 text-gray-400 cursor-not-allowed" : "bg-white text-gray-700 hover:bg-gray-50"}`}
         >
           <Image
             src="/google-logo.png"
@@ -124,7 +134,9 @@ export default function LoginPage() {
             height={24}
             className="mr-3"
           />
-          <span className="text-base font-medium">Continue with Google</span>
+          <span className="text-base font-medium">
+            {loading ? "Please wait..." : "Continue with Google"}
+          </span>
         </button>
 
         {/* Action links */}
