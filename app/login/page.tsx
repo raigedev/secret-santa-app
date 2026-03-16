@@ -11,6 +11,7 @@ export default function LoginPage() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [redirecting, setRedirecting] = useState(false);
 
   // ✅ Check if user is already logged in
   useEffect(() => {
@@ -40,12 +41,11 @@ export default function LoginPage() {
   }, [router]);
 
   const handleGoogleLogin = async () => {
-    setLoading(true);
+    setRedirecting(true); // show overlay
     await supabase.auth.signInWithOAuth({
       provider: "google",
-      options: { redirectTo: `${window.location.origin}/auth/callback` }, // ✅ use callback route
+      options: { redirectTo: `${window.location.origin}/auth/callback` },
     });
-    setLoading(false);
   };
 
   const handleEmailLogin = async () => {
@@ -64,7 +64,16 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-[url('/snowflakes.png')] bg-cover bg-center">
+    <div className="min-h-screen flex items-center justify-center bg-[url('/snowflakes.png')] bg-cover bg-center relative">
+      {/* Redirecting overlay */}
+      {redirecting && (
+        <div className="absolute inset-0 bg-white/80 flex items-center justify-center z-50">
+          <p className="text-xl font-semibold text-blue-700 animate-pulse">
+            Redirecting to Google…
+          </p>
+        </div>
+      )}
+
       <div className="bg-gradient-to-br from-white via-blue-100 to-gray-200 rounded-lg shadow-xl border-4 border-white p-8 max-w-md w-full relative ring-4 ring-blue-200">
         {/* Bells Holly */}
         <Image
@@ -106,9 +115,9 @@ export default function LoginPage() {
         {/* Login button */}
         <button
           onClick={handleEmailLogin}
-          disabled={loading}
+          disabled={loading || redirecting}
           className={`w-full font-semibold py-3 rounded-md transition 
-            ${loading ? "bg-gray-400 cursor-not-allowed text-white" : "bg-blue-600 text-white hover:bg-blue-700"}`}
+            ${loading || redirecting ? "bg-gray-400 cursor-not-allowed text-white" : "bg-blue-600 text-white hover:bg-blue-700"}`}
         >
           {loading ? "Logging in..." : "Login"}
         </button>
@@ -122,9 +131,9 @@ export default function LoginPage() {
         {/* Google login button */}
         <button
           onClick={handleGoogleLogin}
-          disabled={loading}
+          disabled={loading || redirecting}
           className={`w-full flex items-center justify-center border border-gray-300 py-3 rounded-md transition shadow-sm 
-            ${loading ? "bg-gray-200 text-gray-400 cursor-not-allowed" : "bg-white text-gray-700 hover:bg-gray-50"}`}
+            ${loading || redirecting ? "bg-gray-200 text-gray-400 cursor-not-allowed" : "bg-white text-gray-700 hover:bg-gray-50"}`}
         >
           <Image
             src="/google-logo.png"
@@ -134,7 +143,7 @@ export default function LoginPage() {
             className="mr-3"
           />
           <span className="text-base font-medium">
-            {loading ? "Please wait..." : "Continue with Google"}
+            {redirecting ? "Redirecting…" : "Continue with Google"}
           </span>
         </button>
 
