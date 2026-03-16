@@ -2,34 +2,30 @@
 
 import Image from "next/image";
 import { useRouter } from "next/navigation";
-import { useState, useEffect } from "react";
-import { supabase } from "../../lib/supabaseClient";
+import { useState } from "react";
+// ✅ Use the new client helper instead of the old supabaseClient
+import { createClient } from "@/lib/supabase/client";
 
 export default function LoginPage() {
   const router = useRouter();
+  const supabase = createClient(); // ✅ Create Supabase browser client
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [redirecting, setRedirecting] = useState(false);
 
-  // ✅ Redirect if already logged in
-  useEffect(() => {
-    const checkSession = async () => {
-      const { data } = await supabase.auth.getSession();
-      if (data.session) {
-        router.replace("/dashboard");
-      }
-    };
-    checkSession();
-  }, [router]);
+  // ❌ Remove useEffect session check
+  // Middleware now handles redirecting if the user is already logged in.
+  // This keeps the login page clean and avoids duplicate logic.
 
+  // ✅ Google OAuth login
   const handleGoogleLogin = async () => {
     setRedirecting(true);
     const { error } = await supabase.auth.signInWithOAuth({
       provider: "google",
       options: {
-        // ✅ Must match your Supabase dashboard redirect URL exactly
+        // Must match your Supabase dashboard redirect URL exactly
         redirectTo: `${window.location.origin}/auth/callback`,
       },
     });
@@ -40,6 +36,7 @@ export default function LoginPage() {
     }
   };
 
+  // ✅ Email/password login
   const handleEmailLogin = async () => {
     setError(null);
     setLoading(true);
@@ -50,6 +47,8 @@ export default function LoginPage() {
     if (error) {
       setError(error.message);
     } else {
+      // Middleware will enforce session protection,
+      // but we can still redirect to dashboard here for UX
       router.replace("/dashboard");
     }
     setLoading(false);
@@ -66,7 +65,7 @@ export default function LoginPage() {
       )}
 
       <div className="bg-gradient-to-br from-white via-blue-100 to-gray-200 rounded-lg shadow-xl border-4 border-white p-8 max-w-md w-full relative ring-4 ring-blue-200">
-        {/* Bells Holly */}
+        {/* Bells Holly decoration */}
         <Image
           src="/bells-holly.png"
           alt="Bells Holly"
