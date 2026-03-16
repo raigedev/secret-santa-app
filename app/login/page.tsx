@@ -41,11 +41,14 @@ export default function LoginPage() {
   }, [router]);
 
   const handleGoogleLogin = async () => {
-    setRedirecting(true); // show overlay
-    await supabase.auth.signInWithOAuth({
-      provider: "google",
-      options: { redirectTo: `${window.location.origin}/auth/callback` },
-    });
+    setRedirecting(true); // show overlay immediately
+    // Small delay so overlay renders before redirect
+    setTimeout(async () => {
+      await supabase.auth.signInWithOAuth({
+        provider: "google",
+        options: { redirectTo: `${window.location.origin}/auth/callback` },
+      });
+    }, 100);
   };
 
   const handleEmailLogin = async () => {
@@ -67,10 +70,9 @@ export default function LoginPage() {
     <div className="min-h-screen flex items-center justify-center bg-[url('/snowflakes.png')] bg-cover bg-center relative">
       {/* Redirecting overlay */}
       {redirecting && (
-        <div className="absolute inset-0 bg-white/80 flex items-center justify-center z-50">
-          <p className="text-xl font-semibold text-blue-700 animate-pulse">
-            Redirecting to Google…
-          </p>
+        <div className="absolute inset-0 bg-white/90 flex flex-col items-center justify-center z-50">
+          <div className="animate-spin rounded-full h-12 w-12 border-t-4 border-blue-600 mb-4"></div>
+          <p className="text-lg font-semibold text-blue-700">Redirecting to Google…</p>
         </div>
       )}
 
