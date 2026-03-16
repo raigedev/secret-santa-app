@@ -18,7 +18,7 @@ export default function LoginPage() {
     const checkSession = async () => {
       const { data } = await supabase.auth.getSession();
       if (data.session) {
-        router.push("/dashboard");
+        router.replace("/dashboard"); // use replace to avoid back button returning to login
       }
     };
     checkSession();
@@ -42,13 +42,14 @@ export default function LoginPage() {
     if (error) {
       setError(error.message);
     } else {
-      router.push("/dashboard");
+      router.replace("/dashboard");
     }
     setLoading(false);
   };
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-[url('/snowflakes.png')] bg-cover bg-center relative">
+      {/* Redirecting overlay */}
       {redirecting && (
         <div className="absolute inset-0 bg-white/90 flex flex-col items-center justify-center z-50">
           <div className="animate-spin rounded-full h-12 w-12 border-t-4 border-blue-600 mb-4"></div>
@@ -71,6 +72,7 @@ export default function LoginPage() {
         </h1>
         <p className="text-center text-gray-700 mb-6">Welcome to Secret Santa!</p>
 
+        {/* Email input */}
         <input
           type="text"
           placeholder="Enter your username or email"
@@ -81,6 +83,7 @@ export default function LoginPage() {
                      bg-white text-black placeholder-gray-600 shadow-sm"
         />
 
+        {/* Password input */}
         <input
           type="password"
           placeholder="Enter your password"
@@ -91,6 +94,7 @@ export default function LoginPage() {
                      bg-white text-black placeholder-gray-600 shadow-sm"
         />
 
+        {/* Login button */}
         <button
           onClick={handleEmailLogin}
           disabled={loading || redirecting}
@@ -104,6 +108,7 @@ export default function LoginPage() {
 
         <div className="text-center text-gray-700 my-4">or</div>
 
+        {/* Google login button */}
         <button
           onClick={handleGoogleLogin}
           disabled={loading || redirecting}
@@ -122,21 +127,31 @@ export default function LoginPage() {
           </span>
         </button>
 
+        {/* Action links */}
         <div className="flex justify-between mt-6">
           <button
             onClick={() => router.push("/create-account")}
-            className="w-[48%] text-center bg-blue-500 text-white py-2 rounded-md hover:bg-blue-600 transition font-medium shadow"
+            disabled={loading || redirecting}
+            className={`w-[48%] text-center py-2 rounded-md transition font-medium shadow 
+              ${loading || redirecting 
+                ? "bg-gray-300 text-gray-500 cursor-not-allowed" 
+                : "bg-blue-500 text-white hover:bg-blue-600"}`}
           >
-            Create Account
+            {loading || redirecting ? "Please wait…" : "Create Account"}
           </button>
           <button
             onClick={() => router.push("/forgot-password")}
-            className="w-[48%] text-center bg-red-500 text-white py-2 rounded-md hover:bg-red-600 transition font-medium shadow"
+            disabled={loading || redirecting}
+            className={`w-[48%] text-center py-2 rounded-md transition font-medium shadow 
+              ${loading || redirecting 
+                ? "bg-gray-300 text-gray-500 cursor-not-allowed" 
+                : "bg-red-500 text-white hover:bg-red-600"}`}
           >
-            Forgot Password?
+            {loading || redirecting ? "Please wait…" : "Forgot Password?"}
           </button>
         </div>
 
+        {/* Footer decorations */}
         <Image
           src="/gifts.png"
           alt="Gift Box"
