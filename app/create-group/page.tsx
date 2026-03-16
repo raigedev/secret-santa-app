@@ -52,7 +52,7 @@ export default function CreateGroupPage() {
       {/* snowflake overlay */}
       <div className="absolute inset-0 bg-[url('/snowflakes.png')] opacity-20 z-0"></div>
 
-      <div className="relative z-10 w-full max-w-lg p-8 rounded-xl shadow-xl bg-white/70 backdrop-blur-md">
+      <div className="relative z-10 w-full max-w-lg p-8 rounded-xl shadow-xl bg-white/80 backdrop-blur-md">
         <h1 className="text-3xl font-bold text-center mb-6 text-green-700 drop-shadow-lg">
           🎄 Create Your Secret Santa Group 🎁
         </h1>
@@ -63,7 +63,7 @@ export default function CreateGroupPage() {
             placeholder="Group Name"
             value={groupName}
             onChange={(e) => setGroupName(e.target.value)}
-            className="w-full px-4 py-2 rounded-lg border focus:ring-2 focus:ring-green-400"
+            className="w-full px-4 py-2 rounded-lg border border-gray-400 bg-white text-gray-900 placeholder-gray-500 focus:ring-2 focus:ring-green-400 focus:border-green-400"
             required
           />
 
@@ -71,7 +71,7 @@ export default function CreateGroupPage() {
             placeholder="Description / Rules"
             value={description}
             onChange={(e) => setDescription(e.target.value)}
-            className="w-full px-4 py-2 rounded-lg border focus:ring-2 focus:ring-green-400"
+            className="w-full px-4 py-2 rounded-lg border border-gray-400 bg-white text-gray-900 placeholder-gray-500 focus:ring-2 focus:ring-green-400 focus:border-green-400"
             rows={3}
           />
 
@@ -79,7 +79,7 @@ export default function CreateGroupPage() {
             type="date"
             value={eventDate}
             onChange={(e) => setEventDate(e.target.value)}
-            className="w-full px-4 py-2 rounded-lg border focus:ring-2 focus:ring-green-400"
+            className="w-full px-4 py-2 rounded-lg border border-gray-400 bg-white text-gray-900 focus:ring-2 focus:ring-green-400 focus:border-green-400"
             required
           />
 
@@ -88,7 +88,7 @@ export default function CreateGroupPage() {
             placeholder="Invite emails (comma separated)"
             value={inviteEmails}
             onChange={(e) => setInviteEmails(e.target.value)}
-            className="w-full px-4 py-2 rounded-lg border focus:ring-2 focus:ring-green-400"
+            className="w-full px-4 py-2 rounded-lg border border-gray-400 bg-white text-gray-900 placeholder-gray-500 focus:ring-2 focus:ring-green-400 focus:border-green-400"
           />
 
           {errorMsg && (
