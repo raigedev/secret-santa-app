@@ -1,6 +1,6 @@
 "use client";
 
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 
@@ -12,15 +12,17 @@ type Member = {
 
 export default function GroupDetailsPage() {
   const { id } = useParams(); // group id from URL
+  const router = useRouter();
   const supabase = createClient();
 
   const [members, setMembers] = useState<Member[]>([]);
   const [groupName, setGroupName] = useState("");
   const [loading, setLoading] = useState(true);
+  const [showConfirm, setShowConfirm] = useState(false);
+  const [errorMsg, setErrorMsg] = useState("");
 
   useEffect(() => {
     const fetchGroup = async () => {
-      // ✅ Get group info
       const { data: groupData } = await supabase
         .from("groups")
         .select("name")
@@ -29,7 +31,6 @@ export default function GroupDetailsPage() {
 
       if (groupData) setGroupName(groupData.name);
 
-      // ✅ Get members (only user_id + nickname/email, not role)
       const { data: memberData } = await supabase
         .from("group_members")
         .select("user_id, nickname, email")
@@ -41,6 +42,18 @@ export default function GroupDetailsPage() {
 
     fetchGroup();
   }, [id, supabase]);
+
+  const handleDelete = async () => {
+    setErrorMsg("");
+    const { error } = await supabase.from("groups").delete().eq("id", id);
+
+    if (error) {
+      setErrorMsg(error.message);
+      return;
+    }
+
+    router.push("/dashboard"); // ✅ redirect after delete
+  };
 
   if (loading) {
     return (
@@ -55,9 +68,21 @@ export default function GroupDetailsPage() {
       <div className="absolute inset-0 bg-[url('/snowflakes.png')] opacity-20 z-0"></div>
 
       <div className="relative z-10 max-w-2xl w-full p-8 rounded-xl shadow-xl bg-white/80 backdrop-blur-md">
-        <h1 className="text-3xl font-bold text-center mb-6 text-yellow-700 drop-shadow-lg">
-          🎁 {groupName} Members
-        </h1>
+        <div className="flex justify-between items-center mb-6">
+          <h1 className="text-3xl font-bold text-yellow-700 drop-shadow-lg">
+            🎁 {groupName} Members
+          </h1>
+          <button
+            onClick={() => setShowConfirm(true)}
+            className="px-4 py-2 rounded-md bg-red-500 text-white font-semibold hover:bg-red-600 transition"
+          >
+            Delete Group
+          </button>
+        </div>
+
+        {errorMsg && (
+          <p className="text-red-600 font-semibold text-center mb-4">{errorMsg}</p>
+        )}
 
         {members.length === 0 ? (
           <p className="text-gray-600 text-center">No members yet.</p>
@@ -74,6 +99,32 @@ export default function GroupDetailsPage() {
           </ul>
         )}
       </div>
+
+      {/* ✅ Confirmation Modal */}
+      {showConfirm && (
+        <div className="fixed inset-0 flex items-center justify-center bg-black/50 z-50">
+          <div className="bg-white rounded-lg shadow-lg p-6 max-w-sm w-full">
+            <h2 className="text-xl font-bold mb-4 text-red-600">Confirm Delete</h2>
+            <p className="mb-6 text-gray-700">
+              Are you sure you want to delete <strong>{groupName}</strong>? This action cannot be undone.
+            </p>
+            <div className="flex justify-end space-x-4">
+              <button
+                onClick={() => setShowConfirm(false)}
+                className="px-4 py-2 rounded-md bg-gray-300 hover:bg-gray-400 transition"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleDelete}
+                className="px-4 py-2 rounded-md bg-red-500 text-white font-semibold hover:bg-red-600 transition"
+              >
+                Yes, Delete
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </main>
   );
 }
