@@ -29,18 +29,33 @@ export default function CreateGroupPage() {
     }
 
     // Insert group into Supabase
-    const { error } = await supabase.from("groups").insert({
-      name: groupName,
-      description,
-      event_date: eventDate,
-      owner_id: user.id,
-      invites: inviteEmails.split(",").map(email => email.trim()),
-    });
+    const { data: newGroup, error } = await supabase
+      .from("groups")
+      .insert({
+        name: groupName,
+        description,
+        event_date: eventDate,
+        owner_id: user.id,
+        invites: inviteEmails.split(",").map(email => email.trim()),
+      })
+      .select()
+      .single();
 
-    if (error) {
-      setErrorMsg(error.message);
+    if (error || !newGroup) {
+      setErrorMsg(error?.message || "Failed to create group.");
       setLoading(false);
       return;
+    }
+
+    // ✅ Insert owner into group_members with role "owner"
+    const { error: memberError } = await supabase.from("group_members").insert({
+      group_id: newGroup.id,
+      user_id: user.id,
+      role: "owner",
+    });
+
+    if (memberError) {
+      console.error("Failed to insert owner into group_members:", memberError.message);
     }
 
     // Redirect back to dashboard
