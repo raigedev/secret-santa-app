@@ -19,6 +19,8 @@ export default function ResetPasswordPage() {
       console.error(error.message);
     } else {
       setMessage("✅ Password updated successfully!");
+      // Sign out the user so they must log in again
+      await supabase.auth.signOut();
       setTimeout(() => router.push("/login"), 2000);
     }
   };
