@@ -3,7 +3,7 @@ import { createServerClient } from "@supabase/auth-helpers-nextjs";
 import type { CookieOptions } from "@supabase/ssr";
 
 export async function GET(request: Request) {
-  const res = NextResponse.redirect(new URL("/dashboard", request.url));
+  const response = NextResponse.redirect(new URL("/dashboard", request.url));
 
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -22,10 +22,10 @@ export async function GET(request: Request) {
           return cookies[name];
         },
         set(name: string, value: string, options: CookieOptions) {
-          res.cookies.set({ name, value, ...options });
+          response.cookies.set({ name, value, ...options });
         },
         remove(name: string, options: CookieOptions) {
-          res.cookies.set({ name, value: "", ...options });
+          response.cookies.set({ name, value: "", ...options });
         },
       },
     }
@@ -38,5 +38,5 @@ export async function GET(request: Request) {
     return NextResponse.redirect(new URL("/login", request.url));
   }
 
-  return res;
+  return response;
 }
