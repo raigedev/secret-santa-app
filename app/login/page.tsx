@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import { useRouter } from "next/navigation";
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { supabase } from "../../lib/supabaseClient";
 
 export default function LoginPage() {
@@ -13,42 +13,12 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false);
   const [redirecting, setRedirecting] = useState(false);
 
-  // ✅ Check if user is already logged in
-  useEffect(() => {
-    const checkSession = async () => {
-      const {
-        data: { session },
-      } = await supabase.auth.getSession();
-
-      if (session && window.location.pathname === "/login") {
-        router.push("/dashboard");
-      }
-    };
-    checkSession();
-
-    // ✅ Listen for auth state changes
-    const { data: authListener } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
-        if (session && window.location.pathname === "/login") {
-          router.push("/dashboard");
-        }
-      }
-    );
-
-    return () => {
-      authListener.subscription.unsubscribe();
-    };
-  }, [router]);
-
   const handleGoogleLogin = async () => {
-    setRedirecting(true); // show overlay immediately
-    // Small delay so overlay renders before redirect
-    setTimeout(async () => {
-      await supabase.auth.signInWithOAuth({
-        provider: "google",
-        options: { redirectTo: `${window.location.origin}/auth/callback` },
-      });
-    }, 100);
+    setRedirecting(true);
+    await supabase.auth.signInWithOAuth({
+      provider: "google",
+      options: { redirectTo: `${window.location.origin}/auth/callback` },
+    });
   };
 
   const handleEmailLogin = async () => {
@@ -68,7 +38,6 @@ export default function LoginPage() {
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-[url('/snowflakes.png')] bg-cover bg-center relative">
-      {/* Redirecting overlay */}
       {redirecting && (
         <div className="absolute inset-0 bg-white/90 flex flex-col items-center justify-center z-50">
           <div className="animate-spin rounded-full h-12 w-12 border-t-4 border-blue-600 mb-4"></div>
@@ -86,13 +55,11 @@ export default function LoginPage() {
           className="absolute -top-12 left-1/2 transform -translate-x-1/2 w-24 animate-bounce"
         />
 
-        {/* Title */}
         <h1 className="text-3xl font-bold text-center mb-2 text-blue-900 drop-shadow-lg">
           GiftDraw
         </h1>
         <p className="text-center text-gray-700 mb-6">Welcome to Secret Santa!</p>
 
-        {/* Username or Email input */}
         <input
           type="text"
           placeholder="Enter your username or email"
@@ -103,7 +70,6 @@ export default function LoginPage() {
                      bg-white text-black placeholder-gray-600 shadow-sm"
         />
 
-        {/* Password input */}
         <input
           type="password"
           placeholder="Enter your password"
@@ -114,7 +80,6 @@ export default function LoginPage() {
                      bg-white text-black placeholder-gray-600 shadow-sm"
         />
 
-        {/* Login button */}
         <button
           onClick={handleEmailLogin}
           disabled={loading || redirecting}
@@ -124,13 +89,10 @@ export default function LoginPage() {
           {loading ? "Logging in..." : "Login"}
         </button>
 
-        {/* Error message */}
         {error && <p className="text-red-600 text-sm mt-2">{error}</p>}
 
-        {/* Divider */}
         <div className="text-center text-gray-700 my-4">or</div>
 
-        {/* Google login button */}
         <button
           onClick={handleGoogleLogin}
           disabled={loading || redirecting}
@@ -149,7 +111,6 @@ export default function LoginPage() {
           </span>
         </button>
 
-        {/* Action links */}
         <div className="flex justify-between mt-6">
           <button
             onClick={() => router.push("/create-account")}
@@ -165,7 +126,6 @@ export default function LoginPage() {
           </button>
         </div>
 
-        {/* Footer decorations */}
         <Image
           src="/gifts.png"
           alt="Gift Box"
