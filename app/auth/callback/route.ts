@@ -11,7 +11,15 @@ export async function GET(request: Request) {
     {
       cookies: {
         get(name: string) {
-          return request.headers.get("cookie") ?? undefined;
+          const cookieHeader = request.headers.get("cookie");
+          if (!cookieHeader) return undefined;
+          const cookies = Object.fromEntries(
+            cookieHeader.split(";").map((c) => {
+              const [k, v] = c.trim().split("=");
+              return [k, v];
+            })
+          );
+          return cookies[name];
         },
         set(name: string, value: string, options: CookieOptions) {
           response.cookies.set({ name, value, ...options });
@@ -23,7 +31,8 @@ export async function GET(request: Request) {
     }
   );
 
-  const { error } = await supabase.auth.exchangeCodeForSession(request.url);
+  const { data, error } = await supabase.auth.exchangeCodeForSession(request.url);
+  console.log("Callback session:", data.session, "Error:", error);
 
   if (error) {
     console.error("Auth callback error:", error.message);
