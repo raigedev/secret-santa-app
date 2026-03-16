@@ -1,10 +1,8 @@
 import { NextResponse } from "next/server";
-import type { NextRequest } from "next/server";
-import { createServerClient } from "@supabase/auth-helpers-nextjs";
-import type { CookieOptions } from "@supabase/ssr";
+import { createServerClient } from "@supabase/ssr";
 
-export async function middleware(req: NextRequest) {
-  const res = NextResponse.next();
+export async function middleware(request: Request) {
+  const response = NextResponse.next();
 
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -12,36 +10,25 @@ export async function middleware(req: NextRequest) {
     {
       cookies: {
         get(name: string) {
-          return req.cookies.get(name)?.value;
+          return request.headers.get("cookie")?.split(";")
+            .map((c) => c.trim().split("="))
+            .find(([k]) => k === name)?.[1];
         },
-        set(name: string, value: string, options: CookieOptions) {
-          res.cookies.set({ name, value, ...options });
+        set(name: string, value: string, options) {
+          response.cookies.set(name, value, options);
         },
-        remove(name: string, options: CookieOptions) {
-          res.cookies.set({ name, value: "", ...options });
+        remove(name: string, options) {
+          response.cookies.set(name, "", options);
         },
       },
     }
   );
 
-  const {
-    data: { session },
-  } = await supabase.auth.getSession();
+  const { data } = await supabase.auth.getSession();
 
-  // Protect multiple routes
-  const protectedPaths = ["/dashboard", "/chat", "/reset-password"];
-  const isProtected = protectedPaths.some((path) =>
-    req.nextUrl.pathname.startsWith(path)
-  );
-
-  if (isProtected && !session) {
-    return NextResponse.redirect(new URL("/login", req.url));
+  if (!data.session && request.url.includes("/dashboard")) {
+    return NextResponse.redirect(new URL("/login", request.url));
   }
 
-  return res;
+  return response;
 }
-
-// ✅ Limit middleware to protected routes only
-export const config = {
-  matcher: ["/dashboard/:path*", "/chat/:path*", "/reset-password/:path*"],
-};
