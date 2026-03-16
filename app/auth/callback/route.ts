@@ -11,15 +11,7 @@ export async function GET(request: Request) {
     {
       cookies: {
         get(name: string) {
-          const cookieHeader = request.headers.get("cookie");
-          if (!cookieHeader) return undefined;
-          const cookies = Object.fromEntries(
-            cookieHeader.split(";").map((c) => {
-              const [k, v] = c.trim().split("=");
-              return [k, v];
-            })
-          );
-          return cookies[name];
+          return request.headers.get("cookie") ?? undefined;
         },
         set(name: string, value: string, options: CookieOptions) {
           response.cookies.set({ name, value, ...options });
