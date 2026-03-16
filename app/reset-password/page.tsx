@@ -19,7 +19,6 @@ export default function ResetPasswordPage() {
       console.error(error.message);
     } else {
       setMessage("✅ Password updated successfully!");
-      // Redirect back to login
       setTimeout(() => router.push("/login"), 2000);
     }
   };
@@ -27,17 +26,20 @@ export default function ResetPasswordPage() {
   return (
     <main className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-br from-blue-100 to-white px-4">
       <div className="bg-white shadow-lg rounded-lg p-6 w-full max-w-md text-center">
-        <h1 className="text-2xl font-bold mb-4 text-red-600">🔑 Reset Password</h1>
+        <h1 className="text-2xl font-bold mb-4 text-red-600 flex items-center justify-center">
+          🔑 Reset Password
+        </h1>
         <input
           type="password"
           placeholder="Enter new password"
-          className="border border-gray-300 p-2 rounded w-full mb-4 focus:outline-none focus:ring-2 focus:ring-red-400"
+          className="border-2 border-red-600 bg-white text-black p-3 rounded w-full mb-4 
+                     focus:outline-none focus:ring-2 focus:ring-red-500 shadow-sm"
           value={newPassword}
           onChange={(e) => setNewPassword(e.target.value)}
         />
         <button
           onClick={handleUpdatePassword}
-          className="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600 transition"
+          className="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600 transition w-full"
         >
           Update Password
         </button>
