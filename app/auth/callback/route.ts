@@ -1,20 +1,42 @@
 import { NextResponse } from "next/server";
-import { supabase } from "../../../lib/supabaseClient";
+import { createServerClient } from "@supabase/auth-helpers-nextjs";
+import type { CookieOptions } from "@supabase/ssr";
 
 export async function GET(request: Request) {
-  try {
-    // Exchange the code for a session server-side
-    const { error } = await supabase.auth.exchangeCodeForSession(request.url);
+  const res = NextResponse.redirect(new URL("/dashboard", request.url));
 
-    if (error) {
-      console.error("Auth callback error:", error.message);
-      return NextResponse.redirect(new URL("/login", request.url));
+  const supabase = createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      cookies: {
+        get(name: string) {
+          const cookieHeader = request.headers.get("cookie");
+          if (!cookieHeader) return undefined;
+          const cookies = Object.fromEntries(
+            cookieHeader.split(";").map((c) => {
+              const [k, v] = c.trim().split("=");
+              return [k, v];
+            })
+          );
+          return cookies[name];
+        },
+        set(name: string, value: string, options: CookieOptions) {
+          res.cookies.set({ name, value, ...options });
+        },
+        remove(name: string, options: CookieOptions) {
+          res.cookies.set({ name, value: "", ...options });
+        },
+      },
     }
+  );
 
-    // ✅ Cookies are now set server-side
-    return NextResponse.redirect(new URL("/dashboard", request.url));
-  } catch (err) {
-    console.error("Unexpected error:", err);
+  const { error } = await supabase.auth.exchangeCodeForSession(request.url);
+
+  if (error) {
+    console.error("Auth callback error:", error.message);
     return NextResponse.redirect(new URL("/login", request.url));
   }
+
+  return res;
 }
