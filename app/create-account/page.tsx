@@ -2,30 +2,35 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { supabase } from "../../lib/supabaseClient";
+// ✅ Use the new client helper instead of the old supabaseClient
+import { createClient } from "@/lib/supabase/client";
 
 export default function CreateAccountPage() {
   const router = useRouter();
+  const supabase = createClient(); // ✅ Create Supabase browser client
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [name, setName] = useState("");
   const [error, setError] = useState("");
   const [confirmation, setConfirmation] = useState(false);
 
+  // ✅ Handle signup with Supabase
   const handleSignup = async () => {
     const { error } = await supabase.auth.signUp({
       email,
       password,
       options: {
+        // Store extra user metadata (name)
         data: { name },
-        emailRedirectTo: `${location.origin}/auth/callback`, // ✅ confirmation link
+        // Must match your Supabase redirect URL exactly
+        emailRedirectTo: `${location.origin}/auth/callback`,
       },
     });
 
     if (error) {
       setError(error.message);
     } else {
-      setConfirmation(true); // ✅ show confirmation message
+      setConfirmation(true); // ✅ Show confirmation message
     }
   };
 
@@ -40,6 +45,7 @@ export default function CreateAccountPage() {
 
         {!confirmation ? (
           <div className="space-y-4">
+            {/* Name input */}
             <input
               type="text"
               placeholder="Your Name"
@@ -49,6 +55,8 @@ export default function CreateAccountPage() {
                          focus:outline-none focus:ring-2 focus:ring-yellow-400
                          placeholder-gray-600 text-gray-900"
             />
+
+            {/* Email input */}
             <input
               type="email"
               placeholder="Your Email"
@@ -58,6 +66,8 @@ export default function CreateAccountPage() {
                          focus:outline-none focus:ring-2 focus:ring-yellow-400
                          placeholder-gray-600 text-gray-900"
             />
+
+            {/* Password input */}
             <input
               type="password"
               placeholder="Your Password"
@@ -70,6 +80,7 @@ export default function CreateAccountPage() {
 
             {error && <p className="text-red-500 text-sm">{error}</p>}
 
+            {/* Signup button */}
             <button
               onClick={handleSignup}
               className="w-full py-3 rounded-lg text-white font-bold 

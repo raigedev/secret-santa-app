@@ -2,18 +2,22 @@
 
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { supabase } from "../../lib/supabaseClient";
+// ✅ Use the new client helper instead of the old supabaseClient
+import { createClient } from "@/lib/supabase/client";
 
 export default function DashboardPage() {
   const router = useRouter();
+  const supabase = createClient(); // ✅ Create Supabase browser client
   const [userName, setUserName] = useState("");
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const checkSession = async () => {
+      // ✅ Get session from cookies (via @supabase/ssr client)
       const { data: { session } } = await supabase.auth.getSession();
 
       if (!session) {
+        // Redirect to login if no session
         router.push("/login");
       } else {
         const email = session.user.email || "Guest";
@@ -39,8 +43,9 @@ export default function DashboardPage() {
     return () => {
       authListener.subscription.unsubscribe();
     };
-  }, [router]);
+  }, [router, supabase]);
 
+  // ✅ Handle logout
   const handleLogout = async () => {
     await supabase.auth.signOut();
     router.push("/login");
