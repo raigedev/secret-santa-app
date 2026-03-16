@@ -19,7 +19,6 @@ export default function LoginPage() {
         data: { session },
       } = await supabase.auth.getSession();
 
-      // Only redirect if we're still on the login page
       if (session && window.location.pathname === "/login") {
         router.push("/dashboard");
       }
@@ -44,7 +43,7 @@ export default function LoginPage() {
     setLoading(true);
     await supabase.auth.signInWithOAuth({
       provider: "google",
-      options: { redirectTo: `${window.location.origin}/dashboard` },
+      options: { redirectTo: `${window.location.origin}/auth/callback` }, // ✅ use callback route
     });
     setLoading(false);
   };
