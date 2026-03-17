@@ -5,31 +5,41 @@ type Member = {
   nickname?: string;
 };
 
-export default async function GroupDetails({ params }: { params: { id?: string } }) {
+export default async function GroupDetails(props: { params: Promise<{ id: string }> }) {
+  // ✅ unwrap the params Promise
+  const { id } = await props.params;
+
+  // 👇 Debug log to confirm what Next.js passes in
+  console.log("Group ID param:", id);
+
   const supabase = await createClient();
 
   // Guard against missing group ID
-  if (!params.id) {
+  if (!id) {
     return <div>Invalid group ID</div>;
   }
 
-  // Fetch group info
+  // Fetch group info (allow 0 rows without error)
   const { data: groupData, error: groupError } = await supabase
     .from("groups")
     .select("name")
-    .eq("id", params.id)
-    .single();
+    .eq("id", id)
+    .maybeSingle(); // ✅ instead of .single()
 
   if (groupError) {
     console.error(groupError);
     return <div>Error loading group</div>;
   }
 
+  if (!groupData) {
+    return <div>Group not found</div>; // ✅ clearer fallback
+  }
+
   // Fetch members (nickname only)
   const { data: membersData, error: membersError } = await supabase
     .from("group_members")
     .select("user_id, nickname")
-    .eq("group_id", params.id);
+    .eq("group_id", id);
 
   if (membersError) {
     console.error(membersError);
@@ -44,7 +54,7 @@ export default async function GroupDetails({ params }: { params: { id?: string }
 
       <div className="relative z-10 max-w-2xl w-full p-8 rounded-xl shadow-xl bg-white/80 backdrop-blur-md">
         <h1 className="text-3xl font-bold text-yellow-700 drop-shadow-lg mb-6">
-          🎁 {groupData?.name} Members
+          🎁 {groupData.name} Members
         </h1>
 
         {members.length === 0 ? (
