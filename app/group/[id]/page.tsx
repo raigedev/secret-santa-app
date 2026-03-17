@@ -19,13 +19,13 @@ export default async function GroupDetails({ params }: { params: { id: string } 
     .eq("id", params.id)
     .single();
 
-  // Fetch members with join to auth.users
+  // Fetch members with join to users (FK already exists)
   const { data, error } = await supabase
     .from("group_members")
     .select(`
       user_id,
       nickname,
-      users:auth.users (
+      users (
         id,
         email
       )
@@ -37,7 +37,6 @@ export default async function GroupDetails({ params }: { params: { id: string } 
     return <div>Error loading members</div>;
   }
 
-  // ✅ Cast via unknown to satisfy TS
   const members: Member[] = (data ?? []) as unknown as Member[];
 
   return (
