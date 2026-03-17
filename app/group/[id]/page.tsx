@@ -5,24 +5,34 @@ type Member = {
   nickname?: string;
 };
 
-export default async function GroupDetails({ params }: { params: { id: string } }) {
+export default async function GroupDetails({ params }: { params: { id?: string } }) {
   const supabase = await createClient();
 
+  // Guard against missing group ID
+  if (!params.id) {
+    return <div>Invalid group ID</div>;
+  }
+
   // Fetch group info
-  const { data: groupData } = await supabase
+  const { data: groupData, error: groupError } = await supabase
     .from("groups")
     .select("name")
     .eq("id", params.id)
     .single();
 
+  if (groupError) {
+    console.error(groupError);
+    return <div>Error loading group</div>;
+  }
+
   // Fetch members (nickname only)
-  const { data: membersData, error } = await supabase
+  const { data: membersData, error: membersError } = await supabase
     .from("group_members")
     .select("user_id, nickname")
     .eq("group_id", params.id);
 
-  if (error) {
-    console.error(error);
+  if (membersError) {
+    console.error(membersError);
     return <div>Error loading members</div>;
   }
 
