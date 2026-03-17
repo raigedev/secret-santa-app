@@ -53,11 +53,11 @@ export default function GroupDetailsPage() {
       return;
     }
 
-    // ✅ Show success message before redirect
+    // ✅ Show toast before redirect
     setSuccessMsg("Group deleted successfully!");
     setTimeout(() => {
       router.push("/dashboard");
-    }, 1500); // wait 1.5s so user sees the toast
+    }, 1500);
   };
 
   if (loading) {
@@ -87,11 +87,6 @@ export default function GroupDetailsPage() {
 
         {errorMsg && (
           <p className="text-red-600 font-semibold text-center mb-4">{errorMsg}</p>
-        )}
-        {successMsg && (
-          <p className="text-green-600 font-semibold text-center mb-4">
-            {successMsg}
-          </p>
         )}
 
         {members.length === 0 ? (
@@ -133,6 +128,13 @@ export default function GroupDetailsPage() {
               </button>
             </div>
           </div>
+        </div>
+      )}
+
+      {/* ✅ Toast Notification */}
+      {successMsg && (
+        <div className="fixed bottom-6 right-6 bg-green-500 text-white px-6 py-3 rounded-lg shadow-lg animate-bounce z-50">
+          {successMsg}
         </div>
       )}
     </main>
