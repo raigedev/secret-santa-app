@@ -3,7 +3,6 @@ import { createClient } from "@/lib/supabase/server";
 type Member = {
   user_id: string;
   nickname?: string;
-  email?: string;
 };
 
 export default async function GroupDetails({ params }: { params: { id: string } }) {
@@ -16,7 +15,7 @@ export default async function GroupDetails({ params }: { params: { id: string } 
     .eq("id", params.id)
     .single();
 
-  // Fetch members (no join to auth.users)
+  // Fetch members (nickname only)
   const { data: membersData, error } = await supabase
     .from("group_members")
     .select("user_id, nickname")
@@ -27,25 +26,7 @@ export default async function GroupDetails({ params }: { params: { id: string } 
     return <div>Error loading members</div>;
   }
 
-  const members: Member[] = [];
-
-  // For each member, fetch email using Admin API
-  if (membersData) {
-    for (const m of membersData) {
-      let email: string | undefined;
-      try {
-        const { data: userData } = await supabase.auth.admin.getUserById(m.user_id);
-        email = userData?.user?.email;
-      } catch (err) {
-        console.error("Error fetching user email:", err);
-      }
-      members.push({
-        user_id: m.user_id,
-        nickname: m.nickname,
-        email,
-      });
-    }
-  }
+  const members: Member[] = (membersData ?? []) as Member[];
 
   return (
     <main className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-b from-yellow-100 via-white to-yellow-200 relative">
@@ -65,7 +46,7 @@ export default async function GroupDetails({ params }: { params: { id: string } 
                 key={m.user_id}
                 className="rounded-lg p-4 shadow-md bg-gradient-to-r from-yellow-300 to-yellow-500 text-white font-semibold hover:scale-105 transition transform"
               >
-                {m.nickname || m.email || m.user_id}
+                {m.nickname || "Anonymous"}
               </li>
             ))}
           </ul>
