@@ -8,6 +8,7 @@ import { cookies } from "next/headers";
 
 // Normal server client (cookie-based, anon key)
 export async function createClient() {
+  // ✅ cookies() is async in Next.js 16
   const cookieStore = await cookies();
 
   return createServerClient(
