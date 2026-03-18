@@ -3,8 +3,10 @@
 // This allows Supabase to complete the PKCE flow on the server.
 
 import { createServerClient } from "@supabase/ssr";
+import { createClient as createSupabaseClient } from "@supabase/supabase-js";
 import { cookies } from "next/headers";
 
+// Normal server client (cookie-based, anon key)
 export async function createClient() {
   const cookieStore = await cookies();
 
@@ -26,3 +28,10 @@ export async function createClient() {
     }
   );
 }
+
+// Admin client (service role key, no cookies)
+// Use this ONLY in server actions, never in the browser
+export const supabaseAdmin = createSupabaseClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.SUPABASE_SERVICE_ROLE_KEY!
+);
