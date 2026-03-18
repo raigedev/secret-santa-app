@@ -18,3 +18,22 @@ export async function deleteGroup(groupId: string) {
 
   redirect("/dashboard");
 }
+
+export async function inviteUser(groupId: string, email: string) {
+  const supabase = await createClient();
+
+  // Insert directly into group_members with email + nickname
+  const { error } = await supabase
+    .from("group_members")
+    .insert({
+      group_id: groupId,
+      nickname: email.split("@")[0], // simple nickname from email
+    });
+
+  if (error) {
+    console.error(error);
+    return { success: false, message: "Error adding member" };
+  }
+
+  return { success: true, message: "User invited" };
+}
