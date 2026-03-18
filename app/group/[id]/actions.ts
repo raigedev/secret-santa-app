@@ -11,15 +11,19 @@ export async function deleteGroup(formData: FormData): Promise<void> {
   const { error } = await supabase.from("groups").delete().eq("id", groupId);
 
   if (error) {
-    console.error(error);
+    console.error("Failed to delete group:", error);
     return;
   }
 
+  // Redirect back to dashboard after successful delete
   redirect("/dashboard");
 }
 
-// Invite user by email (expects FormData with "id" and "email")
-export async function inviteUser(formData: FormData): Promise<void> {
+// Invite user by email (for useFormState, expects prevState + FormData)
+export async function inviteUser(
+  prevState: { message: string },
+  formData: FormData
+): Promise<{ message: string }> {
   const groupId = formData.get("id") as string;
   const email = formData.get("email") as string;
 
@@ -32,6 +36,8 @@ export async function inviteUser(formData: FormData): Promise<void> {
 
   if (error) {
     console.error("Failed to insert member:", error);
-    return;
+    return { message: "❌ Error adding member" };
   }
+
+  return { message: "✅ User invited successfully" };
 }

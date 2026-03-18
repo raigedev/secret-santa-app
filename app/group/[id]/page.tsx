@@ -1,5 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
-import { deleteGroup, inviteUser } from "./actions";
+import { deleteGroup } from "./actions";
+import InviteForm from "./InviteForm";
 
 type Member = {
   user_id: string;
@@ -38,25 +39,10 @@ export default async function GroupDetails(props: { params: Promise<{ id: string
           🎁 {groupData.name} Members
         </h1>
 
-        {/* INVITE USER FORM */}
-        <form action={inviteUser} className="mb-6 flex gap-2">
-          <input type="hidden" name="id" value={id} />
-          <input
-            type="email"
-            name="email"
-            placeholder="Enter email to invite"
-            className="flex-1 px-3 py-2 border rounded-lg"
-            required
-          />
-          <button
-            type="submit"
-            className="bg-green-600 text-white px-4 py-2 rounded-lg shadow hover:bg-green-700 transition"
-          >
-            Invite
-          </button>
-        </form>
+        {/* INVITE USER FORM (Client Component with feedback) */}
+        <InviteForm groupId={id} />
 
-        {/* DELETE GROUP BUTTON */}
+        {/* DELETE GROUP BUTTON (Server Action directly) */}
         <form action={deleteGroup}>
           <input type="hidden" name="id" value={id} />
           <button
