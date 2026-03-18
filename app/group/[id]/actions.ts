@@ -28,18 +28,18 @@ export async function inviteUser(
   const email = formData.get("email") as string;
 
   // Step 1: Send actual invite email via Supabase Admin
-  const { data, error } = await supabaseAdmin.auth.admin.inviteUserByEmail(email);
+  const { error } = await supabaseAdmin.auth.admin.inviteUserByEmail(email);
 
   if (error) {
     console.error("Failed to send invite email:", error);
     return { message: "❌ Error sending invite email" };
   }
 
-  // Step 2: Insert into group_members so they appear in the list
+  // Step 2: Insert into group_members reserved by email (no user_id yet)
   const supabase = await createClient();
   const { error: insertError } = await supabase.from("group_members").insert({
     group_id: groupId,
-    user_id: data.user.id, // link invited user to group
+    email,
     nickname: email.split("@")[0],
   });
 
@@ -48,5 +48,5 @@ export async function inviteUser(
     return { message: "❌ Error adding member to group" };
   }
 
-  return { message: "✅ Invite email sent successfully" };
+  return { message: `✅ Invite sent to ${email}` };
 }

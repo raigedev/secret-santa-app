@@ -3,21 +3,17 @@
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-// ✅ Use the new client helper instead of the old supabaseClient
-import { createClient } from "@/lib/supabase/client";
+import { createClient } from "@/lib/supabase/client"; 
+import { linkUserToGroup } from "@/utils/linkUserToGroup"; // ✅ now clean alias
 
 export default function LoginPage() {
   const router = useRouter();
-  const supabase = createClient(); // ✅ Create Supabase browser client
+  const supabase = createClient();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [redirecting, setRedirecting] = useState(false);
-
-  // ❌ Remove useEffect session check
-  // Middleware now handles redirecting if the user is already logged in.
-  // This keeps the login page clean and avoids duplicate logic.
 
   // ✅ Google OAuth login
   const handleGoogleLogin = async () => {
@@ -25,14 +21,21 @@ export default function LoginPage() {
     const { error } = await supabase.auth.signInWithOAuth({
       provider: "google",
       options: {
-        // Must match your Supabase dashboard redirect URL exactly
         redirectTo: `${window.location.origin}/auth/callback`,
       },
     });
+
     if (error) {
       console.error("Google login error:", error.message);
       setRedirecting(false);
       setError(error.message);
+      return;
+    }
+
+    // After login, get the user and link them
+    const { data: { user } } = await supabase.auth.getUser();
+    if (user) {
+      await linkUserToGroup(user);
     }
   };
 
@@ -40,15 +43,18 @@ export default function LoginPage() {
   const handleEmailLogin = async () => {
     setError(null);
     setLoading(true);
-    const { error } = await supabase.auth.signInWithPassword({
+    const { data, error } = await supabase.auth.signInWithPassword({
       email,
       password,
     });
+
     if (error) {
       setError(error.message);
     } else {
-      // Middleware will enforce session protection,
-      // but we can still redirect to dashboard here for UX
+      const { user } = data;
+      if (user) {
+        await linkUserToGroup(user);
+      }
       router.replace("/dashboard");
     }
     setLoading(false);
