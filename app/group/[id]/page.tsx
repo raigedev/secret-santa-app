@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
+import { deleteGroup } from "./actions";
 
 type Member = {
   user_id: string;
@@ -6,25 +7,23 @@ type Member = {
 };
 
 export default async function GroupDetails(props: { params: Promise<{ id: string }> }) {
-  // ✅ unwrap the params Promise
+  // unwrap the params Promise
   const { id } = await props.params;
 
-  // 👇 Debug log to confirm what Next.js passes in
   console.log("Group ID param:", id);
 
   const supabase = await createClient();
 
-  // Guard against missing group ID
   if (!id) {
     return <div>Invalid group ID</div>;
   }
 
-  // Fetch group info (allow 0 rows without error)
+  // Fetch group info
   const { data: groupData, error: groupError } = await supabase
     .from("groups")
     .select("name")
     .eq("id", id)
-    .maybeSingle(); // ✅ instead of .single()
+    .maybeSingle();
 
   if (groupError) {
     console.error(groupError);
@@ -32,10 +31,10 @@ export default async function GroupDetails(props: { params: Promise<{ id: string
   }
 
   if (!groupData) {
-    return <div>Group not found</div>; // ✅ clearer fallback
+    return <div>Group not found</div>;
   }
 
-  // Fetch members (nickname only)
+  // Fetch members
   const { data: membersData, error: membersError } = await supabase
     .from("group_members")
     .select("user_id, nickname")
@@ -56,6 +55,16 @@ export default async function GroupDetails(props: { params: Promise<{ id: string
         <h1 className="text-3xl font-bold text-yellow-700 drop-shadow-lg mb-6">
           🎁 {groupData.name} Members
         </h1>
+
+        {/* DELETE GROUP BUTTON */}
+        <form action={async () => { await deleteGroup(id); }}>
+          <button
+            type="submit"
+            className="mb-6 bg-red-600 text-white px-4 py-2 rounded-lg shadow hover:bg-red-700 transition"
+          >
+            Delete Group
+          </button>
+        </form>
 
         {members.length === 0 ? (
           <p className="text-gray-600 text-center">No members yet.</p>
