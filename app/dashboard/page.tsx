@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
+import { linkUserToGroup } from "@/utils/linkUserToGroup"; // ✅ import helper
 
 // ✅ Define Group type
 type Group = {
@@ -35,6 +36,9 @@ export default function DashboardPage() {
       const email = session.user.email || "Guest";
       setUserName(email.split("@")[0]);
 
+      // ✅ Link invited email to user_id
+      await linkUserToGroup(session.user);
+
       // ✅ Fetch groups where user is owner OR invited
       const { data, error } = await supabase
         .from("groups")
@@ -60,6 +64,9 @@ export default function DashboardPage() {
         } else {
           const email = session.user.email || "Guest";
           setUserName(email.split("@")[0]);
+
+          // ✅ Link invited email to user_id on auth state change too
+          await linkUserToGroup(session.user);
         }
       }
     );
@@ -98,8 +105,10 @@ export default function DashboardPage() {
         {/* Festive Cards */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
           {/* Secret Santa Card */}
-          <div className="text-white rounded-t-[2rem] rounded-b-xl hover:scale-105 transition transform relative overflow-hidden"
-            style={{ background: "linear-gradient(135deg, #F87171, #EF4444)", boxShadow: "0 0 20px rgba(239, 68, 68, 0.7)" }}>
+          <div
+            className="text-white rounded-t-[2rem] rounded-b-xl hover:scale-105 transition transform relative overflow-hidden"
+            style={{ background: "linear-gradient(135deg, #F87171, #EF4444)", boxShadow: "0 0 20px rgba(239, 68, 68, 0.7)" }}
+          >
             <div className="bg-white text-red-700 font-bold py-2 text-center rounded-t-[2rem]">🔍🎅 Your Secret Santa</div>
             <div className="p-4 text-center">
               <p className="text-sm" style={{ color: "#334155" }}>Assignments will appear here</p>
@@ -108,8 +117,10 @@ export default function DashboardPage() {
           </div>
 
           {/* Gift Ideas Card */}
-          <div className="text-white rounded-t-[2rem] rounded-b-xl hover:scale-105 transition transform relative overflow-hidden"
-            style={{ background: "linear-gradient(135deg, #86EFAC, #22C55E)", boxShadow: "0 0 20px rgba(34, 197, 94, 0.7)" }}>
+          <div
+            className="text-white rounded-t-[2rem] rounded-b-xl hover:scale-105 transition transform relative overflow-hidden"
+            style={{ background: "linear-gradient(135deg, #86EFAC, #22C55E)", boxShadow: "0 0 20px rgba(34, 197, 94, 0.7)" }}
+          >
             <div className="bg-white text-green-700 font-bold py-2 text-center rounded-t-[2rem]">💡🎅 Gift Ideas</div>
             <div className="p-4 text-center">
               <p className="text-sm" style={{ color: "#334155" }}>Share and explore festive gift ideas</p>
@@ -118,9 +129,11 @@ export default function DashboardPage() {
           </div>
 
           {/* Create Group Card */}
-          <div onClick={() => router.push("/create-group")}
+          <div
+            onClick={() => router.push("/create-group")}
             className="cursor-pointer text-white rounded-t-[2rem] rounded-b-xl hover:scale-105 transition transform relative overflow-hidden"
-            style={{ background: "linear-gradient(135deg, #60A5FA, #3B82F6)", boxShadow: "0 0 20px rgba(59, 130, 246, 0.7)" }}>
+            style={{ background: "linear-gradient(135deg, #60A5FA, #3B82F6)", boxShadow: "0 0 20px rgba(59, 130, 246, 0.7)" }}
+          >
             <div className="bg-white text-blue-700 font-bold py-2 text-center rounded-t-[2rem]">📋🎉 Create Group</div>
             <div className="p-4 text-center">
               <p className="text-sm" style={{ color: "#334155" }}>Start a new Secret Santa event</p>
@@ -162,9 +175,11 @@ export default function DashboardPage() {
 
         {/* Logout */}
         <div className="flex justify-center">
-          <button onClick={handleLogout}
+          <button
+            onClick={handleLogout}
             className="text-white font-bold px-6 py-3 rounded-full hover:scale-105 transition flex items-center gap-2"
-            style={{ background: "linear-gradient(135deg, #FBBF24, #F59E0B)", boxShadow: "0 0 20px rgba(251, 191, 36, 0.7)" }}>
+            style={{ background: "linear-gradient(135deg, #FBBF24, #F59E0B)", boxShadow: "0 0 20px rgba(251, 191, 36, 0.7)" }}
+          >
             🍭 Logout
           </button>
         </div>
