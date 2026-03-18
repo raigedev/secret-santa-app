@@ -22,16 +22,13 @@ export async function deleteGroup(groupId: string) {
 export async function inviteUser(groupId: string, email: string) {
   const supabase = await createClient();
 
-  // Insert directly into group_members with email + nickname
-  const { error } = await supabase
-    .from("group_members")
-    .insert({
-      group_id: groupId,
-      nickname: email.split("@")[0], // simple nickname from email
-    });
+  const { error } = await supabase.from("group_members").insert({
+    group_id: groupId,
+    nickname: email.split("@")[0],
+  });
 
   if (error) {
-    console.error(error);
+    console.error("Failed to insert member:", error);
     return { success: false, message: "Error adding member" };
   }
 
