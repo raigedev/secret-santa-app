@@ -7,43 +7,25 @@ type Member = {
 };
 
 export default async function GroupDetails(props: { params: Promise<{ id: string }> }) {
-  // unwrap the params Promise
   const { id } = await props.params;
-
   console.log("Group ID param:", id);
 
   const supabase = await createClient();
 
-  if (!id) {
-    return <div>Invalid group ID</div>;
-  }
+  if (!id) return <div>Invalid group ID</div>;
 
-  // Fetch group info
-  const { data: groupData, error: groupError } = await supabase
+  const { data: groupData } = await supabase
     .from("groups")
     .select("name")
     .eq("id", id)
     .maybeSingle();
 
-  if (groupError) {
-    console.error(groupError);
-    return <div>Error loading group</div>;
-  }
+  if (!groupData) return <div>Group not found</div>;
 
-  if (!groupData) {
-    return <div>Group not found</div>;
-  }
-
-  // Fetch members
-  const { data: membersData, error: membersError } = await supabase
+  const { data: membersData } = await supabase
     .from("group_members")
     .select("user_id, nickname")
     .eq("group_id", id);
-
-  if (membersError) {
-    console.error(membersError);
-    return <div>Error loading members</div>;
-  }
 
   const members: Member[] = (membersData ?? []) as Member[];
 
@@ -57,13 +39,8 @@ export default async function GroupDetails(props: { params: Promise<{ id: string
         </h1>
 
         {/* INVITE USER FORM */}
-        <form
-          action={async (formData) => {
-            const email = formData.get("email") as string;
-            await inviteUser(id, email);
-          }}
-          className="mb-6 flex gap-2"
-        >
+        <form action={inviteUser} className="mb-6 flex gap-2">
+          <input type="hidden" name="id" value={id} />
           <input
             type="email"
             name="email"
@@ -80,11 +57,8 @@ export default async function GroupDetails(props: { params: Promise<{ id: string
         </form>
 
         {/* DELETE GROUP BUTTON */}
-        <form
-          action={async () => {
-            await deleteGroup(id);
-          }}
-        >
+        <form action={deleteGroup}>
+          <input type="hidden" name="id" value={id} />
           <button
             type="submit"
             className="mb-6 bg-red-600 text-white px-4 py-2 rounded-lg shadow hover:bg-red-700 transition"
