@@ -1,5 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
-import { deleteGroup } from "./actions";
+import { deleteGroup, inviteUser } from "./actions";
 
 type Member = {
   user_id: string;
@@ -56,8 +56,35 @@ export default async function GroupDetails(props: { params: Promise<{ id: string
           🎁 {groupData.name} Members
         </h1>
 
+        {/* INVITE USER FORM */}
+        <form
+          action={async (formData) => {
+            const email = formData.get("email") as string;
+            await inviteUser(id, email);
+          }}
+          className="mb-6 flex gap-2"
+        >
+          <input
+            type="email"
+            name="email"
+            placeholder="Enter email to invite"
+            className="flex-1 px-3 py-2 border rounded-lg"
+            required
+          />
+          <button
+            type="submit"
+            className="bg-green-600 text-white px-4 py-2 rounded-lg shadow hover:bg-green-700 transition"
+          >
+            Invite
+          </button>
+        </form>
+
         {/* DELETE GROUP BUTTON */}
-        <form action={async () => { await deleteGroup(id); }}>
+        <form
+          action={async () => {
+            await deleteGroup(id);
+          }}
+        >
           <button
             type="submit"
             className="mb-6 bg-red-600 text-white px-4 py-2 rounded-lg shadow hover:bg-red-700 transition"
