@@ -20,15 +20,24 @@ export default function CreateGroupPage() {
     setLoading(true);
     setErrorMsg("");
 
-    // Get current user
-    const { data: { user } } = await supabase.auth.getUser();
+    // 1. Get current logged-in user
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+
     if (!user) {
       setErrorMsg("You must be logged in to create a group.");
       setLoading(false);
       return;
     }
 
-    // Insert group into Supabase
+    // 2. Parse the comma-separated emails into a clean array
+    const emailList = inviteEmails
+      .split(",")
+      .map((email) => email.trim().toLowerCase())
+      .filter((email) => email.length > 0);
+
+    // 3. Insert the group into the "groups" table
     const { data: newGroup, error } = await supabase
       .from("groups")
       .insert({
@@ -36,7 +45,7 @@ export default function CreateGroupPage() {
         description,
         event_date: eventDate,
         owner_id: user.id,
-        invites: inviteEmails.split(",").map(email => email.trim()),
+        invites: emailList, // still keep this for reference
       })
       .select()
       .single();
@@ -47,24 +56,45 @@ export default function CreateGroupPage() {
       return;
     }
 
-    // ✅ Insert owner into group_members with role "owner"
-    const { error: memberError } = await supabase.from("group_members").insert({
+    // 4. Insert the OWNER into group_members with role "owner"
+    const { error: ownerError } = await supabase.from("group_members").insert({
       group_id: newGroup.id,
       user_id: user.id,
+      email: user.email,
+      nickname: user.email?.split("@")[0],
       role: "owner",
     });
 
-    if (memberError) {
-      console.error("Failed to insert owner into group_members:", memberError.message);
+    if (ownerError) {
+      console.error("Failed to insert owner:", ownerError.message);
     }
 
-    // Redirect back to dashboard
+    // 5. Insert each INVITED EMAIL into group_members with role "member"
+    // These users may not have accounts yet, so user_id is null
+    if (emailList.length > 0) {
+      const memberRows = emailList.map((email) => ({
+        group_id: newGroup.id,
+        user_id: null, // they haven't signed up yet
+        email: email,
+        nickname: email.split("@")[0],
+        role: "member",
+      }));
+
+      const { error: membersError } = await supabase
+        .from("group_members")
+        .insert(memberRows);
+
+      if (membersError) {
+        console.error("Failed to insert members:", membersError.message);
+      }
+    }
+
+    // 6. Redirect to dashboard
     router.push("/dashboard");
   };
 
   return (
     <main className="min-h-screen flex items-center justify-center bg-gradient-to-b from-green-100 via-white to-green-200 relative">
-      {/* snowflake overlay */}
       <div className="absolute inset-0 bg-[url('/snowflakes.png')] opacity-20 z-0"></div>
 
       <div className="relative z-10 w-full max-w-lg p-8 rounded-xl shadow-xl bg-white/80 backdrop-blur-md">
