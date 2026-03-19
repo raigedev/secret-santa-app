@@ -1,50 +1,43 @@
 import { createClient } from "@/lib/supabase/server";
 import { deleteGroup } from "./actions";
 import InviteForm from "./InviteForm";
+import NicknameForm from "./NicknameForm";
 
-// Blueprint for what a member looks like from the database.
-// Each field can be null because invited users might not have
-// filled in their info yet.
+// ─── Member type ───
+// Describes what each member row looks like from the database.
 type Member = {
-  user_id: string | null;   // null means they haven't registered yet
-  nickname: string | null;   // their chosen display name
-  email: string | null;      // we fetch this but NEVER show it to users
+  user_id: string | null;   // null = hasn't registered yet (pending)
+  nickname: string | null;   // their anonymous display name
+  email: string | null;      // we NEVER show this to users
   role: string;              // "owner" or "member"
 };
 
 export default async function GroupDetails({
   params,
 }: {
-  params: Promise<{ id: string }>; // Next.js 16: params is a Promise
+  params: Promise<{ id: string }>; // Next.js 16: params is async
 }) {
   // ─── Get the group ID from the URL ───
-  // Example: /group/abc-123 → id = "abc-123"
-  // We must "await" because Next.js 16 makes params a Promise.
   const { id } = await params;
 
-  // If there's no ID in the URL, something went wrong
   if (!id) {
     return <div>Invalid group ID</div>;
   }
 
-  // ─── Create a server-side Supabase client ───
-  // This reads the user's login cookies so we know who's logged in.
+  // ─── Create server-side Supabase client ───
   const supabase = await createClient();
 
   // ─── Get the currently logged-in user ───
-  // We need this to check if they're the group owner.
   const {
     data: { user },
   } = await supabase.auth.getUser();
 
-  // ─── Fetch the group details ───
-  // Look in the "groups" table for the row matching our group ID.
-  // We only grab the columns we need: name, description, event_date, owner_id.
+  // ─── Fetch group details ───
   const { data: groupData, error: groupError } = await supabase
     .from("groups")
     .select("name, description, event_date, owner_id")
     .eq("id", id)
-    .maybeSingle(); // returns null if not found, instead of throwing error
+    .maybeSingle();
 
   if (groupError) {
     console.error("Error loading group:", groupError);
@@ -55,14 +48,10 @@ export default async function GroupDetails({
     return <div>Group not found</div>;
   }
 
-  // ─── Check if the logged-in user is the owner ───
-  // Only the owner can invite people and delete the group.
+  // ─── Check if current user is the owner ───
   const isOwner = user?.id === groupData.owner_id;
 
-  // ─── Fetch all members of this group ───
-  // This includes the owner too — everyone appears in the list equally.
-  // We fetch email but we will NEVER display it to the user.
-  // We only use email internally to track who's who in the database.
+  // ─── Fetch all members ───
   const { data: membersData, error: membersError } = await supabase
     .from("group_members")
     .select("user_id, nickname, email, role")
@@ -73,13 +62,9 @@ export default async function GroupDetails({
     return <div>Error loading members</div>;
   }
 
-  // ─── Convert database rows to our Member type ───
-  // Keep ALL members including the owner — everyone is equal.
   const members: Member[] = (membersData ?? []) as Member[];
 
-  // ─── Count joined vs pending members ───
-  // Joined = user_id exists (they registered and logged in)
-  // Pending = user_id is null (they were invited but haven't signed up)
+  // ─── Count statuses ───
   const joinedCount = members.filter((m) => m.user_id !== null).length;
   const pendingCount = members.filter((m) => m.user_id === null).length;
 
@@ -94,12 +79,10 @@ export default async function GroupDetails({
           🎁 {groupData.name}
         </h1>
 
-        {/* Show description if the group has one */}
         {groupData.description && (
           <p className="text-gray-600 mb-2">{groupData.description}</p>
         )}
 
-        {/* Show event date */}
         <p className="text-sm text-gray-500 mb-6">
           📅 Event Date: {groupData.event_date}
         </p>
@@ -133,7 +116,7 @@ export default async function GroupDetails({
           </form>
         )}
 
-        {/* ─── Members List ─── */}
+        {/* ─── Participants List ─── */}
         <h2 className="text-xl font-bold text-gray-800 mb-4">
           🎄 Participants
         </h2>
@@ -144,42 +127,56 @@ export default async function GroupDetails({
           </p>
         ) : (
           <ul className="space-y-3">
-            {members.map((m, index) => (
-              <li
-                key={m.user_id || index}
-                className={`rounded-lg p-4 shadow-md font-semibold transition transform hover:scale-105 flex items-center justify-between ${
-                  m.user_id
-                    ? "bg-gradient-to-r from-green-300 to-green-500 text-white"
-                    : "bg-gradient-to-r from-gray-200 to-gray-300 text-gray-600"
-                }`}
-              >
-                {/* ─── Member Display Name ─── */}
-                {/* IMPORTANT: We NEVER show email or email-based names here.
-                    This keeps the Secret Santa anonymous.
-                    - If they set a nickname → show it
-                    - If no nickname → show "Participant 1", "Participant 2", etc.
-                    Nobody can guess who's who. */}
-                <span>
-                  {m.user_id ? "🎁 " : "⏳ "}
-                  {m.nickname || `Participant ${index + 1}`}
-                </span>
+            {members.map((m, index) => {
+              // ─── Check if this member row is the CURRENT logged-in user ───
+              // We need this to show the "Change Nickname" button only on YOUR row.
+              // You should only be able to edit your OWN nickname, not anyone else's.
+              const isCurrentUser = user?.id === m.user_id;
 
-                {/* ─── Status Badge ─── */}
-                <span
-                  className={`text-xs px-3 py-1 rounded-full font-bold ${
+              return (
+                <li
+                  key={m.user_id || index}
+                  className={`rounded-lg p-4 shadow-md font-semibold transition transform hover:scale-105 ${
                     m.user_id
-                      ? "bg-white/30 text-white"
-                      : "bg-yellow-400/30 text-yellow-800"
+                      ? "bg-gradient-to-r from-green-300 to-green-500 text-white"
+                      : "bg-gradient-to-r from-gray-200 to-gray-300 text-gray-600"
                   }`}
                 >
-                  {m.user_id ? "Joined ✓" : "Pending"}
-                </span>
-              </li>
-            ))}
+                  {/* ─── Top row: name + status ─── */}
+                  <div className="flex items-center justify-between">
+                    <span>
+                      {m.user_id ? "🎁 " : "⏳ "}
+                      {m.nickname || `Participant ${index + 1}`}
+                    </span>
+
+                    <span
+                      className={`text-xs px-3 py-1 rounded-full font-bold ${
+                        m.user_id
+                          ? "bg-white/30 text-white"
+                          : "bg-yellow-400/30 text-yellow-800"
+                      }`}
+                    >
+                      {m.user_id ? "Joined ✓" : "Pending"}
+                    </span>
+                  </div>
+
+                  {/* ─── Nickname edit form (only on YOUR row) ─── */}
+                  {/* If this member row belongs to the logged-in user,
+                      show a "Change Nickname" button that opens an edit form.
+                      This lets you set an anonymous alias like "GiftNinja". */}
+                  {isCurrentUser && (
+                    <NicknameForm
+                      groupId={id}
+                      currentNickname={m.nickname || ""}
+                    />
+                  )}
+                </li>
+              );
+            })}
           </ul>
         )}
 
-        {/* ─── Info box for pending members (owner only) ─── */}
+        {/* ─── Info box (owner only) ─── */}
         {pendingCount > 0 && isOwner && (
           <div className="mt-6 bg-blue-50 border border-blue-200 rounded-lg p-4 text-sm text-blue-700">
             💡 <strong>Pending members</strong> haven&apos;t created an account yet.

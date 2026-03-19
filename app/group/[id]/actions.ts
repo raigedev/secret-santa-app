@@ -1,55 +1,138 @@
 "use server";
 
+// ─── Server Actions ───
+// These functions run on the SERVER, not in the browser.
+// This is important because:
+// 1. They can use the admin client (for sending invite emails)
+// 2. They're more secure — users can't tamper with them
+// 3. They can access secret environment variables
+
 import { createClient, supabaseAdmin } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 
-// Delete group by ID (expects FormData with "id")
+// ─── DELETE GROUP ───
+// Called when the owner clicks "Delete Group".
+// Receives the group ID from a hidden form field.
 export async function deleteGroup(formData: FormData): Promise<void> {
+  // Get the group ID from the form's hidden input
   const groupId = formData.get("id") as string;
-  const supabase = await createClient(); // ✅ await here
 
-  const { error } = await supabase.from("groups").delete().eq("id", groupId);
+  // Create a server-side Supabase client (knows who's logged in via cookies)
+  const supabase = await createClient();
+
+  // Delete the group row from the database.
+  // RLS policy ensures only the owner can do this.
+  const { error } = await supabase
+    .from("groups")
+    .delete()
+    .eq("id", groupId);
 
   if (error) {
     console.error("Failed to delete group:", error.message);
     return;
   }
 
+  // After deleting, send the user back to the dashboard
   redirect("/dashboard");
 }
 
-// Invite user by email (for useFormState, expects prevState + FormData)
+// ─── INVITE USER ───
+// Called when the owner types an email and clicks "Invite".
+// Uses useFormState pattern: receives previous state + form data,
+// returns a new state with a success/error message.
 export async function inviteUser(
   prevState: { message: string },
   formData: FormData
 ): Promise<{ message: string }> {
+  // Extract values from the form
   const groupId = formData.get("id") as string;
   const email = formData.get("email") as string;
 
+  // Validate: make sure we have both values
   if (!groupId || !email) {
     return { message: "❌ Missing group ID or email." };
   }
 
-  // Step 1: Send actual invite email via Supabase Admin
+  // Step 1: Send an invitation email using the Supabase Admin client.
+  // The admin client uses the SERVICE_ROLE_KEY which has full access.
+  // This sends a "You've been invited" email to the person.
   const { error: inviteError } = await supabaseAdmin.auth.admin.inviteUserByEmail(email);
 
   if (inviteError) {
     console.error("Failed to send invite email:", inviteError.message);
-    return { message: `❌ Error sending invite email: ${inviteError.message}` };
+    // Don't return yet — even if email fails, still add them to the group.
+    // They can register manually through the app link.
   }
 
-  // Step 2: Insert into group_members reserved by email (no user_id yet)
-  const supabase = await createClient(); // ✅ await here
-  const { data, error: insertError } = await supabase
+  // Step 2: Add this person to the group_members table.
+  // They don't have an account yet, so user_id is null.
+  // Their nickname defaults to their email prefix (e.g. "kate" from "kate@gmail.com")
+  // but they'll be able to change it to an anonymous alias later.
+  const supabase = await createClient();
+  const { error: insertError } = await supabase
     .from("group_members")
-    .insert([{ group_id: groupId, email, nickname: email.split("@")[0] }]);
+    .insert([{
+      group_id: groupId,
+      email: email.toLowerCase().trim(),
+      nickname: email.split("@")[0],
+      role: "member",
+    }]);
 
   if (insertError) {
     console.error("Failed to insert member:", insertError.message);
     return { message: `❌ Error adding member: ${insertError.message}` };
   }
 
-  console.log("Invite inserted:", data);
-
   return { message: `✅ Invite sent to ${email}` };
+}
+
+// ─── UPDATE NICKNAME ───
+// Called when a member changes their own nickname.
+// This is how users set their anonymous alias (e.g. "GiftNinja").
+// RLS policy ensures users can only update their OWN row.
+export async function updateNickname(
+  prevState: { message: string },
+  formData: FormData
+): Promise<{ message: string }> {
+  // Get the values from the form
+  const groupId = formData.get("groupId") as string;
+  const nickname = formData.get("nickname") as string;
+
+  // Validate: nickname must not be empty
+  if (!nickname || nickname.trim().length === 0) {
+    return { message: "❌ Nickname can't be empty." };
+  }
+
+  // Validate: nickname shouldn't be too long
+  if (nickname.trim().length > 30) {
+    return { message: "❌ Nickname must be 30 characters or less." };
+  }
+
+  // Create server client (knows who's logged in)
+  const supabase = await createClient();
+
+  // Get the logged-in user's ID
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    return { message: "❌ You must be logged in." };
+  }
+
+  // Update ONLY this user's row in the specified group.
+  // The .eq("user_id", user.id) ensures they can't change someone else's nickname.
+  // The .eq("group_id", groupId) ensures it only affects this group.
+  const { error } = await supabase
+    .from("group_members")
+    .update({ nickname: nickname.trim() })
+    .eq("group_id", groupId)
+    .eq("user_id", user.id);
+
+  if (error) {
+    console.error("Failed to update nickname:", error.message);
+    return { message: `❌ Error: ${error.message}` };
+  }
+
+  return { message: `✅ Nickname updated to "${nickname.trim()}"!` };
 }
