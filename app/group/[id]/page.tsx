@@ -2,72 +2,67 @@ import { createClient } from "@/lib/supabase/server";
 import { deleteGroup } from "./actions";
 import InviteForm from "./InviteForm";
 
-// This describes what a member looks like when we get it from the database.
-// "type" in TypeScript is like a blueprint — it tells our code what shape
-// the data will be, so we don't accidentally use wrong fields.
+// Blueprint for what a member looks like from the database.
+// Each field can be null because invited users might not have
+// filled in their info yet.
 type Member = {
-  user_id: string | null;   // null = hasn't registered yet
-  nickname: string | null;   // their display name
-  email: string | null;      // their email address
+  user_id: string | null;   // null means they haven't registered yet
+  nickname: string | null;   // their chosen display name
+  email: string | null;      // we fetch this but NEVER show it to users
   role: string;              // "owner" or "member"
 };
 
 export default async function GroupDetails({
   params,
 }: {
-  params: Promise<{ id: string }>; // Next.js 16 requires params to be a Promise
+  params: Promise<{ id: string }>; // Next.js 16: params is a Promise
 }) {
-  // In Next.js 16, "params" is a Promise, so we must "await" it
-  // before we can read the group ID from the URL.
-  // Example URL: /group/abc-123 → id = "abc-123"
+  // ─── Get the group ID from the URL ───
+  // Example: /group/abc-123 → id = "abc-123"
+  // We must "await" because Next.js 16 makes params a Promise.
   const { id } = await params;
 
-  // Safety check: if there's no ID in the URL, show an error
+  // If there's no ID in the URL, something went wrong
   if (!id) {
     return <div>Invalid group ID</div>;
   }
 
-  // Create a Supabase client that runs on the SERVER.
-  // This is different from the browser client — it can read cookies
-  // to know which user is logged in.
+  // ─── Create a server-side Supabase client ───
+  // This reads the user's login cookies so we know who's logged in.
   const supabase = await createClient();
 
-  // ─── Get the current logged-in user ───
-  // We need this to know if the current user is the owner,
-  // so we can show/hide the delete button and invite form.
+  // ─── Get the currently logged-in user ───
+  // We need this to check if they're the group owner.
   const {
     data: { user },
   } = await supabase.auth.getUser();
 
-  // ─── Fetch group details from the database ───
-  // Go to the "groups" table, get the row where id matches,
-  // and return the name, description, event_date, and owner_id columns.
-  // "maybeSingle()" means: return null if not found (instead of crashing).
+  // ─── Fetch the group details ───
+  // Look in the "groups" table for the row matching our group ID.
+  // We only grab the columns we need: name, description, event_date, owner_id.
   const { data: groupData, error: groupError } = await supabase
     .from("groups")
     .select("name, description, event_date, owner_id")
     .eq("id", id)
-    .maybeSingle();
+    .maybeSingle(); // returns null if not found, instead of throwing error
 
-  // If the database query failed, show an error
   if (groupError) {
     console.error("Error loading group:", groupError);
     return <div>Error loading group</div>;
   }
 
-  // If no group was found with that ID, show not found
   if (!groupData) {
     return <div>Group not found</div>;
   }
 
-  // ─── Check if current user is the group owner ───
-  // We use this to decide whether to show the invite form and delete button.
-  // Only the owner should be able to invite people or delete the group.
+  // ─── Check if the logged-in user is the owner ───
+  // Only the owner can invite people and delete the group.
   const isOwner = user?.id === groupData.owner_id;
 
   // ─── Fetch all members of this group ───
-  // Go to "group_members" table, get all rows where group_id matches.
-  // We get user_id, nickname, email, and role for each member.
+  // This includes the owner too — everyone appears in the list equally.
+  // We fetch email but we will NEVER display it to the user.
+  // We only use email internally to track who's who in the database.
   const { data: membersData, error: membersError } = await supabase
     .from("group_members")
     .select("user_id, nickname, email, role")
@@ -78,17 +73,13 @@ export default async function GroupDetails({
     return <div>Error loading members</div>;
   }
 
-  // ─── Filter out the owner from the members list ───
-  // For a Secret Santa app, we want ANONYMITY.
-  // The owner (organizer) should NOT appear in the members list
-  // so no one knows who's organizing the exchange.
-  const members: Member[] = (membersData ?? []).filter(
-    (m) => m.role !== "owner"
-  ) as Member[];
+  // ─── Convert database rows to our Member type ───
+  // Keep ALL members including the owner — everyone is equal.
+  const members: Member[] = (membersData ?? []) as Member[];
 
-  // ─── Count members by status ───
-  // If user_id is null → they haven't registered yet → "Pending"
-  // If user_id exists → they created an account and logged in → "Joined"
+  // ─── Count joined vs pending members ───
+  // Joined = user_id exists (they registered and logged in)
+  // Pending = user_id is null (they were invited but haven't signed up)
   const joinedCount = members.filter((m) => m.user_id !== null).length;
   const pendingCount = members.filter((m) => m.user_id === null).length;
 
@@ -114,7 +105,6 @@ export default async function GroupDetails({
         </p>
 
         {/* ─── Status Summary ─── */}
-        {/* Shows how many members joined vs still pending */}
         <div className="flex gap-4 mb-6">
           <div className="bg-green-100 text-green-700 px-4 py-2 rounded-lg text-sm font-bold">
             ✅ Joined: {joinedCount}
@@ -127,14 +117,12 @@ export default async function GroupDetails({
           </div>
         </div>
 
-        {/* ─── Invite Form (only visible to the group owner) ─── */}
-        {/* We check isOwner so regular members can't invite people */}
+        {/* ─── Invite Form (owner only) ─── */}
         {isOwner && <InviteForm groupId={id} />}
 
-        {/* ─── Delete Group Button (only visible to the group owner) ─── */}
+        {/* ─── Delete Group Button (owner only) ─── */}
         {isOwner && (
           <form action={deleteGroup} className="mb-6">
-            {/* Hidden input passes the group ID to the server action */}
             <input type="hidden" name="id" value={id} />
             <button
               type="submit"
@@ -160,22 +148,23 @@ export default async function GroupDetails({
               <li
                 key={m.user_id || index}
                 className={`rounded-lg p-4 shadow-md font-semibold transition transform hover:scale-105 flex items-center justify-between ${
-                  // If user_id exists → they joined → green card
-                  // If user_id is null → still pending → gray card
                   m.user_id
                     ? "bg-gradient-to-r from-green-300 to-green-500 text-white"
                     : "bg-gradient-to-r from-gray-200 to-gray-300 text-gray-600"
                 }`}
               >
-                {/* ─── Member nickname ─── */}
-                {/* Only show nickname, NOT email — for anonymity */}
+                {/* ─── Member Display Name ─── */}
+                {/* IMPORTANT: We NEVER show email or email-based names here.
+                    This keeps the Secret Santa anonymous.
+                    - If they set a nickname → show it
+                    - If no nickname → show "Participant 1", "Participant 2", etc.
+                    Nobody can guess who's who. */}
                 <span>
                   {m.user_id ? "🎁 " : "⏳ "}
-                  {m.nickname || "Anonymous"}
+                  {m.nickname || `Participant ${index + 1}`}
                 </span>
 
-                {/* ─── Status badge ─── */}
-                {/* Shows whether this person has registered or not */}
+                {/* ─── Status Badge ─── */}
                 <span
                   className={`text-xs px-3 py-1 rounded-full font-bold ${
                     m.user_id
@@ -190,13 +179,12 @@ export default async function GroupDetails({
           </ul>
         )}
 
-        {/* ─── Info box for pending members ─── */}
-        {/* This helps the owner understand what "Pending" means */}
+        {/* ─── Info box for pending members (owner only) ─── */}
         {pendingCount > 0 && isOwner && (
           <div className="mt-6 bg-blue-50 border border-blue-200 rounded-lg p-4 text-sm text-blue-700">
             💡 <strong>Pending members</strong> haven&apos;t created an account yet.
-            They need to register at your app and log in — once they do,
-            their status will automatically change to &quot;Joined&quot;.
+            Share your app link with them — they need to register and log in.
+            Once they do, their status will change to &quot;Joined&quot; automatically.
           </div>
         )}
       </div>
