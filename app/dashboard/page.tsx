@@ -33,10 +33,10 @@ export default function DashboardPage() {
       const email = session.user.email || "Guest";
       setUserName(email.split("@")[0]);
 
-      // ✅ Explicitly select id so group.id is available
+      // ✅ Reverted back to select("*") so all fields are returned
       const { data, error } = await supabase
         .from("groups")
-        .select("id, name, description, event_date, owner_id, invites, created_at")
+        .select("*")
         .or(`owner_id.eq.${session.user.id},invites.cs.{${email}}`);
 
       if (error) {
@@ -91,8 +91,7 @@ export default function DashboardPage() {
           Welcome, {userName} 🎁
         </p>
 
-        {/* Festive Cards */}
-        {/* ... unchanged ... */}
+        {/* Festive Cards ... unchanged */}
 
         {/* Groups List */}
         <div className="text-left mb-10">
@@ -125,8 +124,7 @@ export default function DashboardPage() {
           )}
         </div>
 
-        {/* Logout */}
-        {/* ... unchanged ... */}
+        {/* Logout ... unchanged */}
       </div>
     </main>
   );
