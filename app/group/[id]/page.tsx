@@ -4,7 +4,7 @@ import InviteForm from "./InviteForm";
 import NicknameForm from "./NicknameForm";
 
 // ─── Member type ───
-// Describes what each member row looks like from the database.
+// Describes what each row in group_members looks like.
 type Member = {
   user_id: string | null;   // null = hasn't registered yet (pending)
   nickname: string | null;   // their anonymous display name
@@ -15,7 +15,7 @@ type Member = {
 export default async function GroupDetails({
   params,
 }: {
-  params: Promise<{ id: string }>; // Next.js 16: params is async
+  params: Promise<{ id: string }>; // Next.js 16: params is a Promise
 }) {
   // ─── Get the group ID from the URL ───
   const { id } = await params;
@@ -27,7 +27,7 @@ export default async function GroupDetails({
   // ─── Create server-side Supabase client ───
   const supabase = await createClient();
 
-  // ─── Get the currently logged-in user ───
+  // ─── Get the logged-in user ───
   const {
     data: { user },
   } = await supabase.auth.getUser();
@@ -51,7 +51,7 @@ export default async function GroupDetails({
   // ─── Check if current user is the owner ───
   const isOwner = user?.id === groupData.owner_id;
 
-  // ─── Fetch all members ───
+  // ─── Fetch all members of this group ───
   const { data: membersData, error: membersError } = await supabase
     .from("group_members")
     .select("user_id, nickname, email, role")
@@ -88,7 +88,7 @@ export default async function GroupDetails({
         </p>
 
         {/* ─── Status Summary ─── */}
-        <div className="flex gap-4 mb-6">
+        <div className="flex gap-4 mb-6 flex-wrap">
           <div className="bg-green-100 text-green-700 px-4 py-2 rounded-lg text-sm font-bold">
             ✅ Joined: {joinedCount}
           </div>
@@ -103,7 +103,7 @@ export default async function GroupDetails({
         {/* ─── Invite Form (owner only) ─── */}
         {isOwner && <InviteForm groupId={id} />}
 
-        {/* ─── Delete Group Button (owner only) ─── */}
+        {/* ─── Delete Group (owner only) ─── */}
         {isOwner && (
           <form action={deleteGroup} className="mb-6">
             <input type="hidden" name="id" value={id} />
@@ -128,9 +128,7 @@ export default async function GroupDetails({
         ) : (
           <ul className="space-y-3">
             {members.map((m, index) => {
-              // ─── Check if this member row is the CURRENT logged-in user ───
-              // We need this to show the "Change Nickname" button only on YOUR row.
-              // You should only be able to edit your OWN nickname, not anyone else's.
+              // ─── Is this card the current logged-in user? ───
               const isCurrentUser = user?.id === m.user_id;
 
               return (
@@ -142,33 +140,40 @@ export default async function GroupDetails({
                       : "bg-gradient-to-r from-gray-200 to-gray-300 text-gray-600"
                   }`}
                 >
-                  {/* ─── Top row: name + status ─── */}
-                  <div className="flex items-center justify-between">
-                    <span>
-                      {m.user_id ? "🎁 " : "⏳ "}
-                      {m.nickname || `Participant ${index + 1}`}
-                    </span>
-
-                    <span
-                      className={`text-xs px-3 py-1 rounded-full font-bold ${
-                        m.user_id
-                          ? "bg-white/30 text-white"
-                          : "bg-yellow-400/30 text-yellow-800"
-                      }`}
-                    >
-                      {m.user_id ? "Joined ✓" : "Pending"}
-                    </span>
-                  </div>
-
-                  {/* ─── Nickname edit form (only on YOUR row) ─── */}
-                  {/* If this member row belongs to the logged-in user,
-                      show a "Change Nickname" button that opens an edit form.
-                      This lets you set an anonymous alias like "GiftNinja". */}
-                  {isCurrentUser && (
-                    <NicknameForm
-                      groupId={id}
-                      currentNickname={m.nickname || ""}
-                    />
+                  {/* ─── If this is the current user's card ─── */}
+                  {/* Show NicknameForm which handles BOTH displaying 
+                      the name AND editing it. Updates in real-time. */}
+                  {isCurrentUser ? (
+                    <div>
+                      <div className="flex items-center justify-between">
+                        <span>🎁 You</span>
+                        <span className="text-xs px-3 py-1 rounded-full font-bold bg-white/30 text-white">
+                          Joined ✓
+                        </span>
+                      </div>
+                      {/* NicknameForm handles showing current name + edit button */}
+                      <NicknameForm
+                        groupId={id}
+                        currentNickname={m.nickname || ""}
+                      />
+                    </div>
+                  ) : (
+                    // ─── Other members: just show their name + status ───
+                    <div className="flex items-center justify-between">
+                      <span>
+                        {m.user_id ? "🎁 " : "⏳ "}
+                        {m.nickname || `Participant ${index + 1}`}
+                      </span>
+                      <span
+                        className={`text-xs px-3 py-1 rounded-full font-bold ${
+                          m.user_id
+                            ? "bg-white/30 text-white"
+                            : "bg-yellow-400/30 text-yellow-800"
+                        }`}
+                      >
+                        {m.user_id ? "Joined ✓" : "Pending"}
+                      </span>
+                    </div>
                   )}
                 </li>
               );
