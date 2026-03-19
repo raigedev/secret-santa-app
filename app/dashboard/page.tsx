@@ -1,11 +1,8 @@
 "use client";
-
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
-import { linkUserToGroup } from "@/utils/linkUserToGroup"; // ✅ import helper
 
-// ✅ Define Group type
 type Group = {
   id: string;
   name: string;
@@ -36,10 +33,7 @@ export default function DashboardPage() {
       const email = session.user.email || "Guest";
       setUserName(email.split("@")[0]);
 
-      // ✅ Link invited email to user_id
-      await linkUserToGroup(session.user);
-
-      // ✅ Fetch groups where user is owner OR invited
+      // Fetch groups where user is owner OR invited
       const { data, error } = await supabase
         .from("groups")
         .select("*")
@@ -49,7 +43,7 @@ export default function DashboardPage() {
         console.error(error);
         setGroups([]);
       } else {
-        setGroups(data as Group[] || []);
+        setGroups((data as Group[]) || []);
       }
 
       setLoading(false);
@@ -57,24 +51,22 @@ export default function DashboardPage() {
 
     checkSessionAndGroups();
 
-    const { data: authListener } = supabase.auth.onAuthStateChange(
+    // ✅ Correct subscription handling
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (_event, session) => {
         if (!session) {
           router.push("/login");
         } else {
           const email = session.user.email || "Guest";
           setUserName(email.split("@")[0]);
-
-          // ✅ Link invited email to user_id on auth state change too
-          await linkUserToGroup(session.user);
         }
       }
     );
 
     return () => {
-      authListener.subscription.unsubscribe();
+      subscription.unsubscribe();
     };
-  }, [router, supabase]);
+  }, [router]);
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
@@ -93,7 +85,6 @@ export default function DashboardPage() {
     <main className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-b from-sky-100 via-white to-sky-200 text-gray-900 relative">
       {/* subtle snow overlay */}
       <div className="absolute inset-0 bg-[url('/snowflakes.png')] opacity-20 z-0"></div>
-
       <div className="relative z-10 text-center max-w-5xl w-full p-10 rounded-xl shadow-xl bg-white/40 backdrop-blur-md">
         <h1 className="text-4xl font-bold mb-2 drop-shadow-lg" style={{ color: "#1E3A8A" }}>
           🎁 GiftDraw Dashboard 🎅
@@ -155,8 +146,8 @@ export default function DashboardPage() {
                   onClick={() => router.push(`/group/${group.id}`)}
                   className="cursor-pointer rounded-xl p-6 shadow-lg hover:scale-105 transition transform relative overflow-hidden text-white"
                   style={{
-                    background: "linear-gradient(135deg, #FBBF24, #F59E0B)", // gold gradient
-                    boxShadow: "0 0 20px rgba(251, 191, 36, 0.7)", // gold glow
+                    background: "linear-gradient(135deg, #FBBF24, #F59E0B)",
+                    boxShadow: "0 0 20px rgba(251, 191, 36, 0.7)",
                   }}
                 >
                   <div className="bg-white text-yellow-700 font-bold py-2 px-4 rounded-t-lg text-center">
@@ -178,7 +169,10 @@ export default function DashboardPage() {
           <button
             onClick={handleLogout}
             className="text-white font-bold px-6 py-3 rounded-full hover:scale-105 transition flex items-center gap-2"
-            style={{ background: "linear-gradient(135deg, #FBBF24, #F59E0B)", boxShadow: "0 0 20px rgba(251, 191, 36, 0.7)" }}
+            style={{
+              background: "linear-gradient(135deg, #FBBF24, #F59E0B)",
+              boxShadow: "0 0 20px rgba(251, 191, 36, 0.7)",
+            }}
           >
             🍭 Logout
           </button>
