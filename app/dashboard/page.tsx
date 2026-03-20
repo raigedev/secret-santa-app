@@ -2,11 +2,9 @@
 
 // ─── Dashboard Page ───
 // Shows:
-// 1. Pending invitations (Accept/Decline) — NEW!
+// 1. Pending invitations (Accept/Decline)
 // 2. Your accepted groups
 // 3. Quick action cards (Secret Santa, Gift Ideas, Create Group)
-//
-// Security: #19 — queries filter by user_id, never trust client
 
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
@@ -30,7 +28,6 @@ type Group = {
   members: GroupMember[];
 };
 
-// Pending invite = a group you've been invited to but haven't accepted
 type PendingInvite = {
   group_id: string;
   group_name: string;
@@ -64,19 +61,16 @@ export default function DashboardPage() {
       setUserName(email.split("@")[0]);
 
       // ─── Link this user to any groups they were invited to ───
-      // When someone is invited by email, their group_members row has
-      // user_id = null. Now that they've logged in, we fill in their
-      // user_id so the system knows this email = this user.
-      // This runs every time the dashboard loads, but the .is("user_id", null)
-      // means it only updates rows that haven't been linked yet.
+      // Invited users have user_id = null in group_members.
+      // Now that they're logged in, fill in their user_id
+      // so the system knows this email = this account.
       await supabase
         .from("group_members")
         .update({ user_id: user.id })
-        .eq("email", email)
+        .eq("email", email.toLowerCase())
         .is("user_id", null);
 
       // ─── 2. Find all group_members rows for this user ───
-      // Match by user_id (if registered) OR email (if invited before signup)
       const { data: memberRows, error: memberError } = await supabase
         .from("group_members")
         .select("group_id, status")
@@ -90,7 +84,7 @@ export default function DashboardPage() {
         return;
       }
 
-      // ─── 3. Split into accepted groups vs pending invites ───
+      // ─── 3. Split into accepted vs pending ───
       const acceptedGroupIds = [
         ...new Set(
           (memberRows || [])
@@ -118,7 +112,7 @@ export default function DashboardPage() {
           .from("group_members")
           .select("group_id, nickname, email, role")
           .in("group_id", acceptedGroupIds)
-          .eq("status", "accepted"); // only show accepted members
+          .eq("status", "accepted");
 
         const groupsWithMembers: Group[] = (groupsData || []).map((group) => ({
           ...group,
@@ -205,7 +199,7 @@ export default function DashboardPage() {
           Welcome, {userName} 🎁
         </p>
 
-        {/* ─── PENDING INVITATIONS (NEW!) ─── */}
+        {/* ─── PENDING INVITATIONS ─── */}
         {pendingInvites.length > 0 && (
           <div className="text-left mb-10">
             <h2 className="text-2xl font-bold mb-4 text-orange-600">
@@ -227,7 +221,6 @@ export default function DashboardPage() {
 
         {/* ─── Festive Cards ─── */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
-          {/* Secret Santa Card */}
           <div
             className="text-white rounded-t-[2rem] rounded-b-xl hover:scale-105 transition transform relative overflow-hidden"
             style={{
@@ -248,7 +241,6 @@ export default function DashboardPage() {
             </div>
           </div>
 
-          {/* Gift Ideas Card */}
           <div
             className="text-white rounded-t-[2rem] rounded-b-xl hover:scale-105 transition transform relative overflow-hidden"
             style={{
@@ -269,7 +261,6 @@ export default function DashboardPage() {
             </div>
           </div>
 
-          {/* Create Group Card */}
           <div
             onClick={() => router.push("/create-group")}
             className="cursor-pointer text-white rounded-t-[2rem] rounded-b-xl hover:scale-105 transition transform relative overflow-hidden"
@@ -325,7 +316,6 @@ export default function DashboardPage() {
                       📅 Event Date: {group.event_date}
                     </p>
 
-                    {/* Show accepted members */}
                     {group.members.length > 0 && (
                       <div className="mt-4 text-left">
                         <p className="text-xs font-bold text-gray-700 mb-2">
