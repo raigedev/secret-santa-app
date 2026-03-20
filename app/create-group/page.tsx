@@ -82,8 +82,8 @@ export default function CreateGroupPage() {
       return;
     }
 
-    // ── Step 4: Add the OWNER to group_members ──
-    // The owner is a participant too — they appear in the members list.
+    // Owner is automatically "accepted" — they created the group,
+    // so they don't need to accept their own invitation.
     const { error: ownerError } = await supabase
       .from("group_members")
       .insert({
@@ -92,6 +92,7 @@ export default function CreateGroupPage() {
         email: user.email,
         nickname: user.email?.split("@")[0],
         role: "owner",
+        status: "accepted",  // ← owner auto-accepts
       });
 
     if (ownerError) {
