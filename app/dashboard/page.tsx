@@ -1,10 +1,8 @@
 "use client";
 
-// ─── Dashboard Page ───
-// Shows:
-// 1. Pending invitations (Accept/Decline)
-// 2. Your accepted groups
-// 3. Quick action cards (Secret Santa, Gift Ideas, Create Group)
+// ─── Dashboard Page (with Real-Time) ───
+// Shows pending invitations, accepted groups, and action cards.
+// Real-time: auto-updates when members accept/decline/get invited.
 
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
@@ -37,7 +35,11 @@ type PendingInvite = {
 
 export default function DashboardPage() {
   const router = useRouter();
-  const supabase = createClient();
+
+  // ─── useRef keeps the same Supabase client across renders ───
+  // Without useRef, createClient() would be called on every render,
+  // causing the useEffect dependencies to change and trigger infinite loops.
+   const [supabase] = useState(() => createClient());
 
   const [userName, setUserName] = useState("");
   const [groups, setGroups] = useState<Group[]>([]);
@@ -45,8 +47,11 @@ export default function DashboardPage() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    // ─── Load all dashboard data ───
+    // This function is defined INSIDE useEffect so it doesn't
+    // need to be a dependency. Avoids the cascading render warning.
     const loadDashboard = async () => {
-      // ─── 1. Check if user is logged in ───
+      // 1. Check if user is logged in
       const {
         data: { session },
       } = await supabase.auth.getSession();
@@ -60,17 +65,14 @@ export default function DashboardPage() {
       const email = user.email || "Guest";
       setUserName(email.split("@")[0]);
 
-      // ─── Link this user to any groups they were invited to ───
-      // Invited users have user_id = null in group_members.
-      // Now that they're logged in, fill in their user_id
-      // so the system knows this email = this account.
+      // ─── Link user to any groups they were invited to ───
       await supabase
         .from("group_members")
         .update({ user_id: user.id })
         .eq("email", email.toLowerCase())
         .is("user_id", null);
 
-      // ─── 2. Find all group_members rows for this user ───
+      // 2. Find all group_members rows for this user
       const { data: memberRows, error: memberError } = await supabase
         .from("group_members")
         .select("group_id, status")
@@ -84,7 +86,7 @@ export default function DashboardPage() {
         return;
       }
 
-      // ─── 3. Split into accepted vs pending ───
+      // 3. Split into accepted vs pending
       const acceptedGroupIds = [
         ...new Set(
           (memberRows || [])
@@ -101,7 +103,7 @@ export default function DashboardPage() {
         ),
       ];
 
-      // ─── 4. Fetch ACCEPTED groups with their members ───
+      // 4. Fetch ACCEPTED groups with members
       if (acceptedGroupIds.length > 0) {
         const { data: groupsData } = await supabase
           .from("groups")
@@ -130,7 +132,7 @@ export default function DashboardPage() {
         setGroups([]);
       }
 
-      // ─── 5. Fetch PENDING invites ───
+      // 5. Fetch PENDING invites
       if (pendingGroupIds.length > 0) {
         const { data: pendingGroups } = await supabase
           .from("groups")
@@ -152,12 +154,30 @@ export default function DashboardPage() {
       setLoading(false);
     };
 
+    // ─── Initial load ───
     loadDashboard();
 
-    // ─── Listen for auth changes ───
+    // ─── REAL-TIME SUBSCRIPTION ───
+    // Listens for any change on group_members or groups tables.
+    // When something changes, reload the dashboard automatically.
+    const channel = supabase
+      .channel("dashboard-realtime")
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "group_members" },
+        () => loadDashboard()
+      )
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "groups" },
+        () => loadDashboard()
+      )
+      .subscribe();
+
+    // ─── Auth listener ───
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange(async (_event, session) => {
+    } = supabase.auth.onAuthStateChange((_event, session) => {
       if (!session) {
         router.push("/login");
       } else {
@@ -165,10 +185,12 @@ export default function DashboardPage() {
       }
     });
 
+    // ─── Cleanup ───
     return () => {
+      supabase.removeChannel(channel);
       subscription.unsubscribe();
     };
-  }, [router]);
+  }, [supabase, router]);
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
@@ -283,7 +305,7 @@ export default function DashboardPage() {
           </div>
         </div>
 
-        {/* ─── Your Groups (accepted only) ─── */}
+        {/* ─── Your Groups ─── */}
         <div className="text-left mb-10">
           <h2 className="text-2xl font-bold mb-6 text-blue-700">
             🎄 Your Groups
