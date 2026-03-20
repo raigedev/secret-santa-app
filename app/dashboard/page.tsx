@@ -63,6 +63,18 @@ export default function DashboardPage() {
       const email = user.email || "Guest";
       setUserName(email.split("@")[0]);
 
+      // ─── Link this user to any groups they were invited to ───
+      // When someone is invited by email, their group_members row has
+      // user_id = null. Now that they've logged in, we fill in their
+      // user_id so the system knows this email = this user.
+      // This runs every time the dashboard loads, but the .is("user_id", null)
+      // means it only updates rows that haven't been linked yet.
+      await supabase
+        .from("group_members")
+        .update({ user_id: user.id })
+        .eq("email", email)
+        .is("user_id", null);
+
       // ─── 2. Find all group_members rows for this user ───
       // Match by user_id (if registered) OR email (if invited before signup)
       const { data: memberRows, error: memberError } = await supabase
