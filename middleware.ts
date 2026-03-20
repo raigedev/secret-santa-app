@@ -46,7 +46,14 @@ export async function middleware(req: NextRequest) {
   } = await supabase.auth.getUser();
 
   // ─── Define which pages don't require login ───
-  const publicPages = ["/", "/login", "/create-account", "/forgot-password", "/reset-password"];
+  const publicPages = [
+    "/",
+    "/login",
+    "/create-account",
+    "/forgot-password",
+    "/reset-password",
+    "/auth/callback",  // ← THIS WAS MISSING
+  ];
   const isPublicPage = publicPages.includes(req.nextUrl.pathname);
 
   // ─── Define auth pages (login, signup, etc.) ───
