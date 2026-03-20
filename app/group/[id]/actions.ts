@@ -136,3 +136,59 @@ export async function updateNickname(
 
   return { message: `✅ Nickname updated to "${nickname.trim()}"!` };
 }
+
+// ─── RESEND INVITE ───
+// Called when the group owner clicks "Resend" on a declined member.
+// Resets their status from "declined" back to "pending"
+// so the invitation appears on their dashboard again.
+//
+// Security: #19 — only the group owner can resend invites
+export async function resendInvite(
+  prevState: { message: string },
+  formData: FormData
+): Promise<{ message: string }> {
+  const groupId = formData.get("groupId") as string;
+  const memberEmail = formData.get("memberEmail") as string;
+
+  if (!groupId || !memberEmail) {
+    return { message: "❌ Missing group ID or email." };
+  }
+
+  const supabase = await createClient();
+
+  // Verify the current user is the group owner
+  // This prevents regular members from resending invites
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    return { message: "❌ You must be logged in." };
+  }
+
+  // Check that this user actually owns the group
+  const { data: group } = await supabase
+    .from("groups")
+    .select("owner_id")
+    .eq("id", groupId)
+    .maybeSingle();
+
+  if (!group || group.owner_id !== user.id) {
+    return { message: "❌ Only the group owner can resend invites." };
+  }
+
+  // Reset the member's status from "declined" back to "pending"
+  const { error } = await supabase
+    .from("group_members")
+    .update({ status: "pending" })
+    .eq("group_id", groupId)
+    .eq("email", memberEmail)
+    .eq("status", "declined");
+
+  if (error) {
+    console.error("Failed to resend invite:", error.message);
+    return { message: `❌ Error: ${error.message}` };
+  }
+
+  return { message: `✅ Invite resent to ${memberEmail}` };
+}

@@ -2,29 +2,28 @@ import { createClient } from "@/lib/supabase/server";
 import { deleteGroup } from "./actions";
 import InviteForm from "./InviteForm";
 import NicknameForm from "./NicknameForm";
+import ResendButton from "./ResendButton";
 
 // ─── Member type ───
-// Describes what each row in group_members looks like.
 type Member = {
-  user_id: string | null;   // null = hasn't registered yet (pending)
-  nickname: string | null;   // their anonymous display name
-  email: string | null;      // we NEVER show this to users
-  role: string;              // "owner" or "member"
+  user_id: string | null;
+  nickname: string | null;
+  email: string | null;
+  role: string;
+  status: string; // "pending", "accepted", or "declined"
 };
 
 export default async function GroupDetails({
   params,
 }: {
-  params: Promise<{ id: string }>; // Next.js 16: params is a Promise
+  params: Promise<{ id: string }>;
 }) {
-  // ─── Get the group ID from the URL ───
   const { id } = await params;
 
   if (!id) {
     return <div>Invalid group ID</div>;
   }
 
-  // ─── Create server-side Supabase client ───
   const supabase = await createClient();
 
   // ─── Get the logged-in user ───
@@ -48,13 +47,12 @@ export default async function GroupDetails({
     return <div>Group not found</div>;
   }
 
-  // ─── Check if current user is the owner ───
   const isOwner = user?.id === groupData.owner_id;
 
-  // ─── Fetch all members of this group ───
+  // ─── Fetch all members (including declined, so owner can resend) ───
   const { data: membersData, error: membersError } = await supabase
     .from("group_members")
-    .select("user_id, nickname, email, role")
+    .select("user_id, nickname, email, role, status")
     .eq("group_id", id);
 
   if (membersError) {
@@ -62,11 +60,15 @@ export default async function GroupDetails({
     return <div>Error loading members</div>;
   }
 
-  const members: Member[] = (membersData ?? []) as Member[];
+  const allMembers: Member[] = (membersData ?? []) as Member[];
 
-  // ─── Count statuses ───
-  const joinedCount = members.filter((m) => m.user_id !== null).length;
-  const pendingCount = members.filter((m) => m.user_id === null).length;
+  // ─── Split members by status ───
+  // Accepted = fully joined the group
+  // Pending = invited but hasn't responded yet
+  // Declined = said no (owner can resend)
+  const acceptedMembers = allMembers.filter((m) => m.status === "accepted");
+  const pendingMembers = allMembers.filter((m) => m.status === "pending");
+  const declinedMembers = allMembers.filter((m) => m.status === "declined");
 
   return (
     <main className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-b from-yellow-100 via-white to-yellow-200 relative">
@@ -88,15 +90,20 @@ export default async function GroupDetails({
         </p>
 
         {/* ─── Status Summary ─── */}
-        <div className="flex gap-4 mb-6 flex-wrap">
+        <div className="flex gap-3 mb-6 flex-wrap">
           <div className="bg-green-100 text-green-700 px-4 py-2 rounded-lg text-sm font-bold">
-            ✅ Joined: {joinedCount}
+            ✅ Accepted: {acceptedMembers.length}
           </div>
           <div className="bg-yellow-100 text-yellow-700 px-4 py-2 rounded-lg text-sm font-bold">
-            ⏳ Pending: {pendingCount}
+            ⏳ Pending: {pendingMembers.length}
           </div>
+          {declinedMembers.length > 0 && (
+            <div className="bg-red-100 text-red-700 px-4 py-2 rounded-lg text-sm font-bold">
+              ❌ Declined: {declinedMembers.length}
+            </div>
+          )}
           <div className="bg-blue-100 text-blue-700 px-4 py-2 rounded-lg text-sm font-bold">
-            👥 Total: {members.length}
+            👥 Total: {allMembers.length}
           </div>
         </div>
 
@@ -116,62 +123,45 @@ export default async function GroupDetails({
           </form>
         )}
 
-        {/* ─── Participants List ─── */}
+        {/* ═══ ACCEPTED MEMBERS ═══ */}
         <h2 className="text-xl font-bold text-gray-800 mb-4">
           🎄 Participants
         </h2>
 
-        {members.length === 0 ? (
-          <p className="text-gray-600 text-center">
-            No members invited yet. Use the invite form above!
+        {acceptedMembers.length === 0 ? (
+          <p className="text-gray-600 text-center mb-6">
+            No accepted members yet.
           </p>
         ) : (
-          <ul className="space-y-3">
-            {members.map((m, index) => {
-              // ─── Is this card the current logged-in user? ───
+          <ul className="space-y-3 mb-6">
+            {acceptedMembers.map((m, index) => {
               const isCurrentUser = user?.id === m.user_id;
 
               return (
                 <li
                   key={m.user_id || index}
-                  className={`rounded-lg p-4 shadow-md font-semibold transition transform hover:scale-105 ${
-                    m.user_id
-                      ? "bg-gradient-to-r from-green-300 to-green-500 text-white"
-                      : "bg-gradient-to-r from-gray-200 to-gray-300 text-gray-600"
-                  }`}
+                  className="rounded-lg p-4 shadow-md font-semibold transition transform hover:scale-105 bg-gradient-to-r from-green-300 to-green-500 text-white"
                 >
-                  {/* ─── If this is the current user's card ─── */}
-                  {/* Show NicknameForm which handles BOTH displaying 
-                      the name AND editing it. Updates in real-time. */}
                   {isCurrentUser ? (
                     <div>
                       <div className="flex items-center justify-between">
                         <span>🎁 You</span>
                         <span className="text-xs px-3 py-1 rounded-full font-bold bg-white/30 text-white">
-                          Joined ✓
+                          Accepted ✓
                         </span>
                       </div>
-                      {/* NicknameForm handles showing current name + edit button */}
                       <NicknameForm
                         groupId={id}
                         currentNickname={m.nickname || ""}
                       />
                     </div>
                   ) : (
-                    // ─── Other members: just show their name + status ───
                     <div className="flex items-center justify-between">
                       <span>
-                        {m.user_id ? "🎁 " : "⏳ "}
-                        {m.nickname || `Participant ${index + 1}`}
+                        🎁 {m.nickname || `Participant ${index + 1}`}
                       </span>
-                      <span
-                        className={`text-xs px-3 py-1 rounded-full font-bold ${
-                          m.user_id
-                            ? "bg-white/30 text-white"
-                            : "bg-yellow-400/30 text-yellow-800"
-                        }`}
-                      >
-                        {m.user_id ? "Joined ✓" : "Pending"}
+                      <span className="text-xs px-3 py-1 rounded-full font-bold bg-white/30 text-white">
+                        Accepted ✓
                       </span>
                     </div>
                   )}
@@ -181,12 +171,64 @@ export default async function GroupDetails({
           </ul>
         )}
 
+        {/* ═══ PENDING MEMBERS ═══ */}
+        {pendingMembers.length > 0 && (
+          <>
+            <h2 className="text-lg font-bold text-yellow-700 mb-3">
+              ⏳ Waiting for Response
+            </h2>
+            <ul className="space-y-3 mb-6">
+              {pendingMembers.map((m, index) => (
+                <li
+                  key={m.email || index}
+                  className="rounded-lg p-4 shadow-md font-semibold bg-gradient-to-r from-gray-200 to-gray-300 text-gray-600 flex items-center justify-between"
+                >
+                  <span>
+                    ⏳ {m.nickname || `Participant ${index + 1}`}
+                  </span>
+                  <span className="text-xs px-3 py-1 rounded-full font-bold bg-yellow-400/30 text-yellow-800">
+                    Pending
+                  </span>
+                </li>
+              ))}
+            </ul>
+          </>
+        )}
+
+        {/* ═══ DECLINED MEMBERS (owner only) ═══ */}
+        {/* Only the owner sees declined members with a resend button.
+            Regular members don't need to know who declined. */}
+        {isOwner && declinedMembers.length > 0 && (
+          <>
+            <h2 className="text-lg font-bold text-red-600 mb-3">
+              ❌ Declined
+            </h2>
+            <ul className="space-y-3 mb-6">
+              {declinedMembers.map((m, index) => (
+                <li
+                  key={m.email || index}
+                  className="rounded-lg p-4 shadow-md font-semibold bg-gradient-to-r from-red-100 to-red-200 text-red-700 flex items-center justify-between"
+                >
+                  <span>
+                    {m.nickname || `Participant ${index + 1}`}
+                  </span>
+                  {/* Resend button — resets status to "pending" */}
+                  <ResendButton
+                    groupId={id}
+                    memberEmail={m.email || ""}
+                  />
+                </li>
+              ))}
+            </ul>
+          </>
+        )}
+
         {/* ─── Info box (owner only) ─── */}
-        {pendingCount > 0 && isOwner && (
-          <div className="mt-6 bg-blue-50 border border-blue-200 rounded-lg p-4 text-sm text-blue-700">
-            💡 <strong>Pending members</strong> haven&apos;t created an account yet.
-            Share your app link with them — they need to register and log in.
-            Once they do, their status will change to &quot;Joined&quot; automatically.
+        {pendingMembers.length > 0 && isOwner && (
+          <div className="mt-4 bg-blue-50 border border-blue-200 rounded-lg p-4 text-sm text-blue-700">
+            💡 <strong>Pending members</strong> need to log in and accept the invitation
+            from their dashboard. <strong>Declined members</strong> can be re-invited
+            using the Resend button above.
           </div>
         )}
       </div>
