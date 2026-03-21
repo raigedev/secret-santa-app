@@ -35,9 +35,9 @@ export default function SecretSantaCard({ recipientNames }: Props) {
     <div onClick={() => router.push("/secret-santa")}
       className="cursor-pointer rounded-[16px] overflow-hidden transition hover:scale-[1.04]"
       style={{ background: "linear-gradient(135deg,#dc2626,#ef4444)", boxShadow: "0 4px 20px rgba(220,38,38,.3)" }}>
-      <div className="bg-white py-2.5 px-4 text-center font-extrabold text-[14px] rounded-t-[16px] relative" style={{ color: "#dc2626" }}>
-        🎅 Your Secret Santa
-        <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[10px] font-extrabold px-2.5 py-0.5 rounded-full"
+      <div className="bg-white py-2.5 px-4 flex items-center justify-between font-extrabold text-[14px] rounded-t-[16px]" style={{ color: "#dc2626" }}>
+        <span>🎅 Your Secret Santa</span>
+        <span className="text-[10px] font-extrabold px-2.5 py-0.5 rounded-full flex-shrink-0 ml-2"
           style={{ background: "rgba(220,38,38,.1)", color: "#dc2626" }}>
           {recipientNames.length} recipient{recipientNames.length > 1 ? "s" : ""}
         </span>
