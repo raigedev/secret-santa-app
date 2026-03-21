@@ -1,74 +1,167 @@
-import { createClient } from "@/lib/supabase/server";
-import { deleteGroup } from "./actions";
+"use client";
+
+// ─── Group Detail Page (with Real-Time) ───
+// Shows group info, members (accepted/pending/declined),
+// invite form, nickname editor, and resend button.
+// REAL-TIME: auto-updates when members accept/decline/change nickname.
+
+import { useEffect, useState } from "react";
+import { useRouter, useParams } from "next/navigation";
+import { createClient } from "@/lib/supabase/client";
 import InviteForm from "./InviteForm";
 import NicknameForm from "./NicknameForm";
 import ResendButton from "./ResendButton";
 
-// ─── Member type ───
+// ─── Types ───
 type Member = {
   user_id: string | null;
   nickname: string | null;
   email: string | null;
   role: string;
-  status: string; // "pending", "accepted", or "declined"
+  status: string;
 };
 
-export default async function GroupDetails({
-  params,
-}: {
-  params: Promise<{ id: string }>;
-}) {
-  const { id } = await params;
+type GroupData = {
+  name: string;
+  description: string | null;
+  event_date: string;
+  owner_id: string;
+};
 
-  if (!id) {
-    return <div>Invalid group ID</div>;
+export default function GroupDetails() {
+  const router = useRouter();
+  const params = useParams();
+  const id = params.id as string;
+
+  // ─── Create stable Supabase client ───
+  const [supabase] = useState(() => createClient());
+
+  // ─── State ───
+  const [groupData, setGroupData] = useState<GroupData | null>(null);
+  const [members, setMembers] = useState<Member[]>([]);
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+  const [isOwner, setIsOwner] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!id) return;
+
+    // ─── Load all group data ───
+    // Defined inside useEffect to avoid dependency issues.
+    // Called on first load AND when real-time detects a change.
+    const loadGroupData = async () => {
+      // Get the logged-in user
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+
+      if (!user) {
+        router.push("/login");
+        return;
+      }
+
+      setCurrentUserId(user.id);
+
+      // Fetch group details
+      const { data: group, error: groupError } = await supabase
+        .from("groups")
+        .select("name, description, event_date, owner_id")
+        .eq("id", id)
+        .maybeSingle();
+
+      if (groupError) {
+        console.error("Error loading group:", groupError);
+        setError("Error loading group");
+        setLoading(false);
+        return;
+      }
+
+      if (!group) {
+        setError("Group not found");
+        setLoading(false);
+        return;
+      }
+
+      setGroupData(group);
+      setIsOwner(user.id === group.owner_id);
+
+      // Fetch all members
+      const { data: membersData, error: membersError } = await supabase
+        .from("group_members")
+        .select("user_id, nickname, email, role, status")
+        .eq("group_id", id);
+
+      if (membersError) {
+        console.error("Error loading members:", membersError);
+        setError("Error loading members");
+        setLoading(false);
+        return;
+      }
+
+      setMembers((membersData ?? []) as Member[]);
+      setLoading(false);
+    };
+
+    // ─── Initial load ───
+    loadGroupData();
+
+    // ─── REAL-TIME SUBSCRIPTION ───
+    // Listens for any change to group_members for THIS group.
+    // When someone accepts, declines, changes nickname, or gets invited,
+    // the page reloads automatically. No manual refresh needed.
+    const channel = supabase
+      .channel(`group-${id}-realtime`)
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "group_members",
+          filter: `group_id=eq.${id}`,
+        },
+        () => loadGroupData()
+      )
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "groups",
+          filter: `id=eq.${id}`,
+        },
+        () => loadGroupData()
+      )
+      .subscribe();
+
+    // ─── Cleanup ───
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [id, supabase, router]);
+
+  // ─── Loading state ───
+  if (loading) {
+    return (
+      <main className="min-h-screen flex items-center justify-center bg-gray-100">
+        <p className="text-lg font-semibold text-blue-700">Loading group...</p>
+      </main>
+    );
   }
 
-  const supabase = await createClient();
-
-  // ─── Get the logged-in user ───
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  // ─── Fetch group details ───
-  const { data: groupData, error: groupError } = await supabase
-    .from("groups")
-    .select("name, description, event_date, owner_id")
-    .eq("id", id)
-    .maybeSingle();
-
-  if (groupError) {
-    console.error("Error loading group:", groupError);
-    return <div>Error loading group</div>;
+  // ─── Error state ───
+  if (error || !groupData) {
+    return (
+      <main className="min-h-screen flex items-center justify-center bg-gray-100">
+        <p className="text-lg font-semibold text-red-600">{error || "Group not found"}</p>
+      </main>
+    );
   }
-
-  if (!groupData) {
-    return <div>Group not found</div>;
-  }
-
-  const isOwner = user?.id === groupData.owner_id;
-
-  // ─── Fetch all members (including declined, so owner can resend) ───
-  const { data: membersData, error: membersError } = await supabase
-    .from("group_members")
-    .select("user_id, nickname, email, role, status")
-    .eq("group_id", id);
-
-  if (membersError) {
-    console.error("Error loading members:", membersError);
-    return <div>Error loading members</div>;
-  }
-
-  const allMembers: Member[] = (membersData ?? []) as Member[];
 
   // ─── Split members by status ───
-  // Accepted = fully joined the group
-  // Pending = invited but hasn't responded yet
-  // Declined = said no (owner can resend)
-  const acceptedMembers = allMembers.filter((m) => m.status === "accepted");
-  const pendingMembers = allMembers.filter((m) => m.status === "pending");
-  const declinedMembers = allMembers.filter((m) => m.status === "declined");
+  const acceptedMembers = members.filter((m) => m.status === "accepted");
+  const pendingMembers = members.filter((m) => m.status === "pending");
+  const declinedMembers = members.filter((m) => m.status === "declined");
 
   return (
     <main className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-b from-yellow-100 via-white to-yellow-200 relative">
@@ -103,7 +196,7 @@ export default async function GroupDetails({
             </div>
           )}
           <div className="bg-blue-100 text-blue-700 px-4 py-2 rounded-lg text-sm font-bold">
-            👥 Total: {allMembers.length}
+            👥 Total: {members.length}
           </div>
         </div>
 
@@ -112,15 +205,21 @@ export default async function GroupDetails({
 
         {/* ─── Delete Group (owner only) ─── */}
         {isOwner && (
-          <form action={deleteGroup} className="mb-6">
-            <input type="hidden" name="id" value={id} />
+          <div className="mb-6">
             <button
-              type="submit"
+              onClick={async () => {
+                if (!confirm("Are you sure you want to delete this group?")) return;
+                const { error } = await supabase
+                  .from("groups")
+                  .delete()
+                  .eq("id", id);
+                if (!error) router.push("/dashboard");
+              }}
               className="bg-red-600 text-white px-4 py-2 rounded-lg shadow hover:bg-red-700 transition"
             >
               🗑️ Delete Group
             </button>
-          </form>
+          </div>
         )}
 
         {/* ═══ ACCEPTED MEMBERS ═══ */}
@@ -135,7 +234,7 @@ export default async function GroupDetails({
         ) : (
           <ul className="space-y-3 mb-6">
             {acceptedMembers.map((m, index) => {
-              const isCurrentUser = user?.id === m.user_id;
+              const isCurrentUser = currentUserId === m.user_id;
 
               return (
                 <li
@@ -183,9 +282,7 @@ export default async function GroupDetails({
                   key={m.email || index}
                   className="rounded-lg p-4 shadow-md font-semibold bg-gradient-to-r from-gray-200 to-gray-300 text-gray-600 flex items-center justify-between"
                 >
-                  <span>
-                    ⏳ {m.nickname || `Participant ${index + 1}`}
-                  </span>
+                  <span>⏳ {m.nickname || `Participant ${index + 1}`}</span>
                   <span className="text-xs px-3 py-1 rounded-full font-bold bg-yellow-400/30 text-yellow-800">
                     Pending
                   </span>
@@ -196,8 +293,6 @@ export default async function GroupDetails({
         )}
 
         {/* ═══ DECLINED MEMBERS (owner only) ═══ */}
-        {/* Only the owner sees declined members with a resend button.
-            Regular members don't need to know who declined. */}
         {isOwner && declinedMembers.length > 0 && (
           <>
             <h2 className="text-lg font-bold text-red-600 mb-3">
@@ -209,10 +304,7 @@ export default async function GroupDetails({
                   key={m.email || index}
                   className="rounded-lg p-4 shadow-md font-semibold bg-gradient-to-r from-red-100 to-red-200 text-red-700 flex items-center justify-between"
                 >
-                  <span>
-                    {m.nickname || `Participant ${index + 1}`}
-                  </span>
-                  {/* Resend button — resets status to "pending" */}
+                  <span>{m.nickname || `Participant ${index + 1}`}</span>
                   <ResendButton
                     groupId={id}
                     memberEmail={m.email || ""}
@@ -231,6 +323,16 @@ export default async function GroupDetails({
             using the Resend button above.
           </div>
         )}
+
+        {/* ─── Back to dashboard ─── */}
+        <div className="mt-6 text-center">
+          <button
+            onClick={() => router.push("/dashboard")}
+            className="text-blue-600 font-bold hover:underline"
+          >
+            ← Back to Dashboard
+          </button>
+        </div>
       </div>
     </main>
   );
