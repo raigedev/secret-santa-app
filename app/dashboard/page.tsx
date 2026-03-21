@@ -241,12 +241,13 @@ export default function DashboardPage() {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
           <SecretSantaCard recipientNames={recipientNames} />
 
-          <div className="text-white rounded-t-[2rem] rounded-b-xl hover:scale-105 transition transform relative overflow-hidden"
+          <div onClick={() => router.push("/secret-santa-chat")}
+            className="cursor-pointer text-white rounded-t-[2rem] rounded-b-xl hover:scale-105 transition transform relative overflow-hidden"
             style={{ background: "linear-gradient(135deg, #86EFAC, #22C55E)", boxShadow: "0 0 20px rgba(34, 197, 94, 0.7)" }}>
-            <div className="bg-white text-green-700 font-bold py-2 text-center rounded-t-[2rem]">💡🎅 Gift Ideas</div>
+            <div className="bg-white text-green-700 font-bold py-2 text-center rounded-t-[2rem]">💬🎅 Secret Santa Chat</div>
             <div className="p-4 text-center">
-              <p className="text-sm" style={{ color: "#334155" }}>Share and explore festive gift ideas</p>
-              <div className="mt-4 flex justify-center gap-2 text-xl">❄️ 🎁 🍬</div>
+              <p className="text-sm" style={{ color: "#334155" }}>Chat with your matches anonymously</p>
+              <div className="mt-4 flex justify-center gap-2 text-xl">💬 🎅 🎁</div>
             </div>
           </div>
 
