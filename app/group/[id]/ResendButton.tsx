@@ -2,13 +2,12 @@
 
 // ─── ResendButton Component ───
 // Shows a "Resend Invite" button on declined member cards.
-// Only visible to the group owner.
-// When clicked, resets the member's status to "pending"
-// so the invitation reappears on their dashboard.
-// Updates instantly — no page refresh needed.
+// Calls a SERVER ACTION (not client-side update) because
+// RLS only lets you edit your own row — the owner needs
+// server-side permission to update someone else's row.
 
 import { useState } from "react";
-import { createClient } from "@/lib/supabase/client";
+import { resendInvite } from "./actions";
 
 type Props = {
   groupId: string;
@@ -16,45 +15,24 @@ type Props = {
 };
 
 export default function ResendButton({ groupId, memberEmail }: Props) {
-  const supabase = createClient();
-
-  // ─── State ───
   // "idle" = showing the button
-  // "loading" = waiting for database response
+  // "loading" = waiting for server response
   // "sent" = successfully resent
   const [status, setStatus] = useState<"idle" | "loading" | "sent">("idle");
 
   const handleResend = async () => {
     setStatus("loading");
 
-    // Get the logged-in user
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
+    // Call the server action — it verifies ownership
+    // and uses the admin client to update the row
+    const result = await resendInvite(groupId, memberEmail);
 
-    if (!user) {
-      alert("You must be logged in.");
+    if (result.message.startsWith("✅")) {
+      setStatus("sent");
+    } else {
+      alert(result.message);
       setStatus("idle");
-      return;
     }
-
-    // Reset the declined member's status back to "pending".
-    // We match by group_id + email + status="declined" to be safe.
-    const { error } = await supabase
-      .from("group_members")
-      .update({ status: "pending" })
-      .eq("group_id", groupId)
-      .eq("email", memberEmail)
-      .eq("status", "declined");
-
-    if (error) {
-      alert(`Error: ${error.message}`);
-      setStatus("idle");
-      return;
-    }
-
-    // Show success — the button changes to "Resent ✓"
-    setStatus("sent");
   };
 
   // Already resent — show confirmation
