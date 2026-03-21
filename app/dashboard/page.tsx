@@ -37,22 +37,6 @@ type PendingInvite = {
   group_event_date: string;
 };
 
-type WishlistItem = {
-  id: string;
-  item_name: string;
-  item_link: string;
-  item_note: string;
-  priority: number;
-};
-
-type RecipientData = {
-  group_id: string;
-  group_name: string;
-  group_event_date: string;
-  receiver_nickname: string;
-  receiver_wishlist: WishlistItem[];
-};
-
 export default function DashboardPage() {
   const router = useRouter();
   const [supabase] = useState(() => createClient());
@@ -60,9 +44,7 @@ export default function DashboardPage() {
   const [ownedGroups, setOwnedGroups] = useState<Group[]>([]);
   const [invitedGroups, setInvitedGroups] = useState<Group[]>([]);
   const [pendingInvites, setPendingInvites] = useState<PendingInvite[]>([]);
-  const [assignments, setAssignments] = useState<RecipientData[]>([]);
-  const [myWishlistItems, setMyWishlistItems] = useState<WishlistItem[]>([]);
-  const [myGroupIds, setMyGroupIds] = useState<string[]>([]);
+  const [recipientNames, setRecipientNames] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -89,8 +71,7 @@ export default function DashboardPage() {
 
       if (memberError) {
         setOwnedGroups([]); setInvitedGroups([]); setPendingInvites([]);
-        setAssignments([]); setMyWishlistItems([]);
-        setLoading(false); return;
+        setRecipientNames([]); setLoading(false); return;
       }
 
       const acceptedRows = (memberRows || []).filter((r) => r.status === "accepted");
@@ -101,7 +82,6 @@ export default function DashboardPage() {
       const roleMap: Record<string, string> = {};
       for (const row of acceptedRows) roleMap[row.group_id] = row.role;
 
-      // ─── Fetch accepted groups + members + draw status ───
       if (acceptedGroupIds.length > 0) {
         const { data: groupsData } = await supabase
           .from("groups")
@@ -132,9 +112,8 @@ export default function DashboardPage() {
 
         setOwnedGroups(groupsWithMembers.filter((g) => g.isOwner));
         setInvitedGroups(groupsWithMembers.filter((g) => !g.isOwner));
-        setMyGroupIds(acceptedGroupIds);
 
-        // ─── Fetch MY assignments (who I give to) ───
+        // Fetch recipient names for the Secret Santa card preview
         const { data: myAssignments } = await supabase
           .from("assignments")
           .select("group_id, receiver_id")
@@ -143,70 +122,22 @@ export default function DashboardPage() {
 
         if (myAssignments && myAssignments.length > 0) {
           const receiverIds = myAssignments.map((a) => a.receiver_id);
-
-          // Fetch receiver nicknames
           const { data: receiverMembers } = await supabase
             .from("group_members")
-            .select("group_id, user_id, nickname")
+            .select("user_id, nickname")
             .in("user_id", receiverIds)
-            .in("group_id", acceptedGroupIds)
             .eq("status", "accepted");
 
-          // Fetch receiver wishlists (RLS only returns items I'm allowed to see)
-          const { data: receiverWishlists } = await supabase
-            .from("wishlists")
-            .select("id, group_id, user_id, item_name, item_link, item_note, priority")
-            .in("user_id", receiverIds)
-            .in("group_id", acceptedGroupIds);
-
-          const recipientData: RecipientData[] = myAssignments.map((a) => {
-            const group = (groupsData || []).find((g) => g.id === a.group_id);
-            const receiver = (receiverMembers || []).find(
-              (m) => m.user_id === a.receiver_id && m.group_id === a.group_id
-            );
-            const wishlist = (receiverWishlists || [])
-              .filter((w) => w.user_id === a.receiver_id && w.group_id === a.group_id)
-              .map((w) => ({
-                id: w.id,
-                item_name: w.item_name,
-                item_link: w.item_link || "",
-                item_note: w.item_note || "",
-                priority: w.priority || 0,
-              }));
-
-            return {
-              group_id: a.group_id,
-              group_name: group?.name || "Unknown Group",
-              group_event_date: group?.event_date || "",
-              receiver_nickname: receiver?.nickname || "Secret Participant",
-              receiver_wishlist: wishlist,
-            };
+          const names = myAssignments.map((a) => {
+            const r = (receiverMembers || []).find((m) => m.user_id === a.receiver_id);
+            return r?.nickname || "Secret Participant";
           });
-
-          setAssignments(recipientData);
+          setRecipientNames(names);
         } else {
-          setAssignments([]);
+          setRecipientNames([]);
         }
-
-        // ─── Fetch MY wishlist items (across all groups) ───
-        const { data: myItems } = await supabase
-          .from("wishlists")
-          .select("id, item_name, item_link, item_note, priority")
-          .eq("user_id", user.id)
-          .in("group_id", acceptedGroupIds);
-
-        setMyWishlistItems(
-          (myItems || []).map((w) => ({
-            id: w.id,
-            item_name: w.item_name,
-            item_link: w.item_link || "",
-            item_note: w.item_note || "",
-            priority: w.priority || 0,
-          }))
-        );
       } else {
-        setOwnedGroups([]); setInvitedGroups([]);
-        setAssignments([]); setMyWishlistItems([]);
+        setOwnedGroups([]); setInvitedGroups([]); setRecipientNames([]);
       }
 
       // Pending invites
@@ -230,7 +161,6 @@ export default function DashboardPage() {
 
     loadDashboard();
 
-    // Real-time: all relevant tables
     const channel = supabase
       .channel("dashboard-realtime")
       .on("postgres_changes", { event: "*", schema: "public", table: "group_members" }, () => loadDashboard())
@@ -247,10 +177,7 @@ export default function DashboardPage() {
     return () => { supabase.removeChannel(channel); subscription.unsubscribe(); };
   }, [supabase, router]);
 
-  const handleLogout = async () => {
-    await supabase.auth.signOut();
-    router.push("/login");
-  };
+  const handleLogout = async () => { await supabase.auth.signOut(); router.push("/login"); };
 
   if (loading) return (
     <main className="min-h-screen flex items-center justify-center bg-gray-100">
@@ -282,9 +209,7 @@ export default function DashboardPage() {
               {group.members.slice(0, 4).map((m, i) => (
                 <span key={i} className="text-[10px] font-bold px-2.5 py-0.5 rounded-full" style={{ background: "rgba(255,255,255,.2)" }}>{m.nickname || "Anonymous"}</span>
               ))}
-              {group.members.length > 4 && (
-                <span className="text-[10px] font-bold px-2.5 py-0.5 rounded-full" style={{ background: "rgba(255,255,255,.15)" }}>+{group.members.length - 4} more</span>
-              )}
+              {group.members.length > 4 && <span className="text-[10px] font-bold px-2.5 py-0.5 rounded-full" style={{ background: "rgba(255,255,255,.15)" }}>+{group.members.length - 4} more</span>}
             </div>
           </div>
         )}
@@ -301,7 +226,6 @@ export default function DashboardPage() {
         <h1 className="text-4xl font-bold mb-2 drop-shadow-lg" style={{ color: "#1E3A8A" }}>🎁 GiftDraw Dashboard 🎅</h1>
         <p className="text-lg mb-8 font-semibold" style={{ color: "#334155" }}>Welcome, {userName} 🎁</p>
 
-        {/* Pending Invitations */}
         {pendingInvites.length > 0 && (
           <div className="text-left mb-10">
             <h2 className="text-2xl font-bold mb-4 text-orange-600">📩 Pending Invitations</h2>
@@ -315,8 +239,7 @@ export default function DashboardPage() {
 
         {/* Action Cards */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
-          {/* Secret Santa Card */}
-          <SecretSantaCard assignments={assignments} myWishlistItems={myWishlistItems} myGroupIds={myGroupIds} />
+          <SecretSantaCard recipientNames={recipientNames} />
 
           <div className="text-white rounded-t-[2rem] rounded-b-xl hover:scale-105 transition transform relative overflow-hidden"
             style={{ background: "linear-gradient(135deg, #86EFAC, #22C55E)", boxShadow: "0 0 20px rgba(34, 197, 94, 0.7)" }}>
@@ -348,9 +271,7 @@ export default function DashboardPage() {
                 style={{ background: "linear-gradient(135deg,#2563eb,#3b82f6)" }}>+ Create Your First Group</button>
             </div>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {ownedGroups.map((g) => <GroupCard key={g.id} group={g} type="owned" />)}
-            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">{ownedGroups.map((g) => <GroupCard key={g.id} group={g} type="owned" />)}</div>
           )}
         </div>
 
@@ -362,9 +283,7 @@ export default function DashboardPage() {
               <p className="text-gray-500 text-sm font-semibold">No group invitations accepted yet.</p>
             </div>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {invitedGroups.map((g) => <GroupCard key={g.id} group={g} type="invited" />)}
-            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">{invitedGroups.map((g) => <GroupCard key={g.id} group={g} type="invited" />)}</div>
           )}
         </div>
 
