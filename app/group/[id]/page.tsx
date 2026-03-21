@@ -4,6 +4,12 @@
 // Shows group info, members (accepted/pending/declined),
 // invite form, nickname editor, and resend button.
 // REAL-TIME: auto-updates when members accept/decline/change nickname.
+//
+// Security:
+// - All reads protected by RLS (users only see their groups)
+// - Delete protected by RLS (only owner can delete)
+// - Invite/nickname/resend use server actions
+// - UI checks (isOwner) are cosmetic — real security is in RLS
 
 import { useEffect, useState } from "react";
 import { useRouter, useParams } from "next/navigation";
@@ -33,7 +39,7 @@ export default function GroupDetails() {
   const params = useParams();
   const id = params.id as string;
 
-  // ─── Create stable Supabase client ───
+  // ─── Stable Supabase client (won't recreate on re-renders) ───
   const [supabase] = useState(() => createClient());
 
   // ─── State ───
@@ -48,8 +54,6 @@ export default function GroupDetails() {
     if (!id) return;
 
     // ─── Load all group data ───
-    // Defined inside useEffect to avoid dependency issues.
-    // Called on first load AND when real-time detects a change.
     const loadGroupData = async () => {
       // Get the logged-in user
       const {
@@ -134,11 +138,32 @@ export default function GroupDetails() {
       )
       .subscribe();
 
-    // ─── Cleanup ───
+    // ─── Cleanup when leaving the page ───
     return () => {
       supabase.removeChannel(channel);
     };
   }, [id, supabase, router]);
+
+  // ─── Delete group handler ───
+  // Uses client-side delete but RLS ensures ONLY the owner can delete.
+  // Even if someone hacks the UI to show the button, the database
+  // will reject the delete if they're not the owner.
+  const handleDeleteGroup = async () => {
+    if (!confirm("Are you sure you want to delete this group? This cannot be undone.")) {
+      return;
+    }
+
+    const { error } = await supabase
+      .from("groups")
+      .delete()
+      .eq("id", id);
+
+    if (error) {
+      alert("Failed to delete group: " + error.message);
+    } else {
+      router.push("/dashboard");
+    }
+  };
 
   // ─── Loading state ───
   if (loading) {
@@ -153,7 +178,9 @@ export default function GroupDetails() {
   if (error || !groupData) {
     return (
       <main className="min-h-screen flex items-center justify-center bg-gray-100">
-        <p className="text-lg font-semibold text-red-600">{error || "Group not found"}</p>
+        <p className="text-lg font-semibold text-red-600">
+          {error || "Group not found"}
+        </p>
       </main>
     );
   }
@@ -203,18 +230,13 @@ export default function GroupDetails() {
         {/* ─── Invite Form (owner only) ─── */}
         {isOwner && <InviteForm groupId={id} />}
 
-        {/* ─── Delete Group (owner only) ─── */}
+        {/* ─── Delete Group (owner only) ───
+            RLS policy "Owners can delete their groups" is the real security.
+            The isOwner check just hides the button in the UI. */}
         {isOwner && (
           <div className="mb-6">
             <button
-              onClick={async () => {
-                if (!confirm("Are you sure you want to delete this group?")) return;
-                const { error } = await supabase
-                  .from("groups")
-                  .delete()
-                  .eq("id", id);
-                if (!error) router.push("/dashboard");
-              }}
+              onClick={handleDeleteGroup}
               className="bg-red-600 text-white px-4 py-2 rounded-lg shadow hover:bg-red-700 transition"
             >
               🗑️ Delete Group
