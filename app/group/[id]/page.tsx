@@ -1,10 +1,5 @@
 "use client";
 
-// ─── Group Detail Page ───
-// Christmas garland frame design with real-time updates.
-// Canvas-drawn pine garlands on all 4 sides with berries, stars,
-// SVG bells/bow, corner ornaments, red ribbons.
-
 import { useEffect, useState, useRef } from "react";
 import { useRouter, useParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
@@ -28,7 +23,6 @@ type GroupData = {
 };
 
 // ─── Canvas Garland Renderer ───
-// Draws realistic pine needle clusters, red berries, and gold stars
 function drawGarland(canvas: HTMLCanvasElement, orientation: "horizontal" | "vertical") {
   const parent = canvas.parentElement;
   if (!parent) return;
@@ -147,13 +141,11 @@ export default function GroupDetails() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // Canvas refs for garlands
   const topRef = useRef<HTMLCanvasElement>(null);
   const bottomRef = useRef<HTMLCanvasElement>(null);
   const leftRef = useRef<HTMLCanvasElement>(null);
   const rightRef = useRef<HTMLCanvasElement>(null);
 
-  // Draw garlands after content loads
   const renderGarlands = () => {
     if (topRef.current) drawGarland(topRef.current, "horizontal");
     if (bottomRef.current) drawGarland(bottomRef.current, "horizontal");
@@ -187,12 +179,12 @@ export default function GroupDetails() {
       setMembers((membersData ?? []) as Member[]);
       setLoading(false);
 
-      // Draw garlands after data loads
       setTimeout(renderGarlands, 100);
     };
 
     loadGroupData();
 
+    // Real-time subscription
     const channel = supabase
       .channel(`group-${id}-realtime`)
       .on("postgres_changes", { event: "*", schema: "public", table: "group_members", filter: `group_id=eq.${id}` }, () => loadGroupData())
@@ -200,7 +192,25 @@ export default function GroupDetails() {
       .subscribe();
 
     window.addEventListener("resize", renderGarlands);
-    return () => { supabase.removeChannel(channel); window.removeEventListener("resize", renderGarlands); };
+
+    // ─── Snow effect ───
+    const snowWrap = document.getElementById("snowWrap");
+    if (snowWrap && snowWrap.children.length === 0) {
+      for (let i = 0; i < 50; i++) {
+        const s = document.createElement("div");
+        s.className = "snowflake";
+        const sz = 2 + Math.random() * 3;
+        s.style.cssText = `width:${sz}px;height:${sz}px;left:${Math.random() * 100}%;animation-duration:${5 + Math.random() * 10}s;animation-delay:${Math.random() * 6}s;opacity:${0.3 + Math.random() * 0.5};`;
+        snowWrap.appendChild(s);
+      }
+    }
+
+    return () => {
+      supabase.removeChannel(channel);
+      window.removeEventListener("resize", renderGarlands);
+      const sw = document.getElementById("snowWrap");
+      if (sw) sw.innerHTML = "";
+    };
   }, [id, supabase, router]);
 
   const handleDeleteGroup = async () => {
@@ -229,8 +239,15 @@ export default function GroupDetails() {
   return (
     <main className="min-h-screen relative overflow-x-hidden" style={{ background: "linear-gradient(180deg,#eef4fb 0%,#dce8f5 35%,#d0e0f0 65%,#e8dce0 100%)", fontFamily: "'Nunito', sans-serif" }}>
 
-      {/* Snow */}
+      {/* Snow container */}
       <div id="snowWrap" className="fixed inset-0 pointer-events-none z-0 overflow-hidden" />
+
+      {/* Snow + glow CSS */}
+      <style>{`
+        @keyframes glow { 0% { opacity:.4; transform:scale(.85); } 100% { opacity:1; transform:scale(1.15); } }
+        @keyframes fall { 0% { transform:translateY(-10px) translateX(0); opacity:.8; } 50% { transform:translateY(50vh) translateX(15px); } 100% { transform:translateY(105vh) translateX(-8px); opacity:.2; } }
+        .snowflake { position:absolute; background:#fff; border-radius:50%; animation:fall linear infinite; }
+      `}</style>
 
       <div className="relative z-10 max-w-[740px] mx-auto px-4 py-6">
 
@@ -246,7 +263,7 @@ export default function GroupDetails() {
           {["#dc2626","#3b82f6","#fff","#dc2626","#f59e0b","#3b82f6","#fff","#dc2626","#3b82f6","#f59e0b","#fff","#dc2626"].map((c, i) => (
             <div key={i} className="w-2.5 h-2.5 rounded-full" style={{
               background: c, boxShadow: `0 0 8px ${c}`,
-              animation: `glow 2s ease-in-out infinite alternate`, animationDelay: `${i * 0.15}s`
+              animation: "glow 2s ease-in-out infinite alternate", animationDelay: `${i * 0.15}s`
             }} />
           ))}
         </div>
@@ -255,17 +272,10 @@ export default function GroupDetails() {
         <div className="relative" style={{ marginTop: "36px", padding: "52px" }}>
 
           {/* Ribbons */}
-          {[
-            { pos: "top-[18px] left-[30px] right-[30px] h-1", dir: "h" },
-            { pos: "bottom-[18px] left-[30px] right-[30px] h-1", dir: "h" },
-            { pos: "left-[18px] top-[40px] bottom-[40px] w-1", dir: "v" },
-            { pos: "right-[18px] top-[40px] bottom-[40px] w-1", dir: "v" },
-          ].map((r, i) => (
-            <div key={i} className={`absolute ${r.pos} z-[4] rounded-sm`}
-              style={{ background: r.dir === "h"
-                ? "linear-gradient(90deg,rgba(192,57,43,.7),rgba(231,76,60,.8),rgba(192,57,43,.7))"
-                : "linear-gradient(180deg,rgba(192,57,43,.7),rgba(231,76,60,.8),rgba(192,57,43,.7))" }} />
-          ))}
+          <div className="absolute top-[18px] left-[30px] right-[30px] h-1 z-[4] rounded-sm" style={{ background: "linear-gradient(90deg,rgba(192,57,43,.7),rgba(231,76,60,.8),rgba(192,57,43,.7))" }} />
+          <div className="absolute bottom-[18px] left-[30px] right-[30px] h-1 z-[4] rounded-sm" style={{ background: "linear-gradient(90deg,rgba(192,57,43,.7),rgba(231,76,60,.8),rgba(192,57,43,.7))" }} />
+          <div className="absolute left-[18px] top-[40px] bottom-[40px] w-1 z-[4] rounded-sm" style={{ background: "linear-gradient(180deg,rgba(192,57,43,.7),rgba(231,76,60,.8),rgba(192,57,43,.7))" }} />
+          <div className="absolute right-[18px] top-[40px] bottom-[40px] w-1 z-[4] rounded-sm" style={{ background: "linear-gradient(180deg,rgba(192,57,43,.7),rgba(231,76,60,.8),rgba(192,57,43,.7))" }} />
 
           {/* Canvas garlands */}
           <canvas ref={topRef} className="absolute z-[3] top-[-6px] left-[20px] right-[20px]" style={{ height: "48px" }} />
@@ -279,7 +289,7 @@ export default function GroupDetails() {
           <div className="absolute bottom-[-16px] left-[-16px] z-[15] text-[28px] drop-shadow-lg">⭐</div>
           <div className="absolute bottom-[-16px] right-[-16px] z-[15] text-[28px] drop-shadow-lg">🔴</div>
 
-          {/* Top center: SVG Bow + Bells */}
+          {/* SVG Bow + Bells */}
           <div className="absolute top-[-34px] left-1/2 -translate-x-1/2 z-20 drop-shadow-lg">
             <svg width="90" height="55" viewBox="0 0 90 55">
               <ellipse cx="24" cy="35" rx="11" ry="13" fill="#c8960f"/><ellipse cx="24" cy="35" rx="9" ry="11" fill="#f0c030"/>
@@ -471,27 +481,6 @@ export default function GroupDetails() {
           </div>
         </div>
       </div>
-
-      {/* Inject snow + glow animation */}
-      <style>{`
-        @keyframes glow { 0% { opacity:.4; transform:scale(.85); } 100% { opacity:1; transform:scale(1.15); } }
-        @keyframes fall { 0% { transform:translateY(-10px) translateX(0); opacity:.8; } 50% { transform:translateY(50vh) translateX(15px); } 100% { transform:translateY(105vh) translateX(-8px); opacity:.2; } }
-        .snowflake { position:absolute; background:#fff; border-radius:50%; animation:fall linear infinite; }
-      `}</style>
-
-      <script dangerouslySetInnerHTML={{ __html: `
-        (function(){
-          var sw=document.getElementById('snowWrap');
-          if(!sw||sw.children.length>0)return;
-          for(var i=0;i<45;i++){
-            var s=document.createElement('div');
-            s.className='snowflake';
-            var sz=2+Math.random()*3;
-            s.style.cssText='width:'+sz+'px;height:'+sz+'px;left:'+Math.random()*100+'%;animation-duration:'+(5+Math.random()*10)+'s;animation-delay:'+Math.random()*6+'s;opacity:'+(0.3+Math.random()*0.5)+';';
-            sw.appendChild(s);
-          }
-        })();
-      `}} />
     </main>
   );
 }
