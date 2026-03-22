@@ -235,7 +235,17 @@ export default function SecretSantaChatPage() {
                   </div>
                 </div>
               </div>
-              <button onClick={() => { setActiveThread(null); loadThreadsRef.current?.(); }} className="px-3.5 py-1.5 rounded-lg text-[11px] font-bold"
+              <button onClick={async () => {
+                if (activeThread && userId) {
+                  await supabase.from("thread_reads").upsert({
+                    user_id: userId, group_id: activeThread.group_id,
+                    thread_giver_id: activeThread.giver_id, thread_receiver_id: activeThread.receiver_id,
+                    last_read_at: new Date().toISOString(),
+                  }, { onConflict: "user_id,group_id,thread_giver_id,thread_receiver_id" });
+                }
+                setActiveThread(null);
+                loadThreadsRef.current?.();
+              }} className="px-3.5 py-1.5 rounded-lg text-[11px] font-bold"
                 style={{ background: "rgba(255,255,255,.06)", color: "rgba(255,255,255,.5)", border: "1px solid rgba(255,255,255,.08)", fontFamily: "inherit", cursor: "pointer" }}>
                 ← Back
               </button>
