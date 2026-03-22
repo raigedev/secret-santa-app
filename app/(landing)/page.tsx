@@ -3,12 +3,60 @@
 import { useRouter } from "next/navigation";
 import { useEffect, useRef } from "react";
 
+// ─── Shhh Santa Logo Icon (reusable) ───
+function SantaIcon({ size = 40 }: { size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 160 160" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <linearGradient id={`hat-${size}`} x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stopColor="#e74c3c"/>
+          <stop offset="100%" stopColor="#c0392b"/>
+        </linearGradient>
+      </defs>
+      <circle cx="80" cy="82" r="50" fill="#fde8e8"/>
+      <ellipse cx="80" cy="108" rx="38" ry="24" fill="#fff"/>
+      <ellipse cx="80" cy="102" rx="32" ry="16" fill="#fff"/>
+      <ellipse cx="66" cy="86" rx="12" ry="6" fill="#fff"/>
+      <ellipse cx="94" cy="86" rx="12" ry="6" fill="#fff"/>
+      <circle cx="80" cy="76" r="5" fill="#e8a8a8"/>
+      <circle cx="78" cy="74" r="2" fill="#f0baba" opacity=".6"/>
+      <ellipse cx="64" cy="66" rx="5" ry="6" fill="#fff"/>
+      <ellipse cx="64" cy="67" rx="4" ry="5" fill="#2c1810"/>
+      <circle cx="62" cy="65" r="1.8" fill="#fff"/>
+      <path d="M56 58 Q64 52 72 58" fill="none" stroke="#c4a090" strokeWidth="2.5" strokeLinecap="round"/>
+      <path d="M90 66 Q96 60 102 66" fill="none" stroke="#2c1810" strokeWidth="3" strokeLinecap="round"/>
+      <path d="M88 58 Q96 52 106 58" fill="none" stroke="#c4a090" strokeWidth="2.5" strokeLinecap="round"/>
+      <ellipse cx="52" cy="78" rx="6" ry="4.5" fill="#f0a0a0" opacity=".25"/>
+      <ellipse cx="108" cy="78" rx="6" ry="4.5" fill="#f0a0a0" opacity=".25"/>
+      <rect x="76" y="84" width="9" height="24" rx="4.5" fill="#f8d0d0" stroke="#e8b8b8" strokeWidth=".6"/>
+      <ellipse cx="80.5" cy="85" rx="3.5" ry="2.5" fill="#fce4e4"/>
+      <path d={`M32 58 C32 58 50 14 82 10 C114 6 128 58 128 58`} fill={`url(#hat-${size})`}/>
+      <rect x="26" y="54" width="108" height="10" rx="5" fill="#fff"/>
+      <circle cx="86" cy="10" r="8" fill="#fff"/>
+    </svg>
+  );
+}
+
+// ─── Full Logo with Text ───
+function SantaLogo({ dark = false }: { dark?: boolean }) {
+  return (
+    <div style={{ display: "flex", alignItems: "center", gap: "10px", cursor: "pointer" }}>
+      <div style={{ width: 38, height: 38, borderRadius: 10, background: "linear-gradient(135deg,#c0392b,#e74c3c)", display: "flex", alignItems: "center", justifyContent: "center", boxShadow: "0 2px 10px rgba(192,57,43,.2)" }}>
+        <SantaIcon size={28} />
+      </div>
+      <div style={{ fontFamily: "'Fredoka', sans-serif", fontWeight: 700, fontSize: 20, color: dark ? "#fff" : "#c0392b", lineHeight: 1.1 }}>
+        My Secret<br />
+        <span style={{ color: dark ? "#fff" : "#1a1a1a", fontSize: 20 }}>Santa</span>
+      </div>
+    </div>
+  );
+}
+
 export default function Landing() {
   const router = useRouter();
   const snowRef = useRef<HTMLDivElement>(null);
   const navRef = useRef<HTMLElement>(null);
 
-  // Snow effect (no dangerouslySetInnerHTML)
   useEffect(() => {
     const sw = snowRef.current;
     if (sw && sw.children.length === 0) {
@@ -19,12 +67,9 @@ export default function Landing() {
         sw.appendChild(s);
       }
     }
-    return () => {
-      if (sw) sw.innerHTML = "";
-    };
+    return () => { if (sw) sw.innerHTML = ""; };
   }, []);
 
-  // Nav scroll effect
   useEffect(() => {
     const handleScroll = () => {
       navRef.current?.classList.toggle("scrolled", window.scrollY > 50);
@@ -33,14 +78,11 @@ export default function Landing() {
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
-  // Scroll-triggered fade-in
   useEffect(() => {
     const observer = new IntersectionObserver(
       (entries) => {
         entries.forEach((e) => {
-          if (e.isIntersecting) {
-            (e.target as HTMLElement).style.animationPlayState = "running";
-          }
+          if (e.isIntersecting) (e.target as HTMLElement).style.animationPlayState = "running";
         });
       },
       { threshold: 0.1 }
@@ -57,13 +99,7 @@ export default function Landing() {
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;500;600;700;800;900&family=Fredoka:wght@400;500;600;700&family=Playfair+Display:wght@700;800;900&display=swap');
         *{margin:0;padding:0;box-sizing:border-box;}
-        :root{
-          --red:#c0392b;--red-light:#e74c3c;--red-dark:#922b21;
-          --green:#1a6b2a;--green-light:#22c55e;
-          --gold:#f59e0b;--gold-light:#fbbf24;
-          --cream:#fdfbf7;--cream-dark:#f5efe5;
-          --navy:#0f1f3d;
-        }
+        :root{--red:#c0392b;--red-light:#e74c3c;--red-dark:#922b21;--green:#1a6b2a;--green-light:#22c55e;--gold:#f59e0b;--gold-light:#fbbf24;--cream:#fdfbf7;--navy:#0f1f3d;}
         html{scroll-behavior:smooth;}
         body{font-family:'Nunito',sans-serif;color:#1f2937;overflow-x:hidden;background:var(--cream);}
 
@@ -76,7 +112,6 @@ export default function Landing() {
         nav{position:fixed;top:0;left:0;right:0;z-index:100;padding:14px 0;transition:all .3s;}
         nav.scrolled{background:rgba(255,255,255,.92);backdrop-filter:blur(16px);box-shadow:0 2px 20px rgba(0,0,0,.06);padding:10px 0;}
         .nav-inner{max-width:1100px;margin:0 auto;padding:0 24px;display:flex;align-items:center;justify-content:space-between;}
-        .nav-logo{font-family:'Fredoka',sans-serif;font-size:24px;font-weight:700;color:var(--red);display:flex;align-items:center;gap:8px;cursor:pointer;}
         .nav-links{display:flex;align-items:center;gap:28px;}
         .nav-links a{font-size:14px;font-weight:700;color:#4b5563;text-decoration:none;transition:color .2s;cursor:pointer;}
         .nav-links a:hover{color:var(--red);}
@@ -130,7 +165,7 @@ export default function Landing() {
         .hc3-item{display:flex;align-items:center;gap:8px;font-size:12px;font-weight:700;color:#374151;padding:6px 0;border-bottom:1px solid #f3f4f6;}
         .hc3-item:last-child{border:none;}
 
-        .how-section{padding:100px 24px;background:linear-gradient(180deg,#fff,var(--cream));position:relative;}
+        .how-section{padding:100px 24px;background:linear-gradient(180deg,#fff,var(--cream));}
         .section-label{font-size:12px;font-weight:800;text-transform:uppercase;letter-spacing:.15em;color:var(--red);text-align:center;margin-bottom:8px;}
         .section-title{font-family:'Playfair Display',serif;font-size:40px;font-weight:900;text-align:center;color:#1a1a1a;margin-bottom:12px;}
         .section-desc{font-size:16px;color:#6b7280;text-align:center;max-width:520px;margin:0 auto 60px;line-height:1.6;}
@@ -151,12 +186,7 @@ export default function Landing() {
         .feature-card{padding:28px 24px;border-radius:18px;background:#fff;border:1px solid rgba(0,0,0,.04);box-shadow:0 2px 16px rgba(0,0,0,.03);transition:all .3s;}
         .feature-card:hover{transform:translateY(-4px);box-shadow:0 8px 32px rgba(0,0,0,.08);}
         .feature-icon{width:48px;height:48px;border-radius:14px;display:flex;align-items:center;justify-content:center;font-size:22px;margin-bottom:16px;}
-        .fi-red{background:rgba(192,57,43,.08);}
-        .fi-green{background:rgba(26,107,42,.08);}
-        .fi-gold{background:rgba(245,158,11,.08);}
-        .fi-blue{background:rgba(37,99,235,.08);}
-        .fi-purple{background:rgba(124,58,237,.08);}
-        .fi-pink{background:rgba(219,39,119,.08);}
+        .fi-red{background:rgba(192,57,43,.08);}.fi-green{background:rgba(26,107,42,.08);}.fi-gold{background:rgba(245,158,11,.08);}.fi-blue{background:rgba(37,99,235,.08);}.fi-purple{background:rgba(124,58,237,.08);}.fi-pink{background:rgba(219,39,119,.08);}
         .feature-title{font-family:'Fredoka',sans-serif;font-size:17px;font-weight:700;color:#1a1a1a;margin-bottom:6px;}
         .feature-desc{font-size:13px;color:#6b7280;line-height:1.6;}
 
@@ -167,16 +197,13 @@ export default function Landing() {
         .testimonial-text{font-size:14px;color:#374151;line-height:1.7;margin-bottom:16px;font-style:italic;}
         .testimonial-author{display:flex;align-items:center;gap:10px;}
         .testimonial-avatar{width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:800;color:#fff;}
-        .ta-red{background:linear-gradient(135deg,var(--red),var(--red-light));}
-        .ta-green{background:linear-gradient(135deg,var(--green),var(--green-light));}
-        .ta-gold{background:linear-gradient(135deg,var(--gold),var(--gold-light));}
+        .ta-red{background:linear-gradient(135deg,var(--red),var(--red-light));}.ta-green{background:linear-gradient(135deg,var(--green),var(--green-light));}.ta-gold{background:linear-gradient(135deg,var(--gold),var(--gold-light));}
         .testimonial-name{font-size:13px;font-weight:800;color:#1f2937;}
         .testimonial-role{font-size:11px;color:#9ca3af;}
 
         .cta-section{padding:100px 24px;background:linear-gradient(135deg,var(--red-dark),var(--red),var(--red-light));text-align:center;position:relative;overflow:hidden;}
         .cta-section::before{content:'';position:absolute;inset:0;background:url("data:image/svg+xml,%3Csvg width='6' height='6' xmlns='http://www.w3.org/2000/svg'%3E%3Ccircle cx='3' cy='3' r='.5' fill='rgba(255,255,255,0.04)'/%3E%3C/svg%3E");}
         .cta-inner{position:relative;z-index:1;}
-        .cta-icon{font-size:56px;margin-bottom:16px;}
         .cta-title{font-family:'Playfair Display',serif;font-size:42px;font-weight:900;color:#fff;margin-bottom:12px;text-shadow:0 2px 8px rgba(0,0,0,.15);}
         .cta-desc{font-size:18px;color:rgba(255,255,255,.8);max-width:460px;margin:0 auto 36px;line-height:1.6;}
         .btn-cta{background:#fff;color:var(--red);padding:18px 44px;border-radius:14px;font-size:18px;font-weight:800;border:none;cursor:pointer;font-family:inherit;box-shadow:0 6px 24px rgba(0,0,0,.15);transition:all .25s;display:inline-flex;align-items:center;gap:8px;}
@@ -186,7 +213,6 @@ export default function Landing() {
         .app-section{padding:80px 24px;background:var(--navy);text-align:center;position:relative;overflow:hidden;}
         .app-section::before{content:'';position:absolute;inset:0;background:radial-gradient(ellipse at top,rgba(255,255,255,.03),transparent 60%);}
         .app-inner{position:relative;z-index:1;max-width:600px;margin:0 auto;}
-        .app-phone{font-size:64px;margin-bottom:16px;}
         .app-title{font-family:'Playfair Display',serif;font-size:30px;font-weight:900;color:#fff;margin-bottom:8px;}
         .app-title span{color:var(--gold-light);}
         .app-desc{font-size:15px;color:rgba(255,255,255,.5);margin-bottom:32px;line-height:1.6;}
@@ -201,8 +227,7 @@ export default function Landing() {
         footer{padding:60px 24px 40px;background:var(--navy);color:rgba(255,255,255,.6);font-size:13px;border-top:1px solid rgba(255,255,255,.06);}
         .footer-inner{max-width:1000px;margin:0 auto;display:flex;justify-content:space-between;align-items:flex-start;gap:40px;flex-wrap:wrap;}
         .footer-brand{max-width:280px;}
-        .footer-brand-name{font-family:'Fredoka',sans-serif;font-size:22px;font-weight:700;color:#fff;margin-bottom:8px;display:flex;align-items:center;gap:8px;}
-        .footer-brand-desc{font-size:13px;line-height:1.6;color:rgba(255,255,255,.4);}
+        .footer-brand-desc{font-size:13px;line-height:1.6;color:rgba(255,255,255,.4);margin-top:12px;}
         .footer-col h4{font-size:13px;font-weight:800;color:#fff;margin-bottom:12px;text-transform:uppercase;letter-spacing:.08em;}
         .footer-col a{display:block;font-size:13px;color:rgba(255,255,255,.4);text-decoration:none;padding:4px 0;transition:color .2s;cursor:pointer;}
         .footer-col a:hover{color:#fff;}
@@ -210,7 +235,7 @@ export default function Landing() {
 
         .fade-up{opacity:0;transform:translateY(24px);animation:fadeUp .7s ease forwards;}
         .d1{animation-delay:.1s}.d2{animation-delay:.2s}.d3{animation-delay:.3s}
-        .d4{animation-delay:.4s}.d5{animation-delay:.5s}.d6{animation-delay:.6s}
+        .d4{animation-delay:.4s}.d5{animation-delay:.5s}
 
         @media(max-width:768px){
           .hero-inner{flex-direction:column;text-align:center;}
@@ -231,22 +256,19 @@ export default function Landing() {
         }
       `}</style>
 
-      {/* Snow */}
       <div ref={snowRef} className="snow-wrap" />
 
       {/* Nav */}
       <nav ref={navRef}>
         <div className="nav-inner">
-          <span className="nav-logo" onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}>
-            🎁 GiftDraw
-          </span>
+          <div onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}>
+            <SantaLogo />
+          </div>
           <div className="nav-links">
             <a href="#how">How it Works</a>
             <a href="#features">Features</a>
             <a href="#testimonials">Reviews</a>
-            <a className="nav-cta" onClick={() => router.push("/login")}>
-              Get Started — It&apos;s Free
-            </a>
+            <a className="nav-cta" onClick={() => router.push("/login")}>Get Started — It&apos;s Free</a>
           </div>
         </div>
       </nav>
@@ -262,7 +284,7 @@ export default function Landing() {
 
         <div className="hero-inner">
           <div className="hero-text">
-            <div className="hero-badge fade-up d1">🎄 Free Secret Santa Organizer — Used Worldwide</div>
+            <div className="hero-badge fade-up d1">🎅 Free Secret Santa Organizer — Used Worldwide</div>
             <h1 className="hero-title fade-up d2">
               Make Gift Giving<br /><span>Magical Again</span>
             </h1>
@@ -270,24 +292,13 @@ export default function Landing() {
               Draw names online, share wishlists, and chat anonymously with your Secret Santa match. Perfect for office parties, family gatherings, and friend group exchanges.
             </p>
             <div className="hero-buttons fade-up d4">
-              <button className="btn-primary" onClick={() => router.push("/login")}>
-                Start Drawing Names 🎲
-              </button>
+              <button className="btn-primary" onClick={() => router.push("/login")}>Start Drawing Names 🎲</button>
               <a className="btn-secondary" href="#how">See How it Works</a>
             </div>
             <div className="hero-stats fade-up d5">
-              <div>
-                <div className="hero-stat-num">100%</div>
-                <div className="hero-stat-label">Free Forever</div>
-              </div>
-              <div>
-                <div className="hero-stat-num">3 min</div>
-                <div className="hero-stat-label">Setup Time</div>
-              </div>
-              <div>
-                <div className="hero-stat-num">🔒</div>
-                <div className="hero-stat-label">Fully Private</div>
-              </div>
+              <div><div className="hero-stat-num">100%</div><div className="hero-stat-label">Free Forever</div></div>
+              <div><div className="hero-stat-num">3 min</div><div className="hero-stat-label">Setup Time</div></div>
+              <div><div className="hero-stat-num">🔒</div><div className="hero-stat-label">Fully Private</div></div>
             </div>
           </div>
 
@@ -312,10 +323,7 @@ export default function Landing() {
               <div className="hero-float-card hc3">
                 <div className="hc3-header">
                   <div className="hc3-icon">📝</div>
-                  <div>
-                    <div className="hc3-title">kate&apos;s Wishlist</div>
-                    <div className="hc3-sub">3 items</div>
-                  </div>
+                  <div><div className="hc3-title">kate&apos;s Wishlist</div><div className="hc3-sub">3 items</div></div>
                 </div>
                 <div className="hc3-item"><span>⭐</span> AirPods Pro</div>
                 <div className="hc3-item"><span>🎁</span> Scented candles</div>
@@ -330,9 +338,7 @@ export default function Landing() {
       <section className="how-section" id="how">
         <div className="section-label fade-up">How It Works</div>
         <div className="section-title fade-up d1">Three Steps to Christmas Magic</div>
-        <div className="section-desc fade-up d2">
-          No slips of paper, no awkward drawing from a hat. Just create, invite, and let the magic happen.
-        </div>
+        <div className="section-desc fade-up d2">No slips of paper, no awkward drawing from a hat. Just create, invite, and let the magic happen.</div>
         <div className="steps">
           <div className="step fade-up d3">
             <div className="step-num step-num-1">1</div>
@@ -363,36 +369,12 @@ export default function Landing() {
         <div className="section-title fade-up d1">Everything You Need for the Perfect Exchange</div>
         <div className="section-desc fade-up d2">Every feature designed to make your gift exchange effortless and fun.</div>
         <div className="features-grid">
-          <div className="feature-card fade-up d3">
-            <div className="feature-icon fi-red">🎲</div>
-            <div className="feature-title">Fair Random Draw</div>
-            <div className="feature-desc">Our algorithm ensures no one draws themselves and no two people get each other. Guaranteed fair every time.</div>
-          </div>
-          <div className="feature-card fade-up d3">
-            <div className="feature-icon fi-green">📝</div>
-            <div className="feature-title">Wishlists</div>
-            <div className="feature-desc">Add gift ideas with links and notes. Your Secret Santa sees exactly what you want — no more guessing.</div>
-          </div>
-          <div className="feature-card fade-up d4">
-            <div className="feature-icon fi-gold">💬</div>
-            <div className="feature-title">Anonymous Chat</div>
-            <div className="feature-desc">Chat with your match without revealing your identity. Ask about sizes, preferences, and drop hints.</div>
-          </div>
-          <div className="feature-card fade-up d4">
-            <div className="feature-icon fi-blue">🔒</div>
-            <div className="feature-title">Privacy First</div>
-            <div className="feature-desc">End-to-end privacy. No one sees who drew who. Your Secret Santa identity stays hidden until the reveal.</div>
-          </div>
-          <div className="feature-card fade-up d5">
-            <div className="feature-icon fi-purple">⚡</div>
-            <div className="feature-title">Real-Time Updates</div>
-            <div className="feature-desc">See instant updates when members accept, wishlists change, or new messages arrive. No refreshing needed.</div>
-          </div>
-          <div className="feature-card fade-up d5">
-            <div className="feature-icon fi-pink">👥</div>
-            <div className="feature-title">Multiple Groups</div>
-            <div className="feature-desc">Manage office party, family Christmas, and friend group exchanges all in one dashboard. No limits.</div>
-          </div>
+          <div className="feature-card fade-up d3"><div className="feature-icon fi-red">🎲</div><div className="feature-title">Fair Random Draw</div><div className="feature-desc">Our algorithm ensures no one draws themselves and no two people get each other. Guaranteed fair every time.</div></div>
+          <div className="feature-card fade-up d3"><div className="feature-icon fi-green">📝</div><div className="feature-title">Wishlists</div><div className="feature-desc">Add gift ideas with links and notes. Your Secret Santa sees exactly what you want — no more guessing.</div></div>
+          <div className="feature-card fade-up d4"><div className="feature-icon fi-gold">💬</div><div className="feature-title">Anonymous Chat</div><div className="feature-desc">Chat with your match without revealing your identity. Ask about sizes, preferences, and drop hints.</div></div>
+          <div className="feature-card fade-up d4"><div className="feature-icon fi-blue">🔒</div><div className="feature-title">Privacy First</div><div className="feature-desc">End-to-end privacy. No one sees who drew who. Your Secret Santa identity stays hidden until the reveal.</div></div>
+          <div className="feature-card fade-up d5"><div className="feature-icon fi-purple">⚡</div><div className="feature-title">Real-Time Updates</div><div className="feature-desc">See instant updates when members accept, wishlists change, or new messages arrive. No refreshing needed.</div></div>
+          <div className="feature-card fade-up d5"><div className="feature-icon fi-pink">👥</div><div className="feature-title">Multiple Groups</div><div className="feature-desc">Manage office party, family Christmas, and friend group exchanges all in one dashboard. No limits.</div></div>
         </div>
       </section>
 
@@ -404,42 +386,18 @@ export default function Landing() {
         <div className="testimonials-grid">
           <div className="testimonial fade-up d3">
             <div className="testimonial-stars">⭐⭐⭐⭐⭐</div>
-            <div className="testimonial-text">
-              &quot;We used GiftDraw for our office Secret Santa and it was so smooth! The anonymous chat was hilarious — my Secret Santa kept asking if I like cats. I got a cat mug. 10/10.&quot;
-            </div>
-            <div className="testimonial-author">
-              <div className="testimonial-avatar ta-red">E</div>
-              <div>
-                <div className="testimonial-name">Emma T.</div>
-                <div className="testimonial-role">Office Manager</div>
-              </div>
-            </div>
+            <div className="testimonial-text">&quot;We used My Secret Santa for our office party and it was so smooth! The anonymous chat was hilarious — my Secret Santa kept asking if I like cats. I got a cat mug. 10/10.&quot;</div>
+            <div className="testimonial-author"><div className="testimonial-avatar ta-red">E</div><div><div className="testimonial-name">Emma T.</div><div className="testimonial-role">Office Manager</div></div></div>
           </div>
           <div className="testimonial fade-up d4">
             <div className="testimonial-stars">⭐⭐⭐⭐⭐</div>
-            <div className="testimonial-text">
-              &quot;Our family is spread across different cities. GiftDraw let us do Secret Santa online — everyone added their wishlists, no one knew who drew who. Christmas morning was pure chaos and joy.&quot;
-            </div>
-            <div className="testimonial-author">
-              <div className="testimonial-avatar ta-green">D</div>
-              <div>
-                <div className="testimonial-name">David L.</div>
-                <div className="testimonial-role">Family Organizer</div>
-              </div>
-            </div>
+            <div className="testimonial-text">&quot;Our family is spread across different cities. My Secret Santa let us do the exchange online — everyone added their wishlists, no one knew who drew who. Christmas morning was pure joy.&quot;</div>
+            <div className="testimonial-author"><div className="testimonial-avatar ta-green">D</div><div><div className="testimonial-name">David L.</div><div className="testimonial-role">Family Organizer</div></div></div>
           </div>
           <div className="testimonial fade-up d5">
             <div className="testimonial-stars">⭐⭐⭐⭐⭐</div>
-            <div className="testimonial-text">
-              &quot;Drawing names from a hat is so outdated. GiftDraw is super fast to set up, and the wishlist feature saved me from buying another generic gift card. Highly recommend for any friend group!&quot;
-            </div>
-            <div className="testimonial-author">
-              <div className="testimonial-avatar ta-gold">S</div>
-              <div>
-                <div className="testimonial-name">Sarah K.</div>
-                <div className="testimonial-role">College Student</div>
-              </div>
-            </div>
+            <div className="testimonial-text">&quot;Drawing names from a hat is so outdated. My Secret Santa is super fast to set up, and the wishlist feature saved me from buying another generic gift card. Highly recommend!&quot;</div>
+            <div className="testimonial-author"><div className="testimonial-avatar ta-gold">S</div><div><div className="testimonial-name">Sarah K.</div><div className="testimonial-role">College Student</div></div></div>
           </div>
         </div>
       </section>
@@ -447,16 +405,14 @@ export default function Landing() {
       {/* CTA */}
       <section className="cta-section">
         <div className="cta-inner">
-          <div className="cta-icon fade-up">🎄</div>
-          <div className="cta-title fade-up d1">
-            Ready to Start Your<br />Secret Santa?
+          <div className="fade-up" style={{ marginBottom: 16 }}>
+            <div style={{ display: "inline-flex", background: "rgba(255,255,255,.1)", borderRadius: 20, padding: 12 }}>
+              <SantaIcon size={60} />
+            </div>
           </div>
-          <div className="cta-desc fade-up d2">
-            Create your group in under 3 minutes. It&apos;s completely free — no catches, no ads, no limits.
-          </div>
-          <button className="btn-cta fade-up d3" onClick={() => router.push("/login")}>
-            🎁 Start Drawing Names — It&apos;s Free
-          </button>
+          <div className="cta-title fade-up d1">Ready to Start Your<br />Secret Santa?</div>
+          <div className="cta-desc fade-up d2">Create your group in under 3 minutes. It&apos;s completely free — no catches, no ads, no limits.</div>
+          <button className="btn-cta fade-up d3" onClick={() => router.push("/login")}>🎅 Start Drawing Names — It&apos;s Free</button>
           <div className="cta-note fade-up d4">No credit card needed. No sign-up required to join a group.</div>
         </div>
       </section>
@@ -464,34 +420,21 @@ export default function Landing() {
       {/* App Download */}
       <section className="app-section">
         <div className="app-inner">
-          <div className="app-phone fade-up">📱</div>
-          <div className="app-title fade-up d1">
-            The <span>GiftDraw App</span> is<br />available for iPhone and Android.
+          <div className="fade-up" style={{ marginBottom: 16 }}>
+            <div style={{ display: "inline-flex", width: 72, height: 72, borderRadius: 18, background: "linear-gradient(135deg,#c0392b,#e74c3c)", alignItems: "center", justifyContent: "center", boxShadow: "0 4px 20px rgba(192,57,43,.3)" }}>
+              <SantaIcon size={52} />
+            </div>
           </div>
-          <div className="app-desc fade-up d2">
-            Take your Secret Santa on the go. Get instant notifications, chat in real-time, and manage your wishlists from anywhere.
-          </div>
+          <div className="app-title fade-up d1">The <span>My Secret Santa</span> App<br />for iPhone and Android.</div>
+          <div className="app-desc fade-up d2">Take your Secret Santa on the go. Get instant notifications, chat in real-time, and manage your wishlists from anywhere.</div>
           <div className="app-badges fade-up d3">
             <a className="app-badge" href="#" onClick={(e) => e.preventDefault()}>
-              <svg width="24" height="28" viewBox="0 0 24 28" fill="#fff" xmlns="http://www.w3.org/2000/svg">
-                <path d="M19.665 14.748c-.03-3.12 2.544-4.62 2.66-4.692-1.45-2.118-3.706-2.408-4.51-2.44-1.918-.196-3.744 1.13-4.718 1.13-.974 0-2.48-1.1-4.076-1.072-2.098.03-4.032 1.22-5.112 3.1-2.18 3.78-.558 9.378 1.566 12.442 1.038 1.502 2.276 3.19 3.902 3.13 1.564-.064 2.156-1.012 4.048-1.012 1.892 0 2.422 1.012 4.076.98 1.684-.03 2.754-1.53 3.786-3.038 1.194-1.742 1.686-3.428 1.716-3.516-.038-.016-3.292-1.264-3.338-5.012zM16.547 5.368c.862-1.046 1.444-2.498 1.286-3.948-1.242.05-2.748.828-3.64 1.872-.8.926-1.5 2.404-1.312 3.824 1.386.108 2.802-.706 3.666-1.748z"/>
-              </svg>
-              <div className="app-badge-text">
-                <span className="app-badge-small">Download on the</span>
-                <span className="app-badge-big">App Store</span>
-              </div>
+              <svg width="24" height="28" viewBox="0 0 24 28" fill="#fff" xmlns="http://www.w3.org/2000/svg"><path d="M19.665 14.748c-.03-3.12 2.544-4.62 2.66-4.692-1.45-2.118-3.706-2.408-4.51-2.44-1.918-.196-3.744 1.13-4.718 1.13-.974 0-2.48-1.1-4.076-1.072-2.098.03-4.032 1.22-5.112 3.1-2.18 3.78-.558 9.378 1.566 12.442 1.038 1.502 2.276 3.19 3.902 3.13 1.564-.064 2.156-1.012 4.048-1.012 1.892 0 2.422 1.012 4.076.98 1.684-.03 2.754-1.53 3.786-3.038 1.194-1.742 1.686-3.428 1.716-3.516-.038-.016-3.292-1.264-3.338-5.012zM16.547 5.368c.862-1.046 1.444-2.498 1.286-3.948-1.242.05-2.748.828-3.64 1.872-.8.926-1.5 2.404-1.312 3.824 1.386.108 2.802-.706 3.666-1.748z"/></svg>
+              <div className="app-badge-text"><span className="app-badge-small">Download on the</span><span className="app-badge-big">App Store</span></div>
             </a>
             <a className="app-badge" href="#" onClick={(e) => e.preventDefault()}>
-              <svg width="24" height="26" viewBox="0 0 505 584" xmlns="http://www.w3.org/2000/svg">
-                <path fill="#EA4335" d="M18.5 28.5L259 292 18.5 555.5c-12-12.7-18-30-18-52V80.5c0-22 6-39.3 18-52z"/>
-                <path fill="#FBBC04" d="M287 320l72.5 72.5L46 570.5c-9.3 5.3-19 8-28.5 8L259 292l28 28z"/>
-                <path fill="#34A853" d="M359.5 392.5L455 339c20.7-12 31-27 31-47s-10.3-35-31-47l-95.5-53.5L287 264l72.5 128.5z"/>
-                <path fill="#4285F4" d="M46 13.5l313 178.5L287 264 17.5 28.5c9.3-10 20-15 28.5-15z"/>
-              </svg>
-              <div className="app-badge-text">
-                <span className="app-badge-small">GET IT ON</span>
-                <span className="app-badge-big">Google Play</span>
-              </div>
+              <svg width="24" height="26" viewBox="0 0 505 584" xmlns="http://www.w3.org/2000/svg"><path fill="#EA4335" d="M18.5 28.5L259 292 18.5 555.5c-12-12.7-18-30-18-52V80.5c0-22 6-39.3 18-52z"/><path fill="#FBBC04" d="M287 320l72.5 72.5L46 570.5c-9.3 5.3-19 8-28.5 8L259 292l28 28z"/><path fill="#34A853" d="M359.5 392.5L455 339c20.7-12 31-27 31-47s-10.3-35-31-47l-95.5-53.5L287 264l72.5 128.5z"/><path fill="#4285F4" d="M46 13.5l313 178.5L287 264 17.5 28.5c9.3-10 20-15 28.5-15z"/></svg>
+              <div className="app-badge-text"><span className="app-badge-small">GET IT ON</span><span className="app-badge-big">Google Play</span></div>
             </a>
           </div>
           <div className="app-coming fade-up d4">🚀 Coming Soon — Join the waitlist!</div>
@@ -502,10 +445,8 @@ export default function Landing() {
       <footer>
         <div className="footer-inner">
           <div className="footer-brand">
-            <div className="footer-brand-name">🎁 GiftDraw</div>
-            <div className="footer-brand-desc">
-              The easiest way to organize Secret Santa gift exchanges online. Made with ❤️ for gift givers everywhere.
-            </div>
+            <SantaLogo dark />
+            <div className="footer-brand-desc">The easiest way to organize Secret Santa gift exchanges online. Made with ❤️ for gift givers everywhere.</div>
           </div>
           <div className="footer-col">
             <h4>Product</h4>
@@ -526,9 +467,7 @@ export default function Landing() {
             <a href="#">Contact Us</a>
           </div>
         </div>
-        <div className="footer-bottom">
-          © 2026 GiftDraw. All rights reserved. 🎄 Merry Christmas!
-        </div>
+        <div className="footer-bottom">© 2026 My Secret Santa. All rights reserved. 🎄 Merry Christmas!</div>
       </footer>
     </>
   );
