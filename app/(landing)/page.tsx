@@ -3,10 +3,10 @@
 import { useRouter } from "next/navigation";
 import { useEffect, useRef } from "react";
 
-// ─── Shhh Santa Logo Icon (reusable) ───
+// ─── Shhh Santa Logo Icon ───
 function SantaIcon({ size = 40 }: { size?: number }) {
   return (
-    <svg width={size} height={size} viewBox="0 0 160 160" xmlns="http://www.w3.org/2000/svg">
+    <svg width={size} height={size} viewBox="10 5 140 145" xmlns="http://www.w3.org/2000/svg">
       <defs>
         <linearGradient id={`hat-${size}`} x1="0" y1="0" x2="0" y2="1">
           <stop offset="0%" stopColor="#e74c3c"/>
@@ -23,12 +23,12 @@ function SantaIcon({ size = 40 }: { size?: number }) {
       <ellipse cx="64" cy="66" rx="5" ry="6" fill="#fff"/>
       <ellipse cx="64" cy="67" rx="4" ry="5" fill="#2c1810"/>
       <circle cx="62" cy="65" r="1.8" fill="#fff"/>
-      <path d="M56 58 Q64 52 72 58" fill="none" stroke="#c4a090" strokeWidth="2.5" strokeLinecap="round"/>
-      <path d="M90 66 Q96 60 102 66" fill="none" stroke="#2c1810" strokeWidth="3" strokeLinecap="round"/>
-      <path d="M88 58 Q96 52 106 58" fill="none" stroke="#c4a090" strokeWidth="2.5" strokeLinecap="round"/>
-      <ellipse cx="52" cy="78" rx="6" ry="4.5" fill="#f0a0a0" opacity=".25"/>
-      <ellipse cx="108" cy="78" rx="6" ry="4.5" fill="#f0a0a0" opacity=".25"/>
-      <rect x="76" y="84" width="9" height="24" rx="4.5" fill="#f8d0d0" stroke="#e8b8b8" strokeWidth=".6"/>
+      <path d="M90 66 Q96 60 102 66" fill="none" stroke="#2c1810" strokeWidth="3.5" strokeLinecap="round"/>
+      <path d="M54 58 Q64 51 74 58" fill="none" stroke="#c4a090" strokeWidth="2.5" strokeLinecap="round"/>
+      <path d="M86 58 Q96 51 106 58" fill="none" stroke="#c4a090" strokeWidth="2.5" strokeLinecap="round"/>
+      <ellipse cx="52" cy="78" rx="7" ry="5" fill="#f0a0a0" opacity=".3"/>
+      <ellipse cx="108" cy="78" rx="7" ry="5" fill="#f0a0a0" opacity=".3"/>
+      <rect x="76" y="84" width="9" height="26" rx="4.5" fill="#f8d0d0" stroke="#e8b8b8" strokeWidth=".8"/>
       <ellipse cx="80.5" cy="85" rx="3.5" ry="2.5" fill="#fce4e4"/>
       <path d={`M32 58 C32 58 50 14 82 10 C114 6 128 58 128 58`} fill={`url(#hat-${size})`}/>
       <rect x="26" y="54" width="108" height="10" rx="5" fill="#fff"/>
@@ -37,16 +37,42 @@ function SantaIcon({ size = 40 }: { size?: number }) {
   );
 }
 
-// ─── Full Logo with Text ───
+// ─── Full Logo with Text + Tagline ───
 function SantaLogo({ dark = false }: { dark?: boolean }) {
   return (
-    <div style={{ display: "flex", alignItems: "center", gap: "10px", cursor: "pointer" }}>
-      <div style={{ width: 38, height: 38, borderRadius: 10, background: "linear-gradient(135deg,#c0392b,#e74c3c)", display: "flex", alignItems: "center", justifyContent: "center", boxShadow: "0 2px 10px rgba(192,57,43,.2)" }}>
-        <SantaIcon size={28} />
-      </div>
-      <div style={{ fontFamily: "'Fredoka', sans-serif", fontWeight: 700, fontSize: 20, color: dark ? "#fff" : "#c0392b", lineHeight: 1.1 }}>
-        My Secret<br />
-        <span style={{ color: dark ? "#fff" : "#1a1a1a", fontSize: 20 }}>Santa</span>
+    <div style={{ display: "flex", alignItems: "center", gap: "12px", cursor: "pointer" }}>
+      <svg width="44" height="44" viewBox="10 5 140 145" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <linearGradient id="navHat" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stopColor="#e74c3c"/>
+            <stop offset="100%" stopColor="#c0392b"/>
+          </linearGradient>
+        </defs>
+        <circle cx="80" cy="82" r="50" fill="#fde8e8"/>
+        <ellipse cx="80" cy="108" rx="38" ry="24" fill="#fff"/>
+        <ellipse cx="80" cy="102" rx="32" ry="16" fill="#fff"/>
+        <ellipse cx="66" cy="86" rx="12" ry="6" fill="#fff"/>
+        <ellipse cx="94" cy="86" rx="12" ry="6" fill="#fff"/>
+        <circle cx="80" cy="76" r="5" fill="#e8a8a8"/>
+        <ellipse cx="64" cy="66" rx="5" ry="6" fill="#fff"/>
+        <ellipse cx="64" cy="67" rx="4" ry="5" fill="#2c1810"/>
+        <circle cx="62" cy="65" r="1.8" fill="#fff"/>
+        <path d="M90 66 Q96 60 102 66" fill="none" stroke="#2c1810" strokeWidth="3.5" strokeLinecap="round"/>
+        <path d="M54 58 Q64 51 74 58" fill="none" stroke="#c4a090" strokeWidth="2.5" strokeLinecap="round"/>
+        <path d="M86 58 Q96 51 106 58" fill="none" stroke="#c4a090" strokeWidth="2.5" strokeLinecap="round"/>
+        <ellipse cx="52" cy="78" rx="7" ry="5" fill="#f0a0a0" opacity=".3"/>
+        <ellipse cx="108" cy="78" rx="7" ry="5" fill="#f0a0a0" opacity=".3"/>
+        <rect x="76" y="84" width="9" height="26" rx="4.5" fill="#f8d0d0" stroke="#e8b8b8" strokeWidth=".8"/>
+        <path d="M32 58 C32 58 50 14 82 10 C114 6 128 58 128 58" fill="url(#navHat)"/>
+        <rect x="26" y="54" width="108" height="10" rx="5" fill="#fff"/>
+        <circle cx="86" cy="10" r="8" fill="#fff"/>
+      </svg>
+      <div style={{ fontFamily: "'Fredoka', sans-serif", fontWeight: 700, lineHeight: 1.15 }}>
+        <span style={{ fontSize: 14, color: dark ? "rgba(255,255,255,.7)" : "#c0392b" }}>My Secret</span><br />
+        <span style={{ fontSize: 22, color: dark ? "#fff" : "#1a1a1a", letterSpacing: "-0.5px" }}>Santa</span><br />
+        <span style={{ fontSize: 9, fontWeight: 700, color: dark ? "rgba(255,255,255,.4)" : "#c0392b", fontStyle: "italic", fontFamily: "'Nunito', sans-serif", letterSpacing: "0" }}>
+          shhh... it&apos;s a secret!
+        </span>
       </div>
     </div>
   );
@@ -413,7 +439,7 @@ export default function Landing() {
           <div className="cta-title fade-up d1">Ready to Start Your<br />Secret Santa?</div>
           <div className="cta-desc fade-up d2">Create your group in under 3 minutes. It&apos;s completely free — no catches, no ads, no limits.</div>
           <button className="btn-cta fade-up d3" onClick={() => router.push("/login")}>🎅 Start Drawing Names — It&apos;s Free</button>
-            <div className="cta-note fade-up d4">No credit card needed. Free forever. No limits.</div>
+          <div className="cta-note fade-up d4">No credit card needed. Free forever. No limits.</div>
         </div>
       </section>
 
