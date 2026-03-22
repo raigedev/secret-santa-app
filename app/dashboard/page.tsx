@@ -3,14 +3,14 @@
 // ═══════════════════════════════════════
 // DASHBOARD PAGE
 // ═══════════════════════════════════════
-// Security: #02 Supabase Auth, #09 RLS, #19 server-side checks
-// Real-time: group_members, groups, assignments, wishlists
 
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import InviteCard from "./InviteCard";
 import SecretSantaCard from "./SecretSantaCard";
+import ProfileSetupModal from "./ProfileSetupModal";
+import { getProfile } from "@/app/profile/actions";
 
 type GroupMember = {
   nickname: string | null;
@@ -41,11 +41,13 @@ export default function DashboardPage() {
   const router = useRouter();
   const [supabase] = useState(() => createClient());
   const [userName, setUserName] = useState("");
+  const [userEmoji, setUserEmoji] = useState("🎅");
   const [ownedGroups, setOwnedGroups] = useState<Group[]>([]);
   const [invitedGroups, setInvitedGroups] = useState<Group[]>([]);
   const [pendingInvites, setPendingInvites] = useState<PendingInvite[]>([]);
   const [recipientNames, setRecipientNames] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
+  const [showProfileSetup, setShowProfileSetup] = useState(false);
 
   useEffect(() => {
     const loadDashboard = async () => {
@@ -55,6 +57,14 @@ export default function DashboardPage() {
       const user = session.user;
       const email = user.email || "Guest";
       setUserName(email.split("@")[0]);
+
+      // Check if profile setup is needed
+      const profileData = await getProfile();
+      if (profileData) {
+        if (!profileData.profile_setup_complete) setShowProfileSetup(true);
+        if (profileData.display_name) setUserName(profileData.display_name);
+        if (profileData.avatar_emoji) setUserEmoji(profileData.avatar_emoji);
+      }
 
       // Link user to invited groups
       await supabase
@@ -113,7 +123,7 @@ export default function DashboardPage() {
         setOwnedGroups(groupsWithMembers.filter((g) => g.isOwner));
         setInvitedGroups(groupsWithMembers.filter((g) => !g.isOwner));
 
-        // Fetch recipient names for the Secret Santa card preview
+        // Fetch recipient names for Secret Santa card
         const { data: myAssignments } = await supabase
           .from("assignments")
           .select("group_id, receiver_id")
@@ -220,12 +230,32 @@ export default function DashboardPage() {
 
   return (
     <main className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-b from-sky-100 via-white to-sky-200 text-gray-900 relative">
+
+      {/* First-time profile setup modal */}
+      {showProfileSetup && (
+        <ProfileSetupModal
+          defaultName={userName}
+          onComplete={() => setShowProfileSetup(false)}
+          onSkip={() => setShowProfileSetup(false)}
+        />
+      )}
+
       <div className="absolute inset-0 bg-[url('/snowflakes.png')] opacity-20 z-0" />
       <div className="relative z-10 text-center max-w-5xl w-full p-10 rounded-xl shadow-xl bg-white/40 backdrop-blur-md">
 
-        <h1 className="text-4xl font-bold mb-2 drop-shadow-lg" style={{ color: "#1E3A8A" }}>🎁 GiftDraw Dashboard 🎅</h1>
-        <p className="text-lg mb-8 font-semibold" style={{ color: "#334155" }}>Welcome, {userName} 🎁</p>
+        {/* Header with avatar */}
+        <div className="flex items-center justify-center gap-3 mb-2">
+          <div className="w-[48px] h-[48px] rounded-full flex items-center justify-center text-[26px]"
+            style={{ background: "linear-gradient(135deg,#fef2f2,#fee2e2)", border: "3px solid #fff", boxShadow: "0 2px 10px rgba(192,57,43,.1)" }}>
+            {userEmoji}
+          </div>
+          <h1 className="text-4xl font-bold drop-shadow-lg" style={{ color: "#1E3A8A" }}>My Secret Santa</h1>
+        </div>
+        <p className="text-lg mb-8 font-semibold" style={{ color: "#334155" }}>
+          Welcome, {userName} 🎁
+        </p>
 
+        {/* Pending Invitations */}
         {pendingInvites.length > 0 && (
           <div className="text-left mb-10">
             <h2 className="text-2xl font-bold mb-4 text-orange-600">📩 Pending Invitations</h2>
@@ -288,9 +318,18 @@ export default function DashboardPage() {
           )}
         </div>
 
-        <div className="flex justify-center">
-          <button onClick={handleLogout} className="text-white font-bold px-6 py-3 rounded-full hover:scale-105 transition flex items-center gap-2"
-            style={{ background: "linear-gradient(135deg, #FBBF24, #F59E0B)", boxShadow: "0 0 20px rgba(251, 191, 36, 0.7)" }}>🍭 Logout</button>
+        {/* Profile + Logout */}
+        <div className="flex justify-center gap-3">
+          <button onClick={() => router.push("/profile")}
+            className="font-bold px-6 py-3 rounded-full hover:scale-105 transition flex items-center gap-2"
+            style={{ color: "#c0392b", background: "rgba(192,57,43,.06)", border: "1px solid rgba(192,57,43,.1)" }}>
+            🎅 Edit Profile
+          </button>
+          <button onClick={handleLogout}
+            className="text-white font-bold px-6 py-3 rounded-full hover:scale-105 transition flex items-center gap-2"
+            style={{ background: "linear-gradient(135deg, #FBBF24, #F59E0B)", boxShadow: "0 0 20px rgba(251, 191, 36, 0.7)" }}>
+            🍭 Logout
+          </button>
         </div>
       </div>
     </main>
