@@ -413,7 +413,7 @@ export default function Landing() {
           <div className="cta-title fade-up d1">Ready to Start Your<br />Secret Santa?</div>
           <div className="cta-desc fade-up d2">Create your group in under 3 minutes. It&apos;s completely free — no catches, no ads, no limits.</div>
           <button className="btn-cta fade-up d3" onClick={() => router.push("/login")}>🎅 Start Drawing Names — It&apos;s Free</button>
-          <div className="cta-note fade-up d4">No credit card needed. No sign-up required to join a group.</div>
+            <div className="cta-note fade-up d4">No credit card needed. Free forever. No limits.</div>
         </div>
       </section>
 
