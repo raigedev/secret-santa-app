@@ -1,9 +1,5 @@
 "use client";
 
-// ═══════════════════════════════════════
-// DASHBOARD PAGE
-// ═══════════════════════════════════════
-
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
@@ -11,31 +7,16 @@ import InviteCard from "./InviteCard";
 import SecretSantaCard from "./SecretSantaCard";
 import ProfileSetupModal from "./ProfileSetupModal";
 import { getProfile } from "@/app/profile/actions";
+import { DashboardSkeleton } from "@/app/components/PageSkeleton";
+import FadeIn from "@/app/components/FadeIn";
 
-type GroupMember = {
-  nickname: string | null;
-  email: string | null;
-  role: string;
-};
-
+type GroupMember = { nickname: string | null; email: string | null; role: string };
 type Group = {
-  id: string;
-  name: string;
-  description?: string;
-  event_date: string;
-  owner_id: string;
-  created_at: string;
-  members: GroupMember[];
-  isOwner: boolean;
-  hasDrawn: boolean;
+  id: string; name: string; description?: string; event_date: string;
+  owner_id: string; created_at: string; members: GroupMember[];
+  isOwner: boolean; hasDrawn: boolean;
 };
-
-type PendingInvite = {
-  group_id: string;
-  group_name: string;
-  group_description: string;
-  group_event_date: string;
-};
+type PendingInvite = { group_id: string; group_name: string; group_description: string; group_event_date: string };
 
 export default function DashboardPage() {
   const router = useRouter();
@@ -51,6 +32,7 @@ export default function DashboardPage() {
 
   useEffect(() => {
     const loadDashboard = async () => {
+      // Fast auth check (cached, ~10ms vs ~300ms)
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) { router.push("/login"); return; }
 
@@ -58,130 +40,102 @@ export default function DashboardPage() {
       const email = user.email || "Guest";
       setUserName(email.split("@")[0]);
 
-      // Check if profile setup is needed
-      const profileData = await getProfile();
+      // Parallel fetch: profile + link user + memberships
+      const [profileData] = await Promise.all([
+        getProfile(),
+        supabase.from("group_members").update({ user_id: user.id }).eq("email", email.toLowerCase()).is("user_id", null),
+      ]);
+
       if (profileData) {
         if (!profileData.profile_setup_complete) setShowProfileSetup(true);
         if (profileData.display_name) setUserName(profileData.display_name);
         if (profileData.avatar_emoji) setUserEmoji(profileData.avatar_emoji);
       }
 
-      // Link user to invited groups
-      await supabase
-        .from("group_members")
-        .update({ user_id: user.id })
-        .eq("email", email.toLowerCase())
-        .is("user_id", null);
-
-      // Get all memberships
-      const { data: memberRows, error: memberError } = await supabase
+      const { data: memberRows } = await supabase
         .from("group_members")
         .select("group_id, status, role")
         .or(`user_id.eq.${user.id},email.eq.${email}`);
 
-      if (memberError) {
+      if (!memberRows || memberRows.length === 0) {
         setOwnedGroups([]); setInvitedGroups([]); setPendingInvites([]);
         setRecipientNames([]); setLoading(false); return;
       }
 
-      const acceptedRows = (memberRows || []).filter((r) => r.status === "accepted");
-      const pendingRows = (memberRows || []).filter((r) => r.status === "pending");
+      const acceptedRows = memberRows.filter((r) => r.status === "accepted");
+      const pendingRows = memberRows.filter((r) => r.status === "pending");
       const acceptedGroupIds = [...new Set(acceptedRows.map((r) => r.group_id))];
       const pendingGroupIds = [...new Set(pendingRows.map((r) => r.group_id))];
-
       const roleMap: Record<string, string> = {};
       for (const row of acceptedRows) roleMap[row.group_id] = row.role;
 
-      if (acceptedGroupIds.length > 0) {
-        const { data: groupsData } = await supabase
-          .from("groups")
-          .select("id, name, description, event_date, owner_id, created_at")
-          .in("id", acceptedGroupIds);
+      // Parallel fetch — each typed separately to avoid TS errors
+      const [groupsRes, membersRes, assignmentsRes, myAssignRes, pendingRes] = await Promise.all([
+        acceptedGroupIds.length > 0
+          ? supabase.from("groups").select("id, name, description, event_date, owner_id, created_at").in("id", acceptedGroupIds)
+          : Promise.resolve({ data: [] as { id: string; name: string; description: string; event_date: string; owner_id: string; created_at: string }[] }),
+        acceptedGroupIds.length > 0
+          ? supabase.from("group_members").select("group_id, nickname, email, role").in("group_id", acceptedGroupIds).eq("status", "accepted")
+          : Promise.resolve({ data: [] as { group_id: string; nickname: string; email: string; role: string }[] }),
+        acceptedGroupIds.length > 0
+          ? supabase.from("assignments").select("group_id").in("group_id", acceptedGroupIds)
+          : Promise.resolve({ data: [] as { group_id: string }[] }),
+        acceptedGroupIds.length > 0
+          ? supabase.from("assignments").select("group_id, receiver_id").eq("giver_id", user.id).in("group_id", acceptedGroupIds)
+          : Promise.resolve({ data: [] as { group_id: string; receiver_id: string }[] }),
+        pendingGroupIds.length > 0
+          ? supabase.from("groups").select("id, name, description, event_date").in("id", pendingGroupIds)
+          : Promise.resolve({ data: [] as { id: string; name: string; description: string; event_date: string }[] }),
+      ]);
 
-        const { data: allMembers } = await supabase
-          .from("group_members")
-          .select("group_id, nickname, email, role")
-          .in("group_id", acceptedGroupIds)
-          .eq("status", "accepted");
+      const groupsData = groupsRes.data || [];
+      const allMembers = membersRes.data || [];
+      const allAssignments = assignmentsRes.data || [];
+      const myAssignments = myAssignRes.data || [];
+      const pendingGroups = pendingRes.data || [];;
 
-        const { data: allAssignments } = await supabase
-          .from("assignments")
-          .select("group_id")
-          .in("group_id", acceptedGroupIds);
+      const drawnGroupIds = new Set(allAssignments.map((a) => a.group_id));
 
-        const drawnGroupIds = new Set((allAssignments || []).map((a) => a.group_id));
+      const groupsWithMembers: Group[] = groupsData.map((group) => ({
+        ...group,
+        isOwner: roleMap[group.id] === "owner",
+        hasDrawn: drawnGroupIds.has(group.id),
+        members: allMembers.filter((m) => m.group_id === group.id).map((m) => ({ nickname: m.nickname, email: m.email, role: m.role })),
+      }));
 
-        const groupsWithMembers: Group[] = (groupsData || []).map((group) => ({
-          ...group,
-          isOwner: roleMap[group.id] === "owner",
-          hasDrawn: drawnGroupIds.has(group.id),
-          members: (allMembers || [])
-            .filter((m) => m.group_id === group.id)
-            .map((m) => ({ nickname: m.nickname, email: m.email, role: m.role })),
+      setOwnedGroups(groupsWithMembers.filter((g) => g.isOwner));
+      setInvitedGroups(groupsWithMembers.filter((g) => !g.isOwner));
+
+      // Recipient names
+      if (myAssignments.length > 0) {
+        const receiverIds = myAssignments.map((a) => a.receiver_id);
+        const { data: receiverMembers } = await supabase
+          .from("group_members").select("user_id, nickname").in("user_id", receiverIds).eq("status", "accepted");
+        setRecipientNames(myAssignments.map((a) => {
+          const r = (receiverMembers || []).find((m) => m.user_id === a.receiver_id);
+          return r?.nickname || "Secret Participant";
         }));
-
-        setOwnedGroups(groupsWithMembers.filter((g) => g.isOwner));
-        setInvitedGroups(groupsWithMembers.filter((g) => !g.isOwner));
-
-        // Fetch recipient names for Secret Santa card
-        const { data: myAssignments } = await supabase
-          .from("assignments")
-          .select("group_id, receiver_id")
-          .eq("giver_id", user.id)
-          .in("group_id", acceptedGroupIds);
-
-        if (myAssignments && myAssignments.length > 0) {
-          const receiverIds = myAssignments.map((a) => a.receiver_id);
-          const { data: receiverMembers } = await supabase
-            .from("group_members")
-            .select("user_id, nickname")
-            .in("user_id", receiverIds)
-            .eq("status", "accepted");
-
-          const names = myAssignments.map((a) => {
-            const r = (receiverMembers || []).find((m) => m.user_id === a.receiver_id);
-            return r?.nickname || "Secret Participant";
-          });
-          setRecipientNames(names);
-        } else {
-          setRecipientNames([]);
-        }
       } else {
-        setOwnedGroups([]); setInvitedGroups([]); setRecipientNames([]);
+        setRecipientNames([]);
       }
 
-      // Pending invites
-      if (pendingGroupIds.length > 0) {
-        const { data: pendingGroups } = await supabase
-          .from("groups")
-          .select("id, name, description, event_date")
-          .in("id", pendingGroupIds);
-        setPendingInvites(
-          (pendingGroups || []).map((g) => ({
-            group_id: g.id, group_name: g.name,
-            group_description: g.description || "", group_event_date: g.event_date,
-          }))
-        );
-      } else {
-        setPendingInvites([]);
-      }
+      setPendingInvites(pendingGroups.map((g) => ({
+        group_id: g.id, group_name: g.name, group_description: g.description || "", group_event_date: g.event_date,
+      })));
 
       setLoading(false);
     };
 
     loadDashboard();
 
-    const channel = supabase
-      .channel("dashboard-realtime")
+    const channel = supabase.channel("dashboard-realtime")
       .on("postgres_changes", { event: "*", schema: "public", table: "group_members" }, () => loadDashboard())
       .on("postgres_changes", { event: "*", schema: "public", table: "groups" }, () => loadDashboard())
       .on("postgres_changes", { event: "*", schema: "public", table: "assignments" }, () => loadDashboard())
-      .on("postgres_changes", { event: "*", schema: "public", table: "wishlists" }, () => loadDashboard())
       .subscribe();
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       if (!session) router.push("/login");
-      else setUserName((session.user.email || "Guest").split("@")[0]);
     });
 
     return () => { supabase.removeChannel(channel); subscription.unsubscribe(); };
@@ -189,11 +143,8 @@ export default function DashboardPage() {
 
   const handleLogout = async () => { await supabase.auth.signOut(); router.push("/login"); };
 
-  if (loading) return (
-    <main className="min-h-screen flex items-center justify-center bg-gray-100">
-      <p className="text-lg font-semibold text-blue-700">Loading dashboard...</p>
-    </main>
-  );
+  // Show skeleton while loading
+  if (loading) return <DashboardSkeleton />;
 
   const GroupCard = ({ group, type }: { group: Group; type: "owned" | "invited" }) => (
     <div onClick={() => router.push(`/group/${group.id}`)}
@@ -231,33 +182,27 @@ export default function DashboardPage() {
   return (
     <main className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-b from-sky-100 via-white to-sky-200 text-gray-900 relative">
 
-      {/* First-time profile setup modal */}
       {showProfileSetup && (
-        <ProfileSetupModal
-          defaultName={userName}
-          onComplete={() => setShowProfileSetup(false)}
-          onSkip={() => setShowProfileSetup(false)}
-        />
+        <ProfileSetupModal defaultName={userName} onComplete={() => setShowProfileSetup(false)} onSkip={() => setShowProfileSetup(false)} />
       )}
 
       <div className="absolute inset-0 bg-[url('/snowflakes.png')] opacity-20 z-0" />
-      <div className="relative z-10 text-center max-w-5xl w-full p-10 rounded-xl shadow-xl bg-white/40 backdrop-blur-md">
 
-        {/* Header with avatar */}
-        <div className="flex items-center justify-center gap-3 mb-2">
+      <FadeIn className="relative z-10 text-center max-w-5xl w-full p-10 rounded-xl shadow-xl bg-white/40 backdrop-blur-md">
+
+        {/* Header */}
+        <div data-fade className="flex items-center justify-center gap-3 mb-2">
           <div className="w-[48px] h-[48px] rounded-full flex items-center justify-center text-[26px]"
             style={{ background: "linear-gradient(135deg,#fef2f2,#fee2e2)", border: "3px solid #fff", boxShadow: "0 2px 10px rgba(192,57,43,.1)" }}>
             {userEmoji}
           </div>
           <h1 className="text-4xl font-bold drop-shadow-lg" style={{ color: "#1E3A8A" }}>My Secret Santa</h1>
         </div>
-        <p className="text-lg mb-8 font-semibold" style={{ color: "#334155" }}>
-          Welcome, {userName} 🎁
-        </p>
+        <p data-fade className="text-lg mb-8 font-semibold" style={{ color: "#334155" }}>Welcome, {userName} 🎁</p>
 
         {/* Pending Invitations */}
         {pendingInvites.length > 0 && (
-          <div className="text-left mb-10">
+          <div data-fade className="text-left mb-10">
             <h2 className="text-2xl font-bold mb-4 text-orange-600">📩 Pending Invitations</h2>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {pendingInvites.map((invite) => (
@@ -268,9 +213,8 @@ export default function DashboardPage() {
         )}
 
         {/* Action Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
+        <div data-fade className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
           <SecretSantaCard recipientNames={recipientNames} />
-
           <div onClick={() => router.push("/secret-santa-chat")}
             className="cursor-pointer text-white rounded-t-[2rem] rounded-b-xl hover:scale-105 transition transform relative overflow-hidden"
             style={{ background: "linear-gradient(135deg, #86EFAC, #22C55E)", boxShadow: "0 0 20px rgba(34, 197, 94, 0.7)" }}>
@@ -280,7 +224,6 @@ export default function DashboardPage() {
               <div className="mt-4 flex justify-center gap-2 text-xl">💬 🎅 🎁</div>
             </div>
           </div>
-
           <div onClick={() => router.push("/create-group")}
             className="cursor-pointer text-white rounded-t-[2rem] rounded-b-xl hover:scale-105 transition transform relative overflow-hidden"
             style={{ background: "linear-gradient(135deg, #60A5FA, #3B82F6)", boxShadow: "0 0 20px rgba(59, 130, 246, 0.7)" }}>
@@ -293,7 +236,7 @@ export default function DashboardPage() {
         </div>
 
         {/* My Groups */}
-        <div className="text-left mb-8">
+        <div data-fade className="text-left mb-8">
           <h2 className="text-2xl font-bold mb-4 text-blue-700">👑 My Groups</h2>
           {ownedGroups.length === 0 ? (
             <div className="text-center py-5 rounded-xl" style={{ background: "rgba(0,0,0,.02)", border: "1px dashed rgba(0,0,0,.08)" }}>
@@ -307,7 +250,7 @@ export default function DashboardPage() {
         </div>
 
         {/* Invited Groups */}
-        <div className="text-left mb-10">
+        <div data-fade className="text-left mb-10">
           <h2 className="text-2xl font-bold mb-4 text-green-700">🎄 Invited Groups</h2>
           {invitedGroups.length === 0 ? (
             <div className="text-center py-5 rounded-xl" style={{ background: "rgba(0,0,0,.02)", border: "1px dashed rgba(0,0,0,.08)" }}>
@@ -319,7 +262,7 @@ export default function DashboardPage() {
         </div>
 
         {/* Profile + Logout */}
-        <div className="flex justify-center gap-3">
+        <div data-fade className="flex justify-center gap-3">
           <button onClick={() => router.push("/profile")}
             className="font-bold px-6 py-3 rounded-full hover:scale-105 transition flex items-center gap-2"
             style={{ color: "#c0392b", background: "rgba(192,57,43,.06)", border: "1px solid rgba(192,57,43,.1)" }}>
@@ -331,7 +274,8 @@ export default function DashboardPage() {
             🍭 Logout
           </button>
         </div>
-      </div>
+
+      </FadeIn>
     </main>
   );
 }

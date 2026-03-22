@@ -4,6 +4,8 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { getProfile, updateProfile } from "./actions";
+import { ProfileSkeleton } from "@/app/components/PageSkeleton";
+import FadeIn from "@/app/components/FadeIn";
 
 const PRESET_AVATARS = [
   "🎅", "🧝", "🦌", "⛄", "🎄", "🎁", "🧑‍🎄", "❄️",
@@ -61,9 +63,9 @@ export default function ProfilePage() {
 
   useEffect(() => {
     const load = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) { router.push("/login"); return; }
-      setEmail(user.email || "");
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) { router.push("/login"); return; }
+      setEmail(session.user.email || "");
 
       const data = await getProfile();
       if (data) {
@@ -91,17 +93,10 @@ export default function ProfilePage() {
     setSaving(true);
     setMessage("");
     const result = await updateProfile(
-      profile.display_name,
-      profile.avatar_emoji,
-      profile.bio,
-      profile.default_budget,
-      profile.currency,
-      profile.notify_invites,
-      profile.notify_draws,
-      profile.notify_chat,
-      profile.notify_wishlist,
-      profile.notify_marketing,
-      true
+      profile.display_name, profile.avatar_emoji, profile.bio,
+      profile.default_budget, profile.currency,
+      profile.notify_invites, profile.notify_draws, profile.notify_chat,
+      profile.notify_wishlist, profile.notify_marketing, true
     );
     setMessage(result.message);
     setSaving(false);
@@ -112,11 +107,7 @@ export default function ProfilePage() {
     setProfile((prev) => ({ ...prev, [key]: value }));
   };
 
-  if (loading) return (
-    <main className="min-h-screen flex items-center justify-center" style={{ background: "linear-gradient(180deg,#eef4fb,#dce8f5,#e8dce0)" }}>
-      <p className="text-lg font-semibold text-blue-700">Loading profile...</p>
-    </main>
-  );
+  if (loading) return <ProfileSkeleton />;
 
   return (
     <main className="min-h-screen" style={{ background: "linear-gradient(180deg,#eef4fb,#dce8f5,#e8dce0)", fontFamily: "'Nunito', sans-serif" }}>
@@ -124,25 +115,23 @@ export default function ProfilePage() {
         @import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;500;600;700;800;900&family=Fredoka:wght@400;500;600;700&display=swap');
       `}</style>
 
-      <div className="max-w-[640px] mx-auto px-4 py-6">
+      <FadeIn className="max-w-[640px] mx-auto px-4 py-6">
 
         {/* Back */}
-        <button onClick={() => router.push("/dashboard")}
+        <button data-fade onClick={() => router.push("/dashboard")}
           className="inline-flex items-center gap-1.5 text-sm font-bold mb-5 px-4 py-2 rounded-lg transition"
           style={{ color: "#4a6fa5", background: "rgba(255,255,255,.6)", border: "1px solid rgba(74,111,165,.15)", fontFamily: "inherit" }}>
           ← Back to Dashboard
         </button>
 
         {/* Header */}
-        <div className="text-center mb-8">
+        <div data-fade className="text-center mb-8">
           <h1 className="text-[28px] font-bold mb-1" style={{ fontFamily: "'Fredoka', sans-serif", color: "#1a1a1a" }}>🎅 My Profile</h1>
           <p className="text-[14px]" style={{ color: "#6b7280" }}>Manage your account and preferences</p>
         </div>
 
         {/* ═══ AVATAR SECTION ═══ */}
-        <div className="rounded-[20px] p-7 mb-4 text-center" style={{ background: "#fff", boxShadow: "0 4px 20px rgba(0,0,0,.04)", border: "1px solid rgba(0,0,0,.04)" }}>
-
-          {/* Current avatar */}
+        <div data-fade className="rounded-[20px] p-7 mb-4 text-center" style={{ background: "#fff", boxShadow: "0 4px 20px rgba(0,0,0,.04)", border: "1px solid rgba(0,0,0,.04)" }}>
           <div className="relative inline-block mb-3">
             <div className="w-[120px] h-[120px] rounded-full flex items-center justify-center text-[56px]"
               style={{ background: "linear-gradient(135deg,#fef2f2,#fee2e2)", border: "4px solid #fff", boxShadow: "0 4px 16px rgba(192,57,43,.15)" }}>
@@ -152,7 +141,6 @@ export default function ProfilePage() {
           <div className="text-[13px] font-bold" style={{ color: "#1f2937" }}>{profile.display_name || "Set your name"}</div>
           <div className="text-[11px] font-semibold" style={{ color: "#9ca3af" }}>{email}</div>
 
-          {/* Preset avatars */}
           <p className="text-[13px] font-extrabold mt-5 mb-3 text-left" style={{ color: "#374151" }}>Choose a festive avatar</p>
           <div className="grid grid-cols-8 gap-2.5">
             {PRESET_AVATARS.map((emoji) => (
@@ -173,21 +161,18 @@ export default function ProfilePage() {
         </div>
 
         {/* ═══ PERSONAL INFO ═══ */}
-        <div className="rounded-[20px] p-7 mb-4" style={{ background: "#fff", boxShadow: "0 4px 20px rgba(0,0,0,.04)", border: "1px solid rgba(0,0,0,.04)" }}>
+        <div data-fade className="rounded-[20px] p-7 mb-4" style={{ background: "#fff", boxShadow: "0 4px 20px rgba(0,0,0,.04)", border: "1px solid rgba(0,0,0,.04)" }}>
           <h2 className="text-[18px] font-bold mb-5 flex items-center gap-2" style={{ fontFamily: "'Fredoka', sans-serif", color: "#1a1a1a" }}>👤 Personal Info</h2>
 
-          {/* Display Name */}
           <div className="mb-4">
             <label className="text-[13px] font-extrabold mb-1.5 block" style={{ color: "#374151" }}>Display Name</label>
             <input value={profile.display_name} onChange={(e) => update("display_name", e.target.value)}
-              placeholder="How others see you in groups..."
-              maxLength={50}
+              placeholder="How others see you in groups..." maxLength={50}
               className="w-full px-4 py-3 rounded-xl text-[14px] outline-none transition"
               style={{ border: "2px solid #e5e7eb", fontFamily: "inherit", color: "#1f2937" }} />
             <p className="text-[11px] mt-1" style={{ color: "#9ca3af" }}>This is shown to other members in your groups</p>
           </div>
 
-          {/* Email */}
           <div className="mb-4">
             <label className="text-[13px] font-extrabold mb-1.5 block" style={{ color: "#374151" }}>Email</label>
             <input value={email} disabled
@@ -196,15 +181,12 @@ export default function ProfilePage() {
             <p className="text-[11px] mt-1" style={{ color: "#9ca3af" }}>Email can&apos;t be changed — it&apos;s tied to your account</p>
           </div>
 
-          {/* Bio */}
           <div>
-            <label className="text-[13px] font-extrabold mb-1.5 flex items-center gap-1.5 block" style={{ color: "#374151" }}>
+            <label className="text-[13px] font-extrabold mb-1.5 flex items-center gap-1.5" style={{ color: "#374151" }}>
               Bio <span className="text-[11px] font-semibold" style={{ color: "#9ca3af" }}>(optional)</span>
             </label>
             <textarea value={profile.bio} onChange={(e) => update("bio", e.target.value)}
-              placeholder="Tell your Secret Santa a bit about yourself..."
-              maxLength={200}
-              rows={3}
+              placeholder="Tell your Secret Santa a bit about yourself..." maxLength={200} rows={3}
               className="w-full px-4 py-3 rounded-xl text-[14px] outline-none transition resize-y"
               style={{ border: "2px solid #e5e7eb", fontFamily: "inherit", color: "#1f2937", minHeight: "80px" }} />
             <p className="text-[11px] mt-1" style={{ color: "#9ca3af" }}>Your Secret Santa can see this for gift inspiration · {200 - profile.bio.length} chars left</p>
@@ -212,10 +194,9 @@ export default function ProfilePage() {
         </div>
 
         {/* ═══ PREFERENCES ═══ */}
-        <div className="rounded-[20px] p-7 mb-4" style={{ background: "#fff", boxShadow: "0 4px 20px rgba(0,0,0,.04)", border: "1px solid rgba(0,0,0,.04)" }}>
+        <div data-fade className="rounded-[20px] p-7 mb-4" style={{ background: "#fff", boxShadow: "0 4px 20px rgba(0,0,0,.04)", border: "1px solid rgba(0,0,0,.04)" }}>
           <h2 className="text-[18px] font-bold mb-5 flex items-center gap-2" style={{ fontFamily: "'Fredoka', sans-serif", color: "#1a1a1a" }}>⚙️ Preferences</h2>
 
-          {/* Budget */}
           <div className="mb-5">
             <label className="text-[13px] font-extrabold mb-2 block" style={{ color: "#374151" }}>Default Budget</label>
             <div className="flex gap-2 flex-wrap">
@@ -251,7 +232,6 @@ export default function ProfilePage() {
             <p className="text-[11px] mt-1.5" style={{ color: "#9ca3af" }}>Pre-fills when you create a new group</p>
           </div>
 
-          {/* Currency */}
           <div>
             <label className="text-[13px] font-extrabold mb-1.5 block" style={{ color: "#374151" }}>Currency</label>
             <select value={profile.currency} onChange={(e) => update("currency", e.target.value)}
@@ -265,7 +245,7 @@ export default function ProfilePage() {
         </div>
 
         {/* ═══ NOTIFICATIONS ═══ */}
-        <div className="rounded-[20px] p-7 mb-4" style={{ background: "#fff", boxShadow: "0 4px 20px rgba(0,0,0,.04)", border: "1px solid rgba(0,0,0,.04)" }}>
+        <div data-fade className="rounded-[20px] p-7 mb-4" style={{ background: "#fff", boxShadow: "0 4px 20px rgba(0,0,0,.04)", border: "1px solid rgba(0,0,0,.04)" }}>
           <h2 className="text-[18px] font-bold mb-5 flex items-center gap-2" style={{ fontFamily: "'Fredoka', sans-serif", color: "#1a1a1a" }}>🔔 Notifications</h2>
 
           {[
@@ -301,9 +281,9 @@ export default function ProfilePage() {
         </div>
 
         {/* ═══ SAVE ═══ */}
-        <div className="text-center mb-6">
+        <div data-fade className="text-center mb-6">
           {message && (
-            <p className={`text-[13px] font-bold mb-3 ${message.includes("!") && !message.includes("required") ? "text-green-600" : "text-red-600"}`}>
+            <p className={`text-[13px] font-bold mb-3 ${message.includes("saved") ? "text-green-600" : "text-red-600"}`}>
               {message}
             </p>
           )}
@@ -321,7 +301,7 @@ export default function ProfilePage() {
         </div>
 
         {/* ═══ DANGER ZONE ═══ */}
-        <div className="rounded-[20px] p-7" style={{ background: "#fff", border: "1px solid rgba(220,38,38,.1)", boxShadow: "0 4px 20px rgba(0,0,0,.04)" }}>
+        <div data-fade className="rounded-[20px] p-7" style={{ background: "#fff", border: "1px solid rgba(220,38,38,.1)", boxShadow: "0 4px 20px rgba(0,0,0,.04)" }}>
           <h2 className="text-[18px] font-bold mb-3" style={{ fontFamily: "'Fredoka', sans-serif", color: "#dc2626" }}>⚠️ Danger Zone</h2>
           <div className="flex gap-2 flex-wrap">
             <button onClick={() => router.push("/reset-password")}
@@ -331,8 +311,7 @@ export default function ProfilePage() {
             </button>
             <button onClick={async () => {
               if (!confirm("Are you sure? This will permanently delete your account, all groups you own, and all your data. This cannot be undone.")) return;
-              const supabase = createClient();
-              await (await supabase).auth.signOut();
+              await supabase.auth.signOut();
               router.push("/");
             }}
               className="px-5 py-2.5 rounded-[10px] text-[13px] font-bold transition"
@@ -343,7 +322,7 @@ export default function ProfilePage() {
           <p className="text-[11px] mt-2" style={{ color: "#9ca3af" }}>Deleting your account will remove all your data, groups, and messages permanently.</p>
         </div>
 
-      </div>
+      </FadeIn>
     </main>
   );
 }

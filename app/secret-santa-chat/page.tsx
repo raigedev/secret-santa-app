@@ -1,46 +1,18 @@
 "use client";
 
-// ═══════════════════════════════════════
-// SECRET SANTA CHAT PAGE — /secret-santa-chat
-// ═══════════════════════════════════════
-// Optimized for instant messaging:
-// - Optimistic updates (messages appear instantly)
-// - Direct Supabase insert (skips server action overhead)
-// - Real-time deduplication (no flickering)
-// - Read tracking (accurate unread badges)
-// - Client-side sanitization + DB constraints as backup
-//
-// Security: Core#1 sanitization, Core#3 RLS,
-// Playbook#09 RLS enforced at DB level,
-// Playbook#16 users only access own threads,
-// DB CHECK constraints as final safety net
-// No dangerouslySetInnerHTML anywhere
-// ═══════════════════════════════════════
-
 import { useEffect, useState, useRef, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
+import { ChatSkeleton } from "@/app/components/PageSkeleton";
 
 type Thread = {
-  group_id: string;
-  group_name: string;
-  giver_id: string;
-  receiver_id: string;
-  other_name: string;
-  role: "giver" | "receiver";
-  last_message: string;
-  last_time: string;
-  unread: number;
+  group_id: string; group_name: string; giver_id: string; receiver_id: string;
+  other_name: string; role: "giver" | "receiver"; last_message: string;
+  last_time: string; unread: number;
 };
 
-type Message = {
-  id: string;
-  sender_id: string;
-  content: string;
-  created_at: string;
-};
+type Message = { id: string; sender_id: string; content: string; created_at: string };
 
-// Core#1: Sanitize before insert — strips HTML, trims, enforces max length
 function sanitize(input: string): string {
   return input.replace(/<[^>]*>/g, "").replace(/[<>]/g, "").trim().slice(0, 500);
 }
@@ -51,58 +23,42 @@ export default function SecretSantaChatPage() {
   const [userId, setUserId] = useState<string | null>(null);
   const [threads, setThreads] = useState<Thread[]>([]);
   const [loading, setLoading] = useState(true);
-
   const [activeThread, setActiveThread] = useState<Thread | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
   const [msgInput, setMsgInput] = useState("");
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const activeThreadRef = useRef<Thread | null>(null);
 
-  // Keep ref in sync for use inside real-time callback
-  useEffect(() => {
-    activeThreadRef.current = activeThread;
-  }, [activeThread]);
+  useEffect(() => { activeThreadRef.current = activeThread; }, [activeThread]);
 
   const scrollToBottom = useCallback(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, []);
 
-  // ─── Mark thread as read (fire and forget) ───
   const markAsRead = useCallback(async (thread: Thread, uid: string) => {
-    supabase
-      .from("thread_reads")
-      .upsert(
-        {
-          user_id: uid,
-          group_id: thread.group_id,
-          thread_giver_id: thread.giver_id,
-          thread_receiver_id: thread.receiver_id,
-          last_read_at: new Date().toISOString(),
-        },
-        { onConflict: "user_id,group_id,thread_giver_id,thread_receiver_id" }
-      )
-      .then(); // Fire and forget — no await needed
+    supabase.from("thread_reads").upsert({
+      user_id: uid, group_id: thread.group_id,
+      thread_giver_id: thread.giver_id, thread_receiver_id: thread.receiver_id,
+      last_read_at: new Date().toISOString(),
+    }, { onConflict: "user_id,group_id,thread_giver_id,thread_receiver_id" }).then();
   }, [supabase]);
 
-  // ─── Load threads ───
   useEffect(() => {
     let isMounted = true;
 
     const loadThreads = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) { router.push("/login"); return; }
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) { router.push("/login"); return; }
+      const user = session.user;
       if (isMounted) setUserId(user.id);
 
       const { data: memberRows } = await supabase
-        .from("group_members")
-        .select("group_id")
-        .eq("user_id", user.id)
-        .eq("status", "accepted");
+        .from("group_members").select("group_id")
+        .eq("user_id", user.id).eq("status", "accepted");
 
       const groupIds = [...new Set((memberRows || []).map((r) => r.group_id))];
       if (groupIds.length === 0) { if (isMounted) { setThreads([]); setLoading(false); } return; }
 
-      // Parallel fetch — faster than sequential
       const [
         { data: groupsData },
         { data: giverAssignments },
@@ -117,90 +73,55 @@ export default function SecretSantaChatPage() {
         supabase.from("thread_reads").select("group_id, thread_giver_id, thread_receiver_id, last_read_at").eq("user_id", user.id),
       ]);
 
-      // Fetch nicknames for recipients
       const receiverUserIds = (giverAssignments || []).map((a) => a.receiver_id).filter(Boolean);
       const allUserIds = [...new Set(receiverUserIds)];
 
       let memberNicknames: { group_id: string; user_id: string; nickname: string }[] = [];
       if (allUserIds.length > 0) {
-        const { data } = await supabase
-          .from("group_members")
-          .select("group_id, user_id, nickname")
-          .in("user_id", allUserIds)
-          .in("group_id", groupIds)
-          .eq("status", "accepted");
+        const { data } = await supabase.from("group_members").select("group_id, user_id, nickname")
+          .in("user_id", allUserIds).in("group_id", groupIds).eq("status", "accepted");
         memberNicknames = (data || []) as typeof memberNicknames;
       }
 
-      // Helper: get unread count for a thread
-      const getUnread = (
-        gId: string, giverId: string, receiverId: string,
-        msgs: typeof allMessages, uid: string
-      ) => {
-        const threadMsgs = (msgs || []).filter(
-          (m) => m.group_id === gId && m.thread_giver_id === giverId && m.thread_receiver_id === receiverId
-        );
-        const readEntry = (readTimestamps || []).find(
-          (r) => r.group_id === gId && r.thread_giver_id === giverId && r.thread_receiver_id === receiverId
-        );
+      const getUnread = (gId: string, giverId: string, receiverId: string, msgs: typeof allMessages, uid: string) => {
+        const threadMsgs = (msgs || []).filter((m) => m.group_id === gId && m.thread_giver_id === giverId && m.thread_receiver_id === receiverId);
+        const readEntry = (readTimestamps || []).find((r) => r.group_id === gId && r.thread_giver_id === giverId && r.thread_receiver_id === receiverId);
         const lastRead = readEntry ? new Date(readEntry.last_read_at) : new Date(0);
-        return Math.min(
-          threadMsgs.filter((m) => m.sender_id !== uid && new Date(m.created_at) > lastRead).length,
-          9
-        );
+        return Math.min(threadMsgs.filter((m) => m.sender_id !== uid && new Date(m.created_at) > lastRead).length, 9);
       };
 
-      // Helper: get last message preview
-      const getLastMsg = (
-        gId: string, giverId: string, receiverId: string,
-        msgs: typeof allMessages, uid: string, otherName: string
-      ) => {
-        const threadMsgs = (msgs || []).filter(
-          (m) => m.group_id === gId && m.thread_giver_id === giverId && m.thread_receiver_id === receiverId
-        );
+      const getLastMsg = (gId: string, giverId: string, receiverId: string, msgs: typeof allMessages, uid: string, otherName: string) => {
+        const threadMsgs = (msgs || []).filter((m) => m.group_id === gId && m.thread_giver_id === giverId && m.thread_receiver_id === receiverId);
         const lastMsg = threadMsgs[0];
         if (!lastMsg) return { text: "", time: "" };
         const prefix = lastMsg.sender_id === uid ? "You: " : `${otherName}: `;
-        return {
-          text: prefix + lastMsg.content.slice(0, 40),
-          time: new Date(lastMsg.created_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
-        };
+        return { text: prefix + lastMsg.content.slice(0, 40), time: new Date(lastMsg.created_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) };
       };
 
       const buildThreads: Thread[] = [];
 
-      // Giver threads (you → someone)
       for (const a of giverAssignments || []) {
         const group = (groupsData || []).find((g) => g.id === a.group_id);
         const receiver = memberNicknames.find((m) => m.user_id === a.receiver_id && m.group_id === a.group_id);
         const name = receiver?.nickname || "Participant";
         const last = getLastMsg(a.group_id, a.giver_id, a.receiver_id, allMessages, user.id, name);
-
         buildThreads.push({
-          group_id: a.group_id,
-          group_name: group?.name || "Unknown",
-          giver_id: a.giver_id,
-          receiver_id: a.receiver_id,
-          other_name: name,
-          role: "giver",
+          group_id: a.group_id, group_name: group?.name || "Unknown",
+          giver_id: a.giver_id, receiver_id: a.receiver_id,
+          other_name: name, role: "giver",
           last_message: last.text || "No messages yet — say hi! 👋",
           last_time: last.time,
           unread: getUnread(a.group_id, a.giver_id, a.receiver_id, allMessages, user.id),
         });
       }
 
-      // Receiver threads (someone → you)
       for (const a of receiverAssignments || []) {
         const group = (groupsData || []).find((g) => g.id === a.group_id);
         const last = getLastMsg(a.group_id, a.giver_id, a.receiver_id, allMessages, user.id, "🎅");
-
         buildThreads.push({
-          group_id: a.group_id,
-          group_name: group?.name || "Unknown",
-          giver_id: a.giver_id,
-          receiver_id: a.receiver_id,
-          other_name: "Secret Santa",
-          role: "receiver",
+          group_id: a.group_id, group_name: group?.name || "Unknown",
+          giver_id: a.giver_id, receiver_id: a.receiver_id,
+          other_name: "Secret Santa", role: "receiver",
           last_message: last.text || "No messages yet",
           last_time: last.time,
           unread: getUnread(a.group_id, a.giver_id, a.receiver_id, allMessages, user.id),
@@ -212,27 +133,21 @@ export default function SecretSantaChatPage() {
 
     loadThreads();
 
-    const channel = supabase
-      .channel("chat-threads-realtime")
+    const channel = supabase.channel("chat-threads-realtime")
       .on("postgres_changes", { event: "INSERT", schema: "public", table: "messages" }, () => loadThreads())
       .subscribe();
 
     return () => { isMounted = false; supabase.removeChannel(channel); };
   }, [supabase, router]);
 
-  // ─── Load messages + real-time for active thread ───
   useEffect(() => {
     if (!activeThread) return;
     let isMounted = true;
 
     const loadMessages = async () => {
-      const { data } = await supabase
-        .from("messages")
-        .select("id, sender_id, content, created_at")
-        .eq("group_id", activeThread.group_id)
-        .eq("thread_giver_id", activeThread.giver_id)
-        .eq("thread_receiver_id", activeThread.receiver_id)
-        .order("created_at", { ascending: true });
+      const { data } = await supabase.from("messages").select("id, sender_id, content, created_at")
+        .eq("group_id", activeThread.group_id).eq("thread_giver_id", activeThread.giver_id)
+        .eq("thread_receiver_id", activeThread.receiver_id).order("created_at", { ascending: true });
       if (isMounted) { setMessages((data || []) as Message[]); setTimeout(scrollToBottom, 50); }
     };
 
@@ -241,9 +156,7 @@ export default function SecretSantaChatPage() {
     const channel = supabase
       .channel(`chat-live-${activeThread.group_id}-${activeThread.giver_id}-${activeThread.receiver_id}`)
       .on("postgres_changes", {
-        event: "INSERT",
-        schema: "public",
-        table: "messages",
+        event: "INSERT", schema: "public", table: "messages",
         filter: `group_id=eq.${activeThread.group_id}`,
       }, (payload) => {
         if (!isMounted) return;
@@ -252,52 +165,34 @@ export default function SecretSantaChatPage() {
         if (!at || n.thread_giver_id !== at.giver_id || n.thread_receiver_id !== at.receiver_id) return;
 
         setMessages((prev) => {
-          // Remove optimistic temp messages from same sender, avoid duplicates
           const cleaned = prev.filter((m) => !(m.id.startsWith("temp-") && m.sender_id === n.sender_id));
           if (cleaned.find((m) => m.id === n.id)) return cleaned;
           return [...cleaned, { id: n.id, sender_id: n.sender_id, content: n.content, created_at: n.created_at }];
         });
         setTimeout(scrollToBottom, 50);
         if (at && userId) markAsRead(at, userId);
-      })
-      .subscribe();
+      }).subscribe();
 
     return () => { isMounted = false; supabase.removeChannel(channel); };
   }, [activeThread, supabase, scrollToBottom, markAsRead, userId]);
 
-  // ─── Send message (optimistic — instant) ───
   const handleSend = async () => {
     if (!activeThread || !msgInput.trim() || !userId) return;
-
     const content = sanitize(msgInput);
     if (!content) return;
 
-    // 1. Clear input instantly
     setMsgInput("");
-
-    // 2. Show in UI immediately (optimistic)
     const tempId = `temp-${Date.now()}`;
-    setMessages((prev) => [...prev, {
-      id: tempId,
-      sender_id: userId,
-      content,
-      created_at: new Date().toISOString(),
-    }]);
+    setMessages((prev) => [...prev, { id: tempId, sender_id: userId, content, created_at: new Date().toISOString() }]);
     setTimeout(scrollToBottom, 30);
 
-    // 3. Insert in background — RLS + DB CHECK handle security
     const { error } = await supabase.from("messages").insert({
-      group_id: activeThread.group_id,
-      sender_id: userId,
-      thread_giver_id: activeThread.giver_id,
-      thread_receiver_id: activeThread.receiver_id,
-      content,
+      group_id: activeThread.group_id, sender_id: userId,
+      thread_giver_id: activeThread.giver_id, thread_receiver_id: activeThread.receiver_id, content,
     });
 
     if (error) {
-      // Remove optimistic message on failure
       setMessages((prev) => prev.filter((m) => m.id !== tempId));
-      console.error("[CHAT] Send failed:", error.message);
     }
   };
 
@@ -310,26 +205,18 @@ export default function SecretSantaChatPage() {
     if (userId) markAsRead(t, userId);
   };
 
-  if (loading) return (
-    <main className="min-h-screen flex items-center justify-center" style={{ background: "linear-gradient(180deg,#0a1628,#162d50,#0a1628)" }}>
-      <p className="text-lg font-semibold text-blue-300">Loading chats...</p>
-    </main>
-  );
+  if (loading) return <ChatSkeleton />;
 
   const giverThreads = threads.filter((t) => t.role === "giver");
   const receiverThreads = threads.filter((t) => t.role === "receiver");
 
-  // ═══════════════════════════════════
-  // CHAT VIEW
-  // ═══════════════════════════════════
+  // ═══ CHAT VIEW ═══
   if (activeThread) {
     const isGiver = activeThread.role === "giver";
     return (
       <main className="min-h-screen relative" style={{ background: "linear-gradient(180deg,#0a1628 0%,#0f1f3d 20%,#162d50 50%,#0f1f3d 80%,#0a1628 100%)", fontFamily: "'Nunito', sans-serif", color: "#fff" }}>
         <div className="relative z-10 max-w-[720px] mx-auto px-4 py-6">
           <div className="rounded-[18px] overflow-hidden" style={{ background: "rgba(255,255,255,.04)", border: `1px solid ${isGiver ? "rgba(251,191,36,.15)" : "rgba(34,197,94,.15)"}` }}>
-
-            {/* Header */}
             <div className="flex items-center justify-between p-4" style={{ background: "rgba(255,255,255,.04)", borderBottom: `1px solid ${isGiver ? "rgba(251,191,36,.1)" : "rgba(34,197,94,.1)"}` }}>
               <div className="flex items-center gap-3">
                 <div className="w-[42px] h-[42px] rounded-xl flex items-center justify-center text-[18px]"
@@ -349,7 +236,6 @@ export default function SecretSantaChatPage() {
               </button>
             </div>
 
-            {/* Role indicator */}
             <div className="flex items-center justify-center py-2" style={{ background: isGiver ? "rgba(251,191,36,.06)" : "rgba(34,197,94,.06)" }}>
               <span className="text-[10px] font-extrabold px-3 py-1 rounded-full"
                 style={{ background: isGiver ? "rgba(251,191,36,.12)" : "rgba(34,197,94,.12)", color: isGiver ? "#fbbf24" : "#86efac" }}>
@@ -357,7 +243,6 @@ export default function SecretSantaChatPage() {
               </span>
             </div>
 
-            {/* Messages */}
             <div className="p-4 overflow-y-auto flex flex-col gap-2" style={{ maxHeight: "55vh", minHeight: "280px" }}>
               {messages.length === 0 ? (
                 <div className="text-center py-10" style={{ color: "rgba(255,255,255,.2)" }}>
@@ -391,10 +276,8 @@ export default function SecretSantaChatPage() {
               <div ref={messagesEndRef} />
             </div>
 
-            {/* Input */}
             <div className="flex gap-2 p-4" style={{ background: "rgba(255,255,255,.03)", borderTop: `1px solid ${isGiver ? "rgba(251,191,36,.08)" : "rgba(34,197,94,.08)"}` }}>
-              <input value={msgInput} onChange={(e) => setMsgInput(e.target.value)}
-                onKeyDown={handleKeyDown}
+              <input value={msgInput} onChange={(e) => setMsgInput(e.target.value)} onKeyDown={handleKeyDown}
                 placeholder={isGiver ? `Message ${activeThread.other_name} as 🎅 Secret Santa...` : "Reply to your Secret Santa..."}
                 maxLength={500}
                 className="flex-1 px-3.5 py-2.5 rounded-xl text-[13px] outline-none"
@@ -423,9 +306,7 @@ export default function SecretSantaChatPage() {
     );
   }
 
-  // ═══════════════════════════════════
-  // THREAD LIST VIEW
-  // ═══════════════════════════════════
+  // ═══ THREAD LIST VIEW ═══
   return (
     <main className="min-h-screen relative overflow-x-hidden" style={{ background: "linear-gradient(180deg,#0a1628 0%,#0f1f3d 20%,#162d50 50%,#0f1f3d 80%,#0a1628 100%)", fontFamily: "'Nunito', sans-serif", color: "#fff" }}>
       <div id="snowWrap" className="fixed inset-0 pointer-events-none z-0 overflow-hidden" />
@@ -441,13 +322,11 @@ export default function SecretSantaChatPage() {
           ← Back to Dashboard
         </button>
 
-        {/* Header */}
         <div className="text-center mb-6">
           <h1 className="text-[32px] font-bold mb-1" style={{ fontFamily: "'Fredoka', sans-serif", textShadow: "0 2px 8px rgba(0,0,0,.3)" }}>💬 Secret Santa Chat</h1>
           <p className="text-[14px] font-semibold" style={{ color: "rgba(255,255,255,.5)" }}>Private conversations with your matches</p>
         </div>
 
-        {/* Explainer */}
         <div className="flex gap-3 mb-6 p-4 rounded-2xl" style={{ background: "rgba(255,255,255,.04)", border: "1px solid rgba(255,255,255,.08)" }}>
           <div className="flex-1 text-center p-3 rounded-xl" style={{ background: "rgba(251,191,36,.08)", border: "1px solid rgba(251,191,36,.12)" }}>
             <div className="text-[28px] mb-1">🎁</div>
@@ -470,7 +349,6 @@ export default function SecretSantaChatPage() {
           </div>
         ) : (
           <>
-            {/* GIVER THREADS (Gold) */}
             {giverThreads.length > 0 && (
               <>
                 <div className="flex items-center gap-3 mb-3">
@@ -509,12 +387,10 @@ export default function SecretSantaChatPage() {
               </>
             )}
 
-            {/* Divider */}
             {giverThreads.length > 0 && receiverThreads.length > 0 && (
               <div className="my-5" style={{ height: "1px", background: "rgba(255,255,255,.06)" }} />
             )}
 
-            {/* RECEIVER THREADS (Green) */}
             {receiverThreads.length > 0 && (
               <>
                 <div className="flex items-center gap-3 mb-3">
@@ -555,7 +431,6 @@ export default function SecretSantaChatPage() {
           </>
         )}
 
-        {/* Privacy note */}
         <div className="flex items-start gap-2 mt-6 p-3.5 rounded-xl" style={{ background: "rgba(59,130,246,.06)", border: "1px solid rgba(59,130,246,.1)" }}>
           <span className="text-[16px] flex-shrink-0">🔒</span>
           <div className="text-[11px] leading-relaxed" style={{ color: "rgba(147,197,253,.6)" }}>
