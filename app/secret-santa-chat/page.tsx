@@ -28,7 +28,8 @@ export default function SecretSantaChatPage() {
   const [msgInput, setMsgInput] = useState("");
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const activeThreadRef = useRef<Thread | null>(null);
-
+  const loadThreadsRef = useRef<() => Promise<void>>(null);
+  
   useEffect(() => { activeThreadRef.current = activeThread; }, [activeThread]);
 
   const scrollToBottom = useCallback(() => {
@@ -43,21 +44,20 @@ export default function SecretSantaChatPage() {
     }, { onConflict: "user_id,group_id,thread_giver_id,thread_receiver_id" }).then();
   }, [supabase]);
 
+  // ─── Load threads on mount + real-time ───
   useEffect(() => {
-    let isMounted = true;
-
     const loadThreads = async () => {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) { router.push("/login"); return; }
       const user = session.user;
-      if (isMounted) setUserId(user.id);
+      setUserId(user.id);
 
       const { data: memberRows } = await supabase
         .from("group_members").select("group_id")
         .eq("user_id", user.id).eq("status", "accepted");
 
       const groupIds = [...new Set((memberRows || []).map((r) => r.group_id))];
-      if (groupIds.length === 0) { if (isMounted) { setThreads([]); setLoading(false); } return; }
+      if (groupIds.length === 0) { setThreads([]); setLoading(false); return; }
 
       const [
         { data: groupsData },
@@ -128,8 +128,12 @@ export default function SecretSantaChatPage() {
         });
       }
 
-      if (isMounted) { setThreads(buildThreads); setLoading(false); }
+      setThreads(buildThreads);
+      setLoading(false);
     };
+
+    // Store in ref so back button can call it
+    loadThreadsRef.current = loadThreads;
 
     loadThreads();
 
@@ -137,9 +141,10 @@ export default function SecretSantaChatPage() {
       .on("postgres_changes", { event: "INSERT", schema: "public", table: "messages" }, () => loadThreads())
       .subscribe();
 
-    return () => { isMounted = false; supabase.removeChannel(channel); };
+    return () => { supabase.removeChannel(channel); };
   }, [supabase, router]);
 
+  // ─── Load messages + real-time for active thread ───
   useEffect(() => {
     if (!activeThread) return;
     let isMounted = true;
@@ -230,7 +235,7 @@ export default function SecretSantaChatPage() {
                   </div>
                 </div>
               </div>
-              <button onClick={() => setActiveThread(null)} className="px-3.5 py-1.5 rounded-lg text-[11px] font-bold"
+              <button onClick={() => { setActiveThread(null); loadThreadsRef.current?.(); }} className="px-3.5 py-1.5 rounded-lg text-[11px] font-bold"
                 style={{ background: "rgba(255,255,255,.06)", color: "rgba(255,255,255,.5)", border: "1px solid rgba(255,255,255,.08)", fontFamily: "inherit", cursor: "pointer" }}>
                 ← Back
               </button>
