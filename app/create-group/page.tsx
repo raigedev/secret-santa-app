@@ -1,89 +1,90 @@
 "use client";
 
-// ─── Create Group Page ───
-// This page lets a logged-in user create a new Secret Santa group.
-// After creating, it:
-// 1. Saves the group to the database
-// 2. Adds the owner to group_members
-// 3. Adds each invited email to group_members
-// 4. Sends invite emails to each person (NEW!)
-// 5. Redirects to the dashboard
-
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
-import { sendInviteEmails } from "./actions"; // server action for emails
+import { sendInviteEmails } from "./actions";
+
+const BUDGET_OPTIONS = [10, 15, 25, 50, 100];
+const CURRENCIES = [
+  { code: "USD", symbol: "$", label: "USD — US Dollar" },
+  { code: "EUR", symbol: "€", label: "EUR — Euro" },
+  { code: "GBP", symbol: "£", label: "GBP — British Pound" },
+  { code: "PHP", symbol: "₱", label: "PHP — Philippine Peso" },
+  { code: "JPY", symbol: "¥", label: "JPY — Japanese Yen" },
+  { code: "AUD", symbol: "A$", label: "AUD — Australian Dollar" },
+  { code: "CAD", symbol: "C$", label: "CAD — Canadian Dollar" },
+];
+
+function sanitize(input: string, max: number): string {
+  return input.replace(/<[^>]*>/g, "").replace(/[<>]/g, "").trim().slice(0, max);
+}
 
 export default function CreateGroupPage() {
   const router = useRouter();
-
-  // ─── Create a browser-side Supabase client ───
-  // This talks to the database directly from the browser.
   const supabase = createClient();
 
-  // ─── Form state variables ───
-  // Each useState holds one piece of form data.
   const [groupName, setGroupName] = useState("");
   const [description, setDescription] = useState("");
   const [eventDate, setEventDate] = useState("");
   const [inviteEmails, setInviteEmails] = useState("");
+  const [budget, setBudget] = useState(25);
+  const [currency, setCurrency] = useState("USD");
+  const [customBudget, setCustomBudget] = useState(false);
 
-  // ─── UI state ───
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState("");
-  const [statusMsg, setStatusMsg] = useState(""); // shows invite email progress
+  const [statusMsg, setStatusMsg] = useState("");
 
   const handleSubmit = async (e: React.FormEvent) => {
-    // Prevent the browser from refreshing the page on form submit
     e.preventDefault();
     setLoading(true);
     setErrorMsg("");
     setStatusMsg("");
 
-    // ── Step 1: Get the logged-in user ──
-    // We need their ID to set them as the group owner.
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) { setErrorMsg("You must be logged in."); setLoading(false); return; }
 
-    if (!user) {
-      setErrorMsg("You must be logged in to create a group.");
+    // Core#1: Sanitize
+    const cleanName = sanitize(groupName, 100);
+    const cleanDesc = sanitize(description, 300);
+    const cleanBudget = Math.min(Math.max(Math.floor(budget || 0), 0), 100000);
+
+    if (!cleanName) { setErrorMsg("Group name is required."); setLoading(false); return; }
+    if (!eventDate) { setErrorMsg("Event date is required."); setLoading(false); return; }
+
+    // Validate date is not in the past
+    if (new Date(eventDate) < new Date(new Date().toDateString())) {
+      setErrorMsg("Event date can't be in the past.");
       setLoading(false);
       return;
     }
 
-    // ── Step 2: Clean up the email list ──
-    // Split by comma, trim whitespace, remove empty strings,
-    // and convert to lowercase for consistent matching.
     const emailList = inviteEmails
       .split(",")
-      .map((email) => email.trim().toLowerCase())
-      .filter((email) => email.length > 0);
+      .map((email) => sanitize(email, 100).toLowerCase())
+      .filter((email) => email.length > 0 && email.includes("@"));
 
-    // ── Step 3: Insert the group into the "groups" table ──
-    // .insert() adds a new row to the table.
-    // .select() returns the new row so we can read its auto-generated ID.
-    // .single() means we expect exactly one row back.
     const { data: newGroup, error } = await supabase
       .from("groups")
       .insert({
-        name: groupName,
-        description,
+        name: cleanName,
+        description: cleanDesc,
         event_date: eventDate,
         owner_id: user.id,
         invites: emailList,
+        budget: cleanBudget,
+        currency: currency,
       })
       .select()
       .single();
 
     if (error || !newGroup) {
-      setErrorMsg(error?.message || "Failed to create group.");
+      setErrorMsg("Failed to create group. Please try again.");
       setLoading(false);
       return;
     }
 
-    // Owner is automatically "accepted" — they created the group,
-    // so they don't need to accept their own invitation.
     const { error: ownerError } = await supabase
       .from("group_members")
       .insert({
@@ -92,16 +93,13 @@ export default function CreateGroupPage() {
         email: user.email,
         nickname: user.email?.split("@")[0],
         role: "owner",
-        status: "accepted",  // ← owner auto-accepts
+        status: "accepted",
       });
 
     if (ownerError) {
-      console.error("Failed to insert owner:", ownerError.message);
+      console.error("[GROUP] Failed to insert owner:", ownerError.message);
     }
 
-    // ── Step 5: Add each INVITED EMAIL to group_members ──
-    // These people haven't signed up yet, so user_id is null.
-    // When they register later, linkUserToGroup fills in their user_id.
     if (emailList.length > 0) {
       const memberRows = emailList.map((email) => ({
         group_id: newGroup.id,
@@ -116,94 +114,146 @@ export default function CreateGroupPage() {
         .insert(memberRows);
 
       if (membersError) {
-        console.error("Failed to insert members:", membersError.message);
+        console.error("[GROUP] Failed to insert members:", membersError.message);
       }
 
-      // ── Step 6: Send invite emails (runs on the server) ──
-      // This calls our server action which uses the admin key
-      // to send "You've been invited" emails to each person.
       setStatusMsg("📧 Sending invite emails...");
       const { sent, failed } = await sendInviteEmails(emailList);
 
       if (failed.length > 0) {
         setStatusMsg(`📧 Sent ${sent} emails. Failed: ${failed.join(", ")}`);
-        // Wait 2 seconds so the user can read the message before redirecting
         await new Promise((r) => setTimeout(r, 2000));
       }
     }
 
-    // ── Step 7: Redirect to dashboard ──
     router.push("/dashboard");
   };
 
-  return (
-    <main className="min-h-screen flex items-center justify-center bg-gradient-to-b from-green-100 via-white to-green-200 relative">
-      {/* Snowflake background overlay */}
-      <div className="absolute inset-0 bg-[url('/snowflakes.png')] opacity-20 z-0"></div>
+  const currencySymbol = CURRENCIES.find((c) => c.code === currency)?.symbol || "$";
 
-      <div className="relative z-10 w-full max-w-lg p-8 rounded-xl shadow-xl bg-white/80 backdrop-blur-md">
-        <h1 className="text-3xl font-bold text-center mb-6 text-green-700 drop-shadow-lg">
+  return (
+    <main className="min-h-screen flex items-center justify-center relative" style={{ background: "linear-gradient(180deg,#eef4fb,#dce8f5,#e8dce0)", fontFamily: "'Nunito', sans-serif" }}>
+      <style>{`@import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&family=Fredoka:wght@500;600;700&display=swap');`}</style>
+      <div className="absolute inset-0 bg-[url('/snowflakes.png')] opacity-20 z-0" />
+
+      <div className="relative z-10 w-full max-w-lg p-8 rounded-[20px] shadow-xl" style={{ background: "rgba(255,255,255,.75)", backdropFilter: "blur(16px)", border: "1px solid rgba(255,255,255,.6)" }}>
+
+        <button onClick={() => router.push("/dashboard")}
+          className="inline-flex items-center gap-1.5 text-sm font-bold mb-4 px-3 py-1.5 rounded-lg transition"
+          style={{ color: "#4a6fa5", background: "rgba(255,255,255,.6)", border: "1px solid rgba(74,111,165,.15)", fontFamily: "inherit" }}>
+          ← Back
+        </button>
+
+        <h1 className="text-[26px] font-bold text-center mb-6" style={{ fontFamily: "'Fredoka', sans-serif", color: "#1a6b2a" }}>
           🎄 Create Your Secret Santa Group 🎁
         </h1>
 
         <form onSubmit={handleSubmit} className="space-y-4">
-          {/* Group name input */}
-          <input
-            type="text"
-            placeholder="Group Name"
-            value={groupName}
-            onChange={(e) => setGroupName(e.target.value)}
-            className="w-full px-4 py-2 rounded-lg border border-gray-400 bg-white text-gray-900 placeholder-gray-500 focus:ring-2 focus:ring-green-400 focus:border-green-400"
-            required
-          />
+          {/* Group name */}
+          <div>
+            <label className="text-[13px] font-extrabold mb-1.5 block" style={{ color: "#374151" }}>Group Name *</label>
+            <input type="text" placeholder="e.g. Office Holiday Party" value={groupName}
+              onChange={(e) => setGroupName(e.target.value)} maxLength={100} required
+              className="w-full px-4 py-3 rounded-xl text-[14px] outline-none transition"
+              style={{ border: "2px solid #e5e7eb", fontFamily: "inherit", color: "#1f2937" }} />
+          </div>
 
-          {/* Description input */}
-          <textarea
-            placeholder="Description / Rules"
-            value={description}
-            onChange={(e) => setDescription(e.target.value)}
-            className="w-full px-4 py-2 rounded-lg border border-gray-400 bg-white text-gray-900 placeholder-gray-500 focus:ring-2 focus:ring-green-400 focus:border-green-400"
-            rows={3}
-          />
+          {/* Description */}
+          <div>
+            <label className="text-[13px] font-extrabold mb-1.5 block" style={{ color: "#374151" }}>
+              Description / Rules <span className="text-[11px] font-semibold" style={{ color: "#9ca3af" }}>(optional)</span>
+            </label>
+            <textarea placeholder="e.g. Budget is $25. No re-gifts!" value={description}
+              onChange={(e) => setDescription(e.target.value)} maxLength={300} rows={3}
+              className="w-full px-4 py-3 rounded-xl text-[14px] outline-none transition resize-y"
+              style={{ border: "2px solid #e5e7eb", fontFamily: "inherit", color: "#1f2937", minHeight: "70px" }} />
+          </div>
 
-          {/* Event date input */}
-          <input
-            type="date"
-            value={eventDate}
-            onChange={(e) => setEventDate(e.target.value)}
-            className="w-full px-4 py-2 rounded-lg border border-gray-400 bg-white text-gray-900 focus:ring-2 focus:ring-green-400 focus:border-green-400"
-            required
-          />
+          {/* Event date */}
+          <div>
+            <label className="text-[13px] font-extrabold mb-1.5 block" style={{ color: "#374151" }}>Event Date *</label>
+            <input type="date" value={eventDate} onChange={(e) => setEventDate(e.target.value)} required
+              className="w-full px-4 py-3 rounded-xl text-[14px] outline-none transition"
+              style={{ border: "2px solid #e5e7eb", fontFamily: "inherit", color: "#1f2937" }} />
+          </div>
 
-          {/* Invite emails input */}
-          <input
-            type="text"
-            placeholder="Invite emails (comma separated)"
-            value={inviteEmails}
-            onChange={(e) => setInviteEmails(e.target.value)}
-            className="w-full px-4 py-2 rounded-lg border border-gray-400 bg-white text-gray-900 placeholder-gray-500 focus:ring-2 focus:ring-green-400 focus:border-green-400"
-          />
+          {/* Budget */}
+          <div className="rounded-xl p-4" style={{ background: "rgba(192,57,43,.04)", border: "1px solid rgba(192,57,43,.1)" }}>
+            <label className="text-[13px] font-extrabold mb-2 block" style={{ color: "#c0392b" }}>
+              🎁 Gift Budget
+            </label>
+            <div className="flex gap-2 flex-wrap">
+              {BUDGET_OPTIONS.map((amount) => (
+                <button key={amount} type="button"
+                  onClick={() => { setBudget(amount); setCustomBudget(false); }}
+                  className="px-4 py-2 rounded-[10px] text-[13px] font-bold transition"
+                  style={{
+                    border: `2px solid ${!customBudget && budget === amount ? "#c0392b" : "#e5e7eb"}`,
+                    background: !customBudget && budget === amount ? "#fef2f2" : "#fff",
+                    color: !customBudget && budget === amount ? "#c0392b" : "#6b7280",
+                    cursor: "pointer", fontFamily: "inherit",
+                  }}>
+                  {currencySymbol}{amount}
+                </button>
+              ))}
+              <button type="button" onClick={() => setCustomBudget(true)}
+                className="px-4 py-2 rounded-[10px] text-[13px] font-bold transition"
+                style={{
+                  border: `2px solid ${customBudget ? "#c0392b" : "#e5e7eb"}`,
+                  background: customBudget ? "#fef2f2" : "#fff",
+                  color: customBudget ? "#c0392b" : "#6b7280",
+                  cursor: "pointer", fontFamily: "inherit", borderStyle: customBudget ? "solid" : "dashed",
+                }}>
+                Custom
+              </button>
+            </div>
+            {customBudget && (
+              <div className="flex items-center gap-2 mt-2">
+                <span className="text-[14px] font-bold" style={{ color: "#c0392b" }}>{currencySymbol}</span>
+                <input type="number" value={budget} onChange={(e) => setBudget(parseInt(e.target.value) || 0)}
+                  min={0} max={100000} placeholder="Enter amount..."
+                  className="w-32 px-3 py-2 rounded-lg text-[14px] outline-none"
+                  style={{ border: "2px solid #c0392b", fontFamily: "inherit", color: "#1f2937" }} />
+              </div>
+            )}
+            <p className="text-[11px] mt-2" style={{ color: "#9ca3af" }}>Members will see this budget when they join</p>
+          </div>
 
-          {/* Error message */}
-          {errorMsg && (
-            <p className="text-red-600 font-semibold text-center">{errorMsg}</p>
-          )}
+          {/* Currency */}
+          <div>
+            <label className="text-[13px] font-extrabold mb-1.5 block" style={{ color: "#374151" }}>💱 Currency</label>
+            <select value={currency} onChange={(e) => setCurrency(e.target.value)}
+              className="w-full px-4 py-3 rounded-xl text-[14px] outline-none"
+              style={{ border: "2px solid #e5e7eb", fontFamily: "inherit", color: "#1f2937", cursor: "pointer", background: "#fff" }}>
+              {CURRENCIES.map((c) => (
+                <option key={c.code} value={c.code}>{c.symbol} {c.label}</option>
+              ))}
+            </select>
+          </div>
 
-          {/* Status message (shows email sending progress) */}
-          {statusMsg && (
-            <p className="text-blue-600 font-semibold text-center">{statusMsg}</p>
-          )}
+          {/* Invite emails */}
+          <div>
+            <label className="text-[13px] font-extrabold mb-1.5 block" style={{ color: "#374151" }}>
+              📧 Invite Members <span className="text-[11px] font-semibold" style={{ color: "#9ca3af" }}>(optional)</span>
+            </label>
+            <input type="text" placeholder="email1@example.com, email2@example.com" value={inviteEmails}
+              onChange={(e) => setInviteEmails(e.target.value)}
+              className="w-full px-4 py-3 rounded-xl text-[14px] outline-none transition"
+              style={{ border: "2px solid #e5e7eb", fontFamily: "inherit", color: "#1f2937" }} />
+            <p className="text-[11px] mt-1" style={{ color: "#9ca3af" }}>Separate multiple emails with commas</p>
+          </div>
 
-          {/* Submit button */}
-          <button
-            type="submit"
-            disabled={loading}
-            className={`w-full py-3 rounded-full font-bold text-white transition transform shadow-lg ${
-              loading
-                ? "bg-gray-400 cursor-not-allowed"
-                : "bg-gradient-to-r from-green-400 to-green-600 hover:scale-105"
-            }`}
-          >
+          {errorMsg && <p className="text-[13px] font-bold text-center" style={{ color: "#dc2626" }}>{errorMsg}</p>}
+          {statusMsg && <p className="text-[13px] font-bold text-center" style={{ color: "#2563eb" }}>{statusMsg}</p>}
+
+          <button type="submit" disabled={loading}
+            className="w-full py-3.5 rounded-xl text-[16px] font-extrabold text-white transition"
+            style={{
+              background: loading ? "#9ca3af" : "linear-gradient(135deg,#1a6b2a,#22c55e)",
+              border: "none", cursor: loading ? "not-allowed" : "pointer",
+              fontFamily: "inherit",
+              boxShadow: loading ? "none" : "0 4px 16px rgba(26,107,42,.25)",
+            }}>
             {loading ? "Creating Group..." : "🎁 Create Group"}
           </button>
         </form>
