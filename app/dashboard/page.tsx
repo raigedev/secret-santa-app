@@ -53,6 +53,7 @@ type GroupRow = {
 
 type GroupMemberRow = {
   group_id: string;
+  user_id: string | null;
   nickname: string;
   email: string;
   role: string;
@@ -81,6 +82,14 @@ type PendingGroupRow = {
   event_date: string;
 };
 
+function createGroupUserKey(groupId: string, userId: string): string {
+  return `${groupId}:${userId}`;
+}
+
+function createEmptyQueryResult<T>(data: T[] = []): Promise<{ data: T[]; error: null }> {
+  return Promise.resolve({ data, error: null });
+}
+
 export default function DashboardPage() {
   const router = useRouter();
   const [supabase] = useState(() => createClient());
@@ -97,50 +106,18 @@ export default function DashboardPage() {
 
   useEffect(() => {
     let isMounted = true;
+    let sessionUser:
+      | {
+          id: string;
+          email?: string | null;
+        }
+      | null = null;
 
-    // Load all dashboard data in one place so auth, memberships, groups, and cards stay in sync.
-    const loadDashboard = async () => {
+    // Reload the dashboard cards and lists without repeating one-time setup like
+    // profile bootstrap or invited-membership claiming on every realtime event.
+    const loadDashboardData = async (user: { id: string; email?: string | null }) => {
       try {
-        const {
-          data: { session },
-        } = await supabase.auth.getSession();
-
-        if (!session) {
-          router.push("/login");
-          return;
-        }
-
-        const user = session.user;
         const email = (user.email || "guest@example.com").toLowerCase();
-        const defaultName = email.split("@")[0];
-
-        if (!isMounted) {
-          return;
-        }
-
-        setUserName(defaultName);
-
-        // Fetch the profile and link any invited email-based memberships to the authenticated user.
-        const [profileData] = await Promise.all([
-          getProfile(),
-          claimInvitedMemberships(),
-        ]);
-
-        if (!isMounted) {
-          return;
-        }
-
-        if (profileData) {
-          if (!profileData.profile_setup_complete) {
-            setShowProfileSetup(true);
-          }
-          if (profileData.display_name) {
-            setUserName(profileData.display_name);
-          }
-          if (profileData.avatar_emoji) {
-            setUserEmoji(profileData.avatar_emoji);
-          }
-        }
 
         const [membersByUserRes, membersByEmailRes] = await Promise.all([
           supabase
@@ -152,6 +129,14 @@ export default function DashboardPage() {
             .select("id, group_id, status, role")
             .eq("email", email),
         ]);
+
+        if (membersByUserRes.error) {
+          throw membersByUserRes.error;
+        }
+
+        if (membersByEmailRes.error) {
+          throw membersByEmailRes.error;
+        }
 
         const membershipMap = new Map<string, MembershipRow>();
 
@@ -195,31 +180,51 @@ export default function DashboardPage() {
                   .from("groups")
                   .select("id, name, description, event_date, owner_id, created_at")
                   .in("id", acceptedGroupIds)
-              : Promise.resolve({ data: [] as GroupRow[] }),
+              : createEmptyQueryResult<GroupRow>(),
             acceptedGroupIds.length > 0
               ? supabase
                   .from("group_members")
-                  .select("group_id, nickname, email, role")
+                  .select("group_id, user_id, nickname, email, role")
                   .in("group_id", acceptedGroupIds)
                   .eq("status", "accepted")
-              : Promise.resolve({ data: [] as GroupMemberRow[] }),
+              : createEmptyQueryResult<GroupMemberRow>(),
             acceptedGroupIds.length > 0
               ? supabase.from("assignments").select("group_id").in("group_id", acceptedGroupIds)
-              : Promise.resolve({ data: [] as AssignmentRow[] }),
+              : createEmptyQueryResult<AssignmentRow>(),
             acceptedGroupIds.length > 0
               ? supabase
                   .from("assignments")
                   .select("group_id, receiver_id")
                   .eq("giver_id", user.id)
                   .in("group_id", acceptedGroupIds)
-              : Promise.resolve({ data: [] as MyAssignmentRow[] }),
+              : createEmptyQueryResult<MyAssignmentRow>(),
             pendingGroupIds.length > 0
               ? supabase
                   .from("groups")
                   .select("id, name, description, event_date")
                   .in("id", pendingGroupIds)
-              : Promise.resolve({ data: [] as PendingGroupRow[] }),
+              : createEmptyQueryResult<PendingGroupRow>(),
           ]);
+
+        if (groupsRes.error) {
+          throw groupsRes.error;
+        }
+
+        if (membersRes.error) {
+          throw membersRes.error;
+        }
+
+        if (assignmentsRes.error) {
+          throw assignmentsRes.error;
+        }
+
+        if (myAssignRes.error) {
+          throw myAssignRes.error;
+        }
+
+        if (pendingRes.error) {
+          throw pendingRes.error;
+        }
 
         const groupsData = groupsRes.data || [];
         const allMembers = membersRes.data || [];
@@ -248,30 +253,28 @@ export default function DashboardPage() {
         setOwnedGroups(groupsWithMembers.filter((group) => group.isOwner));
         setInvitedGroups(groupsWithMembers.filter((group) => !group.isOwner));
 
-        if (myAssignments.length > 0) {
-          const receiverIds = myAssignments.map((assignment) => assignment.receiver_id);
-          const { data: receiverMembers } = await supabase
-            .from("group_members")
-            .select("user_id, nickname")
-            .in("user_id", receiverIds)
-            .eq("status", "accepted");
+        const receiverNameByGroupUser = new Map<string, string>();
 
-          if (!isMounted) {
-            return;
+        for (const member of allMembers) {
+          if (!member.user_id) {
+            continue;
           }
 
-          setRecipientNames(
-            myAssignments.map((assignment) => {
-              const receiver = (receiverMembers || []).find(
-                (member) => member.user_id === assignment.receiver_id
-              );
-
-              return receiver?.nickname || "Secret Participant";
-            })
+          receiverNameByGroupUser.set(
+            createGroupUserKey(member.group_id, member.user_id),
+            member.nickname || "Secret Participant"
           );
-        } else {
-          setRecipientNames([]);
         }
+
+        setRecipientNames(
+          myAssignments.map((assignment) => {
+            return (
+              receiverNameByGroupUser.get(
+                createGroupUserKey(assignment.group_id, assignment.receiver_id)
+              ) || "Secret Participant"
+            );
+          })
+        );
 
         setPendingInvites(
           pendingGroups.map((group) => ({
@@ -299,24 +302,86 @@ export default function DashboardPage() {
       }
     };
 
-    void loadDashboard();
+    const bootstrapDashboard = async () => {
+      try {
+        const {
+          data: { session },
+        } = await supabase.auth.getSession();
+
+        if (!session) {
+          router.push("/login");
+          return;
+        }
+
+        sessionUser = session.user;
+
+        const email = (session.user.email || "guest@example.com").toLowerCase();
+        const defaultName = email.split("@")[0];
+
+        if (!isMounted) {
+          return;
+        }
+
+        setUserName(defaultName);
+
+        const [profileData] = await Promise.all([getProfile(), claimInvitedMemberships()]);
+
+        if (!isMounted) {
+          return;
+        }
+
+        if (profileData) {
+          setShowProfileSetup(!profileData.profile_setup_complete);
+          setUserName(profileData.display_name || defaultName);
+          setUserEmoji(profileData.avatar_emoji || "🎅");
+        }
+
+        await loadDashboardData(session.user);
+      } catch (error) {
+        console.error("[Dashboard] Failed to bootstrap dashboard:", error);
+
+        if (!isMounted) {
+          return;
+        }
+
+        setActionMessage({
+          type: "error",
+          text: "Failed to load the dashboard. Please refresh and try again.",
+        });
+        setLoading(false);
+      }
+    };
+
+    void bootstrapDashboard();
 
     const channel = supabase
       .channel("dashboard-realtime")
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "group_members" },
-        () => void loadDashboard()
+        () => {
+          if (sessionUser) {
+            void loadDashboardData(sessionUser);
+          }
+        }
       )
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "groups" },
-        () => void loadDashboard()
+        () => {
+          if (sessionUser) {
+            void loadDashboardData(sessionUser);
+          }
+        }
       )
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "assignments" },
-        () => void loadDashboard()
+        () => {
+          if (sessionUser) {
+            void loadDashboardData(sessionUser);
+          }
+        }
       )
       .subscribe();
 

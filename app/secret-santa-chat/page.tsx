@@ -1,21 +1,201 @@
 "use client";
 
-import { useEffect, useState, useRef, useCallback } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { ChatSkeleton } from "@/app/components/PageSkeleton";
 import { sendMessage } from "./chat-actions";
 
 type Thread = {
-  group_id: string; group_name: string; giver_id: string; receiver_id: string;
-  other_name: string; role: "giver" | "receiver"; last_message: string;
-  last_time: string; unread: number;
+  group_id: string;
+  group_name: string;
+  giver_id: string;
+  receiver_id: string;
+  other_name: string;
+  role: "giver" | "receiver";
+  last_message: string;
+  last_time: string;
+  unread: number;
 };
 
-type Message = { id: string; sender_id: string; content: string; created_at: string };
+type Message = {
+  id: string;
+  sender_id: string;
+  content: string;
+  created_at: string;
+};
+
+type MembershipRow = {
+  group_id: string;
+};
+
+type GroupRow = {
+  id: string;
+  name: string | null;
+};
+
+type AssignmentRow = {
+  group_id: string;
+  giver_id: string;
+  receiver_id: string;
+};
+
+type MessageRow = {
+  group_id: string;
+  thread_giver_id: string;
+  thread_receiver_id: string;
+  sender_id: string;
+  content: string;
+  created_at: string;
+};
+
+type ThreadReadRow = {
+  group_id: string;
+  thread_giver_id: string;
+  thread_receiver_id: string;
+  last_read_at: string;
+};
+
+type MemberNicknameRow = {
+  group_id: string;
+  user_id: string;
+  nickname: string | null;
+};
 
 function sanitize(input: string): string {
   return input.replace(/<[^>]*>/g, "").replace(/[<>]/g, "").trim().slice(0, 500);
+}
+
+function createThreadKey(groupId: string, giverId: string, receiverId: string): string {
+  return `${groupId}:${giverId}:${receiverId}`;
+}
+
+function createGroupUserKey(groupId: string, userId: string): string {
+  return `${groupId}:${userId}`;
+}
+
+function formatThreadTime(value: string): string {
+  return new Date(value).toLocaleTimeString([], {
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+}
+
+function createPreviewText(
+  senderId: string,
+  currentUserId: string,
+  otherName: string,
+  content: string
+): string {
+  const prefix = senderId === currentUserId ? "You: " : `${otherName}: `;
+  return prefix + content.slice(0, 40);
+}
+
+function buildThreadMetaMap(
+  messages: MessageRow[],
+  readRows: ThreadReadRow[],
+  currentUserId: string
+): Map<
+  string,
+  {
+    lastSenderId: string;
+    lastContent: string;
+    lastTime: string;
+    unread: number;
+  }
+> {
+  const lastReadByThread = new Map<string, number>();
+
+  for (const row of readRows) {
+    lastReadByThread.set(
+      createThreadKey(row.group_id, row.thread_giver_id, row.thread_receiver_id),
+      new Date(row.last_read_at).getTime()
+    );
+  }
+
+  const metaByThread = new Map<
+    string,
+    {
+      lastSenderId: string;
+      lastContent: string;
+      lastTime: string;
+      unread: number;
+    }
+  >();
+
+  for (const message of messages) {
+    const threadKey = createThreadKey(
+      message.group_id,
+      message.thread_giver_id,
+      message.thread_receiver_id
+    );
+    const lastReadAt = lastReadByThread.get(threadKey) ?? 0;
+    const messageTime = new Date(message.created_at).getTime();
+    const isUnread = message.sender_id !== currentUserId && messageTime > lastReadAt;
+    const existingMeta = metaByThread.get(threadKey);
+
+    // Messages are loaded newest-first, so the first entry becomes the preview.
+    if (!existingMeta) {
+      metaByThread.set(threadKey, {
+        lastSenderId: message.sender_id,
+        lastContent: message.content,
+        lastTime: formatThreadTime(message.created_at),
+        unread: isUnread ? 1 : 0,
+      });
+      continue;
+    }
+
+    if (isUnread) {
+      existingMeta.unread = Math.min(existingMeta.unread + 1, 9);
+    }
+  }
+
+  return metaByThread;
+}
+
+function applyMessageToThreads(
+  currentThreads: Thread[],
+  message: MessageRow,
+  currentUserId: string,
+  activeThread: Thread | null
+): { matched: boolean; threads: Thread[] } {
+  const targetKey = createThreadKey(
+    message.group_id,
+    message.thread_giver_id,
+    message.thread_receiver_id
+  );
+  const activeThreadKey = activeThread
+    ? createThreadKey(activeThread.group_id, activeThread.giver_id, activeThread.receiver_id)
+    : null;
+
+  let matched = false;
+
+  const threads = currentThreads.map((thread) => {
+    const threadKey = createThreadKey(thread.group_id, thread.giver_id, thread.receiver_id);
+
+    if (threadKey !== targetKey) {
+      return thread;
+    }
+
+    matched = true;
+
+    return {
+      ...thread,
+      last_message: createPreviewText(
+        message.sender_id,
+        currentUserId,
+        thread.other_name,
+        message.content
+      ),
+      last_time: formatThreadTime(message.created_at),
+      unread:
+        activeThreadKey === targetKey || message.sender_id === currentUserId
+          ? 0
+          : Math.min(thread.unread + 1, 9),
+    };
+  });
+
+  return { matched, threads };
 }
 
 export default function SecretSantaChatPage() {
@@ -29,103 +209,172 @@ export default function SecretSantaChatPage() {
   const [msgInput, setMsgInput] = useState("");
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const activeThreadRef = useRef<Thread | null>(null);
+  const userIdRef = useRef<string | null>(null);
   const loadThreadsRef = useRef<() => Promise<void>>(null);
-  
-  useEffect(() => { activeThreadRef.current = activeThread; }, [activeThread]);
+
+  useEffect(() => {
+    activeThreadRef.current = activeThread;
+  }, [activeThread]);
+
+  useEffect(() => {
+    userIdRef.current = userId;
+  }, [userId]);
 
   const scrollToBottom = useCallback(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, []);
 
-  const markAsRead = useCallback(async (thread: Thread, uid: string) => {
-    supabase.from("thread_reads").upsert({
-      user_id: uid, group_id: thread.group_id,
-      thread_giver_id: thread.giver_id, thread_receiver_id: thread.receiver_id,
-      last_read_at: new Date().toISOString(),
-    }, { onConflict: "user_id,group_id,thread_giver_id,thread_receiver_id" }).then();
-  }, [supabase]);
+  const markAsRead = useCallback(
+    async (thread: Thread, uid: string) => {
+      await supabase.from("thread_reads").upsert(
+        {
+          user_id: uid,
+          group_id: thread.group_id,
+          thread_giver_id: thread.giver_id,
+          thread_receiver_id: thread.receiver_id,
+          last_read_at: new Date().toISOString(),
+        },
+        { onConflict: "user_id,group_id,thread_giver_id,thread_receiver_id" }
+      );
+    },
+    [supabase]
+  );
 
   // ─── Load threads on mount + real-time ───
   useEffect(() => {
     const loadThreads = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
       if (!session) { router.push("/login"); return; }
       const user = session.user;
       setUserId(user.id);
 
-      const { data: memberRows } = await supabase
+      const { data: memberRows, error: membershipsError } = await supabase
         .from("group_members").select("group_id")
         .eq("user_id", user.id).eq("status", "accepted");
 
-      const groupIds = [...new Set((memberRows || []).map((r) => r.group_id))];
+      if (membershipsError) {
+        console.error("[Chat] Failed to load memberships:", membershipsError);
+        setThreads([]);
+        setLoading(false);
+        return;
+      }
+
+      const memberships = (memberRows || []) as MembershipRow[];
+      const groupIds = [...new Set(memberships.map((row) => row.group_id))];
       if (groupIds.length === 0) { setThreads([]); setLoading(false); return; }
 
       const [
-        { data: groupsData },
-        { data: giverAssignments },
-        { data: receiverAssignments },
-        { data: allMessages },
-        { data: readTimestamps },
+        { data: groupsData, error: groupsError },
+        { data: giverAssignments, error: giverAssignmentsError },
+        { data: receiverAssignments, error: receiverAssignmentsError },
+        { data: allMessages, error: messagesError },
+        { data: readTimestamps, error: readTimestampsError },
       ] = await Promise.all([
-        supabase.from("groups").select("id, name, event_date").in("id", groupIds),
+        supabase.from("groups").select("id, name").in("id", groupIds),
         supabase.from("assignments").select("group_id, giver_id, receiver_id").eq("giver_id", user.id).in("group_id", groupIds),
         supabase.from("assignments").select("group_id, giver_id, receiver_id").eq("receiver_id", user.id).in("group_id", groupIds),
         supabase.from("messages").select("group_id, thread_giver_id, thread_receiver_id, sender_id, content, created_at").in("group_id", groupIds).order("created_at", { ascending: false }),
         supabase.from("thread_reads").select("group_id, thread_giver_id, thread_receiver_id, last_read_at").eq("user_id", user.id),
       ]);
 
-      const receiverUserIds = (giverAssignments || []).map((a) => a.receiver_id).filter(Boolean);
-      const allUserIds = [...new Set(receiverUserIds)];
-
-      let memberNicknames: { group_id: string; user_id: string; nickname: string }[] = [];
-      if (allUserIds.length > 0) {
-        const { data } = await supabase.from("group_members").select("group_id, user_id, nickname")
-          .in("user_id", allUserIds).in("group_id", groupIds).eq("status", "accepted");
-        memberNicknames = (data || []) as typeof memberNicknames;
+      if (
+        groupsError ||
+        giverAssignmentsError ||
+        receiverAssignmentsError ||
+        messagesError ||
+        readTimestampsError
+      ) {
+        console.error("[Chat] Failed to load thread data:", {
+          groupsError,
+          giverAssignmentsError,
+          receiverAssignmentsError,
+          messagesError,
+          readTimestampsError,
+        });
+        setThreads([]);
+        setLoading(false);
+        return;
       }
 
-      const getUnread = (gId: string, giverId: string, receiverId: string, msgs: typeof allMessages, uid: string) => {
-        const threadMsgs = (msgs || []).filter((m) => m.group_id === gId && m.thread_giver_id === giverId && m.thread_receiver_id === receiverId);
-        const readEntry = (readTimestamps || []).find((r) => r.group_id === gId && r.thread_giver_id === giverId && r.thread_receiver_id === receiverId);
-        const lastRead = readEntry ? new Date(readEntry.last_read_at) : new Date(0);
-        return Math.min(threadMsgs.filter((m) => m.sender_id !== uid && new Date(m.created_at) > lastRead).length, 9);
-      };
+      const giverRows = (giverAssignments || []) as AssignmentRow[];
+      const receiverRows = (receiverAssignments || []) as AssignmentRow[];
+      const receiverUserIds = giverRows.map((assignment) => assignment.receiver_id).filter(Boolean);
+      const allUserIds = [...new Set(receiverUserIds)];
 
-      const getLastMsg = (gId: string, giverId: string, receiverId: string, msgs: typeof allMessages, uid: string, otherName: string) => {
-        const threadMsgs = (msgs || []).filter((m) => m.group_id === gId && m.thread_giver_id === giverId && m.thread_receiver_id === receiverId);
-        const lastMsg = threadMsgs[0];
-        if (!lastMsg) return { text: "", time: "" };
-        const prefix = lastMsg.sender_id === uid ? "You: " : `${otherName}: `;
-        return { text: prefix + lastMsg.content.slice(0, 40), time: new Date(lastMsg.created_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) };
-      };
+      let memberNicknames: MemberNicknameRow[] = [];
+      if (allUserIds.length > 0) {
+        const { data, error: nicknamesError } = await supabase.from("group_members").select("group_id, user_id, nickname")
+          .in("user_id", allUserIds).in("group_id", groupIds).eq("status", "accepted");
+
+        if (nicknamesError) {
+          console.error("[Chat] Failed to load participant nicknames:", nicknamesError);
+        } else {
+          memberNicknames = (data || []) as MemberNicknameRow[];
+        }
+      }
+
+      const groupNameById = new Map(
+        ((groupsData || []) as GroupRow[]).map((group) => [group.id, group.name || "Unknown"])
+      );
+      const receiverNameByGroupUser = new Map(
+        memberNicknames.map((member) => [
+          createGroupUserKey(member.group_id, member.user_id),
+          member.nickname || "Participant",
+        ])
+      );
+      const threadMetaByKey = buildThreadMetaMap(
+        ((allMessages || []) as MessageRow[]),
+        ((readTimestamps || []) as ThreadReadRow[]),
+        user.id
+      );
 
       const buildThreads: Thread[] = [];
 
-      for (const a of giverAssignments || []) {
-        const group = (groupsData || []).find((g) => g.id === a.group_id);
-        const receiver = memberNicknames.find((m) => m.user_id === a.receiver_id && m.group_id === a.group_id);
-        const name = receiver?.nickname || "Participant";
-        const last = getLastMsg(a.group_id, a.giver_id, a.receiver_id, allMessages, user.id, name);
+      for (const a of giverRows) {
+        const name =
+          receiverNameByGroupUser.get(createGroupUserKey(a.group_id, a.receiver_id)) ||
+          "Participant";
+        const threadMeta = threadMetaByKey.get(
+          createThreadKey(a.group_id, a.giver_id, a.receiver_id)
+        );
         buildThreads.push({
-          group_id: a.group_id, group_name: group?.name || "Unknown",
-          giver_id: a.giver_id, receiver_id: a.receiver_id,
-          other_name: name, role: "giver",
-          last_message: last.text || "No messages yet — say hi! 👋",
-          last_time: last.time,
-          unread: getUnread(a.group_id, a.giver_id, a.receiver_id, allMessages, user.id),
+          group_id: a.group_id,
+          group_name: groupNameById.get(a.group_id) || "Unknown",
+          giver_id: a.giver_id,
+          receiver_id: a.receiver_id,
+          other_name: name,
+          role: "giver",
+          last_message: threadMeta
+            ? createPreviewText(threadMeta.lastSenderId, user.id, name, threadMeta.lastContent)
+            : "No messages yet - say hi!",
+          last_time: threadMeta?.lastTime || "",
+          unread: threadMeta?.unread || 0,
         });
       }
 
-      for (const a of receiverAssignments || []) {
-        const group = (groupsData || []).find((g) => g.id === a.group_id);
-        const last = getLastMsg(a.group_id, a.giver_id, a.receiver_id, allMessages, user.id, "🎅");
+      for (const a of receiverRows) {
+        const threadMeta = threadMetaByKey.get(
+          createThreadKey(a.group_id, a.giver_id, a.receiver_id)
+        );
         buildThreads.push({
-          group_id: a.group_id, group_name: group?.name || "Unknown",
-          giver_id: a.giver_id, receiver_id: a.receiver_id,
-          other_name: "Secret Santa", role: "receiver",
-          last_message: last.text || "No messages yet",
-          last_time: last.time,
-          unread: getUnread(a.group_id, a.giver_id, a.receiver_id, allMessages, user.id),
+          group_id: a.group_id,
+          group_name: groupNameById.get(a.group_id) || "Unknown",
+          giver_id: a.giver_id,
+          receiver_id: a.receiver_id,
+          other_name: "Secret Santa",
+          role: "receiver",
+          last_message: threadMeta
+            ? createPreviewText(
+                threadMeta.lastSenderId,
+                user.id,
+                "Secret Santa",
+                threadMeta.lastContent
+              )
+            : "No messages yet",
+          last_time: threadMeta?.lastTime || "",
+          unread: threadMeta?.unread || 0,
         });
       }
 
@@ -133,13 +382,50 @@ export default function SecretSantaChatPage() {
       setLoading(false);
     };
 
-    // Store in ref so back button can call it
     loadThreadsRef.current = loadThreads;
 
-    loadThreads();
+    void loadThreads();
 
-    const channel = supabase.channel("chat-threads-realtime")
-      .on("postgres_changes", { event: "INSERT", schema: "public", table: "messages" }, () => loadThreads())
+    const channel = supabase
+      .channel("chat-threads-realtime")
+      .on(
+        "postgres_changes",
+        { event: "INSERT", schema: "public", table: "messages" },
+        (payload) => {
+          const currentUserId = userIdRef.current;
+
+          if (!currentUserId) {
+            return;
+          }
+
+          const newMessage = payload.new as MessageRow;
+
+          if (
+            newMessage.thread_giver_id !== currentUserId &&
+            newMessage.thread_receiver_id !== currentUserId
+          ) {
+            return;
+          }
+
+          let matchedExistingThread = false;
+
+          setThreads((currentThreads) => {
+            const result = applyMessageToThreads(
+              currentThreads,
+              newMessage,
+              currentUserId,
+              activeThreadRef.current
+            );
+
+            matchedExistingThread = result.matched;
+            return result.threads;
+          });
+
+          if (!matchedExistingThread) {
+            void loadThreadsRef.current?.();
+          }
+        }
+      )
       .subscribe();
 
     return () => { supabase.removeChannel(channel); };
@@ -148,36 +434,97 @@ export default function SecretSantaChatPage() {
   // ─── Load messages + real-time for active thread ───
   useEffect(() => {
     if (!activeThread) return;
+
     let isMounted = true;
 
     const loadMessages = async () => {
-      const { data } = await supabase.from("messages").select("id, sender_id, content, created_at")
-        .eq("group_id", activeThread.group_id).eq("thread_giver_id", activeThread.giver_id)
-        .eq("thread_receiver_id", activeThread.receiver_id).order("created_at", { ascending: true });
-      if (isMounted) { setMessages((data || []) as Message[]); setTimeout(scrollToBottom, 50); }
+      const { data, error } = await supabase
+        .from("messages")
+        .select("id, sender_id, content, created_at")
+        .eq("group_id", activeThread.group_id)
+        .eq("thread_giver_id", activeThread.giver_id)
+        .eq("thread_receiver_id", activeThread.receiver_id)
+        .order("created_at", { ascending: true });
+
+      if (error) {
+        console.error("[Chat] Failed to load messages:", error);
+        return;
+      }
+
+      if (isMounted) {
+        setMessages((data || []) as Message[]);
+        setTimeout(scrollToBottom, 50);
+      }
     };
 
-    loadMessages();
+    void loadMessages();
 
     const channel = supabase
       .channel(`chat-live-${activeThread.group_id}-${activeThread.giver_id}-${activeThread.receiver_id}`)
-      .on("postgres_changes", {
-        event: "INSERT", schema: "public", table: "messages",
-        filter: `group_id=eq.${activeThread.group_id}`,
-      }, (payload) => {
-        if (!isMounted) return;
-        const n = payload.new as Message & { thread_giver_id: string; thread_receiver_id: string };
-        const at = activeThreadRef.current;
-        if (!at || n.thread_giver_id !== at.giver_id || n.thread_receiver_id !== at.receiver_id) return;
+      .on(
+        "postgres_changes",
+        {
+          event: "INSERT",
+          schema: "public",
+          table: "messages",
+          filter: `group_id=eq.${activeThread.group_id}`,
+        },
+        (payload) => {
+          if (!isMounted) return;
 
-        setMessages((prev) => {
-          const cleaned = prev.filter((m) => !(m.id.startsWith("temp-") && m.sender_id === n.sender_id));
-          if (cleaned.find((m) => m.id === n.id)) return cleaned;
-          return [...cleaned, { id: n.id, sender_id: n.sender_id, content: n.content, created_at: n.created_at }];
-        });
-        setTimeout(scrollToBottom, 50);
-        if (at && userId) markAsRead(at, userId);
-      }).subscribe();
+          const nextMessage = payload.new as MessageRow & { id: string };
+          const currentThread = activeThreadRef.current;
+
+          if (
+            !currentThread ||
+            nextMessage.thread_giver_id !== currentThread.giver_id ||
+            nextMessage.thread_receiver_id !== currentThread.receiver_id
+          ) {
+            return;
+          }
+
+          setMessages((currentMessages) => {
+            const withoutOptimisticCopy = currentMessages.filter(
+              (message) =>
+                !(message.id.startsWith("temp-") && message.sender_id === nextMessage.sender_id)
+            );
+
+            if (withoutOptimisticCopy.find((message) => message.id === nextMessage.id)) {
+              return withoutOptimisticCopy;
+            }
+
+            return [
+              ...withoutOptimisticCopy,
+              {
+                id: nextMessage.id,
+                sender_id: nextMessage.sender_id,
+                content: nextMessage.content,
+                created_at: nextMessage.created_at,
+              },
+            ];
+          });
+          setThreads((currentThreads) => {
+            const currentUserId = userIdRef.current;
+
+            if (!currentUserId) {
+              return currentThreads;
+            }
+
+            return applyMessageToThreads(
+              currentThreads,
+              nextMessage,
+              currentUserId,
+              currentThread
+            ).threads;
+          });
+          setTimeout(scrollToBottom, 50);
+
+          if (userId) {
+            void markAsRead(currentThread, userId);
+          }
+        }
+      )
+      .subscribe();
 
     return () => { isMounted = false; supabase.removeChannel(channel); };
   }, [activeThread, supabase, scrollToBottom, markAsRead, userId]);
@@ -189,7 +536,32 @@ export default function SecretSantaChatPage() {
 
     setMsgInput("");
     const tempId = `temp-${Date.now()}`;
-    setMessages((prev) => [...prev, { id: tempId, sender_id: userId, content, created_at: new Date().toISOString() }]);
+    const optimisticCreatedAt = new Date().toISOString();
+
+    setMessages((prev) => [
+      ...prev,
+      {
+        id: tempId,
+        sender_id: userId,
+        content,
+        created_at: optimisticCreatedAt,
+      },
+    ]);
+    setThreads((currentThreads) =>
+      applyMessageToThreads(
+        currentThreads,
+        {
+          group_id: activeThread.group_id,
+          thread_giver_id: activeThread.giver_id,
+          thread_receiver_id: activeThread.receiver_id,
+          sender_id: userId,
+          content,
+          created_at: optimisticCreatedAt,
+        },
+        userId,
+        activeThreadRef.current
+      ).threads
+    );
     setTimeout(scrollToBottom, 30);
 
     const result = await sendMessage(
@@ -205,18 +577,36 @@ export default function SecretSantaChatPage() {
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); handleSend(); }
+    if (e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault();
+      void handleSend();
+    }
   };
 
   const openThread = (t: Thread) => {
+    // Clear the previous thread immediately so we do not flash stale messages
+    // while the next conversation history is loading.
+    setMessages([]);
     setActiveThread(t);
-    if (userId) markAsRead(t, userId);
+    setThreads((currentThreads) =>
+      currentThreads.map((thread) =>
+        thread.group_id === t.group_id &&
+        thread.giver_id === t.giver_id &&
+        thread.receiver_id === t.receiver_id
+          ? { ...thread, unread: 0 }
+          : thread
+      )
+    );
+
+    if (userId) {
+      void markAsRead(t, userId);
+    }
   };
 
-  if (loading) return <ChatSkeleton />;
+  const giverThreads = useMemo(() => threads.filter((t) => t.role === "giver"), [threads]);
+  const receiverThreads = useMemo(() => threads.filter((t) => t.role === "receiver"), [threads]);
 
-  const giverThreads = threads.filter((t) => t.role === "giver");
-  const receiverThreads = threads.filter((t) => t.role === "receiver");
+  if (loading) return <ChatSkeleton />;
 
   // ═══ CHAT VIEW ═══
   if (activeThread) {
@@ -240,14 +630,18 @@ export default function SecretSantaChatPage() {
               </div>
               <button onClick={async () => {
                 if (activeThread && userId) {
-                  await supabase.from("thread_reads").upsert({
-                    user_id: userId, group_id: activeThread.group_id,
-                    thread_giver_id: activeThread.giver_id, thread_receiver_id: activeThread.receiver_id,
-                    last_read_at: new Date().toISOString(),
-                  }, { onConflict: "user_id,group_id,thread_giver_id,thread_receiver_id" });
+                  await markAsRead(activeThread, userId);
+                  setThreads((currentThreads) =>
+                    currentThreads.map((thread) =>
+                      thread.group_id === activeThread.group_id &&
+                      thread.giver_id === activeThread.giver_id &&
+                      thread.receiver_id === activeThread.receiver_id
+                        ? { ...thread, unread: 0 }
+                        : thread
+                    )
+                  );
                 }
                 setActiveThread(null);
-                loadThreadsRef.current?.();
               }} className="px-3.5 py-1.5 rounded-lg text-[11px] font-bold"
                 style={{ background: "rgba(255,255,255,.06)", color: "rgba(255,255,255,.5)", border: "1px solid rgba(255,255,255,.08)", fontFamily: "inherit", cursor: "pointer" }}>
                 ← Back
