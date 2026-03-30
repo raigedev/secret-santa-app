@@ -1088,12 +1088,295 @@ export async function leaveGroup(
   return { success: true, message: "You left the group." };
 }
 
+type RevealMatch = {
+  giver: string;
+  receiver: string;
+};
+
+type RevealParticipant = {
+  avatarEmoji: string;
+  realName: string;
+  userId: string;
+  alias: string;
+};
+
+type RevealSourceData = {
+  assignments: { giver_id: string; receiver_id: string }[];
+  participants: RevealParticipant[];
+};
+
+type RevealPresentationMatch = {
+  giverAlias: string;
+  giverAvatarEmoji: string;
+  giverName: string;
+  receiverAlias: string;
+  receiverAvatarEmoji: string;
+  receiverName: string;
+};
+
+async function loadRevealSourceData(groupId: string): Promise<RevealSourceData> {
+  const [{ data: assignments }, { data: members }, { data: profiles }] = await Promise.all([
+    supabaseAdmin.from("assignments").select("giver_id, receiver_id").eq("group_id", groupId),
+    supabaseAdmin
+      .from("group_members")
+      .select("user_id, nickname, email")
+      .eq("group_id", groupId)
+      .eq("status", "accepted"),
+    supabaseAdmin.from("profiles").select("user_id, display_name, avatar_emoji"),
+  ]);
+
+  const profileByUserId = new Map<
+    string,
+    { avatarEmoji: string | null; displayName: string | null }
+  >();
+
+  for (const profile of profiles || []) {
+    if (profile.user_id) {
+      profileByUserId.set(profile.user_id, {
+        avatarEmoji: profile.avatar_emoji || null,
+        displayName: profile.display_name || null,
+      });
+    }
+  }
+
+  const participants: RevealParticipant[] = [];
+
+  for (const member of members || []) {
+    if (member.user_id) {
+      const profile = profileByUserId.get(member.user_id);
+      const emailLabel = member.email?.split("@")[0] || "Participant";
+      const alias = member.nickname?.trim() || profile?.displayName?.trim() || emailLabel;
+      const realName = profile?.displayName?.trim() || alias || emailLabel;
+
+      participants.push({
+        userId: member.user_id,
+        alias,
+        realName,
+        avatarEmoji: profile?.avatarEmoji || "🎁",
+      });
+    }
+  }
+
+  return {
+    assignments: assignments || [],
+    participants: participants.sort((left, right) => left.alias.localeCompare(right.alias)),
+  };
+}
+
+async function buildRevealMatches(groupId: string): Promise<RevealMatch[]> {
+  const { assignments, participants } = await loadRevealSourceData(groupId);
+  const aliasByUserId = new Map(participants.map((participant) => [participant.userId, participant.alias]));
+
+  return assignments
+    .map((assignment) => ({
+      giver: aliasByUserId.get(assignment.giver_id) || "Participant",
+      receiver: aliasByUserId.get(assignment.receiver_id) || "Participant",
+    }))
+    .sort((left, right) => left.giver.localeCompare(right.giver));
+}
+
+function buildRevealPresentationMatches(sourceData: RevealSourceData): RevealPresentationMatch[] {
+  const participantByUserId = new Map(
+    sourceData.participants.map((participant) => [participant.userId, participant])
+  );
+
+  return sourceData.assignments
+    .map((assignment) => {
+      const giver = participantByUserId.get(assignment.giver_id);
+      const receiver = participantByUserId.get(assignment.receiver_id);
+
+      return {
+        giverAlias: giver?.alias || "Participant",
+        giverAvatarEmoji: giver?.avatarEmoji || "🎁",
+        giverName: giver?.realName || giver?.alias || "Participant",
+        receiverAlias: receiver?.alias || "Participant",
+        receiverAvatarEmoji: receiver?.avatarEmoji || "🎁",
+        receiverName: receiver?.realName || receiver?.alias || "Participant",
+      };
+    })
+    .sort((left, right) => left.giverAlias.localeCompare(right.giverAlias));
+}
+
+export async function getRevealPresentationData(
+  groupId: string
+): Promise<{
+  success: boolean;
+  message: string;
+  data?: {
+    aliasEntries: Array<{
+      alias: string;
+      avatarEmoji: string;
+      realName: string;
+    }>;
+    canPreviewBeforeReveal: boolean;
+    groupName: string;
+    isOwner: boolean;
+    matchEntries: RevealPresentationMatch[];
+    revealed: boolean;
+    revealedAt: string | null;
+  };
+}> {
+  if (!groupId) {
+    return { success: false, message: "Missing group ID." };
+  }
+
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    return { success: false, message: "You must be logged in." };
+  }
+
+  const rateLimit = await enforceRateLimit({
+    action: "group.get_reveal_presentation",
+    actorUserId: user.id,
+    maxAttempts: 500,
+    resourceId: groupId,
+    resourceType: "group",
+    subject: user.id,
+    windowSeconds: 3600,
+  });
+
+  if (!rateLimit.allowed) {
+    return { success: false, message: rateLimit.message };
+  }
+
+  const { data: group } = await supabase
+    .from("groups")
+    .select("name, owner_id, revealed, revealed_at")
+    .eq("id", groupId)
+    .maybeSingle();
+
+  if (!group) {
+    return { success: false, message: "Group not found." };
+  }
+
+  const isOwner = group.owner_id === user.id;
+
+  if (!isOwner) {
+    const { data: membership } = await supabase
+      .from("group_members")
+      .select("id")
+      .eq("group_id", groupId)
+      .eq("user_id", user.id)
+      .eq("status", "accepted")
+      .maybeSingle();
+
+    if (!membership) {
+      return { success: false, message: "Only accepted members can view this reveal screen." };
+    }
+
+    if (!group.revealed) {
+      return { success: false, message: "The reveal screen is not live yet." };
+    }
+  }
+
+  const sourceData = await loadRevealSourceData(groupId);
+
+  if (sourceData.assignments.length === 0) {
+    return { success: false, message: "Names have not been drawn yet." };
+  }
+
+  return {
+    success: true,
+    message: "Reveal presentation loaded.",
+    data: {
+      aliasEntries: sourceData.participants.map((participant) => ({
+        alias: participant.alias,
+        avatarEmoji: participant.avatarEmoji,
+        realName: participant.realName,
+      })),
+      canPreviewBeforeReveal: isOwner,
+      groupName: group.name,
+      isOwner,
+      matchEntries: buildRevealPresentationMatches(sourceData),
+      revealed: group.revealed,
+      revealedAt: group.revealed_at,
+    },
+  };
+}
+
+export async function getRevealMatches(
+  groupId: string
+): Promise<{
+  success: boolean;
+  message: string;
+  matches?: RevealMatch[];
+  revealedAt?: string | null;
+}> {
+  if (!groupId) {
+    return { success: false, message: "Missing group ID." };
+  }
+
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    return { success: false, message: "You must be logged in." };
+  }
+
+  const rateLimit = await enforceRateLimit({
+    action: "group.get_reveal_matches",
+    actorUserId: user.id,
+    maxAttempts: 500,
+    resourceId: groupId,
+    resourceType: "group",
+    subject: user.id,
+    windowSeconds: 3600,
+  });
+
+  if (!rateLimit.allowed) {
+    return { success: false, message: rateLimit.message };
+  }
+
+  const { data: group } = await supabase
+    .from("groups")
+    .select("owner_id, revealed, revealed_at")
+    .eq("id", groupId)
+    .maybeSingle();
+
+  if (!group) {
+    return { success: false, message: "Group not found." };
+  }
+
+  const isOwner = group.owner_id === user.id;
+
+  if (!isOwner) {
+    const { data: membership } = await supabase
+      .from("group_members")
+      .select("id")
+      .eq("group_id", groupId)
+      .eq("user_id", user.id)
+      .eq("status", "accepted")
+      .maybeSingle();
+
+    if (!membership) {
+      return { success: false, message: "Only accepted members can view the reveal." };
+    }
+  }
+
+  if (!group.revealed) {
+    return { success: false, message: "The owner has not revealed the matches yet." };
+  }
+
+  return {
+    success: true,
+    message: "Reveal matches loaded.",
+    matches: await buildRevealMatches(groupId),
+    revealedAt: group.revealed_at,
+  };
+}
+
 export async function triggerReveal(
   groupId: string
 ): Promise<{
   success: boolean;
   message: string;
-  matches?: { giver: string; receiver: string }[];
+  matches?: RevealMatch[];
 }> {
   const supabase = await createClient();
   const {
@@ -1149,24 +1432,13 @@ export async function triggerReveal(
     return { success: false, message: "Failed to trigger reveal. Please try again." };
   }
 
-  const { data: assignments } = await supabaseAdmin
-    .from("assignments")
-    .select("giver_id, receiver_id")
-    .eq("group_id", groupId);
+  const matches = await buildRevealMatches(groupId);
 
   const { data: members } = await supabaseAdmin
     .from("group_members")
-    .select("user_id, nickname")
+    .select("user_id")
     .eq("group_id", groupId)
     .eq("status", "accepted");
-
-  const getNickname = (userId: string) =>
-    members?.find((member) => member.user_id === userId)?.nickname || "Participant";
-
-  const matches = (assignments || []).map((assignment) => ({
-    giver: getNickname(assignment.giver_id),
-    receiver: getNickname(assignment.receiver_id),
-  }));
 
   await createNotifications(
     (members || [])

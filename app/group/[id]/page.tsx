@@ -11,9 +11,11 @@ import { drawSecretSanta, resetSecretSantaDraw } from "./draw-action";
 import {
   deleteGroup,
   editGroup,
+  getRevealMatches,
   getGroupOwnerInsights,
   leaveGroup,
   removeMember,
+  triggerReveal,
 } from "./actions";
 import { GroupSkeleton } from "@/app/components/PageSkeleton";
 import FadeIn from "@/app/components/FadeIn";
@@ -34,10 +36,17 @@ type GroupData = {
   owner_id: string;
   budget: number | null;
   currency: string | null;
+  revealed: boolean;
+  revealed_at: string | null;
 };
 
 type Assignment = {
   receiver_nickname: string;
+};
+
+type RevealMatch = {
+  giver: string;
+  receiver: string;
 };
 
 type OwnerInsights = {
@@ -106,6 +115,9 @@ export default function GroupDetailsPage() {
   const [assignment, setAssignment] = useState<Assignment | null>(null);
   const [drawDone, setDrawDone] = useState(false);
   const [ownerInsights, setOwnerInsights] = useState<OwnerInsights | null>(null);
+  const [revealMatches, setRevealMatches] = useState<RevealMatch[]>([]);
+  const [revealLoading, setRevealLoading] = useState(false);
+  const [revealMessage, setRevealMessage] = useState("");
 
   const [showEditModal, setShowEditModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
@@ -186,7 +198,7 @@ export default function GroupDetailsPage() {
 
       const { data: group, error: groupError } = await supabase
         .from("groups")
-        .select("name, description, event_date, owner_id, budget, currency")
+        .select("name, description, event_date, owner_id, budget, currency, revealed, revealed_at")
         .eq("id", id)
         .maybeSingle();
 
@@ -227,7 +239,7 @@ export default function GroupDetailsPage() {
       // Keep the owner's readiness panel in sync with the main group data.
       // Chat stays aggregate-only here so the owner gets engagement signals
       // without learning anything about the anonymous pairings themselves.
-      const [{ data: myAssignment }, insightsResult] = await Promise.all([
+      const [{ data: myAssignment }, insightsResult, revealResult] = await Promise.all([
         supabase
           .from("assignments")
           .select("receiver_id")
@@ -235,6 +247,7 @@ export default function GroupDetailsPage() {
           .eq("giver_id", user.id)
           .maybeSingle(),
         isCurrentUserOwner ? getGroupOwnerInsights(id) : Promise.resolve(null),
+        group.revealed ? getRevealMatches(id) : Promise.resolve(null),
       ]);
 
       if (!isMounted) return;
@@ -243,6 +256,12 @@ export default function GroupDetailsPage() {
         setOwnerInsights(insightsResult.insights);
       } else {
         setOwnerInsights(null);
+      }
+
+      if (revealResult?.success && revealResult.matches) {
+        setRevealMatches(revealResult.matches);
+      } else {
+        setRevealMatches([]);
       }
 
       if (myAssignment) {
@@ -364,7 +383,8 @@ export default function GroupDetailsPage() {
 
   useEffect(() => {
     router.prefetch("/dashboard");
-  }, [router]);
+    router.prefetch(`/group/${id}/reveal`);
+  }, [router, id]);
 
   const openEditModal = () => {
     if (!groupData) return;
@@ -491,11 +511,69 @@ export default function GroupDetailsPage() {
       const result = await resetSecretSantaDraw(id);
       setDrawMessage(result.message);
       if (result.success) {
+        setRevealMatches([]);
+        setRevealMessage("");
+        setGroupData((currentGroupData) =>
+          currentGroupData
+            ? {
+                ...currentGroupData,
+                revealed: false,
+                revealed_at: null,
+              }
+            : currentGroupData
+        );
         notifyGroupRefresh();
       }
     } finally {
       setResetLoading(false);
     }
+  };
+
+  const handleTriggerReveal = async () => {
+    if (
+      !confirm(
+        "Reveal the Secret Santa matches for everyone in this group? Once revealed, all accepted members will be able to see the full pairings."
+      )
+    ) {
+      return;
+    }
+
+    setRevealLoading(true);
+    setRevealMessage("");
+
+    try {
+      const result = await triggerReveal(id);
+      setRevealMessage(result.message);
+
+      if (result.success) {
+        setRevealMatches(result.matches || []);
+        setGroupData((currentGroupData) =>
+          currentGroupData
+            ? {
+                ...currentGroupData,
+                revealed: true,
+                revealed_at: new Date().toISOString(),
+              }
+            : currentGroupData
+        );
+        notifyGroupRefresh();
+      }
+    } finally {
+      setRevealLoading(false);
+    }
+  };
+
+  const formatRevealTime = (value: string | null) => {
+    if (!value) {
+      return "just now";
+    }
+
+    return new Date(value).toLocaleString([], {
+      month: "short",
+      day: "numeric",
+      hour: "numeric",
+      minute: "2-digit",
+    });
   };
 
   if (loading) return <GroupSkeleton />;
@@ -520,6 +598,7 @@ export default function GroupDetailsPage() {
 
   const currencySymbol =
     CURRENCIES.find((item) => item.code === (groupData.currency || "USD"))?.symbol || "$";
+  const drawStatusLabel = groupData.revealed ? "Revealed" : drawDone ? "Drawn" : "Not Yet";
   const missingWishlistPreview = ownerInsights?.missingWishlistMemberNames.slice(0, 4) || [];
   const extraMissingWishlistCount = Math.max(
     (ownerInsights?.missingWishlistMemberNames.length || 0) - missingWishlistPreview.length,
@@ -965,7 +1044,7 @@ export default function GroupDetailsPage() {
                   label: "Budget",
                 },
                 { icon: "👥", value: `${members.length}`, label: "Members" },
-                { icon: "🎲", value: drawDone ? "Drawn" : "Not Yet", label: "Draw Status" },
+                  { icon: "🎲", value: drawStatusLabel, label: "Draw Status" },
               ].map((item, index) => (
                 <div
                   key={index}
@@ -1273,9 +1352,14 @@ export default function GroupDetailsPage() {
 
                   <div
                     className="inline-flex items-center gap-1.5 text-xs font-bold px-3 py-1.5 rounded-lg mb-4"
-                    style={{ background: "#dbeafe", color: "#1d4ed8" }}
+                    style={{
+                      background: groupData.revealed ? "#dcfce7" : "#dbeafe",
+                      color: groupData.revealed ? "#15803d" : "#1d4ed8",
+                    }}
                   >
-                    🎲 Draw complete - assignments are active
+                    {groupData.revealed
+                      ? "Reveal live - pairings are public"
+                      : "🎲 Draw complete - assignments are active"}
                   </div>
 
                   <div
@@ -1296,7 +1380,9 @@ export default function GroupDetailsPage() {
                       🎄 {assignment.receiver_nickname} 🎄
                     </div>
                     <div className="text-xs opacity-75 mt-2">
-                      This is secret - only you can see this!
+                      {groupData.revealed
+                        ? "The reveal is live now, so the full group pairings are listed below."
+                        : "This is secret - only you can see this!"}
                     </div>
                   </div>
 
@@ -1437,6 +1523,251 @@ export default function GroupDetailsPage() {
                 </p>
               )}
             </div>
+
+            {drawDone && (
+              <div
+                className="rounded-[18px] p-5 mb-5"
+                style={{
+                  background: groupData.revealed
+                    ? "linear-gradient(180deg,rgba(240,253,244,.95),rgba(236,252,203,.88))"
+                    : "rgba(255,255,255,.8)",
+                  border: groupData.revealed
+                    ? "1px solid rgba(34,197,94,.18)"
+                    : "1px solid rgba(226,232,240,.9)",
+                  boxShadow: groupData.revealed
+                    ? "0 12px 28px rgba(34,197,94,.08)"
+                    : "0 10px 24px rgba(15,23,42,.05)",
+                }}
+              >
+                <div className="flex items-start justify-between gap-4 flex-wrap mb-4">
+                  <div>
+                    <div
+                      className="text-[18px] font-bold"
+                      style={{
+                        fontFamily: "'Fredoka', sans-serif",
+                        color: groupData.revealed ? "#166534" : "#7c2d12",
+                      }}
+                    >
+                      {groupData.revealed ? "🎉 Reveal Board" : "🎁 Event-Day Reveal"}
+                    </div>
+                    <div className="text-[12px] font-semibold mt-1" style={{ color: "#64748b" }}>
+                      {groupData.revealed
+                        ? `Revealed ${formatRevealTime(groupData.revealed_at)}. Everyone in the group can now see the full Secret Santa pairings.`
+                        : isOwner
+                          ? "When you're ready at the party, reveal the full Secret Santa pairings for everyone."
+                          : "The owner will reveal the full Secret Santa pairings here when it's time."}
+                    </div>
+                  </div>
+
+                  <div
+                    className="px-3 py-1.5 rounded-full text-[11px] font-extrabold"
+                    style={{
+                      background: groupData.revealed
+                        ? "rgba(34,197,94,.12)"
+                        : "rgba(251,191,36,.16)",
+                      color: groupData.revealed ? "#166534" : "#92400e",
+                    }}
+                  >
+                    {groupData.revealed ? "Reveal live" : "Waiting for owner"}
+                  </div>
+                </div>
+
+                {!groupData.revealed ? (
+                  isOwner ? (
+                    <div
+                      className="rounded-2xl p-4"
+                      style={{
+                        background: "rgba(255,247,237,.95)",
+                        border: "1px solid rgba(249,115,22,.14)",
+                      }}
+                    >
+                      <div className="text-[13px] font-bold mb-2" style={{ color: "#9a3412" }}>
+                        The reveal stays hidden until you trigger it
+                      </div>
+                      <p
+                        className="text-[12px] font-semibold leading-relaxed"
+                        style={{ color: "#7c2d12" }}
+                      >
+                        Use this once everyone is gathered. It will publish the final pairings to
+                        all accepted members and send them a reveal notification.
+                      </p>
+
+                      <div className="mt-4 flex items-center gap-3 flex-wrap">
+                        <button
+                          onClick={handleTriggerReveal}
+                          disabled={revealLoading || drawLoading || resetLoading}
+                          className="px-6 py-2.5 rounded-xl text-sm font-extrabold text-white transition"
+                          style={{
+                            background:
+                              revealLoading || drawLoading || resetLoading
+                                ? "#9ca3af"
+                                : "linear-gradient(135deg,#15803d,#22c55e)",
+                            boxShadow:
+                              revealLoading || drawLoading || resetLoading
+                                ? "none"
+                                : "0 4px 16px rgba(34,197,94,.22)",
+                            cursor:
+                              revealLoading || drawLoading || resetLoading
+                                ? "not-allowed"
+                                : "pointer",
+                            border: "none",
+                            fontFamily: "inherit",
+                          }}
+                        >
+                          {revealLoading ? "🎉 Revealing..." : "🎉 Reveal Matches"}
+                        </button>
+
+                        <span className="text-[11px] font-semibold" style={{ color: "#64748b" }}>
+                          Everyone will be able to see the final pairings after this.
+                        </span>
+
+                        <button
+                          type="button"
+                          onClick={() => router.push(`/group/${id}/reveal`)}
+                          className="px-5 py-2.5 rounded-xl text-sm font-extrabold"
+                          style={{
+                            background: "rgba(15,23,42,.05)",
+                            color: "#14532d",
+                            border: "1px solid rgba(21,128,61,.16)",
+                            fontFamily: "inherit",
+                          }}
+                        >
+                          👀 Preview Reveal Screen
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    <div
+                      className="rounded-2xl p-4"
+                      style={{
+                        background: "rgba(239,246,255,.95)",
+                        border: "1px solid rgba(59,130,246,.14)",
+                      }}
+                    >
+                      <div className="text-[13px] font-bold mb-2" style={{ color: "#1d4ed8" }}>
+                        Waiting for the reveal
+                      </div>
+                      <p
+                        className="text-[12px] font-semibold leading-relaxed"
+                        style={{ color: "#475569" }}
+                      >
+                        Your own assignment stays secret until the owner starts the event-day
+                        reveal. Once that happens, the full match list will appear here.
+                      </p>
+
+                      {groupData.revealed && (
+                        <button
+                          type="button"
+                          onClick={() => router.push(`/group/${id}/reveal`)}
+                          className="mt-4 px-5 py-2.5 rounded-xl text-sm font-extrabold"
+                          style={{
+                            background: "rgba(29,78,216,.08)",
+                            color: "#1d4ed8",
+                            border: "1px solid rgba(59,130,246,.16)",
+                            fontFamily: "inherit",
+                          }}
+                        >
+                          View Reveal Screen
+                        </button>
+                      )}
+                    </div>
+                  )
+                ) : revealMatches.length > 0 ? (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    {revealMatches.map((match, index) => (
+                      <div
+                        key={`${match.giver}-${match.receiver}-${index}`}
+                        className="rounded-2xl p-4"
+                        style={{
+                          background: "rgba(255,255,255,.8)",
+                          border: "1px solid rgba(34,197,94,.12)",
+                        }}
+                      >
+                        <div
+                          className="text-[10px] font-extrabold uppercase tracking-[0.14em] mb-2"
+                          style={{ color: "#15803d" }}
+                        >
+                          Match {index + 1}
+                        </div>
+                        <div className="flex items-center justify-between gap-3">
+                          <div>
+                            <div className="text-[11px] font-extrabold" style={{ color: "#64748b" }}>
+                              Giver
+                            </div>
+                            <div
+                              className="text-[18px] font-bold"
+                              style={{ fontFamily: "'Fredoka', sans-serif", color: "#14532d" }}
+                            >
+                              {match.giver}
+                            </div>
+                          </div>
+
+                          <div className="text-[18px] font-black" style={{ color: "#f59e0b" }}>
+                            →
+                          </div>
+
+                          <div className="text-right">
+                            <div className="text-[11px] font-extrabold" style={{ color: "#64748b" }}>
+                              Receiver
+                            </div>
+                            <div
+                              className="text-[18px] font-bold"
+                              style={{ fontFamily: "'Fredoka', sans-serif", color: "#991b1b" }}
+                            >
+                              {match.receiver}
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div
+                    className="rounded-2xl p-4"
+                    style={{
+                      background: "rgba(255,255,255,.8)",
+                      border: "1px solid rgba(226,232,240,.9)",
+                    }}
+                  >
+                    <p className="text-[12px] font-semibold" style={{ color: "#64748b" }}>
+                      Reveal data is syncing. Give it a moment and this board will populate
+                      automatically.
+                    </p>
+                  </div>
+                )}
+
+                {revealMessage && (
+                  <p
+                    className={`text-sm font-bold mt-4 ${
+                      revealMessage.toLowerCase().includes("triggered") ||
+                      revealMessage.toLowerCase().includes("loaded")
+                        ? "text-green-600"
+                        : "text-red-600"
+                    }`}
+                  >
+                    {revealMessage}
+                  </p>
+                )}
+
+                {groupData.revealed && (
+                  <div className="mt-4 flex justify-center">
+                    <button
+                      type="button"
+                      onClick={() => router.push(`/group/${id}/reveal`)}
+                      className="px-5 py-2.5 rounded-xl text-sm font-extrabold"
+                      style={{
+                        background: "rgba(15,23,42,.05)",
+                        color: "#166534",
+                        border: "1px solid rgba(34,197,94,.18)",
+                        fontFamily: "inherit",
+                      }}
+                    >
+                      🖥️ Open Full Reveal Screen
+                    </button>
+                  </div>
+                )}
+              </div>
+            )}
 
             {isOwner && !drawDone && <InviteForm groupId={id} />}
 
