@@ -746,7 +746,14 @@ export default function SecretSantaChatPage() {
           <p className="text-[14px] font-semibold" style={{ color: "rgba(255,255,255,.5)" }}>Private conversations with your matches</p>
         </div>
 
-        <div className="flex gap-3 mb-6 p-4 rounded-2xl" style={{ background: "rgba(255,255,255,.04)", border: "1px solid rgba(255,255,255,.08)" }}>
+        <div
+          className="flex items-stretch gap-4 mb-6 p-4 rounded-[24px]"
+          style={{
+            background: "rgba(255,255,255,.045)",
+            border: "1px solid rgba(255,255,255,.08)",
+            boxShadow: "0 10px 30px rgba(0,0,0,.08)",
+          }}
+        >
           <div className="flex-1 p-4 rounded-xl" style={{ background: "rgba(251,191,36,.08)", border: "1px solid rgba(251,191,36,.12)" }}>
             <div className="flex items-start gap-3">
               <div
@@ -774,7 +781,27 @@ export default function SecretSantaChatPage() {
               </div>
             </div>
           </div>
-          <div className="flex items-center justify-center text-[11px] font-extrabold" style={{ color: "rgba(255,255,255,.15)" }}>VS</div>
+          <div className="flex flex-col items-center justify-center gap-2 min-w-[108px]">
+            <div
+              className="w-px h-5"
+              style={{ background: "linear-gradient(180deg,transparent,rgba(255,255,255,.16),transparent)" }}
+            />
+            <div
+              className="text-center px-3 py-1.5 rounded-full text-[10px] font-extrabold uppercase tracking-[0.14em]"
+              style={{
+                color: "rgba(255,255,255,.58)",
+                background: "rgba(255,255,255,.06)",
+                border: "1px solid rgba(255,255,255,.08)",
+                boxShadow: "inset 0 1px 0 rgba(255,255,255,.04)",
+              }}
+            >
+              How It Works
+            </div>
+            <div
+              className="w-px h-5"
+              style={{ background: "linear-gradient(180deg,transparent,rgba(255,255,255,.16),transparent)" }}
+            />
+          </div>
           <div
             className="flex-1 p-4 rounded-xl"
             style={{ background: "rgba(34,197,94,.08)", border: "1px solid rgba(34,197,94,.12)" }}
