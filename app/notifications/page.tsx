@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { markAllNotificationsRead, markNotificationRead } from "./actions";
@@ -51,6 +51,7 @@ export default function NotificationsPage() {
   const [message, setMessage] = useState("");
   const [processingId, setProcessingId] = useState<string | null>(null);
   const [markingAll, setMarkingAll] = useState(false);
+  const loadNotificationsRef = useRef<((targetUserId: string) => Promise<void>) | null>(null);
 
   useEffect(() => {
     let isMounted = true;
@@ -76,6 +77,8 @@ export default function NotificationsPage() {
       setNotifications((data || []) as NotificationItem[]);
       setLoading(false);
     };
+
+    loadNotificationsRef.current = loadNotifications;
 
     const bootstrap = async () => {
       const {
@@ -108,6 +111,27 @@ export default function NotificationsPage() {
     }
 
     let reloadTimer: ReturnType<typeof setTimeout> | null = null;
+    let pollInterval: ReturnType<typeof setInterval> | null = null;
+
+    const scheduleReload = () => {
+      if (reloadTimer) {
+        clearTimeout(reloadTimer);
+      }
+
+      reloadTimer = setTimeout(() => {
+        if (loadNotificationsRef.current) {
+          void loadNotificationsRef.current(userId);
+        }
+      }, 120);
+    };
+
+    const refreshIfVisible = () => {
+      if (document.visibilityState !== "visible") {
+        return;
+      }
+
+      scheduleReload();
+    };
 
     const channel = supabase
       .channel(`notifications-${userId}`)
@@ -119,34 +143,28 @@ export default function NotificationsPage() {
           table: "notifications",
           filter: `user_id=eq.${userId}`,
         },
-        () => {
-          if (reloadTimer) {
-            clearTimeout(reloadTimer);
-          }
-
-          reloadTimer = setTimeout(() => {
-            void supabase
-              .from("notifications")
-              .select("id, type, title, body, link_path, read_at, created_at")
-              .eq("user_id", userId)
-              .order("created_at", { ascending: false })
-              .limit(100)
-              .then(({ data, error }) => {
-                if (error) {
-                  return;
-                }
-
-                setNotifications((data || []) as NotificationItem[]);
-              });
-          }, 120);
-        }
+        () => scheduleReload()
       )
       .subscribe();
+
+    // Realtime is ideal, but we keep a light fallback so notifications still
+    // update after missed websocket events, network hiccups, or sleeping tabs.
+    pollInterval = setInterval(() => {
+      refreshIfVisible();
+    }, 8000);
+
+    window.addEventListener("focus", refreshIfVisible);
+    document.addEventListener("visibilitychange", refreshIfVisible);
 
     return () => {
       if (reloadTimer) {
         clearTimeout(reloadTimer);
       }
+      if (pollInterval) {
+        clearInterval(pollInterval);
+      }
+      window.removeEventListener("focus", refreshIfVisible);
+      document.removeEventListener("visibilitychange", refreshIfVisible);
       void supabase.removeChannel(channel);
     };
   }, [supabase, userId]);

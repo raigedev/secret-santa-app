@@ -115,6 +115,7 @@ export default function DashboardPage() {
     let dashboardReloadTimer: ReturnType<typeof setTimeout> | null = null;
     let profileReloadTimer: ReturnType<typeof setTimeout> | null = null;
     let notificationsReloadTimer: ReturnType<typeof setTimeout> | null = null;
+    let notificationPollInterval: ReturnType<typeof setInterval> | null = null;
     let sessionUser:
       | {
           id: string;
@@ -397,6 +398,14 @@ export default function DashboardPage() {
       }, 120);
     };
 
+    const refreshNotificationsIfVisible = () => {
+      if (document.visibilityState !== "visible") {
+        return;
+      }
+
+      scheduleNotificationsReload();
+    };
+
     const bootstrapDashboard = async () => {
       try {
         const {
@@ -428,6 +437,16 @@ export default function DashboardPage() {
 
         await loadDashboardData(session.user);
         await loadNotificationCount(session.user.id);
+
+        if (notificationPollInterval) {
+          clearInterval(notificationPollInterval);
+        }
+
+        // Realtime is the primary path, but a light polling fallback keeps the
+        // bell accurate if the browser misses a websocket event or resumes from sleep.
+        notificationPollInterval = setInterval(() => {
+          refreshNotificationsIfVisible();
+        }, 8000);
       } catch (error) {
         console.error("[Dashboard] Failed to bootstrap dashboard:", error);
 
@@ -444,6 +463,9 @@ export default function DashboardPage() {
     };
 
     void bootstrapDashboard();
+
+    window.addEventListener("focus", refreshNotificationsIfVisible);
+    document.addEventListener("visibilitychange", refreshNotificationsIfVisible);
 
     const channel = supabase
       .channel("dashboard-realtime")
@@ -509,6 +531,11 @@ export default function DashboardPage() {
       if (notificationsReloadTimer) {
         clearTimeout(notificationsReloadTimer);
       }
+      if (notificationPollInterval) {
+        clearInterval(notificationPollInterval);
+      }
+      window.removeEventListener("focus", refreshNotificationsIfVisible);
+      document.removeEventListener("visibilitychange", refreshNotificationsIfVisible);
       void supabase.removeChannel(channel);
       subscription.unsubscribe();
     };
