@@ -1,5 +1,6 @@
 "use server";
 
+import { randomBytes } from "crypto";
 import { recordAuditEvent, recordServerFailure } from "@/lib/security/audit";
 import { enforceRateLimit } from "@/lib/security/rate-limit";
 import { supabaseAdmin } from "@/lib/supabase/admin";
@@ -7,6 +8,41 @@ import { createClient } from "@/lib/supabase/server";
 
 function sanitize(input: string, max: number): string {
   return input.replace(/<[^>]*>/g, "").replace(/[<>]/g, "").trim().slice(0, max);
+}
+
+function buildInviteToken(): string {
+  return randomBytes(24).toString("base64url");
+}
+
+async function assertOwnerCanManageInvites(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  groupId: string,
+  actorUserId: string
+): Promise<{ ok: boolean; message?: string }> {
+  const { data: group } = await supabase
+    .from("groups")
+    .select("owner_id")
+    .eq("id", groupId)
+    .maybeSingle();
+
+  if (!group || group.owner_id !== actorUserId) {
+    return { ok: false, message: "Only the group owner can manage invites." };
+  }
+
+  const { data: existingDraw } = await supabaseAdmin
+    .from("assignments")
+    .select("id")
+    .eq("group_id", groupId)
+    .limit(1);
+
+  if (existingDraw && existingDraw.length > 0) {
+    return {
+      ok: false,
+      message: "Invites can only be managed before names are drawn.",
+    };
+  }
+
+  return { ok: true };
 }
 
 export async function inviteUser(
@@ -240,6 +276,259 @@ export async function resendInvite(
   }
 
   return { message: "Invite resent!" };
+}
+
+export async function createInviteLink(
+  groupId: string
+): Promise<{ success: boolean; message: string; token?: string }> {
+  if (!groupId) {
+    return { success: false, message: "Missing group ID." };
+  }
+
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    return { success: false, message: "You must be logged in." };
+  }
+
+  const rateLimit = await enforceRateLimit({
+    action: "group.create_invite_link",
+    actorUserId: user.id,
+    maxAttempts: 20,
+    resourceId: groupId,
+    resourceType: "group",
+    subject: `${user.id}:${groupId}`,
+    windowSeconds: 3600,
+  });
+
+  if (!rateLimit.allowed) {
+    return { success: false, message: rateLimit.message };
+  }
+
+  const permission = await assertOwnerCanManageInvites(supabase, groupId, user.id);
+  if (!permission.ok) {
+    return { success: false, message: permission.message || "Invite link unavailable." };
+  }
+
+  const revokedAt = new Date().toISOString();
+  const { error: revokeExistingError } = await supabaseAdmin
+    .from("group_invite_links")
+    .update({ is_active: false, revoked_at: revokedAt })
+    .eq("group_id", groupId)
+    .eq("is_active", true);
+
+  if (revokeExistingError) {
+    await recordServerFailure({
+      actorUserId: user.id,
+      errorMessage: revokeExistingError.message,
+      eventType: "group.create_invite_link.revoke_existing",
+      resourceId: groupId,
+      resourceType: "group",
+    });
+
+    return { success: false, message: "Failed to refresh the invite link." };
+  }
+
+  const token = buildInviteToken();
+  const { error: insertError } = await supabaseAdmin.from("group_invite_links").insert({
+    group_id: groupId,
+    token,
+    created_by: user.id,
+  });
+
+  if (insertError) {
+    await recordServerFailure({
+      actorUserId: user.id,
+      errorMessage: insertError.message,
+      eventType: "group.create_invite_link.insert",
+      resourceId: groupId,
+      resourceType: "group",
+    });
+
+    return { success: false, message: "Failed to create invite link." };
+  }
+
+  await recordAuditEvent({
+    actorUserId: user.id,
+    details: { linkType: "shared" },
+    eventType: "group.create_invite_link",
+    outcome: "success",
+    resourceId: groupId,
+    resourceType: "group",
+  });
+
+  return {
+    success: true,
+    message: "✅ Invite link ready.",
+    token,
+  };
+}
+
+export async function revokeInviteLink(
+  groupId: string
+): Promise<{ success: boolean; message: string }> {
+  if (!groupId) {
+    return { success: false, message: "Missing group ID." };
+  }
+
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    return { success: false, message: "You must be logged in." };
+  }
+
+  const rateLimit = await enforceRateLimit({
+    action: "group.revoke_invite_link",
+    actorUserId: user.id,
+    maxAttempts: 20,
+    resourceId: groupId,
+    resourceType: "group",
+    subject: `${user.id}:${groupId}`,
+    windowSeconds: 3600,
+  });
+
+  if (!rateLimit.allowed) {
+    return { success: false, message: rateLimit.message };
+  }
+
+  const permission = await assertOwnerCanManageInvites(supabase, groupId, user.id);
+  if (!permission.ok) {
+    return { success: false, message: permission.message || "Invite link unavailable." };
+  }
+
+  const revokedAt = new Date().toISOString();
+  const { data: revokedRows, error: revokeError } = await supabaseAdmin
+    .from("group_invite_links")
+    .update({ is_active: false, revoked_at: revokedAt })
+    .eq("group_id", groupId)
+    .eq("is_active", true)
+    .select("id");
+
+  if (revokeError) {
+    await recordServerFailure({
+      actorUserId: user.id,
+      errorMessage: revokeError.message,
+      eventType: "group.revoke_invite_link",
+      resourceId: groupId,
+      resourceType: "group",
+    });
+
+    return { success: false, message: "Failed to revoke invite link." };
+  }
+
+  if (!revokedRows || revokedRows.length === 0) {
+    return { success: false, message: "No active invite link to revoke." };
+  }
+
+  await recordAuditEvent({
+    actorUserId: user.id,
+    details: { revokedCount: revokedRows.length },
+    eventType: "group.revoke_invite_link",
+    outcome: "success",
+    resourceId: groupId,
+    resourceType: "group",
+  });
+
+  return { success: true, message: "✅ Invite link revoked." };
+}
+
+export async function revokePendingInvite(
+  groupId: string,
+  membershipId: string
+): Promise<{ success: boolean; message: string }> {
+  if (!groupId || !membershipId) {
+    return { success: false, message: "Missing invite details." };
+  }
+
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    return { success: false, message: "You must be logged in." };
+  }
+
+  const rateLimit = await enforceRateLimit({
+    action: "group.revoke_pending_invite",
+    actorUserId: user.id,
+    maxAttempts: 20,
+    resourceId: groupId,
+    resourceType: "group_membership",
+    subject: `${user.id}:${groupId}`,
+    windowSeconds: 3600,
+  });
+
+  if (!rateLimit.allowed) {
+    return { success: false, message: rateLimit.message };
+  }
+
+  const permission = await assertOwnerCanManageInvites(supabase, groupId, user.id);
+  if (!permission.ok) {
+    return { success: false, message: permission.message || "Invite unavailable." };
+  }
+
+  const { data: membership, error: membershipError } = await supabase
+    .from("group_members")
+    .select("id, role, status, email")
+    .eq("group_id", groupId)
+    .eq("id", membershipId)
+    .maybeSingle();
+
+  if (membershipError) {
+    await recordServerFailure({
+      actorUserId: user.id,
+      errorMessage: membershipError.message,
+      eventType: "group.revoke_pending_invite.lookup",
+      resourceId: groupId,
+      resourceType: "group_membership",
+    });
+
+    return { success: false, message: "Failed to load invite." };
+  }
+
+  if (!membership) {
+    return { success: false, message: "Invite not found." };
+  }
+
+  if (membership.role === "owner" || membership.status === "accepted") {
+    return { success: false, message: "Only non-accepted invites can be revoked." };
+  }
+
+  const { error: deleteError } = await supabaseAdmin
+    .from("group_members")
+    .delete()
+    .eq("id", membership.id);
+
+  if (deleteError) {
+    await recordServerFailure({
+      actorUserId: user.id,
+      details: { membershipId: membership.id, inviteEmail: membership.email },
+      errorMessage: deleteError.message,
+      eventType: "group.revoke_pending_invite.delete",
+      resourceId: groupId,
+      resourceType: "group_membership",
+    });
+
+    return { success: false, message: "Failed to revoke invite." };
+  }
+
+  await recordAuditEvent({
+    actorUserId: user.id,
+    details: { inviteEmail: membership.email || null, inviteStatus: membership.status },
+    eventType: "group.revoke_pending_invite",
+    outcome: "success",
+    resourceId: membership.id,
+    resourceType: "group_membership",
+  });
+
+  return { success: true, message: "✅ Invite revoked." };
 }
 
 export async function editGroup(

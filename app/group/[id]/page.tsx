@@ -6,12 +6,14 @@ import { createClient } from "@/lib/supabase/client";
 import InviteForm from "./InviteForm";
 import NicknameForm from "./NicknameForm";
 import ResendButton from "./ResendButton";
+import RevokeInviteButton from "./RevokeInviteButton";
 import { drawSecretSanta, resetSecretSantaDraw } from "./draw-action";
 import { deleteGroup, editGroup, leaveGroup, removeMember } from "./actions";
 import { GroupSkeleton } from "@/app/components/PageSkeleton";
 import FadeIn from "@/app/components/FadeIn";
 
 type Member = {
+  id: string;
   user_id: string | null;
   nickname: string | null;
   email: string | null;
@@ -156,7 +158,7 @@ export default function GroupDetailsPage() {
 
       const { data: membersData, error: membersError } = await supabase
         .from("group_members")
-        .select("user_id, nickname, email, role, status")
+        .select("id, user_id, nickname, email, role, status")
         .eq("group_id", id);
 
       if (!isMounted) return;
@@ -1112,7 +1114,7 @@ export default function GroupDetailsPage() {
 
                   return (
                     <div
-                      key={member.user_id || index}
+                      key={member.id}
                       className="rounded-xl p-3 transition hover:-translate-y-0.5"
                       style={{
                         background: "rgba(255,255,255,.6)",
@@ -1216,7 +1218,7 @@ export default function GroupDetailsPage() {
                 <div className="flex flex-col gap-2 mb-4">
                   {pendingMembers.map((member, index) => (
                     <div
-                      key={member.email || index}
+                      key={member.id}
                       className="rounded-xl p-3 flex items-center justify-between"
                       style={{
                         background: "rgba(255,255,255,.6)",
@@ -1241,12 +1243,18 @@ export default function GroupDetailsPage() {
                         </div>
                       </div>
 
-                      <span
-                        className="text-[10px] font-extrabold px-2.5 py-1 rounded-full"
-                        style={{ background: "#fef3c7", color: "#92400e" }}
-                      >
-                        Pending
-                      </span>
+                      <div className="flex items-center gap-2">
+                        {isOwner && !drawDone && (
+                          <RevokeInviteButton groupId={id} membershipId={member.id} />
+                        )}
+
+                        <span
+                          className="text-[10px] font-extrabold px-2.5 py-1 rounded-full"
+                          style={{ background: "#fef3c7", color: "#92400e" }}
+                        >
+                          Pending
+                        </span>
+                      </div>
                     </div>
                   ))}
                 </div>
@@ -1270,7 +1278,7 @@ export default function GroupDetailsPage() {
                 <div className="flex flex-col gap-2 mb-4">
                   {declinedMembers.map((member, index) => (
                     <div
-                      key={member.email || index}
+                      key={member.id}
                       className="rounded-xl p-3 flex items-center justify-between"
                       style={{
                         background: "rgba(255,255,255,.6)",
@@ -1295,7 +1303,10 @@ export default function GroupDetailsPage() {
                         </div>
                       </div>
 
-                      <ResendButton groupId={id} memberEmail={member.email || ""} />
+                      <div className="flex items-center gap-2">
+                        <ResendButton groupId={id} memberEmail={member.email || ""} />
+                        <RevokeInviteButton groupId={id} membershipId={member.id} />
+                      </div>
                     </div>
                   ))}
                 </div>

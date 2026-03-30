@@ -1,13 +1,14 @@
 "use client";
 
 import Image from "next/image";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useState } from "react";
-import { createClient } from "@/lib/supabase/client"; 
-import { linkUserToGroup } from "@/utils/linkUserToGroup"; // ✅ now clean alias
+import { createClient } from "@/lib/supabase/client";
+import { linkUserToGroup } from "@/utils/linkUserToGroup";
 
 export default function LoginPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const supabase = createClient();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -15,65 +16,70 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false);
   const [redirecting, setRedirecting] = useState(false);
 
-  // ✅ Google OAuth login
+  const nextPath = (() => {
+    const candidate = searchParams.get("next") || "/dashboard";
+    return candidate.startsWith("/") ? candidate : "/dashboard";
+  })();
+
+  // Keep the desired post-login destination in a short-lived cookie so the
+  // OAuth callback can return the user to an invite link or other deep page.
+  const rememberNextPath = () => {
+    document.cookie = `post_login_next=${encodeURIComponent(nextPath)}; Path=/; Max-Age=1800; SameSite=Lax`;
+  };
+
   const handleGoogleLogin = async () => {
     setError(null);
     setRedirecting(true);
-    const { error } = await supabase.auth.signInWithOAuth({
+    rememberNextPath();
+
+    const { error: signInError } = await supabase.auth.signInWithOAuth({
       provider: "google",
       options: {
-        // Supabase compares OAuth redirect URLs against the allow-list in
-        // Authentication > URL Configuration. Using the exact callback path
-        // avoids fallback redirects to the Site URL when query strings do not
-        // match the configured allow-list entry.
         redirectTo: `${window.location.origin}/auth/callback`,
       },
     });
 
-    if (error) {
-      console.error("Google login error:", error.message);
+    if (signInError) {
+      console.error("Google login error:", signInError.message);
       setRedirecting(false);
-      setError(error.message);
-      return;
+      setError(signInError.message);
     }
-
-    // OAuth redirects the browser away immediately, so group-linking now runs
-    // inside the callback route after the session has been created.
   };
 
-  // ✅ Email/password login
   const handleEmailLogin = async () => {
     setError(null);
     setLoading(true);
-    const { data, error } = await supabase.auth.signInWithPassword({
+
+    const { data, error: signInError } = await supabase.auth.signInWithPassword({
       email,
       password,
     });
 
-    if (error) {
-      setError(error.message);
-    } else {
-      const { user } = data;
-      if (user) {
-        await linkUserToGroup(user);
-      }
-      router.replace("/dashboard");
+    if (signInError) {
+      setError(signInError.message);
+      setLoading(false);
+      return;
     }
+
+    const { user } = data;
+    if (user) {
+      await linkUserToGroup(user);
+    }
+
+    router.replace(nextPath);
     setLoading(false);
   };
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-[url('/snowflakes.png')] bg-cover bg-center relative">
-      {/* Redirecting overlay */}
       {redirecting && (
         <div className="absolute inset-0 bg-white/90 flex flex-col items-center justify-center z-50">
-          <div className="animate-spin rounded-full h-12 w-12 border-t-4 border-blue-600 mb-4"></div>
-          <p className="text-lg font-semibold text-blue-700">Redirecting to Google…</p>
+          <div className="animate-spin rounded-full h-12 w-12 border-t-4 border-blue-600 mb-4" />
+          <p className="text-lg font-semibold text-blue-700">Redirecting to Google...</p>
         </div>
       )}
 
       <div className="bg-gradient-to-br from-white via-blue-100 to-gray-200 rounded-lg shadow-xl border-4 border-white p-8 max-w-md w-full relative ring-4 ring-blue-200">
-        {/* Bells Holly decoration */}
         <Image
           src="/bells-holly.png"
           alt="Bells Holly"
@@ -87,7 +93,6 @@ export default function LoginPage() {
         </h1>
         <p className="text-center text-gray-700 mb-6">Welcome to Secret Santa!</p>
 
-        {/* Email input */}
         <input
           type="text"
           placeholder="Enter your username or email"
@@ -96,7 +101,6 @@ export default function LoginPage() {
           className="w-full border-2 border-blue-600 rounded-md p-3 mb-4 focus:ring-2 focus:ring-blue-400 bg-white text-black placeholder-gray-600 shadow-sm"
         />
 
-        {/* Password input */}
         <input
           type="password"
           placeholder="Enter your password"
@@ -105,7 +109,6 @@ export default function LoginPage() {
           className="w-full border-2 border-blue-600 rounded-md p-3 mb-6 focus:ring-2 focus:ring-blue-400 bg-white text-black placeholder-gray-600 shadow-sm"
         />
 
-        {/* Login button */}
         <button
           onClick={handleEmailLogin}
           disabled={loading || redirecting}
@@ -122,7 +125,6 @@ export default function LoginPage() {
 
         <div className="text-center text-gray-700 my-4">or</div>
 
-        {/* Google login button */}
         <button
           onClick={handleGoogleLogin}
           disabled={loading || redirecting}
@@ -140,14 +142,13 @@ export default function LoginPage() {
             className="mr-3"
           />
           <span className="text-base font-medium">
-            {redirecting ? "Redirecting…" : "Continue with Google"}
+            {redirecting ? "Redirecting..." : "Continue with Google"}
           </span>
         </button>
 
-        {/* Action links */}
         <div className="flex justify-between mt-6">
           <button
-            onClick={() => router.push("/create-account")}
+            onClick={() => router.push(`/create-account?next=${encodeURIComponent(nextPath)}`)}
             disabled={loading || redirecting}
             className={`w-[48%] text-center py-2 rounded-md transition font-medium shadow ${
               loading || redirecting
@@ -155,7 +156,7 @@ export default function LoginPage() {
                 : "bg-blue-500 text-white hover:bg-blue-600"
             }`}
           >
-            {loading || redirecting ? "Please wait…" : "Create Account"}
+            {loading || redirecting ? "Please wait..." : "Create Account"}
           </button>
           <button
             onClick={() => router.push("/forgot-password")}
@@ -166,11 +167,10 @@ export default function LoginPage() {
                 : "bg-red-500 text-white hover:bg-red-600"
             }`}
           >
-            {loading || redirecting ? "Please wait…" : "Forgot Password?"}
+            {loading || redirecting ? "Please wait..." : "Forgot Password?"}
           </button>
         </div>
 
-        {/* Footer decorations */}
         <Image
           src="/gifts.png"
           alt="Gift Box"
