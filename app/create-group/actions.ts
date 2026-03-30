@@ -137,13 +137,9 @@ export async function createGroupWithInvites(
     return { success: false, message: "Choose a valid currency." };
   }
 
-  // Important:
-  // We keep auth, validation, and rate limiting tied to the real logged-in user,
-  // but we use the admin client for the actual multi-step writes.
-  //
-  // This avoids brittle failures when RLS or public-function grants change,
-  // while still keeping the write path secure because the caller is already
-  // authenticated and validated inside this server action.
+  // Validate and authenticate with the caller's session first, then use the
+  // admin client for the multi-table write so this flow does not break when
+  // RLS or function grants are tightened later.
   const { data: newGroup, error: groupError } = await supabaseAdmin
     .from("groups")
     .insert({
@@ -214,8 +210,8 @@ export async function createGroupWithInvites(
       resourceType: "group",
     });
 
-    // Best-effort rollback so we do not leave behind an empty group shell
-    // when member row creation fails after the group row succeeded.
+    // If member creation fails after the group row exists, try to remove the
+    // partially created group so the dashboard does not show an empty shell.
     await supabaseAdmin.from("groups").delete().eq("id", newGroup.id);
 
     return {

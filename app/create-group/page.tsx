@@ -40,8 +40,8 @@ export default function CreateGroupPage() {
     setErrorMsg("");
     setStatusMsg("");
 
-    // Keep the browser responsive with basic validation, then let the server
-    // action repeat the same checks before any privileged write happens.
+    // Run the fast checks in the browser for instant feedback, then let the
+    // server action repeat them before any database write happens.
     const cleanName = sanitize(groupName, 100);
     const cleanDesc = sanitize(description, 300);
     const cleanBudget = Math.min(Math.max(Math.floor(budget || 0), 0), 100000);

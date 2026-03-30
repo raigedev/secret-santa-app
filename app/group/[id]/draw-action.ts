@@ -117,6 +117,8 @@ export async function drawSecretSanta(
     [shuffled[index], shuffled[swapIndex]] = [shuffled[swapIndex], shuffled[index]];
   }
 
+  // Pair each giver with the next person in the shuffled list, then wrap the
+  // last giver back to the first receiver to keep the assignment circular.
   const assignments = shuffled.map((member, index) => ({
     group_id: groupId,
     giver_id: member.user_id,
@@ -221,8 +223,8 @@ export async function resetSecretSantaDraw(
   const assignmentCount = assignments.length;
   const confirmedGiftCount = assignments.filter((assignment) => assignment.gift_received).length;
 
-  // Resetting a draw must also clear anonymous thread data.
-  // Otherwise old giver/receiver chat threads can survive after a redraw.
+  // A reset needs to clear chat state tied to the old assignment pairs,
+  // otherwise stale anonymous threads survive into the next draw.
   const { error: threadReadsError } = await supabaseAdmin
     .from("thread_reads")
     .delete()

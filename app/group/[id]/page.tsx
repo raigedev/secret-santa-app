@@ -112,6 +112,8 @@ export default function GroupDetailsPage() {
   useEffect(() => {
     if (!id) return;
 
+    // Ignore late async responses after unmount or route changes so they do
+    // not overwrite newer state from the next page load.
     let isMounted = true;
 
     const loadGroupData = async () => {
@@ -168,10 +170,8 @@ export default function GroupDetailsPage() {
       const safeMembers = (membersData ?? []) as Member[];
       setMembers(safeMembers);
 
-      // Important:
-      // We explicitly reset draw state when no assignment exists.
-      // This is what lets the UI return to the pre-draw state immediately
-      // after a reset, instead of continuing to show the old recipient.
+      // Clear the local draw state when no assignment exists so a reset flips
+      // the page back to the pre-draw UI without needing a hard refresh.
       const { data: myAssignment } = await supabase
         .from("assignments")
         .select("receiver_id")
@@ -197,6 +197,8 @@ export default function GroupDetailsPage() {
 
     loadGroupData();
 
+    // Refresh the page state whenever members, the group record, or
+    // assignments change so the owner does not have to manually reload.
     const channel = supabase
       .channel(`group-${id}-realtime`)
       .on(
