@@ -747,16 +747,63 @@ export default function SecretSantaChatPage() {
         </div>
 
         <div className="flex gap-3 mb-6 p-4 rounded-2xl" style={{ background: "rgba(255,255,255,.04)", border: "1px solid rgba(255,255,255,.08)" }}>
-          <div className="flex-1 text-center p-3 rounded-xl" style={{ background: "rgba(251,191,36,.08)", border: "1px solid rgba(251,191,36,.12)" }}>
-            <div className="text-[28px] mb-1">🎁</div>
-            <div className="text-[12px] font-extrabold" style={{ color: "#fbbf24" }}>You → Recipient</div>
-            <div className="text-[10px] leading-relaxed mt-1" style={{ color: "rgba(255,255,255,.4)" }}>You know who they are.<br />They see you as &quot;🎅 Secret Santa&quot;</div>
+          <div className="flex-1 p-4 rounded-xl" style={{ background: "rgba(251,191,36,.08)", border: "1px solid rgba(251,191,36,.12)" }}>
+            <div className="flex items-start gap-3">
+              <div
+                className="w-[44px] h-[44px] rounded-xl flex items-center justify-center text-[24px] flex-shrink-0"
+                style={{ background: "rgba(251,191,36,.12)" }}
+              >
+                🎁
+              </div>
+              <div className="min-w-0">
+                <div className="text-[13px] font-extrabold" style={{ color: "#fbbf24" }}>
+                  You → Recipient
+                </div>
+                <div
+                  className="text-[12px] font-semibold mt-2"
+                  style={{ color: "rgba(255,255,255,.74)", lineHeight: 1.45 }}
+                >
+                  You know who they are.
+                </div>
+                <div
+                  className="text-[11px] font-semibold mt-1"
+                  style={{ color: "rgba(255,255,255,.54)", lineHeight: 1.45 }}
+                >
+                  They see you as &quot;🎅 Secret Santa&quot;.
+                </div>
+              </div>
+            </div>
           </div>
           <div className="flex items-center justify-center text-[11px] font-extrabold" style={{ color: "rgba(255,255,255,.15)" }}>VS</div>
-          <div className="flex-1 text-center p-3 rounded-xl" style={{ background: "rgba(34,197,94,.08)", border: "1px solid rgba(34,197,94,.12)" }}>
-            <div className="text-[28px] mb-1">🎅</div>
-            <div className="text-[12px] font-extrabold" style={{ color: "#86efac" }}>Secret Santa → You</div>
-            <div className="text-[10px] leading-relaxed mt-1" style={{ color: "rgba(255,255,255,.4)" }}>Someone drew your name.<br />You don&apos;t know who they are!</div>
+          <div
+            className="flex-1 p-4 rounded-xl"
+            style={{ background: "rgba(34,197,94,.08)", border: "1px solid rgba(34,197,94,.12)" }}
+          >
+            <div className="flex items-start gap-3">
+              <div
+                className="w-[44px] h-[44px] rounded-xl flex items-center justify-center text-[24px] flex-shrink-0"
+                style={{ background: "rgba(34,197,94,.12)" }}
+              >
+                🎅
+              </div>
+              <div className="min-w-0">
+                <div className="text-[13px] font-extrabold" style={{ color: "#86efac" }}>
+                  Secret Santa → You
+                </div>
+                <div
+                  className="text-[12px] font-semibold mt-2"
+                  style={{ color: "rgba(255,255,255,.74)", lineHeight: 1.45 }}
+                >
+                  Someone drew your name.
+                </div>
+                <div
+                  className="text-[11px] font-semibold mt-1"
+                  style={{ color: "rgba(255,255,255,.54)", lineHeight: 1.45 }}
+                >
+                  You don&apos;t know who they are yet.
+                </div>
+              </div>
+            </div>
           </div>
         </div>
 
