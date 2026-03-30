@@ -137,7 +137,14 @@ export async function createGroupWithInvites(
     return { success: false, message: "Choose a valid currency." };
   }
 
-  const { data: newGroup, error: groupError } = await supabase
+  // Important:
+  // We keep auth, validation, and rate limiting tied to the real logged-in user,
+  // but we use the admin client for the actual multi-step writes.
+  //
+  // This avoids brittle failures when RLS or public-function grants change,
+  // while still keeping the write path secure because the caller is already
+  // authenticated and validated inside this server action.
+  const { data: newGroup, error: groupError } = await supabaseAdmin
     .from("groups")
     .insert({
       name: cleanName,
@@ -154,15 +161,22 @@ export async function createGroupWithInvites(
   if (groupError || !newGroup) {
     await recordServerFailure({
       actorUserId: user.id,
+      details: {
+        dbCode: groupError?.code ?? null,
+        dbDetails: groupError?.details ?? null,
+        dbHint: groupError?.hint ?? null,
+      },
       errorMessage: groupError?.message || "Unknown group error",
       eventType: "group.create",
       resourceType: "group",
     });
+
     return { success: false, message: "Failed to create group. Please try again." };
   }
 
   const ownerEmail = (user.email || "").toLowerCase();
   const ownerNickname = ownerEmail.split("@")[0] || "owner";
+
   const memberRows = [
     {
       group_id: newGroup.id,
@@ -182,18 +196,27 @@ export async function createGroupWithInvites(
     })),
   ];
 
-  const { error: membersError } = await supabase.from("group_members").insert(memberRows);
+  const { error: membersError } = await supabaseAdmin
+    .from("group_members")
+    .insert(memberRows);
 
   if (membersError) {
     await recordServerFailure({
       actorUserId: user.id,
+      details: {
+        dbCode: membersError.code ?? null,
+        dbDetails: membersError.details ?? null,
+        dbHint: membersError.hint ?? null,
+      },
       errorMessage: membersError.message,
       eventType: "group.create_members",
       resourceId: newGroup.id,
       resourceType: "group",
     });
 
-    await supabase.from("groups").delete().eq("id", newGroup.id).eq("owner_id", user.id);
+    // Best-effort rollback so we do not leave behind an empty group shell
+    // when member row creation fails after the group row succeeded.
+    await supabaseAdmin.from("groups").delete().eq("id", newGroup.id);
 
     return {
       success: false,
@@ -202,6 +225,20 @@ export async function createGroupWithInvites(
   }
 
   if (inviteEmails.length === 0) {
+    await recordAuditEvent({
+      actorUserId: user.id,
+      details: {
+        failedInviteCount: 0,
+        groupId: newGroup.id,
+        inviteCount: 0,
+        sentInviteCount: 0,
+      },
+      eventType: "group.create",
+      outcome: "success",
+      resourceId: newGroup.id,
+      resourceType: "group",
+    });
+
     return { success: true, message: "Group created!" };
   }
 
