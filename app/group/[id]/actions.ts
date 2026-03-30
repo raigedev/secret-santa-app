@@ -2,7 +2,7 @@
 
 import { randomBytes } from "crypto";
 import { recordAuditEvent, recordServerFailure } from "@/lib/security/audit";
-import { createNotifications } from "@/lib/notifications";
+import { createNotification, createNotifications } from "@/lib/notifications";
 import { enforceRateLimit } from "@/lib/security/rate-limit";
 import { supabaseAdmin } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
@@ -13,6 +13,57 @@ function sanitize(input: string, max: number): string {
 
 function buildInviteToken(): string {
   return randomBytes(24).toString("base64url");
+}
+
+async function findExistingUserIdByEmail(email: string): Promise<string | null> {
+  const normalizedEmail = email.trim().toLowerCase();
+
+  for (let page = 1; page <= 5; page += 1) {
+    const { data, error } = await supabaseAdmin.auth.admin.listUsers({
+      page,
+      perPage: 200,
+    });
+
+    if (error) {
+      return null;
+    }
+
+    const matchedUser = data.users.find(
+      (candidateUser) => (candidateUser.email || "").toLowerCase() === normalizedEmail
+    );
+
+    if (matchedUser) {
+      return matchedUser.id;
+    }
+
+    if (data.users.length < 200) {
+      break;
+    }
+  }
+
+  return null;
+}
+
+async function notifyInvitedUser(options: {
+  userId: string | null;
+  groupId: string;
+  groupName: string;
+}): Promise<void> {
+  if (!options.userId) {
+    return;
+  }
+
+  await createNotification({
+    userId: options.userId,
+    type: "invite",
+    title: `New group invite: ${options.groupName}`,
+    body: "You have a pending group invitation. Open your dashboard to accept or decline it.",
+    linkPath: "/dashboard",
+    metadata: {
+      groupId: options.groupId,
+    },
+    preferenceKey: "notify_invites",
+  });
 }
 
 async function groupHasDrawStarted(groupId: string): Promise<boolean> {
@@ -90,6 +141,17 @@ export async function inviteUser(
   }
 
   const cleanEmail = sanitize(email, 100).toLowerCase();
+  const { data: group } = await supabase
+    .from("groups")
+    .select("name")
+    .eq("id", groupId)
+    .maybeSingle();
+
+  if (!group) {
+    return { message: "Group not found." };
+  }
+
+  const existingUserId = await findExistingUserIdByEmail(cleanEmail);
 
   const { error: inviteError } = await supabaseAdmin.auth.admin.inviteUserByEmail(cleanEmail);
   if (inviteError) {
@@ -106,6 +168,7 @@ export async function inviteUser(
   const { error: insertError } = await supabaseAdmin.from("group_members").insert([
     {
       group_id: groupId,
+      user_id: existingUserId,
       email: cleanEmail,
       nickname: cleanEmail.split("@")[0],
       role: "member",
@@ -125,6 +188,12 @@ export async function inviteUser(
 
     return { message: "Failed to add member. They may already be in the group." };
   }
+
+  await notifyInvitedUser({
+    userId: existingUserId,
+    groupId,
+    groupName: group.name,
+  });
 
   await recordAuditEvent({
     actorUserId: user.id,
@@ -250,9 +319,21 @@ export async function resendInvite(
     return { message: permission.message || "Invite unavailable." };
   }
 
+  const { data: group } = await supabase
+    .from("groups")
+    .select("name")
+    .eq("id", groupId)
+    .maybeSingle();
+
+  if (!group) {
+    return { message: "Group not found." };
+  }
+
+  const existingUserId = await findExistingUserIdByEmail(memberEmail);
+
   const { error } = await supabaseAdmin
     .from("group_members")
-    .update({ status: "pending" })
+    .update({ status: "pending", user_id: existingUserId })
     .eq("group_id", groupId)
     .eq("email", memberEmail)
     .eq("status", "declined");
@@ -269,6 +350,12 @@ export async function resendInvite(
 
     return { message: "Failed to resend invite." };
   }
+
+  await notifyInvitedUser({
+    userId: existingUserId,
+    groupId,
+    groupName: group.name,
+  });
 
   return { message: "Invite resent!" };
 }

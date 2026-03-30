@@ -63,7 +63,7 @@ export async function claimInvitedMemberships(): Promise<{
 
   const { data: memberships, error: membershipError } = await supabase
     .from("group_members")
-    .select("id")
+    .select("id, group_id, status")
     .eq("email", normalizedEmail)
     .is("user_id", null);
 
@@ -100,6 +100,39 @@ export async function claimInvitedMemberships(): Promise<{
     });
 
     return { success: false, linkedCount: 0 };
+  }
+
+  const pendingMemberships = (memberships || []).filter(
+    (membership) => membership.status === "pending"
+  );
+
+  if (pendingMemberships.length > 0) {
+    const pendingGroupIds = [...new Set(pendingMemberships.map((membership) => membership.group_id))];
+    const { data: groups } = await supabase
+      .from("groups")
+      .select("id, name")
+      .in("id", pendingGroupIds);
+
+    const groupNameById = new Map(
+      (groups || []).map((group) => [group.id, group.name || "Secret Santa Group"])
+    );
+
+    await Promise.all(
+      pendingMemberships.map((membership) =>
+        createNotification({
+          userId: user.id,
+          type: "invite",
+          title: `New group invite: ${groupNameById.get(membership.group_id) || "Secret Santa Group"}`,
+          body: "You have a pending group invitation. Open your dashboard to accept or decline it.",
+          linkPath: "/dashboard",
+          metadata: {
+            groupId: membership.group_id,
+            membershipId: membership.id,
+          },
+          preferenceKey: "notify_invites",
+        })
+      )
+    );
   }
 
   return { success: true, linkedCount };
