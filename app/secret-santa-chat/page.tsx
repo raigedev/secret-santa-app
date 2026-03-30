@@ -4,6 +4,7 @@ import { useEffect, useState, useRef, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { ChatSkeleton } from "@/app/components/PageSkeleton";
+import { sendMessage } from "./chat-actions";
 
 type Thread = {
   group_id: string; group_name: string; giver_id: string; receiver_id: string;
@@ -191,12 +192,14 @@ export default function SecretSantaChatPage() {
     setMessages((prev) => [...prev, { id: tempId, sender_id: userId, content, created_at: new Date().toISOString() }]);
     setTimeout(scrollToBottom, 30);
 
-    const { error } = await supabase.from("messages").insert({
-      group_id: activeThread.group_id, sender_id: userId,
-      thread_giver_id: activeThread.giver_id, thread_receiver_id: activeThread.receiver_id, content,
-    });
+    const result = await sendMessage(
+      activeThread.group_id,
+      activeThread.giver_id,
+      activeThread.receiver_id,
+      content
+    );
 
-    if (error) {
+    if (!result.success) {
       setMessages((prev) => prev.filter((m) => m.id !== tempId));
     }
   };

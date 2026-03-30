@@ -16,6 +16,8 @@
 // Playbook#20: Logs critical actions
 // ═══════════════════════════════════════
 
+import { recordServerFailure } from "@/lib/security/audit";
+import { enforceRateLimit } from "@/lib/security/rate-limit";
 import { createClient } from "@/lib/supabase/server";
 
 // ─── Sanitize text: strip HTML tags, trim, enforce max length ───
@@ -78,6 +80,20 @@ export async function addWishlistItem(
     return { success: false, message: "You must be logged in." };
   }
 
+  const addRateLimit = await enforceRateLimit({
+    action: "wishlist.add_item",
+    actorUserId: user.id,
+    maxAttempts: 20,
+    resourceId: groupId,
+    resourceType: "wishlist",
+    subject: user.id,
+    windowSeconds: 600,
+  });
+
+  if (!addRateLimit.allowed) {
+    return { success: false, message: addRateLimit.message };
+  }
+
   // Core#3: Verify user is a member of this group
   const { data: membership } = await supabase
     .from("group_members")
@@ -105,7 +121,13 @@ export async function addWishlistItem(
 
   if (error) {
     // Core#6: Generic message to user, real error server-side
-    console.error("[WISHLIST] Add failed:", error.message);
+    await recordServerFailure({
+      actorUserId: user.id,
+      errorMessage: error.message,
+      eventType: "wishlist.add_item",
+      resourceId: groupId,
+      resourceType: "wishlist",
+    });
     return { success: false, message: "Failed to add item. Please try again." };
   }
 
@@ -143,6 +165,20 @@ export async function editWishlistItem(
     return { success: false, message: "You must be logged in." };
   }
 
+  const editRateLimit = await enforceRateLimit({
+    action: "wishlist.edit_item",
+    actorUserId: user.id,
+    maxAttempts: 30,
+    resourceId: itemId,
+    resourceType: "wishlist",
+    subject: user.id,
+    windowSeconds: 600,
+  });
+
+  if (!editRateLimit.allowed) {
+    return { success: false, message: editRateLimit.message };
+  }
+
   // RLS ensures only the owner can update, but we also check explicitly
   const { error } = await supabase
     .from("wishlists")
@@ -156,7 +192,13 @@ export async function editWishlistItem(
     .eq("user_id", user.id); // Double check: RLS + explicit filter
 
   if (error) {
-    console.error("[WISHLIST] Edit failed:", error.message);
+    await recordServerFailure({
+      actorUserId: user.id,
+      errorMessage: error.message,
+      eventType: "wishlist.edit_item",
+      resourceId: itemId,
+      resourceType: "wishlist",
+    });
     return { success: false, message: "Failed to update item. Please try again." };
   }
 
@@ -180,6 +222,20 @@ export async function deleteWishlistItem(
     return { success: false, message: "You must be logged in." };
   }
 
+  const deleteRateLimit = await enforceRateLimit({
+    action: "wishlist.delete_item",
+    actorUserId: user.id,
+    maxAttempts: 20,
+    resourceId: itemId,
+    resourceType: "wishlist",
+    subject: user.id,
+    windowSeconds: 600,
+  });
+
+  if (!deleteRateLimit.allowed) {
+    return { success: false, message: deleteRateLimit.message };
+  }
+
   // RLS ensures only the owner can delete, but we also check explicitly
   const { error } = await supabase
     .from("wishlists")
@@ -188,7 +244,13 @@ export async function deleteWishlistItem(
     .eq("user_id", user.id); // Double check: RLS + explicit filter
 
   if (error) {
-    console.error("[WISHLIST] Delete failed:", error.message);
+    await recordServerFailure({
+      actorUserId: user.id,
+      errorMessage: error.message,
+      eventType: "wishlist.delete_item",
+      resourceId: itemId,
+      resourceType: "wishlist",
+    });
     return { success: false, message: "Failed to delete item. Please try again." };
   }
 

@@ -1,5 +1,7 @@
 "use server";
 
+import { recordAuditEvent, recordServerFailure } from "@/lib/security/audit";
+import { enforceRateLimit } from "@/lib/security/rate-limit";
 import { supabaseAdmin } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 
@@ -62,7 +64,11 @@ function normalizeInviteEmails(rawEmails: string[], ownerEmail: string | null | 
   return [...uniqueEmails];
 }
 
-async function sendInviteEmails(emails: string[]): Promise<{ failedCount: number; sentCount: number }> {
+async function sendInviteEmails(
+  emails: string[],
+  actorUserId: string,
+  groupId: string
+): Promise<{ failedCount: number; sentCount: number }> {
   let sentCount = 0;
   let failedCount = 0;
 
@@ -70,7 +76,14 @@ async function sendInviteEmails(emails: string[]): Promise<{ failedCount: number
     const { error } = await supabaseAdmin.auth.admin.inviteUserByEmail(email);
 
     if (error) {
-      console.error("[GROUP] Invite email failed:", error.message);
+      await recordServerFailure({
+        actorUserId,
+        details: { invitedEmail: email },
+        errorMessage: error.message,
+        eventType: "group.invite_email",
+        resourceId: groupId,
+        resourceType: "group",
+      });
       failedCount += 1;
       continue;
     }
@@ -91,6 +104,19 @@ export async function createGroupWithInvites(
 
   if (!user) {
     return { success: false, message: "You must be logged in." };
+  }
+
+  const rateLimit = await enforceRateLimit({
+    action: "group.create",
+    actorUserId: user.id,
+    maxAttempts: 5,
+    resourceType: "group",
+    subject: user.id,
+    windowSeconds: 3600,
+  });
+
+  if (!rateLimit.allowed) {
+    return { success: false, message: rateLimit.message };
   }
 
   const cleanName = sanitizeText(input.name, GROUP_NAME_MAX_LENGTH);
@@ -126,7 +152,12 @@ export async function createGroupWithInvites(
     .single();
 
   if (groupError || !newGroup) {
-    console.error("[GROUP] Create failed:", groupError?.message || "Unknown group error");
+    await recordServerFailure({
+      actorUserId: user.id,
+      errorMessage: groupError?.message || "Unknown group error",
+      eventType: "group.create",
+      resourceType: "group",
+    });
     return { success: false, message: "Failed to create group. Please try again." };
   }
 
@@ -154,7 +185,13 @@ export async function createGroupWithInvites(
   const { error: membersError } = await supabase.from("group_members").insert(memberRows);
 
   if (membersError) {
-    console.error("[GROUP] Member insert failed:", membersError.message);
+    await recordServerFailure({
+      actorUserId: user.id,
+      errorMessage: membersError.message,
+      eventType: "group.create_members",
+      resourceId: newGroup.id,
+      resourceType: "group",
+    });
 
     await supabase.from("groups").delete().eq("id", newGroup.id).eq("owner_id", user.id);
 
@@ -168,7 +205,21 @@ export async function createGroupWithInvites(
     return { success: true, message: "Group created!" };
   }
 
-  const { failedCount, sentCount } = await sendInviteEmails(inviteEmails);
+  const { failedCount, sentCount } = await sendInviteEmails(inviteEmails, user.id, newGroup.id);
+
+  await recordAuditEvent({
+    actorUserId: user.id,
+    details: {
+      failedInviteCount: failedCount,
+      groupId: newGroup.id,
+      inviteCount: inviteEmails.length,
+      sentInviteCount: sentCount,
+    },
+    eventType: "group.create",
+    outcome: "success",
+    resourceId: newGroup.id,
+    resourceType: "group",
+  });
 
   if (failedCount > 0) {
     return {

@@ -15,6 +15,8 @@
 // No dangerouslySetInnerHTML anywhere
 // ═══════════════════════════════════════
 
+import { recordServerFailure } from "@/lib/security/audit";
+import { enforceRateLimit } from "@/lib/security/rate-limit";
 import { createClient } from "@/lib/supabase/server";
 
 // Core#1: Strip HTML tags, trim, enforce max length
@@ -52,6 +54,20 @@ export async function sendMessage(
     return { success: false, message: "You must be logged in." };
   }
 
+  const rateLimit = await enforceRateLimit({
+    action: "chat.send_message",
+    actorUserId: user.id,
+    maxAttempts: 25,
+    resourceId: groupId,
+    resourceType: "message_thread",
+    subject: `${user.id}:${groupId}`,
+    windowSeconds: 60,
+  });
+
+  if (!rateLimit.allowed) {
+    return { success: false, message: rateLimit.message };
+  }
+
   // Core#3: Verify sender is either the giver or receiver
   if (user.id !== threadGiverId && user.id !== threadReceiverId) {
     return { success: false, message: "You are not part of this conversation." };
@@ -70,7 +86,17 @@ export async function sendMessage(
 
   if (error) {
     // Core#6: Generic message to user
-    console.error("[CHAT] Send failed:", error.message);
+    await recordServerFailure({
+      actorUserId: user.id,
+      errorMessage: error.message,
+      eventType: "chat.send_message",
+      resourceId: groupId,
+      resourceType: "message_thread",
+      details: {
+        threadGiverId,
+        threadReceiverId,
+      },
+    });
     return { success: false, message: "Failed to send message. Please try again." };
   }
 

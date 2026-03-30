@@ -8,6 +8,8 @@
 // No dangerouslySetInnerHTML
 // ═══════════════════════════════════════
 
+import { recordServerFailure } from "@/lib/security/audit";
+import { enforceRateLimit } from "@/lib/security/rate-limit";
 import { createClient } from "@/lib/supabase/server";
 
 function sanitize(input: string, max: number): string {
@@ -45,7 +47,13 @@ export async function getProfile() {
     .single();
 
   if (error) {
-    console.error("[PROFILE] Create failed:", error.message);
+    await recordServerFailure({
+      actorUserId: user.id,
+      errorMessage: error.message,
+      eventType: "profile.create",
+      resourceId: user.id,
+      resourceType: "profile",
+    });
     return null;
   }
 
@@ -70,6 +78,20 @@ export async function updateProfile(
   const { data: { user } } = await supabase.auth.getUser();
 
   if (!user) return { success: false, message: "You must be logged in." };
+
+  const rateLimit = await enforceRateLimit({
+    action: "profile.update",
+    actorUserId: user.id,
+    maxAttempts: 15,
+    resourceId: user.id,
+    resourceType: "profile",
+    subject: user.id,
+    windowSeconds: 900,
+  });
+
+  if (!rateLimit.allowed) {
+    return { success: false, message: rateLimit.message };
+  }
 
   const cleanName = sanitize(displayName, 50);
   const cleanBio = sanitize(bio, 200);
@@ -100,7 +122,13 @@ export async function updateProfile(
     .eq("user_id", user.id);
 
   if (error) {
-    console.error("[PROFILE] Update failed:", error.message);
+    await recordServerFailure({
+      actorUserId: user.id,
+      errorMessage: error.message,
+      eventType: "profile.update",
+      resourceId: user.id,
+      resourceType: "profile",
+    });
     return { success: false, message: "Failed to save. Please try again." };
   }
 
@@ -116,6 +144,20 @@ export async function quickSetup(
   const { data: { user } } = await supabase.auth.getUser();
 
   if (!user) return { success: false, message: "You must be logged in." };
+
+  const rateLimit = await enforceRateLimit({
+    action: "profile.quick_setup",
+    actorUserId: user.id,
+    maxAttempts: 10,
+    resourceId: user.id,
+    resourceType: "profile",
+    subject: user.id,
+    windowSeconds: 900,
+  });
+
+  if (!rateLimit.allowed) {
+    return { success: false, message: rateLimit.message };
+  }
 
   const cleanName = sanitize(displayName, 50);
   const cleanEmoji = sanitize(avatarEmoji, 10);
@@ -135,7 +177,13 @@ export async function quickSetup(
     .eq("user_id", user.id);
 
   if (error) {
-    console.error("[PROFILE] Quick setup failed:", error.message);
+    await recordServerFailure({
+      actorUserId: user.id,
+      errorMessage: error.message,
+      eventType: "profile.quick_setup",
+      resourceId: user.id,
+      resourceType: "profile",
+    });
     return { success: false, message: "Failed to save. Please try again." };
   }
 

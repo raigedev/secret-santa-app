@@ -9,6 +9,7 @@
 import { NextResponse } from "next/server";
 import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
+import { recordServerFailure } from "@/lib/security/audit";
 
 export async function GET(request: Request) {
   const requestUrl = new URL(request.url);
@@ -27,7 +28,11 @@ export async function GET(request: Request) {
 
   // If Google didn't send a code, something went wrong
   if (!code) {
-    console.error("OAuth callback: No code received");
+    await recordServerFailure({
+      errorMessage: "No OAuth code received",
+      eventType: "auth.callback.missing_code",
+      resourceType: "auth_callback",
+    });
     return NextResponse.redirect(
       new URL("/login?error=no_code", origin)
     );
@@ -70,7 +75,11 @@ export async function GET(request: Request) {
   const { error } = await supabase.auth.exchangeCodeForSession(code);
 
   if (error) {
-    console.error("OAuth callback error:", error.message);
+    await recordServerFailure({
+      errorMessage: error.message,
+      eventType: "auth.callback.exchange_failed",
+      resourceType: "auth_callback",
+    });
     return NextResponse.redirect(
       new URL("/login?error=auth_failed", origin)
     );
