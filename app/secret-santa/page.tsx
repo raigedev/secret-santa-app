@@ -98,25 +98,25 @@ const ITEM_NAME_MAX_LENGTH = 100;
 const ITEM_NOTE_MAX_LENGTH = 200;
 const ITEM_LINK_MAX_LENGTH = 500;
 const PAGE_BACKGROUND =
-  "linear-gradient(180deg,#fbf7ee 0%,#f7efe2 38%,#eef5ea 72%,#f9f2e6 100%)";
-const PAGE_TEXT_COLOR = "#43302b";
-const TEXT_MUTED = "#7a675e";
-const TEXT_SOFT = "#9d8a82";
-const SURFACE_BACKGROUND = "rgba(255,252,247,.92)";
-const SURFACE_BORDER = "1px solid rgba(163,127,90,.18)";
+  "radial-gradient(circle at top, rgba(255,255,255,.28), transparent 32%), linear-gradient(180deg,#dfe7e4 0%,#d2dbd8 42%,#c9d4d4 100%)";
+const PAGE_TEXT_COLOR = "#25363a";
+const TEXT_MUTED = "#60757a";
+const TEXT_SOFT = "#819397";
+const SURFACE_BACKGROUND = "rgba(248,250,248,.82)";
+const SURFACE_BORDER = "1px solid rgba(96,117,122,.16)";
 const SURFACE_HEADER_BACKGROUND =
-  "linear-gradient(180deg,rgba(255,255,255,.94),rgba(248,239,226,.98))";
-const SURFACE_HEADER_BORDER = "1px solid rgba(163,127,90,.14)";
-const SURFACE_SHADOW = "0 14px 34px rgba(103,72,52,.08)";
-const INSET_BACKGROUND = "rgba(255,248,240,.9)";
-const INSET_BORDER = "1px solid rgba(163,127,90,.14)";
-const INPUT_BACKGROUND = "rgba(255,255,255,.92)";
-const INPUT_BORDER = "1px solid rgba(183,153,127,.24)";
-const INPUT_TEXT = "#4e3933";
-const HOLIDAY_RED = "#b9382f";
-const HOLIDAY_GREEN = "#1f7a4d";
-const HOLIDAY_GOLD = "#b8831d";
-const HOLIDAY_BLUE = "#3f6fb2";
+  "linear-gradient(180deg,rgba(245,248,246,.94),rgba(236,242,239,.96))";
+const SURFACE_HEADER_BORDER = "1px solid rgba(96,117,122,.12)";
+const SURFACE_SHADOW = "0 14px 34px rgba(34,55,59,.08)";
+const INSET_BACKGROUND = "rgba(239,244,241,.86)";
+const INSET_BORDER = "1px solid rgba(96,117,122,.12)";
+const INPUT_BACKGROUND = "rgba(250,251,249,.9)";
+const INPUT_BORDER = "1px solid rgba(96,117,122,.18)";
+const INPUT_TEXT = "#314447";
+const HOLIDAY_RED = "#9f4e42";
+const HOLIDAY_GREEN = "#2f6b56";
+const HOLIDAY_GOLD = "#a9873d";
+const HOLIDAY_BLUE = "#58748e";
 
 const GIFT_PREP_OPTIONS: Array<{
   value: GiftPrepStatus;
@@ -153,10 +153,10 @@ const GIFT_PREP_LABELS: Record<GiftPrepStatus, string> = {
 };
 
 const ICON_COLORS = [
-  "rgba(184,131,29,.16)",
-  "rgba(31,122,77,.14)",
-  "rgba(185,56,47,.14)",
-  "rgba(63,111,178,.14)",
+  "rgba(169,135,61,.16)",
+  "rgba(47,107,86,.14)",
+  "rgba(159,78,66,.14)",
+  "rgba(88,116,142,.14)",
 ];
 
 const ICON_EMOJIS = ["🏢", "👨‍👩‍👧‍👦", "🍻", "🎄"];
@@ -979,8 +979,8 @@ export default function SecretSantaPage() {
                   <div
                     className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-[14px] font-extrabold text-white"
                     style={{
-                      background: "linear-gradient(135deg,#f4cb62,#d89c1f)",
-                      boxShadow: "0 4px 16px rgba(184,131,29,.24)",
+                      background: "linear-gradient(135deg,#ccb57b,#a9873d)",
+                      boxShadow: "0 4px 16px rgba(169,135,61,.2)",
                     }}
                   >
                     🎁→ {assignment.receiver_nickname}
@@ -1125,7 +1125,7 @@ export default function SecretSantaPage() {
                             className="px-3 py-2 rounded-xl text-[11px] font-bold transition"
                             style={{
                               background: isActive
-                                ? "linear-gradient(135deg,#60a5fa,#2563eb)"
+                                ? "linear-gradient(135deg,#7f97ad,#58748e)"
                                 : "rgba(255,255,255,.75)",
                               color: isActive ? "#fff" : PAGE_TEXT_COLOR,
                               border: `1px solid ${
@@ -1354,8 +1354,8 @@ export default function SecretSantaPage() {
                           disabled={confirmingGroup === gift.group_id}
                           className="px-4 py-2 rounded-xl text-[12px] font-extrabold text-white transition"
                           style={{
-                            background: "linear-gradient(135deg,#22c55e,#16a34a)",
-                            boxShadow: "0 3px 12px rgba(31,122,77,.24)",
+                            background: "linear-gradient(135deg,#5e9479,#2f6b56)",
+                            boxShadow: "0 3px 12px rgba(47,107,86,.2)",
                             border: "none",
                             cursor: confirmingGroup === gift.group_id ? "wait" : "pointer",
                             fontFamily: "inherit",
@@ -1420,8 +1420,8 @@ export default function SecretSantaPage() {
               disabled={availableGroups.length === 0}
               className="px-4 py-2 rounded-lg text-[12px] font-bold text-white transition"
               style={{
-                background: "linear-gradient(135deg,#dc2626,#ef4444)",
-                boxShadow: "0 2px 12px rgba(220,38,38,.25)",
+                background: "linear-gradient(135deg,#b96a5d,#9f4e42)",
+                boxShadow: "0 2px 12px rgba(159,78,66,.18)",
                 border: "none",
                 cursor: availableGroups.length === 0 ? "not-allowed" : "pointer",
                 fontFamily: "inherit",
@@ -1562,7 +1562,7 @@ export default function SecretSantaPage() {
                       disabled={addLoading}
                       className="px-4 py-2 rounded-lg text-[11px] font-bold text-white"
                       style={{
-                        background: "#22c55e",
+                        background: HOLIDAY_GREEN,
                         border: "none",
                         fontFamily: "inherit",
                         cursor: addLoading ? "wait" : "pointer",
@@ -1673,7 +1673,7 @@ export default function SecretSantaPage() {
                           disabled={editLoadingId === item.id}
                           className="px-4 py-1.5 rounded-lg text-[10px] font-bold text-white"
                           style={{
-                            background: "#22c55e",
+                            background: HOLIDAY_GREEN,
                             border: "none",
                             fontFamily: "inherit",
                             cursor: editLoadingId === item.id ? "wait" : "pointer",
