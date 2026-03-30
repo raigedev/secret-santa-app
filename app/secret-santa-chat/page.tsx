@@ -182,8 +182,9 @@ function FestiveTrim({
       : tone === "green"
         ? "rgba(34,197,94,.18)"
         : "rgba(255,255,255,.14)";
-  const crestWidth = compact ? 110 : 152;
-  const crestHeight = compact ? 52 : 70;
+  const crestWidth = compact ? 104 : 144;
+  const crestHeight = compact ? 48 : 64;
+  const crestTop = compact ? -18 : -28;
 
   const renderCornerCluster = (side: "left" | "right", bottom = false) => {
     const flipX = side === "right" ? -1 : 1;
@@ -404,7 +405,7 @@ function FestiveTrim({
         className="absolute"
         style={{
           left: "50%",
-          top: compact ? -10 : -14,
+          top: crestTop,
           width: crestWidth,
           height: crestHeight,
           transform: "translateX(-50%)",
@@ -973,7 +974,7 @@ export default function SecretSantaChatPage() {
     return (
       <main className="min-h-screen relative" style={{ background: "linear-gradient(180deg,#0a1628 0%,#0f1f3d 20%,#162d50 50%,#0f1f3d 80%,#0a1628 100%)", fontFamily: "'Nunito', sans-serif", color: "#fff" }}>
         <div className="relative z-10 max-w-[720px] mx-auto px-4 py-6">
-          <div className="relative pt-6">
+          <div className="relative pt-12">
             <FestiveTrim tone={isGiver ? "gold" : "green"} withBells />
             <div className="rounded-[18px] overflow-hidden" style={{ background: "rgba(255,255,255,.04)", border: `1px solid ${isGiver ? "rgba(251,191,36,.15)" : "rgba(34,197,94,.15)"}` }}>
             <div className="flex items-center justify-between p-4" style={{ background: "rgba(255,255,255,.04)", borderBottom: `1px solid ${isGiver ? "rgba(251,191,36,.1)" : "rgba(34,197,94,.1)"}` }}>
@@ -1103,7 +1104,7 @@ export default function SecretSantaChatPage() {
         </div>
 
         <div
-          className="relative flex items-stretch gap-4 mb-6 px-4 pb-4 pt-9 rounded-[24px] overflow-visible"
+          className="relative flex items-stretch gap-4 mb-6 px-4 pb-4 pt-12 rounded-[24px] overflow-visible"
           style={{
             background: "rgba(255,255,255,.045)",
             border: "1px solid rgba(255,255,255,.08)",
@@ -1192,7 +1193,7 @@ export default function SecretSantaChatPage() {
         </div>
 
         {threads.length === 0 ? (
-          <div className="relative pt-6">
+          <div className="relative pt-12">
             <FestiveTrim tone="neutral" withBells />
             <div className="text-center py-12 rounded-[18px]" style={{ background: "rgba(255,255,255,.05)", border: "1px solid rgba(255,255,255,.08)" }}>
               <div className="text-[48px] mb-3">💬</div>
@@ -1213,7 +1214,7 @@ export default function SecretSantaChatPage() {
                 </div>
                 <div className="flex flex-col gap-3 mb-7">
                   {giverThreads.map((t, i) => (
-                    <div key={`g-${i}`} className="relative pt-5">
+                    <div key={`g-${i}`} className="relative pt-8">
                       <FestiveTrim tone="gold" compact withBells />
                       <div onClick={() => openThread(t)}
                         className="cursor-pointer flex items-center justify-between p-4 rounded-[16px] transition hover:translate-x-1"
@@ -1260,7 +1261,7 @@ export default function SecretSantaChatPage() {
                 </div>
                 <div className="flex flex-col gap-3">
                   {receiverThreads.map((t, i) => (
-                    <div key={`r-${i}`} className="relative pt-5">
+                    <div key={`r-${i}`} className="relative pt-8">
                       <FestiveTrim tone="green" compact withBells />
                       <div onClick={() => openThread(t)}
                         className="cursor-pointer flex items-center justify-between p-4 rounded-[16px] transition hover:translate-x-1"
@@ -1294,7 +1295,7 @@ export default function SecretSantaChatPage() {
           </>
         )}
 
-        <div className="relative mt-6 pt-6">
+        <div className="relative mt-6 pt-12">
           <FestiveTrim tone="green" withBells />
           <div className="flex items-start gap-2 p-3.5 rounded-xl" style={{ background: "rgba(59,130,246,.06)", border: "1px solid rgba(59,130,246,.1)" }}>
             <span className="text-[16px] flex-shrink-0">🔒</span>
