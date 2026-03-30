@@ -11,7 +11,6 @@ type Props = {
 export default function NicknameForm({ groupId, currentNickname }: Props) {
   const [isEditing, setIsEditing] = useState(false);
   const [nickname, setNickname] = useState(currentNickname);
-  const [displayName, setDisplayName] = useState(currentNickname);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState("");
 
@@ -37,7 +36,6 @@ export default function NicknameForm({ groupId, currentNickname }: Props) {
       return;
     }
 
-    setDisplayName(nickname.trim());
     setMessage(result.message);
 
     setTimeout(() => {
@@ -50,7 +48,9 @@ export default function NicknameForm({ groupId, currentNickname }: Props) {
     <div>
       {!isEditing ? (
         <div className="flex items-center justify-between mt-2">
-          <span className="text-sm font-bold">{displayName || currentNickname}</span>
+          <span className="text-sm font-bold text-gray-700">
+            {currentNickname || nickname || "Set your nickname"}
+          </span>
           <button
             onClick={() => setIsEditing(true)}
             className="text-xs bg-white/50 hover:bg-white/80 text-gray-600 px-3 py-1 rounded-full transition font-semibold"
@@ -85,7 +85,7 @@ export default function NicknameForm({ groupId, currentNickname }: Props) {
             <button
               onClick={() => {
                 setIsEditing(false);
-                setNickname(displayName);
+                setNickname(currentNickname);
                 setMessage("");
               }}
               className="bg-gray-300 text-gray-700 px-4 py-2 rounded-lg text-sm font-bold hover:bg-gray-400 transition"

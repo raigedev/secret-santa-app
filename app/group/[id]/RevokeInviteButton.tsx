@@ -6,9 +6,14 @@ import { revokePendingInvite } from "./actions";
 type Props = {
   groupId: string;
   membershipId: string;
+  onRevoked?: () => void;
 };
 
-export default function RevokeInviteButton({ groupId, membershipId }: Props) {
+export default function RevokeInviteButton({
+  groupId,
+  membershipId,
+  onRevoked,
+}: Props) {
   const [status, setStatus] = useState<"idle" | "loading" | "revoked">("idle");
 
   const handleRevoke = async () => {
@@ -18,6 +23,7 @@ export default function RevokeInviteButton({ groupId, membershipId }: Props) {
 
     if (result.success) {
       setStatus("revoked");
+      onRevoked?.();
       return;
     }
 

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import InviteForm from "./InviteForm";
@@ -110,6 +110,19 @@ export default function GroupDetailsPage() {
 
   const [actionSaving, setActionSaving] = useState(false);
   const [actionMsg, setActionMsg] = useState("");
+  const loadGroupDataRef = useRef<(() => Promise<void>) | null>(null);
+
+  const notifyGroupRefresh = () => {
+    try {
+      localStorage.setItem(`group-refresh:${id}`, Date.now().toString());
+    } catch {
+      // Best-effort same-browser tab sync only.
+    }
+
+    if (loadGroupDataRef.current) {
+      void loadGroupDataRef.current();
+    }
+  };
 
   useEffect(() => {
     if (!id) return;
@@ -198,6 +211,8 @@ export default function GroupDetailsPage() {
       setLoading(false);
     };
 
+    loadGroupDataRef.current = loadGroupData;
+
     loadGroupData();
 
     const scheduleReload = () => {
@@ -210,32 +225,41 @@ export default function GroupDetailsPage() {
       }, 120);
     };
 
+    const handleStorageRefresh = (event: StorageEvent) => {
+      if (event.key === `group-refresh:${id}`) {
+        scheduleReload();
+      }
+    };
+
     // Refresh the page state whenever members, the group record, or
     // assignments change so the owner does not have to manually reload.
     const channel = supabase
       .channel(`group-${id}-realtime`)
       .on(
         "postgres_changes",
-        { event: "*", schema: "public", table: "group_members", filter: `group_id=eq.${id}` },
+        { event: "*", schema: "public", table: "group_members" },
         () => scheduleReload()
       )
       .on(
         "postgres_changes",
-        { event: "*", schema: "public", table: "groups", filter: `id=eq.${id}` },
+        { event: "*", schema: "public", table: "groups" },
         () => scheduleReload()
       )
       .on(
         "postgres_changes",
-        { event: "*", schema: "public", table: "assignments", filter: `group_id=eq.${id}` },
+        { event: "*", schema: "public", table: "assignments" },
         () => scheduleReload()
       )
       .subscribe();
+
+    window.addEventListener("storage", handleStorageRefresh);
 
     return () => {
       isMounted = false;
       if (reloadTimer) {
         clearTimeout(reloadTimer);
       }
+      window.removeEventListener("storage", handleStorageRefresh);
       supabase.removeChannel(channel);
     };
   }, [id, router, supabase]);
@@ -263,6 +287,7 @@ export default function GroupDetailsPage() {
     setEditSaving(false);
 
     if (result.success) {
+      notifyGroupRefresh();
       setTimeout(() => setShowEditModal(false), 800);
     }
   };
@@ -293,6 +318,13 @@ export default function GroupDetailsPage() {
     setActionSaving(false);
 
     if (result.success) {
+      setMembers((currentMembers) =>
+        currentMembers.filter(
+          (member) =>
+            member.id !== removingMember.id && member.user_id !== removingMember.user_id
+        )
+      );
+      notifyGroupRefresh();
       setTimeout(() => setRemovingMember(null), 800);
     }
   };
@@ -326,6 +358,9 @@ export default function GroupDetailsPage() {
     try {
       const result = await drawSecretSanta(id);
       setDrawMessage(result.message);
+      if (result.success) {
+        notifyGroupRefresh();
+      }
     } finally {
       setDrawLoading(false);
     }
@@ -346,6 +381,9 @@ export default function GroupDetailsPage() {
     try {
       const result = await resetSecretSantaDraw(id);
       setDrawMessage(result.message);
+      if (result.success) {
+        notifyGroupRefresh();
+      }
     } finally {
       setResetLoading(false);
     }
@@ -1251,10 +1289,21 @@ export default function GroupDetailsPage() {
                         </div>
                       </div>
 
-                      <div className="flex items-center gap-2">
-                        {isOwner && !drawDone && (
-                          <RevokeInviteButton groupId={id} membershipId={member.id} />
-                        )}
+                        <div className="flex items-center gap-2">
+                          {isOwner && !drawDone && (
+                            <RevokeInviteButton
+                              groupId={id}
+                              membershipId={member.id}
+                              onRevoked={() => {
+                                setMembers((currentMembers) =>
+                                  currentMembers.filter(
+                                    (currentMember) => currentMember.id !== member.id
+                                  )
+                                );
+                                notifyGroupRefresh();
+                              }}
+                            />
+                          )}
 
                         <span
                           className="text-[10px] font-extrabold px-2.5 py-1 rounded-full"
@@ -1311,10 +1360,21 @@ export default function GroupDetailsPage() {
                         </div>
                       </div>
 
-                      <div className="flex items-center gap-2">
-                        <ResendButton groupId={id} memberEmail={member.email || ""} />
-                        <RevokeInviteButton groupId={id} membershipId={member.id} />
-                      </div>
+                        <div className="flex items-center gap-2">
+                          <ResendButton groupId={id} memberEmail={member.email || ""} />
+                          <RevokeInviteButton
+                            groupId={id}
+                            membershipId={member.id}
+                            onRevoked={() => {
+                              setMembers((currentMembers) =>
+                                currentMembers.filter(
+                                  (currentMember) => currentMember.id !== member.id
+                                )
+                              );
+                              notifyGroupRefresh();
+                            }}
+                          />
+                        </div>
                     </div>
                   ))}
                 </div>
