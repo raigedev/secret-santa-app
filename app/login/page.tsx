@@ -2,11 +2,11 @@
 
 import Image from "next/image";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useState } from "react";
+import { Suspense, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { linkUserToGroup } from "@/utils/linkUserToGroup";
 
-export default function LoginPage() {
+function LoginPageInner() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const supabase = createClient();
@@ -187,5 +187,26 @@ export default function LoginPage() {
         />
       </div>
     </div>
+  );
+}
+
+function LoginFallback() {
+  return (
+    <div className="min-h-screen flex items-center justify-center bg-[url('/snowflakes.png')] bg-cover bg-center relative">
+      <div className="bg-gradient-to-br from-white via-blue-100 to-gray-200 rounded-lg shadow-xl border-4 border-white p-8 max-w-md w-full relative ring-4 ring-blue-200">
+        <h1 className="text-3xl font-bold text-center mb-2 text-blue-900 drop-shadow-lg">
+          GiftDraw
+        </h1>
+        <p className="text-center text-gray-700">Loading login...</p>
+      </div>
+    </div>
+  );
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense fallback={<LoginFallback />}>
+      <LoginPageInner />
+    </Suspense>
   );
 }

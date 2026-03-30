@@ -1,10 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { Suspense, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 
-export default function CreateAccountPage() {
+function CreateAccountPageInner() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const supabase = createClient();
@@ -114,5 +114,27 @@ export default function CreateAccountPage() {
         )}
       </div>
     </main>
+  );
+}
+
+function CreateAccountFallback() {
+  return (
+    <main className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-b from-sky-100 via-white to-sky-200 relative">
+      <div className="absolute inset-0 bg-[url('/snowflakes.png')] opacity-20 z-0" />
+      <div className="relative z-10 max-w-md w-full p-8 rounded-xl shadow-xl bg-white/70 backdrop-blur-md">
+        <h1 className="text-3xl font-bold mb-6 text-center text-yellow-700">
+          🎄 Create Your Account 🎁
+        </h1>
+        <p className="text-center text-gray-700">Loading sign up...</p>
+      </div>
+    </main>
+  );
+}
+
+export default function CreateAccountPage() {
+  return (
+    <Suspense fallback={<CreateAccountFallback />}>
+      <CreateAccountPageInner />
+    </Suspense>
   );
 }
