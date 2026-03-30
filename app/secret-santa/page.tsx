@@ -8,7 +8,7 @@ import {
   deleteWishlistItem,
   editWishlistItem,
 } from "@/app/dashboard/wishlist-actions";
-import { confirmGiftReceived } from "./actions";
+import { confirmGiftReceived, updateGiftPrepStatus } from "./actions";
 import { SecretSantaSkeleton } from "@/app/components/PageSkeleton";
 
 type WishlistItem = {
@@ -26,6 +26,8 @@ type RecipientData = {
   group_event_date: string;
   receiver_nickname: string;
   receiver_wishlist: WishlistItem[];
+  gift_prep_status: GiftPrepStatus | null;
+  gift_prep_updated_at: string | null;
   gift_received: boolean;
   gift_received_at: string | null;
 };
@@ -50,6 +52,8 @@ type GroupRow = {
 type AssignmentRow = {
   group_id: string;
   receiver_id: string;
+  gift_prep_status: GiftPrepStatus | null;
+  gift_prep_updated_at: string | null;
 };
 
 type ReceivedAssignmentRow = {
@@ -74,9 +78,49 @@ type WishlistRow = {
   priority: number | null;
 };
 
+type GiftPrepStatus =
+  | "planning"
+  | "purchased"
+  | "wrapped"
+  | "ready_to_give";
+
 const ITEM_NAME_MAX_LENGTH = 100;
 const ITEM_NOTE_MAX_LENGTH = 200;
 const ITEM_LINK_MAX_LENGTH = 500;
+
+const GIFT_PREP_OPTIONS: Array<{
+  value: GiftPrepStatus;
+  label: string;
+  helper: string;
+}> = [
+  {
+    value: "planning",
+    label: "Planning",
+    helper: "You have started thinking through the gift.",
+  },
+  {
+    value: "purchased",
+    label: "Purchased",
+    helper: "You already have the gift.",
+  },
+  {
+    value: "wrapped",
+    label: "Wrapped",
+    helper: "The gift is packed and almost ready.",
+  },
+  {
+    value: "ready_to_give",
+    label: "Ready to Give",
+    helper: "You are fully ready, no matter how you hand it off.",
+  },
+];
+
+const GIFT_PREP_LABELS: Record<GiftPrepStatus, string> = {
+  planning: "Planning",
+  purchased: "Purchased",
+  wrapped: "Wrapped",
+  ready_to_give: "Ready to Give",
+};
 
 const ICON_COLORS = [
   "rgba(37,99,235,.15)",
@@ -216,6 +260,8 @@ function buildRecipientData(
             createGroupUserKey(assignment.group_id, assignment.receiver_id)
           ) || []
         ),
+        gift_prep_status: assignment.gift_prep_status || null,
+        gift_prep_updated_at: assignment.gift_prep_updated_at || null,
         gift_received: Boolean(receivedStatus?.gift_received),
         gift_received_at: receivedStatus?.gift_received_at || null,
       };
@@ -264,6 +310,14 @@ function formatDisplayDate(value: string | null): string {
   return DATE_FORMATTER.format(parsedDate);
 }
 
+function getGiftPrepLabel(status: GiftPrepStatus | null): string {
+  if (!status) {
+    return "No update yet";
+  }
+
+  return GIFT_PREP_LABELS[status];
+}
+
 // Make success and error messages explicit instead of inferring them from punctuation.
 function createActionMessage(result: {
   success: boolean;
@@ -308,6 +362,7 @@ export default function SecretSantaPage() {
 
   // Page-level feedback and action state.
   const [message, setMessage] = useState<ActionMessage>(null);
+  const [updatingPrepGroup, setUpdatingPrepGroup] = useState<string | null>(null);
   const [confirmingGroup, setConfirmingGroup] = useState<string | null>(null);
 
   useEffect(() => {
@@ -368,7 +423,7 @@ export default function SecretSantaPage() {
           supabase.from("groups").select("id, name, event_date").in("id", groupIds),
           supabase
             .from("assignments")
-            .select("group_id, receiver_id")
+            .select("group_id, receiver_id, gift_prep_status, gift_prep_updated_at")
             .eq("giver_id", user.id)
             .in("group_id", groupIds),
           supabase
@@ -621,6 +676,43 @@ export default function SecretSantaPage() {
     }
   };
 
+  const handleUpdateGiftPrep = async (
+    groupId: string,
+    status: GiftPrepStatus
+  ) => {
+    setUpdatingPrepGroup(groupId);
+    setMessage(null);
+
+    try {
+      const result = await updateGiftPrepStatus(groupId, status);
+      setMessage(createActionMessage(result));
+
+      if (result.success) {
+        const updatedAt = new Date().toISOString();
+
+        setAssignments((currentAssignments) =>
+          currentAssignments.map((assignment) =>
+            assignment.group_id === groupId && assignment.gift_prep_status !== status
+              ? {
+                  ...assignment,
+                  gift_prep_status: status,
+                  gift_prep_updated_at: updatedAt,
+                }
+              : assignment
+          )
+        );
+      }
+    } catch (error) {
+      console.error("[SecretSantaPage] Failed to update gift progress:", error);
+      setMessage({
+        type: "error",
+        text: "Failed to update gift progress. Please try again.",
+      });
+    } finally {
+      setUpdatingPrepGroup(null);
+    }
+  };
+
   const handleConfirmGift = async (groupId: string) => {
     if (!confirm("Confirm that you received your gift? This can't be undone.")) {
       return;
@@ -632,6 +724,22 @@ export default function SecretSantaPage() {
     try {
       const result = await confirmGiftReceived(groupId);
       setMessage(createActionMessage(result));
+
+      if (result.success) {
+        const confirmedAt = new Date().toISOString();
+
+        setAssignments((currentAssignments) =>
+          currentAssignments.map((assignment) =>
+            assignment.group_id === groupId && !assignment.gift_received
+              ? {
+                  ...assignment,
+                  gift_received: true,
+                  gift_received_at: assignment.gift_received_at || confirmedAt,
+                }
+              : assignment
+          )
+        );
+      }
     } catch (error) {
       console.error("[SecretSantaPage] Failed to confirm gift receipt:", error);
       setMessage({
@@ -901,7 +1009,99 @@ export default function SecretSantaPage() {
                     })
                   )}
 
-                  {/* Gift confirmation reflects whether the user has marked their received gift as delivered. */}
+                  <div
+                    className="rounded-xl p-3.5 mt-3"
+                    style={{
+                      background: "rgba(59,130,246,.08)",
+                      border: "1px solid rgba(59,130,246,.14)",
+                    }}
+                  >
+                    <div className="flex items-start justify-between gap-3 mb-3">
+                      <div>
+                        <div
+                          className="text-[13px] font-extrabold"
+                          style={{ color: "#93c5fd" }}
+                        >
+                          Private gift prep
+                        </div>
+                        <div
+                          className="text-[11px] mt-0.5"
+                          style={{ color: "rgba(255,255,255,.45)" }}
+                        >
+                          Optional progress that only you can see.
+                        </div>
+                      </div>
+                      <div
+                        className="px-3 py-1 rounded-lg text-[10px] font-extrabold"
+                        style={{
+                          background: "rgba(59,130,246,.14)",
+                          color: "#bfdbfe",
+                        }}
+                      >
+                        Only you
+                      </div>
+                    </div>
+
+                    <div className="flex flex-wrap gap-2">
+                      {GIFT_PREP_OPTIONS.map((option) => {
+                        const isActive = assignment.gift_prep_status === option.value;
+                        const isDisabled =
+                          assignment.gift_received ||
+                          updatingPrepGroup === assignment.group_id;
+
+                        return (
+                          <button
+                            key={option.value}
+                            type="button"
+                            onClick={() =>
+                              handleUpdateGiftPrep(assignment.group_id, option.value)
+                            }
+                            disabled={isDisabled}
+                            className="px-3 py-2 rounded-xl text-[11px] font-bold transition"
+                            style={{
+                              background: isActive
+                                ? "linear-gradient(135deg,#60a5fa,#2563eb)"
+                                : "rgba(255,255,255,.06)",
+                              color: isActive ? "#fff" : "rgba(255,255,255,.78)",
+                              border: `1px solid ${
+                                isActive
+                                  ? "rgba(147,197,253,.4)"
+                                  : "rgba(255,255,255,.08)"
+                              }`,
+                              cursor: assignment.gift_received
+                                ? "not-allowed"
+                                : updatingPrepGroup === assignment.group_id
+                                  ? "wait"
+                                  : "pointer",
+                              fontFamily: "inherit",
+                              opacity: isDisabled && !isActive ? 0.65 : 1,
+                            }}
+                            title={option.helper}
+                          >
+                            {option.label}
+                          </button>
+                        );
+                      })}
+                    </div>
+
+                    <div
+                      className="mt-3 rounded-lg px-3 py-2 text-[11px]"
+                      style={{
+                        background: "rgba(15,23,42,.24)",
+                        color: "rgba(255,255,255,.75)",
+                      }}
+                    >
+                      <span className="font-bold" style={{ color: "#dbeafe" }}>
+                        Current:
+                      </span>{" "}
+                      {getGiftPrepLabel(assignment.gift_prep_status)}
+                      {assignment.gift_prep_updated_at
+                        ? ` • Updated ${formatDisplayDate(assignment.gift_prep_updated_at)}`
+                        : " • Update it only if it helps you stay organized"}
+                    </div>
+                  </div>
+
+                  {/* Gift confirmation stays separate from prep updates because the receiver controls this final step. */}
                   <div
                     className="rounded-xl p-3.5 mt-3 flex items-center justify-between"
                     style={{
