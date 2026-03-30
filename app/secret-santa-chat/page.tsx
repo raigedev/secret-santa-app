@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useId, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { ChatSkeleton } from "@/app/components/PageSkeleton";
@@ -111,44 +111,69 @@ function FestiveTrim({
   const palette =
     tone === "gold"
       ? {
-          rope: "#d3a128",
-          pine: "#2f6d3c",
-          pineDark: "#1f4d2c",
-          berry: "#c53b2e",
-          berryDark: "#8f231b",
-          bell: "#d9a326",
-          bellDark: "#9b6d12",
-          bow: "#c73b34",
-          glow: "rgba(251,191,36,.3)",
+          rope: "#d8a93a",
+          ropeLight: "#f3d16a",
+          pine: "#327347",
+          pineLight: "#4d9760",
+          pineDark: "#1d4c2f",
+          berry: "#d44338",
+          berryDark: "#8e211a",
+          bell: "#dca730",
+          bellLight: "#f7db79",
+          bellDark: "#94630f",
+          bow: "#d03a34",
+          bowDark: "#8f1f24",
+          sparkle: "#fff1bf",
+          glow: "rgba(251,191,36,.32)",
         }
       : tone === "green"
         ? {
-            rope: "#b98b28",
-            pine: "#348a4d",
-            pineDark: "#1e5d35",
-            berry: "#c73c33",
-            berryDark: "#92231b",
-            bell: "#d6a63a",
-            bellDark: "#936711",
-            bow: "#bb3530",
-            glow: "rgba(34,197,94,.24)",
+            rope: "#cea13a",
+            ropeLight: "#efcc6a",
+            pine: "#2d8950",
+            pineLight: "#48b16e",
+            pineDark: "#175333",
+            berry: "#d34139",
+            berryDark: "#8f1f1d",
+            bell: "#d8aa42",
+            bellLight: "#f4df89",
+            bellDark: "#8f6514",
+            bow: "#c23a33",
+            bowDark: "#8c2126",
+            sparkle: "#f0ffde",
+            glow: "rgba(34,197,94,.26)",
           }
         : {
-            rope: "#be8f2f",
-            pine: "#356b45",
-            pineDark: "#214430",
-            berry: "#b93a34",
-            berryDark: "#89231d",
-            bell: "#c99831",
-            bellDark: "#8b6111",
-            bow: "#b83731",
-            glow: "rgba(255,255,255,.16)",
+            rope: "#cca043",
+            ropeLight: "#f0d58a",
+            pine: "#386f4f",
+            pineLight: "#5ca27b",
+            pineDark: "#1d4533",
+            berry: "#c43c37",
+            berryDark: "#8d2620",
+            bell: "#d1a23c",
+            bellLight: "#f4dc8f",
+            bellDark: "#8b6216",
+            bow: "#bf3934",
+            bowDark: "#882127",
+            sparkle: "#fff6d5",
+            glow: "rgba(255,255,255,.18)",
           };
 
-  const topHeight = compact ? 48 : 66;
-  const topOffset = compact ? -18 : -28;
-  const cornerSize = compact ? 56 : 72;
-  const bottomCornerSize = compact ? 34 : 42;
+  const ids = {
+    rope: useId().replace(/:/g, ""),
+    pine: useId().replace(/:/g, ""),
+    pineAlt: useId().replace(/:/g, ""),
+    berry: useId().replace(/:/g, ""),
+    bow: useId().replace(/:/g, ""),
+    bell: useId().replace(/:/g, ""),
+    bellShine: useId().replace(/:/g, ""),
+  };
+
+  const topHeight = compact ? 56 : 78;
+  const topOffset = compact ? -22 : -34;
+  const cornerSize = compact ? 62 : 84;
+  const bottomCornerSize = compact ? 38 : 48;
   const frameInset = compact ? 4 : 6;
   const frameRadius = compact ? 16 : 20;
   const frameColor =
@@ -157,6 +182,65 @@ function FestiveTrim({
       : tone === "green"
         ? "rgba(34,197,94,.18)"
         : "rgba(255,255,255,.14)";
+  const crestWidth = compact ? 110 : 152;
+  const crestHeight = compact ? 52 : 70;
+
+  const renderCornerCluster = (side: "left" | "right", bottom = false) => {
+    const flipX = side === "right" ? -1 : 1;
+    const flipY = bottom ? -1 : 1;
+
+    return (
+      <svg
+        className="absolute"
+        style={{
+          [side]: bottom ? -2 : -8,
+          [bottom ? "bottom" : "top"]: bottom ? -6 : compact ? -8 : -10,
+          width: bottom ? bottomCornerSize : cornerSize,
+          height: bottom ? bottomCornerSize : cornerSize,
+          transform: `scale(${flipX}, ${flipY})`,
+          transformOrigin: "center",
+          filter: `drop-shadow(0 4px 12px ${palette.glow})`,
+        }}
+        viewBox="0 0 96 96"
+      >
+        <defs>
+          <linearGradient id={`${ids.pine}-corner-${side}-${bottom ? "b" : "t"}`} x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stopColor={palette.pineLight} />
+            <stop offset="55%" stopColor={palette.pine} />
+            <stop offset="100%" stopColor={palette.pineDark} />
+          </linearGradient>
+          <radialGradient id={`${ids.berry}-corner-${side}-${bottom ? "b" : "t"}`} cx="35%" cy="35%" r="70%">
+            <stop offset="0%" stopColor="#ffb0a5" />
+            <stop offset="30%" stopColor={palette.berry} />
+            <stop offset="100%" stopColor={palette.berryDark} />
+          </radialGradient>
+          <linearGradient id={`${ids.bell}-corner-${side}-${bottom ? "b" : "t"}`} x1="0%" y1="0%" x2="50%" y2="100%">
+            <stop offset="0%" stopColor={palette.bellLight} />
+            <stop offset="55%" stopColor={palette.bell} />
+            <stop offset="100%" stopColor={palette.bellDark} />
+          </linearGradient>
+        </defs>
+        <ellipse cx="30" cy="28" rx="31" ry="11" fill={`url(#${ids.pine}-corner-${side}-${bottom ? "b" : "t"})`} transform="rotate(-28 30 28)" />
+        <ellipse cx="50" cy="22" rx="29" ry="10" fill={`url(#${ids.pine}-corner-${side}-${bottom ? "b" : "t"})`} transform="rotate(14 50 22)" />
+        <ellipse cx="26" cy="48" rx="23" ry="9" fill={`url(#${ids.pine}-corner-${side}-${bottom ? "b" : "t"})`} transform="rotate(42 26 48)" />
+        <ellipse cx="54" cy="44" rx="19" ry="7" fill={palette.pineDark} transform="rotate(-22 54 44)" opacity="0.9" />
+        <circle cx="40" cy="42" r="6.5" fill={`url(#${ids.berry}-corner-${side}-${bottom ? "b" : "t"})`} />
+        <circle cx="28" cy="50" r="5.5" fill={`url(#${ids.berry}-corner-${side}-${bottom ? "b" : "t"})`} />
+        <circle cx="54" cy="52" r="5.5" fill={`url(#${ids.berry}-corner-${side}-${bottom ? "b" : "t"})`} />
+        {!bottom && (
+          <>
+            <path
+              d="M58 34 C 65 33, 72 38, 72 46 C 72 54, 66 60, 58 60 C 50 60, 44 54, 44 46 C 44 39, 50 34, 58 34 Z"
+              fill={`url(#${ids.bell}-corner-${side}-${bottom ? "b" : "t"})`}
+            />
+            <path d="M48 40 Q58 46 68 40" stroke={palette.bellDark} strokeWidth="2.6" fill="none" opacity="0.5" />
+            <circle cx="58" cy="53" r="4.2" fill={palette.bellDark} />
+            <circle cx="54" cy="40" r="2.2" fill="rgba(255,255,255,.45)" />
+          </>
+        )}
+      </svg>
+    );
+  };
 
   return (
     <div className="pointer-events-none absolute inset-0 overflow-visible" aria-hidden="true">
@@ -182,159 +266,186 @@ function FestiveTrim({
         }}
         viewBox="0 0 1000 120"
         preserveAspectRatio="none"
-        >
-          <path
-            d="M80 58 C 210 18, 350 18, 500 58 C 650 98, 790 98, 920 58"
-            fill="none"
-            stroke={palette.rope}
-            strokeWidth="9"
-            strokeLinecap="round"
-          />
-          <path
-            d="M90 60 C 220 28, 350 28, 500 60 C 650 92, 780 92, 910 60"
-            fill="none"
-            stroke={palette.pine}
-            strokeWidth="18"
-            strokeLinecap="round"
-            opacity="0.92"
-          />
-          <path
-            d="M105 51 C 235 24, 360 24, 500 51 C 640 79, 765 79, 895 51"
-            fill="none"
-            stroke={palette.pineDark}
-            strokeWidth="7"
-            strokeLinecap="round"
-            opacity="0.82"
-          />
+      >
+        <defs>
+          <linearGradient id={`${ids.rope}-main`} x1="0%" y1="0%" x2="100%" y2="0%">
+            <stop offset="0%" stopColor={palette.ropeLight} />
+            <stop offset="50%" stopColor={palette.rope} />
+            <stop offset="100%" stopColor={palette.ropeLight} />
+          </linearGradient>
+          <linearGradient id={`${ids.pine}-main`} x1="10%" y1="0%" x2="90%" y2="100%">
+            <stop offset="0%" stopColor={palette.pineLight} />
+            <stop offset="45%" stopColor={palette.pine} />
+            <stop offset="100%" stopColor={palette.pineDark} />
+          </linearGradient>
+          <linearGradient id={`${ids.pineAlt}-main`} x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stopColor={palette.pineDark} />
+            <stop offset="100%" stopColor={palette.pineLight} />
+          </linearGradient>
+          <radialGradient id={`${ids.berry}-main`} cx="35%" cy="30%" r="70%">
+            <stop offset="0%" stopColor="#ffd2ca" />
+            <stop offset="28%" stopColor={palette.berry} />
+            <stop offset="100%" stopColor={palette.berryDark} />
+          </radialGradient>
+          <linearGradient id={`${ids.bow}-main`} x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stopColor={palette.bow} />
+            <stop offset="55%" stopColor="#e04a44" />
+            <stop offset="100%" stopColor={palette.bowDark} />
+          </linearGradient>
+          <linearGradient id={`${ids.bell}-main`} x1="0%" y1="0%" x2="40%" y2="100%">
+            <stop offset="0%" stopColor={palette.bellLight} />
+            <stop offset="45%" stopColor={palette.bell} />
+            <stop offset="100%" stopColor={palette.bellDark} />
+          </linearGradient>
+          <radialGradient id={`${ids.bellShine}-main`} cx="30%" cy="25%" r="75%">
+            <stop offset="0%" stopColor="rgba(255,255,255,.72)" />
+            <stop offset="25%" stopColor="rgba(255,255,255,.35)" />
+            <stop offset="100%" stopColor="rgba(255,255,255,0)" />
+          </radialGradient>
+        </defs>
+
+        <path
+          d="M78 56 C 210 16, 352 16, 500 56 C 648 96, 790 96, 922 56"
+          fill="none"
+          stroke={`url(#${ids.rope}-main)`}
+          strokeWidth="9"
+          strokeLinecap="round"
+        />
+        <path
+          d="M94 59 C 224 28, 355 28, 500 59 C 645 90, 776 90, 906 59"
+          fill="none"
+          stroke={`url(#${ids.pine}-main)`}
+          strokeWidth="18"
+          strokeLinecap="round"
+          opacity="0.98"
+        />
+        <path
+          d="M112 48 C 246 24, 366 24, 500 48 C 634 72, 754 72, 888 48"
+          fill="none"
+          stroke={`url(#${ids.pineAlt}-main)`}
+          strokeWidth="6"
+          strokeLinecap="round"
+          opacity="0.8"
+        />
+
+        {[180, 320, 680, 820].map((x, index) => (
+          <g key={x} transform={`translate(${x} ${index % 2 === 0 ? 44 : 52})`}>
+            <ellipse cx="-16" cy="0" rx="24" ry="8" fill={`url(#${ids.pine}-main)`} transform="rotate(-26)" />
+            <ellipse cx="2" cy="-4" rx="22" ry="8" fill={`url(#${ids.pine}-main)`} transform="rotate(12)" />
+            <ellipse cx="-2" cy="12" rx="18" ry="7" fill={`url(#${ids.pineAlt}-main)`} transform="rotate(38)" />
+            <circle cx="10" cy="14" r="5" fill={`url(#${ids.berry}-main)`} />
+            <circle cx="-6" cy="18" r="4" fill={`url(#${ids.berry}-main)`} />
+          </g>
+        ))}
+
         <g transform="translate(120 42)">
-          <ellipse cx="0" cy="0" rx="26" ry="10" fill={palette.pineDark} transform="rotate(-28)" />
-          <ellipse cx="18" cy="2" rx="24" ry="9" fill={palette.pine} transform="rotate(14)" />
-          <ellipse cx="-18" cy="10" rx="20" ry="8" fill={palette.pine} transform="rotate(42)" />
-          <circle cx="10" cy="18" r="6" fill={palette.berry} />
-          <circle cx="-4" cy="22" r="5" fill={palette.berryDark} />
-          <circle cx="22" cy="24" r="5" fill={palette.berry} />
+          <ellipse cx="0" cy="0" rx="27" ry="10" fill={`url(#${ids.pine}-main)`} transform="rotate(-28)" />
+          <ellipse cx="20" cy="1" rx="25" ry="10" fill={`url(#${ids.pineAlt}-main)`} transform="rotate(14)" />
+          <ellipse cx="-18" cy="12" rx="20" ry="8" fill={`url(#${ids.pine}-main)`} transform="rotate(42)" />
+          <ellipse cx="22" cy="20" rx="17" ry="7" fill={`url(#${ids.pineAlt}-main)`} transform="rotate(-18)" />
+          <circle cx="10" cy="18" r="6" fill={`url(#${ids.berry}-main)`} />
+          <circle cx="-4" cy="22" r="5" fill={`url(#${ids.berry}-main)`} />
+          <circle cx="22" cy="24" r="5" fill={`url(#${ids.berry}-main)`} />
         </g>
         <g transform="translate(880 42)">
-          <ellipse cx="0" cy="0" rx="26" ry="10" fill={palette.pineDark} transform="rotate(28)" />
-          <ellipse cx="-18" cy="2" rx="24" ry="9" fill={palette.pine} transform="rotate(-14)" />
-          <ellipse cx="18" cy="10" rx="20" ry="8" fill={palette.pine} transform="rotate(-42)" />
-          <circle cx="-10" cy="18" r="6" fill={palette.berry} />
-          <circle cx="4" cy="22" r="5" fill={palette.berryDark} />
-          <circle cx="-22" cy="24" r="5" fill={palette.berry} />
+          <ellipse cx="0" cy="0" rx="27" ry="10" fill={`url(#${ids.pine}-main)`} transform="rotate(28)" />
+          <ellipse cx="-20" cy="1" rx="25" ry="10" fill={`url(#${ids.pineAlt}-main)`} transform="rotate(-14)" />
+          <ellipse cx="18" cy="12" rx="20" ry="8" fill={`url(#${ids.pine}-main)`} transform="rotate(-42)" />
+          <ellipse cx="-22" cy="20" rx="17" ry="7" fill={`url(#${ids.pineAlt}-main)`} transform="rotate(18)" />
+          <circle cx="-10" cy="18" r="6" fill={`url(#${ids.berry}-main)`} />
+          <circle cx="4" cy="22" r="5" fill={`url(#${ids.berry}-main)`} />
+          <circle cx="-22" cy="24" r="5" fill={`url(#${ids.berry}-main)`} />
         </g>
-        {withBells && (
-          <g transform="translate(500 38)">
+
+        <g transform={`translate(500 ${withBells ? 36 : 32})`}>
+          <ellipse cx="0" cy="12" rx="72" ry="10" fill="rgba(0,0,0,.12)" />
+          <path
+            d="M-42 -6 C -28 -26, -8 -22, 0 -2 C 8 -22, 28 -26, 42 -6 L 22 12 L 0 -2 L -22 12 Z"
+            fill={`url(#${ids.bow}-main)`}
+          />
+          <path d="M-10 12 L -18 28" stroke={palette.rope} strokeWidth="4" strokeLinecap="round" />
+          <path d="M10 12 L 18 28" stroke={palette.rope} strokeWidth="4" strokeLinecap="round" />
+          <circle cx="0" cy="8" r="7" fill={`url(#${ids.berry}-main)`} />
+          <ellipse cx="-24" cy="18" rx="17" ry="7" fill={`url(#${ids.pine}-main)`} transform="rotate(-18)" />
+          <ellipse cx="24" cy="18" rx="17" ry="7" fill={`url(#${ids.pine}-main)`} transform="rotate(18)" />
+          <ellipse cx="-14" cy="26" rx="14" ry="6" fill={`url(#${ids.pineAlt}-main)`} transform="rotate(22)" />
+          <ellipse cx="14" cy="26" rx="14" ry="6" fill={`url(#${ids.pineAlt}-main)`} transform="rotate(-22)" />
+          {withBells ? (
+            <g transform="translate(0 12)">
+              <path
+                d="M-26 14 C -36 14, -44 24, -44 36 C -44 49, -34 58, -22 58 C -10 58, -2 48, -2 36 C -2 24, -12 14, -22 14 Z"
+                fill={`url(#${ids.bell}-main)`}
+              />
+              <path
+                d="M26 14 C 36 14, 44 24, 44 36 C 44 49, 34 58, 22 58 C 10 58, 2 48, 2 36 C 2 24, 12 14, 22 14 Z"
+                fill={`url(#${ids.bell}-main)`}
+              />
+              <path d="M-30 22 Q-22 28 -14 22" stroke={palette.bellDark} strokeWidth="3" fill="none" opacity="0.55" />
+              <path d="M14 22 Q22 28 30 22" stroke={palette.bellDark} strokeWidth="3" fill="none" opacity="0.55" />
+              <circle cx="-22" cy="49" r="4.5" fill={palette.bellDark} />
+              <circle cx="22" cy="49" r="4.5" fill={palette.bellDark} />
+              <ellipse cx="-28" cy="24" rx="10" ry="12" fill={`url(#${ids.bellShine}-main)`} />
+              <ellipse cx="16" cy="24" rx="10" ry="12" fill={`url(#${ids.bellShine}-main)`} />
+            </g>
+          ) : (
+            <g transform="translate(0 30)">
+              <ellipse cx="-14" cy="0" rx="16" ry="7" fill={`url(#${ids.pine}-main)`} transform="rotate(18)" />
+              <ellipse cx="14" cy="0" rx="16" ry="7" fill={`url(#${ids.pine}-main)`} transform="rotate(-18)" />
+              <circle cx="-4" cy="2" r="4.5" fill={`url(#${ids.berry}-main)`} />
+              <circle cx="6" cy="2" r="4.5" fill={`url(#${ids.berry}-main)`} />
+            </g>
+          )}
+          <circle cx="-32" cy="-6" r="2.2" fill={palette.sparkle} opacity="0.8" />
+          <circle cx="36" cy="-2" r="1.8" fill={palette.sparkle} opacity="0.7" />
+        </g>
+      </svg>
+
+      <svg
+        className="absolute"
+        style={{
+          left: "50%",
+          top: compact ? -10 : -14,
+          width: crestWidth,
+          height: crestHeight,
+          transform: "translateX(-50%)",
+          filter: `drop-shadow(0 6px 16px ${palette.glow})`,
+        }}
+        viewBox="0 0 180 84"
+      >
+        <ellipse cx="90" cy="68" rx="44" ry="8" fill="rgba(0,0,0,.12)" />
+        <path d="M58 24 C 68 4, 84 6, 90 20 C 96 6, 112 4, 122 24 L 104 38 L 90 24 L 76 38 Z" fill={`url(#${ids.bow}-main)`} />
+        <circle cx="90" cy="29" r="7" fill={`url(#${ids.berry}-main)`} />
+        {withBells ? (
+          <>
             <path
-              d="M-38 -4 C -26 -22, -8 -18, 0 0 C 8 -18, 26 -22, 38 -4 L 18 12 L 0 0 L -18 12 Z"
-              fill={palette.bow}
-            />
-            <circle cx="0" cy="8" r="6" fill={palette.berry} />
-            <path d="M-10 12 L -14 18" stroke={palette.rope} strokeWidth="4" strokeLinecap="round" />
-            <path d="M10 12 L 14 18" stroke={palette.rope} strokeWidth="4" strokeLinecap="round" />
-            <path
-              d="M-26 20 C -34 20, -40 28, -40 38 C -40 48, -32 56, -22 56 C -12 56, -4 48, -4 38 C -4 28, -12 20, -20 20 Z"
-              fill={palette.bell}
+              d="M72 38 C 60 38, 50 48, 50 60 C 50 73, 60 82, 74 82 C 88 82, 98 72, 98 60 C 98 48, 88 38, 76 38 Z"
+              fill={`url(#${ids.bell}-main)`}
             />
             <path
-              d="M26 20 C 34 20, 40 28, 40 38 C 40 48, 32 56, 22 56 C 12 56, 4 48, 4 38 C 4 28, 12 20, 20 20 Z"
-              fill={palette.bell}
+              d="M108 38 C 120 38, 130 48, 130 60 C 130 73, 120 82, 106 82 C 92 82, 82 72, 82 60 C 82 48, 92 38, 104 38 Z"
+              fill={`url(#${ids.bell}-main)`}
             />
-            <path d="M-26 26 H -6" stroke={palette.bellDark} strokeWidth="3" opacity="0.7" />
-            <path d="M6 26 H 26" stroke={palette.bellDark} strokeWidth="3" opacity="0.7" />
-            <circle cx="-22" cy="48" r="4" fill={palette.bellDark} />
-            <circle cx="22" cy="48" r="4" fill={palette.bellDark} />
-          </g>
+            <path d="M58 48 Q74 58 90 48" stroke={palette.bellDark} strokeWidth="3" fill="none" opacity="0.52" />
+            <path d="M90 48 Q106 58 122 48" stroke={palette.bellDark} strokeWidth="3" fill="none" opacity="0.52" />
+            <circle cx="74" cy="72" r="4.8" fill={palette.bellDark} />
+            <circle cx="106" cy="72" r="4.8" fill={palette.bellDark} />
+            <ellipse cx="68" cy="50" rx="10" ry="12" fill={`url(#${ids.bellShine}-main)`} />
+            <ellipse cx="98" cy="50" rx="10" ry="12" fill={`url(#${ids.bellShine}-main)`} />
+          </>
+        ) : (
+          <>
+            <ellipse cx="72" cy="53" rx="18" ry="7" fill={`url(#${ids.pine}-main)`} transform="rotate(16 72 53)" />
+            <ellipse cx="108" cy="53" rx="18" ry="7" fill={`url(#${ids.pine}-main)`} transform="rotate(-16 108 53)" />
+            <circle cx="86" cy="56" r="5" fill={`url(#${ids.berry}-main)`} />
+            <circle cx="96" cy="56" r="5" fill={`url(#${ids.berry}-main)`} />
+          </>
         )}
       </svg>
 
-      <svg
-        className="absolute"
-        style={{
-          left: -8,
-          top: compact ? -8 : -10,
-          width: cornerSize,
-          height: cornerSize,
-          filter: `drop-shadow(0 4px 10px ${palette.glow})`,
-        }}
-        viewBox="0 0 90 90"
-      >
-        <ellipse cx="26" cy="26" rx="28" ry="10" fill={palette.pineDark} transform="rotate(-26 26 26)" />
-        <ellipse cx="46" cy="24" rx="26" ry="10" fill={palette.pine} transform="rotate(12 46 24)" />
-        <ellipse cx="26" cy="44" rx="20" ry="8" fill={palette.pine} transform="rotate(42 26 44)" />
-        <circle cx="38" cy="40" r="6" fill={palette.berry} />
-        <circle cx="26" cy="48" r="5" fill={palette.berryDark} />
-        <circle cx="50" cy="50" r="5" fill={palette.berry} />
-        <path
-          d="M58 36 C 64 34, 70 38, 70 44 C 70 50, 66 54, 60 54 C 54 54, 50 50, 50 44 C 50 40, 53 37, 58 36 Z"
-          fill={palette.bell}
-          opacity="0.92"
-        />
-      </svg>
-
-      <svg
-        className="absolute"
-        style={{
-          right: -8,
-          top: compact ? -8 : -10,
-          width: cornerSize,
-          height: cornerSize,
-          transform: "scaleX(-1)",
-          filter: `drop-shadow(0 4px 10px ${palette.glow})`,
-        }}
-        viewBox="0 0 90 90"
-      >
-        <ellipse cx="26" cy="26" rx="28" ry="10" fill={palette.pineDark} transform="rotate(-26 26 26)" />
-        <ellipse cx="46" cy="24" rx="26" ry="10" fill={palette.pine} transform="rotate(12 46 24)" />
-        <ellipse cx="26" cy="44" rx="20" ry="8" fill={palette.pine} transform="rotate(42 26 44)" />
-        <circle cx="38" cy="40" r="6" fill={palette.berry} />
-        <circle cx="26" cy="48" r="5" fill={palette.berryDark} />
-        <circle cx="50" cy="50" r="5" fill={palette.berry} />
-        <path
-          d="M58 36 C 64 34, 70 38, 70 44 C 70 50, 66 54, 60 54 C 54 54, 50 50, 50 44 C 50 40, 53 37, 58 36 Z"
-          fill={palette.bell}
-          opacity="0.92"
-        />
-      </svg>
-
-      <svg
-        className="absolute"
-        style={{
-          left: -4,
-          bottom: -6,
-          width: bottomCornerSize,
-          height: bottomCornerSize,
-          transform: "scaleY(-1)",
-          filter: `drop-shadow(0 4px 10px ${palette.glow})`,
-        }}
-        viewBox="0 0 90 90"
-      >
-        <ellipse cx="26" cy="26" rx="28" ry="10" fill={palette.pineDark} transform="rotate(-26 26 26)" />
-        <ellipse cx="46" cy="24" rx="26" ry="10" fill={palette.pine} transform="rotate(12 46 24)" />
-        <ellipse cx="26" cy="44" rx="20" ry="8" fill={palette.pine} transform="rotate(42 26 44)" />
-        <circle cx="38" cy="40" r="6" fill={palette.berry} />
-        <circle cx="26" cy="48" r="5" fill={palette.berryDark} />
-        <circle cx="50" cy="50" r="5" fill={palette.berry} />
-      </svg>
-
-      <svg
-        className="absolute"
-        style={{
-          right: -4,
-          bottom: -6,
-          width: bottomCornerSize,
-          height: bottomCornerSize,
-          transform: "scale(-1)",
-          filter: `drop-shadow(0 4px 10px ${palette.glow})`,
-        }}
-        viewBox="0 0 90 90"
-      >
-        <ellipse cx="26" cy="26" rx="28" ry="10" fill={palette.pineDark} transform="rotate(-26 26 26)" />
-        <ellipse cx="46" cy="24" rx="26" ry="10" fill={palette.pine} transform="rotate(12 46 24)" />
-        <ellipse cx="26" cy="44" rx="20" ry="8" fill={palette.pine} transform="rotate(42 26 44)" />
-        <circle cx="38" cy="40" r="6" fill={palette.berry} />
-        <circle cx="26" cy="48" r="5" fill={palette.berryDark} />
-        <circle cx="50" cy="50" r="5" fill={palette.berry} />
-      </svg>
+      {renderCornerCluster("left")}
+      {renderCornerCluster("right")}
+      {renderCornerCluster("left", true)}
+      {renderCornerCluster("right", true)}
     </div>
   );
 }
