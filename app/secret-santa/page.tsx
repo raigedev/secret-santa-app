@@ -312,6 +312,7 @@ export default function SecretSantaPage() {
 
   useEffect(() => {
     let isMounted = true;
+    let reloadTimer: ReturnType<typeof setTimeout> | null = null;
 
     // Load every dataset needed by the page in one place.
     // This centralizes error handling and prevents duplicated state sync logic.
@@ -464,6 +465,18 @@ export default function SecretSantaPage() {
       }
     };
 
+    const scheduleReload = () => {
+      if (reloadTimer) {
+        clearTimeout(reloadTimer);
+      }
+
+      // Several related rows can change for one group action, so batch the
+      // follow-up reload into a single refresh of the page state.
+      reloadTimer = setTimeout(() => {
+        void loadData();
+      }, 120);
+    };
+
     void loadData();
 
     // Refresh visible data when related rows change in Supabase.
@@ -472,17 +485,30 @@ export default function SecretSantaPage() {
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "wishlists" },
-        () => void loadData()
+        () => scheduleReload()
       )
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "assignments" },
-        () => void loadData()
+        () => scheduleReload()
+      )
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "group_members" },
+        () => scheduleReload()
+      )
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "groups" },
+        () => scheduleReload()
       )
       .subscribe();
 
     return () => {
       isMounted = false;
+      if (reloadTimer) {
+        clearTimeout(reloadTimer);
+      }
       void supabase.removeChannel(channel);
     };
   }, [supabase, router]);

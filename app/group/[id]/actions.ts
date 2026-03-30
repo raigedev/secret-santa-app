@@ -438,6 +438,66 @@ export async function revokeInviteLink(
   return { success: true, message: "✅ Invite link revoked." };
 }
 
+export async function getActiveInviteLink(
+  groupId: string
+): Promise<{ success: boolean; message: string; token?: string }> {
+  if (!groupId) {
+    return { success: false, message: "Missing group ID." };
+  }
+
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    return { success: false, message: "You must be logged in." };
+  }
+
+  const { data: group } = await supabase
+    .from("groups")
+    .select("owner_id")
+    .eq("id", groupId)
+    .maybeSingle();
+
+  if (!group || group.owner_id !== user.id) {
+    return { success: false, message: "Only the group owner can view invite links." };
+  }
+
+  const { data: link, error } = await supabaseAdmin
+    .from("group_invite_links")
+    .select("token, expires_at")
+    .eq("group_id", groupId)
+    .eq("is_active", true)
+    .maybeSingle();
+
+  if (error) {
+    await recordServerFailure({
+      actorUserId: user.id,
+      errorMessage: error.message,
+      eventType: "group.get_active_invite_link",
+      resourceId: groupId,
+      resourceType: "group",
+    });
+
+    return { success: false, message: "Failed to load the active invite link." };
+  }
+
+  if (!link) {
+    return { success: true, message: "No active invite link." };
+  }
+
+  if (link.expires_at && new Date(link.expires_at).getTime() < Date.now()) {
+    return { success: true, message: "No active invite link." };
+  }
+
+  return {
+    success: true,
+    message: "Active invite link loaded.",
+    token: link.token,
+  };
+}
+
 export async function revokePendingInvite(
   groupId: string,
   membershipId: string

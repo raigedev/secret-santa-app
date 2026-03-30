@@ -1,8 +1,13 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useFormState } from "react-dom";
-import { createInviteLink, inviteUser, revokeInviteLink } from "./actions";
+import {
+  createInviteLink,
+  getActiveInviteLink,
+  inviteUser,
+  revokeInviteLink,
+} from "./actions";
 
 type State = {
   message: string;
@@ -13,6 +18,43 @@ export default function InviteForm({ groupId }: { groupId: string }) {
   const [linkMessage, setLinkMessage] = useState("");
   const [inviteLink, setInviteLink] = useState("");
   const [linkLoading, setLinkLoading] = useState<"idle" | "creating" | "revoking">("idle");
+
+  useEffect(() => {
+    let isMounted = true;
+    const storageKey = `group-invite-link:${groupId}`;
+
+    const loadActiveLink = async () => {
+      const result = await getActiveInviteLink(groupId);
+
+      if (!isMounted || !result.success || !result.token) {
+        return;
+      }
+
+      setInviteLink(`${window.location.origin}/invite/${encodeURIComponent(result.token)}`);
+    };
+
+    void loadActiveLink();
+
+    const handleStorage = (event: StorageEvent) => {
+      if (event.key !== storageKey || !isMounted) {
+        return;
+      }
+
+      try {
+        const payload = event.newValue ? JSON.parse(event.newValue) : null;
+        setInviteLink(payload?.link || "");
+      } catch {
+        setInviteLink("");
+      }
+    };
+
+    window.addEventListener("storage", handleStorage);
+
+    return () => {
+      isMounted = false;
+      window.removeEventListener("storage", handleStorage);
+    };
+  }, [groupId]);
 
   const handleCreateInviteLink = async () => {
     setLinkLoading("creating");
@@ -28,6 +70,10 @@ export default function InviteForm({ groupId }: { groupId: string }) {
 
     const nextLink = `${window.location.origin}/invite/${encodeURIComponent(result.token)}`;
     setInviteLink(nextLink);
+    localStorage.setItem(
+      `group-invite-link:${groupId}`,
+      JSON.stringify({ link: nextLink, updatedAt: Date.now() })
+    );
 
     try {
       await navigator.clipboard.writeText(nextLink);
@@ -47,6 +93,10 @@ export default function InviteForm({ groupId }: { groupId: string }) {
 
     if (result.success) {
       setInviteLink("");
+      localStorage.setItem(
+        `group-invite-link:${groupId}`,
+        JSON.stringify({ link: "", updatedAt: Date.now() })
+      );
     }
 
     setLinkMessage(result.message);

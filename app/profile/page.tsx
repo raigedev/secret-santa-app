@@ -41,6 +41,7 @@ type Profile = {
 export default function ProfilePage() {
   const router = useRouter();
   const [supabase] = useState(() => createClient());
+  const [userId, setUserId] = useState<string | null>(null);
   const [email, setEmail] = useState("");
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -62,12 +63,19 @@ export default function ProfilePage() {
   });
 
   useEffect(() => {
+    let isMounted = true;
+
     const load = async () => {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) { router.push("/login"); return; }
+      if (!isMounted) return;
+
+      setUserId(session.user.id);
       setEmail(session.user.email || "");
 
       const data = await getProfile();
+      if (!isMounted) return;
+
       if (data) {
         setProfile({
           display_name: data.display_name || "",
@@ -82,12 +90,73 @@ export default function ProfilePage() {
           notify_marketing: data.notify_marketing ?? false,
           profile_setup_complete: data.profile_setup_complete ?? false,
         });
-        if (!BUDGET_OPTIONS.includes(data.default_budget)) setCustomBudget(true);
+        setCustomBudget(!BUDGET_OPTIONS.includes(data.default_budget || 25));
       }
       setLoading(false);
     };
-    load();
+
+    void load();
+
+    return () => {
+      isMounted = false;
+    };
   }, [supabase, router]);
+
+  useEffect(() => {
+    if (!userId) {
+      return;
+    }
+
+    let reloadTimer: ReturnType<typeof setTimeout> | null = null;
+
+    const channel = supabase
+      .channel(`profile-${userId}-realtime`)
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "profiles",
+          filter: `user_id=eq.${userId}`,
+        },
+        () => {
+          if (reloadTimer) {
+            clearTimeout(reloadTimer);
+          }
+
+          reloadTimer = setTimeout(() => {
+            void getProfile().then((data) => {
+              if (!data) {
+                return;
+              }
+
+              setProfile({
+                display_name: data.display_name || "",
+                avatar_emoji: data.avatar_emoji || "🎅",
+                bio: data.bio || "",
+                default_budget: data.default_budget || 25,
+                currency: data.currency || "USD",
+                notify_invites: data.notify_invites ?? true,
+                notify_draws: data.notify_draws ?? true,
+                notify_chat: data.notify_chat ?? true,
+                notify_wishlist: data.notify_wishlist ?? false,
+                notify_marketing: data.notify_marketing ?? false,
+                profile_setup_complete: data.profile_setup_complete ?? false,
+              });
+              setCustomBudget(!BUDGET_OPTIONS.includes(data.default_budget || 25));
+            });
+          }, 120);
+        }
+      )
+      .subscribe();
+
+    return () => {
+      if (reloadTimer) {
+        clearTimeout(reloadTimer);
+      }
+      void supabase.removeChannel(channel);
+    };
+  }, [supabase, userId]);
 
   const handleSave = async () => {
     setSaving(true);

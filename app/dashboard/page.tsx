@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import InviteCard from "./InviteCard";
@@ -103,9 +103,15 @@ export default function DashboardPage() {
   const [showProfileSetup, setShowProfileSetup] = useState(false);
   const [actionMessage, setActionMessage] = useState<ActionMessage>(null);
   const [deletingGroupId, setDeletingGroupId] = useState<string | null>(null);
+  const loadDashboardDataRef = useRef<
+    ((user: { id: string; email?: string | null }) => Promise<void>) | null
+  >(null);
+  const loadProfileDataRef = useRef<(() => Promise<void>) | null>(null);
 
   useEffect(() => {
     let isMounted = true;
+    let dashboardReloadTimer: ReturnType<typeof setTimeout> | null = null;
+    let profileReloadTimer: ReturnType<typeof setTimeout> | null = null;
     let sessionUser:
       | {
           id: string;
@@ -302,6 +308,56 @@ export default function DashboardPage() {
       }
     };
 
+    loadDashboardDataRef.current = loadDashboardData;
+
+    const loadProfileData = async () => {
+      const profileData = await getProfile();
+
+      if (!isMounted || !sessionUser) {
+        return;
+      }
+
+      const defaultName = (sessionUser.email || "guest@example.com").split("@")[0];
+
+      if (profileData) {
+        setShowProfileSetup(!profileData.profile_setup_complete);
+        setUserName(profileData.display_name || defaultName);
+        setUserEmoji(profileData.avatar_emoji || "🎅");
+      }
+    };
+
+    loadProfileDataRef.current = loadProfileData;
+
+    const scheduleDashboardReload = () => {
+      if (!sessionUser) {
+        return;
+      }
+
+      if (dashboardReloadTimer) {
+        clearTimeout(dashboardReloadTimer);
+      }
+
+      // Group actions often touch several related rows. Debouncing the reload
+      // keeps the dashboard from flashing through multiple intermediate states.
+      dashboardReloadTimer = setTimeout(() => {
+        if (sessionUser && loadDashboardDataRef.current) {
+          void loadDashboardDataRef.current(sessionUser);
+        }
+      }, 120);
+    };
+
+    const scheduleProfileReload = () => {
+      if (profileReloadTimer) {
+        clearTimeout(profileReloadTimer);
+      }
+
+      profileReloadTimer = setTimeout(() => {
+        if (loadProfileDataRef.current) {
+          void loadProfileDataRef.current();
+        }
+      }, 120);
+    };
+
     const bootstrapDashboard = async () => {
       try {
         const {
@@ -324,17 +380,12 @@ export default function DashboardPage() {
 
         setUserName(defaultName);
 
-        const [profileData] = await Promise.all([getProfile(), claimInvitedMemberships()]);
+        await Promise.all([loadProfileData(), claimInvitedMemberships()]);
 
         if (!isMounted) {
           return;
         }
 
-        if (profileData) {
-          setShowProfileSetup(!profileData.profile_setup_complete);
-          setUserName(profileData.display_name || defaultName);
-          setUserEmoji(profileData.avatar_emoji || "🎅");
-        }
 
         await loadDashboardData(session.user);
       } catch (error) {
@@ -359,27 +410,28 @@ export default function DashboardPage() {
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "group_members" },
-        () => {
-          if (sessionUser) {
-            void loadDashboardData(sessionUser);
-          }
-        }
+        () => scheduleDashboardReload()
       )
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "groups" },
-        () => {
-          if (sessionUser) {
-            void loadDashboardData(sessionUser);
-          }
-        }
+        () => scheduleDashboardReload()
       )
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "assignments" },
-        () => {
-          if (sessionUser) {
-            void loadDashboardData(sessionUser);
+        () => scheduleDashboardReload()
+      )
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "profiles" },
+        (payload) => {
+          const changedUserId =
+            (payload.new as { user_id?: string } | null)?.user_id ||
+            (payload.old as { user_id?: string } | null)?.user_id;
+
+          if (sessionUser && changedUserId === sessionUser.id) {
+            scheduleProfileReload();
           }
         }
       )
@@ -395,6 +447,12 @@ export default function DashboardPage() {
 
     return () => {
       isMounted = false;
+      if (dashboardReloadTimer) {
+        clearTimeout(dashboardReloadTimer);
+      }
+      if (profileReloadTimer) {
+        clearTimeout(profileReloadTimer);
+      }
       void supabase.removeChannel(channel);
       subscription.unsubscribe();
     };

@@ -117,6 +117,7 @@ export default function GroupDetailsPage() {
     // Ignore late async responses after unmount or route changes so they do
     // not overwrite newer state from the next page load.
     let isMounted = true;
+    let reloadTimer: ReturnType<typeof setTimeout> | null = null;
 
     const loadGroupData = async () => {
       const {
@@ -199,6 +200,16 @@ export default function GroupDetailsPage() {
 
     loadGroupData();
 
+    const scheduleReload = () => {
+      if (reloadTimer) {
+        clearTimeout(reloadTimer);
+      }
+
+      reloadTimer = setTimeout(() => {
+        void loadGroupData();
+      }, 120);
+    };
+
     // Refresh the page state whenever members, the group record, or
     // assignments change so the owner does not have to manually reload.
     const channel = supabase
@@ -206,28 +217,25 @@ export default function GroupDetailsPage() {
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "group_members", filter: `group_id=eq.${id}` },
-        () => {
-          void loadGroupData();
-        }
+        () => scheduleReload()
       )
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "groups", filter: `id=eq.${id}` },
-        () => {
-          void loadGroupData();
-        }
+        () => scheduleReload()
       )
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "assignments", filter: `group_id=eq.${id}` },
-        () => {
-          void loadGroupData();
-        }
+        () => scheduleReload()
       )
       .subscribe();
 
     return () => {
       isMounted = false;
+      if (reloadTimer) {
+        clearTimeout(reloadTimer);
+      }
       supabase.removeChannel(channel);
     };
   }, [id, router, supabase]);

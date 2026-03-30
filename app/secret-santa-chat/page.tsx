@@ -602,6 +602,8 @@ export default function SecretSantaChatPage() {
 
   // ─── Load threads on mount + real-time ───
   useEffect(() => {
+    let reloadTimer: ReturnType<typeof setTimeout> | null = null;
+
     const loadThreads = async () => {
       const {
         data: { session },
@@ -738,7 +740,25 @@ export default function SecretSantaChatPage() {
         });
       }
 
+      const currentActiveThread = activeThreadRef.current;
+      const nextActiveThread = currentActiveThread
+        ? buildThreads.find(
+            (thread) =>
+              thread.group_id === currentActiveThread.group_id &&
+              thread.giver_id === currentActiveThread.giver_id &&
+              thread.receiver_id === currentActiveThread.receiver_id
+          ) || null
+        : null;
+
       setThreads(buildThreads);
+
+      if (currentActiveThread && !nextActiveThread) {
+        setActiveThread(null);
+        setMessages([]);
+      } else if (nextActiveThread) {
+        setActiveThread(nextActiveThread);
+      }
+
       setLoading(false);
     };
 
@@ -746,15 +766,32 @@ export default function SecretSantaChatPage() {
 
     void loadThreads();
 
+    const scheduleThreadsReload = () => {
+      if (reloadTimer) {
+        clearTimeout(reloadTimer);
+      }
+
+      // Reset-draw and membership updates can emit several row events in one
+      // burst. A short debounce keeps the list synced without overfetching.
+      reloadTimer = setTimeout(() => {
+        void loadThreadsRef.current?.();
+      }, 120);
+    };
+
     const channel = supabase
       .channel("chat-threads-realtime")
       .on(
         "postgres_changes",
-        { event: "INSERT", schema: "public", table: "messages" },
+        { event: "*", schema: "public", table: "messages" },
         (payload) => {
           const currentUserId = userIdRef.current;
 
           if (!currentUserId) {
+            return;
+          }
+
+          if (payload.eventType !== "INSERT") {
+            scheduleThreadsReload();
             return;
           }
 
@@ -786,9 +823,34 @@ export default function SecretSantaChatPage() {
           }
         }
       )
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "assignments" },
+        () => scheduleThreadsReload()
+      )
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "group_members" },
+        () => scheduleThreadsReload()
+      )
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "groups" },
+        () => scheduleThreadsReload()
+      )
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "thread_reads" },
+        () => scheduleThreadsReload()
+      )
       .subscribe();
 
-    return () => { supabase.removeChannel(channel); };
+    return () => {
+      if (reloadTimer) {
+        clearTimeout(reloadTimer);
+      }
+      supabase.removeChannel(channel);
+    };
   }, [supabase, router]);
 
   // ─── Load messages + real-time for active thread ───
@@ -824,7 +886,7 @@ export default function SecretSantaChatPage() {
       .on(
         "postgres_changes",
         {
-          event: "INSERT",
+          event: "*",
           schema: "public",
           table: "messages",
           filter: `group_id=eq.${activeThread.group_id}`,
@@ -832,16 +894,27 @@ export default function SecretSantaChatPage() {
         (payload) => {
           if (!isMounted) return;
 
-          const nextMessage = payload.new as MessageRow & { id: string };
           const currentThread = activeThreadRef.current;
+          const changedMessage =
+            payload.eventType === "DELETE"
+              ? (payload.old as Partial<MessageRow>)
+              : (payload.new as Partial<MessageRow>);
 
           if (
             !currentThread ||
-            nextMessage.thread_giver_id !== currentThread.giver_id ||
-            nextMessage.thread_receiver_id !== currentThread.receiver_id
+            changedMessage.thread_giver_id !== currentThread.giver_id ||
+            changedMessage.thread_receiver_id !== currentThread.receiver_id
           ) {
             return;
           }
+
+          if (payload.eventType !== "INSERT") {
+            void loadMessages();
+            void loadThreadsRef.current?.();
+            return;
+          }
+
+          const nextMessage = payload.new as MessageRow & { id: string };
 
           setMessages((currentMessages) => {
             const withoutOptimisticCopy = currentMessages.filter(
