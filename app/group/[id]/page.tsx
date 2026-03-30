@@ -124,6 +124,26 @@ export default function GroupDetailsPage() {
     }
   };
 
+  const forceGroupRefresh = () => {
+    notifyGroupRefresh();
+    router.refresh();
+
+    // Some changes can take a moment to show up in the next read. A short
+    // retry sequence makes the page settle into the final state without
+    // asking the user to refresh manually.
+    window.setTimeout(() => {
+      if (loadGroupDataRef.current) {
+        void loadGroupDataRef.current();
+      }
+    }, 250);
+
+    window.setTimeout(() => {
+      if (loadGroupDataRef.current) {
+        void loadGroupDataRef.current();
+      }
+    }, 900);
+  };
+
   useEffect(() => {
     if (!id) return;
 
@@ -309,23 +329,30 @@ export default function GroupDetailsPage() {
   const handleRemoveMember = async () => {
     if (!removingMember?.user_id) return;
 
+    const memberToRemove = removingMember;
+    const memberUserId = memberToRemove.user_id!;
+
     setActionSaving(true);
     setActionMsg("");
+    setMembers((currentMembers) =>
+      currentMembers.filter(
+        (member) => member.id !== memberToRemove.id && member.user_id !== memberUserId
+      )
+    );
 
-    const result = await removeMember(id, removingMember.user_id);
+    const result = await removeMember(id, memberUserId);
 
     setActionMsg(result.message);
     setActionSaving(false);
 
     if (result.success) {
-      setMembers((currentMembers) =>
-        currentMembers.filter(
-          (member) =>
-            member.id !== removingMember.id && member.user_id !== removingMember.user_id
-        )
-      );
-      notifyGroupRefresh();
+      forceGroupRefresh();
       setTimeout(() => setRemovingMember(null), 800);
+      return;
+    }
+
+    if (loadGroupDataRef.current) {
+      void loadGroupDataRef.current();
     }
   };
 

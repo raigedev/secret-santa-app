@@ -48,7 +48,10 @@ export default function NicknameForm({ groupId, currentNickname }: Props) {
     <div>
       {!isEditing ? (
         <div className="flex items-center justify-between mt-2">
-          <span className="text-sm font-bold text-gray-700">
+          <span
+            className="text-sm font-bold"
+            style={{ color: "#6b7280", fontWeight: 800 }}
+          >
             {currentNickname || nickname || "Set your nickname"}
           </span>
           <button
