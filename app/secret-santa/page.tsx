@@ -32,6 +32,14 @@ type RecipientData = {
   gift_received_at: string | null;
 };
 
+type ReceivedGiftData = {
+  group_id: string;
+  group_name: string;
+  group_event_date: string;
+  gift_received: boolean;
+  gift_received_at: string | null;
+};
+
 type GroupOption = {
   id: string;
   name: string;
@@ -54,6 +62,8 @@ type AssignmentRow = {
   receiver_id: string;
   gift_prep_status: GiftPrepStatus | null;
   gift_prep_updated_at: string | null;
+  gift_received: boolean | null;
+  gift_received_at: string | null;
 };
 
 type ReceivedAssignmentRow = {
@@ -218,14 +228,10 @@ function buildAvailableGroups(groups: GroupRow[]): GroupOption[] {
 function buildRecipientData(
   assignments: AssignmentRow[],
   groups: GroupOption[],
-  receivedAssignments: ReceivedAssignmentRow[],
   receiverMembers: MemberRow[],
   receiverWishlists: WishlistRow[]
 ): RecipientData[] {
   const groupsById = new Map(groups.map((group) => [group.id, group]));
-  const receivedByGroupId = new Map(
-    receivedAssignments.map((assignment) => [assignment.group_id, assignment])
-  );
   const membersByKey = new Map(
     receiverMembers.map((member) => [
       createGroupUserKey(member.group_id, member.user_id),
@@ -248,7 +254,6 @@ function buildRecipientData(
       const receiver = membersByKey.get(
         createGroupUserKey(assignment.group_id, assignment.receiver_id)
       );
-      const receivedStatus = receivedByGroupId.get(assignment.group_id);
 
       return {
         group_id: assignment.group_id,
@@ -262,8 +267,35 @@ function buildRecipientData(
         ),
         gift_prep_status: assignment.gift_prep_status || null,
         gift_prep_updated_at: assignment.gift_prep_updated_at || null,
-        gift_received: Boolean(receivedStatus?.gift_received),
-        gift_received_at: receivedStatus?.gift_received_at || null,
+        gift_received: Boolean(assignment.gift_received),
+        gift_received_at: assignment.gift_received_at || null,
+      };
+    })
+    .sort((left, right) => {
+      return (
+        (groupOrder.get(left.group_id) ?? Number.MAX_SAFE_INTEGER) -
+        (groupOrder.get(right.group_id) ?? Number.MAX_SAFE_INTEGER)
+      );
+    });
+}
+
+function buildReceivedGiftData(
+  assignments: ReceivedAssignmentRow[],
+  groups: GroupOption[]
+): ReceivedGiftData[] {
+  const groupsById = new Map(groups.map((group) => [group.id, group]));
+  const groupOrder = new Map(groups.map((group, index) => [group.id, index]));
+
+  return assignments
+    .map((assignment) => {
+      const group = groupsById.get(assignment.group_id);
+
+      return {
+        group_id: assignment.group_id,
+        group_name: group?.name || "Unknown Group",
+        group_event_date: group?.eventDate || "",
+        gift_received: Boolean(assignment.gift_received),
+        gift_received_at: assignment.gift_received_at || null,
       };
     })
     .sort((left, right) => {
@@ -339,6 +371,7 @@ export default function SecretSantaPage() {
   // Remote data displayed throughout the page.
   const [availableGroups, setAvailableGroups] = useState<GroupOption[]>([]);
   const [assignments, setAssignments] = useState<RecipientData[]>([]);
+  const [receivedGifts, setReceivedGifts] = useState<ReceivedGiftData[]>([]);
   const [myItems, setMyItems] = useState<WishlistItem[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -408,6 +441,7 @@ export default function SecretSantaPage() {
         if (groupIds.length === 0) {
           setAvailableGroups([]);
           setAssignments([]);
+          setReceivedGifts([]);
           setMyItems([]);
           setAddGroupId("");
           setLoading(false);
@@ -423,7 +457,9 @@ export default function SecretSantaPage() {
           supabase.from("groups").select("id, name, event_date").in("id", groupIds),
           supabase
             .from("assignments")
-            .select("group_id, receiver_id, gift_prep_status, gift_prep_updated_at")
+            .select(
+              "group_id, receiver_id, gift_prep_status, gift_prep_updated_at, gift_received, gift_received_at"
+            )
             .eq("giver_id", user.id)
             .in("group_id", groupIds),
           supabase
@@ -446,6 +482,10 @@ export default function SecretSantaPage() {
 
         const groupOptions = buildAvailableGroups((groupsData || []) as GroupRow[]);
         let recipientData: RecipientData[] = [];
+        const receivedGiftData = buildReceivedGiftData(
+          (receivedAssignments || []) as ReceivedAssignmentRow[],
+          groupOptions
+        );
 
         if ((myAssignments || []).length > 0) {
           const receiverIds = [
@@ -476,7 +516,6 @@ export default function SecretSantaPage() {
           recipientData = buildRecipientData(
             (myAssignments || []) as AssignmentRow[],
             groupOptions,
-            (receivedAssignments || []) as ReceivedAssignmentRow[],
             (receiverMembers || []) as MemberRow[],
             (receiverWishlists || []) as WishlistRow[]
           );
@@ -488,6 +527,7 @@ export default function SecretSantaPage() {
 
         setAvailableGroups(groupOptions);
         setAssignments(recipientData);
+        setReceivedGifts(receivedGiftData);
         setMyItems(buildMyWishlistItems((myWishlistData || []) as WishlistRow[], groupOptions));
         setAddGroupId((currentGroupId) => {
           const validGroupIds = new Set(groupOptions.map((group) => group.id));
@@ -507,6 +547,7 @@ export default function SecretSantaPage() {
 
         setAvailableGroups([]);
         setAssignments([]);
+        setReceivedGifts([]);
         setMyItems([]);
         setAddGroupId("");
         setMessage({
@@ -728,15 +769,15 @@ export default function SecretSantaPage() {
       if (result.success) {
         const confirmedAt = new Date().toISOString();
 
-        setAssignments((currentAssignments) =>
-          currentAssignments.map((assignment) =>
-            assignment.group_id === groupId && !assignment.gift_received
+        setReceivedGifts((currentReceivedGifts) =>
+          currentReceivedGifts.map((gift) =>
+            gift.group_id === groupId && !gift.gift_received
               ? {
-                  ...assignment,
+                  ...gift,
                   gift_received: true,
-                  gift_received_at: assignment.gift_received_at || confirmedAt,
+                  gift_received_at: gift.gift_received_at || confirmedAt,
                 }
-              : assignment
+              : gift
           )
         );
       }
@@ -1101,7 +1142,6 @@ export default function SecretSantaPage() {
                     </div>
                   </div>
 
-                  {/* Gift confirmation stays separate from prep updates because the receiver controls this final step. */}
                   <div
                     className="rounded-xl p-3.5 mt-3 flex items-center justify-between"
                     style={{
@@ -1123,51 +1163,31 @@ export default function SecretSantaPage() {
                         }}
                       >
                         {assignment.gift_received
-                          ? "✅ Gift Received!"
-                          : "🎁 Did you receive your gift?"}
+                          ? "✅ Recipient confirmed receipt"
+                          : "🎁 Waiting for recipient confirmation"}
                       </div>
                       <div
                         className="text-[11px] mt-0.5"
                         style={{ color: "rgba(255,255,255,.35)" }}
                       >
                         {assignment.gift_received
-                          ? `Confirmed on ${formatDisplayDate(
+                          ? `${assignment.receiver_nickname} confirmed on ${formatDisplayDate(
                               assignment.gift_received_at
                             )}`
-                          : "Your Secret Santa bought you something. Confirm when you get it."}
+                          : "Your recipient will confirm once the gift reaches them."}
                       </div>
                     </div>
-                    {assignment.gift_received ? (
-                      <div
-                        className="px-4 py-2 rounded-xl text-[12px] font-bold"
-                        style={{
-                          background: "rgba(34,197,94,.1)",
-                          color: "#22c55e",
-                        }}
-                      >
-                        ✅ Confirmed
-                      </div>
-                    ) : (
-                      <button
-                        type="button"
-                        onClick={() => handleConfirmGift(assignment.group_id)}
-                        disabled={confirmingGroup === assignment.group_id}
-                        className="px-4 py-2 rounded-xl text-[12px] font-extrabold text-white transition"
-                        style={{
-                          background: "linear-gradient(135deg,#22c55e,#16a34a)",
-                          boxShadow: "0 3px 12px rgba(34,197,94,.3)",
-                          border: "none",
-                          cursor:
-                            confirmingGroup === assignment.group_id ? "wait" : "pointer",
-                          fontFamily: "inherit",
-                          opacity: confirmingGroup === assignment.group_id ? 0.75 : 1,
-                        }}
-                      >
-                        {confirmingGroup === assignment.group_id
-                          ? "Confirming..."
-                          : "✅ I got my gift!"}
-                      </button>
-                    )}
+                    <div
+                      className="px-4 py-2 rounded-xl text-[12px] font-bold"
+                      style={{
+                        background: assignment.gift_received
+                          ? "rgba(34,197,94,.1)"
+                          : "rgba(251,191,36,.1)",
+                        color: assignment.gift_received ? "#22c55e" : "#fbbf24",
+                      }}
+                    >
+                      {assignment.gift_received ? "Recipient confirmed" : "Pending"}
+                    </div>
                   </div>
 
                   <button
@@ -1187,6 +1207,146 @@ export default function SecretSantaPage() {
                 </div>
               </div>
             ))}
+          </div>
+        )}
+
+        {receivedGifts.length > 0 && (
+          <div className="mb-7">
+            <div className="text-center mb-4">
+              <h2
+                className="text-[22px] font-bold"
+                style={{
+                  fontFamily: "'Fredoka', sans-serif",
+                  color: "#86efac",
+                  textShadow: "0 2px 8px rgba(0,0,0,.25)",
+                }}
+              >
+                🎁 Gifts You Received
+              </h2>
+              <p
+                className="text-[13px] font-semibold mt-1"
+                style={{ color: "rgba(255,255,255,.45)" }}
+              >
+                Confirm your own gift here after it reaches you.
+              </p>
+            </div>
+
+            <div className="flex flex-col gap-4">
+              {receivedGifts.map((gift) => (
+                <div
+                  key={gift.group_id}
+                  className="rounded-[18px] overflow-hidden"
+                  style={{
+                    background: "rgba(255,255,255,.05)",
+                    border: "1px solid rgba(255,255,255,.08)",
+                    backdropFilter: "blur(8px)",
+                  }}
+                >
+                  <div
+                    className="flex items-center justify-between p-4"
+                    style={{
+                      background: "rgba(255,255,255,.03)",
+                      borderBottom: "1px solid rgba(255,255,255,.06)",
+                    }}
+                  >
+                    <div className="flex items-center gap-3">
+                      <div
+                        className="w-[44px] h-[44px] rounded-xl flex items-center justify-center text-[22px]"
+                        style={{ background: "rgba(34,197,94,.14)" }}
+                      >
+                        🎄
+                      </div>
+                      <div>
+                        <div className="text-[16px] font-extrabold">{gift.group_name}</div>
+                        <div
+                          className="text-[11px] font-semibold"
+                          style={{ color: "rgba(255,255,255,.4)" }}
+                        >
+                          📅 {formatDisplayDate(gift.group_event_date)}
+                        </div>
+                      </div>
+                    </div>
+                    <div
+                      className="px-4 py-2 rounded-xl text-[12px] font-extrabold"
+                      style={{
+                        background: gift.gift_received
+                          ? "rgba(34,197,94,.14)"
+                          : "rgba(251,191,36,.14)",
+                        color: gift.gift_received ? "#86efac" : "#fbbf24",
+                      }}
+                    >
+                      {gift.gift_received ? "Confirmed" : "Waiting"}
+                    </div>
+                  </div>
+
+                  <div className="p-4">
+                    <div
+                      className="rounded-xl p-3.5 flex items-center justify-between"
+                      style={{
+                        background: gift.gift_received
+                          ? "rgba(34,197,94,.06)"
+                          : "rgba(251,191,36,.06)",
+                        border: `1px solid ${
+                          gift.gift_received
+                            ? "rgba(34,197,94,.12)"
+                            : "rgba(251,191,36,.12)"
+                        }`,
+                      }}
+                    >
+                      <div>
+                        <div
+                          className="text-[13px] font-extrabold"
+                          style={{ color: gift.gift_received ? "#22c55e" : "#fbbf24" }}
+                        >
+                          {gift.gift_received
+                            ? "✅ You already confirmed your gift"
+                            : "🎁 Did you receive your gift?"}
+                        </div>
+                        <div
+                          className="text-[11px] mt-0.5"
+                          style={{ color: "rgba(255,255,255,.35)" }}
+                        >
+                          {gift.gift_received
+                            ? `Confirmed on ${formatDisplayDate(gift.gift_received_at)}`
+                            : "Use this only for the gift you received from your own Secret Santa."}
+                        </div>
+                      </div>
+
+                      {gift.gift_received ? (
+                        <div
+                          className="px-4 py-2 rounded-xl text-[12px] font-bold"
+                          style={{
+                            background: "rgba(34,197,94,.1)",
+                            color: "#22c55e",
+                          }}
+                        >
+                          ✅ Confirmed
+                        </div>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={() => handleConfirmGift(gift.group_id)}
+                          disabled={confirmingGroup === gift.group_id}
+                          className="px-4 py-2 rounded-xl text-[12px] font-extrabold text-white transition"
+                          style={{
+                            background: "linear-gradient(135deg,#22c55e,#16a34a)",
+                            boxShadow: "0 3px 12px rgba(34,197,94,.3)",
+                            border: "none",
+                            cursor: confirmingGroup === gift.group_id ? "wait" : "pointer",
+                            fontFamily: "inherit",
+                            opacity: confirmingGroup === gift.group_id ? 0.75 : 1,
+                          }}
+                        >
+                          {confirmingGroup === gift.group_id
+                            ? "Confirming..."
+                            : "✅ I got my gift!"}
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
           </div>
         )}
 
