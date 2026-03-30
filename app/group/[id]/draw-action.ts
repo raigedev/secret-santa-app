@@ -5,6 +5,12 @@ import { enforceRateLimit } from "@/lib/security/rate-limit";
 import { supabaseAdmin } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 
+const DRAW_MAX_ATTEMPTS = 5;
+const DRAW_WINDOW_SECONDS = 3600;
+
+const RESET_DRAW_MAX_ATTEMPTS = 5;
+const RESET_DRAW_WINDOW_SECONDS = 3600;
+
 export async function drawSecretSanta(
   groupId: string
 ): Promise<{ success: boolean; message: string }> {
@@ -24,11 +30,11 @@ export async function drawSecretSanta(
   const rateLimit = await enforceRateLimit({
     action: "group.draw_secret_santa",
     actorUserId: user.id,
-    maxAttempts: 5,
+    maxAttempts: DRAW_MAX_ATTEMPTS,
     resourceId: groupId,
     resourceType: "group",
     subject: user.id,
-    windowSeconds: 3600,
+    windowSeconds: DRAW_WINDOW_SECONDS,
   });
 
   if (!rateLimit.allowed) {
@@ -143,6 +149,169 @@ export async function drawSecretSanta(
 
   return {
     success: true,
-    message: `Names drawn! ${assignments.length} members assigned.`,
+    message: `✅ Names drawn! ${assignments.length} members assigned.`,
+  };
+}
+
+export async function resetSecretSantaDraw(
+  groupId: string
+): Promise<{ success: boolean; message: string }> {
+  if (!groupId || typeof groupId !== "string" || groupId.trim().length === 0) {
+    return { success: false, message: "Invalid group ID." };
+  }
+
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    return { success: false, message: "You must be logged in." };
+  }
+
+  const rateLimit = await enforceRateLimit({
+    action: "group.reset_secret_santa",
+    actorUserId: user.id,
+    maxAttempts: RESET_DRAW_MAX_ATTEMPTS,
+    resourceId: groupId,
+    resourceType: "group",
+    subject: user.id,
+    windowSeconds: RESET_DRAW_WINDOW_SECONDS,
+  });
+
+  if (!rateLimit.allowed) {
+    return { success: false, message: rateLimit.message };
+  }
+
+  const { data: group } = await supabase
+    .from("groups")
+    .select("owner_id, revealed")
+    .eq("id", groupId)
+    .maybeSingle();
+
+  if (!group) {
+    return { success: false, message: "Group not found." };
+  }
+
+  if (group.owner_id !== user.id) {
+    return { success: false, message: "Only the group owner can reset the draw." };
+  }
+
+  const { data: assignments, error: assignmentsError } = await supabaseAdmin
+    .from("assignments")
+    .select("id, gift_received")
+    .eq("group_id", groupId);
+
+  if (assignmentsError) {
+    await recordServerFailure({
+      actorUserId: user.id,
+      errorMessage: assignmentsError.message,
+      eventType: "group.reset_secret_santa.fetch_assignments",
+      resourceId: groupId,
+      resourceType: "group",
+    });
+
+    return { success: false, message: "Failed to load the current draw." };
+  }
+
+  if (!assignments || assignments.length === 0) {
+    return { success: false, message: "There is no active draw to reset." };
+  }
+
+  const assignmentCount = assignments.length;
+  const confirmedGiftCount = assignments.filter((assignment) => assignment.gift_received).length;
+
+  // Resetting a draw must also clear anonymous thread data.
+  // Otherwise old giver/receiver chat threads can survive after a redraw.
+  const { error: threadReadsError } = await supabaseAdmin
+    .from("thread_reads")
+    .delete()
+    .eq("group_id", groupId);
+
+  if (threadReadsError) {
+    await recordServerFailure({
+      actorUserId: user.id,
+      errorMessage: threadReadsError.message,
+      eventType: "group.reset_secret_santa.clear_thread_reads",
+      resourceId: groupId,
+      resourceType: "group",
+    });
+
+    return { success: false, message: "Failed to clear thread read history." };
+  }
+
+  const { error: messagesError } = await supabaseAdmin
+    .from("messages")
+    .delete()
+    .eq("group_id", groupId);
+
+  if (messagesError) {
+    await recordServerFailure({
+      actorUserId: user.id,
+      errorMessage: messagesError.message,
+      eventType: "group.reset_secret_santa.clear_messages",
+      resourceId: groupId,
+      resourceType: "group",
+    });
+
+    return { success: false, message: "Failed to clear anonymous chat history." };
+  }
+
+  const { error: deleteAssignmentsError } = await supabaseAdmin
+    .from("assignments")
+    .delete()
+    .eq("group_id", groupId);
+
+  if (deleteAssignmentsError) {
+    await recordServerFailure({
+      actorUserId: user.id,
+      details: { assignmentCount },
+      errorMessage: deleteAssignmentsError.message,
+      eventType: "group.reset_secret_santa.delete_assignments",
+      resourceId: groupId,
+      resourceType: "group",
+    });
+
+    return { success: false, message: "Failed to clear assignments." };
+  }
+
+  const { error: resetRevealError } = await supabaseAdmin
+    .from("groups")
+    .update({
+      revealed: false,
+      revealed_at: null,
+    })
+    .eq("id", groupId);
+
+  if (resetRevealError) {
+    await recordServerFailure({
+      actorUserId: user.id,
+      errorMessage: resetRevealError.message,
+      eventType: "group.reset_secret_santa.reset_reveal_state",
+      resourceId: groupId,
+      resourceType: "group",
+    });
+
+    return {
+      success: false,
+      message: "Assignments were cleared, but the group state was not fully reset.",
+    };
+  }
+
+  await recordAuditEvent({
+    actorUserId: user.id,
+    details: {
+      assignmentCount,
+      confirmedGiftCount,
+    },
+    eventType: "group.reset_secret_santa",
+    outcome: "success",
+    resourceId: groupId,
+    resourceType: "group",
+  });
+
+  return {
+    success: true,
+    message: `✅ Draw reset. Removed ${assignmentCount} assignment(s) and cleared anonymous chat history.`,
   };
 }
