@@ -743,7 +743,7 @@ export default function SecretSantaChatPage() {
 
         <div className="text-center mb-6">
           <h1 className="text-[32px] font-bold mb-1" style={{ fontFamily: "'Fredoka', sans-serif", textShadow: "0 2px 8px rgba(0,0,0,.3)" }}>💬 Secret Santa Chat</h1>
-          <p className="text-[14px] font-semibold" style={{ color: "rgba(255,255,255,.5)" }}>Private conversations with your matches</p>
+          <p className="text-[14px] font-semibold" style={{ color: "#efe4d0" }}>Private conversations with your matches</p>
         </div>
 
         <div
@@ -768,13 +768,13 @@ export default function SecretSantaChatPage() {
                 </div>
                 <div
                   className="text-[12px] font-semibold mt-2"
-                  style={{ color: "rgba(255,255,255,.74)", lineHeight: 1.45 }}
+                  style={{ color: "#f6ead3", lineHeight: 1.45 }}
                 >
                   You know who they are.
                 </div>
                 <div
                   className="text-[11px] font-semibold mt-1"
-                  style={{ color: "rgba(255,255,255,.54)", lineHeight: 1.45 }}
+                  style={{ color: "#d8c4a0", lineHeight: 1.45 }}
                 >
                   They see you as &quot;🎅 Secret Santa&quot;.
                 </div>
@@ -789,9 +789,9 @@ export default function SecretSantaChatPage() {
             <div
               className="text-center px-3 py-1.5 rounded-full text-[10px] font-extrabold uppercase tracking-[0.14em]"
               style={{
-                color: "rgba(255,255,255,.58)",
-                background: "rgba(255,255,255,.06)",
-                border: "1px solid rgba(255,255,255,.08)",
+                color: "#ffd7d7",
+                background: "rgba(192,57,43,.16)",
+                border: "1px solid rgba(231,76,60,.22)",
                 boxShadow: "inset 0 1px 0 rgba(255,255,255,.04)",
               }}
             >
@@ -819,13 +819,13 @@ export default function SecretSantaChatPage() {
                 </div>
                 <div
                   className="text-[12px] font-semibold mt-2"
-                  style={{ color: "rgba(255,255,255,.74)", lineHeight: 1.45 }}
+                  style={{ color: "#e5f7e5", lineHeight: 1.45 }}
                 >
                   Someone drew your name.
                 </div>
                 <div
                   className="text-[11px] font-semibold mt-1"
-                  style={{ color: "rgba(255,255,255,.54)", lineHeight: 1.45 }}
+                  style={{ color: "#b9d7be", lineHeight: 1.45 }}
                 >
                   You don&apos;t know who they are yet.
                 </div>
@@ -848,7 +848,7 @@ export default function SecretSantaChatPage() {
                   <div className="w-[40px] h-[40px] rounded-xl flex items-center justify-center text-[20px]" style={{ background: "rgba(251,191,36,.15)" }}>🎁</div>
                   <div>
                     <div className="text-[18px] font-bold" style={{ fontFamily: "'Fredoka', sans-serif", color: "#fbbf24" }}>People You&apos;re Buying For</div>
-                    <div className="text-[11px] font-semibold" style={{ color: "rgba(251,191,36,.5)" }}>You know who they are — they don&apos;t know it&apos;s you!</div>
+                    <div className="text-[11px] font-semibold" style={{ color: "#d8c4a0" }}>You know who they are — they don&apos;t know it&apos;s you!</div>
                   </div>
                 </div>
                 <div className="flex flex-col gap-3 mb-7">
@@ -861,15 +861,15 @@ export default function SecretSantaChatPage() {
                           style={{ background: "linear-gradient(135deg,#fbbf24,#f59e0b)", boxShadow: "0 3px 12px rgba(251,191,36,.25)" }}>🎁</div>
                         <div className="flex-1 min-w-0">
                           <div className="text-[17px] font-extrabold" style={{ color: "#fbbf24" }}>{t.other_name}</div>
-                          <div className="text-[11px] font-semibold mt-1" style={{ color: "rgba(255,255,255,.55)" }}>{t.group_name}</div>
+                          <div className="text-[11px] font-semibold mt-1" style={{ color: "#ddd3c1" }}>{t.group_name}</div>
                           <div className="mt-2 rounded-xl px-3 py-2" style={{ background: "rgba(15,23,42,.35)", border: "1px solid rgba(251,191,36,.08)" }}>
                             <div className="text-[10px] font-extrabold uppercase tracking-[0.08em]" style={{ color: "rgba(251,191,36,.8)" }}>Latest message</div>
-                            <div className="text-[13px] font-semibold mt-1 truncate" style={{ color: "rgba(255,255,255,.92)" }}>{t.last_message}</div>
+                            <div className="text-[13px] font-semibold mt-1 truncate" style={{ color: "#f8f1e4" }}>{t.last_message}</div>
                           </div>
                         </div>
                       </div>
                       <div className="flex flex-col items-end gap-1 flex-shrink-0 ml-3">
-                        {t.last_time && <span className="text-[11px] font-semibold px-2 py-1 rounded-md" style={{ color: "rgba(255,255,255,.78)", background: "rgba(15,23,42,.28)" }}>{t.last_time}</span>}
+                        {t.last_time && <span className="text-[11px] font-semibold px-2 py-1 rounded-md" style={{ color: "#f3e3c2", background: "rgba(92,58,15,.28)" }}>{t.last_time}</span>}
                         {t.unread > 0 && (
                           <div className="w-[22px] h-[22px] rounded-full flex items-center justify-center text-[10px] font-extrabold text-white"
                             style={{ background: "linear-gradient(135deg,#dc2626,#ef4444)", boxShadow: "0 2px 8px rgba(220,38,38,.3)" }}>{t.unread}</div>
@@ -892,7 +892,7 @@ export default function SecretSantaChatPage() {
                   <div className="w-[40px] h-[40px] rounded-xl flex items-center justify-center text-[20px]" style={{ background: "rgba(34,197,94,.15)" }}>🎅</div>
                   <div>
                     <div className="text-[18px] font-bold" style={{ fontFamily: "'Fredoka', sans-serif", color: "#86efac" }}>Your Mystery Santa</div>
-                    <div className="text-[11px] font-semibold" style={{ color: "rgba(34,197,94,.5)" }}>Someone drew your name — you don&apos;t know who!</div>
+                    <div className="text-[11px] font-semibold" style={{ color: "#b9d7be" }}>Someone drew your name — you don&apos;t know who!</div>
                   </div>
                 </div>
                 <div className="flex flex-col gap-3">
@@ -905,15 +905,15 @@ export default function SecretSantaChatPage() {
                           style={{ background: "linear-gradient(135deg,#22c55e,#16a34a)", boxShadow: "0 3px 12px rgba(34,197,94,.25)" }}>🎅</div>
                         <div className="flex-1 min-w-0">
                           <div className="text-[17px] font-extrabold" style={{ color: "#86efac" }}>Secret Santa</div>
-                          <div className="text-[11px] font-semibold mt-1" style={{ color: "rgba(255,255,255,.55)" }}>{t.group_name}</div>
+                          <div className="text-[11px] font-semibold mt-1" style={{ color: "#d6ead8" }}>{t.group_name}</div>
                           <div className="mt-2 rounded-xl px-3 py-2" style={{ background: "rgba(15,23,42,.35)", border: "1px solid rgba(34,197,94,.08)" }}>
                             <div className="text-[10px] font-extrabold uppercase tracking-[0.08em]" style={{ color: "rgba(134,239,172,.85)" }}>Latest message</div>
-                            <div className="text-[13px] font-semibold mt-1 truncate" style={{ color: "rgba(255,255,255,.92)" }}>{t.last_message}</div>
+                            <div className="text-[13px] font-semibold mt-1 truncate" style={{ color: "#eef8ef" }}>{t.last_message}</div>
                           </div>
                         </div>
                       </div>
                       <div className="flex flex-col items-end gap-1 flex-shrink-0 ml-3">
-                        {t.last_time && <span className="text-[11px] font-semibold px-2 py-1 rounded-md" style={{ color: "rgba(255,255,255,.78)", background: "rgba(15,23,42,.28)" }}>{t.last_time}</span>}
+                        {t.last_time && <span className="text-[11px] font-semibold px-2 py-1 rounded-md" style={{ color: "#dff5df", background: "rgba(18,84,41,.28)" }}>{t.last_time}</span>}
                         {t.unread > 0 && (
                           <div className="w-[22px] h-[22px] rounded-full flex items-center justify-center text-[10px] font-extrabold text-white"
                             style={{ background: "linear-gradient(135deg,#dc2626,#ef4444)", boxShadow: "0 2px 8px rgba(220,38,38,.3)" }}>{t.unread}</div>
