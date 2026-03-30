@@ -62,6 +62,8 @@ type MemberNicknameRow = {
   nickname: string | null;
 };
 
+type FestiveTone = "gold" | "green" | "neutral";
+
 function sanitize(input: string): string {
   return input.replace(/<[^>]*>/g, "").replace(/[<>]/g, "").trim().slice(0, 500);
 }
@@ -95,6 +97,246 @@ function createPreviewText(
         : `${otherName}: `;
 
   return prefix + content.slice(0, 60);
+}
+
+function FestiveTrim({
+  tone,
+  withBells = false,
+  compact = false,
+}: {
+  tone: FestiveTone;
+  withBells?: boolean;
+  compact?: boolean;
+}) {
+  const palette =
+    tone === "gold"
+      ? {
+          rope: "#d3a128",
+          pine: "#2f6d3c",
+          pineDark: "#1f4d2c",
+          berry: "#c53b2e",
+          berryDark: "#8f231b",
+          bell: "#d9a326",
+          bellDark: "#9b6d12",
+          bow: "#c73b34",
+          glow: "rgba(251,191,36,.3)",
+        }
+      : tone === "green"
+        ? {
+            rope: "#b98b28",
+            pine: "#348a4d",
+            pineDark: "#1e5d35",
+            berry: "#c73c33",
+            berryDark: "#92231b",
+            bell: "#d6a63a",
+            bellDark: "#936711",
+            bow: "#bb3530",
+            glow: "rgba(34,197,94,.24)",
+          }
+        : {
+            rope: "#be8f2f",
+            pine: "#356b45",
+            pineDark: "#214430",
+            berry: "#b93a34",
+            berryDark: "#89231d",
+            bell: "#c99831",
+            bellDark: "#8b6111",
+            bow: "#b83731",
+            glow: "rgba(255,255,255,.16)",
+          };
+
+  const topHeight = compact ? 48 : 66;
+  const topOffset = compact ? -18 : -28;
+  const cornerSize = compact ? 56 : 72;
+  const bottomCornerSize = compact ? 34 : 42;
+  const frameInset = compact ? 4 : 6;
+  const frameRadius = compact ? 16 : 20;
+  const frameColor =
+    tone === "gold"
+      ? "rgba(251,191,36,.18)"
+      : tone === "green"
+        ? "rgba(34,197,94,.18)"
+        : "rgba(255,255,255,.14)";
+
+  return (
+    <div className="pointer-events-none absolute inset-0 overflow-visible" aria-hidden="true">
+      <div
+        className="absolute"
+        style={{
+          inset: frameInset,
+          borderRadius: frameRadius,
+          border: `1px solid ${frameColor}`,
+          boxShadow: `inset 0 0 0 1px rgba(255,255,255,.025), 0 0 0 1px ${palette.glow}`,
+        }}
+      />
+
+      <svg
+        className="absolute"
+        style={{
+          left: 18,
+          right: 18,
+          top: topOffset,
+          width: "calc(100% - 36px)",
+          height: topHeight,
+          filter: `drop-shadow(0 4px 10px ${palette.glow})`,
+        }}
+        viewBox="0 0 1000 120"
+        preserveAspectRatio="none"
+        >
+          <path
+            d="M80 58 C 210 18, 350 18, 500 58 C 650 98, 790 98, 920 58"
+            fill="none"
+            stroke={palette.rope}
+            strokeWidth="9"
+            strokeLinecap="round"
+          />
+          <path
+            d="M90 60 C 220 28, 350 28, 500 60 C 650 92, 780 92, 910 60"
+            fill="none"
+            stroke={palette.pine}
+            strokeWidth="18"
+            strokeLinecap="round"
+            opacity="0.92"
+          />
+          <path
+            d="M105 51 C 235 24, 360 24, 500 51 C 640 79, 765 79, 895 51"
+            fill="none"
+            stroke={palette.pineDark}
+            strokeWidth="7"
+            strokeLinecap="round"
+            opacity="0.82"
+          />
+        <g transform="translate(120 42)">
+          <ellipse cx="0" cy="0" rx="26" ry="10" fill={palette.pineDark} transform="rotate(-28)" />
+          <ellipse cx="18" cy="2" rx="24" ry="9" fill={palette.pine} transform="rotate(14)" />
+          <ellipse cx="-18" cy="10" rx="20" ry="8" fill={palette.pine} transform="rotate(42)" />
+          <circle cx="10" cy="18" r="6" fill={palette.berry} />
+          <circle cx="-4" cy="22" r="5" fill={palette.berryDark} />
+          <circle cx="22" cy="24" r="5" fill={palette.berry} />
+        </g>
+        <g transform="translate(880 42)">
+          <ellipse cx="0" cy="0" rx="26" ry="10" fill={palette.pineDark} transform="rotate(28)" />
+          <ellipse cx="-18" cy="2" rx="24" ry="9" fill={palette.pine} transform="rotate(-14)" />
+          <ellipse cx="18" cy="10" rx="20" ry="8" fill={palette.pine} transform="rotate(-42)" />
+          <circle cx="-10" cy="18" r="6" fill={palette.berry} />
+          <circle cx="4" cy="22" r="5" fill={palette.berryDark} />
+          <circle cx="-22" cy="24" r="5" fill={palette.berry} />
+        </g>
+        {withBells && (
+          <g transform="translate(500 38)">
+            <path
+              d="M-38 -4 C -26 -22, -8 -18, 0 0 C 8 -18, 26 -22, 38 -4 L 18 12 L 0 0 L -18 12 Z"
+              fill={palette.bow}
+            />
+            <circle cx="0" cy="8" r="6" fill={palette.berry} />
+            <path d="M-10 12 L -14 18" stroke={palette.rope} strokeWidth="4" strokeLinecap="round" />
+            <path d="M10 12 L 14 18" stroke={palette.rope} strokeWidth="4" strokeLinecap="round" />
+            <path
+              d="M-26 20 C -34 20, -40 28, -40 38 C -40 48, -32 56, -22 56 C -12 56, -4 48, -4 38 C -4 28, -12 20, -20 20 Z"
+              fill={palette.bell}
+            />
+            <path
+              d="M26 20 C 34 20, 40 28, 40 38 C 40 48, 32 56, 22 56 C 12 56, 4 48, 4 38 C 4 28, 12 20, 20 20 Z"
+              fill={palette.bell}
+            />
+            <path d="M-26 26 H -6" stroke={palette.bellDark} strokeWidth="3" opacity="0.7" />
+            <path d="M6 26 H 26" stroke={palette.bellDark} strokeWidth="3" opacity="0.7" />
+            <circle cx="-22" cy="48" r="4" fill={palette.bellDark} />
+            <circle cx="22" cy="48" r="4" fill={palette.bellDark} />
+          </g>
+        )}
+      </svg>
+
+      <svg
+        className="absolute"
+        style={{
+          left: -8,
+          top: compact ? -8 : -10,
+          width: cornerSize,
+          height: cornerSize,
+          filter: `drop-shadow(0 4px 10px ${palette.glow})`,
+        }}
+        viewBox="0 0 90 90"
+      >
+        <ellipse cx="26" cy="26" rx="28" ry="10" fill={palette.pineDark} transform="rotate(-26 26 26)" />
+        <ellipse cx="46" cy="24" rx="26" ry="10" fill={palette.pine} transform="rotate(12 46 24)" />
+        <ellipse cx="26" cy="44" rx="20" ry="8" fill={palette.pine} transform="rotate(42 26 44)" />
+        <circle cx="38" cy="40" r="6" fill={palette.berry} />
+        <circle cx="26" cy="48" r="5" fill={palette.berryDark} />
+        <circle cx="50" cy="50" r="5" fill={palette.berry} />
+        <path
+          d="M58 36 C 64 34, 70 38, 70 44 C 70 50, 66 54, 60 54 C 54 54, 50 50, 50 44 C 50 40, 53 37, 58 36 Z"
+          fill={palette.bell}
+          opacity="0.92"
+        />
+      </svg>
+
+      <svg
+        className="absolute"
+        style={{
+          right: -8,
+          top: compact ? -8 : -10,
+          width: cornerSize,
+          height: cornerSize,
+          transform: "scaleX(-1)",
+          filter: `drop-shadow(0 4px 10px ${palette.glow})`,
+        }}
+        viewBox="0 0 90 90"
+      >
+        <ellipse cx="26" cy="26" rx="28" ry="10" fill={palette.pineDark} transform="rotate(-26 26 26)" />
+        <ellipse cx="46" cy="24" rx="26" ry="10" fill={palette.pine} transform="rotate(12 46 24)" />
+        <ellipse cx="26" cy="44" rx="20" ry="8" fill={palette.pine} transform="rotate(42 26 44)" />
+        <circle cx="38" cy="40" r="6" fill={palette.berry} />
+        <circle cx="26" cy="48" r="5" fill={palette.berryDark} />
+        <circle cx="50" cy="50" r="5" fill={palette.berry} />
+        <path
+          d="M58 36 C 64 34, 70 38, 70 44 C 70 50, 66 54, 60 54 C 54 54, 50 50, 50 44 C 50 40, 53 37, 58 36 Z"
+          fill={palette.bell}
+          opacity="0.92"
+        />
+      </svg>
+
+      <svg
+        className="absolute"
+        style={{
+          left: -4,
+          bottom: -6,
+          width: bottomCornerSize,
+          height: bottomCornerSize,
+          transform: "scaleY(-1)",
+          filter: `drop-shadow(0 4px 10px ${palette.glow})`,
+        }}
+        viewBox="0 0 90 90"
+      >
+        <ellipse cx="26" cy="26" rx="28" ry="10" fill={palette.pineDark} transform="rotate(-26 26 26)" />
+        <ellipse cx="46" cy="24" rx="26" ry="10" fill={palette.pine} transform="rotate(12 46 24)" />
+        <ellipse cx="26" cy="44" rx="20" ry="8" fill={palette.pine} transform="rotate(42 26 44)" />
+        <circle cx="38" cy="40" r="6" fill={palette.berry} />
+        <circle cx="26" cy="48" r="5" fill={palette.berryDark} />
+        <circle cx="50" cy="50" r="5" fill={palette.berry} />
+      </svg>
+
+      <svg
+        className="absolute"
+        style={{
+          right: -4,
+          bottom: -6,
+          width: bottomCornerSize,
+          height: bottomCornerSize,
+          transform: "scale(-1)",
+          filter: `drop-shadow(0 4px 10px ${palette.glow})`,
+        }}
+        viewBox="0 0 90 90"
+      >
+        <ellipse cx="26" cy="26" rx="28" ry="10" fill={palette.pineDark} transform="rotate(-26 26 26)" />
+        <ellipse cx="46" cy="24" rx="26" ry="10" fill={palette.pine} transform="rotate(12 46 24)" />
+        <ellipse cx="26" cy="44" rx="20" ry="8" fill={palette.pine} transform="rotate(42 26 44)" />
+        <circle cx="38" cy="40" r="6" fill={palette.berry} />
+        <circle cx="26" cy="48" r="5" fill={palette.berryDark} />
+        <circle cx="50" cy="50" r="5" fill={palette.berry} />
+      </svg>
+    </div>
+  );
 }
 
 function buildThreadMetaMap(
@@ -620,7 +862,9 @@ export default function SecretSantaChatPage() {
     return (
       <main className="min-h-screen relative" style={{ background: "linear-gradient(180deg,#0a1628 0%,#0f1f3d 20%,#162d50 50%,#0f1f3d 80%,#0a1628 100%)", fontFamily: "'Nunito', sans-serif", color: "#fff" }}>
         <div className="relative z-10 max-w-[720px] mx-auto px-4 py-6">
-          <div className="rounded-[18px] overflow-hidden" style={{ background: "rgba(255,255,255,.04)", border: `1px solid ${isGiver ? "rgba(251,191,36,.15)" : "rgba(34,197,94,.15)"}` }}>
+          <div className="relative pt-6">
+            <FestiveTrim tone={isGiver ? "gold" : "green"} withBells />
+            <div className="rounded-[18px] overflow-hidden" style={{ background: "rgba(255,255,255,.04)", border: `1px solid ${isGiver ? "rgba(251,191,36,.15)" : "rgba(34,197,94,.15)"}` }}>
             <div className="flex items-center justify-between p-4" style={{ background: "rgba(255,255,255,.04)", borderBottom: `1px solid ${isGiver ? "rgba(251,191,36,.1)" : "rgba(34,197,94,.1)"}` }}>
               <div className="flex items-center gap-3">
                 <div className="w-[42px] h-[42px] rounded-xl flex items-center justify-center text-[18px]"
@@ -713,6 +957,7 @@ export default function SecretSantaChatPage() {
                 {isGiver ? "Send 🎁" : "Send 💬"}
               </button>
             </div>
+            </div>
           </div>
 
           {isGiver && (
@@ -747,13 +992,14 @@ export default function SecretSantaChatPage() {
         </div>
 
         <div
-          className="flex items-stretch gap-4 mb-6 p-4 rounded-[24px]"
+          className="relative flex items-stretch gap-4 mb-6 px-4 pb-4 pt-9 rounded-[24px] overflow-visible"
           style={{
             background: "rgba(255,255,255,.045)",
             border: "1px solid rgba(255,255,255,.08)",
             boxShadow: "0 10px 30px rgba(0,0,0,.08)",
           }}
         >
+          <FestiveTrim tone="neutral" withBells />
           <div className="flex-1 p-4 rounded-xl" style={{ background: "rgba(251,191,36,.08)", border: "1px solid rgba(251,191,36,.12)" }}>
             <div className="flex items-start gap-3">
               <div
@@ -835,10 +1081,13 @@ export default function SecretSantaChatPage() {
         </div>
 
         {threads.length === 0 ? (
-          <div className="text-center py-12 rounded-[18px]" style={{ background: "rgba(255,255,255,.05)", border: "1px solid rgba(255,255,255,.08)" }}>
-            <div className="text-[48px] mb-3">💬</div>
-            <div className="text-[18px] font-bold" style={{ fontFamily: "'Fredoka', sans-serif", color: "rgba(255,255,255,.7)" }}>No chats yet</div>
-            <p className="text-[13px] mt-1" style={{ color: "rgba(255,255,255,.35)" }}>Once names are drawn, your chat threads will appear here!</p>
+          <div className="relative pt-6">
+            <FestiveTrim tone="neutral" withBells />
+            <div className="text-center py-12 rounded-[18px]" style={{ background: "rgba(255,255,255,.05)", border: "1px solid rgba(255,255,255,.08)" }}>
+              <div className="text-[48px] mb-3">💬</div>
+              <div className="text-[18px] font-bold" style={{ fontFamily: "'Fredoka', sans-serif", color: "rgba(255,255,255,.7)" }}>No chats yet</div>
+              <p className="text-[13px] mt-1" style={{ color: "rgba(255,255,255,.35)" }}>Once names are drawn, your chat threads will appear here!</p>
+            </div>
           </div>
         ) : (
           <>
@@ -853,28 +1102,31 @@ export default function SecretSantaChatPage() {
                 </div>
                 <div className="flex flex-col gap-3 mb-7">
                   {giverThreads.map((t, i) => (
-                    <div key={`g-${i}`} onClick={() => openThread(t)}
-                      className="cursor-pointer flex items-center justify-between p-4 rounded-[16px] transition hover:translate-x-1"
-                      style={{ background: "linear-gradient(135deg,rgba(251,191,36,.07),rgba(245,158,11,.04))", border: "1px solid rgba(251,191,36,.15)", borderLeft: "4px solid #fbbf24", boxShadow: "0 6px 20px rgba(0,0,0,.08)" }}>
-                      <div className="flex items-center gap-3 flex-1 min-w-0">
-                        <div className="w-[48px] h-[48px] rounded-[14px] flex items-center justify-center text-[20px] flex-shrink-0"
-                          style={{ background: "linear-gradient(135deg,#fbbf24,#f59e0b)", boxShadow: "0 3px 12px rgba(251,191,36,.25)" }}>🎁</div>
-                        <div className="flex-1 min-w-0">
-                          <div className="text-[17px] font-extrabold" style={{ color: "#fbbf24" }}>{t.other_name}</div>
-                          <div className="text-[11px] font-semibold mt-1" style={{ color: "#ddd3c1" }}>{t.group_name}</div>
-                          <div className="mt-2 rounded-xl px-3 py-2" style={{ background: "rgba(15,23,42,.35)", border: "1px solid rgba(251,191,36,.08)" }}>
-                            <div className="text-[10px] font-extrabold uppercase tracking-[0.08em]" style={{ color: "rgba(251,191,36,.8)" }}>Latest message</div>
-                            <div className="text-[13px] font-semibold mt-1 truncate" style={{ color: "#f8f1e4" }}>{t.last_message}</div>
+                    <div key={`g-${i}`} className="relative pt-5">
+                      <FestiveTrim tone="gold" compact withBells />
+                      <div onClick={() => openThread(t)}
+                        className="cursor-pointer flex items-center justify-between p-4 rounded-[16px] transition hover:translate-x-1"
+                        style={{ background: "linear-gradient(135deg,rgba(251,191,36,.07),rgba(245,158,11,.04))", border: "1px solid rgba(251,191,36,.15)", borderLeft: "4px solid #fbbf24", boxShadow: "0 6px 20px rgba(0,0,0,.08)" }}>
+                        <div className="flex items-center gap-3 flex-1 min-w-0">
+                          <div className="w-[48px] h-[48px] rounded-[14px] flex items-center justify-center text-[20px] flex-shrink-0"
+                            style={{ background: "linear-gradient(135deg,#fbbf24,#f59e0b)", boxShadow: "0 3px 12px rgba(251,191,36,.25)" }}>🎁</div>
+                          <div className="flex-1 min-w-0">
+                            <div className="text-[17px] font-extrabold" style={{ color: "#fbbf24" }}>{t.other_name}</div>
+                            <div className="text-[11px] font-semibold mt-1" style={{ color: "#ddd3c1" }}>{t.group_name}</div>
+                            <div className="mt-2 rounded-xl px-3 py-2" style={{ background: "rgba(15,23,42,.35)", border: "1px solid rgba(251,191,36,.08)" }}>
+                              <div className="text-[10px] font-extrabold uppercase tracking-[0.08em]" style={{ color: "rgba(251,191,36,.8)" }}>Latest message</div>
+                              <div className="text-[13px] font-semibold mt-1 truncate" style={{ color: "#f8f1e4" }}>{t.last_message}</div>
+                            </div>
                           </div>
                         </div>
-                      </div>
-                      <div className="flex flex-col items-end gap-1 flex-shrink-0 ml-3">
-                        {t.last_time && <span className="text-[11px] font-semibold px-2 py-1 rounded-md" style={{ color: "#f3e3c2", background: "rgba(92,58,15,.28)" }}>{t.last_time}</span>}
-                        {t.unread > 0 && (
-                          <div className="w-[22px] h-[22px] rounded-full flex items-center justify-center text-[10px] font-extrabold text-white"
-                            style={{ background: "linear-gradient(135deg,#dc2626,#ef4444)", boxShadow: "0 2px 8px rgba(220,38,38,.3)" }}>{t.unread}</div>
-                        )}
-                        <span className="text-[10px] font-extrabold px-2.5 py-1 rounded-md" style={{ background: "rgba(251,191,36,.12)", color: "#fbbf24" }}>You → Recipient</span>
+                        <div className="flex flex-col items-end gap-1 flex-shrink-0 ml-3">
+                          {t.last_time && <span className="text-[11px] font-semibold px-2 py-1 rounded-md" style={{ color: "#f3e3c2", background: "rgba(92,58,15,.28)" }}>{t.last_time}</span>}
+                          {t.unread > 0 && (
+                            <div className="w-[22px] h-[22px] rounded-full flex items-center justify-center text-[10px] font-extrabold text-white"
+                              style={{ background: "linear-gradient(135deg,#dc2626,#ef4444)", boxShadow: "0 2px 8px rgba(220,38,38,.3)" }}>{t.unread}</div>
+                          )}
+                          <span className="text-[10px] font-extrabold px-2.5 py-1 rounded-md" style={{ background: "rgba(251,191,36,.12)", color: "#fbbf24" }}>You → Recipient</span>
+                        </div>
                       </div>
                     </div>
                   ))}
@@ -897,28 +1149,31 @@ export default function SecretSantaChatPage() {
                 </div>
                 <div className="flex flex-col gap-3">
                   {receiverThreads.map((t, i) => (
-                    <div key={`r-${i}`} onClick={() => openThread(t)}
-                      className="cursor-pointer flex items-center justify-between p-4 rounded-[16px] transition hover:translate-x-1"
-                      style={{ background: "linear-gradient(135deg,rgba(34,197,94,.07),rgba(22,163,74,.04))", border: "1px solid rgba(34,197,94,.15)", borderLeft: "4px solid #22c55e", boxShadow: "0 6px 20px rgba(0,0,0,.08)" }}>
-                      <div className="flex items-center gap-3 flex-1 min-w-0">
-                        <div className="w-[48px] h-[48px] rounded-[14px] flex items-center justify-center text-[20px] flex-shrink-0"
-                          style={{ background: "linear-gradient(135deg,#22c55e,#16a34a)", boxShadow: "0 3px 12px rgba(34,197,94,.25)" }}>🎅</div>
-                        <div className="flex-1 min-w-0">
-                          <div className="text-[17px] font-extrabold" style={{ color: "#86efac" }}>Secret Santa</div>
-                          <div className="text-[11px] font-semibold mt-1" style={{ color: "#d6ead8" }}>{t.group_name}</div>
-                          <div className="mt-2 rounded-xl px-3 py-2" style={{ background: "rgba(15,23,42,.35)", border: "1px solid rgba(34,197,94,.08)" }}>
-                            <div className="text-[10px] font-extrabold uppercase tracking-[0.08em]" style={{ color: "rgba(134,239,172,.85)" }}>Latest message</div>
-                            <div className="text-[13px] font-semibold mt-1 truncate" style={{ color: "#eef8ef" }}>{t.last_message}</div>
+                    <div key={`r-${i}`} className="relative pt-5">
+                      <FestiveTrim tone="green" compact withBells />
+                      <div onClick={() => openThread(t)}
+                        className="cursor-pointer flex items-center justify-between p-4 rounded-[16px] transition hover:translate-x-1"
+                        style={{ background: "linear-gradient(135deg,rgba(34,197,94,.07),rgba(22,163,74,.04))", border: "1px solid rgba(34,197,94,.15)", borderLeft: "4px solid #22c55e", boxShadow: "0 6px 20px rgba(0,0,0,.08)" }}>
+                        <div className="flex items-center gap-3 flex-1 min-w-0">
+                          <div className="w-[48px] h-[48px] rounded-[14px] flex items-center justify-center text-[20px] flex-shrink-0"
+                            style={{ background: "linear-gradient(135deg,#22c55e,#16a34a)", boxShadow: "0 3px 12px rgba(34,197,94,.25)" }}>🎅</div>
+                          <div className="flex-1 min-w-0">
+                            <div className="text-[17px] font-extrabold" style={{ color: "#86efac" }}>Secret Santa</div>
+                            <div className="text-[11px] font-semibold mt-1" style={{ color: "#d6ead8" }}>{t.group_name}</div>
+                            <div className="mt-2 rounded-xl px-3 py-2" style={{ background: "rgba(15,23,42,.35)", border: "1px solid rgba(34,197,94,.08)" }}>
+                              <div className="text-[10px] font-extrabold uppercase tracking-[0.08em]" style={{ color: "rgba(134,239,172,.85)" }}>Latest message</div>
+                              <div className="text-[13px] font-semibold mt-1 truncate" style={{ color: "#eef8ef" }}>{t.last_message}</div>
+                            </div>
                           </div>
                         </div>
-                      </div>
-                      <div className="flex flex-col items-end gap-1 flex-shrink-0 ml-3">
-                        {t.last_time && <span className="text-[11px] font-semibold px-2 py-1 rounded-md" style={{ color: "#dff5df", background: "rgba(18,84,41,.28)" }}>{t.last_time}</span>}
-                        {t.unread > 0 && (
-                          <div className="w-[22px] h-[22px] rounded-full flex items-center justify-center text-[10px] font-extrabold text-white"
-                            style={{ background: "linear-gradient(135deg,#dc2626,#ef4444)", boxShadow: "0 2px 8px rgba(220,38,38,.3)" }}>{t.unread}</div>
-                        )}
-                        <span className="text-[10px] font-extrabold px-2.5 py-1 rounded-md" style={{ background: "rgba(34,197,94,.12)", color: "#86efac" }}>Secret Santa → You</span>
+                        <div className="flex flex-col items-end gap-1 flex-shrink-0 ml-3">
+                          {t.last_time && <span className="text-[11px] font-semibold px-2 py-1 rounded-md" style={{ color: "#dff5df", background: "rgba(18,84,41,.28)" }}>{t.last_time}</span>}
+                          {t.unread > 0 && (
+                            <div className="w-[22px] h-[22px] rounded-full flex items-center justify-center text-[10px] font-extrabold text-white"
+                              style={{ background: "linear-gradient(135deg,#dc2626,#ef4444)", boxShadow: "0 2px 8px rgba(220,38,38,.3)" }}>{t.unread}</div>
+                          )}
+                          <span className="text-[10px] font-extrabold px-2.5 py-1 rounded-md" style={{ background: "rgba(34,197,94,.12)", color: "#86efac" }}>Secret Santa → You</span>
+                        </div>
                       </div>
                     </div>
                   ))}
@@ -928,10 +1183,13 @@ export default function SecretSantaChatPage() {
           </>
         )}
 
-        <div className="flex items-start gap-2 mt-6 p-3.5 rounded-xl" style={{ background: "rgba(59,130,246,.06)", border: "1px solid rgba(59,130,246,.1)" }}>
-          <span className="text-[16px] flex-shrink-0">🔒</span>
-          <div className="text-[11px] leading-relaxed" style={{ color: "rgba(147,197,253,.6)" }}>
-            <strong style={{ color: "#93c5fd" }}>Your identity is always hidden</strong> when chatting with recipients. They only see &quot;🎅 Secret Santa&quot;. Your Secret Santa&apos;s identity is hidden from you too!
+        <div className="relative mt-6 pt-6">
+          <FestiveTrim tone="green" withBells />
+          <div className="flex items-start gap-2 p-3.5 rounded-xl" style={{ background: "rgba(59,130,246,.06)", border: "1px solid rgba(59,130,246,.1)" }}>
+            <span className="text-[16px] flex-shrink-0">🔒</span>
+            <div className="text-[11px] leading-relaxed" style={{ color: "rgba(147,197,253,.6)" }}>
+              <strong style={{ color: "#93c5fd" }}>Your identity is always hidden</strong> when chatting with recipients. They only see &quot;🎅 Secret Santa&quot;. Your Secret Santa&apos;s identity is hidden from you too!
+            </div>
           </div>
         </div>
       </div>
