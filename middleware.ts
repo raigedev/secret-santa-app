@@ -13,6 +13,25 @@ import { createServerClient } from "@supabase/ssr";
 
 // The function MUST be named "middleware" — Next.js looks for this exact name.
 export async function middleware(req: NextRequest) {
+  // Some OAuth providers or Supabase fall back to the site root with `?code=...`
+  // when the requested redirect URL is not used. If we let `/` render first,
+  // the user sees the landing page and the auth code is never exchanged for a
+  // session. Redirecting the request into the dedicated callback route ensures
+  // the code is exchanged server-side before any page UI renders.
+  const hasOAuthCode = req.nextUrl.searchParams.has("code");
+  const isCallbackRoute = req.nextUrl.pathname === "/auth/callback";
+
+  if (hasOAuthCode && !isCallbackRoute) {
+    const callbackUrl = req.nextUrl.clone();
+    callbackUrl.pathname = "/auth/callback";
+
+    if (!callbackUrl.searchParams.has("next")) {
+      callbackUrl.searchParams.set("next", "/dashboard");
+    }
+
+    return NextResponse.redirect(callbackUrl);
+  }
+
   // Create a response object that we can modify (add cookies to)
   const res = NextResponse.next();
 

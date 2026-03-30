@@ -22,7 +22,11 @@ export default function LoginPage() {
     const { error } = await supabase.auth.signInWithOAuth({
       provider: "google",
       options: {
-        redirectTo: `${window.location.origin}/auth/callback?next=/dashboard`,
+        // Supabase compares OAuth redirect URLs against the allow-list in
+        // Authentication > URL Configuration. Using the exact callback path
+        // avoids fallback redirects to the Site URL when query strings do not
+        // match the configured allow-list entry.
+        redirectTo: `${window.location.origin}/auth/callback`,
       },
     });
 

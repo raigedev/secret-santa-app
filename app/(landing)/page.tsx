@@ -84,6 +84,26 @@ export default function Landing() {
   const navRef = useRef<HTMLElement>(null);
 
   useEffect(() => {
+    // This page is public, but OAuth should never "finish" here. If Supabase
+    // returns to the site root with a `code` query string, forward that code to
+    // the dedicated callback route so the session can be created and the user
+    // lands on the dashboard instead of seeing the landing page again.
+    const currentUrl = new URL(window.location.href);
+
+    if (!currentUrl.searchParams.has("code")) {
+      return;
+    }
+
+    currentUrl.pathname = "/auth/callback";
+
+    if (!currentUrl.searchParams.has("next")) {
+      currentUrl.searchParams.set("next", "/dashboard");
+    }
+
+    window.location.replace(currentUrl.toString());
+  }, []);
+
+  useEffect(() => {
     const sw = snowRef.current;
     if (sw && sw.children.length === 0) {
       for (let i = 0; i < 35; i++) {
