@@ -103,15 +103,13 @@ export async function inviteUser(
 }
 
 export async function updateNickname(
-  prevState: { message: string },
-  formData: FormData
-): Promise<{ message: string }> {
-  const groupId = formData.get("groupId") as string;
-  const nickname = formData.get("nickname") as string;
+  groupId: string,
+  nickname: string
+): Promise<{ success: boolean; message: string }> {
   const cleanNick = sanitize(nickname, 30);
 
   if (cleanNick.length === 0) {
-    return { message: "Nickname cannot be empty." };
+    return { success: false, message: "Nickname cannot be empty." };
   }
 
   const supabase = await createClient();
@@ -120,7 +118,7 @@ export async function updateNickname(
   } = await supabase.auth.getUser();
 
   if (!user) {
-    return { message: "You must be logged in." };
+    return { success: false, message: "You must be logged in." };
   }
 
   const rateLimit = await enforceRateLimit({
@@ -134,28 +132,50 @@ export async function updateNickname(
   });
 
   if (!rateLimit.allowed) {
-    return { message: rateLimit.message };
+    return { success: false, message: rateLimit.message };
   }
 
-  const { error } = await supabase
+  const { data: membership, error: membershipError } = await supabase
+    .from("group_members")
+    .select("id")
+    .eq("group_id", groupId)
+    .eq("user_id", user.id)
+    .maybeSingle();
+
+  if (membershipError) {
+    await recordServerFailure({
+      actorUserId: user.id,
+      errorMessage: membershipError.message,
+      eventType: "group.update_nickname.lookup",
+      resourceId: groupId,
+      resourceType: "group_membership",
+    });
+
+    return { success: false, message: "Failed to update nickname." };
+  }
+
+  if (!membership) {
+    return { success: false, message: "Membership not found." };
+  }
+
+  const { error } = await supabaseAdmin
     .from("group_members")
     .update({ nickname: cleanNick })
-    .eq("group_id", groupId)
-    .eq("user_id", user.id);
+    .eq("id", membership.id);
 
   if (error) {
     await recordServerFailure({
       actorUserId: user.id,
       errorMessage: error.message,
-      eventType: "group.update_nickname",
+      eventType: "group.update_nickname.update",
       resourceId: groupId,
       resourceType: "group_membership",
     });
 
-    return { message: "Failed to update nickname." };
+    return { success: false, message: "Failed to update nickname." };
   }
 
-  return { message: `Nickname updated to "${cleanNick}"!` };
+  return { success: true, message: `Nickname updated to "${cleanNick}"!` };
 }
 
 export async function resendInvite(

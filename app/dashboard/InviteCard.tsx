@@ -1,18 +1,13 @@
 "use client";
 
-// ─── InviteCard Component ───
-// Shows a pending group invitation with Accept and Decline buttons.
-// When the user clicks a button, it calls the server action and
-// updates the UI instantly (no page refresh needed).
-
 import { useState } from "react";
 import { acceptInvite, declineInvite } from "./actions";
 
 type Props = {
-  groupId: string;       // the group being invited to
-  groupName: string;     // display name of the group
-  eventDate: string;     // when the event is
-  description?: string;  // optional group description
+  groupId: string;
+  groupName: string;
+  eventDate: string;
+  description?: string;
 };
 
 export default function InviteCard({
@@ -21,43 +16,40 @@ export default function InviteCard({
   eventDate,
   description,
 }: Props) {
-  // ─── State ───
-  // "idle" = showing Accept/Decline buttons
-  // "loading" = waiting for server response
-  // "accepted" = user accepted the invite
-  // "declined" = user declined the invite
-  const [status, setStatus] = useState<"idle" | "loading" | "accepted" | "declined">("idle");
+  const [status, setStatus] = useState<"idle" | "loading" | "accepted" | "declined">(
+    "idle"
+  );
 
-  // ─── Handle Accept ───
   const handleAccept = async () => {
     setStatus("loading");
     const result = await acceptInvite(groupId);
-    if (result.message.startsWith("✅")) {
+
+    if (result.success) {
       setStatus("accepted");
-    } else {
-      // If it failed, go back to idle so they can try again
-      setStatus("idle");
-      alert(result.message);
+      return;
     }
+
+    setStatus("idle");
+    alert(result.message);
   };
 
-  // ─── Handle Decline ───
   const handleDecline = async () => {
     setStatus("loading");
     const result = await declineInvite(groupId);
-    if (result.message.startsWith("✅")) {
+
+    if (result.success) {
       setStatus("declined");
-    } else {
-      setStatus("idle");
-      alert(result.message);
+      return;
     }
+
+    setStatus("idle");
+    alert(result.message);
   };
 
-  // ─── Already responded — show result ───
   if (status === "accepted") {
     return (
       <div className="rounded-xl p-5 bg-gradient-to-r from-green-300 to-green-500 text-white shadow-lg">
-        <p className="font-bold text-lg">✅ Joined: {groupName}</p>
+        <p className="font-bold text-lg">Joined: {groupName}</p>
         <p className="text-sm opacity-90 mt-1">
           You can now view this group from Your Groups below.
         </p>
@@ -74,7 +66,6 @@ export default function InviteCard({
     );
   }
 
-  // ─── Pending — show invitation with buttons ───
   return (
     <div
       className="rounded-xl p-5 shadow-lg text-white relative overflow-hidden"
@@ -83,14 +74,10 @@ export default function InviteCard({
         boxShadow: "0 0 20px rgba(249, 115, 22, 0.5)",
       }}
     >
-      {/* Group info */}
-      <p className="font-bold text-lg mb-1">🎁 {groupName}</p>
-      {description && (
-        <p className="text-sm opacity-90 mb-1">{description}</p>
-      )}
-      <p className="text-sm opacity-80 mb-4">📅 Event: {eventDate}</p>
+      <p className="font-bold text-lg mb-1">{groupName}</p>
+      {description && <p className="text-sm opacity-90 mb-1">{description}</p>}
+      <p className="text-sm opacity-80 mb-4">Event: {eventDate}</p>
 
-      {/* Accept / Decline buttons */}
       <div className="flex gap-3">
         <button
           onClick={handleAccept}
@@ -101,7 +88,7 @@ export default function InviteCard({
               : "bg-white text-green-700 hover:bg-green-50 shadow"
           }`}
         >
-          {status === "loading" ? "Processing..." : "✅ Accept"}
+          {status === "loading" ? "Processing..." : "Accept"}
         </button>
         <button
           onClick={handleDecline}
@@ -112,7 +99,7 @@ export default function InviteCard({
               : "bg-white/20 text-white hover:bg-white/30"
           }`}
         >
-          {status === "loading" ? "..." : "❌ Decline"}
+          {status === "loading" ? "..." : "Decline"}
         </button>
       </div>
     </div>

@@ -7,6 +7,7 @@ import InviteCard from "./InviteCard";
 import SecretSantaCard from "./SecretSantaCard";
 import ProfileSetupModal from "./ProfileSetupModal";
 import { getProfile } from "@/app/profile/actions";
+import { claimInvitedMemberships } from "./actions";
 import { deleteGroup } from "@/app/group/[id]/actions";
 import { DashboardSkeleton } from "@/app/components/PageSkeleton";
 import FadeIn from "@/app/components/FadeIn";
@@ -54,6 +55,13 @@ type GroupMemberRow = {
   group_id: string;
   nickname: string;
   email: string;
+  role: string;
+};
+
+type MembershipRow = {
+  id: string;
+  group_id: string;
+  status: string;
   role: string;
 };
 
@@ -115,11 +123,7 @@ export default function DashboardPage() {
         // Fetch the profile and link any invited email-based memberships to the authenticated user.
         const [profileData] = await Promise.all([
           getProfile(),
-          supabase
-            .from("group_members")
-            .update({ user_id: user.id })
-            .eq("email", email)
-            .is("user_id", null),
+          claimInvitedMemberships(),
         ]);
 
         if (!isMounted) {
@@ -138,10 +142,28 @@ export default function DashboardPage() {
           }
         }
 
-        const { data: memberRows } = await supabase
-          .from("group_members")
-          .select("group_id, status, role")
-          .or(`user_id.eq.${user.id},email.eq.${email}`);
+        const [membersByUserRes, membersByEmailRes] = await Promise.all([
+          supabase
+            .from("group_members")
+            .select("id, group_id, status, role")
+            .eq("user_id", user.id),
+          supabase
+            .from("group_members")
+            .select("id, group_id, status, role")
+            .eq("email", email),
+        ]);
+
+        const membershipMap = new Map<string, MembershipRow>();
+
+        for (const row of (membersByUserRes.data || []) as MembershipRow[]) {
+          membershipMap.set(row.id, row);
+        }
+
+        for (const row of (membersByEmailRes.data || []) as MembershipRow[]) {
+          membershipMap.set(row.id, row);
+        }
+
+        const memberRows = [...membershipMap.values()];
 
         if (!isMounted) {
           return;

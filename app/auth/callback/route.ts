@@ -10,6 +10,7 @@ import { NextResponse } from "next/server";
 import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
 import { recordServerFailure } from "@/lib/security/audit";
+import { supabaseAdmin } from "@/lib/supabase/admin";
 
 export async function GET(request: Request) {
   const requestUrl = new URL(request.url);
@@ -96,7 +97,7 @@ export async function GET(request: Request) {
     // Update all group_members rows where:
     // - email matches this user
     // - user_id is still null (hasn't been linked yet)
-    await supabase
+    await supabaseAdmin
       .from("group_members")
       .update({ user_id: user.id })
       .eq("email", user.email.toLowerCase())
