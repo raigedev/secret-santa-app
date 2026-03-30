@@ -1,6 +1,7 @@
 "use server";
 
 import { recordServerFailure } from "@/lib/security/audit";
+import { createNotification } from "@/lib/notifications";
 import { enforceRateLimit } from "@/lib/security/rate-limit";
 import { supabaseAdmin } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
@@ -9,6 +10,41 @@ type MembershipActionResult = {
   success: boolean;
   message: string;
 };
+
+async function notifyOwnerAboutInviteResponse(options: {
+  actorUserId: string;
+  groupId: string;
+  response: "accepted" | "declined";
+}) {
+  const { data: group } = await supabaseAdmin
+    .from("groups")
+    .select("owner_id, name")
+    .eq("id", options.groupId)
+    .maybeSingle();
+
+  if (!group || group.owner_id === options.actorUserId) {
+    return;
+  }
+
+  await createNotification({
+    userId: group.owner_id,
+    type: "invite",
+    title:
+      options.response === "accepted"
+        ? "A member accepted your invite"
+        : "A member declined your invite",
+    body:
+      options.response === "accepted"
+        ? `Someone accepted your invite to ${group.name}.`
+        : `Someone declined your invite to ${group.name}.`,
+    linkPath: `/group/${options.groupId}`,
+    metadata: {
+      groupId: options.groupId,
+      response: options.response,
+    },
+    preferenceKey: "notify_invites",
+  });
+}
 
 export async function claimInvitedMemberships(): Promise<{
   linkedCount: number;
@@ -138,6 +174,12 @@ export async function acceptInvite(groupId: string): Promise<MembershipActionRes
     return { success: false, message: "Failed to accept invite. Please try again." };
   }
 
+  await notifyOwnerAboutInviteResponse({
+    actorUserId: user.id,
+    groupId,
+    response: "accepted",
+  });
+
   return { success: true, message: "Invitation accepted!" };
 }
 
@@ -209,6 +251,12 @@ export async function declineInvite(groupId: string): Promise<MembershipActionRe
 
     return { success: false, message: "Failed to decline invite. Please try again." };
   }
+
+  await notifyOwnerAboutInviteResponse({
+    actorUserId: user.id,
+    groupId,
+    response: "declined",
+  });
 
   return { success: true, message: "Invitation declined." };
 }

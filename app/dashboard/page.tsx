@@ -99,6 +99,7 @@ export default function DashboardPage() {
   const [invitedGroups, setInvitedGroups] = useState<Group[]>([]);
   const [pendingInvites, setPendingInvites] = useState<PendingInvite[]>([]);
   const [recipientNames, setRecipientNames] = useState<string[]>([]);
+  const [unreadNotificationCount, setUnreadNotificationCount] = useState(0);
   const [loading, setLoading] = useState(true);
   const [showProfileSetup, setShowProfileSetup] = useState(false);
   const [actionMessage, setActionMessage] = useState<ActionMessage>(null);
@@ -107,11 +108,13 @@ export default function DashboardPage() {
     ((user: { id: string; email?: string | null }) => Promise<void>) | null
   >(null);
   const loadProfileDataRef = useRef<(() => Promise<void>) | null>(null);
+  const loadNotificationCountRef = useRef<((userId: string) => Promise<void>) | null>(null);
 
   useEffect(() => {
     let isMounted = true;
     let dashboardReloadTimer: ReturnType<typeof setTimeout> | null = null;
     let profileReloadTimer: ReturnType<typeof setTimeout> | null = null;
+    let notificationsReloadTimer: ReturnType<typeof setTimeout> | null = null;
     let sessionUser:
       | {
           id: string;
@@ -328,6 +331,26 @@ export default function DashboardPage() {
 
     loadProfileDataRef.current = loadProfileData;
 
+    const loadNotificationCount = async (targetUserId: string) => {
+      const { count, error } = await supabase
+        .from("notifications")
+        .select("id", { count: "exact", head: true })
+        .eq("user_id", targetUserId)
+        .is("read_at", null);
+
+      if (!isMounted) {
+        return;
+      }
+
+      if (error) {
+        return;
+      }
+
+      setUnreadNotificationCount(count || 0);
+    };
+
+    loadNotificationCountRef.current = loadNotificationCount;
+
     const scheduleDashboardReload = () => {
       if (!sessionUser) {
         return;
@@ -354,6 +377,22 @@ export default function DashboardPage() {
       profileReloadTimer = setTimeout(() => {
         if (loadProfileDataRef.current) {
           void loadProfileDataRef.current();
+        }
+      }, 120);
+    };
+
+    const scheduleNotificationsReload = () => {
+      if (!sessionUser) {
+        return;
+      }
+
+      if (notificationsReloadTimer) {
+        clearTimeout(notificationsReloadTimer);
+      }
+
+      notificationsReloadTimer = setTimeout(() => {
+        if (sessionUser && loadNotificationCountRef.current) {
+          void loadNotificationCountRef.current(sessionUser.id);
         }
       }, 120);
     };
@@ -388,6 +427,7 @@ export default function DashboardPage() {
 
 
         await loadDashboardData(session.user);
+        await loadNotificationCount(session.user.id);
       } catch (error) {
         console.error("[Dashboard] Failed to bootstrap dashboard:", error);
 
@@ -435,6 +475,19 @@ export default function DashboardPage() {
           }
         }
       )
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "notifications" },
+        (payload) => {
+          const changedUserId =
+            (payload.new as { user_id?: string } | null)?.user_id ||
+            (payload.old as { user_id?: string } | null)?.user_id;
+
+          if (sessionUser && changedUserId === sessionUser.id) {
+            scheduleNotificationsReload();
+          }
+        }
+      )
       .subscribe();
 
     const {
@@ -452,6 +505,9 @@ export default function DashboardPage() {
       }
       if (profileReloadTimer) {
         clearTimeout(profileReloadTimer);
+      }
+      if (notificationsReloadTimer) {
+        clearTimeout(notificationsReloadTimer);
       }
       void supabase.removeChannel(channel);
       subscription.unsubscribe();
@@ -643,6 +699,34 @@ export default function DashboardPage() {
             {actionMessage.text}
           </div>
         )}
+
+        <div data-fade className="flex justify-end mb-4">
+          <button
+            type="button"
+            onClick={() => router.push("/notifications")}
+            className="relative inline-flex items-center gap-2 px-4 py-2.5 rounded-full text-sm font-bold transition hover:scale-105"
+            style={{
+              color: "#14532d",
+              background: "rgba(255,255,255,.82)",
+              border: "1px solid rgba(21,101,52,.1)",
+              boxShadow: "0 4px 12px rgba(15,23,42,.06)",
+            }}
+          >
+            <span className="text-base">🔔</span>
+            Notifications
+            {unreadNotificationCount > 0 && (
+              <span
+                className="absolute -top-2 -right-1 min-w-[22px] h-[22px] px-1 rounded-full flex items-center justify-center text-[10px] font-extrabold text-white"
+                style={{
+                  background: "linear-gradient(135deg,#dc2626,#ef4444)",
+                  boxShadow: "0 3px 10px rgba(220,38,38,.22)",
+                }}
+              >
+                {unreadNotificationCount > 99 ? "99+" : unreadNotificationCount}
+              </span>
+            )}
+          </button>
+        </div>
 
         {/* Header */}
         <div data-fade className="flex items-center justify-center gap-3 mb-2">

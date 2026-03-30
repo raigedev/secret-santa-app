@@ -16,6 +16,7 @@
 // ═══════════════════════════════════════
 
 import { recordServerFailure } from "@/lib/security/audit";
+import { createNotification } from "@/lib/notifications";
 import { enforceRateLimit } from "@/lib/security/rate-limit";
 import { createClient } from "@/lib/supabase/server";
 
@@ -99,6 +100,25 @@ export async function sendMessage(
     });
     return { success: false, message: "Failed to send message. Please try again." };
   }
+
+  const otherUserId = user.id === threadGiverId ? threadReceiverId : threadGiverId;
+  const { data: group } = await supabase
+    .from("groups")
+    .select("name")
+    .eq("id", groupId)
+    .maybeSingle();
+
+  await createNotification({
+    userId: otherUserId,
+    type: "chat",
+    title: "New Secret Santa message",
+    body: `You have a new message in ${group?.name || "one of your Secret Santa chats"}.`,
+    linkPath: "/secret-santa-chat",
+    metadata: {
+      groupId,
+    },
+    preferenceKey: "notify_chat",
+  });
 
   // Playbook#20: Log critical action
 

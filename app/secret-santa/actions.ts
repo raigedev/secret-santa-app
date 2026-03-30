@@ -1,6 +1,7 @@
 "use server";
 
 import { recordAuditEvent, recordServerFailure } from "@/lib/security/audit";
+import { createNotification } from "@/lib/notifications";
 import { enforceRateLimit } from "@/lib/security/rate-limit";
 import { supabaseAdmin } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
@@ -149,7 +150,7 @@ export async function confirmGiftReceived(
 
   const { data: assignment, error: assignmentError } = await supabaseAdmin
     .from("assignments")
-    .select("group_id, gift_received")
+    .select("group_id, giver_id, gift_received")
     .eq("group_id", groupId)
     .eq("receiver_id", user.id)
     .maybeSingle();
@@ -189,6 +190,25 @@ export async function confirmGiftReceived(
       resourceType: "assignment",
     });
     return { success: false, message: "Failed to confirm. Please try again." };
+  }
+
+  const { data: group } = await supabaseAdmin
+    .from("groups")
+    .select("name")
+    .eq("id", groupId)
+    .maybeSingle();
+
+  if (assignment.giver_id) {
+    await createNotification({
+      userId: assignment.giver_id,
+      type: "gift_received",
+      title: "Your recipient confirmed their gift",
+      body: `Your recipient confirmed they received their gift in ${group?.name || "your group"}.`,
+      linkPath: "/secret-santa",
+      metadata: {
+        groupId,
+      },
+    });
   }
 
   await recordAuditEvent({

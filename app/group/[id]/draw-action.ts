@@ -1,6 +1,7 @@
 "use server";
 
 import { recordAuditEvent, recordServerFailure } from "@/lib/security/audit";
+import { createNotifications } from "@/lib/notifications";
 import { enforceRateLimit } from "@/lib/security/rate-limit";
 import { supabaseAdmin } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
@@ -43,7 +44,7 @@ export async function drawSecretSanta(
 
   const { data: group } = await supabase
     .from("groups")
-    .select("owner_id")
+    .select("owner_id, name")
     .eq("id", groupId)
     .maybeSingle();
 
@@ -139,6 +140,23 @@ export async function drawSecretSanta(
 
     return { success: false, message: "Failed to save assignments. Please try again." };
   }
+
+  await createNotifications(
+    assignments
+      .map((assignment) => assignment.giver_id)
+      .filter((giverId): giverId is string => Boolean(giverId) && giverId !== user.id)
+      .map((giverId) => ({
+        userId: giverId,
+        type: "draw",
+        title: `Names were drawn in ${group.name}`,
+        body: "Your recipient is ready. Open Secret Santa to see your assignment and start planning.",
+        linkPath: "/secret-santa",
+        metadata: {
+          groupId,
+        },
+        preferenceKey: "notify_draws" as const,
+      }))
+  );
 
   await recordAuditEvent({
     actorUserId: user.id,

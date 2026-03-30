@@ -2,6 +2,7 @@
 
 import { randomBytes } from "crypto";
 import { recordAuditEvent, recordServerFailure } from "@/lib/security/audit";
+import { createNotifications } from "@/lib/notifications";
 import { enforceRateLimit } from "@/lib/security/rate-limit";
 import { supabaseAdmin } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
@@ -1032,7 +1033,7 @@ export async function triggerReveal(
 
   const { data: group } = await supabase
     .from("groups")
-    .select("owner_id, revealed")
+    .select("owner_id, revealed, name")
     .eq("id", groupId)
     .single();
 
@@ -1079,6 +1080,23 @@ export async function triggerReveal(
     giver: getNickname(assignment.giver_id),
     receiver: getNickname(assignment.receiver_id),
   }));
+
+  await createNotifications(
+    (members || [])
+      .map((member) => member.user_id)
+      .filter((memberUserId): memberUserId is string => Boolean(memberUserId) && memberUserId !== user.id)
+      .map((memberUserId) => ({
+        userId: memberUserId,
+        type: "reveal",
+        title: `Reveal time in ${group.name}`,
+        body: "The owner revealed the Secret Santa matches. Open the group to see the full reveal.",
+        linkPath: `/group/${groupId}`,
+        metadata: {
+          groupId,
+        },
+        preferenceKey: "notify_draws" as const,
+      }))
+  );
 
   await recordAuditEvent({
     actorUserId: user.id,

@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { recordAuditEvent, recordServerFailure } from "@/lib/security/audit";
+import { createNotification } from "@/lib/notifications";
 import { enforceRateLimit } from "@/lib/security/rate-limit";
 import { supabaseAdmin } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
@@ -79,7 +80,7 @@ async function loadInvitePreview(
     await Promise.all([
       supabaseAdmin
         .from("groups")
-        .select("id, name, description, event_date")
+        .select("id, name, description, event_date, owner_id")
         .eq("id", link.group_id)
         .maybeSingle(),
       supabaseAdmin
@@ -310,6 +311,27 @@ async function joinGroupViaInviteToken(
     resourceId: link.group_id,
     resourceType: "group",
   });
+
+  const { data: group } = await supabaseAdmin
+    .from("groups")
+    .select("name, owner_id")
+    .eq("id", link.group_id)
+    .maybeSingle();
+
+  if (group && group.owner_id !== user.id) {
+    await createNotification({
+      userId: group.owner_id,
+      type: "invite",
+      title: "Someone joined through your invite link",
+      body: `A new member joined ${group.name} using the shared invite link.`,
+      linkPath: `/group/${link.group_id}`,
+      metadata: {
+        groupId: link.group_id,
+        joinMethod: "invite_link",
+      },
+      preferenceKey: "notify_invites",
+    });
+  }
 
   return {
     success: true,
