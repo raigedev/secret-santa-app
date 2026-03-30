@@ -14,6 +14,16 @@ function buildInviteToken(): string {
   return randomBytes(24).toString("base64url");
 }
 
+async function groupHasDrawStarted(groupId: string): Promise<boolean> {
+  const { data: existingDraw } = await supabaseAdmin
+    .from("assignments")
+    .select("id")
+    .eq("group_id", groupId)
+    .limit(1);
+
+  return Boolean(existingDraw && existingDraw.length > 0);
+}
+
 async function assertOwnerCanManageInvites(
   supabase: Awaited<ReturnType<typeof createClient>>,
   groupId: string,
@@ -29,13 +39,7 @@ async function assertOwnerCanManageInvites(
     return { ok: false, message: "Only the group owner can manage invites." };
   }
 
-  const { data: existingDraw } = await supabaseAdmin
-    .from("assignments")
-    .select("id")
-    .eq("group_id", groupId)
-    .limit(1);
-
-  if (existingDraw && existingDraw.length > 0) {
+  if (await groupHasDrawStarted(groupId)) {
     return {
       ok: false,
       message: "Invites can only be managed before names are drawn.",
@@ -79,14 +83,9 @@ export async function inviteUser(
     return { message: rateLimit.message };
   }
 
-  const { data: group } = await supabase
-    .from("groups")
-    .select("owner_id")
-    .eq("id", groupId)
-    .single();
-
-  if (!group || group.owner_id !== user.id) {
-    return { message: "Only the group owner can invite members." };
+  const permission = await assertOwnerCanManageInvites(supabase, groupId, user.id);
+  if (!permission.ok) {
+    return { message: permission.message || "Invite unavailable." };
   }
 
   const cleanEmail = sanitize(email, 100).toLowerCase();
@@ -103,7 +102,7 @@ export async function inviteUser(
     });
   }
 
-  const { error: insertError } = await supabase.from("group_members").insert([
+  const { error: insertError } = await supabaseAdmin.from("group_members").insert([
     {
       group_id: groupId,
       email: cleanEmail,
@@ -245,14 +244,9 @@ export async function resendInvite(
     return { message: rateLimit.message };
   }
 
-  const { data: group } = await supabase
-    .from("groups")
-    .select("owner_id")
-    .eq("id", groupId)
-    .maybeSingle();
-
-  if (!group || group.owner_id !== user.id) {
-    return { message: "Only the group owner can resend invites." };
+  const permission = await assertOwnerCanManageInvites(supabase, groupId, user.id);
+  if (!permission.ok) {
+    return { message: permission.message || "Invite unavailable." };
   }
 
   const { error } = await supabaseAdmin
@@ -778,7 +772,14 @@ export async function removeMember(
     return { success: false, message: "Only the group owner can remove members." };
   }
 
-  const { error } = await supabase
+  if (await groupHasDrawStarted(groupId)) {
+    return {
+      success: false,
+      message: "Members cannot be removed after names are drawn. Reset the draw first.",
+    };
+  }
+
+  const { error } = await supabaseAdmin
     .from("group_members")
     .delete()
     .eq("group_id", groupId)
@@ -840,7 +841,14 @@ export async function leaveGroup(
     return { success: false, message: "The owner cannot leave. Delete the group instead." };
   }
 
-  const { error } = await supabase
+  if (await groupHasDrawStarted(groupId)) {
+    return {
+      success: false,
+      message: "You cannot leave after names are drawn. Ask the owner to reset the draw first.",
+    };
+  }
+
+  const { error } = await supabaseAdmin
     .from("group_members")
     .delete()
     .eq("group_id", groupId)

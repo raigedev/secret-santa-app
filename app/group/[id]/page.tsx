@@ -932,23 +932,31 @@ export default function GroupDetailsPage() {
             )}
 
             {!isOwner && (
-              <div className="flex justify-center mb-5">
+              <div className="flex flex-col items-center gap-2 mb-5">
                 <button
                   onClick={() => {
                     setActionMsg("");
                     setShowLeaveModal(true);
                   }}
+                  disabled={drawDone}
                   className="px-4 py-2 rounded-lg text-[11px] font-bold transition"
                   style={{
                     background: "rgba(245,158,11,.08)",
-                    color: "#f59e0b",
+                    color: drawDone ? "#9ca3af" : "#f59e0b",
                     border: "1px solid rgba(245,158,11,.12)",
-                    cursor: "pointer",
+                    cursor: drawDone ? "not-allowed" : "pointer",
                     fontFamily: "inherit",
+                    opacity: drawDone ? 0.7 : 1,
                   }}
                 >
-                  🚪 Leave Group
+                  {drawDone ? "Draw Locked" : "🚪 Leave Group"}
                 </button>
+
+                {drawDone && (
+                  <p className="text-center text-[11px]" style={{ color: "#6b7280" }}>
+                    Participant changes are locked after draw. Ask the owner to reset first.
+                  </p>
+                )}
               </div>
             )}
 
