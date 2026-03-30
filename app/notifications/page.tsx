@@ -151,7 +151,7 @@ export default function NotificationsPage() {
     // update after missed websocket events, network hiccups, or sleeping tabs.
     pollInterval = setInterval(() => {
       refreshIfVisible();
-    }, 8000);
+    }, 2500);
 
     window.addEventListener("focus", refreshIfVisible);
     document.addEventListener("visibilitychange", refreshIfVisible);

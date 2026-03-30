@@ -114,7 +114,6 @@ export default function DashboardPage() {
     let isMounted = true;
     let dashboardReloadTimer: ReturnType<typeof setTimeout> | null = null;
     let profileReloadTimer: ReturnType<typeof setTimeout> | null = null;
-    let notificationsReloadTimer: ReturnType<typeof setTimeout> | null = null;
     let notificationPollInterval: ReturnType<typeof setInterval> | null = null;
     let sessionUser:
       | {
@@ -333,11 +332,13 @@ export default function DashboardPage() {
     loadProfileDataRef.current = loadProfileData;
 
     const loadNotificationCount = async (targetUserId: string) => {
-      const { count, error } = await supabase
+      const { data, error } = await supabase
         .from("notifications")
-        .select("id", { count: "exact", head: true })
+        .select("id")
         .eq("user_id", targetUserId)
-        .is("read_at", null);
+        .is("read_at", null)
+        .order("created_at", { ascending: false })
+        .limit(200);
 
       if (!isMounted) {
         return;
@@ -347,7 +348,7 @@ export default function DashboardPage() {
         return;
       }
 
-      setUnreadNotificationCount(count || 0);
+      setUnreadNotificationCount((data || []).length);
     };
 
     loadNotificationCountRef.current = loadNotificationCount;
@@ -387,15 +388,9 @@ export default function DashboardPage() {
         return;
       }
 
-      if (notificationsReloadTimer) {
-        clearTimeout(notificationsReloadTimer);
+      if (loadNotificationCountRef.current) {
+        void loadNotificationCountRef.current(sessionUser.id);
       }
-
-      notificationsReloadTimer = setTimeout(() => {
-        if (sessionUser && loadNotificationCountRef.current) {
-          void loadNotificationCountRef.current(sessionUser.id);
-        }
-      }, 120);
     };
 
     const refreshNotificationsIfVisible = () => {
@@ -446,7 +441,7 @@ export default function DashboardPage() {
         // bell accurate if the browser misses a websocket event or resumes from sleep.
         notificationPollInterval = setInterval(() => {
           refreshNotificationsIfVisible();
-        }, 8000);
+        }, 2500);
       } catch (error) {
         console.error("[Dashboard] Failed to bootstrap dashboard:", error);
 
@@ -527,9 +522,6 @@ export default function DashboardPage() {
       }
       if (profileReloadTimer) {
         clearTimeout(profileReloadTimer);
-      }
-      if (notificationsReloadTimer) {
-        clearTimeout(notificationsReloadTimer);
       }
       if (notificationPollInterval) {
         clearInterval(notificationPollInterval);

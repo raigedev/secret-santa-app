@@ -103,9 +103,10 @@ export async function sendMessage(
 
   const otherUserId = user.id === threadGiverId ? threadReceiverId : threadGiverId;
 
-  // Keep chat sends snappy. The optimistic UI already shows the message
-  // instantly, so notification creation should not hold the send response open.
-  void createNotification({
+  // The message itself is already persisted above, and the UI shows it
+  // optimistically. Waiting for this lightweight notification insert keeps the
+  // recipient's unread badge timely without the extra group lookup we removed.
+  await createNotification({
     userId: otherUserId,
     type: "chat",
     title: "New Secret Santa message",
