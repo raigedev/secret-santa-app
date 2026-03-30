@@ -585,6 +585,137 @@ export async function revokePendingInvite(
   return { success: true, message: "✅ Invite revoked." };
 }
 
+export async function getGroupOwnerInsights(groupId: string): Promise<{
+  success: boolean;
+  message: string;
+  insights?: {
+    acceptedCount: number;
+    wishlistReadyCount: number;
+    missingWishlistMemberNames: string[];
+    activeChatThreadCount: number;
+    totalChatThreadCount: number;
+    confirmedGiftCount: number;
+    totalGiftCount: number;
+  };
+}> {
+  if (!groupId) {
+    return { success: false, message: "Missing group ID." };
+  }
+
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    return { success: false, message: "You must be logged in." };
+  }
+
+  const rateLimit = await enforceRateLimit({
+    action: "group.get_owner_insights",
+    actorUserId: user.id,
+    maxAttempts: 1000,
+    resourceId: groupId,
+    resourceType: "group",
+    subject: user.id,
+    windowSeconds: 3600,
+  });
+
+  if (!rateLimit.allowed) {
+    return { success: false, message: rateLimit.message };
+  }
+
+  const { data: group } = await supabase
+    .from("groups")
+    .select("owner_id")
+    .eq("id", groupId)
+    .maybeSingle();
+
+  if (!group || group.owner_id !== user.id) {
+    return { success: false, message: "Only the group owner can view insights." };
+  }
+
+  const [
+    { data: acceptedMembers, error: acceptedMembersError },
+    { data: wishlistRows, error: wishlistRowsError },
+    { data: assignments, error: assignmentsError },
+    { data: messageRows, error: messageRowsError },
+  ] = await Promise.all([
+    supabaseAdmin
+      .from("group_members")
+      .select("user_id, nickname, email")
+      .eq("group_id", groupId)
+      .eq("status", "accepted"),
+    supabaseAdmin.from("wishlists").select("user_id").eq("group_id", groupId),
+    supabaseAdmin
+      .from("assignments")
+      .select("giver_id, receiver_id, gift_received")
+      .eq("group_id", groupId),
+    supabaseAdmin
+      .from("messages")
+      .select("thread_giver_id, thread_receiver_id")
+      .eq("group_id", groupId),
+  ]);
+
+  const firstError =
+    acceptedMembersError || wishlistRowsError || assignmentsError || messageRowsError;
+
+  if (firstError) {
+    await recordServerFailure({
+      actorUserId: user.id,
+      errorMessage: firstError.message,
+      eventType: "group.get_owner_insights",
+      resourceId: groupId,
+      resourceType: "group",
+    });
+
+    return { success: false, message: "Failed to load owner insights." };
+  }
+
+  const safeAcceptedMembers = (acceptedMembers || []).filter(
+    (member): member is { user_id: string; nickname: string | null; email: string | null } =>
+      Boolean(member.user_id)
+  );
+
+  const acceptedUserIds = new Set(safeAcceptedMembers.map((member) => member.user_id));
+  const membersWithWishlist = new Set(
+    (wishlistRows || [])
+      .map((row) => row.user_id)
+      .filter((userId): userId is string => Boolean(userId) && acceptedUserIds.has(userId))
+  );
+
+  const missingWishlistMemberNames = safeAcceptedMembers
+    .filter((member) => !membersWithWishlist.has(member.user_id))
+    .map((member) => member.nickname?.trim() || member.email?.split("@")[0] || "Participant");
+
+  const assignmentThreadKeys = new Set(
+    (assignments || []).map((assignment) => `${assignment.giver_id}:${assignment.receiver_id}`)
+  );
+  const activeChatThreadKeys = new Set(
+    (messageRows || [])
+      .map((message) => `${message.thread_giver_id}:${message.thread_receiver_id}`)
+      .filter((threadKey) => assignmentThreadKeys.has(threadKey))
+  );
+
+  const confirmedGiftCount = (assignments || []).filter(
+    (assignment) => assignment.gift_received
+  ).length;
+
+  return {
+    success: true,
+    message: "Owner insights loaded.",
+    insights: {
+      acceptedCount: safeAcceptedMembers.length,
+      wishlistReadyCount: safeAcceptedMembers.length - missingWishlistMemberNames.length,
+      missingWishlistMemberNames,
+      activeChatThreadCount: activeChatThreadKeys.size,
+      totalChatThreadCount: assignmentThreadKeys.size,
+      confirmedGiftCount,
+      totalGiftCount: assignmentThreadKeys.size,
+    },
+  };
+}
+
 export async function editGroup(
   groupId: string,
   name: string,
