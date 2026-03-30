@@ -800,7 +800,7 @@ export default function SecretSantaChatPage() {
                           <div className="w-[22px] h-[22px] rounded-full flex items-center justify-center text-[10px] font-extrabold text-white"
                             style={{ background: "linear-gradient(135deg,#dc2626,#ef4444)", boxShadow: "0 2px 8px rgba(220,38,38,.3)" }}>{t.unread}</div>
                         )}
-                        <span className="text-[10px] font-extrabold px-2.5 py-1 rounded-md" style={{ background: "rgba(251,191,36,.12)", color: "#fbbf24" }}>Open chat</span>
+                        <span className="text-[10px] font-extrabold px-2.5 py-1 rounded-md" style={{ background: "rgba(251,191,36,.12)", color: "#fbbf24" }}>You → Recipient</span>
                       </div>
                     </div>
                   ))}
@@ -844,7 +844,7 @@ export default function SecretSantaChatPage() {
                           <div className="w-[22px] h-[22px] rounded-full flex items-center justify-center text-[10px] font-extrabold text-white"
                             style={{ background: "linear-gradient(135deg,#dc2626,#ef4444)", boxShadow: "0 2px 8px rgba(220,38,38,.3)" }}>{t.unread}</div>
                         )}
-                        <span className="text-[10px] font-extrabold px-2.5 py-1 rounded-md" style={{ background: "rgba(34,197,94,.12)", color: "#86efac" }}>Open chat</span>
+                        <span className="text-[10px] font-extrabold px-2.5 py-1 rounded-md" style={{ background: "rgba(34,197,94,.12)", color: "#86efac" }}>Secret Santa → You</span>
                       </div>
                     </div>
                   ))}
