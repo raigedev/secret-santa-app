@@ -1,9 +1,10 @@
+import "server-only";
+
 // This client runs on the server (middleware, route handlers, server components).
 // It reads/writes cookies using Next.js's cookie store.
 // This allows Supabase to complete the PKCE flow on the server.
 
 import { createServerClient } from "@supabase/ssr";
-import { createClient as createSupabaseClient } from "@supabase/supabase-js";
 import { cookies } from "next/headers";
 
 // Normal server client (cookie-based, anon key)
@@ -29,10 +30,3 @@ export async function createClient() {
     }
   );
 }
-
-// Admin client (service role key, no cookies)
-// Use this ONLY in server actions, never in the browser
-export const supabaseAdmin = createSupabaseClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-);

@@ -21,6 +21,5 @@ export async function confirmGiftReceived(
     return { success: false, message: "Failed to confirm. Please try again." };
   }
 
-  console.log(`[SANTA] User ${user.id} confirmed gift received for group ${groupId}`);
   return { success: true, message: "Gift confirmed!" };
 }

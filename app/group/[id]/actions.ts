@@ -1,6 +1,7 @@
 "use server";
 
-import { createClient, supabaseAdmin } from "@/lib/supabase/server";
+import { supabaseAdmin } from "@/lib/supabase/admin";
+import { createClient } from "@/lib/supabase/server";
 
 function sanitize(input: string, max: number): string {
   return input.replace(/<[^>]*>/g, "").replace(/[<>]/g, "").trim().slice(0, max);
@@ -41,7 +42,6 @@ export async function inviteUser(
     return { message: "❌ Failed to add member. They may already be in the group." };
   }
 
-  console.log(`[GROUP] Invited ${cleanEmail} to group ${groupId} by ${user.id}`);
   return { message: `✅ Invite sent to ${cleanEmail}` };
 }
 
@@ -68,7 +68,6 @@ export async function updateNickname(
     return { message: "❌ Failed to update nickname." };
   }
 
-  console.log(`[GROUP] Nickname updated to "${cleanNick}" by ${user.id}`);
   return { message: `✅ Nickname updated to "${cleanNick}"!` };
 }
 
@@ -99,7 +98,6 @@ export async function resendInvite(
     return { message: "❌ Failed to resend invite." };
   }
 
-  console.log(`[GROUP] Resent invite to ${memberEmail} for group ${groupId}`);
   return { message: "✅ Invite resent!" };
 }
 
@@ -137,7 +135,6 @@ export async function editGroup(
     return { success: false, message: "Failed to update group. Please try again." };
   }
 
-  console.log(`[GROUP] Edited group ${groupId} by user ${user.id}`);
   return { success: true, message: "Group updated!" };
 }
 
@@ -167,7 +164,6 @@ export async function deleteGroup(
     return { success: false, message: "Failed to delete group. Please try again." };
   }
 
-  console.log(`[GROUP] Deleted group ${groupId} by owner ${user.id}`);
   return { success: true, message: "Group deleted." };
 }
 
@@ -196,7 +192,6 @@ export async function removeMember(
     return { success: false, message: "Failed to remove member. Please try again." };
   }
 
-  console.log(`[GROUP] Removed member ${memberId} from group ${groupId} by owner ${user.id}`);
   return { success: true, message: "Member removed." };
 }
 
@@ -222,7 +217,6 @@ export async function leaveGroup(
     return { success: false, message: "Failed to leave group. Please try again." };
   }
 
-  console.log(`[GROUP] User ${user.id} left group ${groupId}`);
   return { success: true, message: "You left the group." };
 }
 
@@ -275,6 +269,5 @@ export async function triggerReveal(
     receiver: getNick(a.receiver_id),
   }));
 
-  console.log(`[GROUP] Big Reveal triggered for group ${groupId} by owner ${user.id}`);
   return { success: true, message: "Reveal triggered!", matches };
 }

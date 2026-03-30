@@ -49,7 +49,6 @@ export async function getProfile() {
     return null;
   }
 
-  console.log(`[PROFILE] Created profile for user ${user.id}`);
   return newProfile;
 }
 
@@ -105,7 +104,6 @@ export async function updateProfile(
     return { success: false, message: "Failed to save. Please try again." };
   }
 
-  console.log(`[PROFILE] Updated profile for user ${user.id}`);
   return { success: true, message: "Profile saved!" };
 }
 
@@ -141,6 +139,5 @@ export async function quickSetup(
     return { success: false, message: "Failed to save. Please try again." };
   }
 
-  console.log(`[PROFILE] Quick setup complete for user ${user.id}`);
   return { success: true, message: "Welcome!" };
 }

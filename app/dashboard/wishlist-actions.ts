@@ -110,7 +110,6 @@ export async function addWishlistItem(
   }
 
   // Playbook#20: Log critical action
-  console.log(`[WISHLIST] User ${user.id} added "${cleanName}" to group ${groupId}`);
 
   return { success: true, message: "Item added!" };
 }
@@ -161,7 +160,6 @@ export async function editWishlistItem(
     return { success: false, message: "Failed to update item. Please try again." };
   }
 
-  console.log(`[WISHLIST] User ${user.id} edited item ${itemId}`);
 
   return { success: true, message: "Item updated!" };
 }
@@ -194,7 +192,6 @@ export async function deleteWishlistItem(
     return { success: false, message: "Failed to delete item. Please try again." };
   }
 
-  console.log(`[WISHLIST] User ${user.id} deleted item ${itemId}`);
 
   return { success: true, message: "Item deleted!" };
 }

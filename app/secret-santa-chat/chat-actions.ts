@@ -75,7 +75,6 @@ export async function sendMessage(
   }
 
   // Playbook#20: Log critical action
-  console.log(`[CHAT] User ${user.id} sent message in group ${groupId}`);
 
   return { success: true, message: "" };
 }

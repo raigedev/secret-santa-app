@@ -15,7 +15,8 @@
 // #19 server-side ownership check, #20 logs critical action
 // ═══════════════════════════════════════
 
-import { createClient, supabaseAdmin } from "@/lib/supabase/server";
+import { supabaseAdmin } from "@/lib/supabase/admin";
+import { createClient } from "@/lib/supabase/server";
 
 export async function drawSecretSanta(
   groupId: string
@@ -157,9 +158,6 @@ export async function drawSecretSanta(
   }
 
   // Security: #20 — log critical action
-  console.log(
-    `[DRAW] Group ${groupId}: ${assignments.length} assignments created by owner ${user.id}`
-  );
 
   return {
     success: true,
