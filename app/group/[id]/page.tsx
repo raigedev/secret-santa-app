@@ -8,7 +8,7 @@ import {
   editWishlistItem,
   deleteWishlistItem,
 } from "@/app/dashboard/wishlist-actions";
-import { confirmGiftReceived } from "./actions";
+import { confirmGiftReceived } from "@/app/secret-santa/actions";
 import { SecretSantaSkeleton } from "@/app/components/PageSkeleton";
 
 type WishlistItem = {
@@ -434,7 +434,6 @@ export default function SecretSantaPage() {
 }
 
 function SnowEffect() {
-  const { useEffect } = require("react");
   useEffect(() => {
     const sw = document.getElementById("snowWrap");
     if (sw && sw.children.length === 0) {
