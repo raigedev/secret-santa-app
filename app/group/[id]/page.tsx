@@ -1588,8 +1588,9 @@ export default function GroupDetailsPage() {
                         className="text-[12px] font-semibold leading-relaxed"
                         style={{ color: "#7c2d12" }}
                       >
-                        Use this once everyone is gathered. It will publish the final pairings to
-                        all accepted members and send them a reveal notification.
+                        Use this once everyone is gathered. You can open the codename reveal
+                        screen on the venue display first, then publish the final pairings to all
+                        accepted members when you are ready.
                       </p>
 
                       <div className="mt-4 flex items-center gap-3 flex-wrap">
@@ -1632,7 +1633,7 @@ export default function GroupDetailsPage() {
                             fontFamily: "inherit",
                           }}
                         >
-                          👀 Preview Reveal Screen
+                          Open Codename Reveal Screen
                         </button>
                       </div>
                     </div>
@@ -1652,7 +1653,8 @@ export default function GroupDetailsPage() {
                         style={{ color: "#475569" }}
                       >
                         Your own assignment stays secret until the owner starts the event-day
-                        reveal. Once that happens, the full match list will appear here.
+                        reveal. The owner can use the codename reveal screen at the venue first,
+                        then the full match list will appear here once the reveal is published.
                       </p>
 
                       {groupData.revealed && (
@@ -1667,7 +1669,7 @@ export default function GroupDetailsPage() {
                             fontFamily: "inherit",
                           }}
                         >
-                          View Reveal Screen
+                          Open Codename Reveal Screen
                         </button>
                       )}
                     </div>
@@ -1762,7 +1764,7 @@ export default function GroupDetailsPage() {
                         fontFamily: "inherit",
                       }}
                     >
-                      🖥️ Open Full Reveal Screen
+                      Open Codename Reveal Screen
                     </button>
                   </div>
                 )}

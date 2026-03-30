@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import FadeIn from "@/app/components/FadeIn";
 import { getRevealPresentationData, triggerReveal } from "../actions";
@@ -11,26 +11,14 @@ type AliasEntry = {
   realName: string;
 };
 
-type MatchEntry = {
-  giverAlias: string;
-  giverAvatarEmoji: string;
-  giverName: string;
-  receiverAlias: string;
-  receiverAvatarEmoji: string;
-  receiverName: string;
-};
-
 type RevealPresentation = {
   aliasEntries: AliasEntry[];
   canPreviewBeforeReveal: boolean;
   groupName: string;
   isOwner: boolean;
-  matchEntries: MatchEntry[];
   revealed: boolean;
   revealedAt: string | null;
 };
-
-type RevealMode = "alias" | "match";
 
 function formatRevealTime(value: string | null): string {
   if (!value) {
@@ -54,7 +42,6 @@ export default function GroupRevealPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [actionMessage, setActionMessage] = useState("");
-  const [mode, setMode] = useState<RevealMode>("alias");
   const [currentIndex, setCurrentIndex] = useState(0);
   const [revealedCard, setRevealedCard] = useState(false);
   const [publishing, setPublishing] = useState(false);
@@ -92,18 +79,21 @@ export default function GroupRevealPage() {
     router.prefetch(`/group/${id}`);
   }, [id, router]);
 
-  const activeItems = mode === "alias" ? presentation?.aliasEntries || [] : presentation?.matchEntries || [];
-  const safeIndex = activeItems.length === 0 ? 0 : Math.min(currentIndex, activeItems.length - 1);
-  const activeItem = activeItems[safeIndex];
+  const aliasEntries = presentation?.aliasEntries || [];
+  const safeIndex =
+    aliasEntries.length === 0 ? 0 : Math.min(currentIndex, aliasEntries.length - 1);
+  const activeEntry = aliasEntries[safeIndex] || null;
 
-  const handleSwitchMode = (nextMode: RevealMode) => {
-    setMode(nextMode);
-    setCurrentIndex(0);
-    setRevealedCard(false);
-  };
+  const progressLabel = useMemo(() => {
+    if (aliasEntries.length === 0) {
+      return "0 of 0";
+    }
+
+    return `${safeIndex + 1} of ${aliasEntries.length}`;
+  }, [aliasEntries.length, safeIndex]);
 
   const handleNext = () => {
-    if (safeIndex >= activeItems.length - 1) {
+    if (safeIndex >= aliasEntries.length - 1) {
       return;
     }
 
@@ -127,7 +117,7 @@ export default function GroupRevealPage() {
 
     if (
       !confirm(
-        "Publish the reveal to the whole group now? Accepted members will be able to open the reveal after this."
+        "Publish the full group reveal now? Accepted members will be able to open the final reveal board after this."
       )
     ) {
       return;
@@ -164,7 +154,7 @@ export default function GroupRevealPage() {
         await document.exitFullscreen();
       }
     } catch {
-      // Best-effort TV mode only.
+      // Fullscreen is a best-effort presentation helper only.
     }
   };
 
@@ -172,7 +162,7 @@ export default function GroupRevealPage() {
     return (
       <main
         className="min-h-screen flex items-center justify-center"
-        style={{ background: "linear-gradient(180deg,#0f172a,#163b2f 65%,#11233a 100%)" }}
+        style={{ background: "linear-gradient(180deg,#0f172a,#15384d 55%,#123226 100%)" }}
       >
         <p className="text-white text-lg font-semibold">Loading reveal screen...</p>
       </main>
@@ -183,7 +173,7 @@ export default function GroupRevealPage() {
     return (
       <main
         className="min-h-screen flex items-center justify-center px-6"
-        style={{ background: "linear-gradient(180deg,#0f172a,#163b2f 65%,#11233a 100%)" }}
+        style={{ background: "linear-gradient(180deg,#0f172a,#15384d 55%,#123226 100%)" }}
       >
         <div
           className="max-w-[560px] rounded-[28px] p-8 text-center"
@@ -193,7 +183,6 @@ export default function GroupRevealPage() {
             boxShadow: "0 20px 50px rgba(0,0,0,.28)",
           }}
         >
-          <div className="text-[34px] mb-3">🎬</div>
           <div className="text-[24px] font-bold text-white mb-2">Reveal Screen Unavailable</div>
           <p className="text-[14px] font-semibold" style={{ color: "rgba(255,255,255,.72)" }}>
             {error || "The reveal screen could not be loaded."}
@@ -216,7 +205,7 @@ export default function GroupRevealPage() {
       className="min-h-screen"
       style={{
         background:
-          "radial-gradient(circle at top,rgba(34,197,94,.18),transparent 28%),linear-gradient(180deg,#0b1220 0%,#10223b 36%,#113227 72%,#0d1626 100%)",
+          "radial-gradient(circle at top,rgba(59,130,246,.14),transparent 26%),radial-gradient(circle at bottom,rgba(34,197,94,.12),transparent 30%),linear-gradient(180deg,#0b1220 0%,#10233b 44%,#112b23 100%)",
         fontFamily: "'Nunito', sans-serif",
       }}
     >
@@ -224,7 +213,7 @@ export default function GroupRevealPage() {
         @import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&family=Fredoka:wght@500;600;700&display=swap');
       `}</style>
 
-      <FadeIn className="max-w-[1200px] mx-auto px-4 py-6">
+      <FadeIn className="max-w-[980px] mx-auto px-4 py-6 md:py-8">
         <div className="flex items-center justify-between gap-3 flex-wrap mb-5">
           <button
             type="button"
@@ -236,7 +225,7 @@ export default function GroupRevealPage() {
               border: "1px solid rgba(255,255,255,.08)",
             }}
           >
-            ← Back to Group
+            Back to Group
           </button>
 
           <div className="flex items-center gap-2 flex-wrap">
@@ -250,7 +239,7 @@ export default function GroupRevealPage() {
                 border: "1px solid rgba(96,165,250,.18)",
               }}
             >
-              🖥️ TV Mode
+              TV Mode
             </button>
 
             {presentation.isOwner && !presentation.revealed && (
@@ -267,7 +256,7 @@ export default function GroupRevealPage() {
                   cursor: publishing ? "not-allowed" : "pointer",
                 }}
               >
-                {publishing ? "Publishing..." : "🎉 Publish Reveal"}
+                {publishing ? "Publishing..." : "Publish Group Reveal"}
               </button>
             )}
           </div>
@@ -282,7 +271,7 @@ export default function GroupRevealPage() {
           }}
         >
           <div
-            className="px-6 py-6"
+            className="px-6 py-6 md:px-8 md:py-7"
             style={{
               background:
                 "linear-gradient(135deg,rgba(15,23,42,.88),rgba(17,50,39,.86),rgba(30,64,175,.76))",
@@ -291,14 +280,14 @@ export default function GroupRevealPage() {
             <div className="flex items-start justify-between gap-4 flex-wrap">
               <div>
                 <div
-                  className="text-[34px] font-bold text-white"
+                  className="text-[30px] md:text-[36px] font-bold text-white"
                   style={{ fontFamily: "'Fredoka', sans-serif" }}
                 >
-                  🎬 {presentation.groupName} Reveal
+                  {presentation.groupName} Codename Reveal
                 </div>
                 <div className="text-[14px] font-semibold mt-2" style={{ color: "#cbd5e1" }}>
-                  Preview both reveal styles on a TV-friendly screen before you decide how to run
-                  the event.
+                  This screen is meant for the venue display. Show one codename at a time, then
+                  flip it to reveal the real person when the room is ready.
                 </div>
               </div>
 
@@ -312,51 +301,15 @@ export default function GroupRevealPage() {
                 }}
               >
                 {presentation.revealed
-                  ? `Reveal live • ${formatRevealTime(presentation.revealedAt)}`
+                  ? `Reveal live - ${formatRevealTime(presentation.revealedAt)}`
                   : presentation.isOwner
-                    ? "Preview mode before publishing"
+                    ? "Private presentation mode"
                     : "Waiting for the owner to publish"}
               </div>
             </div>
-
-            <div className="mt-5 flex gap-3 flex-wrap">
-              {[
-                {
-                  id: "alias" as const,
-                  title: "Alias Reveal",
-                  description: "Reveal who owns each codename one by one.",
-                },
-                {
-                  id: "match" as const,
-                  title: "Match Reveal",
-                  description: "Reveal who got who after the codename reveal.",
-                },
-              ].map((option) => (
-                <button
-                  key={option.id}
-                  type="button"
-                  onClick={() => handleSwitchMode(option.id)}
-                  className="px-4 py-3 rounded-2xl text-left min-w-[220px]"
-                  style={{
-                    background:
-                      mode === option.id ? "rgba(255,255,255,.16)" : "rgba(15,23,42,.28)",
-                    border:
-                      mode === option.id
-                        ? "1px solid rgba(255,255,255,.18)"
-                        : "1px solid rgba(255,255,255,.06)",
-                    color: "#fff",
-                  }}
-                >
-                  <div className="text-[15px] font-bold">{option.title}</div>
-                  <div className="text-[12px] font-semibold mt-1" style={{ color: "#cbd5e1" }}>
-                    {option.description}
-                  </div>
-                </button>
-              ))}
-            </div>
           </div>
 
-          <div className="p-6">
+          <div className="p-6 md:p-8">
             {actionMessage && (
               <div
                 className="rounded-2xl px-4 py-3 text-sm font-bold mb-5"
@@ -374,33 +327,24 @@ export default function GroupRevealPage() {
               </div>
             )}
 
-            <div className="grid grid-cols-1 xl:grid-cols-[1.15fr_.85fr] gap-6">
-              <div
-                className="rounded-[28px] p-6"
-                style={{
-                  background:
-                    mode === "alias"
-                      ? "linear-gradient(180deg,rgba(126,34,206,.16),rgba(15,23,42,.56))"
-                      : "linear-gradient(180deg,rgba(22,163,74,.16),rgba(15,23,42,.56))",
-                  border: "1px solid rgba(255,255,255,.08)",
-                  minHeight: "520px",
-                }}
-              >
-                <div className="flex items-center justify-between gap-4 flex-wrap mb-6">
-                  <div>
-                    <div className="text-[13px] font-extrabold uppercase tracking-[0.16em]" style={{ color: "#cbd5e1" }}>
-                      {mode === "alias" ? "Codename Reveal" : "Secret Santa Match Reveal"}
-                    </div>
-                    <div
-                      className="text-[28px] font-bold mt-2 text-white"
-                      style={{ fontFamily: "'Fredoka', sans-serif" }}
-                    >
-                      {mode === "alias"
-                        ? "One codename flips into a real person"
-                        : "One Secret Santa pairing at a time"}
-                    </div>
+            <div className="grid grid-cols-1 gap-5">
+              <div className="flex items-center justify-between gap-3 flex-wrap">
+                <div>
+                  <div
+                    className="text-[12px] font-extrabold uppercase tracking-[0.18em]"
+                    style={{ color: "#93c5fd" }}
+                  >
+                    Event Screen
                   </div>
+                  <div
+                    className="text-[26px] md:text-[32px] font-bold mt-2 text-white"
+                    style={{ fontFamily: "'Fredoka', sans-serif" }}
+                  >
+                    One codename. One reveal moment.
+                  </div>
+                </div>
 
+                <div className="flex items-center gap-2 flex-wrap">
                   <div
                     className="px-4 py-2 rounded-2xl text-[12px] font-extrabold"
                     style={{
@@ -409,257 +353,149 @@ export default function GroupRevealPage() {
                       border: "1px solid rgba(255,255,255,.08)",
                     }}
                   >
-                    Item {activeItems.length === 0 ? 0 : safeIndex + 1} of {activeItems.length}
+                    {progressLabel}
                   </div>
-                </div>
 
-                {mode === "alias" && activeItem && (
                   <div
-                    className="rounded-[30px] p-8 h-[380px] flex flex-col justify-between"
+                    className="px-4 py-2 rounded-2xl text-[12px] font-extrabold"
                     style={{
-                      background: revealedCard
-                        ? "linear-gradient(135deg,rgba(34,197,94,.24),rgba(15,23,42,.72))"
-                        : "linear-gradient(135deg,rgba(29,78,216,.18),rgba(15,23,42,.72))",
-                      border: "1px solid rgba(255,255,255,.08)",
+                      background: revealedCard ? "rgba(34,197,94,.16)" : "rgba(59,130,246,.18)",
+                      color: revealedCard ? "#86efac" : "#bfdbfe",
+                      border: revealedCard
+                        ? "1px solid rgba(34,197,94,.18)"
+                        : "1px solid rgba(96,165,250,.16)",
                     }}
                   >
-                    <div className="text-[14px] font-extrabold uppercase tracking-[0.18em]" style={{ color: "#bfdbfe" }}>
-                      {revealedCard ? "Owner Revealed" : "Mystery Codename"}
-                    </div>
-
-                    <div className="text-center px-4">
-                      <div className="text-[60px] mb-4">
-                        {revealedCard ? (activeItem as AliasEntry).avatarEmoji : "🎭"}
-                      </div>
-                      <div
-                        className="text-[54px] leading-none font-bold text-white"
-                        style={{ fontFamily: "'Fredoka', sans-serif" }}
-                      >
-                        {revealedCard ? (activeItem as AliasEntry).realName : (activeItem as AliasEntry).alias}
-                      </div>
-                      <div className="text-[18px] font-semibold mt-4" style={{ color: "#cbd5e1" }}>
-                        {revealedCard
-                          ? `Codename: ${(activeItem as AliasEntry).alias}`
-                          : "Build suspense, then flip this card to reveal the owner."}
-                      </div>
-                    </div>
-
-                    <div className="flex items-center justify-center gap-3 flex-wrap">
-                      <button
-                        type="button"
-                        onClick={() => setRevealedCard((current) => !current)}
-                        className="px-6 py-3 rounded-2xl text-sm font-extrabold text-white"
-                        style={{
-                          background: revealedCard
-                            ? "linear-gradient(135deg,#1d4ed8,#3b82f6)"
-                            : "linear-gradient(135deg,#7e22ce,#a855f7)",
-                          border: "none",
-                        }}
-                      >
-                        {revealedCard ? "Flip Back to Alias" : "Reveal Owner"}
-                      </button>
-                    </div>
+                    {revealedCard ? "Owner revealed" : "Codename hidden"}
                   </div>
-                )}
-
-                {mode === "match" && activeItem && (
-                  <div
-                    className="rounded-[30px] p-8 h-[380px] flex flex-col justify-between"
-                    style={{
-                      background: revealedCard
-                        ? "linear-gradient(135deg,rgba(34,197,94,.24),rgba(15,23,42,.72))"
-                        : "linear-gradient(135deg,rgba(245,158,11,.18),rgba(15,23,42,.72))",
-                      border: "1px solid rgba(255,255,255,.08)",
-                    }}
-                  >
-                    <div className="text-[14px] font-extrabold uppercase tracking-[0.18em]" style={{ color: "#fde68a" }}>
-                      {revealedCard ? "Match Revealed" : "Who did this Secret Santa draw?"}
-                    </div>
-
-                    <div className="grid grid-cols-1 md:grid-cols-[1fr_auto_1fr] items-center gap-6 px-2">
-                      <div className="text-center">
-                        <div className="text-[48px] mb-2">{(activeItem as MatchEntry).giverAvatarEmoji}</div>
-                        <div
-                          className="text-[24px] font-bold text-white"
-                          style={{ fontFamily: "'Fredoka', sans-serif" }}
-                        >
-                          {(activeItem as MatchEntry).giverName}
-                        </div>
-                        <div className="text-[14px] font-semibold mt-2" style={{ color: "#cbd5e1" }}>
-                          Alias: {(activeItem as MatchEntry).giverAlias}
-                        </div>
-                      </div>
-
-                      <div className="text-center">
-                        <div className="text-[48px] font-black" style={{ color: "#fbbf24" }}>
-                          →
-                        </div>
-                      </div>
-
-                      <div className="text-center">
-                        <div className="text-[48px] mb-2">
-                          {revealedCard ? (activeItem as MatchEntry).receiverAvatarEmoji : "🎁"}
-                        </div>
-                        <div
-                          className="text-[24px] font-bold text-white"
-                          style={{ fontFamily: "'Fredoka', sans-serif" }}
-                        >
-                          {revealedCard ? (activeItem as MatchEntry).receiverName : (activeItem as MatchEntry).receiverAlias}
-                        </div>
-                        <div className="text-[14px] font-semibold mt-2" style={{ color: "#cbd5e1" }}>
-                          {revealedCard
-                            ? `Alias: ${(activeItem as MatchEntry).receiverAlias}`
-                            : "Reveal the codename owner when you're ready."}
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="flex items-center justify-center gap-3 flex-wrap">
-                      <button
-                        type="button"
-                        onClick={() => setRevealedCard((current) => !current)}
-                        className="px-6 py-3 rounded-2xl text-sm font-extrabold text-white"
-                        style={{
-                          background: revealedCard
-                            ? "linear-gradient(135deg,#1d4ed8,#3b82f6)"
-                            : "linear-gradient(135deg,#b45309,#f59e0b)",
-                          border: "none",
-                        }}
-                      >
-                        {revealedCard ? "Hide Receiver" : "Reveal Match"}
-                      </button>
-                    </div>
-                  </div>
-                )}
-
-                <div className="flex items-center justify-between gap-3 mt-5 flex-wrap">
-                  <button
-                    type="button"
-                    onClick={handlePrevious}
-                    disabled={safeIndex === 0}
-                    className="px-5 py-2.5 rounded-2xl text-sm font-extrabold"
-                    style={{
-                      color: safeIndex === 0 ? "#94a3b8" : "#fff",
-                      background: safeIndex === 0 ? "rgba(148,163,184,.16)" : "rgba(15,23,42,.48)",
-                      border: "1px solid rgba(255,255,255,.08)",
-                      cursor: safeIndex === 0 ? "not-allowed" : "pointer",
-                    }}
-                  >
-                    ← Previous
-                  </button>
-
-                  <div className="text-[12px] font-semibold text-center" style={{ color: "#cbd5e1" }}>
-                    {presentation.isOwner
-                      ? "Use this as your event screen preview. Flip each card when the room is ready."
-                      : "The owner is controlling the reveal order. This page shows the final presentation style."}
-                  </div>
-
-                  <button
-                    type="button"
-                    onClick={handleNext}
-                    disabled={safeIndex >= activeItems.length - 1}
-                    className="px-5 py-2.5 rounded-2xl text-sm font-extrabold"
-                    style={{
-                      color: safeIndex >= activeItems.length - 1 ? "#94a3b8" : "#fff",
-                      background:
-                        safeIndex >= activeItems.length - 1 ? "rgba(148,163,184,.16)" : "rgba(15,23,42,.48)",
-                      border: "1px solid rgba(255,255,255,.08)",
-                      cursor: safeIndex >= activeItems.length - 1 ? "not-allowed" : "pointer",
-                    }}
-                  >
-                    Next →
-                  </button>
                 </div>
               </div>
 
-              <div className="space-y-5">
+              {activeEntry ? (
                 <div
-                  className="rounded-[26px] p-5"
+                  className="rounded-[32px] px-6 py-8 md:px-10 md:py-10 min-h-[520px] flex flex-col justify-between"
+                  style={{
+                    background: revealedCard
+                      ? "linear-gradient(145deg,rgba(34,197,94,.24),rgba(15,23,42,.74))"
+                      : "linear-gradient(145deg,rgba(29,78,216,.22),rgba(15,23,42,.76))",
+                    border: "1px solid rgba(255,255,255,.08)",
+                    boxShadow: "0 18px 40px rgba(0,0,0,.16)",
+                  }}
+                >
+                  <div className="flex items-center justify-between gap-4 flex-wrap">
+                    <div
+                      className="text-[14px] font-extrabold uppercase tracking-[0.18em]"
+                      style={{ color: revealedCard ? "#bbf7d0" : "#bfdbfe" }}
+                    >
+                      {revealedCard ? "Identity revealed" : "Mystery codename"}
+                    </div>
+
+                    <div
+                      className="px-4 py-2 rounded-2xl text-[12px] font-extrabold"
+                      style={{
+                        background: "rgba(15,23,42,.42)",
+                        color: "#dbeafe",
+                        border: "1px solid rgba(255,255,255,.08)",
+                      }}
+                    >
+                      {presentation.isOwner
+                        ? "Owner controls the reveal pace"
+                        : "Audience view"}
+                    </div>
+                  </div>
+
+                  <div className="text-center px-2 md:px-8">
+                    <div className="text-[64px] md:text-[82px] mb-6">
+                      {revealedCard ? activeEntry.avatarEmoji : "🎭"}
+                    </div>
+                    <div
+                      className="text-[44px] md:text-[72px] leading-none font-bold text-white"
+                      style={{ fontFamily: "'Fredoka', sans-serif" }}
+                    >
+                      {revealedCard ? activeEntry.realName : activeEntry.alias}
+                    </div>
+                    <div
+                      className="text-[16px] md:text-[22px] font-semibold mt-5"
+                      style={{ color: "#dbeafe" }}
+                    >
+                      {revealedCard
+                        ? `Codename: ${activeEntry.alias}`
+                        : "Keep the codename on screen first, then flip when everyone is ready."}
+                    </div>
+                  </div>
+
+                  <div className="flex items-center justify-center gap-3 flex-wrap">
+                    <button
+                      type="button"
+                      onClick={() => setRevealedCard((current) => !current)}
+                      className="px-6 py-3 rounded-2xl text-sm font-extrabold text-white"
+                      style={{
+                        background: revealedCard
+                          ? "linear-gradient(135deg,#1d4ed8,#3b82f6)"
+                          : "linear-gradient(135deg,#7e22ce,#a855f7)",
+                        border: "none",
+                      }}
+                    >
+                      {revealedCard ? "Show Codename Again" : "Reveal Owner"}
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <div
+                  className="rounded-[28px] p-8 text-center"
                   style={{
                     background: "rgba(15,23,42,.54)",
                     border: "1px solid rgba(255,255,255,.08)",
                   }}
                 >
-                  <div
-                    className="text-[18px] font-bold text-white"
-                    style={{ fontFamily: "'Fredoka', sans-serif" }}
-                  >
-                    Why this exists
-                  </div>
-                  <div className="text-[13px] font-semibold mt-3 space-y-3" style={{ color: "#cbd5e1" }}>
-                    <p>Alias Reveal works for gifts labeled with codenames at the venue.</p>
-                    <p>Match Reveal works when you also want to show who got whom after the alias reveal.</p>
-                    <p>This page lets you compare both outputs before we build the full viral watch-party version.</p>
-                  </div>
+                  <div className="text-[22px] font-bold text-white mb-2">No codenames yet</div>
+                  <p className="text-[14px] font-semibold" style={{ color: "#cbd5e1" }}>
+                    Accepted members need nicknames before this reveal screen can be used.
+                  </p>
                 </div>
+              )}
+
+              <div className="flex items-center justify-between gap-3 flex-wrap">
+                <button
+                  type="button"
+                  onClick={handlePrevious}
+                  disabled={safeIndex === 0}
+                  className="px-5 py-2.5 rounded-2xl text-sm font-extrabold"
+                  style={{
+                    color: safeIndex === 0 ? "#94a3b8" : "#fff",
+                    background: safeIndex === 0 ? "rgba(148,163,184,.16)" : "rgba(15,23,42,.48)",
+                    border: "1px solid rgba(255,255,255,.08)",
+                    cursor: safeIndex === 0 ? "not-allowed" : "pointer",
+                  }}
+                >
+                  Previous
+                </button>
 
                 <div
-                  className="rounded-[26px] p-5"
+                  className="text-[12px] md:text-[13px] font-semibold text-center max-w-[460px]"
+                  style={{ color: "#cbd5e1" }}
+                >
+                  This screen stays spoiler-free on purpose. It only shows the current codename so
+                  the audience does not accidentally see the rest of the reveal early.
+                </div>
+
+                <button
+                  type="button"
+                  onClick={handleNext}
+                  disabled={safeIndex >= aliasEntries.length - 1}
+                  className="px-5 py-2.5 rounded-2xl text-sm font-extrabold"
                   style={{
-                    background: "rgba(15,23,42,.54)",
+                    color: safeIndex >= aliasEntries.length - 1 ? "#94a3b8" : "#fff",
+                    background:
+                      safeIndex >= aliasEntries.length - 1
+                        ? "rgba(148,163,184,.16)"
+                        : "rgba(15,23,42,.48)",
                     border: "1px solid rgba(255,255,255,.08)",
+                    cursor: safeIndex >= aliasEntries.length - 1 ? "not-allowed" : "pointer",
                   }}
                 >
-                  <div
-                    className="text-[18px] font-bold text-white"
-                    style={{ fontFamily: "'Fredoka', sans-serif" }}
-                  >
-                    {mode === "alias" ? "Alias Lineup" : "Match Lineup"}
-                  </div>
-                  <div className="flex flex-col gap-2 mt-4 max-h-[360px] overflow-auto pr-1">
-                    {mode === "alias"
-                      ? presentation.aliasEntries.map((entry, index) => (
-                          <button
-                            key={`${entry.alias}-${entry.realName}`}
-                            type="button"
-                            onClick={() => {
-                              setCurrentIndex(index);
-                              setRevealedCard(false);
-                            }}
-                            className="w-full text-left rounded-2xl px-4 py-3"
-                            style={{
-                              background: index === safeIndex ? "rgba(168,85,247,.18)" : "rgba(255,255,255,.04)",
-                              border:
-                                index === safeIndex
-                                  ? "1px solid rgba(216,180,254,.3)"
-                                  : "1px solid rgba(255,255,255,.05)",
-                              color: "#fff",
-                            }}
-                          >
-                            <div className="text-[14px] font-bold">{entry.alias}</div>
-                            <div className="text-[12px] font-semibold mt-1" style={{ color: "#cbd5e1" }}>
-                              {entry.realName}
-                            </div>
-                          </button>
-                        ))
-                      : presentation.matchEntries.map((entry, index) => (
-                          <button
-                            key={`${entry.giverAlias}-${entry.receiverAlias}`}
-                            type="button"
-                            onClick={() => {
-                              setCurrentIndex(index);
-                              setRevealedCard(false);
-                            }}
-                            className="w-full text-left rounded-2xl px-4 py-3"
-                            style={{
-                              background: index === safeIndex ? "rgba(34,197,94,.18)" : "rgba(255,255,255,.04)",
-                              border:
-                                index === safeIndex
-                                  ? "1px solid rgba(134,239,172,.25)"
-                                  : "1px solid rgba(255,255,255,.05)",
-                              color: "#fff",
-                            }}
-                          >
-                            <div className="text-[14px] font-bold">
-                              {entry.giverAlias} → {entry.receiverAlias}
-                            </div>
-                            <div className="text-[12px] font-semibold mt-1" style={{ color: "#cbd5e1" }}>
-                              {entry.giverName} → {entry.receiverName}
-                            </div>
-                          </button>
-                        ))}
-                  </div>
-                </div>
+                  Next
+                </button>
               </div>
             </div>
           </div>
