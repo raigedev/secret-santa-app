@@ -419,6 +419,10 @@ export default function SecretSantaPage() {
   const [confirmingGroup, setConfirmingGroup] = useState<string | null>(null);
 
   useEffect(() => {
+    router.prefetch("/dashboard");
+  }, [router]);
+
+  useEffect(() => {
     let isMounted = true;
     let reloadTimer: ReturnType<typeof setTimeout> | null = null;
 

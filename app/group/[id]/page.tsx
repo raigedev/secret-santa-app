@@ -362,6 +362,10 @@ export default function GroupDetailsPage() {
     };
   }, [id, router, supabase]);
 
+  useEffect(() => {
+    router.prefetch("/dashboard");
+  }, [router]);
+
   const openEditModal = () => {
     if (!groupData) return;
 

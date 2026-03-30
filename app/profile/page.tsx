@@ -63,6 +63,10 @@ export default function ProfilePage() {
   });
 
   useEffect(() => {
+    router.prefetch("/dashboard");
+  }, [router]);
+
+  useEffect(() => {
     let isMounted = true;
 
     const load = async () => {

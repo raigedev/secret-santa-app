@@ -514,6 +514,18 @@ export default function DashboardPage() {
     };
   }, [supabase, router]);
 
+  useEffect(() => {
+    router.prefetch("/notifications");
+    router.prefetch("/secret-santa");
+    router.prefetch("/secret-santa-chat");
+    router.prefetch("/create-group");
+    router.prefetch("/profile");
+
+    for (const group of [...ownedGroups, ...invitedGroups]) {
+      router.prefetch(`/group/${group.id}`);
+    }
+  }, [router, ownedGroups, invitedGroups]);
+
   const handleLogout = async () => {
     await supabase.auth.signOut();
     router.push("/login");

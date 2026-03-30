@@ -573,6 +573,10 @@ export default function SecretSantaChatPage() {
   const loadThreadsRef = useRef<() => Promise<void>>(null);
 
   useEffect(() => {
+    router.prefetch("/dashboard");
+  }, [router]);
+
+  useEffect(() => {
     activeThreadRef.current = activeThread;
   }, [activeThread]);
 

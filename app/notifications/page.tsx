@@ -151,6 +151,16 @@ export default function NotificationsPage() {
     };
   }, [supabase, userId]);
 
+  useEffect(() => {
+    router.prefetch("/dashboard");
+
+    for (const notification of notifications.slice(0, 20)) {
+      if (notification.link_path) {
+        router.prefetch(notification.link_path);
+      }
+    }
+  }, [router, notifications]);
+
   const unreadCount = notifications.filter((notification) => !notification.read_at).length;
 
   const handleOpenNotification = async (notification: NotificationItem) => {
@@ -166,11 +176,11 @@ export default function NotificationsPage() {
         )
       );
 
-      const result = await markNotificationRead(notification.id);
-
-      if (!result.success) {
-        setMessage(result.message);
-      }
+      void markNotificationRead(notification.id).then((result) => {
+        if (!result.success) {
+          setMessage(result.message);
+        }
+      });
     }
 
     setProcessingId(null);

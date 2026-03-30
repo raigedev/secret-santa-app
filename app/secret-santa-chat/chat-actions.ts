@@ -102,17 +102,14 @@ export async function sendMessage(
   }
 
   const otherUserId = user.id === threadGiverId ? threadReceiverId : threadGiverId;
-  const { data: group } = await supabase
-    .from("groups")
-    .select("name")
-    .eq("id", groupId)
-    .maybeSingle();
 
-  await createNotification({
+  // Keep chat sends snappy. The optimistic UI already shows the message
+  // instantly, so notification creation should not hold the send response open.
+  void createNotification({
     userId: otherUserId,
     type: "chat",
     title: "New Secret Santa message",
-    body: `You have a new message in ${group?.name || "one of your Secret Santa chats"}.`,
+    body: "You have a new message in one of your Secret Santa chats.",
     linkPath: "/secret-santa-chat",
     metadata: {
       groupId,
