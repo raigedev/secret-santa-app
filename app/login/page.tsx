@@ -17,11 +17,12 @@ export default function LoginPage() {
 
   // ✅ Google OAuth login
   const handleGoogleLogin = async () => {
+    setError(null);
     setRedirecting(true);
     const { error } = await supabase.auth.signInWithOAuth({
       provider: "google",
       options: {
-        redirectTo: `${window.location.origin}/auth/callback`,
+        redirectTo: `${window.location.origin}/auth/callback?next=/dashboard`,
       },
     });
 
@@ -32,11 +33,8 @@ export default function LoginPage() {
       return;
     }
 
-    // After login, get the user and link them
-    const { data: { user } } = await supabase.auth.getUser();
-    if (user) {
-      await linkUserToGroup(user);
-    }
+    // OAuth redirects the browser away immediately, so group-linking now runs
+    // inside the callback route after the session has been created.
   };
 
   // ✅ Email/password login

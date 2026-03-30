@@ -59,12 +59,13 @@ export async function middleware(req: NextRequest) {
   // ─── Define auth pages (login, signup, etc.) ───
   const authPages = ["/login", "/create-account", "/forgot-password"];
   const isAuthPage = authPages.includes(req.nextUrl.pathname);
+  const isLandingPage = req.nextUrl.pathname === "/";
 
   // ─── Redirect logic ───
 
   // If the user IS logged in and tries to visit login/signup pages,
   // redirect them to the dashboard (no need to login again).
-  if (user && isAuthPage) {
+  if (user && (isAuthPage || isLandingPage)) {
     return NextResponse.redirect(new URL("/dashboard", req.url));
   }
 

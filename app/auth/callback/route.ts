@@ -13,12 +13,23 @@ import { cookies } from "next/headers";
 export async function GET(request: Request) {
   const requestUrl = new URL(request.url);
   const code = requestUrl.searchParams.get("code");
+  let next = requestUrl.searchParams.get("next") ?? "/dashboard";
+  const forwardedHost = request.headers.get("x-forwarded-host");
+  const forwardedProto = request.headers.get("x-forwarded-proto") ?? "https";
+  const origin =
+    process.env.NODE_ENV === "development" || !forwardedHost
+      ? requestUrl.origin
+      : `${forwardedProto}://${forwardedHost}`;
+
+  if (!next.startsWith("/")) {
+    next = "/dashboard";
+  }
 
   // If Google didn't send a code, something went wrong
   if (!code) {
     console.error("OAuth callback: No code received");
     return NextResponse.redirect(
-      new URL("/login?error=no_code", requestUrl.origin)
+      new URL("/login?error=no_code", origin)
     );
   }
 
@@ -28,7 +39,7 @@ export async function GET(request: Request) {
   // This is the response that will be sent to the browser.
   // We create it now so we can attach cookies TO THIS RESPONSE.
   const redirectResponse = NextResponse.redirect(
-    new URL("/dashboard", requestUrl.origin)
+    new URL(next, origin)
   );
 
   // ─── Create Supabase client that writes cookies to the redirect response ───
@@ -61,7 +72,7 @@ export async function GET(request: Request) {
   if (error) {
     console.error("OAuth callback error:", error.message);
     return NextResponse.redirect(
-      new URL("/login?error=auth_failed", requestUrl.origin)
+      new URL("/login?error=auth_failed", origin)
     );
   }
 
@@ -79,7 +90,7 @@ export async function GET(request: Request) {
     await supabase
       .from("group_members")
       .update({ user_id: user.id })
-      .eq("email", user.email)
+      .eq("email", user.email.toLowerCase())
       .is("user_id", null);
   }
 
