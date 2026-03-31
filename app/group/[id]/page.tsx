@@ -7,6 +7,7 @@ import InviteForm from "./InviteForm";
 import NicknameForm from "./NicknameForm";
 import ResendButton from "./ResendButton";
 import RevokeInviteButton from "./RevokeInviteButton";
+import ShareResultsCard from "./ShareResultsCard";
 import { drawSecretSanta, resetSecretSantaDraw } from "./draw-action";
 import {
   deleteGroup,
@@ -592,6 +593,13 @@ export default function GroupDetailsPage() {
   const acceptedMembers = members.filter((member) => member.status === "accepted");
   const pendingMembers = members.filter((member) => member.status === "pending");
   const declinedMembers = members.filter((member) => member.status === "declined");
+  const currentMember = members.find((member) => member.user_id === currentUserId) || null;
+  const shareCardCodename = currentMember?.nickname?.trim() || null;
+  const shareCardRecipientName =
+    assignment?.receiver_nickname?.trim() ||
+    (shareCardCodename
+      ? revealMatches.find((match) => match.giver === shareCardCodename)?.receiver || null
+      : null);
 
   const allAccepted =
     pendingMembers.length === 0 && declinedMembers.length === 0 && acceptedMembers.length >= 3;
@@ -1697,6 +1705,7 @@ export default function GroupDetailsPage() {
                     </div>
                   )
                 ) : revealMatches.length > 0 ? (
+                  <>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                     {revealMatches.map((match, index) => (
                       <div
@@ -1745,6 +1754,16 @@ export default function GroupDetailsPage() {
                       </div>
                     ))}
                   </div>
+
+                  {shareCardCodename && shareCardRecipientName && (
+                    <ShareResultsCard
+                      codename={shareCardCodename}
+                      eventDate={groupData.event_date}
+                      groupName={groupData.name}
+                      recipientName={shareCardRecipientName}
+                    />
+                  )}
+                  </>
                 ) : (
                   <div
                     className="rounded-2xl p-4"
