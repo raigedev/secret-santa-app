@@ -313,6 +313,8 @@ export default function GroupRevealPage() {
     : isMatchPhase
       ? "Match hidden"
       : "Codename hidden";
+  const activeMatchGiver = activeMatchEntry?.giver || "Participant";
+  const activeMatchReceiver = activeMatchEntry?.receiver || "Participant";
 
   const applySharedSession = (nextSession: RevealSession | undefined) => {
     if (!nextSession) {
@@ -897,21 +899,100 @@ export default function GroupRevealPage() {
                   </div>
 
                   <div className="text-center px-2 md:px-8">
-                    <div className="text-[64px] md:text-[82px] mb-6">
-                      {activeCardIcon}
-                    </div>
-                    <div
-                      className="text-[44px] md:text-[72px] leading-none font-bold text-white"
-                      style={{ fontFamily: "'Fredoka', sans-serif" }}
-                    >
-                      {activeCardTitle}
-                    </div>
-                    <div
-                      className="text-[16px] md:text-[22px] font-semibold mt-5"
-                      style={{ color: "#dbeafe" }}
-                    >
-                      {activeCardDescription}
-                    </div>
+                    {isMatchPhase ? (
+                      <div className="max-w-[840px] mx-auto">
+                        <div className="text-[64px] md:text-[82px] mb-6">{activeCardIcon}</div>
+
+                        {/* Match reveals need a structured layout so long names wrap cleanly
+                            inside their own panels instead of fighting for one oversized title line. */}
+                        <div className="grid grid-cols-1 md:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-4 md:gap-6">
+                          <div
+                            className="rounded-[28px] px-5 py-5 md:px-7 md:py-6 text-left"
+                            style={{
+                              background: "rgba(15,23,42,.3)",
+                              border: "1px solid rgba(255,255,255,.08)",
+                              boxShadow: "inset 0 1px 0 rgba(255,255,255,.04)",
+                            }}
+                          >
+                            <div
+                              className="text-[11px] md:text-[12px] font-extrabold uppercase tracking-[0.18em]"
+                              style={{ color: revealedCard ? "#bbf7d0" : "#bfdbfe" }}
+                            >
+                              Giver
+                            </div>
+                            <div
+                              className="mt-3 text-[34px] md:text-[54px] leading-[0.95] font-bold text-white break-words"
+                              style={{
+                                fontFamily: "'Fredoka', sans-serif",
+                                overflowWrap: "anywhere",
+                              }}
+                            >
+                              {revealedCard ? activeMatchGiver : "???"}
+                            </div>
+                          </div>
+
+                          <div
+                            className="text-[42px] md:text-[66px] leading-none font-bold"
+                            style={{ color: revealedCard ? "#fcd34d" : "#bfdbfe" }}
+                          >
+                            →
+                          </div>
+
+                          <div
+                            className="rounded-[28px] px-5 py-5 md:px-7 md:py-6 text-left"
+                            style={{
+                              background: "rgba(15,23,42,.3)",
+                              border: "1px solid rgba(255,255,255,.08)",
+                              boxShadow: "inset 0 1px 0 rgba(255,255,255,.04)",
+                            }}
+                          >
+                            <div
+                              className="text-[11px] md:text-[12px] font-extrabold uppercase tracking-[0.18em]"
+                              style={{ color: revealedCard ? "#bbf7d0" : "#bfdbfe" }}
+                            >
+                              Receiver
+                            </div>
+                            <div
+                              className="mt-3 text-[34px] md:text-[54px] leading-[0.95] font-bold text-white break-words"
+                              style={{
+                                fontFamily: "'Fredoka', sans-serif",
+                                overflowWrap: "anywhere",
+                              }}
+                            >
+                              {revealedCard ? activeMatchReceiver : "???"}
+                            </div>
+                          </div>
+                        </div>
+
+                        <div
+                          className="text-[16px] md:text-[22px] font-semibold mt-6"
+                          style={{ color: "#dbeafe" }}
+                        >
+                          {activeCardDescription}
+                        </div>
+                      </div>
+                    ) : (
+                      <>
+                        <div className="text-[64px] md:text-[82px] mb-6">
+                          {activeCardIcon}
+                        </div>
+                        <div
+                          className="text-[40px] md:text-[72px] leading-[0.95] font-bold text-white break-words"
+                          style={{
+                            fontFamily: "'Fredoka', sans-serif",
+                            overflowWrap: "anywhere",
+                          }}
+                        >
+                          {activeCardTitle}
+                        </div>
+                        <div
+                          className="text-[16px] md:text-[22px] font-semibold mt-5"
+                          style={{ color: "#dbeafe" }}
+                        >
+                          {activeCardDescription}
+                        </div>
+                      </>
+                    )}
                   </div>
 
                   {presentation.isOwner && (
