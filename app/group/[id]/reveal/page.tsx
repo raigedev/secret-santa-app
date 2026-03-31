@@ -61,59 +61,86 @@ function formatRevealTime(value: string | null): string {
 function getRevealNameTextStyle(value: string, variant: "alias" | "match") {
   const length = value.trim().length || 1;
 
-  // The reveal screen should feel like a clean stage moment. We shrink long
-  // names before allowing them to wrap, and only fall back to ellipsis for
-  // unusually long edge cases that still cannot fit on one line.
+  // The reveal screen should keep names fully visible in one clean line.
+  // Instead of wrapping or truncating, we size the text down more aggressively
+  // as names get longer so the venue screen still looks deliberate.
   if (variant === "alias") {
-    if (length <= 10) {
+    if (length <= 8) {
       return {
         fontSize: "clamp(2.75rem, 8vw, 4.5rem)",
         whiteSpace: "nowrap" as const,
-        overflow: "hidden" as const,
-        textOverflow: "ellipsis" as const,
+        overflow: "visible" as const,
+        letterSpacing: "-0.01em",
+      };
+    }
+
+    if (length <= 11) {
+      return {
+        fontSize: "clamp(2.25rem, 6vw, 3.35rem)",
+        whiteSpace: "nowrap" as const,
+        overflow: "visible" as const,
+        letterSpacing: "-0.02em",
       };
     }
 
     if (length <= 14) {
       return {
-        fontSize: "clamp(2.35rem, 6.5vw, 3.75rem)",
+        fontSize: "clamp(1.9rem, 4.8vw, 2.65rem)",
         whiteSpace: "nowrap" as const,
-        overflow: "hidden" as const,
-        textOverflow: "ellipsis" as const,
+        overflow: "visible" as const,
+        letterSpacing: "-0.03em",
       };
     }
 
     return {
-      fontSize: "clamp(1.9rem, 5vw, 3rem)",
+      fontSize: "clamp(1.45rem, 4vw, 2.1rem)",
       whiteSpace: "nowrap" as const,
-      overflow: "hidden" as const,
-      textOverflow: "ellipsis" as const,
+      overflow: "visible" as const,
+      letterSpacing: "-0.04em",
+    };
+  }
+
+  if (length <= 8) {
+    return {
+      fontSize: "clamp(2.2rem, 5vw, 3.1rem)",
+      whiteSpace: "nowrap" as const,
+      overflow: "visible" as const,
+      letterSpacing: "-0.01em",
     };
   }
 
   if (length <= 10) {
     return {
-      fontSize: "clamp(2.2rem, 5vw, 3.4rem)",
+      fontSize: "clamp(1.9rem, 4vw, 2.45rem)",
       whiteSpace: "nowrap" as const,
-      overflow: "hidden" as const,
-      textOverflow: "ellipsis" as const,
+      overflow: "visible" as const,
+      letterSpacing: "-0.02em",
     };
   }
 
-  if (length <= 14) {
+  if (length <= 12) {
     return {
-      fontSize: "clamp(1.8rem, 4.2vw, 2.9rem)",
+      fontSize: "clamp(1.55rem, 3.25vw, 1.95rem)",
       whiteSpace: "nowrap" as const,
-      overflow: "hidden" as const,
-      textOverflow: "ellipsis" as const,
+      overflow: "visible" as const,
+      letterSpacing: "-0.03em",
+    };
+  }
+
+  if (length <= 15) {
+    return {
+      fontSize: "clamp(1.28rem, 2.7vw, 1.65rem)",
+      whiteSpace: "nowrap" as const,
+      overflow: "visible" as const,
+      letterSpacing: "-0.04em",
     };
   }
 
   return {
-    fontSize: "clamp(1.45rem, 3.4vw, 2.35rem)",
+    fontSize: "clamp(1.05rem, 2.35vw, 1.35rem)",
     whiteSpace: "nowrap" as const,
-    overflow: "hidden" as const,
-    textOverflow: "ellipsis" as const,
+    overflow: "visible" as const,
+    letterSpacing: "-0.05em",
   };
 }
 
@@ -967,9 +994,9 @@ export default function GroupRevealPage() {
 
                         {/* Match reveals need a structured layout so long names wrap cleanly
                             inside their own panels instead of fighting for one oversized title line. */}
-                        <div className="grid grid-cols-1 md:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-4 md:gap-5">
+                        <div className="grid grid-cols-1 md:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-4 md:gap-4">
                           <div
-                            className="rounded-[28px] px-5 py-5 md:px-7 md:py-6 text-left"
+                            className="rounded-[28px] px-4 py-5 md:px-5 md:py-6 text-left"
                             style={{
                               background: "rgba(15,23,42,.3)",
                               border: "1px solid rgba(255,255,255,.08)",
@@ -983,7 +1010,7 @@ export default function GroupRevealPage() {
                               Giver
                             </div>
                             <div
-                              className="mt-3 leading-[0.95] font-bold text-white"
+                              className="mt-3 leading-[0.95] font-bold text-white max-w-full"
                               style={{
                                 fontFamily: "'Fredoka', sans-serif",
                                 ...activeMatchGiverStyle,
@@ -1002,7 +1029,7 @@ export default function GroupRevealPage() {
                           </div>
 
                           <div
-                            className="rounded-[28px] px-5 py-5 md:px-7 md:py-6 text-left"
+                            className="rounded-[28px] px-4 py-5 md:px-5 md:py-6 text-left"
                             style={{
                               background: "rgba(15,23,42,.3)",
                               border: "1px solid rgba(255,255,255,.08)",
@@ -1016,7 +1043,7 @@ export default function GroupRevealPage() {
                               Receiver
                             </div>
                             <div
-                              className="mt-3 leading-[0.95] font-bold text-white"
+                              className="mt-3 leading-[0.95] font-bold text-white max-w-full"
                               style={{
                                 fontFamily: "'Fredoka', sans-serif",
                                 ...activeMatchReceiverStyle,
@@ -1041,7 +1068,7 @@ export default function GroupRevealPage() {
                           {activeCardIcon}
                         </div>
                         <div
-                          className="leading-[0.95] font-bold text-white"
+                          className="leading-[0.95] font-bold text-white max-w-full"
                           style={{
                             fontFamily: "'Fredoka', sans-serif",
                             ...activeAliasTitleStyle,
