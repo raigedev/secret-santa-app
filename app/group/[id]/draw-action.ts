@@ -1,5 +1,6 @@
 "use server";
 
+import { randomInt } from "crypto";
 import { recordAuditEvent, recordServerFailure } from "@/lib/security/audit";
 import { createNotifications } from "@/lib/notifications";
 import { enforceRateLimit } from "@/lib/security/rate-limit";
@@ -11,6 +12,46 @@ const DRAW_WINDOW_SECONDS = 3600;
 
 const RESET_DRAW_MAX_ATTEMPTS = 5;
 const RESET_DRAW_WINDOW_SECONDS = 3600;
+const MAX_DERANGEMENT_ATTEMPTS = 50;
+
+type DrawMember = {
+  nickname: string | null;
+  user_id: string | null;
+};
+
+function shuffleInPlace<T>(items: T[]): void {
+  for (let index = items.length - 1; index > 0; index -= 1) {
+    const swapIndex = randomInt(index + 1);
+    [items[index], items[swapIndex]] = [items[swapIndex], items[index]];
+  }
+}
+
+function buildRandomAssignments(groupId: string, members: DrawMember[]) {
+  const givers = [...members];
+  const receivers = [...members];
+
+  shuffleInPlace(givers);
+
+  // Keep shuffling the receiver side until nobody is matched with themselves.
+  // This produces a real random derangement instead of forcing one circular loop.
+  for (let attempt = 0; attempt < MAX_DERANGEMENT_ATTEMPTS; attempt += 1) {
+    shuffleInPlace(receivers);
+
+    const hasSelfMatch = givers.some(
+      (giver, index) => giver.user_id === receivers[index]?.user_id
+    );
+
+    if (!hasSelfMatch) {
+      return givers.map((giver, index) => ({
+        group_id: groupId,
+        giver_id: giver.user_id,
+        receiver_id: receivers[index]?.user_id,
+      }));
+    }
+  }
+
+  return null;
+}
 
 export async function drawSecretSanta(
   groupId: string
@@ -112,19 +153,23 @@ export async function drawSecretSanta(
     };
   }
 
-  const shuffled = [...members];
-  for (let index = shuffled.length - 1; index > 0; index -= 1) {
-    const swapIndex = Math.floor(Math.random() * (index + 1));
-    [shuffled[index], shuffled[swapIndex]] = [shuffled[swapIndex], shuffled[index]];
-  }
+  const assignments = buildRandomAssignments(groupId, members);
 
-  // Pair each giver with the next person in the shuffled list, then wrap the
-  // last giver back to the first receiver to keep the assignment circular.
-  const assignments = shuffled.map((member, index) => ({
-    group_id: groupId,
-    giver_id: member.user_id,
-    receiver_id: shuffled[(index + 1) % shuffled.length].user_id,
-  }));
+  if (!assignments) {
+    await recordServerFailure({
+      actorUserId: user.id,
+      details: { memberCount: members.length },
+      errorMessage: "Failed to build a valid random derangement.",
+      eventType: "group.draw_secret_santa.build_assignments",
+      resourceId: groupId,
+      resourceType: "group",
+    });
+
+    return {
+      success: false,
+      message: "Failed to generate a fair draw. Please try again.",
+    };
+  }
 
   const { error: insertError } = await supabaseAdmin.from("assignments").insert(assignments);
 
