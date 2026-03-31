@@ -1191,11 +1191,13 @@ type RevealSourceData = {
 
 type RevealSessionState = {
   cardRevealed: boolean;
+  countdownSeconds: number;
+  countdownStartedAt: string | null;
   currentIndex: number;
   lastUpdatedAt: string | null;
   publishedAt: string | null;
   startedAt: string | null;
-  status: "idle" | "live" | "published";
+  status: "idle" | "waiting" | "countdown" | "live" | "published";
 };
 
 async function loadRevealSourceData(groupId: string): Promise<RevealSourceData> {
@@ -1265,6 +1267,8 @@ function normalizeRevealSession(options: {
   groupRevealedAt: string | null;
   session: {
     card_revealed: boolean | null;
+    countdown_seconds: number | null;
+    countdown_started_at: string | null;
     current_index: number | null;
     last_updated_at: string | null;
     published_at: string | null;
@@ -1274,7 +1278,10 @@ function normalizeRevealSession(options: {
 }): RevealSessionState {
   const fallbackStatus: RevealSessionState["status"] = options.groupRevealed ? "published" : "idle";
   const safeStatus =
-    options.session?.status === "live" || options.session?.status === "published"
+    options.session?.status === "waiting" ||
+    options.session?.status === "countdown" ||
+    options.session?.status === "live" ||
+    options.session?.status === "published"
       ? options.session.status
       : fallbackStatus;
   const maxIndex = Math.max(options.entryCount - 1, 0);
@@ -1282,6 +1289,10 @@ function normalizeRevealSession(options: {
 
   return {
     status: safeStatus,
+    // The client uses the persisted timestamp plus this duration to render the
+    // same countdown on the TV and every joined phone without needing a server tick.
+    countdownSeconds: Math.max(Math.floor(options.session?.countdown_seconds || 0), 0),
+    countdownStartedAt: options.session?.countdown_started_at || null,
     currentIndex: Math.min(Math.max(rawIndex, 0), maxIndex),
     cardRevealed:
       safeStatus === "published"
@@ -1296,7 +1307,9 @@ function normalizeRevealSession(options: {
 async function getStoredRevealSession(groupId: string) {
   const { data, error } = await supabaseAdmin
     .from("group_reveal_sessions")
-    .select("status, current_index, card_revealed, started_at, published_at, last_updated_at")
+    .select(
+      "status, current_index, card_revealed, countdown_started_at, countdown_seconds, started_at, published_at, last_updated_at"
+    )
     .eq("group_id", groupId)
     .maybeSingle();
 
@@ -1309,6 +1322,8 @@ async function getStoredRevealSession(groupId: string) {
 
 async function upsertRevealSession(options: {
   cardRevealed: boolean;
+  countdownSeconds?: number;
+  countdownStartedAt?: string | null;
   currentIndex: number;
   groupId: string;
   publishedAt?: string | null;
@@ -1325,6 +1340,8 @@ async function upsertRevealSession(options: {
         status: options.status,
         current_index: options.currentIndex,
         card_revealed: options.cardRevealed,
+        countdown_started_at: options.countdownStartedAt || null,
+        countdown_seconds: Math.max(Math.floor(options.countdownSeconds || 0), 0),
         started_by: options.startedBy || null,
         started_at: options.startedAt || null,
         published_at: options.publishedAt || null,
@@ -1332,7 +1349,9 @@ async function upsertRevealSession(options: {
       },
       { onConflict: "group_id" }
     )
-    .select("status, current_index, card_revealed, started_at, published_at, last_updated_at")
+    .select(
+      "status, current_index, card_revealed, countdown_started_at, countdown_seconds, started_at, published_at, last_updated_at"
+    )
     .single();
 
   if (error) {
@@ -1460,7 +1479,14 @@ export async function getRevealPresentationData(
     session: storedSession,
   });
 
-  const canRevealRealNamesToViewer = isOwner || normalizedSession.status !== "idle" || group.revealed;
+  // Keep real names hidden from non-owners until the shared reveal actually starts.
+  // Owners can always preview locally before the public reveal begins.
+  const canRevealRealNamesToViewer =
+    isOwner ||
+    normalizedSession.status === "countdown" ||
+    normalizedSession.status === "live" ||
+    normalizedSession.status === "published" ||
+    group.revealed;
 
   return {
     success: true,
@@ -1483,8 +1509,7 @@ export async function getRevealPresentationData(
 
 export async function startRevealSession(
   groupId: string,
-  currentIndex: number,
-  cardRevealed: boolean
+  currentIndex: number
 ): Promise<{
   success: boolean;
   message: string;
@@ -1538,9 +1563,13 @@ export async function startRevealSession(
   const startedAt = new Date().toISOString();
   const session = await upsertRevealSession({
     groupId,
-    status: "live",
+    // Opening the room first lets audience devices join and wait without seeing
+    // the countdown or codename progression start unexpectedly.
+    status: "waiting",
     currentIndex: safeIndex,
-    cardRevealed,
+    cardRevealed: false,
+    countdownStartedAt: null,
+    countdownSeconds: 0,
     startedBy: user.id,
     startedAt,
   });
@@ -1568,7 +1597,106 @@ export async function startRevealSession(
 
   return {
     success: true,
-    message: "Live reveal started. Anyone in the group can join from this screen now.",
+    message: "Live reveal room opened. Start the countdown when everyone is ready.",
+    session: {
+      ...session,
+      currentIndex: Math.min(session.currentIndex, Math.max(sourceData.participants.length - 1, 0)),
+    },
+  };
+}
+
+export async function startRevealCountdown(
+  groupId: string,
+  currentIndex: number
+): Promise<{
+  success: boolean;
+  message: string;
+  session?: RevealSessionState;
+}> {
+  if (!groupId) {
+    return { success: false, message: "Missing group ID." };
+  }
+
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    return { success: false, message: "You must be logged in." };
+  }
+
+  const rateLimit = await enforceRateLimit({
+    action: "group.start_reveal_countdown",
+    actorUserId: user.id,
+    maxAttempts: 30,
+    resourceId: groupId,
+    resourceType: "group",
+    subject: user.id,
+    windowSeconds: 3600,
+  });
+
+  if (!rateLimit.allowed) {
+    return { success: false, message: rateLimit.message };
+  }
+
+  const permission = await assertOwnerCanControlReveal(groupId, user.id);
+  if (!permission.ok) {
+    return { success: false, message: "Only the group owner can start the countdown." };
+  }
+
+  if (permission.revealed) {
+    return { success: false, message: "This group has already been fully revealed." };
+  }
+
+  const sourceData = await loadRevealSourceData(groupId);
+  if (sourceData.assignments.length === 0 || sourceData.participants.length === 0) {
+    return { success: false, message: "Names need to be drawn before the countdown can start." };
+  }
+
+  const existingSession = await getStoredRevealSession(groupId);
+  const safeIndex = Math.min(
+    Math.max(Math.floor(currentIndex || 0), 0),
+    Math.max(sourceData.participants.length - 1, 0)
+  );
+  const countdownStartedAt = new Date().toISOString();
+  const session = await upsertRevealSession({
+    groupId,
+    // Persist the countdown start so every joined screen can derive the same
+    // remaining time from one shared source of truth.
+    status: "countdown",
+    currentIndex: safeIndex,
+    cardRevealed: false,
+    countdownStartedAt,
+    countdownSeconds: 3,
+    startedBy: user.id,
+    startedAt: existingSession?.started_at || new Date().toISOString(),
+  });
+
+  if (!session) {
+    await recordServerFailure({
+      actorUserId: user.id,
+      errorMessage: "Failed to start the shared reveal countdown.",
+      eventType: "group.start_reveal_countdown",
+      resourceId: groupId,
+      resourceType: "group",
+    });
+
+    return { success: false, message: "Failed to start the live countdown." };
+  }
+
+  await recordAuditEvent({
+    actorUserId: user.id,
+    details: { currentIndex: safeIndex, countdownSeconds: 3 },
+    eventType: "group.start_reveal_countdown",
+    outcome: "success",
+    resourceId: groupId,
+    resourceType: "group",
+  });
+
+  return {
+    success: true,
+    message: "Countdown started. The reveal card will appear on every joined screen.",
     session: {
       ...session,
       currentIndex: Math.min(session.currentIndex, Math.max(sourceData.participants.length - 1, 0)),
@@ -1634,6 +1762,8 @@ export async function updateRevealSessionState(
     status: nextStatus,
     currentIndex: safeIndex,
     cardRevealed,
+    countdownStartedAt: null,
+    countdownSeconds: 0,
     startedBy: existingSession ? user.id : user.id,
     startedAt: existingSession?.started_at || new Date().toISOString(),
     publishedAt: nextStatus === "published" ? existingSession?.published_at || new Date().toISOString() : null,
@@ -1803,6 +1933,8 @@ export async function triggerReveal(
     status: "published",
     currentIndex: existingSession?.current_index ?? 0,
     cardRevealed: true,
+    countdownStartedAt: null,
+    countdownSeconds: 0,
     startedBy: user.id,
     startedAt: existingSession?.started_at || revealedAt,
     publishedAt: revealedAt,

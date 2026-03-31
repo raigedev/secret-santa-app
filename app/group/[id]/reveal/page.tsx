@@ -6,6 +6,7 @@ import FadeIn from "@/app/components/FadeIn";
 import { createClient } from "@/lib/supabase/client";
 import {
   getRevealPresentationData,
+  startRevealCountdown,
   startRevealSession,
   triggerReveal,
   updateRevealSessionState,
@@ -19,11 +20,13 @@ type AliasEntry = {
 
 type RevealSession = {
   cardRevealed: boolean;
+  countdownSeconds: number;
+  countdownStartedAt: string | null;
   currentIndex: number;
   lastUpdatedAt: string | null;
   publishedAt: string | null;
   startedAt: string | null;
-  status: "idle" | "live" | "published";
+  status: "idle" | "waiting" | "countdown" | "live" | "published";
 };
 
 type RevealPresentation = {
@@ -63,6 +66,7 @@ export default function GroupRevealPage() {
   const [localPreviewRevealed, setLocalPreviewRevealed] = useState(false);
   const [sessionLoading, setSessionLoading] = useState(false);
   const [publishing, setPublishing] = useState(false);
+  const [countdownNow, setCountdownNow] = useState(() => Date.now());
   const loadPresentationRef = useRef<(() => Promise<void>) | null>(null);
 
   useEffect(() => {
@@ -134,9 +138,22 @@ export default function GroupRevealPage() {
     router.prefetch(`/group/${id}`);
   }, [id, router]);
 
+  useEffect(() => {
+    if (presentation?.session.status !== "countdown" || !presentation.session.countdownStartedAt) {
+      return;
+    }
+
+    // Recompute the remaining time locally from the shared session timestamp so
+    // all viewers stay visually in sync during the short countdown window.
+    const timer = setInterval(() => {
+      setCountdownNow(Date.now());
+    }, 250);
+
+    return () => clearInterval(timer);
+  }, [presentation?.session.countdownStartedAt, presentation?.session.status]);
+
   const aliasEntries = presentation?.aliasEntries || [];
-  const usesSharedSession =
-    presentation?.session.status === "live" || presentation?.session.status === "published";
+  const usesSharedSession = presentation ? presentation.session.status !== "idle" : false;
   const activeIndex = usesSharedSession
     ? presentation?.session.currentIndex || 0
     : localPreviewIndex;
@@ -149,6 +166,53 @@ export default function GroupRevealPage() {
   const isWaitingRoom = Boolean(
     presentation && !presentation.isOwner && !usesSharedSession && !presentation.revealed
   );
+  const countdownEndsAt =
+    presentation?.session.countdownStartedAt && presentation.session.countdownSeconds > 0
+      ? new Date(presentation.session.countdownStartedAt).getTime() +
+        presentation.session.countdownSeconds * 1000
+      : null;
+  const countdownRemaining = countdownEndsAt
+    ? Math.max(Math.ceil((countdownEndsAt - countdownNow) / 1000), 0)
+    : 0;
+  const showCountdown = presentation?.session.status === "countdown" && countdownRemaining > 0;
+  const isSharedWaitingRoom = Boolean(
+    presentation &&
+      !presentation.isOwner &&
+      presentation.session.status === "waiting" &&
+      !presentation.revealed
+  );
+  const ownerCanStartCountdown = Boolean(
+    presentation?.isOwner &&
+      presentation.session.status === "waiting" &&
+      !presentation.revealed &&
+      !sessionLoading
+  );
+  const sessionBadgeLabel =
+    presentation?.session.status === "published"
+      ? `Published - ${formatRevealTime(presentation.revealedAt || presentation.session.publishedAt)}`
+      : presentation?.session.status === "countdown"
+        ? showCountdown
+          ? `Countdown: ${countdownRemaining}`
+          : "Live reveal in progress"
+        : presentation?.session.status === "live"
+          ? "Live reveal in progress"
+          : presentation?.session.status === "waiting"
+            ? presentation.isOwner
+              ? "Live room ready"
+              : "Waiting for countdown"
+            : presentation?.isOwner
+              ? "Private preview mode"
+              : "Waiting room";
+  const sessionBadgeStyles =
+    presentation?.session.status === "published"
+      ? { background: "rgba(34,197,94,.14)", color: "#86efac" }
+      : presentation?.session.status === "countdown"
+        ? { background: "rgba(249,115,22,.16)", color: "#fdba74" }
+        : presentation?.session.status === "live"
+          ? { background: "rgba(168,85,247,.16)", color: "#e9d5ff" }
+          : presentation?.session.status === "waiting"
+            ? { background: "rgba(59,130,246,.16)", color: "#bfdbfe" }
+            : { background: "rgba(251,191,36,.16)", color: "#fde68a" };
 
   const progressLabel = useMemo(() => {
     if (aliasEntries.length === 0) {
@@ -182,10 +246,31 @@ export default function GroupRevealPage() {
     setActionMessage("");
 
     try {
-      const result = await startRevealSession(id, localPreviewIndex, localPreviewRevealed);
+      const result = await startRevealSession(id, localPreviewIndex);
       setActionMessage(result.message);
 
       if (result.success && result.session) {
+        applySharedSession(result.session);
+      }
+    } finally {
+      setSessionLoading(false);
+    }
+  };
+
+  const handleStartCountdown = async () => {
+    if (!presentation?.isOwner) {
+      return;
+    }
+
+    setSessionLoading(true);
+    setActionMessage("");
+
+    try {
+      const result = await startRevealCountdown(id, safeIndex);
+      setActionMessage(result.message);
+
+      if (result.success && result.session) {
+        setCountdownNow(Date.now());
         applySharedSession(result.session);
       }
     } finally {
@@ -405,6 +490,24 @@ export default function GroupRevealPage() {
               </button>
             )}
 
+            {ownerCanStartCountdown && (
+              <button
+                type="button"
+                onClick={handleStartCountdown}
+                disabled={sessionLoading}
+                className="px-5 py-2 rounded-xl text-sm font-extrabold text-white"
+                style={{
+                  background: sessionLoading
+                    ? "#64748b"
+                    : "linear-gradient(135deg,#f59e0b,#f97316)",
+                  border: "none",
+                  cursor: sessionLoading ? "not-allowed" : "pointer",
+                }}
+              >
+                {sessionLoading ? "Starting..." : "Start Countdown"}
+              </button>
+            )}
+
             {presentation.isOwner && !presentation.revealed && (
               <button
                 type="button"
@@ -456,28 +559,9 @@ export default function GroupRevealPage() {
 
               <div
                 className="px-4 py-2 rounded-2xl text-[12px] font-extrabold"
-                style={{
-                  background:
-                    presentation.session.status === "published"
-                      ? "rgba(34,197,94,.14)"
-                      : presentation.session.status === "live"
-                        ? "rgba(168,85,247,.16)"
-                        : "rgba(251,191,36,.16)",
-                  color:
-                    presentation.session.status === "published"
-                      ? "#86efac"
-                      : presentation.session.status === "live"
-                        ? "#e9d5ff"
-                        : "#fde68a",
-                }}
+                style={sessionBadgeStyles}
               >
-                {presentation.session.status === "published"
-                  ? `Published - ${formatRevealTime(presentation.revealedAt || presentation.session.publishedAt)}`
-                  : presentation.session.status === "live"
-                    ? "Live reveal in progress"
-                    : presentation.isOwner
-                      ? "Private preview mode"
-                      : "Waiting room"}
+                {sessionBadgeLabel}
               </div>
             </div>
           </div>
@@ -489,17 +573,20 @@ export default function GroupRevealPage() {
                 style={{
                   background:
                     actionMessage.toLowerCase().includes("started") ||
-                    actionMessage.toLowerCase().includes("triggered")
+                    actionMessage.toLowerCase().includes("triggered") ||
+                    actionMessage.toLowerCase().includes("countdown")
                       ? "rgba(34,197,94,.12)"
                       : "rgba(239,68,68,.12)",
                   color:
                     actionMessage.toLowerCase().includes("started") ||
-                    actionMessage.toLowerCase().includes("triggered")
+                    actionMessage.toLowerCase().includes("triggered") ||
+                    actionMessage.toLowerCase().includes("countdown")
                       ? "#86efac"
                       : "#fecaca",
                   border:
                     actionMessage.toLowerCase().includes("started") ||
-                    actionMessage.toLowerCase().includes("triggered")
+                    actionMessage.toLowerCase().includes("triggered") ||
+                    actionMessage.toLowerCase().includes("countdown")
                       ? "1px solid rgba(34,197,94,.18)"
                       : "1px solid rgba(239,68,68,.2)",
                 }}
@@ -537,7 +624,7 @@ export default function GroupRevealPage() {
                     {progressLabel}
                   </div>
 
-                  {!isWaitingRoom && (
+                  {!isWaitingRoom && !isSharedWaitingRoom && !showCountdown && (
                     <div
                       className="px-4 py-2 rounded-2xl text-[12px] font-extrabold"
                       style={{
@@ -554,7 +641,7 @@ export default function GroupRevealPage() {
                 </div>
               </div>
 
-              {isWaitingRoom ? (
+              {isWaitingRoom || isSharedWaitingRoom ? (
                 <div
                   className="rounded-[32px] px-6 py-8 md:px-10 md:py-10 min-h-[420px] flex flex-col items-center justify-center text-center"
                   style={{
@@ -568,14 +655,42 @@ export default function GroupRevealPage() {
                     className="text-[34px] md:text-[46px] leading-tight font-bold text-white"
                     style={{ fontFamily: "'Fredoka', sans-serif" }}
                   >
-                    Waiting for the owner to start the live reveal
+                    {isSharedWaitingRoom
+                      ? "Reveal room is ready"
+                      : "Waiting for the owner to start the live reveal"}
                   </div>
                   <div
                     className="text-[16px] md:text-[20px] font-semibold mt-5 max-w-[620px]"
                     style={{ color: "#dbeafe" }}
                   >
-                    Keep this page open on your phone if you want to follow along. The codename
-                    cards will begin updating here automatically as soon as the owner starts.
+                    {isSharedWaitingRoom
+                      ? "Keep this page open on your phone. Everyone here will see the same countdown as soon as the owner starts it."
+                      : "Keep this page open on your phone if you want to follow along. The codename cards will begin updating here automatically as soon as the owner opens the live room."}
+                  </div>
+                </div>
+              ) : showCountdown ? (
+                <div
+                  className="rounded-[32px] px-6 py-8 md:px-10 md:py-10 min-h-[520px] flex flex-col items-center justify-center text-center"
+                  style={{
+                    background: "linear-gradient(145deg,rgba(249,115,22,.22),rgba(15,23,42,.76))",
+                    border: "1px solid rgba(255,255,255,.08)",
+                    boxShadow: "0 18px 40px rgba(0,0,0,.16)",
+                  }}
+                >
+                  <div className="text-[14px] font-extrabold uppercase tracking-[0.22em]" style={{ color: "#fdba74" }}>
+                    Countdown
+                  </div>
+                  <div
+                    className="text-[120px] md:text-[180px] leading-none font-bold text-white mt-6"
+                    style={{ fontFamily: "'Fredoka', sans-serif" }}
+                  >
+                    {countdownRemaining}
+                  </div>
+                  <div
+                    className="text-[18px] md:text-[24px] font-semibold mt-6 max-w-[640px]"
+                    style={{ color: "#ffedd5" }}
+                  >
+                    The first codename card will appear on every joined screen as soon as the countdown finishes.
                   </div>
                 </div>
               ) : activeEntry ? (
@@ -638,14 +753,15 @@ export default function GroupRevealPage() {
                       <button
                         type="button"
                         onClick={handleToggleReveal}
-                        disabled={sessionLoading}
+                        disabled={sessionLoading || showCountdown}
                         className="px-6 py-3 rounded-2xl text-sm font-extrabold text-white"
                         style={{
                           background: revealedCard
                             ? "linear-gradient(135deg,#1d4ed8,#3b82f6)"
                             : "linear-gradient(135deg,#7e22ce,#a855f7)",
                           border: "none",
-                          cursor: sessionLoading ? "not-allowed" : "pointer",
+                          cursor: sessionLoading || showCountdown ? "not-allowed" : "pointer",
+                          opacity: sessionLoading || showCountdown ? 0.7 : 1,
                         }}
                       >
                         {revealedCard ? "Show Codename Again" : "Reveal Owner"}
@@ -673,16 +789,16 @@ export default function GroupRevealPage() {
                   <button
                     type="button"
                     onClick={() => void handlePrevious()}
-                    disabled={safeIndex === 0 || sessionLoading}
+                    disabled={safeIndex === 0 || sessionLoading || showCountdown}
                     className="px-5 py-2.5 rounded-2xl text-sm font-extrabold"
                     style={{
-                      color: safeIndex === 0 || sessionLoading ? "#94a3b8" : "#fff",
+                      color: safeIndex === 0 || sessionLoading || showCountdown ? "#94a3b8" : "#fff",
                       background:
-                        safeIndex === 0 || sessionLoading
+                        safeIndex === 0 || sessionLoading || showCountdown
                           ? "rgba(148,163,184,.16)"
                           : "rgba(15,23,42,.48)",
                       border: "1px solid rgba(255,255,255,.08)",
-                      cursor: safeIndex === 0 || sessionLoading ? "not-allowed" : "pointer",
+                      cursor: safeIndex === 0 || sessionLoading || showCountdown ? "not-allowed" : "pointer",
                     }}
                   >
                     Previous
@@ -692,26 +808,30 @@ export default function GroupRevealPage() {
                     className="text-[12px] md:text-[13px] font-semibold text-center max-w-[460px]"
                     style={{ color: "#cbd5e1" }}
                   >
-                    {usesSharedSession
-                      ? "The TV and any joined phones stay in sync with these controls."
-                      : "You are still in private preview mode. Start the live reveal when you want other devices to follow along."}
+                    {presentation.session.status === "waiting"
+                      ? "The room is open. Start the countdown when everyone is looking at the screen."
+                      : showCountdown
+                        ? "The countdown is live now. Controls unlock again as soon as it finishes."
+                        : usesSharedSession
+                          ? "The TV and any joined phones stay in sync with these controls."
+                          : "You are still in private preview mode. Start the live reveal when you want other devices to follow along."}
                   </div>
 
                   <button
                     type="button"
                     onClick={() => void handleNext()}
-                    disabled={safeIndex >= aliasEntries.length - 1 || sessionLoading}
+                    disabled={safeIndex >= aliasEntries.length - 1 || sessionLoading || showCountdown}
                     className="px-5 py-2.5 rounded-2xl text-sm font-extrabold"
                     style={{
                       color:
-                        safeIndex >= aliasEntries.length - 1 || sessionLoading ? "#94a3b8" : "#fff",
+                        safeIndex >= aliasEntries.length - 1 || sessionLoading || showCountdown ? "#94a3b8" : "#fff",
                       background:
-                        safeIndex >= aliasEntries.length - 1 || sessionLoading
+                        safeIndex >= aliasEntries.length - 1 || sessionLoading || showCountdown
                           ? "rgba(148,163,184,.16)"
                           : "rgba(15,23,42,.48)",
                       border: "1px solid rgba(255,255,255,.08)",
                       cursor:
-                        safeIndex >= aliasEntries.length - 1 || sessionLoading
+                        safeIndex >= aliasEntries.length - 1 || sessionLoading || showCountdown
                           ? "not-allowed"
                           : "pointer",
                     }}
@@ -724,9 +844,13 @@ export default function GroupRevealPage() {
                   className="text-[12px] md:text-[13px] font-semibold text-center"
                   style={{ color: "#cbd5e1" }}
                 >
-                  {usesSharedSession
-                    ? "The owner is controlling the live reveal. This page will keep updating automatically."
-                    : "You can leave this page open on your phone. It will change automatically once the owner starts the live reveal."}
+                  {presentation.session.status === "waiting"
+                    ? "The live room is open. This page will switch into the shared countdown automatically."
+                    : showCountdown
+                      ? "Countdown is running. Stay on this page and the first codename will appear here automatically."
+                      : usesSharedSession
+                        ? "The owner is controlling the live reveal. This page will keep updating automatically."
+                        : "You can leave this page open on your phone. It will change automatically once the owner starts the live reveal."}
                 </div>
               )}
             </div>
