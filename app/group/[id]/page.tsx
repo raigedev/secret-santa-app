@@ -12,6 +12,7 @@ import { drawSecretSanta, resetSecretSantaDraw } from "./draw-action";
 import {
   deleteGroup,
   editGroup,
+  getGroupRecap,
   getRevealMatches,
   getGroupOwnerInsights,
   leaveGroup,
@@ -58,6 +59,21 @@ type OwnerInsights = {
   totalChatThreadCount: number;
   confirmedGiftCount: number;
   totalGiftCount: number;
+};
+
+type GroupRecap = {
+  activeChatThreadCount: number;
+  aliasRoster: Array<{
+    alias: string;
+    avatarEmoji: string;
+    realName: string;
+  }>;
+  confirmedGiftCount: number;
+  participantCount: number;
+  totalChatThreadCount: number;
+  totalGiftCount: number;
+  wishlistMissingAliases: string[];
+  wishlistReadyCount: number;
 };
 
 const BUDGET_OPTIONS = [10, 15, 25, 50, 100];
@@ -117,6 +133,7 @@ export default function GroupDetailsPage() {
   const [drawDone, setDrawDone] = useState(false);
   const [ownerInsights, setOwnerInsights] = useState<OwnerInsights | null>(null);
   const [revealMatches, setRevealMatches] = useState<RevealMatch[]>([]);
+  const [groupRecap, setGroupRecap] = useState<GroupRecap | null>(null);
   const [revealLoading, setRevealLoading] = useState(false);
   const [revealMessage, setRevealMessage] = useState("");
 
@@ -240,7 +257,7 @@ export default function GroupDetailsPage() {
       // Keep the owner's readiness panel in sync with the main group data.
       // Chat stays aggregate-only here so the owner gets engagement signals
       // without learning anything about the anonymous pairings themselves.
-      const [{ data: myAssignment }, insightsResult, revealResult] = await Promise.all([
+      const [{ data: myAssignment }, insightsResult, revealResult, recapResult] = await Promise.all([
         supabase
           .from("assignments")
           .select("receiver_id")
@@ -249,6 +266,7 @@ export default function GroupDetailsPage() {
           .maybeSingle(),
         isCurrentUserOwner ? getGroupOwnerInsights(id) : Promise.resolve(null),
         group.revealed ? getRevealMatches(id) : Promise.resolve(null),
+        group.revealed ? getGroupRecap(id) : Promise.resolve(null),
       ]);
 
       if (!isMounted) return;
@@ -263,6 +281,12 @@ export default function GroupDetailsPage() {
         setRevealMatches(revealResult.matches);
       } else {
         setRevealMatches([]);
+      }
+
+      if (recapResult?.success && recapResult.recap) {
+        setGroupRecap(recapResult.recap);
+      } else {
+        setGroupRecap(null);
       }
 
       if (myAssignment) {
@@ -513,6 +537,7 @@ export default function GroupDetailsPage() {
       setDrawMessage(result.message);
       if (result.success) {
         setRevealMatches([]);
+        setGroupRecap(null);
         setRevealMessage("");
         setGroupData((currentGroupData) =>
           currentGroupData
@@ -612,6 +637,11 @@ export default function GroupDetailsPage() {
   const missingWishlistPreview = ownerInsights?.missingWishlistMemberNames.slice(0, 4) || [];
   const extraMissingWishlistCount = Math.max(
     (ownerInsights?.missingWishlistMemberNames.length || 0) - missingWishlistPreview.length,
+    0
+  );
+  const recapAliasPreview = groupRecap?.aliasRoster.slice(0, 6) || [];
+  const recapExtraAliasCount = Math.max(
+    (groupRecap?.aliasRoster.length || 0) - recapAliasPreview.length,
     0
   );
 
@@ -1793,21 +1823,248 @@ export default function GroupDetailsPage() {
                 )}
 
                 {groupData.revealed && (
-                  <div className="mt-4 flex justify-center">
-                    <button
-                      type="button"
-                      onClick={() => router.push(`/group/${id}/reveal`)}
-                      className="px-5 py-2.5 rounded-xl text-sm font-extrabold"
-                      style={{
-                        background: "rgba(15,23,42,.05)",
-                        color: "#166534",
-                        border: "1px solid rgba(34,197,94,.18)",
-                        fontFamily: "inherit",
-                      }}
-                    >
-                      Open Event Replay Screen
-                    </button>
-                  </div>
+                  <>
+                    <div className="mt-4 flex justify-center">
+                      <button
+                        type="button"
+                        onClick={() => router.push(`/group/${id}/reveal`)}
+                        className="px-5 py-2.5 rounded-xl text-sm font-extrabold"
+                        style={{
+                          background: "rgba(15,23,42,.05)",
+                          color: "#166534",
+                          border: "1px solid rgba(34,197,94,.18)",
+                          fontFamily: "inherit",
+                        }}
+                      >
+                        Open Event Replay Screen
+                      </button>
+                    </div>
+
+                    {groupRecap && (
+                      <div
+                        className="rounded-[18px] p-5 mt-5"
+                        style={{
+                          background: "rgba(255,255,255,.82)",
+                          border: "1px solid rgba(34,197,94,.12)",
+                          boxShadow: "0 10px 24px rgba(15,23,42,.05)",
+                        }}
+                      >
+                        <div className="flex items-start justify-between gap-4 flex-wrap mb-4">
+                          <div>
+                            <div
+                              className="text-[18px] font-bold"
+                              style={{
+                                fontFamily: "'Fredoka', sans-serif",
+                                color: "#166534",
+                              }}
+                            >
+                              Group Recap
+                            </div>
+                            <div
+                              className="text-[12px] font-semibold mt-1"
+                              style={{ color: "#64748b" }}
+                            >
+                              A quick look back at how the whole exchange came together after the
+                              reveal.
+                            </div>
+                          </div>
+
+                          <div
+                            className="px-3 py-1.5 rounded-full text-[11px] font-extrabold"
+                            style={{
+                              background: "rgba(34,197,94,.1)",
+                              color: "#166534",
+                            }}
+                          >
+                            Post-event summary
+                          </div>
+                        </div>
+
+                        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3">
+                          <div
+                            className="rounded-2xl p-4"
+                            style={{
+                              background: "rgba(240,253,244,.72)",
+                              border: "1px solid rgba(34,197,94,.12)",
+                            }}
+                          >
+                            <div
+                              className="text-[11px] font-extrabold uppercase tracking-[0.14em]"
+                              style={{ color: "#15803d" }}
+                            >
+                              Participants
+                            </div>
+                            <div
+                              className="text-[28px] font-bold mt-2"
+                              style={{ fontFamily: "'Fredoka', sans-serif", color: "#166534" }}
+                            >
+                              {groupRecap.participantCount}
+                            </div>
+                            <div className="text-[12px] font-semibold mt-1" style={{ color: "#64748b" }}>
+                              Accepted members in the final exchange
+                            </div>
+                          </div>
+
+                          <div
+                            className="rounded-2xl p-4"
+                            style={{
+                              background: "rgba(254,252,232,.78)",
+                              border: "1px solid rgba(234,179,8,.14)",
+                            }}
+                          >
+                            <div
+                              className="text-[11px] font-extrabold uppercase tracking-[0.14em]"
+                              style={{ color: "#a16207" }}
+                            >
+                              Wishlists Ready
+                            </div>
+                            <div
+                              className="text-[28px] font-bold mt-2"
+                              style={{ fontFamily: "'Fredoka', sans-serif", color: "#854d0e" }}
+                            >
+                              {groupRecap.wishlistReadyCount}/{groupRecap.participantCount}
+                            </div>
+                            <div className="text-[12px] font-semibold mt-1" style={{ color: "#78716c" }}>
+                              Members who added wishlist items before the reveal
+                            </div>
+                          </div>
+
+                          <div
+                            className="rounded-2xl p-4"
+                            style={{
+                              background: "rgba(239,246,255,.86)",
+                              border: "1px solid rgba(59,130,246,.12)",
+                            }}
+                          >
+                            <div
+                              className="text-[11px] font-extrabold uppercase tracking-[0.14em]"
+                              style={{ color: "#1d4ed8" }}
+                            >
+                              Chat Activity
+                            </div>
+                            <div
+                              className="text-[28px] font-bold mt-2"
+                              style={{ fontFamily: "'Fredoka', sans-serif", color: "#1d4ed8" }}
+                            >
+                              {groupRecap.activeChatThreadCount}/{groupRecap.totalChatThreadCount}
+                            </div>
+                            <div className="text-[12px] font-semibold mt-1" style={{ color: "#64748b" }}>
+                              Anonymous chat threads that were used
+                            </div>
+                          </div>
+
+                          <div
+                            className="rounded-2xl p-4"
+                            style={{
+                              background: "rgba(255,247,237,.85)",
+                              border: "1px solid rgba(249,115,22,.14)",
+                            }}
+                          >
+                            <div
+                              className="text-[11px] font-extrabold uppercase tracking-[0.14em]"
+                              style={{ color: "#c2410c" }}
+                            >
+                              Gifts Confirmed
+                            </div>
+                            <div
+                              className="text-[28px] font-bold mt-2"
+                              style={{ fontFamily: "'Fredoka', sans-serif", color: "#9a3412" }}
+                            >
+                              {groupRecap.confirmedGiftCount}/{groupRecap.totalGiftCount}
+                            </div>
+                            <div className="text-[12px] font-semibold mt-1" style={{ color: "#78716c" }}>
+                              Recipients who marked their gift as received
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1.3fr)_minmax(0,.9fr)] gap-4 mt-4">
+                          <div
+                            className="rounded-2xl p-4"
+                            style={{
+                              background: "rgba(248,250,252,.92)",
+                              border: "1px solid rgba(148,163,184,.14)",
+                            }}
+                          >
+                            <div
+                              className="text-[13px] font-bold mb-3"
+                              style={{ color: "#166534" }}
+                            >
+                              Alias Roster
+                            </div>
+                            <div className="flex flex-wrap gap-2">
+                              {recapAliasPreview.map((participant) => (
+                                <div
+                                  key={`${participant.alias}-${participant.realName}`}
+                                  className="rounded-xl px-3 py-2"
+                                  style={{
+                                    background: "rgba(240,253,244,.78)",
+                                    border: "1px solid rgba(34,197,94,.12)",
+                                  }}
+                                >
+                                  <div className="text-[11px] font-extrabold" style={{ color: "#166534" }}>
+                                    {participant.avatarEmoji} {participant.alias}
+                                  </div>
+                                  <div className="text-[12px] font-semibold mt-1" style={{ color: "#475569" }}>
+                                    {participant.realName}
+                                  </div>
+                                </div>
+                              ))}
+
+                              {recapExtraAliasCount > 0 && (
+                                <div
+                                  className="rounded-xl px-3 py-2 flex items-center"
+                                  style={{
+                                    background: "rgba(239,246,255,.86)",
+                                    border: "1px solid rgba(59,130,246,.12)",
+                                  }}
+                                >
+                                  <span className="text-[12px] font-bold" style={{ color: "#1d4ed8" }}>
+                                    +{recapExtraAliasCount} more aliases
+                                  </span>
+                                </div>
+                              )}
+                            </div>
+                          </div>
+
+                          <div
+                            className="rounded-2xl p-4"
+                            style={{
+                              background: "rgba(255,255,255,.86)",
+                              border: "1px solid rgba(148,163,184,.14)",
+                            }}
+                          >
+                            <div
+                              className="text-[13px] font-bold mb-3"
+                              style={{ color: "#166534" }}
+                            >
+                              Recap Notes
+                            </div>
+                            <div className="flex flex-col gap-2 text-[12px] font-semibold" style={{ color: "#475569" }}>
+                              <div>
+                                Final matches revealed: <strong style={{ color: "#166534" }}>{revealMatches.length}</strong>
+                              </div>
+                              <div>
+                                Alias owners revealed: <strong style={{ color: "#166534" }}>{groupRecap.aliasRoster.length}</strong>
+                              </div>
+                              <div>
+                                Wishlist gaps before reveal:{" "}
+                                <strong style={{ color: "#166534" }}>
+                                  {groupRecap.wishlistMissingAliases.length === 0
+                                    ? "None"
+                                    : groupRecap.wishlistMissingAliases.join(", ")}
+                                </strong>
+                              </div>
+                              <div>
+                                Chat recap stays aggregate-only to preserve the anonymous thread
+                                design even after the event.
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                  </>
                 )}
               </div>
             )}

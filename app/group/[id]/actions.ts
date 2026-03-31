@@ -884,6 +884,163 @@ export async function getGroupOwnerInsights(groupId: string): Promise<{
   };
 }
 
+export async function getGroupRecap(groupId: string): Promise<{
+  success: boolean;
+  message: string;
+  recap?: {
+    activeChatThreadCount: number;
+    aliasRoster: Array<{
+      alias: string;
+      avatarEmoji: string;
+      realName: string;
+    }>;
+    confirmedGiftCount: number;
+    participantCount: number;
+    totalChatThreadCount: number;
+    totalGiftCount: number;
+    wishlistMissingAliases: string[];
+    wishlistReadyCount: number;
+  };
+}> {
+  if (!groupId) {
+    return { success: false, message: "Missing group ID." };
+  }
+
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    return { success: false, message: "You must be logged in." };
+  }
+
+  const rateLimit = await enforceRateLimit({
+    action: "group.get_recap",
+    actorUserId: user.id,
+    maxAttempts: 500,
+    resourceId: groupId,
+    resourceType: "group",
+    subject: user.id,
+    windowSeconds: 3600,
+  });
+
+  if (!rateLimit.allowed) {
+    return { success: false, message: rateLimit.message };
+  }
+
+  const { data: group } = await supabase
+    .from("groups")
+    .select("owner_id, revealed")
+    .eq("id", groupId)
+    .maybeSingle();
+
+  if (!group) {
+    return { success: false, message: "Group not found." };
+  }
+
+  const isOwner = group.owner_id === user.id;
+
+  if (!isOwner) {
+    const { data: membership } = await supabase
+      .from("group_members")
+      .select("id")
+      .eq("group_id", groupId)
+      .eq("user_id", user.id)
+      .eq("status", "accepted")
+      .maybeSingle();
+
+    if (!membership) {
+      return { success: false, message: "Only accepted members can view the group recap." };
+    }
+  }
+
+  if (!group.revealed) {
+    return { success: false, message: "The owner has not revealed the group recap yet." };
+  }
+
+  const [{ assignments, participants }, { data: wishlistRows, error: wishlistRowsError }, { data: messageRows, error: messageRowsError }] =
+    await Promise.all([
+      loadRevealSourceData(groupId),
+      supabaseAdmin.from("wishlists").select("user_id").eq("group_id", groupId),
+      supabaseAdmin
+        .from("messages")
+        .select("thread_giver_id, thread_receiver_id")
+        .eq("group_id", groupId),
+    ]);
+
+  const firstError = wishlistRowsError || messageRowsError;
+
+  if (firstError) {
+    await recordServerFailure({
+      actorUserId: user.id,
+      errorMessage: firstError.message,
+      eventType: "group.get_recap",
+      resourceId: groupId,
+      resourceType: "group",
+    });
+
+    return { success: false, message: "Failed to load the group recap." };
+  }
+
+  const participantUserIds = new Set(participants.map((participant) => participant.userId));
+  const membersWithWishlist = new Set(
+    (wishlistRows || [])
+      .map((row) => row.user_id)
+      .filter((userId): userId is string => Boolean(userId) && participantUserIds.has(userId))
+  );
+  const wishlistMissingAliases = participants
+    .filter((participant) => !membersWithWishlist.has(participant.userId))
+    .map((participant) => participant.alias);
+  const assignmentThreadKeys = new Set(
+    assignments.map((assignment) => `${assignment.giver_id}:${assignment.receiver_id}`)
+  );
+  const activeChatThreadKeys = new Set(
+    (messageRows || [])
+      .map((message) => `${message.thread_giver_id}:${message.thread_receiver_id}`)
+      .filter((threadKey) => assignmentThreadKeys.has(threadKey))
+  );
+  const { data: confirmedAssignments, error: confirmedAssignmentsError } = await supabaseAdmin
+    .from("assignments")
+    .select("gift_received")
+    .eq("group_id", groupId);
+
+  if (confirmedAssignmentsError) {
+    await recordServerFailure({
+      actorUserId: user.id,
+      errorMessage: confirmedAssignmentsError.message,
+      eventType: "group.get_recap.confirmed_assignments",
+      resourceId: groupId,
+      resourceType: "group",
+    });
+
+    return { success: false, message: "Failed to load the group recap." };
+  }
+
+  const confirmedGiftCount = (confirmedAssignments || []).filter(
+    (assignment) => assignment.gift_received
+  ).length;
+
+  return {
+    success: true,
+    message: "Group recap loaded.",
+    recap: {
+      activeChatThreadCount: activeChatThreadKeys.size,
+      aliasRoster: participants.map((participant) => ({
+        alias: participant.alias,
+        avatarEmoji: participant.avatarEmoji,
+        realName: participant.realName,
+      })),
+      confirmedGiftCount,
+      participantCount: participants.length,
+      totalChatThreadCount: assignmentThreadKeys.size,
+      totalGiftCount: assignments.length,
+      wishlistMissingAliases,
+      wishlistReadyCount: participants.length - wishlistMissingAliases.length,
+    },
+  };
+}
+
 export async function editGroup(
   groupId: string,
   name: string,
