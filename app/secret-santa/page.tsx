@@ -10,11 +10,14 @@ import {
 } from "@/app/dashboard/wishlist-actions";
 import { confirmGiftReceived, updateGiftPrepStatus } from "./actions";
 import { SecretSantaSkeleton } from "@/app/components/PageSkeleton";
+import { WISHLIST_CATEGORIES } from "@/lib/wishlist/options";
 
 type WishlistItem = {
   id: string;
   group_id: string;
   item_name: string;
+  item_category: string;
+  item_image_url: string;
   item_link: string;
   item_note: string;
   priority: number;
@@ -83,6 +86,8 @@ type WishlistRow = {
   group_id: string;
   user_id: string;
   item_name: string;
+  item_category: string | null;
+  item_image_url: string | null;
   item_link: string | null;
   item_note: string | null;
   priority: number | null;
@@ -97,6 +102,7 @@ type GiftPrepStatus =
 const ITEM_NAME_MAX_LENGTH = 100;
 const ITEM_NOTE_MAX_LENGTH = 200;
 const ITEM_LINK_MAX_LENGTH = 500;
+const ITEM_IMAGE_URL_MAX_LENGTH = 500;
 const PAGE_BACKGROUND =
   "radial-gradient(circle at top, rgba(255,255,255,.28), transparent 32%), linear-gradient(180deg,#dfe7e4 0%,#d2dbd8 42%,#c9d4d4 100%)";
 const PAGE_TEXT_COLOR = "#25363a";
@@ -207,10 +213,37 @@ function toWishlistItem(row: WishlistRow): WishlistItem {
     id: row.id,
     group_id: row.group_id,
     item_name: row.item_name,
+    item_category: row.item_category || "",
+    item_image_url: row.item_image_url || "",
     item_link: row.item_link || "",
     item_note: row.item_note || "",
     priority: row.priority || 0,
   };
+}
+
+function getWishlistCategoryStyle(category: string) {
+  switch (category) {
+    case "Tech":
+      return { background: "rgba(59,130,246,.12)", color: "#1d4ed8" };
+    case "Fashion":
+      return { background: "rgba(236,72,153,.12)", color: "#be185d" };
+    case "Beauty":
+      return { background: "rgba(244,114,182,.12)", color: "#be185d" };
+    case "Food":
+      return { background: "rgba(249,115,22,.12)", color: "#c2410c" };
+    case "Books":
+      return { background: "rgba(168,85,247,.12)", color: "#7e22ce" };
+    case "Games":
+      return { background: "rgba(34,197,94,.12)", color: "#15803d" };
+    case "Home":
+      return { background: "rgba(14,165,233,.12)", color: "#0369a1" };
+    case "Collectibles":
+      return { background: "rgba(245,158,11,.12)", color: "#b45309" };
+    case "Experience":
+      return { background: "rgba(20,184,166,.12)", color: "#0f766e" };
+    default:
+      return { background: "rgba(148,163,184,.14)", color: "#475569" };
+  }
 }
 
 // Keep important wishlist items visible first and make the order predictable.
@@ -399,6 +432,8 @@ export default function SecretSantaPage() {
   const [showAdd, setShowAdd] = useState(false);
   const [addGroupId, setAddGroupId] = useState("");
   const [addName, setAddName] = useState("");
+  const [addCategory, setAddCategory] = useState("");
+  const [addImageUrl, setAddImageUrl] = useState("");
   const [addLink, setAddLink] = useState("");
   const [addNote, setAddNote] = useState("");
   const [addPriority, setAddPriority] = useState(0);
@@ -407,6 +442,8 @@ export default function SecretSantaPage() {
   // Edit form state.
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editName, setEditName] = useState("");
+  const [editCategory, setEditCategory] = useState("");
+  const [editImageUrl, setEditImageUrl] = useState("");
   const [editLink, setEditLink] = useState("");
   const [editNote, setEditNote] = useState("");
   const [editPriority, setEditPriority] = useState(0);
@@ -493,7 +530,7 @@ export default function SecretSantaPage() {
             .in("group_id", groupIds),
           supabase
             .from("wishlists")
-            .select("id, group_id, user_id, item_name, item_link, item_note, priority")
+            .select("id, group_id, user_id, item_name, item_category, item_image_url, item_link, item_note, priority")
             .eq("user_id", user.id)
             .in("group_id", groupIds),
         ]);
@@ -528,7 +565,7 @@ export default function SecretSantaPage() {
               .eq("status", "accepted"),
             supabase
               .from("wishlists")
-              .select("id, group_id, user_id, item_name, item_link, item_note, priority")
+              .select("id, group_id, user_id, item_name, item_category, item_image_url, item_link, item_note, priority")
               .in("user_id", receiverIds)
               .in("group_id", groupIds),
           ]);
@@ -634,6 +671,7 @@ export default function SecretSantaPage() {
   const handleAdd = async () => {
     const cleanName = normalizeTextInput(addName, ITEM_NAME_MAX_LENGTH);
     const cleanLink = normalizeOptionalUrl(addLink);
+    const cleanImageUrl = normalizeOptionalUrl(addImageUrl);
     const cleanNote = normalizeTextInput(addNote, ITEM_NOTE_MAX_LENGTH);
     const validGroupIds = new Set(availableGroups.map((group) => group.id));
 
@@ -656,13 +694,17 @@ export default function SecretSantaPage() {
         cleanName,
         cleanLink,
         cleanNote,
-        addPriority > 0 ? 1 : 0
+        addPriority > 0 ? 1 : 0,
+        addCategory,
+        cleanImageUrl
       );
 
       setMessage(createActionMessage(result));
 
       if (result.success) {
         setAddName("");
+        setAddCategory("");
+        setAddImageUrl("");
         setAddLink("");
         setAddNote("");
         setAddPriority(0);
@@ -681,6 +723,7 @@ export default function SecretSantaPage() {
   const handleEdit = async (itemId: string) => {
     const cleanName = normalizeTextInput(editName, ITEM_NAME_MAX_LENGTH);
     const cleanLink = normalizeOptionalUrl(editLink);
+    const cleanImageUrl = normalizeOptionalUrl(editImageUrl);
     const cleanNote = normalizeTextInput(editNote, ITEM_NOTE_MAX_LENGTH);
 
     if (!cleanName) {
@@ -697,7 +740,9 @@ export default function SecretSantaPage() {
         cleanName,
         cleanLink,
         cleanNote,
-        editPriority > 0 ? 1 : 0
+        editPriority > 0 ? 1 : 0,
+        editCategory,
+        cleanImageUrl
       );
 
       setMessage(createActionMessage(result));
@@ -812,6 +857,8 @@ export default function SecretSantaPage() {
   const startEdit = (item: WishlistItem) => {
     setEditingId(item.id);
     setEditName(item.item_name);
+    setEditCategory(item.item_category);
+    setEditImageUrl(item.item_image_url);
     setEditLink(item.item_link);
     setEditNote(item.item_note);
     setEditPriority(item.priority);
@@ -1022,6 +1069,10 @@ export default function SecretSantaPage() {
                   ) : (
                     assignment.receiver_wishlist.map((item) => {
                       const safeItemLink = normalizeOptionalUrl(item.item_link);
+                      const safeItemImageUrl = normalizeOptionalUrl(item.item_image_url);
+                      const categoryStyle = item.item_category
+                        ? getWishlistCategoryStyle(item.item_category)
+                        : null;
 
                       return (
                         <div
@@ -1032,10 +1083,56 @@ export default function SecretSantaPage() {
                             border: INSET_BORDER,
                           }}
                         >
-                          <span className="text-[16px]">
+                          <span className="hidden">
                             {item.priority > 0 ? "⭐" : "🎁"}
                           </span>
+                          {safeItemImageUrl ? (
+                            // Wishlist images come from arbitrary user-provided URLs.
+                            // A plain img tag avoids coupling this feature to a hard-coded
+                            // next/image remote-host allowlist that would reject many gifts.
+                            // eslint-disable-next-line @next/next/no-img-element
+                            <img
+                              src={safeItemImageUrl}
+                              alt={item.item_name}
+                              className="w-[56px] h-[56px] rounded-xl object-cover shrink-0"
+                              style={{
+                                border: "1px solid rgba(96,117,122,.12)",
+                                background: "rgba(255,255,255,.8)",
+                              }}
+                            />
+                          ) : (
+                            <div
+                              className="w-[56px] h-[56px] rounded-xl flex items-center justify-center text-[18px] shrink-0"
+                              style={{
+                                background: "rgba(255,255,255,.78)",
+                                border: "1px solid rgba(96,117,122,.12)",
+                              }}
+                            >
+                              {item.priority > 0 ? "⭐" : "🎁"}
+                            </div>
+                          )}
                           <div className="flex-1">
+                            <div className="flex items-center gap-2 flex-wrap mb-1">
+                              {item.priority > 0 && (
+                                <span
+                                  className="text-[10px] font-extrabold px-2 py-1 rounded-lg"
+                                  style={{
+                                    background: "rgba(251,191,36,.16)",
+                                    color: HOLIDAY_GOLD,
+                                  }}
+                                >
+                                  ⭐ Top priority
+                                </span>
+                              )}
+                              {item.item_category && categoryStyle && (
+                                <span
+                                  className="text-[10px] font-extrabold px-2 py-1 rounded-lg"
+                                  style={categoryStyle}
+                                >
+                                  {item.item_category}
+                                </span>
+                              )}
+                            </div>
                             <div
                               className="text-[14px] font-bold"
                               style={{ color: PAGE_TEXT_COLOR }}
@@ -1493,7 +1590,43 @@ export default function SecretSantaPage() {
                   }}
                 />
 
-                <div className="flex gap-2 mb-2">
+                <div className="flex gap-2 mb-2 flex-col sm:flex-row">
+                  <select
+                    value={addCategory}
+                    onChange={(event) => setAddCategory(event.target.value)}
+                    className="flex-1 px-3 py-2.5 rounded-lg text-[13px] outline-none"
+                    style={{
+                      background: INPUT_BACKGROUND,
+                      border: INPUT_BORDER,
+                      color: INPUT_TEXT,
+                      fontFamily: "inherit",
+                    }}
+                  >
+                    <option value="">Category (optional)</option>
+                    {WISHLIST_CATEGORIES.map((category) => (
+                      <option key={category} value={category}>
+                        {category}
+                      </option>
+                    ))}
+                  </select>
+                  <input
+                    type="url"
+                    inputMode="url"
+                    value={addImageUrl}
+                    onChange={(event) => setAddImageUrl(event.target.value)}
+                    maxLength={ITEM_IMAGE_URL_MAX_LENGTH}
+                    placeholder="Image URL (optional)..."
+                    className="flex-1 px-3 py-2.5 rounded-lg text-[13px] outline-none"
+                    style={{
+                      background: INPUT_BACKGROUND,
+                      border: INPUT_BORDER,
+                      color: INPUT_TEXT,
+                      fontFamily: "inherit",
+                    }}
+                  />
+                </div>
+
+                <div className="flex gap-2 mb-2 flex-col sm:flex-row">
                   <input
                     type="url"
                     inputMode="url"
@@ -1607,7 +1740,42 @@ export default function SecretSantaPage() {
                           fontFamily: "inherit",
                         }}
                       />
-                      <div className="flex gap-2 mb-2">
+                      <div className="flex gap-2 mb-2 flex-col sm:flex-row">
+                        <select
+                          value={editCategory}
+                          onChange={(event) => setEditCategory(event.target.value)}
+                          className="flex-1 px-3 py-2 rounded-lg text-[13px] outline-none"
+                          style={{
+                            background: INPUT_BACKGROUND,
+                            border: INPUT_BORDER,
+                            color: INPUT_TEXT,
+                            fontFamily: "inherit",
+                          }}
+                        >
+                          <option value="">Category (optional)</option>
+                          {WISHLIST_CATEGORIES.map((category) => (
+                            <option key={category} value={category}>
+                              {category}
+                            </option>
+                          ))}
+                        </select>
+                        <input
+                          type="url"
+                          inputMode="url"
+                          value={editImageUrl}
+                          onChange={(event) => setEditImageUrl(event.target.value)}
+                          maxLength={ITEM_IMAGE_URL_MAX_LENGTH}
+                          placeholder="Image URL..."
+                          className="flex-1 px-3 py-2 rounded-lg text-[13px] outline-none"
+                          style={{
+                            background: INPUT_BACKGROUND,
+                            border: INPUT_BORDER,
+                            color: INPUT_TEXT,
+                            fontFamily: "inherit",
+                          }}
+                        />
+                      </div>
+                      <div className="flex gap-2 mb-2 flex-col sm:flex-row">
                         <input
                           type="url"
                           inputMode="url"
@@ -1683,13 +1851,60 @@ export default function SecretSantaPage() {
                     </div>
                   ) : (
                     <div
-                      className="flex items-center justify-between p-3 rounded-xl mb-2 transition"
+                      className="flex items-start justify-between gap-3 p-3 rounded-xl mb-2 transition"
                       style={{
                         background: INSET_BACKGROUND,
                         border: INSET_BORDER,
                       }}
                     >
-                      <div className="flex-1">
+                      <div className="flex items-start gap-3 flex-1 min-w-0">
+                        {normalizeOptionalUrl(item.item_image_url) ? (
+                          // The owner can paste product images from many different stores, so
+                          // this preview intentionally uses a normal img tag instead of requiring
+                          // every remote host to be added to Next image config first.
+                          // eslint-disable-next-line @next/next/no-img-element
+                          <img
+                            src={normalizeOptionalUrl(item.item_image_url)}
+                            alt={item.item_name}
+                            className="w-[56px] h-[56px] rounded-xl object-cover shrink-0"
+                            style={{
+                              border: "1px solid rgba(96,117,122,.12)",
+                              background: "rgba(255,255,255,.8)",
+                            }}
+                          />
+                        ) : (
+                          <div
+                            className="w-[56px] h-[56px] rounded-xl flex items-center justify-center text-[18px] shrink-0"
+                            style={{
+                              background: "rgba(255,255,255,.78)",
+                              border: "1px solid rgba(96,117,122,.12)",
+                            }}
+                          >
+                            {item.priority > 0 ? "⭐" : "🎁"}
+                          </div>
+                        )}
+                        <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 flex-wrap mb-1">
+                          {item.priority > 0 && (
+                            <span
+                              className="text-[10px] font-extrabold px-2 py-1 rounded-lg"
+                              style={{
+                                background: "rgba(251,191,36,.16)",
+                                color: HOLIDAY_GOLD,
+                              }}
+                            >
+                              ⭐ Top priority
+                            </span>
+                          )}
+                          {item.item_category && (
+                            <span
+                              className="text-[10px] font-extrabold px-2 py-1 rounded-lg"
+                              style={getWishlistCategoryStyle(item.item_category)}
+                            >
+                              {item.item_category}
+                            </span>
+                          )}
+                        </div>
                         <div
                           className="text-[13px] font-bold"
                           style={{ color: PAGE_TEXT_COLOR }}
@@ -1714,6 +1929,19 @@ export default function SecretSantaPage() {
                         >
                           {getGroupName(item.group_id)}
                         </div>
+                        {normalizeOptionalUrl(item.item_link) && (
+                          <a
+                            href={normalizeOptionalUrl(item.item_link)}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            title={item.item_link}
+                            className="text-[11px] font-semibold mt-1 inline-block"
+                            style={{ color: HOLIDAY_GOLD }}
+                          >
+                            Open link →
+                          </a>
+                        )}
+                      </div>
                       </div>
                       <div className="flex gap-1.5">
                         <button

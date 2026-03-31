@@ -1,80 +1,96 @@
 "use server";
 
-// ═══════════════════════════════════════
-// WISHLIST SERVER ACTIONS
-// ═══════════════════════════════════════
-// Handles add, edit, delete of wishlist items.
-//
-// Security applied:
-// Core#1: Input validation + sanitization (trim, length, strip HTML)
-// Core#3: Least privilege — only your own items
-// Core#6: Generic error messages, real errors server-side only
-// Playbook#03: Uses server-side auth, no secrets exposed
-// Playbook#08: Parameterized queries via Supabase client
-// Playbook#12: URL validation on item_link
-// Playbook#19: Server-side auth check on every action
-// Playbook#20: Logs critical actions
-// ═══════════════════════════════════════
-
 import { recordServerFailure } from "@/lib/security/audit";
 import { enforceRateLimit } from "@/lib/security/rate-limit";
 import { createClient } from "@/lib/supabase/server";
+import { isWishlistCategory, WishlistCategory } from "@/lib/wishlist/options";
 
-// ─── Sanitize text: strip HTML tags, trim, enforce max length ───
-// Core#1: Never trust user input
 function sanitizeText(input: string, maxLength: number): string {
   return input
-    .replace(/<[^>]*>/g, "")   // Strip HTML tags
-    .replace(/&lt;/g, "<")      // Decode common entities
+    .replace(/<[^>]*>/g, "")
+    .replace(/&lt;/g, "<")
     .replace(/&gt;/g, ">")
     .replace(/&amp;/g, "&")
-    .replace(/[<>]/g, "")       // Remove any remaining angle brackets
+    .replace(/[<>]/g, "")
     .trim()
     .slice(0, maxLength);
 }
 
-// ─── Validate URL format ───
-// Playbook#12: Only allow valid https URLs or empty
-function validateUrl(url: string): string {
+function normalizeOptionalUrl(url: string): string {
   const trimmed = url.trim();
-  if (trimmed === "") return "";
+
+  if (!trimmed) {
+    return "";
+  }
+
   try {
     const parsed = new URL(trimmed);
-    if (parsed.protocol === "https:" || parsed.protocol === "http:") {
+
+    if (parsed.protocol === "http:" || parsed.protocol === "https:") {
       return trimmed.slice(0, 500);
     }
+
     return "";
   } catch {
     return "";
   }
 }
 
-// ─── ADD WISHLIST ITEM ───
+function normalizeWishlistCategory(category: string): WishlistCategory | null {
+  const trimmed = category.trim();
+
+  if (!trimmed) {
+    return null;
+  }
+
+  return isWishlistCategory(trimmed) ? trimmed : null;
+}
+
+async function requireAcceptedWishlistMember(groupId: string, userId: string) {
+  const supabase = await createClient();
+  const { data: membership } = await supabase
+    .from("group_members")
+    .select("status")
+    .eq("group_id", groupId)
+    .eq("user_id", userId)
+    .eq("status", "accepted")
+    .maybeSingle();
+
+  return membership ? supabase : null;
+}
+
 export async function addWishlistItem(
   groupId: string,
   itemName: string,
   itemLink: string,
   itemNote: string,
-  priority: number
+  priority: number,
+  itemCategory: string,
+  itemImageUrl: string
 ): Promise<{ success: boolean; message: string }> {
-
-  // Core#1: Validate inputs
   if (!groupId || typeof groupId !== "string") {
     return { success: false, message: "Invalid group." };
   }
 
   const cleanName = sanitizeText(itemName, 100);
   const cleanNote = sanitizeText(itemNote, 200);
-  const cleanLink = validateUrl(itemLink);
+  const cleanLink = normalizeOptionalUrl(itemLink);
+  const cleanImageUrl = normalizeOptionalUrl(itemImageUrl);
+  const cleanCategory = normalizeWishlistCategory(itemCategory);
   const cleanPriority = Math.min(Math.max(Math.floor(priority || 0), 0), 10);
 
   if (cleanName.length === 0) {
     return { success: false, message: "Item name is required." };
   }
 
-  // Playbook#19: Server-side auth check
+  if (itemCategory.trim() && !cleanCategory) {
+    return { success: false, message: "Choose a valid wishlist category." };
+  }
+
   const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
 
   if (!user) {
     return { success: false, message: "You must be logged in." };
@@ -94,33 +110,24 @@ export async function addWishlistItem(
     return { success: false, message: addRateLimit.message };
   }
 
-  // Core#3: Verify user is a member of this group
-  const { data: membership } = await supabase
-    .from("group_members")
-    .select("status")
-    .eq("group_id", groupId)
-    .eq("user_id", user.id)
-    .eq("status", "accepted")
-    .maybeSingle();
+  const memberClient = await requireAcceptedWishlistMember(groupId, user.id);
 
-  if (!membership) {
+  if (!memberClient) {
     return { success: false, message: "You must be a member of this group." };
   }
 
-  // Playbook#08: Parameterized insert via Supabase
-  const { error } = await supabase
-    .from("wishlists")
-    .insert({
-      group_id: groupId,
-      user_id: user.id,
-      item_name: cleanName,
-      item_link: cleanLink,
-      item_note: cleanNote,
-      priority: cleanPriority,
-    });
+  const { error } = await memberClient.from("wishlists").insert({
+    group_id: groupId,
+    user_id: user.id,
+    item_name: cleanName,
+    item_link: cleanLink,
+    item_note: cleanNote,
+    item_category: cleanCategory,
+    item_image_url: cleanImageUrl,
+    priority: cleanPriority,
+  });
 
   if (error) {
-    // Core#6: Generic message to user, real error server-side
     await recordServerFailure({
       actorUserId: user.id,
       errorMessage: error.message,
@@ -128,38 +135,45 @@ export async function addWishlistItem(
       resourceId: groupId,
       resourceType: "wishlist",
     });
+
     return { success: false, message: "Failed to add item. Please try again." };
   }
-
-  // Playbook#20: Log critical action
 
   return { success: true, message: "Item added!" };
 }
 
-// ─── EDIT WISHLIST ITEM ───
 export async function editWishlistItem(
   itemId: string,
   itemName: string,
   itemLink: string,
   itemNote: string,
-  priority: number
+  priority: number,
+  itemCategory: string,
+  itemImageUrl: string
 ): Promise<{ success: boolean; message: string }> {
-
   if (!itemId || typeof itemId !== "string") {
     return { success: false, message: "Invalid item." };
   }
 
   const cleanName = sanitizeText(itemName, 100);
   const cleanNote = sanitizeText(itemNote, 200);
-  const cleanLink = validateUrl(itemLink);
+  const cleanLink = normalizeOptionalUrl(itemLink);
+  const cleanImageUrl = normalizeOptionalUrl(itemImageUrl);
+  const cleanCategory = normalizeWishlistCategory(itemCategory);
   const cleanPriority = Math.min(Math.max(Math.floor(priority || 0), 0), 10);
 
   if (cleanName.length === 0) {
     return { success: false, message: "Item name is required." };
   }
 
+  if (itemCategory.trim() && !cleanCategory) {
+    return { success: false, message: "Choose a valid wishlist category." };
+  }
+
   const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
 
   if (!user) {
     return { success: false, message: "You must be logged in." };
@@ -179,17 +193,20 @@ export async function editWishlistItem(
     return { success: false, message: editRateLimit.message };
   }
 
-  // RLS ensures only the owner can update, but we also check explicitly
+  // We keep the explicit `user_id` filter even with RLS in place so the intent
+  // is obvious: wishlist edits only ever apply to the current user's own item.
   const { error } = await supabase
     .from("wishlists")
     .update({
       item_name: cleanName,
       item_link: cleanLink,
       item_note: cleanNote,
+      item_category: cleanCategory,
+      item_image_url: cleanImageUrl,
       priority: cleanPriority,
     })
     .eq("id", itemId)
-    .eq("user_id", user.id); // Double check: RLS + explicit filter
+    .eq("user_id", user.id);
 
   if (error) {
     await recordServerFailure({
@@ -199,24 +216,24 @@ export async function editWishlistItem(
       resourceId: itemId,
       resourceType: "wishlist",
     });
+
     return { success: false, message: "Failed to update item. Please try again." };
   }
-
 
   return { success: true, message: "Item updated!" };
 }
 
-// ─── DELETE WISHLIST ITEM ───
 export async function deleteWishlistItem(
   itemId: string
 ): Promise<{ success: boolean; message: string }> {
-
   if (!itemId || typeof itemId !== "string") {
     return { success: false, message: "Invalid item." };
   }
 
   const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
 
   if (!user) {
     return { success: false, message: "You must be logged in." };
@@ -236,12 +253,11 @@ export async function deleteWishlistItem(
     return { success: false, message: deleteRateLimit.message };
   }
 
-  // RLS ensures only the owner can delete, but we also check explicitly
   const { error } = await supabase
     .from("wishlists")
     .delete()
     .eq("id", itemId)
-    .eq("user_id", user.id); // Double check: RLS + explicit filter
+    .eq("user_id", user.id);
 
   if (error) {
     await recordServerFailure({
@@ -251,9 +267,9 @@ export async function deleteWishlistItem(
       resourceId: itemId,
       resourceType: "wishlist",
     });
+
     return { success: false, message: "Failed to delete item. Please try again." };
   }
-
 
   return { success: true, message: "Item deleted!" };
 }
