@@ -1,6 +1,7 @@
 "use server";
 
 import { recordAuditEvent, recordServerFailure } from "@/lib/security/audit";
+import { MAX_GROUP_CREATION_INVITES } from "@/lib/groups/capacity";
 import { enforceRateLimit } from "@/lib/security/rate-limit";
 import { supabaseAdmin } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
@@ -8,7 +9,7 @@ import { createClient } from "@/lib/supabase/server";
 const GROUP_NAME_MAX_LENGTH = 100;
 const GROUP_DESCRIPTION_MAX_LENGTH = 300;
 const GROUP_CURRENCY_MAX_LENGTH = 5;
-const MAX_INVITES_PER_GROUP = 25;
+const MAX_INVITES_PER_GROUP = MAX_GROUP_CREATION_INVITES;
 const EMAIL_MAX_LENGTH = 100;
 const ALLOWED_CURRENCIES = new Set(["USD", "EUR", "GBP", "PHP", "JPY", "AUD", "CAD"]);
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;

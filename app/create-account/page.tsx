@@ -4,6 +4,8 @@ import { Suspense, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 
+const MIN_PASSWORD_LENGTH = 8;
+
 function CreateAccountPageInner() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -27,11 +29,21 @@ function CreateAccountPageInner() {
     setError("");
     rememberNextPath();
 
+    if (!name.trim()) {
+      setError("Please enter your name.");
+      return;
+    }
+
+    if (password.length < MIN_PASSWORD_LENGTH) {
+      setError(`Use at least ${MIN_PASSWORD_LENGTH} characters for your password.`);
+      return;
+    }
+
     const { error: signUpError } = await supabase.auth.signUp({
-      email,
+      email: email.trim(),
       password,
       options: {
-        data: { name },
+        data: { name: name.trim() },
         emailRedirectTo: `${location.origin}/auth/callback?next=${encodeURIComponent(nextPath)}`,
       },
     });
@@ -78,6 +90,10 @@ function CreateAccountPageInner() {
               onChange={(e) => setPassword(e.target.value)}
               className="w-full px-4 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-yellow-400 placeholder-gray-600 text-gray-900"
             />
+
+            <p className="text-xs text-gray-500">
+              Use at least {MIN_PASSWORD_LENGTH} characters.
+            </p>
 
             {error && <p className="text-red-500 text-sm">{error}</p>}
 

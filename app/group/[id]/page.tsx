@@ -598,6 +598,8 @@ export default function GroupDetailsPage() {
 
   const currencySymbol =
     CURRENCIES.find((item) => item.code === (groupData.currency || "USD"))?.symbol || "$";
+  const editCurrencySymbol =
+    CURRENCIES.find((item) => item.code === editCurrency)?.symbol || "$";
   const drawStatusLabel = groupData.revealed ? "Revealed" : drawDone ? "Drawn" : "Not Yet";
   const missingWishlistPreview = ownerInsights?.missingWishlistMemberNames.slice(0, 4) || [];
   const extraMissingWishlistCount = Math.max(
@@ -707,7 +709,7 @@ export default function GroupDetailsPage() {
                       fontFamily: "inherit",
                     }}
                   >
-                    {currencySymbol}
+                    {editCurrencySymbol}
                     {amount}
                   </button>
                 ))}
@@ -738,6 +740,27 @@ export default function GroupDetailsPage() {
                   style={{ border: "2px solid #c0392b", fontFamily: "inherit" }}
                 />
               )}
+            </div>
+
+            <div>
+              <label
+                className="text-[12px] font-extrabold block mb-1"
+                style={{ color: "#374151" }}
+              >
+                Currency
+              </label>
+              <select
+                value={editCurrency}
+                onChange={(e) => setEditCurrency(e.target.value)}
+                className="w-full px-3 py-2.5 rounded-xl text-[14px] outline-none"
+                style={{ border: "2px solid #e5e7eb", fontFamily: "inherit" }}
+              >
+                {CURRENCIES.map((currency) => (
+                  <option key={currency.code} value={currency.code}>
+                    {currency.label} ({currency.symbol})
+                  </option>
+                ))}
+              </select>
             </div>
 
             {editMsg && (

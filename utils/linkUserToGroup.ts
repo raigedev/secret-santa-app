@@ -1,10 +1,10 @@
 import { createClient } from "@/lib/supabase/client";
-import type { User } from "@supabase/supabase-js"; // ✅ import Supabase User type
-
-const supabase = createClient();
+import type { User } from "@supabase/supabase-js";
 
 export async function linkUserToGroup(user: User) {
   if (!user?.email || !user?.id) return;
+
+  const supabase = createClient();
 
   await supabase
     .from("group_members")

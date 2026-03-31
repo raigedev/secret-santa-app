@@ -1,6 +1,11 @@
 "use server";
 
 import { randomBytes } from "crypto";
+import {
+  countActiveGroupSlots,
+  getGroupCapacityMessage,
+  MAX_GROUP_MEMBERS,
+} from "@/lib/groups/capacity";
 import { recordAuditEvent, recordServerFailure } from "@/lib/security/audit";
 import { createNotification, createNotifications } from "@/lib/notifications";
 import { enforceRateLimit } from "@/lib/security/rate-limit";
@@ -10,6 +15,9 @@ import { createClient } from "@/lib/supabase/server";
 function sanitize(input: string, max: number): string {
   return input.replace(/<[^>]*>/g, "").replace(/[<>]/g, "").trim().slice(0, max);
 }
+
+const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const ALLOWED_CURRENCIES = new Set(["USD", "EUR", "GBP", "PHP", "JPY", "AUD", "CAD"]);
 
 function buildInviteToken(): string {
   return randomBytes(24).toString("base64url");
@@ -141,6 +149,10 @@ export async function inviteUser(
   }
 
   const cleanEmail = sanitize(email, 100).toLowerCase();
+  if (!EMAIL_PATTERN.test(cleanEmail)) {
+    return { message: "Enter a valid email address." };
+  }
+
   const { data: group } = await supabase
     .from("groups")
     .select("name")
@@ -152,6 +164,64 @@ export async function inviteUser(
   }
 
   const existingUserId = await findExistingUserIdByEmail(cleanEmail);
+  const { data: memberships, error: membershipsError } = await supabaseAdmin
+    .from("group_members")
+    .select("id, status, user_id, email")
+    .eq("group_id", groupId)
+    .limit(100);
+
+  if (membershipsError) {
+    await recordServerFailure({
+      actorUserId: user.id,
+      details: { invitedEmail: cleanEmail },
+      errorMessage: membershipsError.message,
+      eventType: "group.invite_user.lookup_memberships",
+      resourceId: groupId,
+      resourceType: "group",
+    });
+
+    return { message: "Failed to check the current group members." };
+  }
+
+  const matchingMembership =
+    (memberships || []).find(
+      (membership) =>
+        (existingUserId ? membership.user_id === existingUserId : false) ||
+        (membership.email || "").toLowerCase() === cleanEmail
+    ) || null;
+
+  if (matchingMembership?.status === "accepted") {
+    return { message: "That person is already in the group." };
+  }
+
+  if (matchingMembership?.status === "pending") {
+    return { message: "That person already has a pending invite." };
+  }
+
+  if (matchingMembership?.status === "declined") {
+    return { message: "That invite was declined. Use Resend to invite them again." };
+  }
+
+  try {
+    const activeSlotCount = await countActiveGroupSlots(groupId);
+    if (activeSlotCount >= MAX_GROUP_MEMBERS) {
+      return { message: getGroupCapacityMessage() };
+    }
+  } catch (capacityError) {
+    const errorMessage =
+      capacityError instanceof Error ? capacityError.message : "Unknown capacity error";
+
+    await recordServerFailure({
+      actorUserId: user.id,
+      details: { invitedEmail: cleanEmail },
+      errorMessage,
+      eventType: "group.invite_user.capacity_check",
+      resourceId: groupId,
+      resourceType: "group",
+    });
+
+    return { message: "Failed to check the current group capacity." };
+  }
 
   const { error: inviteError } = await supabaseAdmin.auth.admin.inviteUserByEmail(cleanEmail);
   if (inviteError) {
@@ -329,19 +399,25 @@ export async function resendInvite(
     return { message: "Group not found." };
   }
 
-  const existingUserId = await findExistingUserIdByEmail(memberEmail);
+  const normalizedEmail = sanitize(memberEmail, 100).toLowerCase();
+  if (!EMAIL_PATTERN.test(normalizedEmail)) {
+    return { message: "Enter a valid email address." };
+  }
 
-  const { error } = await supabaseAdmin
+  const existingUserId = await findExistingUserIdByEmail(normalizedEmail);
+
+  const { data: updatedRows, error } = await supabaseAdmin
     .from("group_members")
     .update({ status: "pending", user_id: existingUserId })
     .eq("group_id", groupId)
-    .eq("email", memberEmail)
-    .eq("status", "declined");
+    .eq("email", normalizedEmail)
+    .eq("status", "declined")
+    .select("id");
 
   if (error) {
     await recordServerFailure({
       actorUserId: user.id,
-      details: { memberEmail },
+      details: { memberEmail: normalizedEmail },
       errorMessage: error.message,
       eventType: "group.resend_invite",
       resourceId: groupId,
@@ -349,6 +425,10 @@ export async function resendInvite(
     });
 
     return { message: "Failed to resend invite." };
+  }
+
+  if (!updatedRows || updatedRows.length === 0) {
+    return { message: "Only declined invites can be resent." };
   }
 
   await notifyInvitedUser({
@@ -837,7 +917,7 @@ export async function editGroup(
 
   const cleanName = sanitize(name, 100);
   const cleanDesc = sanitize(description, 300);
-  const cleanCurrency = sanitize(currency, 5);
+  const cleanCurrency = sanitize(currency, 5).toUpperCase();
   const cleanBudget = Math.min(Math.max(Math.floor(budget || 0), 0), 100000);
 
   if (cleanName.length === 0) {
@@ -846,6 +926,10 @@ export async function editGroup(
 
   if (!eventDate) {
     return { success: false, message: "Event date is required." };
+  }
+
+  if (!ALLOWED_CURRENCIES.has(cleanCurrency)) {
+    return { success: false, message: "Choose a valid currency." };
   }
 
   const { data: group } = await supabase

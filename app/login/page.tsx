@@ -6,6 +6,27 @@ import { Suspense, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { linkUserToGroup } from "@/utils/linkUserToGroup";
 
+function mapAuthErrorMessage(errorCode: string | null, message: string | null): string | null {
+  if (message) {
+    return message;
+  }
+
+  if (!errorCode) {
+    return null;
+  }
+
+  switch (errorCode) {
+    case "confirm_email":
+      return "Please confirm your email address before opening the app.";
+    case "auth_failed":
+      return "Authentication failed. Please try again.";
+    case "no_code":
+      return "We did not receive a valid authentication code. Please try again.";
+    default:
+      return null;
+  }
+}
+
 function LoginPageInner() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -20,6 +41,7 @@ function LoginPageInner() {
     const candidate = searchParams.get("next") || "/dashboard";
     return candidate.startsWith("/") ? candidate : "/dashboard";
   })();
+  const pageError = mapAuthErrorMessage(searchParams.get("error"), searchParams.get("message"));
 
   // Keep the desired post-login destination in a short-lived cookie so the
   // OAuth callback can return the user to an invite link or other deep page.
@@ -121,7 +143,9 @@ function LoginPageInner() {
           {loading ? "Logging in..." : "Login"}
         </button>
 
-        {error && <p className="text-red-600 text-sm mt-2">{error}</p>}
+        {(error || pageError) && (
+          <p className="text-red-600 text-sm mt-2">{error || pageError}</p>
+        )}
 
         <div className="text-center text-gray-700 my-4">or</div>
 

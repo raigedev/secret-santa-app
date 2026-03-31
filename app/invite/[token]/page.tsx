@@ -1,5 +1,11 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
+import { getEmailVerificationMessage, isUserEmailVerified } from "@/lib/auth/user-status";
+import {
+  countActiveGroupSlots,
+  getGroupCapacityMessage,
+  MAX_GROUP_MEMBERS,
+} from "@/lib/groups/capacity";
 import { recordAuditEvent, recordServerFailure } from "@/lib/security/audit";
 import { createNotification } from "@/lib/notifications";
 import { enforceRateLimit } from "@/lib/security/rate-limit";
@@ -92,13 +98,11 @@ async function loadInvitePreview(
         .from("group_members")
         .select("id", { count: "exact", head: true })
         .eq("group_id", link.group_id),
-      user
-        ? supabaseAdmin
-            .from("group_members")
-            .select("status, user_id, email")
-            .eq("group_id", link.group_id)
-            .limit(50)
-        : Promise.resolve({ data: null, error: null }),
+      supabaseAdmin
+        .from("group_members")
+        .select("status, user_id, email")
+        .eq("group_id", link.group_id)
+        .limit(50),
     ]);
 
   if (!group) {
@@ -115,8 +119,21 @@ async function loadInvitePreview(
     };
   }
 
+  if (membershipsResult.error) {
+    await recordServerFailure({
+      actorUserId: user?.id || null,
+      errorMessage: membershipsResult.error.message,
+      eventType: "invite.preview.lookup_memberships",
+      resourceId: link.group_id,
+      resourceType: "group_membership",
+    });
+  }
+
   const hasDrawStarted = Boolean(drawRows && drawRows.length > 0);
   const normalizedEmail = (user?.email || "").toLowerCase();
+  const activeMembershipCount = (membershipsResult.data || []).filter(
+    (membership) => membership.status === "accepted" || membership.status === "pending"
+  ).length;
   const matchingMembership =
     membershipsResult.data?.find(
       (membership) =>
@@ -136,6 +153,24 @@ async function loadInvitePreview(
       isClosed: true,
       membershipStatus: matchingMembership?.status || null,
       message: "This group has already drawn names, so new joins are closed.",
+    };
+  }
+
+  if (
+    activeMembershipCount >= MAX_GROUP_MEMBERS &&
+    matchingMembership?.status !== "accepted" &&
+    matchingMembership?.status !== "pending"
+  ) {
+    return {
+      groupId: group.id,
+      name: group.name,
+      description: group.description,
+      eventDate: group.event_date,
+      memberCount: memberCount || 0,
+      isValid: true,
+      isClosed: true,
+      membershipStatus: matchingMembership?.status || null,
+      message: getGroupCapacityMessage(),
     };
   }
 
@@ -163,6 +198,10 @@ async function joinGroupViaInviteToken(
 
   if (!user?.id || !user.email) {
     return { success: false, message: "You must be logged in to join a group." };
+  }
+
+  if (!isUserEmailVerified(user)) {
+    return { success: false, message: getEmailVerificationMessage() };
   }
 
   const { data: link } = await supabaseAdmin
@@ -249,6 +288,26 @@ async function joinGroupViaInviteToken(
     matchingMemberships.find((membership) => membership.status === "pending") ||
     matchingMemberships.find((membership) => membership.status === "declined") ||
     null;
+
+  if (!reusableMembership || reusableMembership.status === "declined") {
+    try {
+      const activeSlotCount = await countActiveGroupSlots(link.group_id);
+      if (activeSlotCount >= MAX_GROUP_MEMBERS) {
+        return { success: false, message: getGroupCapacityMessage() };
+      }
+    } catch (capacityError) {
+      await recordServerFailure({
+        actorUserId: user.id,
+        errorMessage:
+          capacityError instanceof Error ? capacityError.message : "Unknown capacity error",
+        eventType: "invite.join_group.capacity_check",
+        resourceId: link.group_id,
+        resourceType: "group_membership",
+      });
+
+      return { success: false, message: "Failed to check the current group capacity." };
+    }
+  }
 
   if (reusableMembership) {
     const { error: updateError } = await supabaseAdmin
@@ -354,6 +413,7 @@ export default async function InviteLinkPage({
   const preview = await loadInvitePreview(token, user);
   const nextPath = `/invite/${encodeURIComponent(token)}`;
   const authNext = encodeURIComponent(nextPath);
+  const needsEmailConfirmation = Boolean(user && !isUserEmailVerified(user));
   const errorMessage = resolvedSearchParams.error
     ? decodeURIComponent(resolvedSearchParams.error)
     : null;
@@ -462,7 +522,56 @@ export default async function InviteLinkPage({
             </div>
           )}
 
-          {!preview.isValid || preview.isClosed ? (
+          {!preview.isValid ? (
+            <div className="flex flex-wrap gap-3">
+              <Link
+                href="/dashboard"
+                className="px-5 py-3 rounded-xl text-sm font-bold text-white"
+                style={{ background: "linear-gradient(135deg,#2563eb,#3b82f6)" }}
+              >
+                Go to Dashboard
+              </Link>
+            </div>
+          ) : needsEmailConfirmation ? (
+            <div className="space-y-3">
+              <p className="text-[14px] text-slate-600 leading-relaxed">
+                You&apos;re signed in as <strong>{user?.email || "your account"}</strong>, but
+                you still need to confirm your email before joining this group.
+              </p>
+              <div className="flex flex-wrap gap-3">
+                <Link
+                  href={`/login?next=${authNext}&error=confirm_email&message=${encodeURIComponent(
+                    getEmailVerificationMessage()
+                  )}`}
+                  className="px-5 py-3 rounded-xl text-sm font-bold text-white"
+                  style={{ background: "linear-gradient(135deg,#2563eb,#3b82f6)" }}
+                >
+                  Confirm Email First
+                </Link>
+              </div>
+            </div>
+          ) : preview.membershipStatus === "accepted" ? (
+            <div className="flex flex-wrap gap-3">
+              <Link
+                href={`/group/${preview.groupId}`}
+                className="px-5 py-3 rounded-xl text-sm font-bold text-white"
+                style={{ background: "linear-gradient(135deg,#16a34a,#22c55e)" }}
+              >
+                Open Group
+              </Link>
+              <Link
+                href="/dashboard"
+                className="px-5 py-3 rounded-xl text-sm font-bold"
+                style={{
+                  background: "rgba(59,130,246,.08)",
+                  color: "#1d4ed8",
+                  border: "1px solid rgba(59,130,246,.14)",
+                }}
+              >
+                Back to Dashboard
+              </Link>
+            </div>
+          ) : preview.isClosed ? (
             <div className="flex flex-wrap gap-3">
               <Link
                 href="/dashboard"
@@ -498,27 +607,6 @@ export default async function InviteLinkPage({
                   Create Account
                 </Link>
               </div>
-            </div>
-          ) : preview.membershipStatus === "accepted" ? (
-            <div className="flex flex-wrap gap-3">
-              <Link
-                href={`/group/${preview.groupId}`}
-                className="px-5 py-3 rounded-xl text-sm font-bold text-white"
-                style={{ background: "linear-gradient(135deg,#16a34a,#22c55e)" }}
-              >
-                Open Group
-              </Link>
-              <Link
-                href="/dashboard"
-                className="px-5 py-3 rounded-xl text-sm font-bold"
-                style={{
-                  background: "rgba(59,130,246,.08)",
-                  color: "#1d4ed8",
-                  border: "1px solid rgba(59,130,246,.14)",
-                }}
-              >
-                Back to Dashboard
-              </Link>
             </div>
           ) : (
             <form action={handleJoinInvite} className="space-y-3">

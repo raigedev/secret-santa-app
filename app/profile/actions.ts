@@ -8,8 +8,9 @@
 // No dangerouslySetInnerHTML
 // ═══════════════════════════════════════
 
-import { recordServerFailure } from "@/lib/security/audit";
+import { recordAuditEvent, recordServerFailure } from "@/lib/security/audit";
 import { enforceRateLimit } from "@/lib/security/rate-limit";
+import { supabaseAdmin } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 
 function sanitize(input: string, max: number): string {
@@ -188,4 +189,167 @@ export async function quickSetup(
   }
 
   return { success: true, message: "Welcome!" };
+}
+
+export async function deleteAccount(): Promise<{ success: boolean; message: string }> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    return { success: false, message: "You must be logged in." };
+  }
+
+  const rateLimit = await enforceRateLimit({
+    action: "profile.delete_account",
+    actorUserId: user.id,
+    maxAttempts: 3,
+    resourceId: user.id,
+    resourceType: "profile",
+    subject: user.id,
+    windowSeconds: 3600,
+  });
+
+  if (!rateLimit.allowed) {
+    return { success: false, message: rateLimit.message };
+  }
+
+  const normalizedEmail = (user.email || "").toLowerCase();
+  const [ownedGroupsResult, membershipsByUserResult, membershipsByEmailResult] = await Promise.all([
+    supabaseAdmin.from("groups").select("id, name").eq("owner_id", user.id),
+    supabaseAdmin
+      .from("group_members")
+      .select("id, group_id, role, status")
+      .eq("user_id", user.id),
+    normalizedEmail
+      ? supabaseAdmin
+          .from("group_members")
+          .select("id, group_id, role, status")
+          .eq("email", normalizedEmail)
+      : Promise.resolve({ data: [], error: null }),
+  ]);
+
+  const discoveryError =
+    ownedGroupsResult.error || membershipsByUserResult.error || membershipsByEmailResult.error;
+
+  if (discoveryError) {
+    await recordServerFailure({
+      actorUserId: user.id,
+      errorMessage: discoveryError.message,
+      eventType: "profile.delete_account.discovery",
+      resourceId: user.id,
+      resourceType: "profile",
+    });
+
+    return { success: false, message: "Failed to prepare account deletion. Please try again." };
+  }
+
+  const ownedGroupIds = new Set((ownedGroupsResult.data || []).map((group) => group.id));
+  const membershipById = new Map<string, { group_id: string; role: string; status: string }>();
+
+  for (const membership of membershipsByUserResult.data || []) {
+    membershipById.set(membership.id, membership);
+  }
+
+  for (const membership of membershipsByEmailResult.data || []) {
+    membershipById.set(membership.id, membership);
+  }
+
+  const nonOwnedAcceptedGroupIds = [...membershipById.values()]
+    .filter(
+      (membership) =>
+        membership.status === "accepted" && !ownedGroupIds.has(membership.group_id)
+    )
+    .map((membership) => membership.group_id);
+
+  if (nonOwnedAcceptedGroupIds.length > 0) {
+    const [blockingAssignmentsResult, blockingGroupsResult] = await Promise.all([
+      supabaseAdmin
+        .from("assignments")
+        .select("group_id")
+        .in("group_id", nonOwnedAcceptedGroupIds),
+      supabaseAdmin.from("groups").select("id, name").in("id", nonOwnedAcceptedGroupIds),
+    ]);
+
+    const blockingError = blockingAssignmentsResult.error || blockingGroupsResult.error;
+
+    if (blockingError) {
+      await recordServerFailure({
+        actorUserId: user.id,
+        errorMessage: blockingError.message,
+        eventType: "profile.delete_account.blocking_groups",
+        resourceId: user.id,
+        resourceType: "profile",
+      });
+
+      return { success: false, message: "Failed to verify account deletion safety. Please try again." };
+    }
+
+    const drawnGroupIds = new Set(
+      (blockingAssignmentsResult.data || []).map((assignment) => assignment.group_id)
+    );
+    const blockingGroupNames = (blockingGroupsResult.data || [])
+      .filter((group) => drawnGroupIds.has(group.id))
+      .map((group) => group.name);
+
+    if (blockingGroupNames.length > 0) {
+      const preview = blockingGroupNames.slice(0, 2).join(", ");
+      const suffix =
+        blockingGroupNames.length > 2
+          ? ` and ${blockingGroupNames.length - 2} more`
+          : "";
+
+      return {
+        success: false,
+        message: `You are still part of a drawn group (${preview}${suffix}). Ask the owner to reset the draw or remove you first.`,
+      };
+    }
+  }
+
+  const { error: deleteUserError } = await supabaseAdmin.auth.admin.deleteUser(user.id);
+
+  if (deleteUserError) {
+    await recordServerFailure({
+      actorUserId: user.id,
+      errorMessage: deleteUserError.message,
+      eventType: "profile.delete_account.delete_auth_user",
+      resourceId: user.id,
+      resourceType: "profile",
+    });
+
+    return { success: false, message: "Failed to delete your account. Please try again." };
+  }
+
+  if (normalizedEmail) {
+    const { error: cleanupError } = await supabaseAdmin
+      .from("group_members")
+      .delete()
+      .eq("email", normalizedEmail)
+      .is("user_id", null);
+
+    if (cleanupError) {
+      await recordServerFailure({
+        actorUserId: user.id,
+        errorMessage: cleanupError.message,
+        eventType: "profile.delete_account.cleanup_pending_invites",
+        resourceId: user.id,
+        resourceType: "profile",
+      });
+    }
+  }
+
+  await recordAuditEvent({
+    actorUserId: user.id,
+    details: {
+      ownedGroupCount: ownedGroupsResult.data?.length || 0,
+      removedMembershipCount: membershipById.size,
+    },
+    eventType: "profile.delete_account",
+    outcome: "success",
+    resourceId: user.id,
+    resourceType: "profile",
+  });
+
+  return { success: true, message: "Your account was deleted." };
 }

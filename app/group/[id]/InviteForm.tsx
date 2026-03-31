@@ -1,7 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { useFormState } from "react-dom";
+import { useActionState, useEffect, useState } from "react";
 import {
   createInviteLink,
   getActiveInviteLink,
@@ -14,7 +13,7 @@ type State = {
 };
 
 export default function InviteForm({ groupId }: { groupId: string }) {
-  const [state, formAction] = useFormState<State, FormData>(inviteUser, { message: "" });
+  const [state, formAction] = useActionState<State, FormData>(inviteUser, { message: "" });
   const [linkMessage, setLinkMessage] = useState("");
   const [inviteLink, setInviteLink] = useState("");
   const [linkLoading, setLinkLoading] = useState<"idle" | "creating" | "revoking">("idle");

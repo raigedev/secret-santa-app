@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
-import { getProfile, updateProfile } from "./actions";
+import { deleteAccount, getProfile, updateProfile } from "./actions";
 import { ProfileSkeleton } from "@/app/components/PageSkeleton";
 import FadeIn from "@/app/components/FadeIn";
 
@@ -45,6 +45,7 @@ export default function ProfilePage() {
   const [email, setEmail] = useState("");
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [deletingAccount, setDeletingAccount] = useState(false);
   const [message, setMessage] = useState("");
   const [customBudget, setCustomBudget] = useState(false);
 
@@ -178,6 +179,35 @@ export default function ProfilePage() {
 
   const update = (key: keyof Profile, value: Profile[keyof Profile]) => {
     setProfile((prev) => ({ ...prev, [key]: value }));
+  };
+
+  const handleDeleteAccount = async () => {
+    if (
+      !confirm(
+        "Are you sure? This will permanently delete your account, the groups you own, and your profile data. This cannot be undone."
+      )
+    ) {
+      return;
+    }
+
+    setDeletingAccount(true);
+    setMessage("");
+
+    const result = await deleteAccount();
+
+    if (!result.success) {
+      setMessage(result.message);
+      setDeletingAccount(false);
+      return;
+    }
+
+    try {
+      await supabase.auth.signOut({ scope: "local" });
+    } catch {
+      // The auth user may already be gone on the server. A redirect is enough.
+    }
+
+    router.replace("/");
   };
 
   if (loading) return <ProfileSkeleton />;
@@ -382,13 +412,10 @@ export default function ProfilePage() {
               style={{ background: "rgba(220,38,38,.06)", color: "#dc2626", border: "1px solid rgba(220,38,38,.15)", cursor: "pointer", fontFamily: "inherit" }}>
               🔑 Change Password
             </button>
-            <button onClick={async () => {
-              if (!confirm("Are you sure? This will permanently delete your account, all groups you own, and all your data. This cannot be undone.")) return;
-              await supabase.auth.signOut();
-              router.push("/");
-            }}
+            <button onClick={() => void handleDeleteAccount()}
+              disabled={deletingAccount}
               className="px-5 py-2.5 rounded-[10px] text-[13px] font-bold transition"
-              style={{ background: "rgba(220,38,38,.06)", color: "#dc2626", border: "1px solid rgba(220,38,38,.15)", cursor: "pointer", fontFamily: "inherit" }}>
+              style={{ background: "rgba(220,38,38,.06)", color: "#dc2626", border: "1px solid rgba(220,38,38,.15)", cursor: deletingAccount ? "not-allowed" : "pointer", fontFamily: "inherit", opacity: deletingAccount ? 0.7 : 1 }}>
               🗑️ Delete Account
             </button>
           </div>
