@@ -184,6 +184,20 @@ export default function GroupRevealPage() {
       !presentation.revealed &&
       !sessionLoading
   );
+  const ownerCanStartOrRestartLiveReveal = Boolean(
+    presentation?.isOwner &&
+      !presentation.revealed &&
+      presentation.session.status !== "countdown" &&
+      !sessionLoading
+  );
+  // A live session can persist from an earlier event run. Let the owner reset it
+  // back to the neutral waiting room so the TV does not stay stuck on an old card.
+  const liveRevealButtonLabel =
+    presentation?.session.status === "idle"
+      ? "Start Live Reveal"
+      : presentation?.session.status === "waiting"
+        ? "Reset Live Room"
+        : "Restart Live Reveal";
   const sessionBadgeLabel =
     presentation?.session.status === "published"
       ? `Published - ${formatRevealTime(presentation.revealedAt || presentation.session.publishedAt)}`
@@ -469,7 +483,7 @@ export default function GroupRevealPage() {
               TV Mode
             </button>
 
-            {presentation.isOwner && !usesSharedSession && !presentation.revealed && (
+            {ownerCanStartOrRestartLiveReveal && (
               <button
                 type="button"
                 onClick={handleStartLiveReveal}
@@ -483,7 +497,7 @@ export default function GroupRevealPage() {
                   cursor: sessionLoading ? "not-allowed" : "pointer",
                 }}
               >
-                {sessionLoading ? "Starting..." : "Start Live Reveal"}
+                {sessionLoading ? "Starting..." : liveRevealButtonLabel}
               </button>
             )}
 
