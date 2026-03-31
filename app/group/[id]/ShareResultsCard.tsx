@@ -51,13 +51,36 @@ function fitCardFontSize(value: string, variant: "hero" | "detail"): number {
 }
 
 function getPreviewNameTextStyle(value: string, variant: "hero" | "detail") {
-  const fontSize = fitCardFontSize(value, variant);
+  const length = value.trim().length || 1;
+  let fontSizeRem: number;
+
+  if (variant === "hero") {
+    if (length <= 8) {
+      fontSizeRem = 3.2;
+    } else if (length <= 11) {
+      fontSizeRem = 2.6;
+    } else if (length <= 14) {
+      fontSizeRem = 2.15;
+    } else {
+      fontSizeRem = 1.8;
+    }
+  } else if (length <= 8) {
+    fontSizeRem = 2.7;
+  } else if (length <= 11) {
+    fontSizeRem = 2.2;
+  } else if (length <= 15) {
+    fontSizeRem = 1.85;
+  } else {
+    fontSizeRem = 1.55;
+  }
 
   return {
-    fontSize: `${fontSize / 16}rem`,
+    fontSize: `${fontSizeRem}rem`,
     whiteSpace: "nowrap" as const,
-    overflow: "visible" as const,
-    letterSpacing: fontSize <= 56 ? "-0.03em" : "-0.01em",
+    overflow: "hidden" as const,
+    textOverflow: "clip" as const,
+    maxWidth: "100%",
+    letterSpacing: length >= 12 ? "-0.03em" : "-0.01em",
   };
 }
 
@@ -330,9 +353,9 @@ export default function ShareResultsCard(props: ShareResultsCardProps) {
             {formatEventDate(props.eventDate)}
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-6">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mt-6">
             <div
-              className="rounded-[22px] px-4 py-4"
+              className="rounded-[22px] px-4 py-4 min-w-0"
               style={{
                 background: "rgba(7,20,24,.2)",
                 border: "1px solid rgba(255,255,255,.08)",
@@ -342,7 +365,7 @@ export default function ShareResultsCard(props: ShareResultsCardProps) {
                 My Codename
               </div>
               <div
-                className="mt-3 font-bold text-white leading-[0.95]"
+                className="mt-3 font-bold text-white leading-[0.95] min-w-0"
                 style={{
                   fontFamily: "'Fredoka', sans-serif",
                   ...getPreviewNameTextStyle(props.codename, "hero"),
@@ -354,7 +377,7 @@ export default function ShareResultsCard(props: ShareResultsCardProps) {
             </div>
 
             <div
-              className="rounded-[22px] px-4 py-4"
+              className="rounded-[22px] px-4 py-4 min-w-0"
               style={{
                 background: "rgba(7,20,24,.2)",
                 border: "1px solid rgba(255,255,255,.08)",
@@ -364,7 +387,7 @@ export default function ShareResultsCard(props: ShareResultsCardProps) {
                 I Was Buying For
               </div>
               <div
-                className="mt-3 font-bold text-white leading-[0.95]"
+                className="mt-3 font-bold text-white leading-[0.95] min-w-0"
                 style={{
                   fontFamily: "'Fredoka', sans-serif",
                   ...getPreviewNameTextStyle(props.recipientName, "detail"),
