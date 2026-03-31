@@ -293,9 +293,7 @@ export default function DashboardPage() {
             group_event_date: group.event_date,
           }))
         );
-      } catch (error) {
-        console.error("[Dashboard] Failed to load dashboard:", error);
-
+      } catch {
         if (!isMounted) {
           return;
         }
@@ -442,9 +440,7 @@ export default function DashboardPage() {
         notificationPollInterval = setInterval(() => {
           refreshNotificationsIfVisible();
         }, 2500);
-      } catch (error) {
-        console.error("[Dashboard] Failed to bootstrap dashboard:", error);
-
+      } catch {
         if (!isMounted) {
           return;
         }
@@ -579,8 +575,7 @@ export default function DashboardPage() {
         type: result.success ? "success" : "error",
         text: result.message,
       });
-    } catch (error) {
-      console.error("[Dashboard] Delete group failed:", error);
+    } catch {
       setActionMessage({
         type: "error",
         text: "Failed to delete the group. Please try again.",

@@ -567,6 +567,8 @@ export default function SecretSantaChatPage() {
   const [activeThread, setActiveThread] = useState<Thread | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
   const [msgInput, setMsgInput] = useState("");
+  const [threadListMessage, setThreadListMessage] = useState<string | null>(null);
+  const [threadMessage, setThreadMessage] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const activeThreadRef = useRef<Thread | null>(null);
   const userIdRef = useRef<string | null>(null);
@@ -621,7 +623,7 @@ export default function SecretSantaChatPage() {
         .eq("user_id", user.id).eq("status", "accepted");
 
       if (membershipsError) {
-        console.error("[Chat] Failed to load memberships:", membershipsError);
+        setThreadListMessage("Failed to load your chats. Please refresh and try again.");
         setThreads([]);
         setLoading(false);
         return;
@@ -629,7 +631,12 @@ export default function SecretSantaChatPage() {
 
       const memberships = (memberRows || []) as MembershipRow[];
       const groupIds = [...new Set(memberships.map((row) => row.group_id))];
-      if (groupIds.length === 0) { setThreads([]); setLoading(false); return; }
+      if (groupIds.length === 0) {
+        setThreadListMessage(null);
+        setThreads([]);
+        setLoading(false);
+        return;
+      }
 
       const [
         { data: groupsData, error: groupsError },
@@ -652,13 +659,7 @@ export default function SecretSantaChatPage() {
         messagesError ||
         readTimestampsError
       ) {
-        console.error("[Chat] Failed to load thread data:", {
-          groupsError,
-          giverAssignmentsError,
-          receiverAssignmentsError,
-          messagesError,
-          readTimestampsError,
-        });
+        setThreadListMessage("Failed to load your chats. Please refresh and try again.");
         setThreads([]);
         setLoading(false);
         return;
@@ -674,9 +675,7 @@ export default function SecretSantaChatPage() {
         const { data, error: nicknamesError } = await supabase.from("group_members").select("group_id, user_id, nickname")
           .in("user_id", allUserIds).in("group_id", groupIds).eq("status", "accepted");
 
-        if (nicknamesError) {
-          console.error("[Chat] Failed to load participant nicknames:", nicknamesError);
-        } else {
+        if (!nicknamesError) {
           memberNicknames = (data || []) as MemberNicknameRow[];
         }
       }
@@ -755,6 +754,7 @@ export default function SecretSantaChatPage() {
         : null;
 
       setThreads(buildThreads);
+      setThreadListMessage(null);
 
       if (currentActiveThread && !nextActiveThread) {
         setActiveThread(null);
@@ -873,11 +873,14 @@ export default function SecretSantaChatPage() {
         .order("created_at", { ascending: true });
 
       if (error) {
-        console.error("[Chat] Failed to load messages:", error);
+        // Keep the chat open and explain the failure in the UI instead of
+        // sending users to the browser console for basic load issues.
+        setThreadMessage("Failed to load messages. Try reopening this chat.");
         return;
       }
 
       if (isMounted) {
+        setThreadMessage(null);
         setMessages((data || []) as Message[]);
         setTimeout(scrollToBottom, 50);
       }
@@ -1010,7 +1013,11 @@ export default function SecretSantaChatPage() {
 
     if (!result.success) {
       setMessages((prev) => prev.filter((m) => m.id !== tempId));
+      setThreadMessage(result.message || "Failed to send your message. Please try again.");
+      return;
     }
+
+    setThreadMessage(null);
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -1024,6 +1031,7 @@ export default function SecretSantaChatPage() {
     // Clear the previous thread immediately so we do not flash stale messages
     // while the next conversation history is loading.
     setMessages([]);
+    setThreadMessage(null);
     setActiveThread(t);
     setThreads((currentThreads) =>
       currentThreads.map((thread) =>
@@ -1095,6 +1103,18 @@ export default function SecretSantaChatPage() {
             </div>
 
             <div className="p-5 overflow-y-auto flex flex-col gap-3" style={{ maxHeight: "55vh", minHeight: "280px" }}>
+              {threadMessage && (
+                <div
+                  className="rounded-xl px-4 py-3 text-[12px] font-bold"
+                  style={{
+                    background: "rgba(239,68,68,.12)",
+                    color: "#fecaca",
+                    border: "1px solid rgba(239,68,68,.18)",
+                  }}
+                >
+                  {threadMessage}
+                </div>
+              )}
               {messages.length === 0 ? (
                 <div className="text-center py-10" style={{ color: "rgba(255,255,255,.28)" }}>
                   <div className="text-[40px] mb-2">💬</div>
@@ -1179,6 +1199,19 @@ export default function SecretSantaChatPage() {
           <h1 className="text-[32px] font-bold mb-1" style={{ fontFamily: "'Fredoka', sans-serif", textShadow: "0 2px 8px rgba(0,0,0,.3)" }}>💬 Secret Santa Chat</h1>
           <p className="text-[14px] font-semibold" style={{ color: "#efe4d0" }}>Private conversations with your matches</p>
         </div>
+
+        {threadListMessage && (
+          <div
+            className="mb-5 rounded-xl px-4 py-3 text-[13px] font-bold"
+            style={{
+              background: "rgba(239,68,68,.12)",
+              color: "#fecaca",
+              border: "1px solid rgba(239,68,68,.18)",
+            }}
+          >
+            {threadListMessage}
+          </div>
+        )}
 
         <div
           className="relative flex items-stretch gap-4 mb-6 px-4 pb-4 pt-12 rounded-[24px] overflow-visible"

@@ -562,9 +562,7 @@ export default function SecretSantaPage() {
 
           return groupOptions[0]?.id || "";
         });
-      } catch (error) {
-        console.error("[SecretSantaPage] Failed to load page data:", error);
-
+      } catch {
         if (!isMounted) {
           return;
         }
@@ -670,8 +668,7 @@ export default function SecretSantaPage() {
         setAddPriority(0);
         setShowAdd(false);
       }
-    } catch (error) {
-      console.error("[SecretSantaPage] Failed to add wishlist item:", error);
+    } catch {
       setMessage({
         type: "error",
         text: "Failed to save the wishlist item. Please try again.",
@@ -708,8 +705,7 @@ export default function SecretSantaPage() {
       if (result.success) {
         setEditingId(null);
       }
-    } catch (error) {
-      console.error("[SecretSantaPage] Failed to edit wishlist item:", error);
+    } catch {
       setMessage({
         type: "error",
         text: "Failed to update the wishlist item. Please try again.",
@@ -730,8 +726,7 @@ export default function SecretSantaPage() {
     try {
       const result = await deleteWishlistItem(itemId);
       setMessage(createActionMessage(result));
-    } catch (error) {
-      console.error("[SecretSantaPage] Failed to delete wishlist item:", error);
+    } catch {
       setMessage({
         type: "error",
         text: "Failed to delete the wishlist item. Please try again.",
@@ -767,8 +762,7 @@ export default function SecretSantaPage() {
           )
         );
       }
-    } catch (error) {
-      console.error("[SecretSantaPage] Failed to update gift progress:", error);
+    } catch {
       setMessage({
         type: "error",
         text: "Failed to update gift progress. Please try again.",
@@ -805,8 +799,7 @@ export default function SecretSantaPage() {
           )
         );
       }
-    } catch (error) {
-      console.error("[SecretSantaPage] Failed to confirm gift receipt:", error);
+    } catch {
       setMessage({
         type: "error",
         text: "Failed to confirm gift receipt. Please try again.",
