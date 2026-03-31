@@ -178,6 +178,9 @@ export default function GroupRevealPage() {
   const isSharedWaitingRoom = Boolean(
     presentation && presentation.session.status === "waiting" && !presentation.revealed
   );
+  const isPublishedPresentation = Boolean(
+    presentation && (presentation.revealed || presentation.session.status === "published")
+  );
   const ownerCanStartCountdown = Boolean(
     presentation?.isOwner &&
       presentation.session.status === "waiting" &&
@@ -282,6 +285,30 @@ export default function GroupRevealPage() {
 
       if (result.success && result.session) {
         setCountdownNow(Date.now());
+        applySharedSession(result.session);
+      }
+    } finally {
+      setSessionLoading(false);
+    }
+  };
+
+  const handleRestartPublishedPresentation = async () => {
+    if (!presentation?.isOwner || aliasEntries.length === 0) {
+      return;
+    }
+
+    setSessionLoading(true);
+    setActionMessage("");
+
+    try {
+      // After the full group reveal is public, we still allow the owner to replay
+      // the codename presentation on the venue screen without undoing publication.
+      const result = await updateRevealSessionState(id, 0, false);
+      setActionMessage(
+        result.success ? "Codename presentation reset to the first hidden card." : result.message
+      );
+
+      if (result.success && result.session) {
         applySharedSession(result.session);
       }
     } finally {
@@ -519,6 +546,24 @@ export default function GroupRevealPage() {
               </button>
             )}
 
+            {presentation.isOwner && isPublishedPresentation && (
+              <button
+                type="button"
+                onClick={handleRestartPublishedPresentation}
+                disabled={sessionLoading}
+                className="px-5 py-2 rounded-xl text-sm font-extrabold text-white"
+                style={{
+                  background: sessionLoading
+                    ? "#64748b"
+                    : "linear-gradient(135deg,#0f766e,#14b8a6)",
+                  border: "none",
+                  cursor: sessionLoading ? "not-allowed" : "pointer",
+                }}
+              >
+                {sessionLoading ? "Resetting..." : "Restart Codename Presentation"}
+              </button>
+            )}
+
             {presentation.isOwner && !presentation.revealed && (
               <button
                 type="button"
@@ -603,6 +648,20 @@ export default function GroupRevealPage() {
                 }}
               >
                 {actionMessage}
+              </div>
+            )}
+
+            {isPublishedPresentation && (
+              <div
+                className="rounded-2xl px-4 py-3 text-sm font-semibold mb-5"
+                style={{
+                  background: "rgba(16,185,129,.1)",
+                  color: "#d1fae5",
+                  border: "1px solid rgba(52,211,153,.18)",
+                }}
+              >
+                The full Secret Santa pairings are already public for this group. This screen now
+                behaves like a codename presentation/replay view for the venue display.
               </div>
             )}
 
@@ -736,9 +795,11 @@ export default function GroupRevealPage() {
                       }}
                     >
                       {presentation.isOwner
-                        ? usesSharedSession
-                          ? "Live owner controls"
-                          : "Private owner preview"
+                        ? isPublishedPresentation
+                          ? "Published presentation controls"
+                          : usesSharedSession
+                            ? "Live owner controls"
+                            : "Private owner preview"
                         : "Audience view"}
                     </div>
                   </div>
@@ -823,7 +884,9 @@ export default function GroupRevealPage() {
                     className="text-[12px] md:text-[13px] font-semibold text-center max-w-[460px]"
                     style={{ color: "#cbd5e1" }}
                   >
-                    {presentation.session.status === "waiting"
+                    {isPublishedPresentation
+                      ? "The full reveal is already public. These controls now replay the codename presentation for the room one person at a time."
+                      : presentation.session.status === "waiting"
                       ? "The room is open. Start the countdown when everyone is looking at the screen."
                       : showCountdown
                         ? "The countdown is live now. Controls unlock again as soon as it finishes."

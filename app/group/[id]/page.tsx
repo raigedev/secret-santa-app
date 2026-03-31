@@ -1785,7 +1785,7 @@ export default function GroupDetailsPage() {
                         fontFamily: "inherit",
                       }}
                     >
-                      Open Live Codename Screen
+                      Open Codename Replay Screen
                     </button>
                   </div>
                 )}
