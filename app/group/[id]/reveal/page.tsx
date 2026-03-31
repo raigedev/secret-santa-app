@@ -66,6 +66,7 @@ export default function GroupRevealPage() {
   const [supabase] = useState(() => createClient());
   const [presentation, setPresentation] = useState<RevealPresentation | null>(null);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState("");
   const [actionMessage, setActionMessage] = useState("");
   const [localPreviewIndex, setLocalPreviewIndex] = useState(0);
@@ -73,14 +74,24 @@ export default function GroupRevealPage() {
   const [sessionLoading, setSessionLoading] = useState(false);
   const [publishing, setPublishing] = useState(false);
   const [countdownNow, setCountdownNow] = useState(() => Date.now());
-  const loadPresentationRef = useRef<(() => Promise<void>) | null>(null);
+  const loadPresentationRef = useRef<
+    ((options?: { blocking?: boolean }) => Promise<void>) | null
+  >(null);
+  const hasLoadedPresentationRef = useRef(false);
 
   useEffect(() => {
     let isMounted = true;
     let reloadTimer: ReturnType<typeof setTimeout> | null = null;
 
-    const loadPresentation = async () => {
-      setLoading(true);
+    const loadPresentation = async (options?: { blocking?: boolean }) => {
+      const shouldBlock = options?.blocking ?? !hasLoadedPresentationRef.current;
+
+      if (shouldBlock) {
+        setLoading(true);
+      } else {
+        setRefreshing(true);
+      }
+
       const result = await getRevealPresentationData(id);
 
       if (!isMounted) {
@@ -88,18 +99,32 @@ export default function GroupRevealPage() {
       }
 
       if (!result.success || !result.data) {
-        setError(result.message || "Failed to load the reveal screen.");
-        setLoading(false);
+        // Only replace the whole screen with an error if the first blocking load fails.
+        // Once the reveal is on screen, background sync should preserve the current
+        // presentation and fail softly instead of flashing users back to a loader.
+        if (!hasLoadedPresentationRef.current) {
+          setError(result.message || "Failed to load the reveal screen.");
+          setLoading(false);
+        } else {
+          setActionMessage(result.message || "Failed to refresh the reveal screen.");
+          setRefreshing(false);
+        }
         return;
       }
 
       setPresentation(result.data);
       setError("");
-      setLoading(false);
+      hasLoadedPresentationRef.current = true;
+
+      if (shouldBlock) {
+        setLoading(false);
+      } else {
+        setRefreshing(false);
+      }
     };
 
     loadPresentationRef.current = loadPresentation;
-    void loadPresentation();
+    void loadPresentation({ blocking: true });
 
     const scheduleReload = () => {
       if (reloadTimer) {
@@ -108,7 +133,7 @@ export default function GroupRevealPage() {
 
       reloadTimer = setTimeout(() => {
         if (loadPresentationRef.current) {
-          void loadPresentationRef.current();
+          void loadPresentationRef.current({ blocking: false });
         }
       }, 120);
     };
@@ -479,7 +504,7 @@ export default function GroupRevealPage() {
     }
   };
 
-  if (loading) {
+  if (loading && !presentation) {
     return (
       <main
         className="min-h-screen flex items-center justify-center"
@@ -550,6 +575,19 @@ export default function GroupRevealPage() {
           </button>
 
           <div className="flex items-center gap-2 flex-wrap">
+            {refreshing && (
+              <div
+                className="px-4 py-2 rounded-2xl text-[12px] font-extrabold"
+                style={{
+                  background: "rgba(14,116,144,.18)",
+                  color: "#bae6fd",
+                  border: "1px solid rgba(56,189,248,.16)",
+                }}
+              >
+                Syncing...
+              </div>
+            )}
+
             <button
               type="button"
               onClick={handleFullscreen}
