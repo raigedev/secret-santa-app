@@ -277,6 +277,23 @@ export async function resetSecretSantaDraw(
     return { success: false, message: "Failed to clear anonymous chat history." };
   }
 
+  const { error: revealSessionError } = await supabaseAdmin
+    .from("group_reveal_sessions")
+    .delete()
+    .eq("group_id", groupId);
+
+  if (revealSessionError) {
+    await recordServerFailure({
+      actorUserId: user.id,
+      errorMessage: revealSessionError.message,
+      eventType: "group.reset_secret_santa.clear_reveal_session",
+      resourceId: groupId,
+      resourceType: "group",
+    });
+
+    return { success: false, message: "Failed to clear the live reveal session." };
+  }
+
   const { error: deleteAssignmentsError } = await supabaseAdmin
     .from("assignments")
     .delete()

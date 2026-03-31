@@ -1588,9 +1588,9 @@ export default function GroupDetailsPage() {
                         className="text-[12px] font-semibold leading-relaxed"
                         style={{ color: "#7c2d12" }}
                       >
-                        Use this once everyone is gathered. You can open the codename reveal
-                        screen on the venue display first, then publish the final pairings to all
-                        accepted members when you are ready.
+                        Use the codename reveal screen on the venue display first. Guests can also
+                        open that same screen on their phones and it will stay in sync once you
+                        start the live reveal. Publish the final pairings only when you are ready.
                       </p>
 
                       <div className="mt-4 flex items-center gap-3 flex-wrap">
@@ -1633,7 +1633,7 @@ export default function GroupDetailsPage() {
                             fontFamily: "inherit",
                           }}
                         >
-                          Open Codename Reveal Screen
+                          Open Live Codename Screen
                         </button>
                       </div>
                     </div>
@@ -1653,25 +1653,23 @@ export default function GroupDetailsPage() {
                         style={{ color: "#475569" }}
                       >
                         Your own assignment stays secret until the owner starts the event-day
-                        reveal. The owner can use the codename reveal screen at the venue first,
-                        then the full match list will appear here once the reveal is published.
+                        reveal. You can open the codename reveal screen now and keep it ready on
+                        your phone while the owner starts the live reveal from the venue.
                       </p>
 
-                      {groupData.revealed && (
-                        <button
-                          type="button"
-                          onClick={() => router.push(`/group/${id}/reveal`)}
-                          className="mt-4 px-5 py-2.5 rounded-xl text-sm font-extrabold"
-                          style={{
-                            background: "rgba(29,78,216,.08)",
-                            color: "#1d4ed8",
-                            border: "1px solid rgba(59,130,246,.16)",
-                            fontFamily: "inherit",
-                          }}
-                        >
-                          Open Codename Reveal Screen
-                        </button>
-                      )}
+                      <button
+                        type="button"
+                        onClick={() => router.push(`/group/${id}/reveal`)}
+                        className="mt-4 px-5 py-2.5 rounded-xl text-sm font-extrabold"
+                        style={{
+                          background: "rgba(29,78,216,.08)",
+                          color: "#1d4ed8",
+                          border: "1px solid rgba(59,130,246,.16)",
+                          fontFamily: "inherit",
+                        }}
+                      >
+                        Join Live Codename Screen
+                      </button>
                     </div>
                   )
                 ) : revealMatches.length > 0 ? (
@@ -1764,7 +1762,7 @@ export default function GroupDetailsPage() {
                         fontFamily: "inherit",
                       }}
                     >
-                      Open Codename Reveal Screen
+                      Open Live Codename Screen
                     </button>
                   </div>
                 )}

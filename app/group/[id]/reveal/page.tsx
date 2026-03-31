@@ -1,14 +1,29 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import FadeIn from "@/app/components/FadeIn";
-import { getRevealPresentationData, triggerReveal } from "../actions";
+import { createClient } from "@/lib/supabase/client";
+import {
+  getRevealPresentationData,
+  startRevealSession,
+  triggerReveal,
+  updateRevealSessionState,
+} from "../actions";
 
 type AliasEntry = {
   alias: string;
   avatarEmoji: string;
-  realName: string;
+  realName: string | null;
+};
+
+type RevealSession = {
+  cardRevealed: boolean;
+  currentIndex: number;
+  lastUpdatedAt: string | null;
+  publishedAt: string | null;
+  startedAt: string | null;
+  status: "idle" | "live" | "published";
 };
 
 type RevealPresentation = {
@@ -18,6 +33,7 @@ type RevealPresentation = {
   isOwner: boolean;
   revealed: boolean;
   revealedAt: string | null;
+  session: RevealSession;
 };
 
 function formatRevealTime(value: string | null): string {
@@ -38,16 +54,20 @@ export default function GroupRevealPage() {
   const params = useParams();
   const id = params.id as string;
 
+  const [supabase] = useState(() => createClient());
   const [presentation, setPresentation] = useState<RevealPresentation | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [actionMessage, setActionMessage] = useState("");
-  const [currentIndex, setCurrentIndex] = useState(0);
-  const [revealedCard, setRevealedCard] = useState(false);
+  const [localPreviewIndex, setLocalPreviewIndex] = useState(0);
+  const [localPreviewRevealed, setLocalPreviewRevealed] = useState(false);
+  const [sessionLoading, setSessionLoading] = useState(false);
   const [publishing, setPublishing] = useState(false);
+  const loadPresentationRef = useRef<(() => Promise<void>) | null>(null);
 
   useEffect(() => {
     let isMounted = true;
+    let reloadTimer: ReturnType<typeof setTimeout> | null = null;
 
     const loadPresentation = async () => {
       setLoading(true);
@@ -68,21 +88,67 @@ export default function GroupRevealPage() {
       setLoading(false);
     };
 
+    loadPresentationRef.current = loadPresentation;
     void loadPresentation();
+
+    const scheduleReload = () => {
+      if (reloadTimer) {
+        clearTimeout(reloadTimer);
+      }
+
+      reloadTimer = setTimeout(() => {
+        if (loadPresentationRef.current) {
+          void loadPresentationRef.current();
+        }
+      }, 120);
+    };
+
+    const channel = supabase
+      .channel(`group-reveal-${id}`)
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "group_reveal_sessions", filter: `group_id=eq.${id}` },
+        () => {
+          scheduleReload();
+        }
+      )
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "groups", filter: `id=eq.${id}` },
+        () => {
+          scheduleReload();
+        }
+      )
+      .subscribe();
 
     return () => {
       isMounted = false;
+      if (reloadTimer) {
+        clearTimeout(reloadTimer);
+      }
+      supabase.removeChannel(channel);
     };
-  }, [id]);
+  }, [id, supabase]);
 
   useEffect(() => {
     router.prefetch(`/group/${id}`);
   }, [id, router]);
 
   const aliasEntries = presentation?.aliasEntries || [];
+  const usesSharedSession =
+    presentation?.session.status === "live" || presentation?.session.status === "published";
+  const activeIndex = usesSharedSession
+    ? presentation?.session.currentIndex || 0
+    : localPreviewIndex;
+  const revealedCard = usesSharedSession
+    ? Boolean(presentation?.session.cardRevealed)
+    : localPreviewRevealed;
   const safeIndex =
-    aliasEntries.length === 0 ? 0 : Math.min(currentIndex, aliasEntries.length - 1);
+    aliasEntries.length === 0 ? 0 : Math.min(activeIndex, aliasEntries.length - 1);
   const activeEntry = aliasEntries[safeIndex] || null;
+  const isWaitingRoom = Boolean(
+    presentation && !presentation.isOwner && !usesSharedSession && !presentation.revealed
+  );
 
   const progressLabel = useMemo(() => {
     if (aliasEntries.length === 0) {
@@ -92,22 +158,92 @@ export default function GroupRevealPage() {
     return `${safeIndex + 1} of ${aliasEntries.length}`;
   }, [aliasEntries.length, safeIndex]);
 
-  const handleNext = () => {
+  const applySharedSession = (nextSession: RevealSession | undefined) => {
+    if (!nextSession) {
+      return;
+    }
+
+    setPresentation((currentPresentation) =>
+      currentPresentation
+        ? {
+            ...currentPresentation,
+            session: nextSession,
+          }
+        : currentPresentation
+    );
+  };
+
+  const handleStartLiveReveal = async () => {
+    if (!presentation?.isOwner) {
+      return;
+    }
+
+    setSessionLoading(true);
+    setActionMessage("");
+
+    try {
+      const result = await startRevealSession(id, localPreviewIndex, localPreviewRevealed);
+      setActionMessage(result.message);
+
+      if (result.success && result.session) {
+        applySharedSession(result.session);
+      }
+    } finally {
+      setSessionLoading(false);
+    }
+  };
+
+  const updateLiveSession = async (nextIndex: number, nextCardRevealed: boolean) => {
+    setSessionLoading(true);
+    setActionMessage("");
+
+    try {
+      const result = await updateRevealSessionState(id, nextIndex, nextCardRevealed);
+      setActionMessage(result.success ? "" : result.message);
+
+      if (result.success && result.session) {
+        applySharedSession(result.session);
+      }
+    } finally {
+      setSessionLoading(false);
+    }
+  };
+
+  const handleNext = async () => {
     if (safeIndex >= aliasEntries.length - 1) {
       return;
     }
 
-    setCurrentIndex((current) => current + 1);
-    setRevealedCard(false);
+    if (presentation?.isOwner && usesSharedSession) {
+      await updateLiveSession(safeIndex + 1, false);
+      return;
+    }
+
+    setLocalPreviewIndex((current) => current + 1);
+    setLocalPreviewRevealed(false);
   };
 
-  const handlePrevious = () => {
+  const handlePrevious = async () => {
     if (safeIndex === 0) {
       return;
     }
 
-    setCurrentIndex((current) => current - 1);
-    setRevealedCard(false);
+    if (presentation?.isOwner && usesSharedSession) {
+      await updateLiveSession(safeIndex - 1, false);
+      return;
+    }
+
+    setLocalPreviewIndex((current) => current - 1);
+    setLocalPreviewRevealed(false);
+  };
+
+  const handleToggleReveal = async () => {
+    if (presentation?.isOwner && usesSharedSession) {
+      await updateLiveSession(safeIndex, !revealedCard);
+      return;
+    }
+
+    setLocalPreviewRevealed((current) => !current);
   };
 
   const handlePublishReveal = async () => {
@@ -131,12 +267,21 @@ export default function GroupRevealPage() {
       setActionMessage(result.message);
 
       if (result.success) {
+        const publishedAt = new Date().toISOString();
         setPresentation((currentPresentation) =>
           currentPresentation
             ? {
                 ...currentPresentation,
                 revealed: true,
-                revealedAt: new Date().toISOString(),
+                revealedAt: publishedAt,
+                session: {
+                  ...currentPresentation.session,
+                  status: "published",
+                  currentIndex: safeIndex,
+                  cardRevealed: true,
+                  publishedAt,
+                  lastUpdatedAt: publishedAt,
+                },
               }
             : currentPresentation
         );
@@ -242,6 +387,24 @@ export default function GroupRevealPage() {
               TV Mode
             </button>
 
+            {presentation.isOwner && !usesSharedSession && !presentation.revealed && (
+              <button
+                type="button"
+                onClick={handleStartLiveReveal}
+                disabled={sessionLoading}
+                className="px-5 py-2 rounded-xl text-sm font-extrabold text-white"
+                style={{
+                  background: sessionLoading
+                    ? "#64748b"
+                    : "linear-gradient(135deg,#7e22ce,#a855f7)",
+                  border: "none",
+                  cursor: sessionLoading ? "not-allowed" : "pointer",
+                }}
+              >
+                {sessionLoading ? "Starting..." : "Start Live Reveal"}
+              </button>
+            )}
+
             {presentation.isOwner && !presentation.revealed && (
               <button
                 type="button"
@@ -286,25 +449,35 @@ export default function GroupRevealPage() {
                   {presentation.groupName} Codename Reveal
                 </div>
                 <div className="text-[14px] font-semibold mt-2" style={{ color: "#cbd5e1" }}>
-                  This screen is meant for the venue display. Show one codename at a time, then
-                  flip it to reveal the real person when the room is ready.
+                  The TV can stay on this page while the owner controls the reveal from another
+                  device. Guests on phones can join this same screen if they want to follow along.
                 </div>
               </div>
 
               <div
                 className="px-4 py-2 rounded-2xl text-[12px] font-extrabold"
                 style={{
-                  background: presentation.revealed
-                    ? "rgba(34,197,94,.14)"
-                    : "rgba(251,191,36,.16)",
-                  color: presentation.revealed ? "#86efac" : "#fde68a",
+                  background:
+                    presentation.session.status === "published"
+                      ? "rgba(34,197,94,.14)"
+                      : presentation.session.status === "live"
+                        ? "rgba(168,85,247,.16)"
+                        : "rgba(251,191,36,.16)",
+                  color:
+                    presentation.session.status === "published"
+                      ? "#86efac"
+                      : presentation.session.status === "live"
+                        ? "#e9d5ff"
+                        : "#fde68a",
                 }}
               >
-                {presentation.revealed
-                  ? `Reveal live - ${formatRevealTime(presentation.revealedAt)}`
-                  : presentation.isOwner
-                    ? "Private presentation mode"
-                    : "Waiting for the owner to publish"}
+                {presentation.session.status === "published"
+                  ? `Published - ${formatRevealTime(presentation.revealedAt || presentation.session.publishedAt)}`
+                  : presentation.session.status === "live"
+                    ? "Live reveal in progress"
+                    : presentation.isOwner
+                      ? "Private preview mode"
+                      : "Waiting room"}
               </div>
             </div>
           </div>
@@ -314,13 +487,21 @@ export default function GroupRevealPage() {
               <div
                 className="rounded-2xl px-4 py-3 text-sm font-bold mb-5"
                 style={{
-                  background: actionMessage.toLowerCase().includes("triggered")
-                    ? "rgba(34,197,94,.12)"
-                    : "rgba(239,68,68,.12)",
-                  color: actionMessage.toLowerCase().includes("triggered") ? "#86efac" : "#fecaca",
-                  border: actionMessage.toLowerCase().includes("triggered")
-                    ? "1px solid rgba(34,197,94,.18)"
-                    : "1px solid rgba(239,68,68,.2)",
+                  background:
+                    actionMessage.toLowerCase().includes("started") ||
+                    actionMessage.toLowerCase().includes("triggered")
+                      ? "rgba(34,197,94,.12)"
+                      : "rgba(239,68,68,.12)",
+                  color:
+                    actionMessage.toLowerCase().includes("started") ||
+                    actionMessage.toLowerCase().includes("triggered")
+                      ? "#86efac"
+                      : "#fecaca",
+                  border:
+                    actionMessage.toLowerCase().includes("started") ||
+                    actionMessage.toLowerCase().includes("triggered")
+                      ? "1px solid rgba(34,197,94,.18)"
+                      : "1px solid rgba(239,68,68,.2)",
                 }}
               >
                 {actionMessage}
@@ -356,22 +537,48 @@ export default function GroupRevealPage() {
                     {progressLabel}
                   </div>
 
-                  <div
-                    className="px-4 py-2 rounded-2xl text-[12px] font-extrabold"
-                    style={{
-                      background: revealedCard ? "rgba(34,197,94,.16)" : "rgba(59,130,246,.18)",
-                      color: revealedCard ? "#86efac" : "#bfdbfe",
-                      border: revealedCard
-                        ? "1px solid rgba(34,197,94,.18)"
-                        : "1px solid rgba(96,165,250,.16)",
-                    }}
-                  >
-                    {revealedCard ? "Owner revealed" : "Codename hidden"}
-                  </div>
+                  {!isWaitingRoom && (
+                    <div
+                      className="px-4 py-2 rounded-2xl text-[12px] font-extrabold"
+                      style={{
+                        background: revealedCard ? "rgba(34,197,94,.16)" : "rgba(59,130,246,.18)",
+                        color: revealedCard ? "#86efac" : "#bfdbfe",
+                        border: revealedCard
+                          ? "1px solid rgba(34,197,94,.18)"
+                          : "1px solid rgba(96,165,250,.16)",
+                      }}
+                    >
+                      {revealedCard ? "Owner revealed" : "Codename hidden"}
+                    </div>
+                  )}
                 </div>
               </div>
 
-              {activeEntry ? (
+              {isWaitingRoom ? (
+                <div
+                  className="rounded-[32px] px-6 py-8 md:px-10 md:py-10 min-h-[420px] flex flex-col items-center justify-center text-center"
+                  style={{
+                    background: "linear-gradient(145deg,rgba(29,78,216,.18),rgba(15,23,42,.76))",
+                    border: "1px solid rgba(255,255,255,.08)",
+                    boxShadow: "0 18px 40px rgba(0,0,0,.16)",
+                  }}
+                >
+                  <div className="text-[72px] mb-5">🎬</div>
+                  <div
+                    className="text-[34px] md:text-[46px] leading-tight font-bold text-white"
+                    style={{ fontFamily: "'Fredoka', sans-serif" }}
+                  >
+                    Waiting for the owner to start the live reveal
+                  </div>
+                  <div
+                    className="text-[16px] md:text-[20px] font-semibold mt-5 max-w-[620px]"
+                    style={{ color: "#dbeafe" }}
+                  >
+                    Keep this page open on your phone if you want to follow along. The codename
+                    cards will begin updating here automatically as soon as the owner starts.
+                  </div>
+                </div>
+              ) : activeEntry ? (
                 <div
                   className="rounded-[32px] px-6 py-8 md:px-10 md:py-10 min-h-[520px] flex flex-col justify-between"
                   style={{
@@ -399,7 +606,9 @@ export default function GroupRevealPage() {
                       }}
                     >
                       {presentation.isOwner
-                        ? "Owner controls the reveal pace"
+                        ? usesSharedSession
+                          ? "Live owner controls"
+                          : "Private owner preview"
                         : "Audience view"}
                     </div>
                   </div>
@@ -412,7 +621,7 @@ export default function GroupRevealPage() {
                       className="text-[44px] md:text-[72px] leading-none font-bold text-white"
                       style={{ fontFamily: "'Fredoka', sans-serif" }}
                     >
-                      {revealedCard ? activeEntry.realName : activeEntry.alias}
+                      {revealedCard ? activeEntry.realName || activeEntry.alias : activeEntry.alias}
                     </div>
                     <div
                       className="text-[16px] md:text-[22px] font-semibold mt-5"
@@ -420,25 +629,29 @@ export default function GroupRevealPage() {
                     >
                       {revealedCard
                         ? `Codename: ${activeEntry.alias}`
-                        : "Keep the codename on screen first, then flip when everyone is ready."}
+                        : "Keep the codename on screen first, then flip when the room is ready."}
                     </div>
                   </div>
 
-                  <div className="flex items-center justify-center gap-3 flex-wrap">
-                    <button
-                      type="button"
-                      onClick={() => setRevealedCard((current) => !current)}
-                      className="px-6 py-3 rounded-2xl text-sm font-extrabold text-white"
-                      style={{
-                        background: revealedCard
-                          ? "linear-gradient(135deg,#1d4ed8,#3b82f6)"
-                          : "linear-gradient(135deg,#7e22ce,#a855f7)",
-                        border: "none",
-                      }}
-                    >
-                      {revealedCard ? "Show Codename Again" : "Reveal Real Name"}
-                    </button>
-                  </div>
+                  {presentation.isOwner && (
+                    <div className="flex items-center justify-center gap-3 flex-wrap">
+                      <button
+                        type="button"
+                        onClick={handleToggleReveal}
+                        disabled={sessionLoading}
+                        className="px-6 py-3 rounded-2xl text-sm font-extrabold text-white"
+                        style={{
+                          background: revealedCard
+                            ? "linear-gradient(135deg,#1d4ed8,#3b82f6)"
+                            : "linear-gradient(135deg,#7e22ce,#a855f7)",
+                          border: "none",
+                          cursor: sessionLoading ? "not-allowed" : "pointer",
+                        }}
+                      >
+                        {revealedCard ? "Show Codename Again" : "Reveal Owner"}
+                      </button>
+                    </div>
+                  )}
                 </div>
               ) : (
                 <div
@@ -455,48 +668,67 @@ export default function GroupRevealPage() {
                 </div>
               )}
 
-              <div className="flex items-center justify-between gap-3 flex-wrap">
-                <button
-                  type="button"
-                  onClick={handlePrevious}
-                  disabled={safeIndex === 0}
-                  className="px-5 py-2.5 rounded-2xl text-sm font-extrabold"
-                  style={{
-                    color: safeIndex === 0 ? "#94a3b8" : "#fff",
-                    background: safeIndex === 0 ? "rgba(148,163,184,.16)" : "rgba(15,23,42,.48)",
-                    border: "1px solid rgba(255,255,255,.08)",
-                    cursor: safeIndex === 0 ? "not-allowed" : "pointer",
-                  }}
-                >
-                  Previous
-                </button>
+              {presentation.isOwner ? (
+                <div className="flex items-center justify-between gap-3 flex-wrap">
+                  <button
+                    type="button"
+                    onClick={() => void handlePrevious()}
+                    disabled={safeIndex === 0 || sessionLoading}
+                    className="px-5 py-2.5 rounded-2xl text-sm font-extrabold"
+                    style={{
+                      color: safeIndex === 0 || sessionLoading ? "#94a3b8" : "#fff",
+                      background:
+                        safeIndex === 0 || sessionLoading
+                          ? "rgba(148,163,184,.16)"
+                          : "rgba(15,23,42,.48)",
+                      border: "1px solid rgba(255,255,255,.08)",
+                      cursor: safeIndex === 0 || sessionLoading ? "not-allowed" : "pointer",
+                    }}
+                  >
+                    Previous
+                  </button>
 
+                  <div
+                    className="text-[12px] md:text-[13px] font-semibold text-center max-w-[460px]"
+                    style={{ color: "#cbd5e1" }}
+                  >
+                    {usesSharedSession
+                      ? "The TV and any joined phones stay in sync with these controls."
+                      : "You are still in private preview mode. Start the live reveal when you want other devices to follow along."}
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={() => void handleNext()}
+                    disabled={safeIndex >= aliasEntries.length - 1 || sessionLoading}
+                    className="px-5 py-2.5 rounded-2xl text-sm font-extrabold"
+                    style={{
+                      color:
+                        safeIndex >= aliasEntries.length - 1 || sessionLoading ? "#94a3b8" : "#fff",
+                      background:
+                        safeIndex >= aliasEntries.length - 1 || sessionLoading
+                          ? "rgba(148,163,184,.16)"
+                          : "rgba(15,23,42,.48)",
+                      border: "1px solid rgba(255,255,255,.08)",
+                      cursor:
+                        safeIndex >= aliasEntries.length - 1 || sessionLoading
+                          ? "not-allowed"
+                          : "pointer",
+                    }}
+                  >
+                    Next
+                  </button>
+                </div>
+              ) : (
                 <div
-                  className="text-[12px] md:text-[13px] font-semibold text-center max-w-[460px]"
+                  className="text-[12px] md:text-[13px] font-semibold text-center"
                   style={{ color: "#cbd5e1" }}
                 >
-                  This screen stays spoiler-free on purpose. It only shows the current codename so
-                  the audience does not accidentally see the rest of the reveal early.
+                  {usesSharedSession
+                    ? "The owner is controlling the live reveal. This page will keep updating automatically."
+                    : "You can leave this page open on your phone. It will change automatically once the owner starts the live reveal."}
                 </div>
-
-                <button
-                  type="button"
-                  onClick={handleNext}
-                  disabled={safeIndex >= aliasEntries.length - 1}
-                  className="px-5 py-2.5 rounded-2xl text-sm font-extrabold"
-                  style={{
-                    color: safeIndex >= aliasEntries.length - 1 ? "#94a3b8" : "#fff",
-                    background:
-                      safeIndex >= aliasEntries.length - 1
-                        ? "rgba(148,163,184,.16)"
-                        : "rgba(15,23,42,.48)",
-                    border: "1px solid rgba(255,255,255,.08)",
-                    cursor: safeIndex >= aliasEntries.length - 1 ? "not-allowed" : "pointer",
-                  }}
-                >
-                  Next
-                </button>
-              </div>
+              )}
             </div>
           </div>
         </div>

@@ -1105,13 +1105,13 @@ type RevealSourceData = {
   participants: RevealParticipant[];
 };
 
-type RevealPresentationMatch = {
-  giverAlias: string;
-  giverAvatarEmoji: string;
-  giverName: string;
-  receiverAlias: string;
-  receiverAvatarEmoji: string;
-  receiverName: string;
+type RevealSessionState = {
+  cardRevealed: boolean;
+  currentIndex: number;
+  lastUpdatedAt: string | null;
+  publishedAt: string | null;
+  startedAt: string | null;
+  status: "idle" | "live" | "published";
 };
 
 async function loadRevealSourceData(groupId: string): Promise<RevealSourceData> {
@@ -1175,26 +1175,118 @@ async function buildRevealMatches(groupId: string): Promise<RevealMatch[]> {
     .sort((left, right) => left.giver.localeCompare(right.giver));
 }
 
-function buildRevealPresentationMatches(sourceData: RevealSourceData): RevealPresentationMatch[] {
-  const participantByUserId = new Map(
-    sourceData.participants.map((participant) => [participant.userId, participant])
-  );
+function normalizeRevealSession(options: {
+  entryCount: number;
+  groupRevealed: boolean;
+  groupRevealedAt: string | null;
+  session: {
+    card_revealed: boolean | null;
+    current_index: number | null;
+    last_updated_at: string | null;
+    published_at: string | null;
+    started_at: string | null;
+    status: string | null;
+  } | null;
+}): RevealSessionState {
+  const fallbackStatus: RevealSessionState["status"] = options.groupRevealed ? "published" : "idle";
+  const safeStatus =
+    options.session?.status === "live" || options.session?.status === "published"
+      ? options.session.status
+      : fallbackStatus;
+  const maxIndex = Math.max(options.entryCount - 1, 0);
+  const rawIndex = options.session?.current_index ?? 0;
 
-  return sourceData.assignments
-    .map((assignment) => {
-      const giver = participantByUserId.get(assignment.giver_id);
-      const receiver = participantByUserId.get(assignment.receiver_id);
+  return {
+    status: safeStatus,
+    currentIndex: Math.min(Math.max(rawIndex, 0), maxIndex),
+    cardRevealed:
+      safeStatus === "published"
+        ? true
+        : Boolean(options.session?.card_revealed) && options.entryCount > 0,
+    startedAt: options.session?.started_at || null,
+    lastUpdatedAt: options.session?.last_updated_at || options.groupRevealedAt,
+    publishedAt: options.session?.published_at || options.groupRevealedAt,
+  };
+}
 
-      return {
-        giverAlias: giver?.alias || "Participant",
-        giverAvatarEmoji: giver?.avatarEmoji || "🎁",
-        giverName: giver?.realName || giver?.alias || "Participant",
-        receiverAlias: receiver?.alias || "Participant",
-        receiverAvatarEmoji: receiver?.avatarEmoji || "🎁",
-        receiverName: receiver?.realName || receiver?.alias || "Participant",
-      };
-    })
-    .sort((left, right) => left.giverAlias.localeCompare(right.giverAlias));
+async function getStoredRevealSession(groupId: string) {
+  const { data, error } = await supabaseAdmin
+    .from("group_reveal_sessions")
+    .select("status, current_index, card_revealed, started_at, published_at, last_updated_at")
+    .eq("group_id", groupId)
+    .maybeSingle();
+
+  if (error) {
+    return null;
+  }
+
+  return data;
+}
+
+async function upsertRevealSession(options: {
+  cardRevealed: boolean;
+  currentIndex: number;
+  groupId: string;
+  publishedAt?: string | null;
+  startedBy?: string | null;
+  startedAt?: string | null;
+  status: RevealSessionState["status"];
+}): Promise<RevealSessionState | null> {
+  const timestamp = new Date().toISOString();
+  const { data, error } = await supabaseAdmin
+    .from("group_reveal_sessions")
+    .upsert(
+      {
+        group_id: options.groupId,
+        status: options.status,
+        current_index: options.currentIndex,
+        card_revealed: options.cardRevealed,
+        started_by: options.startedBy || null,
+        started_at: options.startedAt || null,
+        published_at: options.publishedAt || null,
+        last_updated_at: timestamp,
+      },
+      { onConflict: "group_id" }
+    )
+    .select("status, current_index, card_revealed, started_at, published_at, last_updated_at")
+    .single();
+
+  if (error) {
+    return null;
+  }
+
+  return normalizeRevealSession({
+    entryCount: Number.MAX_SAFE_INTEGER,
+    groupRevealed: options.status === "published",
+    groupRevealedAt: options.publishedAt || null,
+    session: data,
+  });
+}
+
+async function assertOwnerCanControlReveal(
+  groupId: string,
+  actorUserId: string
+): Promise<{
+  groupName?: string;
+  ok: boolean;
+  revealed?: boolean;
+}> {
+  const supabase = await createClient();
+  const { data: group } = await supabase
+    .from("groups")
+    .select("owner_id, name, revealed")
+    .eq("id", groupId)
+    .maybeSingle();
+
+  if (!group || group.owner_id !== actorUserId) {
+    return { ok: false };
+  }
+
+  return {
+    ok: true,
+    groupName: group.name,
+    revealed: group.revealed,
+  };
 }
 
 export async function getRevealPresentationData(
@@ -1206,14 +1298,14 @@ export async function getRevealPresentationData(
     aliasEntries: Array<{
       alias: string;
       avatarEmoji: string;
-      realName: string;
+      realName: string | null;
     }>;
     canPreviewBeforeReveal: boolean;
     groupName: string;
     isOwner: boolean;
-    matchEntries: RevealPresentationMatch[];
     revealed: boolean;
     revealedAt: string | null;
+    session: RevealSessionState;
   };
 }> {
   if (!groupId) {
@@ -1243,14 +1335,22 @@ export async function getRevealPresentationData(
     return { success: false, message: rateLimit.message };
   }
 
-  const { data: group } = await supabase
-    .from("groups")
-    .select("name, owner_id, revealed, revealed_at")
-    .eq("id", groupId)
-    .maybeSingle();
+  const [{ data: group }, storedSession, sourceData] = await Promise.all([
+    supabase
+      .from("groups")
+      .select("name, owner_id, revealed, revealed_at")
+      .eq("id", groupId)
+      .maybeSingle(),
+    getStoredRevealSession(groupId),
+    loadRevealSourceData(groupId),
+  ]);
 
   if (!group) {
     return { success: false, message: "Group not found." };
+  }
+
+  if (sourceData.assignments.length === 0) {
+    return { success: false, message: "Names have not been drawn yet." };
   }
 
   const isOwner = group.owner_id === user.id;
@@ -1267,17 +1367,16 @@ export async function getRevealPresentationData(
     if (!membership) {
       return { success: false, message: "Only accepted members can view this reveal screen." };
     }
-
-    if (!group.revealed) {
-      return { success: false, message: "The reveal screen is not live yet." };
-    }
   }
 
-  const sourceData = await loadRevealSourceData(groupId);
+  const normalizedSession = normalizeRevealSession({
+    entryCount: sourceData.participants.length,
+    groupRevealed: group.revealed,
+    groupRevealedAt: group.revealed_at,
+    session: storedSession,
+  });
 
-  if (sourceData.assignments.length === 0) {
-    return { success: false, message: "Names have not been drawn yet." };
-  }
+  const canRevealRealNamesToViewer = isOwner || normalizedSession.status !== "idle" || group.revealed;
 
   return {
     success: true,
@@ -1286,14 +1385,194 @@ export async function getRevealPresentationData(
       aliasEntries: sourceData.participants.map((participant) => ({
         alias: participant.alias,
         avatarEmoji: participant.avatarEmoji,
-        realName: participant.realName,
+        realName: canRevealRealNamesToViewer ? participant.realName : null,
       })),
       canPreviewBeforeReveal: isOwner,
       groupName: group.name,
       isOwner,
-      matchEntries: buildRevealPresentationMatches(sourceData),
       revealed: group.revealed,
       revealedAt: group.revealed_at,
+      session: normalizedSession,
+    },
+  };
+}
+
+export async function startRevealSession(
+  groupId: string,
+  currentIndex: number,
+  cardRevealed: boolean
+): Promise<{
+  success: boolean;
+  message: string;
+  session?: RevealSessionState;
+}> {
+  if (!groupId) {
+    return { success: false, message: "Missing group ID." };
+  }
+
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    return { success: false, message: "You must be logged in." };
+  }
+
+  const rateLimit = await enforceRateLimit({
+    action: "group.start_reveal_session",
+    actorUserId: user.id,
+    maxAttempts: 20,
+    resourceId: groupId,
+    resourceType: "group",
+    subject: user.id,
+    windowSeconds: 3600,
+  });
+
+  if (!rateLimit.allowed) {
+    return { success: false, message: rateLimit.message };
+  }
+
+  const permission = await assertOwnerCanControlReveal(groupId, user.id);
+  if (!permission.ok) {
+    return { success: false, message: "Only the group owner can start the live reveal." };
+  }
+
+  if (permission.revealed) {
+    return { success: false, message: "This group has already been fully revealed." };
+  }
+
+  const sourceData = await loadRevealSourceData(groupId);
+  if (sourceData.assignments.length === 0 || sourceData.participants.length === 0) {
+    return { success: false, message: "Names need to be drawn before the live reveal can start." };
+  }
+
+  const safeIndex = Math.min(
+    Math.max(Math.floor(currentIndex || 0), 0),
+    Math.max(sourceData.participants.length - 1, 0)
+  );
+  const startedAt = new Date().toISOString();
+  const session = await upsertRevealSession({
+    groupId,
+    status: "live",
+    currentIndex: safeIndex,
+    cardRevealed,
+    startedBy: user.id,
+    startedAt,
+  });
+
+  if (!session) {
+    await recordServerFailure({
+      actorUserId: user.id,
+      errorMessage: "Failed to upsert live reveal session.",
+      eventType: "group.start_reveal_session",
+      resourceId: groupId,
+      resourceType: "group",
+    });
+
+    return { success: false, message: "Failed to start the live reveal." };
+  }
+
+  await recordAuditEvent({
+    actorUserId: user.id,
+    details: { currentIndex: safeIndex },
+    eventType: "group.start_reveal_session",
+    outcome: "success",
+    resourceId: groupId,
+    resourceType: "group",
+  });
+
+  return {
+    success: true,
+    message: "Live reveal started. Anyone in the group can join from this screen now.",
+    session: {
+      ...session,
+      currentIndex: Math.min(session.currentIndex, Math.max(sourceData.participants.length - 1, 0)),
+    },
+  };
+}
+
+export async function updateRevealSessionState(
+  groupId: string,
+  currentIndex: number,
+  cardRevealed: boolean
+): Promise<{
+  success: boolean;
+  message: string;
+  session?: RevealSessionState;
+}> {
+  if (!groupId) {
+    return { success: false, message: "Missing group ID." };
+  }
+
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    return { success: false, message: "You must be logged in." };
+  }
+
+  const rateLimit = await enforceRateLimit({
+    action: "group.update_reveal_session",
+    actorUserId: user.id,
+    maxAttempts: 400,
+    resourceId: groupId,
+    resourceType: "group",
+    subject: user.id,
+    windowSeconds: 3600,
+  });
+
+  if (!rateLimit.allowed) {
+    return { success: false, message: rateLimit.message };
+  }
+
+  const permission = await assertOwnerCanControlReveal(groupId, user.id);
+  if (!permission.ok) {
+    return { success: false, message: "Only the group owner can control the live reveal." };
+  }
+
+  const sourceData = await loadRevealSourceData(groupId);
+  if (sourceData.assignments.length === 0 || sourceData.participants.length === 0) {
+    return { success: false, message: "Names need to be drawn before the live reveal can run." };
+  }
+
+  const existingSession = await getStoredRevealSession(groupId);
+  const nextStatus: RevealSessionState["status"] =
+    existingSession?.status === "published" || permission.revealed ? "published" : "live";
+  const safeIndex = Math.min(
+    Math.max(Math.floor(currentIndex || 0), 0),
+    Math.max(sourceData.participants.length - 1, 0)
+  );
+  const session = await upsertRevealSession({
+    groupId,
+    status: nextStatus,
+    currentIndex: safeIndex,
+    cardRevealed,
+    startedBy: existingSession ? user.id : user.id,
+    startedAt: existingSession?.started_at || new Date().toISOString(),
+    publishedAt: nextStatus === "published" ? existingSession?.published_at || new Date().toISOString() : null,
+  });
+
+  if (!session) {
+    await recordServerFailure({
+      actorUserId: user.id,
+      errorMessage: "Failed to update live reveal session.",
+      eventType: "group.update_reveal_session",
+      resourceId: groupId,
+      resourceType: "group",
+    });
+
+    return { success: false, message: "Failed to update the live reveal." };
+  }
+
+  return {
+    success: true,
+    message: "Live reveal updated.",
+    session: {
+      ...session,
+      currentIndex: Math.min(session.currentIndex, Math.max(sourceData.participants.length - 1, 0)),
     },
   };
 }
@@ -1415,9 +1694,10 @@ export async function triggerReveal(
     return { success: false, message: "This group has already been revealed." };
   }
 
+  const revealedAt = new Date().toISOString();
   const { error: updateError } = await supabase
     .from("groups")
-    .update({ revealed: true, revealed_at: new Date().toISOString() })
+    .update({ revealed: true, revealed_at: revealedAt })
     .eq("id", groupId);
 
   if (updateError) {
@@ -1433,6 +1713,26 @@ export async function triggerReveal(
   }
 
   const matches = await buildRevealMatches(groupId);
+  const existingSession = await getStoredRevealSession(groupId);
+  const publishedSession = await upsertRevealSession({
+    groupId,
+    status: "published",
+    currentIndex: existingSession?.current_index ?? 0,
+    cardRevealed: true,
+    startedBy: user.id,
+    startedAt: existingSession?.started_at || revealedAt,
+    publishedAt: revealedAt,
+  });
+
+  if (!publishedSession) {
+    await recordServerFailure({
+      actorUserId: user.id,
+      errorMessage: "Failed to persist published reveal session.",
+      eventType: "group.trigger_reveal.persist_session",
+      resourceId: groupId,
+      resourceType: "group",
+    });
+  }
 
   const { data: members } = await supabaseAdmin
     .from("group_members")
