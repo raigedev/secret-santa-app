@@ -146,26 +146,16 @@ function buildCardSvg({
       <text x="600" y="495" text-anchor="middle" fill="#bbf7d0" font-size="24" font-weight="700" letter-spacing="6" font-family="Arial, sans-serif">
         MY ALIAS
       </text>
-      <text x="600" y="622" text-anchor="middle" fill="#ffffff" font-size="${heroFontSize}" font-weight="700" font-family="'Trebuchet MS', 'Arial Rounded MT Bold', Arial, sans-serif">
+      <text x="600" y="638" text-anchor="middle" fill="#ffffff" font-size="${heroFontSize}" font-weight="700" font-family="'Trebuchet MS', 'Arial Rounded MT Bold', Arial, sans-serif">
         ${safeCodename}
-      </text>
-      <text x="600" y="682" text-anchor="middle" fill="#dbeafe" font-size="28" font-weight="600" font-family="Arial, sans-serif">
-        The name everyone saw on the draw board
       </text>
 
       <rect x="170" y="800" width="860" height="330" rx="42" fill="rgba(10,26,31,.24)" stroke="rgba(255,255,255,.12)" stroke-width="2" />
       <text x="600" y="885" text-anchor="middle" fill="url(#gold)" font-size="24" font-weight="700" letter-spacing="6" font-family="Arial, sans-serif">
         I WAS SECRET SANTA FOR
       </text>
-      <text x="600" y="1012" text-anchor="middle" fill="#ffffff" font-size="${detailFontSize}" font-weight="700" font-family="'Trebuchet MS', 'Arial Rounded MT Bold', Arial, sans-serif">
+      <text x="600" y="1028" text-anchor="middle" fill="#ffffff" font-size="${detailFontSize}" font-weight="700" font-family="'Trebuchet MS', 'Arial Rounded MT Bold', Arial, sans-serif">
         ${safeRecipient}
-      </text>
-      <text x="600" y="1072" text-anchor="middle" fill="#dbeafe" font-size="28" font-weight="600" font-family="Arial, sans-serif">
-        I was ${safeRecipient}'s Secret Santa
-      </text>
-
-      <text x="600" y="1265" text-anchor="middle" fill="#cbd5e1" font-size="24" font-weight="600" font-family="Arial, sans-serif">
-        Shared from My Secret Santa
       </text>
     </svg>
   `.trim();
@@ -400,15 +390,6 @@ export default function ShareResultsCard(props: ShareResultsCardProps) {
             </div>
           </div>
 
-          <div
-            className="mt-5 rounded-[18px] px-4 py-3 text-[14px] md:text-[15px] font-bold"
-            style={{
-              background: "rgba(7,20,24,.18)",
-              color: "#f8fafc",
-            }}
-          >
-            {cardCaption}
-          </div>
         </div>
       </div>
 
