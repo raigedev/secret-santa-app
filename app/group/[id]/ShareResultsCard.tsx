@@ -155,7 +155,7 @@ function buildCardSvg({
 
       <rect x="170" y="800" width="860" height="330" rx="42" fill="rgba(10,26,31,.24)" stroke="rgba(255,255,255,.12)" stroke-width="2" />
       <text x="600" y="885" text-anchor="middle" fill="url(#gold)" font-size="24" font-weight="700" letter-spacing="6" font-family="Arial, sans-serif">
-        I WAS BUYING FOR
+        I WAS SECRET SANTA FOR
       </text>
       <text x="600" y="1012" text-anchor="middle" fill="#ffffff" font-size="${detailFontSize}" font-weight="700" font-family="'Trebuchet MS', 'Arial Rounded MT Bold', Arial, sans-serif">
         ${safeRecipient}
@@ -384,9 +384,9 @@ export default function ShareResultsCard(props: ShareResultsCardProps) {
                 border: "1px solid rgba(255,255,255,.08)",
               }}
             >
-              <div className="text-[11px] font-extrabold uppercase tracking-[0.18em]" style={{ color: "#fcd34d" }}>
-                I Was Buying For
-              </div>
+                <div className="text-[11px] font-extrabold uppercase tracking-[0.18em]" style={{ color: "#fcd34d" }}>
+                  I Was Secret Santa For
+                </div>
               <div
                 className="mt-3 font-bold text-white min-w-0 pb-1"
                 style={{
