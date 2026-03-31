@@ -1611,9 +1611,10 @@ export default function GroupDetailsPage() {
                         className="text-[12px] font-semibold leading-relaxed"
                         style={{ color: "#7c2d12" }}
                       >
-                        Use the codename reveal screen on the venue display first. Guests can also
+                        Use the event reveal screen on the venue display first. Guests can also
                         open that same screen on their phones and it will stay in sync once you
-                        start the live reveal. Publish the final pairings only when you are ready.
+                        start the live reveal. It now walks through both codename owners and the
+                        final Secret Santa pairings in one shared flow.
                       </p>
 
                       <div className="mt-4 flex items-center gap-3 flex-wrap">
@@ -1656,7 +1657,7 @@ export default function GroupDetailsPage() {
                             fontFamily: "inherit",
                           }}
                         >
-                          Open Live Codename Screen
+                          Open Event Reveal Screen
                         </button>
                       </div>
                     </div>
@@ -1676,7 +1677,7 @@ export default function GroupDetailsPage() {
                         style={{ color: "#475569" }}
                       >
                         Your own assignment stays secret until the owner starts the event-day
-                        reveal. You can open the codename reveal screen now and keep it ready on
+                        reveal. You can open the event reveal screen now and keep it ready on
                         your phone while the owner starts the live reveal from the venue.
                       </p>
 
@@ -1691,7 +1692,7 @@ export default function GroupDetailsPage() {
                           fontFamily: "inherit",
                         }}
                       >
-                        Join Live Codename Screen
+                        Join Event Reveal Screen
                       </button>
                     </div>
                   )
@@ -1785,7 +1786,7 @@ export default function GroupDetailsPage() {
                         fontFamily: "inherit",
                       }}
                     >
-                      Open Codename Replay Screen
+                      Open Event Replay Screen
                     </button>
                   </div>
                 )}

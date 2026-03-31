@@ -18,6 +18,11 @@ type AliasEntry = {
   realName: string | null;
 };
 
+type MatchEntry = {
+  giver: string | null;
+  receiver: string | null;
+};
+
 type RevealSession = {
   cardRevealed: boolean;
   countdownSeconds: number;
@@ -31,6 +36,7 @@ type RevealSession = {
 
 type RevealPresentation = {
   aliasEntries: AliasEntry[];
+  matchEntries: MatchEntry[];
   canPreviewBeforeReveal: boolean;
   groupName: string;
   isOwner: boolean;
@@ -153,6 +159,8 @@ export default function GroupRevealPage() {
   }, [presentation?.session.countdownStartedAt, presentation?.session.status]);
 
   const aliasEntries = presentation?.aliasEntries || [];
+  const matchEntries = presentation?.matchEntries || [];
+  const totalRevealSteps = aliasEntries.length + matchEntries.length;
   const usesSharedSession = presentation ? presentation.session.status !== "idle" : false;
   const activeIndex = usesSharedSession
     ? presentation?.session.currentIndex || 0
@@ -161,8 +169,11 @@ export default function GroupRevealPage() {
     ? Boolean(presentation?.session.cardRevealed)
     : localPreviewRevealed;
   const safeIndex =
-    aliasEntries.length === 0 ? 0 : Math.min(activeIndex, aliasEntries.length - 1);
-  const activeEntry = aliasEntries[safeIndex] || null;
+    totalRevealSteps === 0 ? 0 : Math.min(activeIndex, totalRevealSteps - 1);
+  const isMatchPhase = safeIndex >= aliasEntries.length && matchEntries.length > 0;
+  const matchPhaseIndex = isMatchPhase ? safeIndex - aliasEntries.length : -1;
+  const activeAliasEntry = !isMatchPhase ? aliasEntries[safeIndex] || null : null;
+  const activeMatchEntry = isMatchPhase ? matchEntries[matchPhaseIndex] || null : null;
   const isWaitingRoom = Boolean(
     presentation && !presentation.isOwner && !usesSharedSession && !presentation.revealed
   );
@@ -229,12 +240,54 @@ export default function GroupRevealPage() {
             : { background: "rgba(251,191,36,.16)", color: "#fde68a" };
 
   const progressLabel = useMemo(() => {
-    if (aliasEntries.length === 0) {
+    if (totalRevealSteps === 0) {
       return "0 of 0";
     }
 
-    return `${safeIndex + 1} of ${aliasEntries.length}`;
-  }, [aliasEntries.length, safeIndex]);
+    return `${safeIndex + 1} of ${totalRevealSteps}`;
+  }, [safeIndex, totalRevealSteps]);
+  const activeCardHeading = isMatchPhase
+    ? revealedCard
+      ? "Match revealed"
+      : "Secret Santa match"
+    : revealedCard
+      ? "Identity revealed"
+      : "Mystery codename";
+  const activeCardIcon = isMatchPhase
+    ? revealedCard
+      ? "🎁"
+      : "🎲"
+    : revealedCard
+      ? activeAliasEntry?.avatarEmoji || "🎁"
+      : "🎭";
+  const activeCardTitle = isMatchPhase
+    ? revealedCard
+      ? `${activeMatchEntry?.giver || "Participant"} → ${activeMatchEntry?.receiver || "Participant"}`
+      : "Who gets who?"
+    : revealedCard
+      ? activeAliasEntry?.realName || activeAliasEntry?.alias || "Participant"
+      : activeAliasEntry?.alias || "Mystery codename";
+  const activeCardDescription = isMatchPhase
+    ? revealedCard
+      ? `${activeMatchEntry?.giver || "Participant"} is giving to ${activeMatchEntry?.receiver || "Participant"}.`
+      : "Reveal the next Secret Santa pairing when the room is ready."
+    : revealedCard
+      ? `Codename: ${activeAliasEntry?.alias || "Unknown"}`
+      : "Keep the codename on screen first, then flip when the room is ready.";
+  const revealToggleLabel = revealedCard
+    ? isMatchPhase
+      ? "Hide Match"
+      : "Show Codename Again"
+    : isMatchPhase
+      ? "Reveal Match"
+      : "Reveal Owner";
+  const activeVisibilityBadgeLabel = revealedCard
+    ? isMatchPhase
+      ? "Match revealed"
+      : "Owner revealed"
+    : isMatchPhase
+      ? "Match hidden"
+      : "Codename hidden";
 
   const applySharedSession = (nextSession: RevealSession | undefined) => {
     if (!nextSession) {
@@ -293,7 +346,7 @@ export default function GroupRevealPage() {
   };
 
   const handleRestartPublishedPresentation = async () => {
-    if (!presentation?.isOwner || aliasEntries.length === 0) {
+    if (!presentation?.isOwner || totalRevealSteps === 0) {
       return;
     }
 
@@ -302,10 +355,10 @@ export default function GroupRevealPage() {
 
     try {
       // After the full group reveal is public, we still allow the owner to replay
-      // the codename presentation on the venue screen without undoing publication.
+      // the event presentation on the venue screen without undoing publication.
       const result = await updateRevealSessionState(id, 0, false);
       setActionMessage(
-        result.success ? "Codename presentation reset to the first hidden card." : result.message
+        result.success ? "Event presentation reset to the first hidden card." : result.message
       );
 
       if (result.success && result.session) {
@@ -333,7 +386,7 @@ export default function GroupRevealPage() {
   };
 
   const handleNext = async () => {
-    if (safeIndex >= aliasEntries.length - 1) {
+    if (safeIndex >= totalRevealSteps - 1) {
       return;
     }
 
@@ -560,7 +613,7 @@ export default function GroupRevealPage() {
                   cursor: sessionLoading ? "not-allowed" : "pointer",
                 }}
               >
-                {sessionLoading ? "Resetting..." : "Restart Codename Presentation"}
+                {sessionLoading ? "Resetting..." : "Restart Event Presentation"}
               </button>
             )}
 
@@ -605,7 +658,7 @@ export default function GroupRevealPage() {
                   className="text-[30px] md:text-[36px] font-bold text-white"
                   style={{ fontFamily: "'Fredoka', sans-serif" }}
                 >
-                  {presentation.groupName} Codename Reveal
+                  {presentation.groupName} Live Reveal
                 </div>
                 <div className="text-[14px] font-semibold mt-2" style={{ color: "#cbd5e1" }}>
                   The TV can stay on this page while the owner controls the reveal from another
@@ -661,7 +714,7 @@ export default function GroupRevealPage() {
                 }}
               >
                 The full Secret Santa pairings are already public for this group. This screen now
-                behaves like a codename presentation/replay view for the venue display.
+                behaves like an event presentation/replay view for the venue display.
               </div>
             )}
 
@@ -678,7 +731,7 @@ export default function GroupRevealPage() {
                     className="text-[26px] md:text-[32px] font-bold mt-2 text-white"
                     style={{ fontFamily: "'Fredoka', sans-serif" }}
                   >
-                    One codename. One reveal moment.
+                    One event. Two reveal moments.
                   </div>
                 </div>
 
@@ -705,7 +758,7 @@ export default function GroupRevealPage() {
                           : "1px solid rgba(96,165,250,.16)",
                       }}
                     >
-                      {revealedCard ? "Owner revealed" : "Codename hidden"}
+                      {activeVisibilityBadgeLabel}
                     </div>
                   )}
                 </div>
@@ -739,7 +792,7 @@ export default function GroupRevealPage() {
                       ? presentation.isOwner
                         ? "The room is open for joined phones and the TV. Start the countdown when everyone is ready to watch."
                         : "Keep this page open on your phone. Everyone here will see the same countdown as soon as the owner starts it."
-                      : "Keep this page open on your phone if you want to follow along. The codename cards will begin updating here automatically as soon as the owner opens the live room."}
+                      : "Keep this page open on your phone if you want to follow along. The event reveal cards will begin updating here automatically as soon as the owner opens the live room."}
                   </div>
                 </div>
               ) : showCountdown ? (
@@ -764,10 +817,11 @@ export default function GroupRevealPage() {
                     className="text-[18px] md:text-[24px] font-semibold mt-6 max-w-[640px]"
                     style={{ color: "#ffedd5" }}
                   >
-                    The first codename card will appear on every joined screen as soon as the countdown finishes.
+                    The first event reveal card will appear on every joined screen as soon as the
+                    countdown finishes.
                   </div>
                 </div>
-              ) : activeEntry ? (
+              ) : activeAliasEntry || activeMatchEntry ? (
                 <div
                   className="rounded-[32px] px-6 py-8 md:px-10 md:py-10 min-h-[520px] flex flex-col justify-between"
                   style={{
@@ -783,7 +837,7 @@ export default function GroupRevealPage() {
                       className="text-[14px] font-extrabold uppercase tracking-[0.18em]"
                       style={{ color: revealedCard ? "#bbf7d0" : "#bfdbfe" }}
                     >
-                      {revealedCard ? "Identity revealed" : "Mystery codename"}
+                    {activeCardHeading}
                     </div>
 
                     <div
@@ -806,21 +860,19 @@ export default function GroupRevealPage() {
 
                   <div className="text-center px-2 md:px-8">
                     <div className="text-[64px] md:text-[82px] mb-6">
-                      {revealedCard ? activeEntry.avatarEmoji : "🎭"}
+                      {activeCardIcon}
                     </div>
                     <div
                       className="text-[44px] md:text-[72px] leading-none font-bold text-white"
                       style={{ fontFamily: "'Fredoka', sans-serif" }}
                     >
-                      {revealedCard ? activeEntry.realName || activeEntry.alias : activeEntry.alias}
+                      {activeCardTitle}
                     </div>
                     <div
                       className="text-[16px] md:text-[22px] font-semibold mt-5"
                       style={{ color: "#dbeafe" }}
                     >
-                      {revealedCard
-                        ? `Codename: ${activeEntry.alias}`
-                        : "Keep the codename on screen first, then flip when the room is ready."}
+                      {activeCardDescription}
                     </div>
                   </div>
 
@@ -840,7 +892,7 @@ export default function GroupRevealPage() {
                           opacity: sessionLoading || showCountdown ? 0.7 : 1,
                         }}
                       >
-                        {revealedCard ? "Show Codename Again" : "Reveal Owner"}
+                        {revealToggleLabel}
                       </button>
                     </div>
                   )}
@@ -853,9 +905,9 @@ export default function GroupRevealPage() {
                     border: "1px solid rgba(255,255,255,.08)",
                   }}
                 >
-                  <div className="text-[22px] font-bold text-white mb-2">No codenames yet</div>
+                  <div className="text-[22px] font-bold text-white mb-2">No reveal data yet</div>
                   <p className="text-[14px] font-semibold" style={{ color: "#cbd5e1" }}>
-                    Accepted members need nicknames before this reveal screen can be used.
+                    Accepted members need nicknames and a completed draw before this reveal screen can be used.
                   </p>
                 </div>
               )}
@@ -885,31 +937,31 @@ export default function GroupRevealPage() {
                     style={{ color: "#cbd5e1" }}
                   >
                     {isPublishedPresentation
-                      ? "The full reveal is already public. These controls now replay the codename presentation for the room one person at a time."
+                      ? "The full reveal is already public. These controls now replay both the codename-owner reveals and the final match reveals for the room."
                       : presentation.session.status === "waiting"
                       ? "The room is open. Start the countdown when everyone is looking at the screen."
                       : showCountdown
                         ? "The countdown is live now. Controls unlock again as soon as it finishes."
                         : usesSharedSession
-                          ? "The TV and any joined phones stay in sync with these controls."
+                          ? "The TV and any joined phones stay in sync while you move from codename reveals into the final match reveals."
                           : "You are still in private preview mode. Start the live reveal when you want other devices to follow along."}
                   </div>
 
                   <button
                     type="button"
                     onClick={() => void handleNext()}
-                    disabled={safeIndex >= aliasEntries.length - 1 || sessionLoading || showCountdown}
+                    disabled={safeIndex >= totalRevealSteps - 1 || sessionLoading || showCountdown}
                     className="px-5 py-2.5 rounded-2xl text-sm font-extrabold"
                     style={{
                       color:
-                        safeIndex >= aliasEntries.length - 1 || sessionLoading || showCountdown ? "#94a3b8" : "#fff",
+                        safeIndex >= totalRevealSteps - 1 || sessionLoading || showCountdown ? "#94a3b8" : "#fff",
                       background:
-                        safeIndex >= aliasEntries.length - 1 || sessionLoading || showCountdown
+                        safeIndex >= totalRevealSteps - 1 || sessionLoading || showCountdown
                           ? "rgba(148,163,184,.16)"
                           : "rgba(15,23,42,.48)",
                       border: "1px solid rgba(255,255,255,.08)",
                       cursor:
-                        safeIndex >= aliasEntries.length - 1 || sessionLoading || showCountdown
+                        safeIndex >= totalRevealSteps - 1 || sessionLoading || showCountdown
                           ? "not-allowed"
                           : "pointer",
                     }}
@@ -925,9 +977,9 @@ export default function GroupRevealPage() {
                   {presentation.session.status === "waiting"
                     ? "The live room is open. This page will switch into the shared countdown automatically."
                     : showCountdown
-                      ? "Countdown is running. Stay on this page and the first codename will appear here automatically."
+                      ? "Countdown is running. Stay on this page and the first event reveal card will appear here automatically."
                       : usesSharedSession
-                        ? "The owner is controlling the live reveal. This page will keep updating automatically."
+                        ? "The owner is controlling the live reveal. This page will keep updating automatically through both the codename and match phases."
                         : "You can leave this page open on your phone. It will change automatically once the owner starts the live reveal."}
                 </div>
               )}

@@ -1261,6 +1261,10 @@ async function buildRevealMatches(groupId: string): Promise<RevealMatch[]> {
     .sort((left, right) => left.giver.localeCompare(right.giver));
 }
 
+function getRevealStepCount(sourceData: RevealSourceData): number {
+  return sourceData.participants.length + sourceData.assignments.length;
+}
+
 function normalizeRevealSession(options: {
   entryCount: number;
   groupRevealed: boolean;
@@ -1403,6 +1407,10 @@ export async function getRevealPresentationData(
       avatarEmoji: string;
       realName: string | null;
     }>;
+    matchEntries: Array<{
+      giver: string | null;
+      receiver: string | null;
+    }>;
     canPreviewBeforeReveal: boolean;
     groupName: string;
     isOwner: boolean;
@@ -1473,7 +1481,7 @@ export async function getRevealPresentationData(
   }
 
   const normalizedSession = normalizeRevealSession({
-    entryCount: sourceData.participants.length,
+    entryCount: getRevealStepCount(sourceData),
     groupRevealed: group.revealed,
     groupRevealedAt: group.revealed_at,
     session: storedSession,
@@ -1487,6 +1495,27 @@ export async function getRevealPresentationData(
     normalizedSession.status === "live" ||
     normalizedSession.status === "published" ||
     group.revealed;
+  const canRevealMatchNamesToViewer =
+    isOwner ||
+    group.revealed ||
+    normalizedSession.status === "published" ||
+    (normalizedSession.status === "live" &&
+      normalizedSession.currentIndex >= sourceData.participants.length);
+  const revealMatches = sourceData.assignments
+    .map((assignment) => {
+      const giver = sourceData.participants.find(
+        (participant) => participant.userId === assignment.giver_id
+      );
+      const receiver = sourceData.participants.find(
+        (participant) => participant.userId === assignment.receiver_id
+      );
+
+      return {
+        giver: giver?.realName || "Participant",
+        receiver: receiver?.realName || "Participant",
+      };
+    })
+    .sort((left, right) => left.giver.localeCompare(right.giver));
 
   return {
     success: true,
@@ -1496,6 +1525,10 @@ export async function getRevealPresentationData(
         alias: participant.alias,
         avatarEmoji: participant.avatarEmoji,
         realName: canRevealRealNamesToViewer ? participant.realName : null,
+      })),
+      matchEntries: revealMatches.map((match) => ({
+        giver: canRevealMatchNamesToViewer ? match.giver : null,
+        receiver: canRevealMatchNamesToViewer ? match.receiver : null,
       })),
       canPreviewBeforeReveal: isOwner,
       groupName: group.name,
@@ -1558,7 +1591,7 @@ export async function startRevealSession(
 
   const safeIndex = Math.min(
     Math.max(Math.floor(currentIndex || 0), 0),
-    Math.max(sourceData.participants.length - 1, 0)
+    Math.max(getRevealStepCount(sourceData) - 1, 0)
   );
   const startedAt = new Date().toISOString();
   const session = await upsertRevealSession({
@@ -1600,7 +1633,7 @@ export async function startRevealSession(
     message: "Live reveal room opened. Start the countdown when everyone is ready.",
     session: {
       ...session,
-      currentIndex: Math.min(session.currentIndex, Math.max(sourceData.participants.length - 1, 0)),
+      currentIndex: Math.min(session.currentIndex, Math.max(getRevealStepCount(sourceData) - 1, 0)),
     },
   };
 }
@@ -1657,7 +1690,7 @@ export async function startRevealCountdown(
   const existingSession = await getStoredRevealSession(groupId);
   const safeIndex = Math.min(
     Math.max(Math.floor(currentIndex || 0), 0),
-    Math.max(sourceData.participants.length - 1, 0)
+    Math.max(getRevealStepCount(sourceData) - 1, 0)
   );
   const countdownStartedAt = new Date().toISOString();
   const session = await upsertRevealSession({
@@ -1699,7 +1732,7 @@ export async function startRevealCountdown(
     message: "Countdown started. The reveal card will appear on every joined screen.",
     session: {
       ...session,
-      currentIndex: Math.min(session.currentIndex, Math.max(sourceData.participants.length - 1, 0)),
+      currentIndex: Math.min(session.currentIndex, Math.max(getRevealStepCount(sourceData) - 1, 0)),
     },
   };
 }
@@ -1755,7 +1788,7 @@ export async function updateRevealSessionState(
     existingSession?.status === "published" || permission.revealed ? "published" : "live";
   const safeIndex = Math.min(
     Math.max(Math.floor(currentIndex || 0), 0),
-    Math.max(sourceData.participants.length - 1, 0)
+    Math.max(getRevealStepCount(sourceData) - 1, 0)
   );
   const session = await upsertRevealSession({
     groupId,
@@ -1786,7 +1819,7 @@ export async function updateRevealSessionState(
     message: "Live reveal updated.",
     session: {
       ...session,
-      currentIndex: Math.min(session.currentIndex, Math.max(sourceData.participants.length - 1, 0)),
+      currentIndex: Math.min(session.currentIndex, Math.max(getRevealStepCount(sourceData) - 1, 0)),
     },
   };
 }
