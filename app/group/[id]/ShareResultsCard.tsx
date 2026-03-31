@@ -144,7 +144,7 @@ function buildCardSvg({
 
       <rect x="170" y="410" width="860" height="330" rx="42" fill="rgba(10,26,31,.24)" stroke="rgba(255,255,255,.12)" stroke-width="2" />
       <text x="600" y="495" text-anchor="middle" fill="#bbf7d0" font-size="24" font-weight="700" letter-spacing="6" font-family="Arial, sans-serif">
-        MY CODENAME
+        MY ALIAS
       </text>
       <text x="600" y="622" text-anchor="middle" fill="#ffffff" font-size="${heroFontSize}" font-weight="700" font-family="'Trebuchet MS', 'Arial Rounded MT Bold', Arial, sans-serif">
         ${safeCodename}
@@ -362,9 +362,9 @@ export default function ShareResultsCard(props: ShareResultsCardProps) {
                 border: "1px solid rgba(255,255,255,.08)",
               }}
             >
-              <div className="text-[11px] font-extrabold uppercase tracking-[0.18em]" style={{ color: "#bbf7d0" }}>
-                My Codename
-              </div>
+                <div className="text-[11px] font-extrabold uppercase tracking-[0.18em]" style={{ color: "#bbf7d0" }}>
+                  My Alias
+                </div>
               <div
                 className="mt-3 font-bold text-white min-w-0 pb-1"
                 style={{
