@@ -176,10 +176,7 @@ export default function GroupRevealPage() {
     : 0;
   const showCountdown = presentation?.session.status === "countdown" && countdownRemaining > 0;
   const isSharedWaitingRoom = Boolean(
-    presentation &&
-      !presentation.isOwner &&
-      presentation.session.status === "waiting" &&
-      !presentation.revealed
+    presentation && presentation.session.status === "waiting" && !presentation.revealed
   );
   const ownerCanStartCountdown = Boolean(
     presentation?.isOwner &&
@@ -656,7 +653,9 @@ export default function GroupRevealPage() {
                     style={{ fontFamily: "'Fredoka', sans-serif" }}
                   >
                     {isSharedWaitingRoom
-                      ? "Reveal room is ready"
+                      ? presentation.isOwner
+                        ? "Live reveal room is ready"
+                        : "Reveal room is ready"
                       : "Waiting for the owner to start the live reveal"}
                   </div>
                   <div
@@ -664,7 +663,9 @@ export default function GroupRevealPage() {
                     style={{ color: "#dbeafe" }}
                   >
                     {isSharedWaitingRoom
-                      ? "Keep this page open on your phone. Everyone here will see the same countdown as soon as the owner starts it."
+                      ? presentation.isOwner
+                        ? "The room is open for joined phones and the TV. Start the countdown when everyone is ready to watch."
+                        : "Keep this page open on your phone. Everyone here will see the same countdown as soon as the owner starts it."
                       : "Keep this page open on your phone if you want to follow along. The codename cards will begin updating here automatically as soon as the owner opens the live room."}
                   </div>
                 </div>
