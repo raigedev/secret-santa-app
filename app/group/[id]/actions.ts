@@ -1,6 +1,6 @@
 "use server";
 
-import { randomBytes } from "crypto";
+import { createHash, randomBytes } from "crypto";
 import {
   countActiveGroupSlots,
   getGroupCapacityMessage,
@@ -21,6 +21,37 @@ const ALLOWED_CURRENCIES = new Set(["USD", "EUR", "GBP", "PHP", "JPY", "AUD", "C
 
 function buildInviteToken(): string {
   return randomBytes(24).toString("base64url");
+}
+
+function hashInviteToken(token: string): string {
+  return createHash("sha256").update(token.trim()).digest("hex");
+}
+
+async function sendInviteEmail(
+  email: string,
+  actorUserId: string,
+  groupId: string,
+  eventType: string
+): Promise<{ message?: string; success: boolean }> {
+  const { error } = await supabaseAdmin.auth.admin.inviteUserByEmail(email);
+
+  if (!error) {
+    return { success: true };
+  }
+
+  await recordServerFailure({
+    actorUserId,
+    details: { invitedEmail: email },
+    errorMessage: error.message,
+    eventType,
+    resourceId: groupId,
+    resourceType: "group",
+  });
+
+  return {
+    success: false,
+    message: "Failed to send the invite email. Please try again.",
+  };
 }
 
 async function findExistingUserIdByEmail(email: string): Promise<string | null> {
@@ -223,16 +254,17 @@ export async function inviteUser(
     return { message: "Failed to check the current group capacity." };
   }
 
-  const { error: inviteError } = await supabaseAdmin.auth.admin.inviteUserByEmail(cleanEmail);
-  if (inviteError) {
-    await recordServerFailure({
-      actorUserId: user.id,
-      details: { invitedEmail: cleanEmail },
-      errorMessage: inviteError.message,
-      eventType: "group.invite_user.send_email",
-      resourceId: groupId,
-      resourceType: "group",
-    });
+  if (!existingUserId) {
+    const inviteResult = await sendInviteEmail(
+      cleanEmail,
+      user.id,
+      groupId,
+      "group.invite_user.send_email"
+    );
+
+    if (!inviteResult.success) {
+      return { message: inviteResult.message || "Failed to send the invite email." };
+    }
   }
 
   const { error: insertError } = await supabaseAdmin.from("group_members").insert([
@@ -406,6 +438,19 @@ export async function resendInvite(
 
   const existingUserId = await findExistingUserIdByEmail(normalizedEmail);
 
+  if (!existingUserId) {
+    const inviteResult = await sendInviteEmail(
+      normalizedEmail,
+      user.id,
+      groupId,
+      "group.resend_invite.send_email"
+    );
+
+    if (!inviteResult.success) {
+      return { message: inviteResult.message || "Failed to resend invite." };
+    }
+  }
+
   const { data: updatedRows, error } = await supabaseAdmin
     .from("group_members")
     .update({ status: "pending", user_id: existingUserId })
@@ -495,9 +540,11 @@ export async function createInviteLink(
   }
 
   const token = buildInviteToken();
+  const tokenHash = hashInviteToken(token);
   const { error: insertError } = await supabaseAdmin.from("group_invite_links").insert({
     group_id: groupId,
-    token,
+    token: null,
+    token_hash: tokenHash,
     created_by: user.id,
   });
 
@@ -602,7 +649,7 @@ export async function revokeInviteLink(
 
 export async function getActiveInviteLink(
   groupId: string
-): Promise<{ success: boolean; message: string; token?: string }> {
+): Promise<{ success: boolean; hasActiveLink?: boolean; message: string }> {
   if (!groupId) {
     return { success: false, message: "Missing group ID." };
   }
@@ -628,7 +675,7 @@ export async function getActiveInviteLink(
 
   const { data: link, error } = await supabaseAdmin
     .from("group_invite_links")
-    .select("token, expires_at")
+    .select("id, expires_at")
     .eq("group_id", groupId)
     .eq("is_active", true)
     .maybeSingle();
@@ -646,17 +693,17 @@ export async function getActiveInviteLink(
   }
 
   if (!link) {
-    return { success: true, message: "No active invite link." };
+    return { success: true, hasActiveLink: false, message: "No active invite link." };
   }
 
   if (link.expires_at && new Date(link.expires_at).getTime() < Date.now()) {
-    return { success: true, message: "No active invite link." };
+    return { success: true, hasActiveLink: false, message: "No active invite link." };
   }
 
   return {
     success: true,
-    message: "Active invite link loaded.",
-    token: link.token,
+    hasActiveLink: true,
+    message: "An active invite link already exists. Generate a fresh one to copy a new shareable link.",
   };
 }
 

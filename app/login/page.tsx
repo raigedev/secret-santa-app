@@ -62,7 +62,6 @@ function LoginPageInner() {
     });
 
     if (signInError) {
-      console.error("Google login error:", signInError.message);
       setRedirecting(false);
       setError(signInError.message);
     }

@@ -16,6 +16,7 @@ export default function InviteForm({ groupId }: { groupId: string }) {
   const [state, formAction] = useActionState<State, FormData>(inviteUser, { message: "" });
   const [linkMessage, setLinkMessage] = useState("");
   const [inviteLink, setInviteLink] = useState("");
+  const [hasActiveLink, setHasActiveLink] = useState(false);
   const [linkLoading, setLinkLoading] = useState<"idle" | "creating" | "revoking">("idle");
 
   useEffect(() => {
@@ -25,11 +26,14 @@ export default function InviteForm({ groupId }: { groupId: string }) {
     const loadActiveLink = async () => {
       const result = await getActiveInviteLink(groupId);
 
-      if (!isMounted || !result.success || !result.token) {
+      if (!isMounted || !result.success) {
         return;
       }
 
-      setInviteLink(`${window.location.origin}/invite/${encodeURIComponent(result.token)}`);
+      setHasActiveLink(Boolean(result.hasActiveLink));
+      if (result.message && result.hasActiveLink) {
+        setLinkMessage(result.message);
+      }
     };
 
     void loadActiveLink();
@@ -42,8 +46,10 @@ export default function InviteForm({ groupId }: { groupId: string }) {
       try {
         const payload = event.newValue ? JSON.parse(event.newValue) : null;
         setInviteLink(payload?.link || "");
+        setHasActiveLink(Boolean(payload?.link));
       } catch {
         setInviteLink("");
+        setHasActiveLink(false);
       }
     };
 
@@ -69,6 +75,7 @@ export default function InviteForm({ groupId }: { groupId: string }) {
 
     const nextLink = `${window.location.origin}/invite/${encodeURIComponent(result.token)}`;
     setInviteLink(nextLink);
+    setHasActiveLink(true);
     localStorage.setItem(
       `group-invite-link:${groupId}`,
       JSON.stringify({ link: nextLink, updatedAt: Date.now() })
@@ -92,6 +99,7 @@ export default function InviteForm({ groupId }: { groupId: string }) {
 
     if (result.success) {
       setInviteLink("");
+      setHasActiveLink(false);
       localStorage.setItem(
         `group-invite-link:${groupId}`,
         JSON.stringify({ link: "", updatedAt: Date.now() })
@@ -165,6 +173,15 @@ export default function InviteForm({ groupId }: { groupId: string }) {
           />
         )}
 
+        {!inviteLink && hasActiveLink && (
+          <div
+            className="w-full px-3 py-2 rounded-lg text-[12px] text-slate-600 bg-white border mb-3"
+            style={{ borderColor: "rgba(59,130,246,.18)" }}
+          >
+            An invite link is already active. Generate a fresh link to copy a new shareable URL.
+          </div>
+        )}
+
         <div className="flex flex-wrap gap-2">
           <button
             type="button"
@@ -181,7 +198,7 @@ export default function InviteForm({ groupId }: { groupId: string }) {
           >
             {linkLoading === "creating"
               ? "Generating..."
-              : inviteLink
+              : inviteLink || hasActiveLink
                 ? "Copy Fresh Link"
                 : "Generate Invite Link"}
           </button>

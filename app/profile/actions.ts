@@ -7,6 +7,8 @@ import { createClient } from "@/lib/supabase/server";
 
 // Profile actions stay on the server because they touch auth state and user-owned
 // records that should never rely on client-side validation alone.
+const ALLOWED_CURRENCIES = new Set(["USD", "EUR", "GBP", "PHP", "JPY", "AUD", "CAD"]);
+
 function sanitize(input: string, max: number): string {
   return input.replace(/<[^>]*>/g, "").replace(/[<>]/g, "").trim().slice(0, max);
 }
@@ -98,6 +100,10 @@ export async function updateProfile(
 
   if (cleanName.length === 0) {
     return { success: false, message: "Display name is required." };
+  }
+
+  if (!ALLOWED_CURRENCIES.has(cleanCurrency)) {
+    return { success: false, message: "Choose a valid currency." };
   }
 
   const { error } = await supabase

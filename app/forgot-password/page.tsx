@@ -24,7 +24,6 @@ export default function ForgotPasswordPage() {
 
     if (error) {
       setMessage("❌ Error sending reset email. Please check your email address.");
-      console.error(error.message);
     } else {
       setMessage("✅ Password reset email sent! Check your inbox.");
     }

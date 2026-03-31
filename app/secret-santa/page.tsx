@@ -1086,31 +1086,15 @@ export default function SecretSantaPage() {
                           <span className="hidden">
                             {item.priority > 0 ? "⭐" : "🎁"}
                           </span>
-                          {safeItemImageUrl ? (
-                            // Wishlist images come from arbitrary user-provided URLs.
-                            // A plain img tag avoids coupling this feature to a hard-coded
-                            // next/image remote-host allowlist that would reject many gifts.
-                            // eslint-disable-next-line @next/next/no-img-element
-                            <img
-                              src={safeItemImageUrl}
-                              alt={item.item_name}
-                              className="w-[56px] h-[56px] rounded-xl object-cover shrink-0"
-                              style={{
-                                border: "1px solid rgba(96,117,122,.12)",
-                                background: "rgba(255,255,255,.8)",
-                              }}
-                            />
-                          ) : (
-                            <div
-                              className="w-[56px] h-[56px] rounded-xl flex items-center justify-center text-[18px] shrink-0"
-                              style={{
-                                background: "rgba(255,255,255,.78)",
-                                border: "1px solid rgba(96,117,122,.12)",
-                              }}
-                            >
-                              {item.priority > 0 ? "⭐" : "🎁"}
-                            </div>
-                          )}
+                          <div
+                            className="w-[56px] h-[56px] rounded-xl flex items-center justify-center text-[18px] shrink-0"
+                            style={{
+                              background: "rgba(255,255,255,.78)",
+                              border: "1px solid rgba(96,117,122,.12)",
+                            }}
+                          >
+                            {safeItemImageUrl ? "IMG" : item.priority > 0 ? "TOP" : "GIFT"}
+                          </div>
                           <div className="flex-1">
                             <div className="flex items-center gap-2 flex-wrap mb-1">
                               {item.priority > 0 && (
@@ -1146,6 +1130,18 @@ export default function SecretSantaPage() {
                               >
                                 {item.item_note}
                               </div>
+                            )}
+                            {safeItemImageUrl && (
+                              <a
+                                href={safeItemImageUrl}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                title={safeItemImageUrl}
+                                className="text-[11px] font-semibold mt-1 inline-block"
+                                style={{ color: HOLIDAY_BLUE }}
+                              >
+                                Open image {"->"}
+                              </a>
                             )}
                             {safeItemLink && (
                               <a
@@ -1858,31 +1854,15 @@ export default function SecretSantaPage() {
                       }}
                     >
                       <div className="flex items-start gap-3 flex-1 min-w-0">
-                        {normalizeOptionalUrl(item.item_image_url) ? (
-                          // The owner can paste product images from many different stores, so
-                          // this preview intentionally uses a normal img tag instead of requiring
-                          // every remote host to be added to Next image config first.
-                          // eslint-disable-next-line @next/next/no-img-element
-                          <img
-                            src={normalizeOptionalUrl(item.item_image_url)}
-                            alt={item.item_name}
-                            className="w-[56px] h-[56px] rounded-xl object-cover shrink-0"
-                            style={{
-                              border: "1px solid rgba(96,117,122,.12)",
-                              background: "rgba(255,255,255,.8)",
-                            }}
-                          />
-                        ) : (
-                          <div
-                            className="w-[56px] h-[56px] rounded-xl flex items-center justify-center text-[18px] shrink-0"
-                            style={{
-                              background: "rgba(255,255,255,.78)",
-                              border: "1px solid rgba(96,117,122,.12)",
-                            }}
-                          >
-                            {item.priority > 0 ? "⭐" : "🎁"}
-                          </div>
-                        )}
+                        <div
+                          className="w-[56px] h-[56px] rounded-xl flex items-center justify-center text-[18px] shrink-0"
+                          style={{
+                            background: "rgba(255,255,255,.78)",
+                            border: "1px solid rgba(96,117,122,.12)",
+                          }}
+                        >
+                          {normalizeOptionalUrl(item.item_image_url) ? "IMG" : item.priority > 0 ? "TOP" : "GIFT"}
+                        </div>
                         <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 flex-wrap mb-1">
                           {item.priority > 0 && (
@@ -1909,7 +1889,6 @@ export default function SecretSantaPage() {
                           className="text-[13px] font-bold"
                           style={{ color: PAGE_TEXT_COLOR }}
                         >
-                          {item.priority > 0 ? "⭐ " : ""}
                           {item.item_name}
                         </div>
                         {item.item_note && (
@@ -1929,6 +1908,18 @@ export default function SecretSantaPage() {
                         >
                           {getGroupName(item.group_id)}
                         </div>
+                        {normalizeOptionalUrl(item.item_image_url) && (
+                          <a
+                            href={normalizeOptionalUrl(item.item_image_url)}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            title={item.item_image_url}
+                            className="text-[11px] font-semibold mt-1 inline-block"
+                            style={{ color: HOLIDAY_BLUE }}
+                          >
+                            Open image {"->"}
+                          </a>
+                        )}
                         {normalizeOptionalUrl(item.item_link) && (
                           <a
                             href={normalizeOptionalUrl(item.item_link)}
@@ -1938,7 +1929,7 @@ export default function SecretSantaPage() {
                             className="text-[11px] font-semibold mt-1 inline-block"
                             style={{ color: HOLIDAY_GOLD }}
                           >
-                            Open link →
+                            Open link {"->"}
                           </a>
                         )}
                       </div>
@@ -2026,3 +2017,7 @@ function SnowEffect() {
 
   return null;
 }
+
+
+
+

@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { createHash } from "crypto";
 import { redirect } from "next/navigation";
 import { getEmailVerificationMessage, isUserEmailVerified } from "@/lib/auth/user-status";
 import {
@@ -33,16 +34,21 @@ function normalizeToken(token: string): string {
   return token.trim();
 }
 
+function hashInviteToken(token: string): string {
+  return createHash("sha256").update(normalizeToken(token)).digest("hex");
+}
+
 async function loadInvitePreview(
   token: string,
   user: { id: string; email?: string | null } | null
 ): Promise<InvitePreview> {
   const normalizedToken = normalizeToken(token);
+  const tokenHash = hashInviteToken(normalizedToken);
 
   const { data: link, error: linkError } = await supabaseAdmin
     .from("group_invite_links")
     .select("group_id, is_active, expires_at")
-    .eq("token", normalizedToken)
+    .eq("token_hash", tokenHash)
     .maybeSingle();
 
   if (linkError) {
@@ -191,6 +197,7 @@ async function joinGroupViaInviteToken(
   token: string
 ): Promise<{ success: boolean; message: string; groupId?: string }> {
   const normalizedToken = normalizeToken(token);
+  const tokenHash = hashInviteToken(normalizedToken);
   const supabase = await createClient();
   const {
     data: { user },
@@ -207,7 +214,7 @@ async function joinGroupViaInviteToken(
   const { data: link } = await supabaseAdmin
     .from("group_invite_links")
     .select("id, group_id, is_active, expires_at")
-    .eq("token", normalizedToken)
+    .eq("token_hash", tokenHash)
     .maybeSingle();
 
   if (!link || !link.is_active) {
