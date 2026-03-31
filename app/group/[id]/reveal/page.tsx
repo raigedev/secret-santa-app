@@ -996,12 +996,7 @@ export default function GroupRevealPage() {
                             inside their own panels instead of fighting for one oversized title line. */}
                         <div className="grid grid-cols-1 md:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-4 md:gap-4">
                           <div
-                            className="rounded-[28px] px-4 py-5 md:px-5 md:py-6 text-left"
-                            style={{
-                              background: "rgba(15,23,42,.3)",
-                              border: "1px solid rgba(255,255,255,.08)",
-                              boxShadow: "inset 0 1px 0 rgba(255,255,255,.04)",
-                            }}
+                            className="px-2 py-3 md:px-3 md:py-4 text-center"
                           >
                             <div
                               className="text-[11px] md:text-[12px] font-extrabold uppercase tracking-[0.18em]"
@@ -1029,12 +1024,7 @@ export default function GroupRevealPage() {
                           </div>
 
                           <div
-                            className="rounded-[28px] px-4 py-5 md:px-5 md:py-6 text-left"
-                            style={{
-                              background: "rgba(15,23,42,.3)",
-                              border: "1px solid rgba(255,255,255,.08)",
-                              boxShadow: "inset 0 1px 0 rgba(255,255,255,.04)",
-                            }}
+                            className="px-2 py-3 md:px-3 md:py-4 text-center"
                           >
                             <div
                               className="text-[11px] md:text-[12px] font-extrabold uppercase tracking-[0.18em]"
