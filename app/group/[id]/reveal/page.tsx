@@ -58,6 +58,65 @@ function formatRevealTime(value: string | null): string {
   });
 }
 
+function getRevealNameTextStyle(value: string, variant: "alias" | "match") {
+  const length = value.trim().length || 1;
+
+  // The reveal screen should feel like a clean stage moment. We shrink long
+  // names before allowing them to wrap, and only fall back to ellipsis for
+  // unusually long edge cases that still cannot fit on one line.
+  if (variant === "alias") {
+    if (length <= 10) {
+      return {
+        fontSize: "clamp(2.75rem, 8vw, 4.5rem)",
+        whiteSpace: "nowrap" as const,
+        overflow: "hidden" as const,
+        textOverflow: "ellipsis" as const,
+      };
+    }
+
+    if (length <= 14) {
+      return {
+        fontSize: "clamp(2.35rem, 6.5vw, 3.75rem)",
+        whiteSpace: "nowrap" as const,
+        overflow: "hidden" as const,
+        textOverflow: "ellipsis" as const,
+      };
+    }
+
+    return {
+      fontSize: "clamp(1.9rem, 5vw, 3rem)",
+      whiteSpace: "nowrap" as const,
+      overflow: "hidden" as const,
+      textOverflow: "ellipsis" as const,
+    };
+  }
+
+  if (length <= 10) {
+    return {
+      fontSize: "clamp(2.2rem, 5vw, 3.4rem)",
+      whiteSpace: "nowrap" as const,
+      overflow: "hidden" as const,
+      textOverflow: "ellipsis" as const,
+    };
+  }
+
+  if (length <= 14) {
+    return {
+      fontSize: "clamp(1.8rem, 4.2vw, 2.9rem)",
+      whiteSpace: "nowrap" as const,
+      overflow: "hidden" as const,
+      textOverflow: "ellipsis" as const,
+    };
+  }
+
+  return {
+    fontSize: "clamp(1.45rem, 3.4vw, 2.35rem)",
+    whiteSpace: "nowrap" as const,
+    overflow: "hidden" as const,
+    textOverflow: "ellipsis" as const,
+  };
+}
+
 export default function GroupRevealPage() {
   const router = useRouter();
   const params = useParams();
@@ -315,6 +374,9 @@ export default function GroupRevealPage() {
       : "Codename hidden";
   const activeMatchGiver = activeMatchEntry?.giver || "Participant";
   const activeMatchReceiver = activeMatchEntry?.receiver || "Participant";
+  const activeAliasTitleStyle = getRevealNameTextStyle(activeCardTitle, "alias");
+  const activeMatchGiverStyle = getRevealNameTextStyle(activeMatchGiver, "match");
+  const activeMatchReceiverStyle = getRevealNameTextStyle(activeMatchReceiver, "match");
 
   const applySharedSession = (nextSession: RevealSession | undefined) => {
     if (!nextSession) {
@@ -905,7 +967,7 @@ export default function GroupRevealPage() {
 
                         {/* Match reveals need a structured layout so long names wrap cleanly
                             inside their own panels instead of fighting for one oversized title line. */}
-                        <div className="grid grid-cols-1 md:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-4 md:gap-6">
+                        <div className="grid grid-cols-1 md:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-4 md:gap-5">
                           <div
                             className="rounded-[28px] px-5 py-5 md:px-7 md:py-6 text-left"
                             style={{
@@ -921,11 +983,12 @@ export default function GroupRevealPage() {
                               Giver
                             </div>
                             <div
-                              className="mt-3 text-[34px] md:text-[54px] leading-[0.95] font-bold text-white break-words"
+                              className="mt-3 leading-[0.95] font-bold text-white"
                               style={{
                                 fontFamily: "'Fredoka', sans-serif",
-                                overflowWrap: "anywhere",
+                                ...activeMatchGiverStyle,
                               }}
+                              title={activeMatchGiver}
                             >
                               {revealedCard ? activeMatchGiver : "???"}
                             </div>
@@ -953,11 +1016,12 @@ export default function GroupRevealPage() {
                               Receiver
                             </div>
                             <div
-                              className="mt-3 text-[34px] md:text-[54px] leading-[0.95] font-bold text-white break-words"
+                              className="mt-3 leading-[0.95] font-bold text-white"
                               style={{
                                 fontFamily: "'Fredoka', sans-serif",
-                                overflowWrap: "anywhere",
+                                ...activeMatchReceiverStyle,
                               }}
+                              title={activeMatchReceiver}
                             >
                               {revealedCard ? activeMatchReceiver : "???"}
                             </div>
@@ -977,11 +1041,12 @@ export default function GroupRevealPage() {
                           {activeCardIcon}
                         </div>
                         <div
-                          className="text-[40px] md:text-[72px] leading-[0.95] font-bold text-white break-words"
+                          className="leading-[0.95] font-bold text-white"
                           style={{
                             fontFamily: "'Fredoka', sans-serif",
-                            overflowWrap: "anywhere",
+                            ...activeAliasTitleStyle,
                           }}
+                          title={activeCardTitle}
                         >
                           {activeCardTitle}
                         </div>
