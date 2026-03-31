@@ -1,24 +1,12 @@
-// â”€â”€â”€ Next.js Middleware â”€â”€â”€
-// This file runs BEFORE every page load.
-// Think of it like a security guard at the front door.
-// It checks: "Is this person logged in? Should they be allowed here?"
-//
-// IMPORTANT: This file MUST be named "middleware.ts" and MUST be
-// at the project root (same folder as package.json).
-// Next.js will ignore it if it's named anything else.
-
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { createServerClient } from "@supabase/ssr";
 import { getEmailVerificationMessage, isUserEmailVerified } from "@/lib/auth/user-status";
 
-// The function MUST be named "middleware" â€” Next.js looks for this exact name.
+// Central request guard for auth, invite-link access, and email-verification redirects.
 export async function middleware(req: NextRequest) {
-  // Some OAuth providers or Supabase fall back to the site root with `?code=...`
-  // when the requested redirect URL is not used. If we let `/` render first,
-  // the user sees the landing page and the auth code is never exchanged for a
-  // session. Redirecting the request into the dedicated callback route ensures
-  // the code is exchanged server-side before any page UI renders.
+  // Some OAuth providers bounce back to `/` with a `code` query param. Route that
+  // through the callback handler first so the session is exchanged before any UI renders.
   const hasOAuthCode = req.nextUrl.searchParams.has("code");
   const isCallbackRoute = req.nextUrl.pathname === "/auth/callback";
 
@@ -33,22 +21,16 @@ export async function middleware(req: NextRequest) {
     return NextResponse.redirect(callbackUrl);
   }
 
-  // Create a response object that we can modify (add cookies to)
   const res = NextResponse.next();
 
-  // â”€â”€â”€ Create a Supabase client that works in middleware â”€â”€â”€
-  // Middleware can't use the normal server client because it runs
-  // at the "edge" (before your page loads). So we create one manually
-  // that reads/writes cookies from the request/response.
+  // Middleware runs before the normal server helpers, so it needs its own
+  // cookie-aware Supabase client to read and refresh the session safely.
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     {
       cookies: {
-        // Read cookies from the incoming request
         getAll: () => req.cookies.getAll(),
-        // Write cookies to the outgoing response
-        // This is KEY â€” it refreshes the auth session on every request
         setAll: (cookiesToSet) => {
           cookiesToSet.forEach(({ name, value, options }) => {
             res.cookies.set(name, value, options);
@@ -58,16 +40,12 @@ export async function middleware(req: NextRequest) {
     }
   );
 
-  // â”€â”€â”€ Check if the user has a valid session â”€â”€â”€
-  // getUser() is more secure than getSession() because it
-  // validates the token with Supabase's server, not just locally.
+  // Validate the session with Supabase instead of trusting only local cookies.
   const {
     data: { user },
   } = await supabase.auth.getUser();
 
   const pathname = req.nextUrl.pathname;
-
-  // â”€â”€â”€ Define which pages don't require login â”€â”€â”€
   const publicPages = [
     "/",
     "/login",
@@ -79,7 +57,6 @@ export async function middleware(req: NextRequest) {
   const isInvitePage = pathname.startsWith("/invite/");
   const isPublicPage = publicPages.includes(pathname) || isInvitePage;
 
-  // â”€â”€â”€ Define auth pages (login, signup, etc.) â”€â”€â”€
   const authPages = ["/login", "/create-account", "/forgot-password"];
   const isAuthPage = authPages.includes(pathname);
   const isLandingPage = pathname === "/";
@@ -91,7 +68,6 @@ export async function middleware(req: NextRequest) {
     isLandingPage;
   const hasVerifiedEmail = user ? isUserEmailVerified(user) : false;
 
-  // â”€â”€â”€ Redirect logic â”€â”€â”€
   if (user && !hasVerifiedEmail && !isVerificationSafePage) {
     const loginUrl = new URL("/login", req.url);
     loginUrl.searchParams.set("error", "confirm_email");
@@ -99,28 +75,20 @@ export async function middleware(req: NextRequest) {
     return NextResponse.redirect(loginUrl);
   }
 
-  // If the user IS logged in and tries to visit login/signup pages,
-  // redirect them to the dashboard (no need to login again).
   if (user && hasVerifiedEmail && (isAuthPage || isLandingPage)) {
     return NextResponse.redirect(new URL("/dashboard", req.url));
   }
 
-  // If the user is NOT logged in and tries to visit a protected page
-  // (anything that's not public), redirect them to login.
   if (!user && !isPublicPage) {
     return NextResponse.redirect(new URL("/login", req.url));
   }
 
-  // Otherwise, let them through and include the refreshed cookies.
   return res;
 }
 
-// â”€â”€â”€ Which routes should this middleware run on? â”€â”€â”€
-// This tells Next.js: "Run the middleware function on these URL patterns."
-// Without this, middleware runs on EVERY request (including images, CSS, etc.)
 export const config = {
   matcher: [
-    // Run on all routes EXCEPT static files and Next.js internals
+    // Skip static assets and Next.js internals.
     "/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
   ],
 };

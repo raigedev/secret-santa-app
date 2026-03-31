@@ -1,29 +1,25 @@
 "use server";
 
-// ═══════════════════════════════════════
-// PROFILE SERVER ACTIONS
-// ═══════════════════════════════════════
-// Security: Core#1 sanitization, Core#3 least privilege,
-// Playbook#19 server-side auth, Playbook#20 logging
-// No dangerouslySetInnerHTML
-// ═══════════════════════════════════════
-
 import { recordAuditEvent, recordServerFailure } from "@/lib/security/audit";
 import { enforceRateLimit } from "@/lib/security/rate-limit";
 import { supabaseAdmin } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 
+// Profile actions stay on the server because they touch auth state and user-owned
+// records that should never rely on client-side validation alone.
 function sanitize(input: string, max: number): string {
   return input.replace(/<[^>]*>/g, "").replace(/[<>]/g, "").trim().slice(0, max);
 }
 
-// ─── Get or create profile ───
+// Lazily create the profile row so older or partially-created accounts can still recover.
 export async function getProfile() {
   const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
   if (!user) return null;
 
-  // Try to get existing profile
   const { data: profile } = await supabase
     .from("profiles")
     .select("*")
@@ -32,7 +28,6 @@ export async function getProfile() {
 
   if (profile) return profile;
 
-  // Create new profile if doesn't exist
   const email = user.email || "";
   const defaultName = email.split("@")[0] || "";
 
@@ -61,7 +56,6 @@ export async function getProfile() {
   return newProfile;
 }
 
-// ─── Update profile ───
 export async function updateProfile(
   displayName: string,
   avatarEmoji: string,
@@ -76,7 +70,9 @@ export async function updateProfile(
   markSetupComplete: boolean
 ): Promise<{ success: boolean; message: string }> {
   const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
 
   if (!user) return { success: false, message: "You must be logged in." };
 
@@ -136,13 +132,14 @@ export async function updateProfile(
   return { success: true, message: "Profile saved!" };
 }
 
-// ─── Quick setup (first-time modal) ───
 export async function quickSetup(
   displayName: string,
   avatarEmoji: string
 ): Promise<{ success: boolean; message: string }> {
   const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
 
   if (!user) return { success: false, message: "You must be logged in." };
 
@@ -263,12 +260,12 @@ export async function deleteAccount(): Promise<{ success: boolean; message: stri
     )
     .map((membership) => membership.group_id);
 
+  // Deleting the auth user cascades through memberships, assignments, messages,
+  // and other linked rows. Block the delete if the user still belongs to
+  // someone else's already-drawn group so we do not corrupt that event.
   if (nonOwnedAcceptedGroupIds.length > 0) {
     const [blockingAssignmentsResult, blockingGroupsResult] = await Promise.all([
-      supabaseAdmin
-        .from("assignments")
-        .select("group_id")
-        .in("group_id", nonOwnedAcceptedGroupIds),
+      supabaseAdmin.from("assignments").select("group_id").in("group_id", nonOwnedAcceptedGroupIds),
       supabaseAdmin.from("groups").select("id, name").in("id", nonOwnedAcceptedGroupIds),
     ]);
 
@@ -283,7 +280,10 @@ export async function deleteAccount(): Promise<{ success: boolean; message: stri
         resourceType: "profile",
       });
 
-      return { success: false, message: "Failed to verify account deletion safety. Please try again." };
+      return {
+        success: false,
+        message: "Failed to verify account deletion safety. Please try again.",
+      };
     }
 
     const drawnGroupIds = new Set(
@@ -296,9 +296,7 @@ export async function deleteAccount(): Promise<{ success: boolean; message: stri
     if (blockingGroupNames.length > 0) {
       const preview = blockingGroupNames.slice(0, 2).join(", ");
       const suffix =
-        blockingGroupNames.length > 2
-          ? ` and ${blockingGroupNames.length - 2} more`
-          : "";
+        blockingGroupNames.length > 2 ? ` and ${blockingGroupNames.length - 2} more` : "";
 
       return {
         success: false,

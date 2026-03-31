@@ -3,7 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useEffect, useRef } from "react";
 
-// ─── Shhh Santa Logo Icon ───
+// Small logo mark used in hero cards and smaller landing-page accents.
 function SantaIcon({ size = 40 }: { size?: number }) {
   return (
     <svg width={size} height={size} viewBox="10 5 140 145" xmlns="http://www.w3.org/2000/svg">
@@ -37,7 +37,7 @@ function SantaIcon({ size = 40 }: { size?: number }) {
   );
 }
 
-// ─── Full Logo with Text + Tagline ───
+// Full brand lockup for the landing page header and hero section.
 function SantaLogo({ dark = false }: { dark?: boolean }) {
   return (
     <div style={{ display: "flex", alignItems: "center", gap: "12px", cursor: "pointer" }}>
