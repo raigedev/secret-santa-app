@@ -436,7 +436,7 @@ export default function GroupRevealPage() {
                         border: "none",
                       }}
                     >
-                      {revealedCard ? "Show Codename Again" : "Reveal Owner"}
+                      {revealedCard ? "Show Codename Again" : "Reveal Real Name"}
                     </button>
                   </div>
                 </div>

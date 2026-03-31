@@ -1165,12 +1165,12 @@ async function loadRevealSourceData(groupId: string): Promise<RevealSourceData> 
 
 async function buildRevealMatches(groupId: string): Promise<RevealMatch[]> {
   const { assignments, participants } = await loadRevealSourceData(groupId);
-  const aliasByUserId = new Map(participants.map((participant) => [participant.userId, participant.alias]));
+  const realNameByUserId = new Map(participants.map((participant) => [participant.userId, participant.realName]));
 
   return assignments
     .map((assignment) => ({
-      giver: aliasByUserId.get(assignment.giver_id) || "Participant",
-      receiver: aliasByUserId.get(assignment.receiver_id) || "Participant",
+      giver: realNameByUserId.get(assignment.giver_id) || "Participant",
+      receiver: realNameByUserId.get(assignment.receiver_id) || "Participant",
     }))
     .sort((left, right) => left.giver.localeCompare(right.giver));
 }
