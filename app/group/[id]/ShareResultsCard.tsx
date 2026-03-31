@@ -81,6 +81,7 @@ function getPreviewNameTextStyle(value: string, variant: "hero" | "detail") {
     textOverflow: "clip" as const,
     maxWidth: "100%",
     letterSpacing: length >= 12 ? "-0.03em" : "-0.01em",
+    lineHeight: 1.08,
   };
 }
 
@@ -365,7 +366,7 @@ export default function ShareResultsCard(props: ShareResultsCardProps) {
                 My Codename
               </div>
               <div
-                className="mt-3 font-bold text-white leading-[0.95] min-w-0"
+                className="mt-3 font-bold text-white min-w-0 pb-1"
                 style={{
                   fontFamily: "'Fredoka', sans-serif",
                   ...getPreviewNameTextStyle(props.codename, "hero"),
@@ -387,7 +388,7 @@ export default function ShareResultsCard(props: ShareResultsCardProps) {
                 I Was Buying For
               </div>
               <div
-                className="mt-3 font-bold text-white leading-[0.95] min-w-0"
+                className="mt-3 font-bold text-white min-w-0 pb-1"
                 style={{
                   fontFamily: "'Fredoka', sans-serif",
                   ...getPreviewNameTextStyle(props.recipientName, "detail"),
