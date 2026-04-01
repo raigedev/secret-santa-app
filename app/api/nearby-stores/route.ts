@@ -78,12 +78,23 @@ function isFiniteCoordinate(value: unknown): value is number {
   return typeof value === "number" && Number.isFinite(value);
 }
 
-function buildMapsUrl(lat: number | null, lon: number | null, fallbackLabel: string): string {
+function buildMapsUrl(
+  name: string,
+  address: string,
+  lat: number | null,
+  lon: number | null
+): string {
+  const searchLabel = [name, address].filter(Boolean).join(" ");
+
+  if (searchLabel.trim().length > 0) {
+    return `https://www.google.com/maps/search/${encodeURIComponent(searchLabel)}`;
+  }
+
   if (typeof lat === "number" && typeof lon === "number") {
     return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${lat},${lon}`)}`;
   }
 
-  return `https://www.google.com/maps/search/${encodeURIComponent(fallbackLabel)}`;
+  return "https://www.google.com/maps";
 }
 
 function getPlaceCategories(query: string): string[] {
@@ -262,9 +273,10 @@ export async function POST(request: NextRequest) {
           name: properties.name || properties.address_line1 || "Nearby store",
           address,
           mapsUrl: buildMapsUrl(
+            properties.name || properties.address_line1 || "Nearby store",
+            address,
             typeof properties.lat === "number" ? properties.lat : null,
-            typeof properties.lon === "number" ? properties.lon : null,
-            address
+            typeof properties.lon === "number" ? properties.lon : null
           ),
           rating: null,
           userRatingCount: null,
