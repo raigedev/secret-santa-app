@@ -13,8 +13,12 @@ import { SecretSantaSkeleton } from "@/app/components/PageSkeleton";
 import { WISHLIST_CATEGORIES } from "@/lib/wishlist/options";
 import { formatPriceRange, normalizeOptionalPriceValue } from "@/lib/wishlist/pricing";
 import {
+  buildNearbyStoreLinks,
   buildWishlistMerchantLinks,
   buildWishlistSuggestionOptions,
+  detectShoppingRegionFromLocale,
+  SHOPPING_REGION_OPTIONS,
+  type ShoppingRegion,
 } from "@/lib/wishlist/suggestions";
 
 type WishlistItem = {
@@ -490,10 +494,39 @@ export default function SecretSantaPage() {
   const [selectedRecipientSuggestionByItem, setSelectedRecipientSuggestionByItem] = useState<
     Record<string, string>
   >({});
+  // These shopping preferences are page-level on purpose so the giver can set
+  // them once and reuse them across every giftee item on the screen.
+  const [shoppingRegion, setShoppingRegion] = useState<ShoppingRegion>("GLOBAL");
+  const [nearbyArea, setNearbyArea] = useState("");
 
   useEffect(() => {
     router.prefetch("/dashboard");
   }, [router]);
+
+  useEffect(() => {
+    const savedRegion = window.localStorage.getItem("secret-santa-shopping-region");
+    const savedArea = window.localStorage.getItem("secret-santa-nearby-area");
+
+    if (savedRegion && SHOPPING_REGION_OPTIONS.some((option) => option.value === savedRegion)) {
+      setShoppingRegion(savedRegion as ShoppingRegion);
+    } else {
+      setShoppingRegion(
+        detectShoppingRegionFromLocale(navigator.language, availableGroups[0]?.currency || null)
+      );
+    }
+
+    if (savedArea) {
+      setNearbyArea(savedArea);
+    }
+  }, [availableGroups]);
+
+  useEffect(() => {
+    window.localStorage.setItem("secret-santa-shopping-region", shoppingRegion);
+  }, [shoppingRegion]);
+
+  useEffect(() => {
+    window.localStorage.setItem("secret-santa-nearby-area", nearbyArea);
+  }, [nearbyArea]);
 
   useEffect(() => {
     let isMounted = true;
@@ -1066,6 +1099,104 @@ export default function SecretSantaPage() {
           </p>
         )}
 
+        <div
+          className="rounded-[18px] p-4 mb-4"
+          style={{
+            background: "rgba(248,250,248,.74)",
+            border: "1px solid rgba(96,117,122,.12)",
+            boxShadow: "0 10px 24px rgba(34,55,59,.05)",
+          }}
+        >
+          <div className="flex items-start justify-between gap-3 flex-wrap">
+            <div>
+              <div
+                className="text-[14px] font-extrabold"
+                style={{ color: HOLIDAY_GREEN }}
+              >
+                Shopping setup
+              </div>
+              <div
+                className="text-[11px] mt-1 leading-relaxed"
+                style={{ color: TEXT_MUTED }}
+              >
+                We&apos;ll use this region for online shop suggestions and this
+                area for nearby in-person store searches.
+              </div>
+            </div>
+            <span
+              className="text-[10px] font-extrabold px-2.5 py-1 rounded-full"
+              style={{
+                background: "rgba(255,255,255,.78)",
+                color: HOLIDAY_GREEN,
+              }}
+            >
+              Easy to change anytime
+            </span>
+          </div>
+
+          <div className="grid gap-3 md:grid-cols-[minmax(0,220px)_minmax(0,1fr)] mt-4">
+            <label className="block">
+              <div
+                className="text-[11px] font-bold mb-1"
+                style={{ color: PAGE_TEXT_COLOR }}
+              >
+                Online shop region
+              </div>
+              <select
+                value={shoppingRegion}
+                onChange={(event) =>
+                  setShoppingRegion(event.target.value as ShoppingRegion)
+                }
+                className="w-full rounded-xl px-3 py-2 text-[12px] font-semibold"
+                style={{
+                  background: INPUT_BACKGROUND,
+                  border: INPUT_BORDER,
+                  color: INPUT_TEXT,
+                  fontFamily: "inherit",
+                }}
+              >
+                {SHOPPING_REGION_OPTIONS.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+              <div className="text-[10px] mt-1" style={{ color: TEXT_SOFT }}>
+                {
+                  SHOPPING_REGION_OPTIONS.find(
+                    (option) => option.value === shoppingRegion
+                  )?.helper
+                }
+              </div>
+            </label>
+
+            <label className="block">
+              <div
+                className="text-[11px] font-bold mb-1"
+                style={{ color: PAGE_TEXT_COLOR }}
+              >
+                Nearby area or city
+              </div>
+              <input
+                type="text"
+                value={nearbyArea}
+                onChange={(event) => setNearbyArea(event.target.value)}
+                placeholder="Example: Makati, Quezon City, BGC, London, Toronto"
+                className="w-full rounded-xl px-3 py-2 text-[12px] font-semibold"
+                style={{
+                  background: INPUT_BACKGROUND,
+                  border: INPUT_BORDER,
+                  color: INPUT_TEXT,
+                  fontFamily: "inherit",
+                }}
+              />
+              <div className="text-[10px] mt-1" style={{ color: TEXT_SOFT }}>
+                Leave this blank to use a generic &quot;near me&quot; Maps search.
+              </div>
+            </label>
+          </div>
+        </div>
+
         {/* Recipient cards show assigned recipients, their wishlist items, and gift confirmation state. */}
         {assignments.length === 0 ? (
           <div
@@ -1211,7 +1342,16 @@ export default function SecretSantaPage() {
                         ? buildWishlistMerchantLinks(
                             selectedSuggestion,
                             assignment.group_id,
-                            item.id
+                            item.id,
+                            shoppingRegion
+                          )
+                        : [];
+                      const nearbyStoreLinks = selectedSuggestion
+                        ? buildNearbyStoreLinks(
+                            selectedSuggestion,
+                            item.item_name,
+                            item.item_category,
+                            nearbyArea
                           )
                         : [];
                       const isIdeaPanelOpen = expandedRecipientItemId === item.id;
@@ -1475,108 +1615,213 @@ export default function SecretSantaPage() {
 
                               {selectedSuggestion && (
                                 <div className="mt-4">
-                                  <div className="flex items-start justify-between gap-3 mb-3 flex-wrap">
-                                    <div>
-                                      <div
-                                        className="text-[12px] font-extrabold"
-                                        style={{ color: HOLIDAY_GREEN }}
-                                      >
-                                        Step 2: Choose a shop
-                                      </div>
-                                      <div
-                                        className="text-[11px] mt-0.5"
-                                        style={{ color: TEXT_MUTED }}
-                                      >
-                                        These links search for{" "}
-                                        <strong>{selectedSuggestion.searchQuery}</strong>{" "}
-                                        so you can compare merchants quickly.
-                                      </div>
-                                    </div>
-                                    <span
-                                      className="text-[10px] font-extrabold px-2 py-1 rounded-lg"
+                                  <div className="grid gap-3 lg:grid-cols-2">
+                                    <div
+                                      className="rounded-2xl p-3"
                                       style={{
-                                        background: "rgba(255,255,255,.78)",
-                                        color: HOLIDAY_GREEN,
+                                        background: "rgba(255,255,255,.62)",
+                                        border: "1px solid rgba(96,117,122,.12)",
                                       }}
                                     >
-                                      Lazada + Shopee
-                                    </span>
-                                  </div>
-
-                                  <div className="grid gap-2 sm:grid-cols-2">
-                                    {merchantLinks.map((merchantLink) => (
-                                      <a
-                                        key={merchantLink.id}
-                                        href={merchantLink.href}
-                                        target="_blank"
-                                        rel="noopener noreferrer"
-                                        className="rounded-2xl p-3 transition"
-                                        style={{
-                                          background: "rgba(255,255,255,.88)",
-                                          border: "1px solid rgba(96,117,122,.12)",
-                                          color: PAGE_TEXT_COLOR,
-                                          textDecoration: "none",
-                                          boxShadow: "0 8px 18px rgba(34,55,59,.05)",
-                                        }}
-                                      >
-                                        <div className="flex items-center justify-between gap-3 mb-2">
-                                          <span
-                                            className="text-[10px] font-extrabold px-2 py-1 rounded-lg"
-                                            style={{
-                                              background:
-                                                merchantLink.merchant === "lazada"
-                                                  ? "rgba(245,158,11,.14)"
-                                                  : "rgba(238,77,45,.12)",
-                                              color:
-                                                merchantLink.merchant === "lazada"
-                                                  ? "#b45309"
-                                                  : "#c2410c",
-                                            }}
-                                          >
-                                            {merchantLink.merchantLabel}
-                                          </span>
-                                          <span
-                                            className="text-[10px] font-extrabold"
+                                      <div className="flex items-start justify-between gap-3 mb-3 flex-wrap">
+                                        <div>
+                                          <div
+                                            className="text-[12px] font-extrabold"
                                             style={{ color: HOLIDAY_GREEN }}
                                           >
-                                            {merchantLink.fitLabel}
-                                          </span>
-                                        </div>
-                                        <div
-                                          className="text-[13px] font-extrabold"
-                                          style={{ color: PAGE_TEXT_COLOR }}
-                                        >
-                                          {merchantLink.title}
-                                        </div>
-                                        <div
-                                          className="text-[11px] mt-1"
-                                          style={{ color: TEXT_MUTED }}
-                                        >
-                                          {merchantLink.subtitle}
-                                        </div>
-                                        {merchantLink.priceLabel && (
-                                          <div
-                                            className="text-[10px] font-bold mt-2"
-                                            style={{ color: HOLIDAY_GOLD }}
-                                          >
-                                            {merchantLink.priceLabel}
+                                            Step 2: Shop online
                                           </div>
-                                        )}
-                                        <div
-                                          className="text-[11px] font-semibold mt-3"
-                                          style={{ color: HOLIDAY_BLUE }}
-                                        >
-                                          View on {merchantLink.merchantLabel} {"->"}
+                                          <div
+                                            className="text-[11px] mt-0.5"
+                                            style={{ color: TEXT_MUTED }}
+                                          >
+                                            These links search for{" "}
+                                            <strong>{selectedSuggestion.searchQuery}</strong>{" "}
+                                            in your selected region.
+                                          </div>
                                         </div>
-                                      </a>
-                                    ))}
-                                  </div>
+                                        <span
+                                          className="text-[10px] font-extrabold px-2 py-1 rounded-lg"
+                                          style={{
+                                            background: "rgba(255,255,255,.78)",
+                                            color: HOLIDAY_GREEN,
+                                          }}
+                                        >
+                                          {
+                                            SHOPPING_REGION_OPTIONS.find(
+                                              (option) => option.value === shoppingRegion
+                                            )?.label
+                                          }
+                                        </span>
+                                      </div>
 
-                                  <div
-                                    className="text-[9px] mt-3"
-                                    style={{ color: TEXT_SOFT }}
-                                  >
-                                    {selectedSuggestion.disclosure}
+                                      <div className="grid gap-2">
+                                        {merchantLinks.map((merchantLink) => (
+                                          <a
+                                            key={merchantLink.id}
+                                            href={merchantLink.href}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            className="rounded-2xl p-3 transition"
+                                            style={{
+                                              background: "rgba(255,255,255,.88)",
+                                              border: "1px solid rgba(96,117,122,.12)",
+                                              color: PAGE_TEXT_COLOR,
+                                              textDecoration: "none",
+                                              boxShadow: "0 8px 18px rgba(34,55,59,.05)",
+                                            }}
+                                          >
+                                            <div className="flex items-center justify-between gap-3 mb-2 flex-wrap">
+                                              <span
+                                                className="text-[10px] font-extrabold px-2 py-1 rounded-lg"
+                                                style={{
+                                                  background: merchantLink.isAffiliateReady
+                                                    ? merchantLink.merchant === "lazada"
+                                                      ? "rgba(245,158,11,.14)"
+                                                      : "rgba(238,77,45,.12)"
+                                                    : "rgba(88,116,142,.1)",
+                                                  color: merchantLink.isAffiliateReady
+                                                    ? merchantLink.merchant === "lazada"
+                                                      ? "#b45309"
+                                                      : "#c2410c"
+                                                    : HOLIDAY_BLUE,
+                                                }}
+                                              >
+                                                {merchantLink.merchantLabel}
+                                              </span>
+                                              <span
+                                                className="text-[10px] font-extrabold"
+                                                style={{ color: HOLIDAY_GREEN }}
+                                              >
+                                                {merchantLink.fitLabel}
+                                              </span>
+                                            </div>
+                                            <div
+                                              className="text-[13px] font-extrabold"
+                                              style={{ color: PAGE_TEXT_COLOR }}
+                                            >
+                                              {merchantLink.title}
+                                            </div>
+                                            <div
+                                              className="text-[11px] mt-1"
+                                              style={{ color: TEXT_MUTED }}
+                                            >
+                                              {merchantLink.subtitle}
+                                            </div>
+                                            {merchantLink.priceLabel && (
+                                              <div
+                                                className="text-[10px] font-bold mt-2"
+                                                style={{ color: HOLIDAY_GOLD }}
+                                              >
+                                                {merchantLink.priceLabel}
+                                              </div>
+                                            )}
+                                            <div
+                                              className="flex items-center justify-between gap-2 mt-3 flex-wrap"
+                                            >
+                                              <div
+                                                className="text-[11px] font-semibold"
+                                                style={{ color: HOLIDAY_BLUE }}
+                                              >
+                                                View on {merchantLink.merchantLabel} {"->"}
+                                              </div>
+                                              <span
+                                                className="text-[9px] font-bold"
+                                                style={{
+                                                  color: merchantLink.isAffiliateReady
+                                                    ? HOLIDAY_GOLD
+                                                    : TEXT_SOFT,
+                                                }}
+                                              >
+                                                {merchantLink.isAffiliateReady
+                                                  ? "Affiliate-ready"
+                                                  : "Direct search"}
+                                              </span>
+                                            </div>
+                                          </a>
+                                        ))}
+                                      </div>
+
+                                      <div
+                                        className="text-[9px] mt-3"
+                                        style={{ color: TEXT_SOFT }}
+                                      >
+                                        {selectedSuggestion.disclosure}
+                                      </div>
+                                    </div>
+
+                                    <div
+                                      className="rounded-2xl p-3"
+                                      style={{
+                                        background: "rgba(255,255,255,.62)",
+                                        border: "1px solid rgba(96,117,122,.12)",
+                                      }}
+                                    >
+                                      <div className="flex items-start justify-between gap-3 mb-3 flex-wrap">
+                                        <div>
+                                          <div
+                                            className="text-[12px] font-extrabold"
+                                            style={{ color: HOLIDAY_GREEN }}
+                                          >
+                                            Step 3: Try nearby stores
+                                          </div>
+                                          <div
+                                            className="text-[11px] mt-0.5"
+                                            style={{ color: TEXT_MUTED }}
+                                          >
+                                            Use Maps to check nearby physical shops for this
+                                            direction.
+                                          </div>
+                                        </div>
+                                        <span
+                                          className="text-[10px] font-extrabold px-2 py-1 rounded-lg"
+                                          style={{
+                                            background: "rgba(255,255,255,.78)",
+                                            color: HOLIDAY_GREEN,
+                                          }}
+                                        >
+                                          {nearbyArea.trim() ? nearbyArea.trim() : "Near me"}
+                                        </span>
+                                      </div>
+
+                                      <div className="grid gap-2">
+                                        {nearbyStoreLinks.map((nearbyLink) => (
+                                          <a
+                                            key={nearbyLink.id}
+                                            href={nearbyLink.href}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            className="rounded-2xl p-3 transition"
+                                            style={{
+                                              background: "rgba(255,255,255,.88)",
+                                              border: "1px solid rgba(96,117,122,.12)",
+                                              color: PAGE_TEXT_COLOR,
+                                              textDecoration: "none",
+                                              boxShadow: "0 8px 18px rgba(34,55,59,.05)",
+                                            }}
+                                          >
+                                            <div
+                                              className="text-[13px] font-extrabold"
+                                              style={{ color: PAGE_TEXT_COLOR }}
+                                            >
+                                              {nearbyLink.title}
+                                            </div>
+                                            <div
+                                              className="text-[11px] mt-1"
+                                              style={{ color: TEXT_MUTED }}
+                                            >
+                                              {nearbyLink.subtitle}
+                                            </div>
+                                            <div
+                                              className="text-[11px] font-semibold mt-3"
+                                              style={{ color: HOLIDAY_BLUE }}
+                                            >
+                                              Open in Maps {"->"}
+                                            </div>
+                                          </a>
+                                        ))}
+                                      </div>
+                                    </div>
                                   </div>
                                 </div>
                               )}

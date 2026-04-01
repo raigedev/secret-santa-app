@@ -3,11 +3,12 @@ import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 import {
+  AFFILIATE_READY_MERCHANTS,
   buildMerchantDestinationUrl,
   SuggestionMerchant,
 } from "@/lib/wishlist/suggestions";
 
-const ALLOWED_MERCHANTS: SuggestionMerchant[] = ["lazada", "shopee"];
+const ALLOWED_MERCHANTS: SuggestionMerchant[] = AFFILIATE_READY_MERCHANTS;
 
 function isSuggestionMerchant(value: string | null): value is SuggestionMerchant {
   return Boolean(value) && ALLOWED_MERCHANTS.includes(value as SuggestionMerchant);

@@ -1,6 +1,27 @@
 import { formatPriceRange } from "./pricing";
 
-export type SuggestionMerchant = "lazada" | "shopee";
+export type SuggestionMerchant =
+  | "amazon"
+  | "argos"
+  | "best-buy"
+  | "ebay"
+  | "google-shopping"
+  | "jb-hi-fi"
+  | "john-lewis"
+  | "kmart"
+  | "lazada"
+  | "rakuten"
+  | "shopee"
+  | "target"
+  | "walmart";
+
+export type ShoppingRegion = "AU" | "CA" | "GLOBAL" | "JP" | "PH" | "UK" | "US";
+
+export type ShoppingRegionOption = {
+  value: ShoppingRegion;
+  label: string;
+  helper: string;
+};
 
 export type WishlistSuggestionOption = {
   id: string;
@@ -17,10 +38,18 @@ export type WishlistMerchantLink = {
   merchant: SuggestionMerchant;
   merchantLabel: string;
   href: string;
+  isAffiliateReady: boolean;
   fitLabel: string;
   priceLabel: string | null;
   title: string;
   subtitle: string;
+};
+
+export type NearbyStoreLink = {
+  id: string;
+  title: string;
+  subtitle: string;
+  href: string;
 };
 
 type SuggestionTemplate = {
@@ -44,12 +73,76 @@ type SuggestionInput = {
 };
 
 const MERCHANT_LABELS: Record<SuggestionMerchant, string> = {
+  amazon: "Amazon",
+  argos: "Argos",
+  "best-buy": "Best Buy",
+  ebay: "eBay",
+  "google-shopping": "Google Shopping",
+  "jb-hi-fi": "JB Hi-Fi",
+  "john-lewis": "John Lewis",
+  kmart: "Kmart",
   lazada: "Lazada",
+  rakuten: "Rakuten",
   shopee: "Shopee",
+  target: "Target",
+  walmart: "Walmart",
 };
 
 const AFFILIATE_DISCLOSURE =
   "We may earn a commission if you buy through this link.";
+
+export const AFFILIATE_READY_MERCHANTS: SuggestionMerchant[] = [
+  "lazada",
+  "shopee",
+];
+
+export const SHOPPING_REGION_OPTIONS: ShoppingRegionOption[] = [
+  {
+    value: "PH",
+    label: "Philippines",
+    helper: "Use Lazada, Shopee, and PH-friendly searches.",
+  },
+  {
+    value: "US",
+    label: "United States",
+    helper: "Use large US retailers and marketplaces.",
+  },
+  {
+    value: "UK",
+    label: "United Kingdom",
+    helper: "Use UK retailers and marketplace options.",
+  },
+  {
+    value: "CA",
+    label: "Canada",
+    helper: "Use Canada-friendly stores and search routes.",
+  },
+  {
+    value: "AU",
+    label: "Australia",
+    helper: "Use Australia-friendly stores and search routes.",
+  },
+  {
+    value: "JP",
+    label: "Japan",
+    helper: "Use Japan-friendly stores and marketplaces.",
+  },
+  {
+    value: "GLOBAL",
+    label: "Global",
+    helper: "Use broader marketplaces when the region is mixed.",
+  },
+];
+
+const REGION_MERCHANTS: Record<ShoppingRegion, SuggestionMerchant[]> = {
+  PH: ["lazada", "shopee", "amazon"],
+  US: ["amazon", "walmart", "target"],
+  UK: ["amazon", "argos", "john-lewis"],
+  CA: ["amazon", "walmart", "best-buy"],
+  AU: ["amazon", "kmart", "jb-hi-fi"],
+  JP: ["amazon", "rakuten", "ebay"],
+  GLOBAL: ["amazon", "ebay", "google-shopping"],
+};
 
 const CATEGORY_TEMPLATES: Record<string, SuggestionTemplate[]> = {
   Books: [
@@ -214,14 +307,54 @@ function slugify(value: string): string {
     .replace(/^-+|-+$/g, "");
 }
 
-function getMerchantSearchUrl(merchant: SuggestionMerchant, query: string): string {
+function getMerchantSearchUrl(
+  merchant: SuggestionMerchant,
+  query: string,
+  region: ShoppingRegion = "GLOBAL"
+): string {
   const encodedQuery = encodeURIComponent(query);
+  const slugQuery = query.trim().replace(/\s+/g, "-");
 
   switch (merchant) {
+    case "amazon":
+      switch (region) {
+        case "UK":
+          return `https://www.amazon.co.uk/s?k=${encodedQuery}`;
+        case "CA":
+          return `https://www.amazon.ca/s?k=${encodedQuery}`;
+        case "AU":
+          return `https://www.amazon.com.au/s?k=${encodedQuery}`;
+        case "JP":
+          return `https://www.amazon.co.jp/s?k=${encodedQuery}`;
+        default:
+          return `https://www.amazon.com/s?k=${encodedQuery}`;
+      }
+    case "argos":
+      return `https://www.argos.co.uk/search/${encodeURIComponent(slugQuery)}/`;
+    case "best-buy":
+      return `https://www.bestbuy.ca/en-ca/search?search=${encodedQuery}`;
+    case "ebay":
+      return `https://www.ebay.com/sch/i.html?_nkw=${encodedQuery}`;
+    case "google-shopping":
+      return `https://www.google.com/search?tbm=shop&q=${encodedQuery}`;
+    case "jb-hi-fi":
+      return `https://www.jbhifi.com.au/search?query=${encodedQuery}`;
+    case "john-lewis":
+      return `https://www.johnlewis.com/search?search-term=${encodedQuery}`;
+    case "kmart":
+      return `https://www.kmart.com.au/search/?searchTerm=${encodedQuery}`;
     case "lazada":
       return `https://www.lazada.com.ph/catalog/?q=${encodedQuery}`;
+    case "rakuten":
+      return `https://search.rakuten.co.jp/search/mall/${encodedQuery}/`;
     case "shopee":
       return `https://shopee.ph/search?keyword=${encodedQuery}`;
+    case "target":
+      return `https://www.target.com/s?searchTerm=${encodedQuery}`;
+    case "walmart":
+      return region === "CA"
+        ? `https://www.walmart.ca/search?q=${encodedQuery}`
+        : `https://www.walmart.com/search?q=${encodedQuery}`;
     default:
       return `https://www.google.com/search?q=${encodedQuery}`;
   }
@@ -382,6 +515,42 @@ function getSuggestionPriceLabel(
   return typicalLabel ? `Typical spend: ${typicalLabel}` : null;
 }
 
+function getNearbySearchBase(itemName: string, itemCategory: string, searchQuery: string): string[] {
+  const haystack = `${itemName} ${itemCategory} ${searchQuery}`.toLowerCase();
+
+  if (/(tablet|ipad|android tab|laptop|gadget|tech)/.test(haystack)) {
+    return ["electronics store", "computer shop", "gadget store"];
+  }
+
+  if (/(book|novel|manga|comic|journal)/.test(haystack)) {
+    return ["bookstore", "gift shop", "mall bookstore"];
+  }
+
+  if (/(shirt|hoodie|dress|clothes|clothing|jacket|shoes|fashion)/.test(haystack)) {
+    return ["clothing store", "department store", "mall fashion shop"];
+  }
+
+  if (/(beauty|makeup|skincare|perfume)/.test(haystack)) {
+    return ["beauty store", "department store", "mall beauty shop"];
+  }
+
+  if (/(food|snack|coffee|tea|treat)/.test(haystack)) {
+    return ["gift shop", "specialty food store", "mall food shop"];
+  }
+
+  return ["gift shop", "department store", "mall store"];
+}
+
+function buildMapsSearchUrl(query: string): string {
+  return `https://www.google.com/maps/search/${encodeURIComponent(query)}`;
+}
+
+function toDisplayArea(areaHint: string): string {
+  const trimmed = areaHint.trim();
+
+  return trimmed.length > 0 ? trimmed : "near me";
+}
+
 export function buildWishlistSuggestionOptions(
   input: SuggestionInput
 ): WishlistSuggestionOption[] {
@@ -430,31 +599,40 @@ export function buildWishlistSuggestionOptions(
 export function buildWishlistMerchantLinks(
   option: WishlistSuggestionOption,
   groupId: string,
-  wishlistItemId: string
+  wishlistItemId: string,
+  region: ShoppingRegion
 ): WishlistMerchantLink[] {
-  return (["lazada", "shopee"] as SuggestionMerchant[]).map((merchant) => ({
-    id: `${merchant}-${option.id}`,
-    merchant,
-    merchantLabel: MERCHANT_LABELS[merchant],
-    title: option.title,
-    subtitle: option.subtitle,
-    href: buildTrackedSuggestionHref(
+  return REGION_MERCHANTS[region].map((merchant) => {
+    const isAffiliateReady = AFFILIATE_READY_MERCHANTS.includes(merchant);
+
+    return {
+      id: `${merchant}-${option.id}`,
       merchant,
-      groupId,
-      wishlistItemId,
-      option.searchQuery,
-      option.title
-    ),
-    fitLabel: option.fitLabel,
-    priceLabel: option.priceLabel,
-  }));
+      merchantLabel: MERCHANT_LABELS[merchant],
+      title: option.title,
+      subtitle: option.subtitle,
+      href: isAffiliateReady
+        ? buildTrackedSuggestionHref(
+            merchant,
+            groupId,
+            wishlistItemId,
+            option.searchQuery,
+            option.title
+          )
+        : getMerchantSearchUrl(merchant, option.searchQuery, region),
+      isAffiliateReady,
+      fitLabel: option.fitLabel,
+      priceLabel: option.priceLabel,
+    };
+  });
 }
 
 export function buildMerchantDestinationUrl(
   merchant: SuggestionMerchant,
-  searchQuery: string
+  searchQuery: string,
+  region: ShoppingRegion = "GLOBAL"
 ): string {
-  const fallbackUrl = getMerchantSearchUrl(merchant, searchQuery);
+  const fallbackUrl = getMerchantSearchUrl(merchant, searchQuery, region);
   const template =
     merchant === "lazada"
       ? process.env.LAZADA_AFFILIATE_SEARCH_TEMPLATE
@@ -467,4 +645,72 @@ export function buildMerchantDestinationUrl(
   return template
     .replace("{query}", encodeURIComponent(searchQuery))
     .replace("{url}", encodeURIComponent(fallbackUrl));
+}
+
+export function detectShoppingRegionFromLocale(
+  locale: string | null | undefined,
+  currency: string | null | undefined
+): ShoppingRegion {
+  // Locale is the friendliest first hint for region-specific merchants.
+  // Currency stays as a fallback when the browser locale is too generic.
+  const normalizedLocale = (locale || "").toUpperCase();
+  const localeRegion = normalizedLocale.split("-")[1] || "";
+
+  switch (localeRegion) {
+    case "PH":
+      return "PH";
+    case "US":
+      return "US";
+    case "GB":
+    case "UK":
+      return "UK";
+    case "CA":
+      return "CA";
+    case "AU":
+      return "AU";
+    case "JP":
+      return "JP";
+    default:
+      break;
+  }
+
+  switch ((currency || "").toUpperCase()) {
+    case "PHP":
+      return "PH";
+    case "USD":
+      return "US";
+    case "GBP":
+      return "UK";
+    case "CAD":
+      return "CA";
+    case "AUD":
+      return "AU";
+    case "JPY":
+      return "JP";
+    default:
+      return "GLOBAL";
+  }
+}
+
+export function buildNearbyStoreLinks(
+  option: WishlistSuggestionOption,
+  itemName: string,
+  itemCategory: string,
+  areaHint: string
+): NearbyStoreLink[] {
+  // We intentionally build store-category searches instead of promising
+  // exact branch inventory. That keeps the nearby-store experience useful
+  // without overstating what the app can verify.
+  const displayArea = toDisplayArea(areaHint);
+  const storeSearches = getNearbySearchBase(itemName, itemCategory, option.searchQuery);
+
+  return storeSearches.map((storeSearch) => ({
+    id: `${slugify(storeSearch)}-${slugify(displayArea)}`,
+    title: `${storeSearch} ${displayArea === "near me" ? "near me" : `near ${displayArea}`}`,
+    subtitle:
+      displayArea === "near me"
+        ? "Open Maps and compare nearby physical shops."
+        : `Open Maps and compare shops around ${displayArea}.`,
+    href: buildMapsSearchUrl(`${storeSearch} ${displayArea}`),
+  }));
 }
