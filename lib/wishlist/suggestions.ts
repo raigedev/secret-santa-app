@@ -2,17 +2,25 @@ import { formatPriceRange } from "./pricing";
 
 export type SuggestionMerchant = "lazada" | "shopee";
 
-export type WishlistSuggestion = {
+export type WishlistSuggestionOption = {
   id: string;
-  merchant: SuggestionMerchant;
-  merchantLabel: string;
   title: string;
   subtitle: string;
   searchQuery: string;
-  href: string;
   fitLabel: string;
   priceLabel: string | null;
   disclosure: string;
+};
+
+export type WishlistMerchantLink = {
+  id: string;
+  merchant: SuggestionMerchant;
+  merchantLabel: string;
+  href: string;
+  fitLabel: string;
+  priceLabel: string | null;
+  title: string;
+  subtitle: string;
 };
 
 type SuggestionTemplate = {
@@ -263,14 +271,21 @@ function getKeywordTemplates(itemName: string, itemNote: string): SuggestionTemp
     return [
       {
         title: "Budget tablets",
-        subtitle: "Good for comparing entry-level options quickly.",
+        subtitle: "Entry-level picks for schoolwork, videos, and everyday browsing.",
         searchQuery: "budget tablet",
         typicalMin: 4000,
         typicalMax: 12000,
       },
       {
+        title: "Study and reading tablets",
+        subtitle: "Good for note-taking, e-books, and lighter productivity use.",
+        searchQuery: "tablet for study and reading",
+        typicalMin: 5000,
+        typicalMax: 15000,
+      },
+      {
         title: "Tablet bundles and accessories",
-        subtitle: "Helpful when the full tablet is above budget.",
+        subtitle: "Helpful if the full device is too much and you want a useful add-on instead.",
         searchQuery: "tablet accessories bundle",
         typicalMin: 500,
         typicalMax: 2500,
@@ -367,7 +382,9 @@ function getSuggestionPriceLabel(
   return typicalLabel ? `Typical spend: ${typicalLabel}` : null;
 }
 
-export function buildWishlistSuggestions(input: SuggestionInput): WishlistSuggestion[] {
+export function buildWishlistSuggestionOptions(
+  input: SuggestionInput
+): WishlistSuggestionOption[] {
   const baseQuery = input.itemName.trim();
   const categoryTemplates = CATEGORY_TEMPLATES[input.itemCategory] || CATEGORY_TEMPLATES.Other;
   const keywordTemplates = getKeywordTemplates(input.itemName, input.itemNote);
@@ -386,39 +403,51 @@ export function buildWishlistSuggestions(input: SuggestionInput): WishlistSugges
       ...keywordTemplates,
       ...categoryTemplates,
     ].filter((template) => template.searchQuery.trim().length > 0)
-  ).slice(0, 2);
+  ).slice(0, 4);
 
-  return templates.flatMap((template) =>
-    (["lazada", "shopee"] as SuggestionMerchant[]).map((merchant) => ({
-      id: `${merchant}-${slugify(template.searchQuery)}`,
+  return templates.map((template) => ({
+    id: slugify(template.searchQuery),
+    title: template.title,
+    subtitle: template.subtitle,
+    searchQuery: template.searchQuery,
+    fitLabel: getBudgetFitLabel(
+      template,
+      input.preferredPriceMin,
+      input.preferredPriceMax,
+      input.groupBudget
+    ),
+    priceLabel: getSuggestionPriceLabel(
+      template,
+      input.preferredPriceMin,
+      input.preferredPriceMax,
+      input.groupBudget,
+      input.currency
+    ),
+    disclosure: AFFILIATE_DISCLOSURE,
+  }));
+}
+
+export function buildWishlistMerchantLinks(
+  option: WishlistSuggestionOption,
+  groupId: string,
+  wishlistItemId: string
+): WishlistMerchantLink[] {
+  return (["lazada", "shopee"] as SuggestionMerchant[]).map((merchant) => ({
+    id: `${merchant}-${option.id}`,
+    merchant,
+    merchantLabel: MERCHANT_LABELS[merchant],
+    title: option.title,
+    subtitle: option.subtitle,
+    href: buildTrackedSuggestionHref(
       merchant,
-      merchantLabel: MERCHANT_LABELS[merchant],
-      title: template.title,
-      subtitle: template.subtitle,
-      searchQuery: template.searchQuery,
-      href: buildTrackedSuggestionHref(
-        merchant,
-        input.groupId,
-        input.wishlistItemId,
-        template.searchQuery,
-        template.title
-      ),
-      fitLabel: getBudgetFitLabel(
-        template,
-        input.preferredPriceMin,
-        input.preferredPriceMax,
-        input.groupBudget
-      ),
-      priceLabel: getSuggestionPriceLabel(
-        template,
-        input.preferredPriceMin,
-        input.preferredPriceMax,
-        input.groupBudget,
-        input.currency
-      ),
-      disclosure: AFFILIATE_DISCLOSURE,
-    }))
-  );
+      groupId,
+      wishlistItemId,
+      option.searchQuery,
+      option.title
+    ),
+    fitLabel: option.fitLabel,
+    priceLabel: option.priceLabel,
+  }));
 }
 
 export function buildMerchantDestinationUrl(

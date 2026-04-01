@@ -12,7 +12,10 @@ import { confirmGiftReceived, updateGiftPrepStatus } from "./actions";
 import { SecretSantaSkeleton } from "@/app/components/PageSkeleton";
 import { WISHLIST_CATEGORIES } from "@/lib/wishlist/options";
 import { formatPriceRange, normalizeOptionalPriceValue } from "@/lib/wishlist/pricing";
-import { buildWishlistSuggestions } from "@/lib/wishlist/suggestions";
+import {
+  buildWishlistMerchantLinks,
+  buildWishlistSuggestionOptions,
+} from "@/lib/wishlist/suggestions";
 
 type WishlistItem = {
   id: string;
@@ -483,6 +486,10 @@ export default function SecretSantaPage() {
   const [message, setMessage] = useState<ActionMessage>(null);
   const [updatingPrepGroup, setUpdatingPrepGroup] = useState<string | null>(null);
   const [confirmingGroup, setConfirmingGroup] = useState<string | null>(null);
+  const [expandedRecipientItemId, setExpandedRecipientItemId] = useState<string | null>(null);
+  const [selectedRecipientSuggestionByItem, setSelectedRecipientSuggestionByItem] = useState<
+    Record<string, string>
+  >({});
 
   useEffect(() => {
     router.prefetch("/dashboard");
@@ -957,6 +964,21 @@ export default function SecretSantaPage() {
     return availableGroups.find((group) => group.id === groupId)?.currency || null;
   };
 
+  // The giver decides when they want help with a wishlist item.
+  // Expanding the card reveals the more specific suggestion angles for that item.
+  const toggleRecipientItemIdeas = (itemId: string) => {
+    setExpandedRecipientItemId((current) => (current === itemId ? null : itemId));
+  };
+
+  // We keep the selected angle per item so switching between wishlist cards
+  // does not throw away what the giver was comparing.
+  const selectRecipientSuggestion = (itemId: string, suggestionId: string) => {
+    setSelectedRecipientSuggestionByItem((current) => ({
+      ...current,
+      [itemId]: suggestionId,
+    }));
+  };
+
   if (loading) {
     return <SecretSantaSkeleton />;
   }
@@ -1165,7 +1187,7 @@ export default function SecretSantaPage() {
                         item,
                         assignment.group_currency
                       );
-                      const suggestions = buildWishlistSuggestions({
+                      const suggestionOptions = buildWishlistSuggestionOptions({
                         groupId: assignment.group_id,
                         wishlistItemId: item.id,
                         itemName: item.item_name,
@@ -1176,8 +1198,23 @@ export default function SecretSantaPage() {
                         groupBudget: assignment.group_budget,
                         currency: assignment.group_currency,
                       });
-                      const primarySuggestions = suggestions.slice(0, 2);
-                      const followUpSuggestions = suggestions.slice(2);
+                      // Keep the merchant step hidden until the giver explicitly
+                      // picks a direction for this wishlist item. That makes the
+                      // flow feel more guided for broad asks like "tablet".
+                      const selectedSuggestionId =
+                        selectedRecipientSuggestionByItem[item.id] || "";
+                      const selectedSuggestion =
+                        suggestionOptions.find(
+                          (suggestion) => suggestion.id === selectedSuggestionId
+                        ) || null;
+                      const merchantLinks = selectedSuggestion
+                        ? buildWishlistMerchantLinks(
+                            selectedSuggestion,
+                            assignment.group_id,
+                            item.id
+                          )
+                        : [];
+                      const isIdeaPanelOpen = expandedRecipientItemId === item.id;
 
                       return (
                         <div
@@ -1286,152 +1323,265 @@ export default function SecretSantaPage() {
                                   )}
                                 </div>
                               )}
+                              <button
+                                type="button"
+                                onClick={() => toggleRecipientItemIdeas(item.id)}
+                                className="mt-3 px-3 py-2 rounded-xl text-[11px] font-extrabold transition"
+                                style={{
+                                  background: "rgba(47,107,86,.1)",
+                                  color: HOLIDAY_GREEN,
+                                  border: "1px solid rgba(47,107,86,.16)",
+                                  fontFamily: "inherit",
+                                  cursor: "pointer",
+                                }}
+                              >
+                                {isIdeaPanelOpen ? "Hide shopping ideas" : "Explore shopping ideas"}
+                              </button>
                             </div>
                           </div>
 
-                          <div
-                            className="mt-4 pt-4"
-                            style={{ borderTop: "1px solid rgba(96,117,122,.12)" }}
-                          >
-                            <div className="flex items-start justify-between gap-3 mb-3 flex-wrap">
-                              <div>
-                                <div
-                                  className="text-[12px] font-extrabold"
-                                  style={{ color: HOLIDAY_GREEN }}
-                                >
-                                  Shopping ideas
+                          {isIdeaPanelOpen && (
+                            <div
+                              className="mt-4 pt-4"
+                              style={{ borderTop: "1px solid rgba(96,117,122,.12)" }}
+                            >
+                              <div className="flex items-start justify-between gap-3 mb-3 flex-wrap">
+                                <div>
+                                  <div
+                                    className="text-[12px] font-extrabold"
+                                    style={{ color: HOLIDAY_GREEN }}
+                                  >
+                                    Pick an angle first
+                                  </div>
+                                  <div
+                                    className="text-[11px] mt-0.5"
+                                    style={{ color: TEXT_MUTED }}
+                                  >
+                                    Choose the version of this gift you want to explore, then
+                                    we&apos;ll show Lazada and Shopee links for that option.
+                                  </div>
                                 </div>
-                                <div
-                                  className="text-[11px] mt-0.5"
-                                  style={{ color: TEXT_MUTED }}
-                                >
-                                  Start with the easiest merchant options, then try the extra
-                                  search ideas if you still want more choices.
-                                </div>
-                              </div>
-                              <span
-                                className="text-[10px] font-extrabold px-2 py-1 rounded-lg"
-                                style={{
-                                  background: "rgba(255,255,255,.78)",
-                                  color: HOLIDAY_GREEN,
-                                }}
-                              >
-                                Lazada + Shopee
-                              </span>
-                            </div>
-
-                            <div className="grid gap-2 sm:grid-cols-2">
-                              {primarySuggestions.map((suggestion) => (
-                                <a
-                                  key={suggestion.id}
-                                  href={suggestion.href}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                  className="rounded-2xl p-3 transition"
+                                <span
+                                  className="text-[10px] font-extrabold px-2 py-1 rounded-lg"
                                   style={{
-                                    background: "rgba(255,255,255,.88)",
-                                    border: "1px solid rgba(96,117,122,.12)",
-                                    color: PAGE_TEXT_COLOR,
-                                    textDecoration: "none",
-                                    boxShadow: "0 8px 18px rgba(34,55,59,.05)",
+                                    background: "rgba(255,255,255,.78)",
+                                    color: HOLIDAY_GREEN,
                                   }}
                                 >
-                                  <div className="flex items-center justify-between gap-3 mb-2">
+                                  Step 1 of 2
+                                </span>
+                              </div>
+
+                              <div className="grid gap-2 sm:grid-cols-2">
+                                {suggestionOptions.map((suggestion) => {
+                                  const isSelected = suggestion.id === selectedSuggestionId;
+
+                                  return (
+                                    <button
+                                      key={suggestion.id}
+                                      type="button"
+                                      onClick={() =>
+                                        selectRecipientSuggestion(item.id, suggestion.id)
+                                      }
+                                      className="w-full rounded-2xl p-3 text-left transition"
+                                      style={{
+                                        background: isSelected
+                                          ? "rgba(47,107,86,.12)"
+                                          : "rgba(255,255,255,.78)",
+                                        border: isSelected
+                                          ? "1px solid rgba(47,107,86,.24)"
+                                          : "1px solid rgba(96,117,122,.12)",
+                                        boxShadow: isSelected
+                                          ? "0 8px 18px rgba(47,107,86,.08)"
+                                          : "none",
+                                        fontFamily: "inherit",
+                                        cursor: "pointer",
+                                      }}
+                                    >
+                                      <div className="flex items-center justify-between gap-3 flex-wrap">
+                                        <div
+                                          className="text-[13px] font-extrabold"
+                                          style={{ color: PAGE_TEXT_COLOR }}
+                                        >
+                                        {suggestion.title}
+                                      </div>
+                                      <span
+                                        className="text-[10px] font-extrabold"
+                                          style={{
+                                            color: isSelected ? HOLIDAY_GREEN : TEXT_MUTED,
+                                          }}
+                                        >
+                                          {isSelected ? "Selected" : suggestion.fitLabel}
+                                        </span>
+                                      </div>
+                                      <div
+                                        className="text-[11px] mt-1"
+                                        style={{ color: TEXT_MUTED }}
+                                      >
+                                        {suggestion.subtitle}
+                                      </div>
+                                      <div className="flex items-center gap-2 flex-wrap mt-2">
+                                        <span
+                                          className="text-[10px] font-semibold px-2 py-1 rounded-lg"
+                                          style={{
+                                            color: HOLIDAY_BLUE,
+                                            background: "rgba(88,116,142,.08)",
+                                          }}
+                                        >
+                                          Search: {suggestion.searchQuery}
+                                        </span>
+                                        {suggestion.priceLabel && (
+                                          <span
+                                            className="text-[10px] font-semibold px-2 py-1 rounded-lg"
+                                            style={{
+                                              color: HOLIDAY_GOLD,
+                                              background: "rgba(169,135,61,.08)",
+                                            }}
+                                          >
+                                            {suggestion.priceLabel}
+                                          </span>
+                                        )}
+                                      </div>
+                                    </button>
+                                  );
+                                })}
+                              </div>
+
+                              {!selectedSuggestion && (
+                                <div
+                                  className="mt-4 rounded-2xl p-3"
+                                  style={{
+                                    background: "rgba(255,255,255,.76)",
+                                    border: "1px dashed rgba(96,117,122,.18)",
+                                  }}
+                                >
+                                  <div
+                                    className="text-[12px] font-extrabold"
+                                    style={{ color: HOLIDAY_GREEN }}
+                                  >
+                                    Pick one option above first
+                                  </div>
+                                  <div
+                                    className="text-[11px] mt-1 leading-relaxed"
+                                    style={{ color: TEXT_MUTED }}
+                                  >
+                                    Once you choose the kind of{" "}
+                                    <strong>{item.item_name}</strong> you want to
+                                    explore, we&apos;ll show Lazada and Shopee links
+                                    that match that direction.
+                                  </div>
+                                </div>
+                              )}
+
+                              {selectedSuggestion && (
+                                <div className="mt-4">
+                                  <div className="flex items-start justify-between gap-3 mb-3 flex-wrap">
+                                    <div>
+                                      <div
+                                        className="text-[12px] font-extrabold"
+                                        style={{ color: HOLIDAY_GREEN }}
+                                      >
+                                        Step 2: Choose a shop
+                                      </div>
+                                      <div
+                                        className="text-[11px] mt-0.5"
+                                        style={{ color: TEXT_MUTED }}
+                                      >
+                                        These links search for{" "}
+                                        <strong>{selectedSuggestion.searchQuery}</strong>{" "}
+                                        so you can compare merchants quickly.
+                                      </div>
+                                    </div>
                                     <span
                                       className="text-[10px] font-extrabold px-2 py-1 rounded-lg"
                                       style={{
-                                        background:
-                                          suggestion.merchant === "lazada"
-                                            ? "rgba(245,158,11,.14)"
-                                            : "rgba(238,77,45,.12)",
-                                        color:
-                                          suggestion.merchant === "lazada"
-                                            ? "#b45309"
-                                            : "#c2410c",
-                                      }}
-                                    >
-                                      {suggestion.merchantLabel}
-                                    </span>
-                                    <span
-                                      className="text-[10px] font-extrabold"
-                                      style={{ color: HOLIDAY_GREEN }}
-                                    >
-                                      {suggestion.fitLabel}
-                                    </span>
-                                  </div>
-                                  <div
-                                    className="text-[13px] font-extrabold"
-                                    style={{ color: PAGE_TEXT_COLOR }}
-                                  >
-                                    {suggestion.title}
-                                  </div>
-                                  <div
-                                    className="text-[11px] mt-1"
-                                    style={{ color: TEXT_MUTED }}
-                                  >
-                                    Search for <strong>{suggestion.searchQuery}</strong>
-                                  </div>
-                                  {suggestion.priceLabel && (
-                                    <div
-                                      className="text-[10px] font-bold mt-2"
-                                      style={{ color: HOLIDAY_GOLD }}
-                                    >
-                                      {suggestion.priceLabel}
-                                    </div>
-                                  )}
-                                  <div
-                                    className="text-[10px] mt-2 leading-relaxed"
-                                    style={{ color: TEXT_MUTED }}
-                                  >
-                                    {suggestion.subtitle}
-                                  </div>
-                                  <div
-                                    className="text-[11px] font-semibold mt-3"
-                                    style={{ color: HOLIDAY_BLUE }}
-                                  >
-                                    View on {suggestion.merchantLabel} {"->"}
-                                  </div>
-                                </a>
-                              ))}
-                            </div>
-
-                            {followUpSuggestions.length > 0 && (
-                              <div className="mt-3">
-                                <div
-                                  className="text-[10px] font-extrabold uppercase tracking-[0.18em] mb-2"
-                                  style={{ color: TEXT_SOFT }}
-                                >
-                                  More ideas to try
-                                </div>
-                                <div className="flex flex-wrap gap-2">
-                                  {followUpSuggestions.map((suggestion) => (
-                                    <a
-                                      key={suggestion.id}
-                                      href={suggestion.href}
-                                      target="_blank"
-                                      rel="noopener noreferrer"
-                                      className="px-3 py-2 rounded-xl text-[11px] font-semibold"
-                                      style={{
                                         background: "rgba(255,255,255,.78)",
-                                        color: PAGE_TEXT_COLOR,
-                                        border: "1px solid rgba(96,117,122,.12)",
-                                        textDecoration: "none",
+                                        color: HOLIDAY_GREEN,
                                       }}
                                     >
-                                      {suggestion.searchQuery} on {suggestion.merchantLabel}
-                                    </a>
-                                  ))}
-                                </div>
-                              </div>
-                            )}
+                                      Lazada + Shopee
+                                    </span>
+                                  </div>
 
-                            <div
-                              className="text-[9px] mt-3"
-                              style={{ color: TEXT_SOFT }}
-                            >
-                              {primarySuggestions[0]?.disclosure}
+                                  <div className="grid gap-2 sm:grid-cols-2">
+                                    {merchantLinks.map((merchantLink) => (
+                                      <a
+                                        key={merchantLink.id}
+                                        href={merchantLink.href}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="rounded-2xl p-3 transition"
+                                        style={{
+                                          background: "rgba(255,255,255,.88)",
+                                          border: "1px solid rgba(96,117,122,.12)",
+                                          color: PAGE_TEXT_COLOR,
+                                          textDecoration: "none",
+                                          boxShadow: "0 8px 18px rgba(34,55,59,.05)",
+                                        }}
+                                      >
+                                        <div className="flex items-center justify-between gap-3 mb-2">
+                                          <span
+                                            className="text-[10px] font-extrabold px-2 py-1 rounded-lg"
+                                            style={{
+                                              background:
+                                                merchantLink.merchant === "lazada"
+                                                  ? "rgba(245,158,11,.14)"
+                                                  : "rgba(238,77,45,.12)",
+                                              color:
+                                                merchantLink.merchant === "lazada"
+                                                  ? "#b45309"
+                                                  : "#c2410c",
+                                            }}
+                                          >
+                                            {merchantLink.merchantLabel}
+                                          </span>
+                                          <span
+                                            className="text-[10px] font-extrabold"
+                                            style={{ color: HOLIDAY_GREEN }}
+                                          >
+                                            {merchantLink.fitLabel}
+                                          </span>
+                                        </div>
+                                        <div
+                                          className="text-[13px] font-extrabold"
+                                          style={{ color: PAGE_TEXT_COLOR }}
+                                        >
+                                          {merchantLink.title}
+                                        </div>
+                                        <div
+                                          className="text-[11px] mt-1"
+                                          style={{ color: TEXT_MUTED }}
+                                        >
+                                          {merchantLink.subtitle}
+                                        </div>
+                                        {merchantLink.priceLabel && (
+                                          <div
+                                            className="text-[10px] font-bold mt-2"
+                                            style={{ color: HOLIDAY_GOLD }}
+                                          >
+                                            {merchantLink.priceLabel}
+                                          </div>
+                                        )}
+                                        <div
+                                          className="text-[11px] font-semibold mt-3"
+                                          style={{ color: HOLIDAY_BLUE }}
+                                        >
+                                          View on {merchantLink.merchantLabel} {"->"}
+                                        </div>
+                                      </a>
+                                    ))}
+                                  </div>
+
+                                  <div
+                                    className="text-[9px] mt-3"
+                                    style={{ color: TEXT_SOFT }}
+                                  >
+                                    {selectedSuggestion.disclosure}
+                                  </div>
+                                </div>
+                              )}
                             </div>
-                          </div>
+                          )}
                         </div>
                       );
                     })
