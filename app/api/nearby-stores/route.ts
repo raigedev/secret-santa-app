@@ -273,7 +273,10 @@ function getDisplayPrimaryType(categories: string[] | undefined): string | null 
     .replace(/\b\w/g, (character) => character.toUpperCase());
 }
 
-function getAvailabilitySignal(score: number): {
+function getAvailabilitySignal(
+  score: number,
+  categories: string[] | undefined
+): {
   badge: string;
   hint: string;
 } {
@@ -281,20 +284,32 @@ function getAvailabilitySignal(score: number): {
   // We only know how closely the store profile matches the wishlist item type.
   if (score >= 8) {
     return {
-      badge: "High chance",
+      badge: "Likely",
       hint: "This store looks strongly aligned with the wishlist item type.",
     };
   }
 
   if (score >= 5) {
     return {
-      badge: "Good match",
+      badge: "Good option",
       hint: "This store likely carries items close to what the giftee wants.",
     };
   }
 
+  const categoryText = (categories || []).join(" ").toLowerCase();
+
+  if (
+    categoryText.includes("shopping_mall") ||
+    categoryText.includes("department_store")
+  ) {
+    return {
+      badge: "Broad option",
+      hint: "This is a general shopping stop where you may find related stores in one place.",
+    };
+  }
+
   return {
-    badge: "Possible fallback",
+    badge: "Backup",
     hint: "This is a broader backup option if the closer matches do not work out.",
   };
 }
@@ -500,7 +515,10 @@ export async function POST(request: NextRequest) {
             .filter(Boolean)
             .join(", ") ||
           "Address unavailable";
-        const availabilitySignal = getAvailabilitySignal(relevanceScore);
+        const availabilitySignal = getAvailabilitySignal(
+          relevanceScore,
+          properties.categories
+        );
 
         const scoredStore: ScoredNearbyStoreResult = {
           id: key,

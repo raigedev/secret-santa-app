@@ -473,6 +473,33 @@ function createActionMessage(result: {
   };
 }
 
+// Nearby-store badges are a soft guidance layer.
+// They help the giver compare store fit quickly without implying live inventory.
+function getNearbyAvailabilityBadgeStyle(label: string) {
+  switch (label) {
+    case "Likely":
+      return {
+        background: "rgba(47,107,86,.12)",
+        color: HOLIDAY_GREEN,
+      };
+    case "Good option":
+      return {
+        background: "rgba(169,135,61,.12)",
+        color: HOLIDAY_GOLD,
+      };
+    case "Broad option":
+      return {
+        background: "rgba(88,116,142,.12)",
+        color: HOLIDAY_BLUE,
+      };
+    default:
+      return {
+        background: "rgba(148,163,184,.18)",
+        color: TEXT_MUTED,
+      };
+  }
+}
+
 export default function SecretSantaPage() {
   const router = useRouter();
 
@@ -2157,22 +2184,9 @@ export default function SecretSantaPage() {
                                                   <div className="flex items-center gap-2 flex-wrap justify-end">
                                                     <span
                                                       className="text-[9px] font-extrabold px-2 py-1 rounded-lg"
-                                                      style={{
-                                                        background:
-                                                          store.availabilityBadge === "High chance"
-                                                            ? "rgba(47,107,86,.12)"
-                                                            : store.availabilityBadge ===
-                                                                "Good match"
-                                                              ? "rgba(169,135,61,.12)"
-                                                              : "rgba(88,116,142,.12)",
-                                                        color:
-                                                          store.availabilityBadge === "High chance"
-                                                            ? HOLIDAY_GREEN
-                                                            : store.availabilityBadge ===
-                                                                "Good match"
-                                                              ? HOLIDAY_GOLD
-                                                              : HOLIDAY_BLUE,
-                                                      }}
+                                                      style={getNearbyAvailabilityBadgeStyle(
+                                                        store.availabilityBadge
+                                                      )}
                                                     >
                                                       {store.availabilityBadge}
                                                     </span>
