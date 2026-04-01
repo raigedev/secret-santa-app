@@ -11,6 +11,8 @@ import {
 import { confirmGiftReceived, updateGiftPrepStatus } from "./actions";
 import { SecretSantaSkeleton } from "@/app/components/PageSkeleton";
 import { WISHLIST_CATEGORIES } from "@/lib/wishlist/options";
+import { formatPriceRange, normalizeOptionalPriceValue } from "@/lib/wishlist/pricing";
+import { buildWishlistSuggestions } from "@/lib/wishlist/suggestions";
 
 type WishlistItem = {
   id: string;
@@ -20,6 +22,8 @@ type WishlistItem = {
   item_image_url: string;
   item_link: string;
   item_note: string;
+  preferred_price_min: number | null;
+  preferred_price_max: number | null;
   priority: number;
 };
 
@@ -27,6 +31,8 @@ type RecipientData = {
   group_id: string;
   group_name: string;
   group_event_date: string;
+  group_budget: number | null;
+  group_currency: string | null;
   receiver_nickname: string;
   receiver_wishlist: WishlistItem[];
   gift_prep_status: GiftPrepStatus | null;
@@ -47,6 +53,8 @@ type GroupOption = {
   id: string;
   name: string;
   eventDate: string;
+  budget: number | null;
+  currency: string | null;
 };
 
 type ActionMessage = {
@@ -58,6 +66,8 @@ type GroupRow = {
   id: string;
   name: string | null;
   event_date: string | null;
+  budget: number | null;
+  currency: string | null;
 };
 
 type AssignmentRow = {
@@ -90,6 +100,8 @@ type WishlistRow = {
   item_image_url: string | null;
   item_link: string | null;
   item_note: string | null;
+  preferred_price_min: number | null;
+  preferred_price_max: number | null;
   priority: number | null;
 };
 
@@ -217,6 +229,8 @@ function toWishlistItem(row: WishlistRow): WishlistItem {
     item_image_url: row.item_image_url || "",
     item_link: row.item_link || "",
     item_note: row.item_note || "",
+    preferred_price_min: row.preferred_price_min ?? null,
+    preferred_price_max: row.preferred_price_max ?? null,
     priority: row.priority || 0,
   };
 }
@@ -264,6 +278,8 @@ function buildAvailableGroups(groups: GroupRow[]): GroupOption[] {
       id: group.id,
       name: group.name || "Unknown Group",
       eventDate: group.event_date || "",
+      budget: group.budget ?? null,
+      currency: group.currency || null,
     }))
     .sort((left, right) => {
       const leftTime = new Date(left.eventDate).getTime();
@@ -312,6 +328,8 @@ function buildRecipientData(
         group_id: assignment.group_id,
         group_name: group?.name || "Unknown Group",
         group_event_date: group?.eventDate || "",
+        group_budget: group?.budget ?? null,
+        group_currency: group?.currency ?? null,
         receiver_nickname: receiver?.nickname || "Secret Participant",
         receiver_wishlist: sortWishlistItems(
           wishlistsByKey.get(
@@ -403,6 +421,13 @@ function getGiftPrepLabel(status: GiftPrepStatus | null): string {
   return GIFT_PREP_LABELS[status];
 }
 
+function formatWishlistBudget(
+  item: Pick<WishlistItem, "preferred_price_min" | "preferred_price_max">,
+  currency: string | null
+): string | null {
+  return formatPriceRange(item.preferred_price_min, item.preferred_price_max, currency);
+}
+
 // Make success and error messages explicit instead of inferring them from punctuation.
 function createActionMessage(result: {
   success: boolean;
@@ -436,6 +461,8 @@ export default function SecretSantaPage() {
   const [addImageUrl, setAddImageUrl] = useState("");
   const [addLink, setAddLink] = useState("");
   const [addNote, setAddNote] = useState("");
+  const [addPriceMin, setAddPriceMin] = useState("");
+  const [addPriceMax, setAddPriceMax] = useState("");
   const [addPriority, setAddPriority] = useState(0);
   const [addLoading, setAddLoading] = useState(false);
 
@@ -446,6 +473,8 @@ export default function SecretSantaPage() {
   const [editImageUrl, setEditImageUrl] = useState("");
   const [editLink, setEditLink] = useState("");
   const [editNote, setEditNote] = useState("");
+  const [editPriceMin, setEditPriceMin] = useState("");
+  const [editPriceMax, setEditPriceMax] = useState("");
   const [editPriority, setEditPriority] = useState(0);
   const [editLoadingId, setEditLoadingId] = useState<string | null>(null);
   const [deleteLoadingId, setDeleteLoadingId] = useState<string | null>(null);
@@ -515,7 +544,10 @@ export default function SecretSantaPage() {
           { data: receivedAssignments, error: receivedAssignmentsError },
           { data: myWishlistData, error: myWishlistError },
         ] = await Promise.all([
-          supabase.from("groups").select("id, name, event_date").in("id", groupIds),
+          supabase
+            .from("groups")
+            .select("id, name, event_date, budget, currency")
+            .in("id", groupIds),
           supabase
             .from("assignments")
             .select(
@@ -530,7 +562,9 @@ export default function SecretSantaPage() {
             .in("group_id", groupIds),
           supabase
             .from("wishlists")
-            .select("id, group_id, user_id, item_name, item_category, item_image_url, item_link, item_note, priority")
+            .select(
+              "id, group_id, user_id, item_name, item_category, item_image_url, item_link, item_note, preferred_price_min, preferred_price_max, priority"
+            )
             .eq("user_id", user.id)
             .in("group_id", groupIds),
         ]);
@@ -565,7 +599,9 @@ export default function SecretSantaPage() {
               .eq("status", "accepted"),
             supabase
               .from("wishlists")
-              .select("id, group_id, user_id, item_name, item_category, item_image_url, item_link, item_note, priority")
+              .select(
+                "id, group_id, user_id, item_name, item_category, item_image_url, item_link, item_note, preferred_price_min, preferred_price_max, priority"
+              )
               .in("user_id", receiverIds)
               .in("group_id", groupIds),
           ]);
@@ -673,6 +709,8 @@ export default function SecretSantaPage() {
     const cleanLink = normalizeOptionalUrl(addLink);
     const cleanImageUrl = normalizeOptionalUrl(addImageUrl);
     const cleanNote = normalizeTextInput(addNote, ITEM_NOTE_MAX_LENGTH);
+    const cleanPriceMin = normalizeOptionalPriceValue(addPriceMin);
+    const cleanPriceMax = normalizeOptionalPriceValue(addPriceMax);
     const validGroupIds = new Set(availableGroups.map((group) => group.id));
 
     if (!cleanName) {
@@ -682,6 +720,24 @@ export default function SecretSantaPage() {
 
     if (!addGroupId || !validGroupIds.has(addGroupId)) {
       setMessage({ type: "error", text: "Select a valid group first." });
+      return;
+    }
+
+    if (addPriceMin.trim() && cleanPriceMin === null) {
+      setMessage({ type: "error", text: "Enter a valid minimum price." });
+      return;
+    }
+
+    if (addPriceMax.trim() && cleanPriceMax === null) {
+      setMessage({ type: "error", text: "Enter a valid maximum price." });
+      return;
+    }
+
+    if (cleanPriceMin !== null && cleanPriceMax !== null && cleanPriceMin > cleanPriceMax) {
+      setMessage({
+        type: "error",
+        text: "Minimum price cannot be greater than maximum price.",
+      });
       return;
     }
 
@@ -696,7 +752,9 @@ export default function SecretSantaPage() {
         cleanNote,
         addPriority > 0 ? 1 : 0,
         addCategory,
-        cleanImageUrl
+        cleanImageUrl,
+        addPriceMin,
+        addPriceMax
       );
 
       setMessage(createActionMessage(result));
@@ -707,6 +765,8 @@ export default function SecretSantaPage() {
         setAddImageUrl("");
         setAddLink("");
         setAddNote("");
+        setAddPriceMin("");
+        setAddPriceMax("");
         setAddPriority(0);
         setShowAdd(false);
       }
@@ -725,9 +785,29 @@ export default function SecretSantaPage() {
     const cleanLink = normalizeOptionalUrl(editLink);
     const cleanImageUrl = normalizeOptionalUrl(editImageUrl);
     const cleanNote = normalizeTextInput(editNote, ITEM_NOTE_MAX_LENGTH);
+    const cleanPriceMin = normalizeOptionalPriceValue(editPriceMin);
+    const cleanPriceMax = normalizeOptionalPriceValue(editPriceMax);
 
     if (!cleanName) {
       setMessage({ type: "error", text: "Item name is required." });
+      return;
+    }
+
+    if (editPriceMin.trim() && cleanPriceMin === null) {
+      setMessage({ type: "error", text: "Enter a valid minimum price." });
+      return;
+    }
+
+    if (editPriceMax.trim() && cleanPriceMax === null) {
+      setMessage({ type: "error", text: "Enter a valid maximum price." });
+      return;
+    }
+
+    if (cleanPriceMin !== null && cleanPriceMax !== null && cleanPriceMin > cleanPriceMax) {
+      setMessage({
+        type: "error",
+        text: "Minimum price cannot be greater than maximum price.",
+      });
       return;
     }
 
@@ -742,7 +822,9 @@ export default function SecretSantaPage() {
         cleanNote,
         editPriority > 0 ? 1 : 0,
         editCategory,
-        cleanImageUrl
+        cleanImageUrl,
+        editPriceMin,
+        editPriceMax
       );
 
       setMessage(createActionMessage(result));
@@ -861,12 +943,18 @@ export default function SecretSantaPage() {
     setEditImageUrl(item.item_image_url);
     setEditLink(item.item_link);
     setEditNote(item.item_note);
+    setEditPriceMin(item.preferred_price_min?.toString() || "");
+    setEditPriceMax(item.preferred_price_max?.toString() || "");
     setEditPriority(item.priority);
     setMessage(null);
   };
 
   const getGroupName = (groupId: string) => {
     return availableGroups.find((group) => group.id === groupId)?.name || "Unknown Group";
+  };
+
+  const getGroupCurrency = (groupId: string) => {
+    return availableGroups.find((group) => group.id === groupId)?.currency || null;
   };
 
   if (loading) {
@@ -1073,6 +1161,21 @@ export default function SecretSantaPage() {
                       const categoryStyle = item.item_category
                         ? getWishlistCategoryStyle(item.item_category)
                         : null;
+                      const budgetLabel = formatWishlistBudget(
+                        item,
+                        assignment.group_currency
+                      );
+                      const suggestions = buildWishlistSuggestions({
+                        groupId: assignment.group_id,
+                        wishlistItemId: item.id,
+                        itemName: item.item_name,
+                        itemCategory: item.item_category,
+                        itemNote: item.item_note,
+                        preferredPriceMin: item.preferred_price_min,
+                        preferredPriceMax: item.preferred_price_max,
+                        groupBudget: assignment.group_budget,
+                        currency: assignment.group_currency,
+                      });
 
                       return (
                         <div
@@ -1114,6 +1217,17 @@ export default function SecretSantaPage() {
                                   style={categoryStyle}
                                 >
                                   {item.item_category}
+                                </span>
+                              )}
+                              {budgetLabel && (
+                                <span
+                                  className="text-[10px] font-extrabold px-2 py-1 rounded-lg"
+                                  style={{
+                                    background: "rgba(47,107,86,.12)",
+                                    color: HOLIDAY_GREEN,
+                                  }}
+                                >
+                                  Budget {budgetLabel}
                                 </span>
                               )}
                             </div>
@@ -1158,6 +1272,119 @@ export default function SecretSantaPage() {
                                   : safeItemLink}
                               </a>
                             )}
+                            <div
+                              className="rounded-xl p-3 mt-3"
+                              style={{
+                                background: "rgba(47,107,86,.08)",
+                                border: "1px solid rgba(47,107,86,.14)",
+                              }}
+                            >
+                              <div className="flex items-center justify-between gap-3 mb-2">
+                                <div>
+                                  <div
+                                    className="text-[12px] font-extrabold"
+                                    style={{ color: HOLIDAY_GREEN }}
+                                  >
+                                    Suggested Gifts
+                                  </div>
+                                  <div
+                                    className="text-[11px] mt-0.5"
+                                    style={{ color: TEXT_MUTED }}
+                                  >
+                                    Helpful search ideas on Lazada and Shopee based on this
+                                    wishlist item.
+                                  </div>
+                                </div>
+                                <span
+                                  className="text-[10px] font-extrabold px-2 py-1 rounded-lg"
+                                  style={{
+                                    background: "rgba(255,255,255,.78)",
+                                    color: HOLIDAY_GREEN,
+                                  }}
+                                >
+                                  Affiliate-ready
+                                </span>
+                              </div>
+                              <div className="grid gap-2 sm:grid-cols-2">
+                                {suggestions.map((suggestion) => (
+                                  <a
+                                    key={suggestion.id}
+                                    href={suggestion.href}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="rounded-xl p-3 transition"
+                                    style={{
+                                      background: "rgba(255,255,255,.82)",
+                                      border: "1px solid rgba(96,117,122,.12)",
+                                      color: PAGE_TEXT_COLOR,
+                                      textDecoration: "none",
+                                    }}
+                                  >
+                                    <div className="flex items-center justify-between gap-3 mb-1">
+                                      <span
+                                        className="text-[10px] font-extrabold px-2 py-1 rounded-lg"
+                                        style={{
+                                          background:
+                                            suggestion.merchant === "lazada"
+                                              ? "rgba(245,158,11,.14)"
+                                              : "rgba(238,77,45,.12)",
+                                          color:
+                                            suggestion.merchant === "lazada"
+                                              ? "#b45309"
+                                              : "#c2410c",
+                                        }}
+                                      >
+                                        {suggestion.merchantLabel}
+                                      </span>
+                                      <span
+                                        className="text-[10px] font-extrabold"
+                                        style={{ color: HOLIDAY_GREEN }}
+                                      >
+                                        {suggestion.fitLabel}
+                                      </span>
+                                    </div>
+                                    <div
+                                      className="text-[13px] font-bold mb-1"
+                                      style={{ color: PAGE_TEXT_COLOR }}
+                                    >
+                                      {suggestion.title}
+                                    </div>
+                                    <div
+                                      className="text-[11px] leading-relaxed"
+                                      style={{ color: TEXT_MUTED }}
+                                    >
+                                      {suggestion.subtitle}
+                                    </div>
+                                    <div
+                                      className="text-[11px] font-semibold mt-2"
+                                      style={{ color: HOLIDAY_GOLD }}
+                                    >
+                                      Search: {suggestion.searchQuery}
+                                    </div>
+                                    {suggestion.priceLabel && (
+                                      <div
+                                        className="text-[10px] font-bold mt-1"
+                                        style={{ color: TEXT_MUTED }}
+                                      >
+                                        {suggestion.priceLabel}
+                                      </div>
+                                    )}
+                                    <div
+                                      className="text-[10px] font-semibold mt-2"
+                                      style={{ color: HOLIDAY_BLUE }}
+                                    >
+                                      View on {suggestion.merchantLabel} {"->"}
+                                    </div>
+                                    <div
+                                      className="text-[9px] mt-1"
+                                      style={{ color: TEXT_SOFT }}
+                                    >
+                                      {suggestion.disclosure}
+                                    </div>
+                                  </a>
+                                ))}
+                              </div>
+                            </div>
                           </div>
                         </div>
                       );
@@ -1653,6 +1880,41 @@ export default function SecretSantaPage() {
                   />
                 </div>
 
+                <div className="flex gap-2 mb-2 flex-col sm:flex-row">
+                  <input
+                    type="number"
+                    inputMode="decimal"
+                    min="0"
+                    step="0.01"
+                    value={addPriceMin}
+                    onChange={(event) => setAddPriceMin(event.target.value)}
+                    placeholder="Preferred min price (optional)..."
+                    className="flex-1 px-3 py-2.5 rounded-lg text-[13px] outline-none"
+                    style={{
+                      background: INPUT_BACKGROUND,
+                      border: INPUT_BORDER,
+                      color: INPUT_TEXT,
+                      fontFamily: "inherit",
+                    }}
+                  />
+                  <input
+                    type="number"
+                    inputMode="decimal"
+                    min="0"
+                    step="0.01"
+                    value={addPriceMax}
+                    onChange={(event) => setAddPriceMax(event.target.value)}
+                    placeholder="Preferred max price (optional)..."
+                    className="flex-1 px-3 py-2.5 rounded-lg text-[13px] outline-none"
+                    style={{
+                      background: INPUT_BACKGROUND,
+                      border: INPUT_BORDER,
+                      color: INPUT_TEXT,
+                      fontFamily: "inherit",
+                    }}
+                  />
+                </div>
+
                 <div className="flex items-center justify-between">
                   <label
                     className="flex items-center gap-2 text-[11px] font-bold"
@@ -1714,7 +1976,13 @@ export default function SecretSantaPage() {
                 No items yet — add your first gift idea!
               </div>
             ) : (
-              myItems.map((item) => (
+              myItems.map((item) => {
+                const myBudgetLabel = formatWishlistBudget(
+                  item,
+                  getGroupCurrency(item.group_id)
+                );
+
+                return (
                 <div key={item.id}>
                   {editingId === item.id ? (
                     <div
@@ -1792,6 +2060,40 @@ export default function SecretSantaPage() {
                           onChange={(event) => setEditNote(event.target.value)}
                           maxLength={ITEM_NOTE_MAX_LENGTH}
                           placeholder="Note..."
+                          className="flex-1 px-3 py-2 rounded-lg text-[13px] outline-none"
+                          style={{
+                            background: INPUT_BACKGROUND,
+                            border: INPUT_BORDER,
+                            color: INPUT_TEXT,
+                            fontFamily: "inherit",
+                          }}
+                        />
+                      </div>
+                      <div className="flex gap-2 mb-2 flex-col sm:flex-row">
+                        <input
+                          type="number"
+                          inputMode="decimal"
+                          min="0"
+                          step="0.01"
+                          value={editPriceMin}
+                          onChange={(event) => setEditPriceMin(event.target.value)}
+                          placeholder="Preferred min price..."
+                          className="flex-1 px-3 py-2 rounded-lg text-[13px] outline-none"
+                          style={{
+                            background: INPUT_BACKGROUND,
+                            border: INPUT_BORDER,
+                            color: INPUT_TEXT,
+                            fontFamily: "inherit",
+                          }}
+                        />
+                        <input
+                          type="number"
+                          inputMode="decimal"
+                          min="0"
+                          step="0.01"
+                          value={editPriceMax}
+                          onChange={(event) => setEditPriceMax(event.target.value)}
+                          placeholder="Preferred max price..."
                           className="flex-1 px-3 py-2 rounded-lg text-[13px] outline-none"
                           style={{
                             background: INPUT_BACKGROUND,
@@ -1884,6 +2186,17 @@ export default function SecretSantaPage() {
                               {item.item_category}
                             </span>
                           )}
+                          {myBudgetLabel && (
+                            <span
+                              className="text-[10px] font-extrabold px-2 py-1 rounded-lg"
+                              style={{
+                                background: "rgba(47,107,86,.12)",
+                                color: HOLIDAY_GREEN,
+                              }}
+                            >
+                              Budget {myBudgetLabel}
+                            </span>
+                          )}
                         </div>
                         <div
                           className="text-[13px] font-bold"
@@ -1969,7 +2282,8 @@ export default function SecretSantaPage() {
                     </div>
                   )}
                 </div>
-              ))
+                );
+              })
             )}
           </div>
         </div>
