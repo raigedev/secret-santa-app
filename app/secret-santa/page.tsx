@@ -85,6 +85,7 @@ type NearbyStoreResult = {
 };
 
 type NearbyStoreState = {
+  hasSearched: boolean;
   loading: boolean;
   error: string | null;
   requestKey: string;
@@ -1095,6 +1096,7 @@ export default function SecretSantaPage() {
       setNearbyStoreStateByItem((current) => ({
         ...current,
         [itemId]: {
+          hasSearched: false,
           loading: false,
           error: "Add an area or city above, or use your current location first.",
           requestKey: "",
@@ -1119,7 +1121,7 @@ export default function SecretSantaPage() {
     if (
       existingState &&
       existingState.requestKey === requestKey &&
-      (existingState.stores.length > 0 || existingState.error)
+      existingState.hasSearched
     ) {
       return;
     }
@@ -1127,6 +1129,7 @@ export default function SecretSantaPage() {
     setNearbyStoreStateByItem((current) => ({
       ...current,
       [itemId]: {
+        hasSearched: true,
         loading: true,
         error: null,
         requestKey,
@@ -1156,6 +1159,7 @@ export default function SecretSantaPage() {
       setNearbyStoreStateByItem((current) => ({
         ...current,
         [itemId]: {
+          hasSearched: true,
           loading: false,
           error: payload.error || null,
           requestKey,
@@ -1166,6 +1170,7 @@ export default function SecretSantaPage() {
       setNearbyStoreStateByItem((current) => ({
         ...current,
         [itemId]: {
+          hasSearched: true,
           loading: false,
           error:
             "We couldn't load nearby stores right now. You can still use the Maps links below.",
@@ -2146,6 +2151,32 @@ export default function SecretSantaPage() {
                                       )}
 
                                       {visibleNearbyStoreState &&
+                                        visibleNearbyStoreState.hasSearched &&
+                                        !visibleNearbyStoreState.loading &&
+                                        !visibleNearbyStoreState.error &&
+                                        visibleNearbyStoreState.stores.length === 0 && (
+                                          <div
+                                            className="rounded-xl p-3 mt-3"
+                                            style={{
+                                              background: "rgba(88,116,142,.08)",
+                                              border: "1px solid rgba(88,116,142,.12)",
+                                              color: HOLIDAY_BLUE,
+                                            }}
+                                          >
+                                            <div className="text-[11px] font-bold">
+                                              No strong nearby matches showed up for this item yet.
+                                            </div>
+                                            <div
+                                              className="text-[10px] mt-1 leading-relaxed"
+                                              style={{ color: TEXT_MUTED }}
+                                            >
+                                              Try a broader area, switch to a different item
+                                              direction, or use the backup Maps searches below.
+                                            </div>
+                                          </div>
+                                        )}
+
+                                      {visibleNearbyStoreState &&
                                         visibleNearbyStoreState.stores.length > 0 && (
                                           <div className="grid gap-2 mt-3">
                                             {visibleNearbyStoreState.stores.map((store) => (
@@ -2241,6 +2272,17 @@ export default function SecretSantaPage() {
                                                 </div>
                                               </a>
                                             ))}
+                                          </div>
+                                        )}
+
+                                      {visibleNearbyStoreState &&
+                                        visibleNearbyStoreState.stores.length > 0 && (
+                                          <div
+                                            className="text-[10px] mt-3 leading-relaxed"
+                                            style={{ color: TEXT_SOFT }}
+                                          >
+                                            Nearby badges show how well the store type matches the
+                                            item, not live inventory at that exact branch.
                                           </div>
                                         )}
 
