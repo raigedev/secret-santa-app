@@ -525,24 +525,48 @@ function getSuggestionPriceLabel(
 function getNearbySearchBase(itemName: string, itemCategory: string, searchQuery: string): string[] {
   const haystack = `${itemName} ${itemCategory} ${searchQuery}`.toLowerCase();
 
-  if (/(tablet|ipad|android tab|laptop|gadget|tech)/.test(haystack)) {
+  if (/(tablet|ipad|android tab|laptop|gadget|tech|phone|mobile|earbuds|headphone|camera)/.test(haystack)) {
     return ["electronics store", "computer shop", "gadget store"];
   }
 
-  if (/(book|novel|manga|comic|journal)/.test(haystack)) {
-    return ["bookstore", "gift shop", "mall bookstore"];
+  if (/(tool|hardware|diy|drill|wrench|screwdriver|hammer|repair kit)/.test(haystack)) {
+    return ["hardware store", "tool shop", "home improvement store"];
   }
 
-  if (/(shirt|hoodie|dress|clothes|clothing|jacket|shoes|fashion)/.test(haystack)) {
+  if (/(book|novel|manga|comic|journal|planner|stationery|art supplies)/.test(haystack)) {
+    return ["bookstore", "school and office supplies", "mall bookstore"];
+  }
+
+  if (/(bag|handbag|purse|wallet|luggage|backpack)/.test(haystack)) {
+    return ["bag store", "fashion accessories shop", "department store"];
+  }
+
+  if (/(shirt|hoodie|dress|clothes|clothing|jacket|shoes|fashion|sandals|slippers|accessories|jewelry)/.test(haystack)) {
     return ["clothing store", "department store", "mall fashion shop"];
   }
 
   if (/(beauty|makeup|skincare|perfume)/.test(haystack)) {
-    return ["beauty store", "department store", "mall beauty shop"];
+    return ["beauty store", "cosmetics shop", "department store"];
   }
 
-  if (/(food|snack|coffee|tea|treat)/.test(haystack)) {
-    return ["gift shop", "specialty food store", "mall food shop"];
+  if (/(game|gaming|console|board game|toy|lego|card game)/.test(haystack)) {
+    return ["gaming store", "toy store", "hobby shop"];
+  }
+
+  if (/(collectible|figure|anime|merch|funko|plush|trading card|model kit|hobby)/.test(haystack)) {
+    return ["collectibles store", "hobby shop", "toy store"];
+  }
+
+  if (/(home|decor|kitchen|cookware|bedding|blanket|pillow|lamp|organizer|mug|candle)/.test(haystack)) {
+    return ["home store", "kitchenware shop", "department store"];
+  }
+
+  if (/(food|snack|coffee|tea|treat|chocolate|pastry|cake|cookie|hamper|bakery|pasalubong)/.test(haystack)) {
+    return ["specialty food store", "bakery", "pasalubong shop"];
+  }
+
+  if (/(experience|voucher|spa|massage|cinema|activity|class|workshop)/.test(haystack)) {
+    return ["spa and wellness center", "cinema", "activity center"];
   }
 
   return ["gift shop", "department store", "mall store"];

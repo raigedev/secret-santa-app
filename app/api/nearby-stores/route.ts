@@ -63,8 +63,15 @@ type GeoapifyPlacesResponse = {
 const MAX_QUERIES = 3;
 const MAX_RESULTS = 6;
 
-const TECH_GROCERY_KEYWORDS = [
+const HARD_GROCERY_CHAIN_KEYWORDS = [
   "alfamart",
+  "7-eleven",
+  "7 eleven",
+  "uncle john",
+  "dali",
+];
+
+const SOFT_GROCERY_KEYWORDS = [
   "savemore",
   "supermarket",
   "convenience",
@@ -72,10 +79,6 @@ const TECH_GROCERY_KEYWORDS = [
   "mini mart",
   "grocery",
   "puregold",
-  "7-eleven",
-  "7 eleven",
-  "uncle john",
-  "dali",
 ];
 
 const TECH_MAJOR_RETAILER_KEYWORDS = [
@@ -88,8 +91,92 @@ const TECH_MAJOR_RETAILER_KEYWORDS = [
   "department store",
 ];
 
+const BOOKSTORE_RETAILER_KEYWORDS = [
+  "fully booked",
+  "national bookstore",
+  "booksale",
+  "bookstore",
+  "book shop",
+];
+
+const FASHION_RETAILER_KEYWORDS = [
+  "department store",
+  "shopping mall",
+  "boutique",
+  "apparel",
+  "fashion",
+  "shoe",
+  "bag",
+  "luggage",
+];
+
+const TOOLS_RETAILER_KEYWORDS = [
+  "ace hardware",
+  "wilcon",
+  "mr diy",
+  "handyman",
+  "hardware",
+  "tool",
+  "home improvement",
+];
+
+const GAMES_AND_COLLECTIBLES_KEYWORDS = [
+  "datablitz",
+  "gamextreme",
+  "toy kingdom",
+  "toy store",
+  "gaming",
+  "hobby",
+  "collectible",
+  "figure",
+];
+
+const HOME_STORE_KEYWORDS = [
+  "department store",
+  "shopping mall",
+  "home",
+  "decor",
+  "houseware",
+  "kitchen",
+  "furniture",
+];
+
+const FOOD_SPECIALTY_KEYWORDS = [
+  "bakery",
+  "coffee",
+  "tea",
+  "pasalubong",
+  "deli",
+  "snack",
+  "chocolate",
+  "specialty food",
+];
+
+const EXPERIENCE_PLACE_KEYWORDS = [
+  "spa",
+  "wellness",
+  "cinema",
+  "activity",
+  "workshop",
+  "class",
+  "massage",
+];
+
 type PlaceSearchProfile = {
-  kind: "beauty" | "books" | "fashion" | "generic" | "gift" | "tech";
+  kind:
+    | "bags"
+    | "beauty"
+    | "books"
+    | "collectibles"
+    | "experience"
+    | "fashion"
+    | "food"
+    | "games"
+    | "generic"
+    | "gift"
+    | "home"
+    | "tech"
+    | "tools";
   categories: string[];
   strongMatchKeywords: string[];
   supportKeywords: string[];
@@ -189,6 +276,27 @@ function getPlaceSearchProfile(query: string): PlaceSearchProfile {
     };
   }
 
+  if (/(tool|hardware|diy|drill|wrench|screwdriver|hammer|repair kit)/.test(haystack)) {
+    return {
+      kind: "tools",
+      categories: ["commercial.department_store", "commercial.shopping_mall"],
+      strongMatchKeywords: [
+        "hardware",
+        "tool",
+        "tools",
+        "diy",
+        "home improvement",
+        "drill",
+        "wrench",
+        "screwdriver",
+      ],
+      supportKeywords: ["department store", "shopping mall", "houseware"],
+      excludeKeywords: ["beauty", "fashion", "laundry", "grocery"],
+      categoryHints: ["department_store", "shopping_mall"],
+      minimumScore: 2,
+    };
+  }
+
   if (/(book|bookstore|journal|manga|comic)/.test(haystack)) {
     return {
       kind: "books",
@@ -205,6 +313,26 @@ function getPlaceSearchProfile(query: string): PlaceSearchProfile {
       supportKeywords: ["stationery", "school", "office supplies", "shopping mall"],
       excludeKeywords: ["hotel", "cafe", "restaurant", "bar", "repair"],
       categoryHints: ["books", "shopping_mall"],
+      minimumScore: 2,
+    };
+  }
+
+  if (/(bag|handbag|purse|wallet|luggage|backpack)/.test(haystack)) {
+    return {
+      kind: "bags",
+      categories: ["commercial.clothing", "commercial.department_store"],
+      strongMatchKeywords: [
+        "bag",
+        "bags",
+        "handbag",
+        "purse",
+        "wallet",
+        "luggage",
+        "backpack",
+      ],
+      supportKeywords: ["fashion", "accessories", "department store", "shopping mall"],
+      excludeKeywords: ["grocery", "hardware", "laundry"],
+      categoryHints: ["clothing", "department_store", "shopping_mall"],
       minimumScore: 2,
     };
   }
@@ -249,6 +377,124 @@ function getPlaceSearchProfile(query: string): PlaceSearchProfile {
       supportKeywords: ["health and beauty", "department store"],
       excludeKeywords: ["clinic", "dental", "hospital"],
       categoryHints: ["health_and_beauty", "cosmetics", "department_store"],
+      minimumScore: 2,
+    };
+  }
+
+  if (/(game|gaming|console|board game|toy|lego|card game)/.test(haystack)) {
+    return {
+      kind: "games",
+      categories: ["commercial.department_store", "commercial.shopping_mall"],
+      strongMatchKeywords: [
+        "game",
+        "gaming",
+        "console",
+        "board game",
+        "toy",
+        "lego",
+        "card game",
+      ],
+      supportKeywords: ["hobby", "department store", "shopping mall"],
+      excludeKeywords: ["grocery", "hardware", "industrial"],
+      categoryHints: ["department_store", "shopping_mall"],
+      minimumScore: 2,
+    };
+  }
+
+  if (/(collectible|figure|anime|merch|funko|plush|trading card|model kit|hobby)/.test(haystack)) {
+    return {
+      kind: "collectibles",
+      categories: [
+        "commercial.gift_and_souvenir",
+        "commercial.department_store",
+        "commercial.shopping_mall",
+      ],
+      strongMatchKeywords: [
+        "collectible",
+        "figure",
+        "anime",
+        "merch",
+        "funko",
+        "plush",
+        "trading card",
+        "model kit",
+        "hobby",
+      ],
+      supportKeywords: ["toy", "department store", "shopping mall"],
+      excludeKeywords: ["grocery", "hardware", "industrial"],
+      categoryHints: ["gift_and_souvenir", "department_store", "shopping_mall"],
+      minimumScore: 2,
+    };
+  }
+
+  if (/(home|decor|kitchen|cookware|bedding|blanket|pillow|lamp|organizer|mug|candle)/.test(haystack)) {
+    return {
+      kind: "home",
+      categories: ["commercial.department_store", "commercial.shopping_mall"],
+      strongMatchKeywords: [
+        "home",
+        "decor",
+        "kitchen",
+        "cookware",
+        "bedding",
+        "blanket",
+        "pillow",
+        "lamp",
+        "organizer",
+        "mug",
+        "candle",
+      ],
+      supportKeywords: ["houseware", "department store", "shopping mall"],
+      excludeKeywords: ["industrial", "automotive"],
+      categoryHints: ["department_store", "shopping_mall"],
+      minimumScore: 2,
+    };
+  }
+
+  if (/(food|snack|coffee|tea|treat|chocolate|pastry|cake|cookie|hamper|bakery|pasalubong)/.test(haystack)) {
+    return {
+      kind: "food",
+      categories: [
+        "commercial.gift_and_souvenir",
+        "commercial.department_store",
+        "commercial.shopping_mall",
+      ],
+      strongMatchKeywords: [
+        "food",
+        "snack",
+        "coffee",
+        "tea",
+        "chocolate",
+        "pastry",
+        "cake",
+        "cookie",
+        "bakery",
+        "pasalubong",
+      ],
+      supportKeywords: ["deli", "specialty", "shopping mall"],
+      excludeKeywords: ["hardware", "industrial", "automotive"],
+      categoryHints: ["gift_and_souvenir", "department_store", "shopping_mall"],
+      minimumScore: 2,
+    };
+  }
+
+  if (/(experience|voucher|spa|massage|cinema|activity|class|workshop)/.test(haystack)) {
+    return {
+      kind: "experience",
+      categories: ["commercial.shopping_mall", "commercial.department_store"],
+      strongMatchKeywords: [
+        "spa",
+        "wellness",
+        "cinema",
+        "activity",
+        "class",
+        "workshop",
+        "massage",
+        "voucher",
+      ],
+      supportKeywords: ["shopping mall", "department store"],
+      excludeKeywords: ["grocery", "hardware", "industrial"],
+      categoryHints: ["shopping_mall", "department_store"],
       minimumScore: 2,
     };
   }
@@ -393,18 +639,23 @@ function scorePlaceResult(
   score += supportMatches;
   score += categoryMatches * 2;
 
-  if (profile.kind === "tech") {
-    if (
-      includesAnyKeyword(fullHaystack, TECH_GROCERY_KEYWORDS) ||
-      categoriesHaystack.includes("supermarket") ||
-      categoriesHaystack.includes("convenience")
-    ) {
-      // Grocery and minimart chains are poor tablet/gadget suggestions even when
-      // the provider labels them too broadly. We drop them out instead of showing
-      // a misleading "good fit" badge.
+  if (profile.kind !== "food" && profile.kind !== "generic") {
+    if (includesAnyKeyword(fullHaystack, HARD_GROCERY_CHAIN_KEYWORDS)) {
       return -1;
     }
 
+    if (
+      (includesAnyKeyword(fullHaystack, SOFT_GROCERY_KEYWORDS) ||
+        categoriesHaystack.includes("supermarket") ||
+        categoriesHaystack.includes("convenience")) &&
+      !categoriesHaystack.includes("shopping_mall") &&
+      !categoriesHaystack.includes("department_store")
+    ) {
+      return -1;
+    }
+  }
+
+  if (profile.kind === "tech") {
     if (
       categoriesHaystack.includes("department_store") ||
       categoriesHaystack.includes("shopping_mall")
@@ -415,6 +666,77 @@ function scorePlaceResult(
     }
 
     if (includesAnyKeyword(fullHaystack, TECH_MAJOR_RETAILER_KEYWORDS)) {
+      score += 2;
+    }
+  }
+
+  if (profile.kind === "books") {
+    if (includesAnyKeyword(fullHaystack, BOOKSTORE_RETAILER_KEYWORDS)) {
+      score += 2;
+    }
+
+    if (categoriesHaystack.includes("shopping_mall")) {
+      score += 1;
+    }
+  }
+
+  if (profile.kind === "bags" || profile.kind === "fashion") {
+    if (includesAnyKeyword(fullHaystack, FASHION_RETAILER_KEYWORDS)) {
+      score += 2;
+    }
+
+    if (
+      categoriesHaystack.includes("department_store") ||
+      categoriesHaystack.includes("shopping_mall")
+    ) {
+      score += 1;
+    }
+  }
+
+  if (profile.kind === "tools") {
+    if (includesAnyKeyword(fullHaystack, TOOLS_RETAILER_KEYWORDS)) {
+      score += 2;
+    }
+  }
+
+  if (profile.kind === "games" || profile.kind === "collectibles") {
+    if (includesAnyKeyword(fullHaystack, GAMES_AND_COLLECTIBLES_KEYWORDS)) {
+      score += 2;
+    }
+
+    if (
+      categoriesHaystack.includes("department_store") ||
+      categoriesHaystack.includes("shopping_mall")
+    ) {
+      score += 1;
+    }
+  }
+
+  if (profile.kind === "home") {
+    if (includesAnyKeyword(fullHaystack, HOME_STORE_KEYWORDS)) {
+      score += 2;
+    }
+
+    if (
+      categoriesHaystack.includes("department_store") ||
+      categoriesHaystack.includes("shopping_mall")
+    ) {
+      score += 1;
+    }
+  }
+
+  if (profile.kind === "food") {
+    if (includesAnyKeyword(fullHaystack, FOOD_SPECIALTY_KEYWORDS)) {
+      score += 2;
+    }
+
+    if (categoriesHaystack.includes("shopping_mall")) {
+      score += 1;
+    }
+  }
+
+  if (profile.kind === "experience") {
+    if (includesAnyKeyword(fullHaystack, EXPERIENCE_PLACE_KEYWORDS)) {
       score += 2;
     }
   }
