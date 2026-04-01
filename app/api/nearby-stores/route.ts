@@ -63,6 +63,31 @@ type GeoapifyPlacesResponse = {
 const MAX_QUERIES = 3;
 const MAX_RESULTS = 6;
 
+const TECH_GROCERY_KEYWORDS = [
+  "alfamart",
+  "savemore",
+  "supermarket",
+  "convenience",
+  "minimart",
+  "mini mart",
+  "grocery",
+  "puregold",
+  "7-eleven",
+  "7 eleven",
+  "uncle john",
+  "dali",
+];
+
+const TECH_MAJOR_RETAILER_KEYWORDS = [
+  "sm store",
+  "the sm store",
+  "sm city",
+  "sm center",
+  "sm mall",
+  "central mall",
+  "department store",
+];
+
 type PlaceSearchProfile = {
   kind: "beauty" | "books" | "fashion" | "generic" | "gift" | "tech";
   categories: string[];
@@ -270,6 +295,10 @@ function countKeywordMatches(haystack: string, keywords: string[]): number {
   }, 0);
 }
 
+function includesAnyKeyword(haystack: string, keywords: string[]): boolean {
+  return keywords.some((keyword) => haystack.includes(keyword));
+}
+
 function getDisplayPrimaryType(categories: string[] | undefined): string | null {
   if (!categories || categories.length === 0) {
     return null;
@@ -364,14 +393,30 @@ function scorePlaceResult(
   score += supportMatches;
   score += categoryMatches * 2;
 
-  if (
-    profile.kind === "tech" &&
-    (categoriesHaystack.includes("department_store") ||
-      categoriesHaystack.includes("shopping_mall"))
-  ) {
-    // Big department stores and mall anchors are still plausible tablet/electronics
-    // stops even when the listing is broader than a dedicated gadget shop.
-    score += 2;
+  if (profile.kind === "tech") {
+    if (
+      includesAnyKeyword(fullHaystack, TECH_GROCERY_KEYWORDS) ||
+      categoriesHaystack.includes("supermarket") ||
+      categoriesHaystack.includes("convenience")
+    ) {
+      // Grocery and minimart chains are poor tablet/gadget suggestions even when
+      // the provider labels them too broadly. We drop them out instead of showing
+      // a misleading "good fit" badge.
+      return -1;
+    }
+
+    if (
+      categoriesHaystack.includes("department_store") ||
+      categoriesHaystack.includes("shopping_mall")
+    ) {
+      // Big department stores and mall anchors are still plausible tablet/electronics
+      // stops even when the listing is broader than a dedicated gadget shop.
+      score += 2;
+    }
+
+    if (includesAnyKeyword(fullHaystack, TECH_MAJOR_RETAILER_KEYWORDS)) {
+      score += 2;
+    }
   }
 
   // Nearby malls and department stores can still be useful fallback destinations,
