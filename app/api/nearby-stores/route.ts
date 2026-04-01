@@ -64,6 +64,7 @@ const MAX_QUERIES = 3;
 const MAX_RESULTS = 6;
 
 type PlaceSearchProfile = {
+  kind: "beauty" | "books" | "fashion" | "generic" | "gift" | "tech";
   categories: string[];
   strongMatchKeywords: string[];
   supportKeywords: string[];
@@ -119,6 +120,7 @@ function getPlaceSearchProfile(query: string): PlaceSearchProfile {
 
   if (/(electronics|computer|gadget|tablet)/.test(haystack)) {
     return {
+      kind: "tech",
       categories: [
         "commercial.elektronics",
         "commercial.shopping_mall",
@@ -150,6 +152,12 @@ function getPlaceSearchProfile(query: string): PlaceSearchProfile {
         "automotive",
         "car accessories",
         "electrical supply",
+        "gift",
+        "souvenir",
+        "party",
+        "novelty",
+        "toy",
+        "balloon",
       ],
       categoryHints: ["elektronics", "shopping_mall", "department_store"],
       minimumScore: 3,
@@ -158,6 +166,7 @@ function getPlaceSearchProfile(query: string): PlaceSearchProfile {
 
   if (/(book|bookstore|journal|manga|comic)/.test(haystack)) {
     return {
+      kind: "books",
       categories: ["commercial.books", "commercial.shopping_mall"],
       strongMatchKeywords: [
         "book",
@@ -177,6 +186,7 @@ function getPlaceSearchProfile(query: string): PlaceSearchProfile {
 
   if (/(clothing|fashion|shirt|hoodie|dress|shoes)/.test(haystack)) {
     return {
+      kind: "fashion",
       categories: ["commercial.clothing", "commercial.department_store"],
       strongMatchKeywords: [
         "fashion",
@@ -198,6 +208,7 @@ function getPlaceSearchProfile(query: string): PlaceSearchProfile {
 
   if (/(beauty|makeup|skincare|cosmetic)/.test(haystack)) {
     return {
+      kind: "beauty",
       categories: [
         "commercial.health_and_beauty",
         "commercial.health_and_beauty.cosmetics",
@@ -219,6 +230,7 @@ function getPlaceSearchProfile(query: string): PlaceSearchProfile {
 
   if (/(gift|souvenir)/.test(haystack)) {
     return {
+      kind: "gift",
       categories: ["commercial.gift_and_souvenir", "commercial.department_store"],
       strongMatchKeywords: ["gift", "souvenir", "party", "novelty", "toy"],
       supportKeywords: ["department store", "shopping mall", "variety store"],
@@ -229,6 +241,7 @@ function getPlaceSearchProfile(query: string): PlaceSearchProfile {
   }
 
   return {
+    kind: "generic",
     categories: ["commercial.department_store", "commercial.shopping_mall"],
     strongMatchKeywords: ["gift", "department store", "shopping mall", "store"],
     supportKeywords: ["boutique", "variety", "shop"],
@@ -282,14 +295,14 @@ function getAvailabilitySignal(
 } {
   // This is intentionally framed as a likelihood signal, not live inventory.
   // We only know how closely the store profile matches the wishlist item type.
-  if (score >= 8) {
+  if (score >= 7) {
     return {
       badge: "Likely",
       hint: "This store looks strongly aligned with the wishlist item type.",
     };
   }
 
-  if (score >= 5) {
+  if (score >= 4) {
     return {
       badge: "Good option",
       hint: "This store likely carries items close to what the giftee wants.",
@@ -350,6 +363,16 @@ function scorePlaceResult(
   score += Math.max(0, strongFullMatches - strongNameMatches) * 2;
   score += supportMatches;
   score += categoryMatches * 2;
+
+  if (
+    profile.kind === "tech" &&
+    (categoriesHaystack.includes("department_store") ||
+      categoriesHaystack.includes("shopping_mall"))
+  ) {
+    // Big department stores and mall anchors are still plausible tablet/electronics
+    // stops even when the listing is broader than a dedicated gadget shop.
+    score += 2;
+  }
 
   // Nearby malls and department stores can still be useful fallback destinations,
   // but we keep them below explicit specialty stores when a stronger match exists.
