@@ -86,15 +86,10 @@ function buildMapsUrl(
 ): string {
   const searchLabel = [name, address].filter(Boolean).join(" ");
 
-  // We do not have a Google place_id from Geoapify, so the best handoff is a
-  // Maps "place" URL anchored by both the label and the coordinates. That
-  // tends to open much closer to the actual building than a plain text search.
-  if (searchLabel.trim().length > 0 && typeof lat === "number" && typeof lon === "number") {
-    return `https://www.google.com/maps/place/${encodeURIComponent(searchLabel)}/@${lat},${lon},18z`;
-  }
-
   if (searchLabel.trim().length > 0) {
-    return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(searchLabel)}`;
+    // A plain Maps search tends to show the place result list/business card more
+    // naturally when we only have third-party place data and not a Google place_id.
+    return `https://www.google.com/maps/search/${encodeURIComponent(searchLabel)}`;
   }
 
   if (typeof lat === "number" && typeof lon === "number") {
