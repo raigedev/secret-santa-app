@@ -99,6 +99,7 @@ const AFFILIATE_DISCLOSURE =
   "We may earn a commission if you buy through this link.";
 
 export const AFFILIATE_READY_MERCHANTS: SuggestionMerchant[] = [
+  "amazon",
   "lazada",
   "shopee",
 ];
@@ -372,7 +373,8 @@ function buildTrackedSuggestionHref(
   groupId: string,
   wishlistItemId: string,
   searchQuery: string,
-  title: string
+  title: string,
+  region: ShoppingRegion
 ): string {
   const params = new URLSearchParams({
     merchant,
@@ -380,6 +382,7 @@ function buildTrackedSuggestionHref(
     itemId: wishlistItemId,
     q: searchQuery,
     title,
+    region,
   });
 
   return `/go/suggestion?${params.toString()}`;
@@ -648,7 +651,8 @@ export function buildWishlistMerchantLinks(
             groupId,
             wishlistItemId,
             option.searchQuery,
-            option.title
+            option.title,
+            region
           )
         : getMerchantSearchUrl(merchant, option.searchQuery, region),
       isAffiliateReady,
@@ -665,9 +669,11 @@ export function buildMerchantDestinationUrl(
 ): string {
   const fallbackUrl = getMerchantSearchUrl(merchant, searchQuery, region);
   const template =
-    merchant === "lazada"
-      ? process.env.LAZADA_AFFILIATE_SEARCH_TEMPLATE
-      : process.env.SHOPEE_AFFILIATE_SEARCH_TEMPLATE;
+    merchant === "amazon"
+      ? process.env.AMAZON_AFFILIATE_SEARCH_TEMPLATE
+      : merchant === "lazada"
+        ? process.env.LAZADA_AFFILIATE_SEARCH_TEMPLATE
+        : process.env.SHOPEE_AFFILIATE_SEARCH_TEMPLATE;
 
   if (!template) {
     return fallbackUrl;

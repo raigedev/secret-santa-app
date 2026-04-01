@@ -5,6 +5,7 @@ import { createClient } from "@/lib/supabase/server";
 import {
   AFFILIATE_READY_MERCHANTS,
   buildMerchantDestinationUrl,
+  ShoppingRegion,
   SuggestionMerchant,
 } from "@/lib/wishlist/suggestions";
 
@@ -14,9 +15,13 @@ function isSuggestionMerchant(value: string | null): value is SuggestionMerchant
   return Boolean(value) && ALLOWED_MERCHANTS.includes(value as SuggestionMerchant);
 }
 
+function isShoppingRegion(value: string | null): value is ShoppingRegion {
+  return ["AU", "CA", "GLOBAL", "JP", "PH", "UK", "US"].includes(value || "");
+}
+
 // Suggestion clicks are routed through the app so we can log them before handing the user
-// off to Lazada or Shopee. The route only builds destinations for known merchants, which
-// avoids turning it into a generic open redirect endpoint.
+// off to Amazon, Lazada, or Shopee. The route only builds destinations for known partner
+// merchants, which avoids turning it into a generic open redirect endpoint.
 export async function GET(request: NextRequest) {
   const { searchParams } = request.nextUrl;
   const merchant = searchParams.get("merchant");
@@ -24,6 +29,10 @@ export async function GET(request: NextRequest) {
   const wishlistItemId = searchParams.get("itemId");
   const searchQuery = searchParams.get("q")?.trim() || "";
   const suggestionTitle = searchParams.get("title")?.trim() || "Suggested gift";
+  const requestedRegion = searchParams.get("region");
+  const region: ShoppingRegion = isShoppingRegion(requestedRegion)
+    ? requestedRegion
+    : "GLOBAL";
 
   if (
     !isSuggestionMerchant(merchant) ||
@@ -34,7 +43,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.redirect(new URL("/secret-santa", request.url));
   }
 
-  const targetUrl = buildMerchantDestinationUrl(merchant, searchQuery);
+  const targetUrl = buildMerchantDestinationUrl(merchant, searchQuery, region);
 
   try {
     const supabase = await createClient();

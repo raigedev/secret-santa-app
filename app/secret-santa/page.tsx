@@ -501,6 +501,44 @@ function getNearbyAvailabilityBadgeStyle(label: string) {
   }
 }
 
+function getMerchantBadgeStyle(
+  merchant: string,
+  isPartnerLink: boolean
+): {
+  background: string;
+  color: string;
+} {
+  if (!isPartnerLink) {
+    return {
+      background: "rgba(88,116,142,.1)",
+      color: HOLIDAY_BLUE,
+    };
+  }
+
+  switch (merchant) {
+    case "amazon":
+      return {
+        background: "rgba(245,158,11,.14)",
+        color: "#92400e",
+      };
+    case "lazada":
+      return {
+        background: "rgba(245,158,11,.14)",
+        color: "#b45309",
+      };
+    case "shopee":
+      return {
+        background: "rgba(238,77,45,.12)",
+        color: "#c2410c",
+      };
+    default:
+      return {
+        background: "rgba(47,107,86,.12)",
+        color: HOLIDAY_GREEN,
+      };
+  }
+}
+
 export default function SecretSantaPage() {
   const router = useRouter();
 
@@ -1976,18 +2014,10 @@ export default function SecretSantaPage() {
                                             <div className="flex items-center justify-between gap-3 mb-2 flex-wrap">
                                               <span
                                                 className="text-[10px] font-extrabold px-2 py-1 rounded-lg"
-                                                style={{
-                                                  background: merchantLink.isAffiliateReady
-                                                    ? merchantLink.merchant === "lazada"
-                                                      ? "rgba(245,158,11,.14)"
-                                                      : "rgba(238,77,45,.12)"
-                                                    : "rgba(88,116,142,.1)",
-                                                  color: merchantLink.isAffiliateReady
-                                                    ? merchantLink.merchant === "lazada"
-                                                      ? "#b45309"
-                                                      : "#c2410c"
-                                                    : HOLIDAY_BLUE,
-                                                }}
+                                                style={getMerchantBadgeStyle(
+                                                  merchantLink.merchant,
+                                                  merchantLink.isAffiliateReady
+                                                )}
                                               >
                                                 {merchantLink.merchantLabel}
                                               </span>
@@ -2036,8 +2066,8 @@ export default function SecretSantaPage() {
                                                 }}
                                               >
                                                 {merchantLink.isAffiliateReady
-                                                  ? "Affiliate-ready"
-                                                  : "Direct search"}
+                                                  ? "Partner link"
+                                                  : "Search link"}
                                               </span>
                                             </div>
                                           </a>
