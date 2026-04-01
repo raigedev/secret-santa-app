@@ -477,7 +477,7 @@ function createActionMessage(result: {
 // They help the giver compare store fit quickly without implying live inventory.
 function getNearbyAvailabilityBadgeStyle(label: string) {
   switch (label) {
-    case "Likely":
+    case "Best option":
       return {
         background: "rgba(47,107,86,.12)",
         color: HOLIDAY_GREEN,

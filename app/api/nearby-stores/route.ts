@@ -81,6 +81,17 @@ const SOFT_GROCERY_KEYWORDS = [
   "puregold",
 ];
 
+const GIFT_SHOP_KEYWORDS = [
+  "party needs",
+  "gift shop",
+  "souvenir",
+  "party",
+  "balloon",
+  "novelty",
+  "favor",
+  "favors",
+];
+
 const TECH_MAJOR_RETAILER_KEYWORDS = [
   "sm store",
   "the sm store",
@@ -572,8 +583,8 @@ function getAvailabilitySignal(
   // We only know how closely the store profile matches the wishlist item type.
   if (score >= 7) {
     return {
-      badge: "Likely",
-      hint: "This store looks strongly aligned with the wishlist item type.",
+      badge: "Best option",
+      hint: "This store looks like one of the stronger matches for this wishlist item.",
     };
   }
 
@@ -653,6 +664,21 @@ function scorePlaceResult(
     ) {
       return -1;
     }
+  }
+
+  if (
+    profile.kind !== "gift" &&
+    profile.kind !== "collectibles" &&
+    profile.kind !== "generic" &&
+    (categoriesHaystack.includes("gift_and_souvenir") ||
+      includesAnyKeyword(fullHaystack, GIFT_SHOP_KEYWORDS)) &&
+    !categoriesHaystack.includes("shopping_mall") &&
+    !categoriesHaystack.includes("department_store")
+  ) {
+    // Specialty party/gift shops are usually poor matches for most non-gift
+    // wishlist types, so we keep them from rising to the top for items like
+    // tablets, books, bags, or tools.
+    return -1;
   }
 
   if (profile.kind === "tech") {
