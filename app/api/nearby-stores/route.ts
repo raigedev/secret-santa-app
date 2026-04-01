@@ -16,6 +16,8 @@ type NearbyStoreResult = {
   userRatingCount: number | null;
   openNow: boolean | null;
   primaryType: string | null;
+  availabilityBadge: string;
+  availabilityHint: string;
 };
 
 type ScoredNearbyStoreResult = NearbyStoreResult & {
@@ -271,6 +273,32 @@ function getDisplayPrimaryType(categories: string[] | undefined): string | null 
     .replace(/\b\w/g, (character) => character.toUpperCase());
 }
 
+function getAvailabilitySignal(score: number): {
+  badge: string;
+  hint: string;
+} {
+  // This is intentionally framed as a likelihood signal, not live inventory.
+  // We only know how closely the store profile matches the wishlist item type.
+  if (score >= 8) {
+    return {
+      badge: "High chance",
+      hint: "This store looks strongly aligned with the wishlist item type.",
+    };
+  }
+
+  if (score >= 5) {
+    return {
+      badge: "Good match",
+      hint: "This store likely carries items close to what the giftee wants.",
+    };
+  }
+
+  return {
+    badge: "Possible fallback",
+    hint: "This is a broader backup option if the closer matches do not work out.",
+  };
+}
+
 function scorePlaceResult(
   profile: PlaceSearchProfile,
   properties: GeoapifyPlacesFeature["properties"]
@@ -472,6 +500,7 @@ export async function POST(request: NextRequest) {
             .filter(Boolean)
             .join(", ") ||
           "Address unavailable";
+        const availabilitySignal = getAvailabilitySignal(relevanceScore);
 
         const scoredStore: ScoredNearbyStoreResult = {
           id: key,
@@ -487,6 +516,8 @@ export async function POST(request: NextRequest) {
           userRatingCount: null,
           openNow: null,
           primaryType: getDisplayPrimaryType(properties.categories),
+          availabilityBadge: availabilitySignal.badge,
+          availabilityHint: availabilitySignal.hint,
           relevanceScore,
         };
 
@@ -511,6 +542,8 @@ export async function POST(request: NextRequest) {
           userRatingCount: store.userRatingCount,
           openNow: store.openNow,
           primaryType: store.primaryType,
+          availabilityBadge: store.availabilityBadge,
+          availabilityHint: store.availabilityHint,
         })),
     });
   } catch {

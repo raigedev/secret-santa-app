@@ -80,6 +80,8 @@ type NearbyStoreResult = {
   userRatingCount: number | null;
   openNow: boolean | null;
   primaryType: string | null;
+  availabilityBadge: string;
+  availabilityHint: string;
 };
 
 type NearbyStoreState = {
@@ -2152,27 +2154,56 @@ export default function SecretSantaPage() {
                                                       </div>
                                                     )}
                                                   </div>
-                                                  {store.openNow !== null && (
+                                                  <div className="flex items-center gap-2 flex-wrap justify-end">
                                                     <span
                                                       className="text-[9px] font-extrabold px-2 py-1 rounded-lg"
                                                       style={{
-                                                        background: store.openNow
-                                                          ? "rgba(47,107,86,.12)"
-                                                          : "rgba(159,78,66,.1)",
-                                                        color: store.openNow
-                                                          ? HOLIDAY_GREEN
-                                                          : HOLIDAY_RED,
+                                                        background:
+                                                          store.availabilityBadge === "High chance"
+                                                            ? "rgba(47,107,86,.12)"
+                                                            : store.availabilityBadge ===
+                                                                "Good match"
+                                                              ? "rgba(169,135,61,.12)"
+                                                              : "rgba(88,116,142,.12)",
+                                                        color:
+                                                          store.availabilityBadge === "High chance"
+                                                            ? HOLIDAY_GREEN
+                                                            : store.availabilityBadge ===
+                                                                "Good match"
+                                                              ? HOLIDAY_GOLD
+                                                              : HOLIDAY_BLUE,
                                                       }}
                                                     >
-                                                      {store.openNow ? "Open now" : "Closed now"}
+                                                      {store.availabilityBadge}
                                                     </span>
-                                                  )}
+                                                    {store.openNow !== null && (
+                                                      <span
+                                                        className="text-[9px] font-extrabold px-2 py-1 rounded-lg"
+                                                        style={{
+                                                          background: store.openNow
+                                                            ? "rgba(47,107,86,.12)"
+                                                            : "rgba(159,78,66,.1)",
+                                                          color: store.openNow
+                                                            ? HOLIDAY_GREEN
+                                                            : HOLIDAY_RED,
+                                                        }}
+                                                      >
+                                                        {store.openNow ? "Open now" : "Closed now"}
+                                                      </span>
+                                                    )}
+                                                  </div>
                                                 </div>
                                                 <div
                                                   className="text-[11px] mt-2 leading-relaxed"
                                                   style={{ color: TEXT_MUTED }}
                                                 >
                                                   {store.address}
+                                                </div>
+                                                <div
+                                                  className="text-[10px] font-semibold mt-2"
+                                                  style={{ color: TEXT_SOFT }}
+                                                >
+                                                  {store.availabilityHint}
                                                 </div>
                                                 {(store.rating !== null ||
                                                   store.userRatingCount !== null) && (
