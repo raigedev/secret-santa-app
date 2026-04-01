@@ -1176,219 +1176,266 @@ export default function SecretSantaPage() {
                         groupBudget: assignment.group_budget,
                         currency: assignment.group_currency,
                       });
+                      const primarySuggestions = suggestions.slice(0, 2);
+                      const followUpSuggestions = suggestions.slice(2);
 
                       return (
                         <div
                           key={item.id}
-                          className="flex items-start gap-3 p-3 rounded-xl mb-2 transition"
+                          className="rounded-[18px] p-4 mb-3 transition"
                           style={{
                             background: INSET_BACKGROUND,
                             border: INSET_BORDER,
                           }}
                         >
-                          <span className="hidden">
-                            {item.priority > 0 ? "⭐" : "🎁"}
-                          </span>
-                          <div
-                            className="w-[56px] h-[56px] rounded-xl flex items-center justify-center text-[18px] shrink-0"
-                            style={{
-                              background: "rgba(255,255,255,.78)",
-                              border: "1px solid rgba(96,117,122,.12)",
-                            }}
-                          >
-                            {safeItemImageUrl ? "IMG" : item.priority > 0 ? "TOP" : "GIFT"}
-                          </div>
-                          <div className="flex-1">
-                            <div className="flex items-center gap-2 flex-wrap mb-1">
-                              {item.priority > 0 && (
-                                <span
-                                  className="text-[10px] font-extrabold px-2 py-1 rounded-lg"
-                                  style={{
-                                    background: "rgba(251,191,36,.16)",
-                                    color: HOLIDAY_GOLD,
-                                  }}
-                                >
-                                  ⭐ Top priority
-                                </span>
-                              )}
-                              {item.item_category && categoryStyle && (
-                                <span
-                                  className="text-[10px] font-extrabold px-2 py-1 rounded-lg"
-                                  style={categoryStyle}
-                                >
-                                  {item.item_category}
-                                </span>
-                              )}
-                              {budgetLabel && (
-                                <span
-                                  className="text-[10px] font-extrabold px-2 py-1 rounded-lg"
-                                  style={{
-                                    background: "rgba(47,107,86,.12)",
-                                    color: HOLIDAY_GREEN,
-                                  }}
-                                >
-                                  Budget {budgetLabel}
-                                </span>
-                              )}
-                            </div>
+                          <div className="flex items-start gap-3">
                             <div
-                              className="text-[14px] font-bold"
-                              style={{ color: PAGE_TEXT_COLOR }}
-                            >
-                              {item.item_name}
-                            </div>
-                            {item.item_note && (
-                              <div
-                                className="text-[12px] mt-0.5"
-                                style={{ color: TEXT_MUTED }}
-                              >
-                                {item.item_note}
-                              </div>
-                            )}
-                            {safeItemImageUrl && (
-                              <a
-                                href={safeItemImageUrl}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                title={safeItemImageUrl}
-                                className="text-[11px] font-semibold mt-1 inline-block"
-                                style={{ color: HOLIDAY_BLUE }}
-                              >
-                                Open image {"->"}
-                              </a>
-                            )}
-                            {safeItemLink && (
-                              <a
-                                href={safeItemLink}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                title={safeItemLink}
-                                className="text-[11px] font-semibold mt-0.5 inline-block"
-                                style={{ color: HOLIDAY_GOLD }}
-                              >
-                                🔗{" "}
-                                {safeItemLink.length > 35
-                                  ? `${safeItemLink.slice(0, 35)}...`
-                                  : safeItemLink}
-                              </a>
-                            )}
-                            <div
-                              className="rounded-xl p-3 mt-3"
+                              className="w-[56px] h-[56px] rounded-2xl flex items-center justify-center text-[18px] shrink-0"
                               style={{
-                                background: "rgba(47,107,86,.08)",
-                                border: "1px solid rgba(47,107,86,.14)",
+                                background: "rgba(255,255,255,.88)",
+                                border: "1px solid rgba(96,117,122,.12)",
+                                boxShadow: "0 8px 18px rgba(34,55,59,.05)",
                               }}
                             >
-                              <div className="flex items-center justify-between gap-3 mb-2">
-                                <div>
+                              {safeItemImageUrl ? "IMG" : item.priority > 0 ? "TOP" : "GIFT"}
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-start justify-between gap-3 flex-wrap">
+                                <div className="min-w-0">
                                   <div
-                                    className="text-[12px] font-extrabold"
-                                    style={{ color: HOLIDAY_GREEN }}
+                                    className="text-[15px] font-extrabold leading-tight"
+                                    style={{ color: PAGE_TEXT_COLOR }}
                                   >
-                                    Suggested Gifts
+                                    {item.item_name}
                                   </div>
-                                  <div
-                                    className="text-[11px] mt-0.5"
-                                    style={{ color: TEXT_MUTED }}
-                                  >
-                                    Helpful search ideas on Lazada and Shopee based on this
-                                    wishlist item.
-                                  </div>
-                                </div>
-                                <span
-                                  className="text-[10px] font-extrabold px-2 py-1 rounded-lg"
-                                  style={{
-                                    background: "rgba(255,255,255,.78)",
-                                    color: HOLIDAY_GREEN,
-                                  }}
-                                >
-                                  Affiliate-ready
-                                </span>
-                              </div>
-                              <div className="grid gap-2 sm:grid-cols-2">
-                                {suggestions.map((suggestion) => (
-                                  <a
-                                    key={suggestion.id}
-                                    href={suggestion.href}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    className="rounded-xl p-3 transition"
-                                    style={{
-                                      background: "rgba(255,255,255,.82)",
-                                      border: "1px solid rgba(96,117,122,.12)",
-                                      color: PAGE_TEXT_COLOR,
-                                      textDecoration: "none",
-                                    }}
-                                  >
-                                    <div className="flex items-center justify-between gap-3 mb-1">
-                                      <span
-                                        className="text-[10px] font-extrabold px-2 py-1 rounded-lg"
-                                        style={{
-                                          background:
-                                            suggestion.merchant === "lazada"
-                                              ? "rgba(245,158,11,.14)"
-                                              : "rgba(238,77,45,.12)",
-                                          color:
-                                            suggestion.merchant === "lazada"
-                                              ? "#b45309"
-                                              : "#c2410c",
-                                        }}
-                                      >
-                                        {suggestion.merchantLabel}
-                                      </span>
-                                      <span
-                                        className="text-[10px] font-extrabold"
-                                        style={{ color: HOLIDAY_GREEN }}
-                                      >
-                                        {suggestion.fitLabel}
-                                      </span>
-                                    </div>
+                                  {item.item_note && (
                                     <div
-                                      className="text-[13px] font-bold mb-1"
-                                      style={{ color: PAGE_TEXT_COLOR }}
-                                    >
-                                      {suggestion.title}
-                                    </div>
-                                    <div
-                                      className="text-[11px] leading-relaxed"
+                                      className="text-[12px] mt-1 leading-relaxed"
                                       style={{ color: TEXT_MUTED }}
                                     >
-                                      {suggestion.subtitle}
+                                      {item.item_note}
                                     </div>
+                                  )}
+                                </div>
+                                <div className="flex items-center gap-2 flex-wrap justify-end">
+                                  {item.priority > 0 && (
+                                    <span
+                                      className="text-[10px] font-extrabold px-2 py-1 rounded-lg"
+                                      style={{
+                                        background: "rgba(251,191,36,.16)",
+                                        color: HOLIDAY_GOLD,
+                                      }}
+                                    >
+                                      Top priority
+                                    </span>
+                                  )}
+                                  {item.item_category && categoryStyle && (
+                                    <span
+                                      className="text-[10px] font-extrabold px-2 py-1 rounded-lg"
+                                      style={categoryStyle}
+                                    >
+                                      {item.item_category}
+                                    </span>
+                                  )}
+                                  {budgetLabel && (
+                                    <span
+                                      className="text-[10px] font-extrabold px-2 py-1 rounded-lg"
+                                      style={{
+                                        background: "rgba(47,107,86,.12)",
+                                        color: HOLIDAY_GREEN,
+                                      }}
+                                    >
+                                      Budget {budgetLabel}
+                                    </span>
+                                  )}
+                                </div>
+                              </div>
+                              {(safeItemImageUrl || safeItemLink) && (
+                                <div className="flex flex-wrap gap-2 mt-3">
+                                  {safeItemImageUrl && (
+                                    <a
+                                      href={safeItemImageUrl}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      title={safeItemImageUrl}
+                                      className="text-[11px] font-semibold px-2.5 py-1.5 rounded-lg inline-flex items-center"
+                                      style={{
+                                        color: HOLIDAY_BLUE,
+                                        background: "rgba(88,116,142,.08)",
+                                        textDecoration: "none",
+                                      }}
+                                    >
+                                      Open image {"->"}
+                                    </a>
+                                  )}
+                                  {safeItemLink && (
+                                    <a
+                                      href={safeItemLink}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      title={safeItemLink}
+                                      className="text-[11px] font-semibold px-2.5 py-1.5 rounded-lg inline-flex items-center"
+                                      style={{
+                                        color: HOLIDAY_GOLD,
+                                        background: "rgba(169,135,61,.08)",
+                                        textDecoration: "none",
+                                      }}
+                                    >
+                                      Reference link {"->"}
+                                    </a>
+                                  )}
+                                </div>
+                              )}
+                            </div>
+                          </div>
+
+                          <div
+                            className="mt-4 pt-4"
+                            style={{ borderTop: "1px solid rgba(96,117,122,.12)" }}
+                          >
+                            <div className="flex items-start justify-between gap-3 mb-3 flex-wrap">
+                              <div>
+                                <div
+                                  className="text-[12px] font-extrabold"
+                                  style={{ color: HOLIDAY_GREEN }}
+                                >
+                                  Shopping ideas
+                                </div>
+                                <div
+                                  className="text-[11px] mt-0.5"
+                                  style={{ color: TEXT_MUTED }}
+                                >
+                                  Start with the easiest merchant options, then try the extra
+                                  search ideas if you still want more choices.
+                                </div>
+                              </div>
+                              <span
+                                className="text-[10px] font-extrabold px-2 py-1 rounded-lg"
+                                style={{
+                                  background: "rgba(255,255,255,.78)",
+                                  color: HOLIDAY_GREEN,
+                                }}
+                              >
+                                Lazada + Shopee
+                              </span>
+                            </div>
+
+                            <div className="grid gap-2 sm:grid-cols-2">
+                              {primarySuggestions.map((suggestion) => (
+                                <a
+                                  key={suggestion.id}
+                                  href={suggestion.href}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="rounded-2xl p-3 transition"
+                                  style={{
+                                    background: "rgba(255,255,255,.88)",
+                                    border: "1px solid rgba(96,117,122,.12)",
+                                    color: PAGE_TEXT_COLOR,
+                                    textDecoration: "none",
+                                    boxShadow: "0 8px 18px rgba(34,55,59,.05)",
+                                  }}
+                                >
+                                  <div className="flex items-center justify-between gap-3 mb-2">
+                                    <span
+                                      className="text-[10px] font-extrabold px-2 py-1 rounded-lg"
+                                      style={{
+                                        background:
+                                          suggestion.merchant === "lazada"
+                                            ? "rgba(245,158,11,.14)"
+                                            : "rgba(238,77,45,.12)",
+                                        color:
+                                          suggestion.merchant === "lazada"
+                                            ? "#b45309"
+                                            : "#c2410c",
+                                      }}
+                                    >
+                                      {suggestion.merchantLabel}
+                                    </span>
+                                    <span
+                                      className="text-[10px] font-extrabold"
+                                      style={{ color: HOLIDAY_GREEN }}
+                                    >
+                                      {suggestion.fitLabel}
+                                    </span>
+                                  </div>
+                                  <div
+                                    className="text-[13px] font-extrabold"
+                                    style={{ color: PAGE_TEXT_COLOR }}
+                                  >
+                                    {suggestion.title}
+                                  </div>
+                                  <div
+                                    className="text-[11px] mt-1"
+                                    style={{ color: TEXT_MUTED }}
+                                  >
+                                    Search for <strong>{suggestion.searchQuery}</strong>
+                                  </div>
+                                  {suggestion.priceLabel && (
                                     <div
-                                      className="text-[11px] font-semibold mt-2"
+                                      className="text-[10px] font-bold mt-2"
                                       style={{ color: HOLIDAY_GOLD }}
                                     >
-                                      Search: {suggestion.searchQuery}
+                                      {suggestion.priceLabel}
                                     </div>
-                                    {suggestion.priceLabel && (
-                                      <div
-                                        className="text-[10px] font-bold mt-1"
-                                        style={{ color: TEXT_MUTED }}
-                                      >
-                                        {suggestion.priceLabel}
-                                      </div>
-                                    )}
-                                    <div
-                                      className="text-[10px] font-semibold mt-2"
-                                      style={{ color: HOLIDAY_BLUE }}
+                                  )}
+                                  <div
+                                    className="text-[10px] mt-2 leading-relaxed"
+                                    style={{ color: TEXT_MUTED }}
+                                  >
+                                    {suggestion.subtitle}
+                                  </div>
+                                  <div
+                                    className="text-[11px] font-semibold mt-3"
+                                    style={{ color: HOLIDAY_BLUE }}
+                                  >
+                                    View on {suggestion.merchantLabel} {"->"}
+                                  </div>
+                                </a>
+                              ))}
+                            </div>
+
+                            {followUpSuggestions.length > 0 && (
+                              <div className="mt-3">
+                                <div
+                                  className="text-[10px] font-extrabold uppercase tracking-[0.18em] mb-2"
+                                  style={{ color: TEXT_SOFT }}
+                                >
+                                  More ideas to try
+                                </div>
+                                <div className="flex flex-wrap gap-2">
+                                  {followUpSuggestions.map((suggestion) => (
+                                    <a
+                                      key={suggestion.id}
+                                      href={suggestion.href}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      className="px-3 py-2 rounded-xl text-[11px] font-semibold"
+                                      style={{
+                                        background: "rgba(255,255,255,.78)",
+                                        color: PAGE_TEXT_COLOR,
+                                        border: "1px solid rgba(96,117,122,.12)",
+                                        textDecoration: "none",
+                                      }}
                                     >
-                                      View on {suggestion.merchantLabel} {"->"}
-                                    </div>
-                                    <div
-                                      className="text-[9px] mt-1"
-                                      style={{ color: TEXT_SOFT }}
-                                    >
-                                      {suggestion.disclosure}
-                                    </div>
-                                  </a>
-                                ))}
+                                      {suggestion.searchQuery} on {suggestion.merchantLabel}
+                                    </a>
+                                  ))}
+                                </div>
                               </div>
+                            )}
+
+                            <div
+                              className="text-[9px] mt-3"
+                              style={{ color: TEXT_SOFT }}
+                            >
+                              {primarySuggestions[0]?.disclosure}
                             </div>
                           </div>
                         </div>
                       );
                     })
+
                   )}
 
                   <div
@@ -2331,6 +2378,7 @@ function SnowEffect() {
 
   return null;
 }
+
 
 
 
