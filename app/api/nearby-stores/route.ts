@@ -34,6 +34,24 @@ type GeoapifyGeocodeResponse = {
   features?: GeoapifyGeocodeFeature[];
 };
 
+type GeoapifyPlacesFeature = {
+  properties?: {
+    place_id?: string;
+    name?: string;
+    formatted?: string;
+    address_line1?: string;
+    address_line2?: string;
+    lat?: number;
+    lon?: number;
+    categories?: string[];
+    distance?: number;
+  };
+};
+
+type GeoapifyPlacesResponse = {
+  features?: GeoapifyPlacesFeature[];
+};
+
 const MAX_QUERIES = 3;
 const MAX_RESULTS = 6;
 
@@ -60,6 +78,35 @@ function buildMapsUrl(lat: number | null, lon: number | null, fallbackLabel: str
   }
 
   return `https://www.google.com/maps/search/${encodeURIComponent(fallbackLabel)}`;
+}
+
+function getPlaceCategories(query: string): string[] {
+  const haystack = query.toLowerCase();
+
+  if (/(electronics|computer|gadget|tablet)/.test(haystack)) {
+    return ["commercial.elektronics", "commercial.shopping_mall"];
+  }
+
+  if (/(book|bookstore|journal|manga|comic)/.test(haystack)) {
+    return ["commercial.books", "commercial.shopping_mall"];
+  }
+
+  if (/(clothing|fashion|shirt|hoodie|dress|shoes)/.test(haystack)) {
+    return ["commercial.clothing", "commercial.department_store"];
+  }
+
+  if (/(beauty|makeup|skincare|cosmetic)/.test(haystack)) {
+    return [
+      "commercial.health_and_beauty",
+      "commercial.health_and_beauty.cosmetics",
+    ];
+  }
+
+  if (/(gift|souvenir)/.test(haystack)) {
+    return ["commercial.gift_and_souvenir", "commercial.department_store"];
+  }
+
+  return ["commercial.department_store", "commercial.shopping_mall"];
 }
 
 // Nearby store search stays server-side so the Geoapify key does not ship to the browser.
@@ -111,29 +158,68 @@ export async function POST(request: NextRequest) {
   }
 
   try {
+    const areaParams = new URLSearchParams({
+      text: area,
+      format: "geojson",
+      limit: "1",
+      apiKey,
+    });
+
+    const areaResponse = await fetch(
+      `https://api.geoapify.com/v1/geocode/search?${areaParams.toString()}`,
+      {
+        cache: "no-store",
+      }
+    );
+
+    if (!areaResponse.ok) {
+      throw new Error(`Geoapify area search failed with status ${areaResponse.status}.`);
+    }
+
+    const areaPayload = (await areaResponse.json()) as GeoapifyGeocodeResponse;
+    const areaFeature = areaPayload.features?.[0]?.properties;
+
+    if (
+      !areaFeature ||
+      typeof areaFeature.lat !== "number" ||
+      typeof areaFeature.lon !== "number"
+    ) {
+      return NextResponse.json(
+        {
+          error:
+            "We couldn't place that area yet. Try a more specific city or district name.",
+          stores: [],
+        },
+        { status: 404 }
+      );
+    }
+
+    const searchLat = areaFeature.lat;
+    const searchLon = areaFeature.lon;
+
     const responses = await Promise.all(
       queries.map(async (query) => {
-        const textQuery = `${query} ${area}`;
         const params = new URLSearchParams({
-          text: textQuery,
-          type: "amenity",
+          categories: getPlaceCategories(query).join(","),
+          filter: `circle:${searchLon},${searchLat},15000`,
+          bias: `proximity:${searchLon},${searchLat}`,
           limit: "4",
           format: "geojson",
           apiKey,
         });
 
         const response = await fetch(
-          `https://api.geoapify.com/v1/geocode/search?${params.toString()}`,
+          `https://api.geoapify.com/v2/places?${params.toString()}`,
           {
             cache: "no-store",
           }
         );
 
         if (!response.ok) {
-          throw new Error(`Geoapify search failed with status ${response.status}.`);
+          throw new Error(`Geoapify places search failed with status ${response.status}.`);
         }
 
-        const payload = (await response.json()) as GeoapifyGeocodeResponse;
+        const payload = (await response.json()) as GeoapifyPlacesResponse;
         return payload.features || [];
       })
     );
@@ -170,7 +256,7 @@ export async function POST(request: NextRequest) {
           rating: null,
           userRatingCount: null,
           openNow: null,
-          primaryType: properties.categories?.[0] || properties.result_type || null,
+          primaryType: properties.categories?.[0] || null,
         });
 
         if (dedupedStores.size >= MAX_RESULTS) {
