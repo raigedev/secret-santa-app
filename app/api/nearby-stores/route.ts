@@ -16,17 +16,22 @@ type NearbyStoreResult = {
   primaryType: string | null;
 };
 
-type GooglePlacesSearchResponse = {
-  places?: Array<{
-    id?: string;
-    displayName?: { text?: string };
-    formattedAddress?: string;
-    googleMapsUri?: string;
-    rating?: number;
-    userRatingCount?: number;
-    currentOpeningHours?: { openNow?: boolean };
-    primaryTypeDisplayName?: { text?: string };
-  }>;
+type GeoapifyGeocodeFeature = {
+  properties?: {
+    place_id?: string;
+    name?: string;
+    formatted?: string;
+    address_line1?: string;
+    address_line2?: string;
+    lat?: number;
+    lon?: number;
+    result_type?: string;
+    categories?: string[];
+  };
+};
+
+type GeoapifyGeocodeResponse = {
+  features?: GeoapifyGeocodeFeature[];
 };
 
 const MAX_QUERIES = 3;
@@ -49,8 +54,17 @@ function isRequestBody(value: unknown): value is NearbyStoresRequest {
   return Array.isArray(candidate.queries);
 }
 
-// Nearby store search is intentionally server-side so the API key stays private
-// and we can normalize results before the client renders them.
+function buildMapsUrl(lat: number | null, lon: number | null, fallbackLabel: string): string {
+  if (typeof lat === "number" && typeof lon === "number") {
+    return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${lat},${lon}`)}`;
+  }
+
+  return `https://www.google.com/maps/search/${encodeURIComponent(fallbackLabel)}`;
+}
+
+// Nearby store search stays server-side so the Geoapify key does not ship to the browser.
+// Geoapify's free plan is enough for this early-stage feature, and we still keep Maps links
+// as the final handoff so the giver can navigate to the shop they choose.
 export async function POST(request: NextRequest) {
   let body: unknown;
 
@@ -83,14 +97,13 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  const apiKey =
-    process.env.GOOGLE_PLACES_API_KEY || process.env.GOOGLE_MAPS_API_KEY;
+  const apiKey = process.env.GEOAPIFY_API_KEY;
 
   if (!apiKey) {
     return NextResponse.json(
       {
         error:
-          "Nearby store search is not configured yet. Add GOOGLE_PLACES_API_KEY or GOOGLE_MAPS_API_KEY to enable in-app results.",
+          "Nearby store results are not configured yet. You can still use the Maps links below for now.",
         stores: [],
       },
       { status: 503 }
@@ -101,61 +114,63 @@ export async function POST(request: NextRequest) {
     const responses = await Promise.all(
       queries.map(async (query) => {
         const textQuery = `${query} ${area}`;
+        const params = new URLSearchParams({
+          text: textQuery,
+          type: "amenity",
+          limit: "4",
+          format: "geojson",
+          apiKey,
+        });
+
         const response = await fetch(
-          "https://places.googleapis.com/v1/places:searchText",
+          `https://api.geoapify.com/v1/geocode/search?${params.toString()}`,
           {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-              "X-Goog-Api-Key": apiKey,
-              "X-Goog-FieldMask":
-                "places.id,places.displayName,places.formattedAddress,places.googleMapsUri,places.rating,places.userRatingCount,places.currentOpeningHours.openNow,places.primaryTypeDisplayName",
-            },
-            body: JSON.stringify({
-              textQuery,
-              maxResultCount: 4,
-            }),
             cache: "no-store",
           }
         );
 
         if (!response.ok) {
-          throw new Error(`Places search failed with status ${response.status}.`);
+          throw new Error(`Geoapify search failed with status ${response.status}.`);
         }
 
-        const payload =
-          (await response.json()) as GooglePlacesSearchResponse;
-
-        return payload.places || [];
+        const payload = (await response.json()) as GeoapifyGeocodeResponse;
+        return payload.features || [];
       })
     );
 
     const dedupedStores = new Map<string, NearbyStoreResult>();
 
-    for (const places of responses) {
-      for (const place of places) {
-        const key = place.id || place.googleMapsUri || place.formattedAddress || "";
+    for (const features of responses) {
+      for (const feature of features) {
+        const properties = feature.properties;
+        const key =
+          properties?.place_id ||
+          `${properties?.formatted || ""}-${properties?.lat || ""}-${properties?.lon || ""}`;
 
-        if (!key || dedupedStores.has(key)) {
+        if (!properties || !key || dedupedStores.has(key)) {
           continue;
         }
 
+        const address =
+          properties.formatted ||
+          [properties.address_line1, properties.address_line2]
+            .filter(Boolean)
+            .join(", ") ||
+          "Address unavailable";
+
         dedupedStores.set(key, {
           id: key,
-          name: place.displayName?.text || "Nearby store",
-          address: place.formattedAddress || "Address unavailable",
-          mapsUrl: place.googleMapsUri || "https://maps.google.com",
-          rating:
-            typeof place.rating === "number" ? place.rating : null,
-          userRatingCount:
-            typeof place.userRatingCount === "number"
-              ? place.userRatingCount
-              : null,
-          openNow:
-            typeof place.currentOpeningHours?.openNow === "boolean"
-              ? place.currentOpeningHours.openNow
-              : null,
-          primaryType: place.primaryTypeDisplayName?.text || null,
+          name: properties.name || properties.address_line1 || "Nearby store",
+          address,
+          mapsUrl: buildMapsUrl(
+            typeof properties.lat === "number" ? properties.lat : null,
+            typeof properties.lon === "number" ? properties.lon : null,
+            address
+          ),
+          rating: null,
+          userRatingCount: null,
+          openNow: null,
+          primaryType: properties.categories?.[0] || properties.result_type || null,
         });
 
         if (dedupedStores.size >= MAX_RESULTS) {
