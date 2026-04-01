@@ -18,6 +18,10 @@ type NearbyStoreResult = {
   primaryType: string | null;
 };
 
+type ScoredNearbyStoreResult = NearbyStoreResult & {
+  relevanceScore: number;
+};
+
 type GeoapifyGeocodeFeature = {
   properties?: {
     place_id?: string;
@@ -56,6 +60,15 @@ type GeoapifyPlacesResponse = {
 
 const MAX_QUERIES = 3;
 const MAX_RESULTS = 6;
+
+type PlaceSearchProfile = {
+  categories: string[];
+  strongMatchKeywords: string[];
+  supportKeywords: string[];
+  excludeKeywords: string[];
+  categoryHints: string[];
+  minimumScore: number;
+};
 
 function sanitizeText(value: unknown, maxLength: number): string {
   if (typeof value !== "string") {
@@ -99,33 +112,213 @@ function buildMapsUrl(
   return "https://www.google.com/maps";
 }
 
-function getPlaceCategories(query: string): string[] {
+function getPlaceSearchProfile(query: string): PlaceSearchProfile {
   const haystack = query.toLowerCase();
 
   if (/(electronics|computer|gadget|tablet)/.test(haystack)) {
-    return ["commercial.elektronics", "commercial.shopping_mall"];
+    return {
+      categories: [
+        "commercial.elektronics",
+        "commercial.shopping_mall",
+        "commercial.department_store",
+      ],
+      strongMatchKeywords: [
+        "tablet",
+        "computer",
+        "laptop",
+        "gadget",
+        "mobile",
+        "phone",
+        "cellphone",
+        "electronics",
+        "electronic",
+        "device",
+        "pc",
+        "appliance",
+      ],
+      supportKeywords: ["accessories", "digital", "shopping mall", "department store"],
+      excludeKeywords: [
+        "surveillance",
+        "security",
+        "cctv",
+        "alarm",
+        "tracking",
+        "gps",
+        "industrial",
+        "automotive",
+        "car accessories",
+        "electrical supply",
+      ],
+      categoryHints: ["elektronics", "shopping_mall", "department_store"],
+      minimumScore: 3,
+    };
   }
 
   if (/(book|bookstore|journal|manga|comic)/.test(haystack)) {
-    return ["commercial.books", "commercial.shopping_mall"];
+    return {
+      categories: ["commercial.books", "commercial.shopping_mall"],
+      strongMatchKeywords: [
+        "book",
+        "books",
+        "bookstore",
+        "manga",
+        "comic",
+        "novel",
+        "journal",
+      ],
+      supportKeywords: ["stationery", "school", "office supplies", "shopping mall"],
+      excludeKeywords: ["hotel", "cafe", "restaurant", "bar", "repair"],
+      categoryHints: ["books", "shopping_mall"],
+      minimumScore: 2,
+    };
   }
 
   if (/(clothing|fashion|shirt|hoodie|dress|shoes)/.test(haystack)) {
-    return ["commercial.clothing", "commercial.department_store"];
+    return {
+      categories: ["commercial.clothing", "commercial.department_store"],
+      strongMatchKeywords: [
+        "fashion",
+        "clothing",
+        "apparel",
+        "boutique",
+        "wear",
+        "shirt",
+        "hoodie",
+        "dress",
+        "shoes",
+      ],
+      supportKeywords: ["department store", "shopping mall"],
+      excludeKeywords: ["laundry", "repair"],
+      categoryHints: ["clothing", "department_store", "shopping_mall"],
+      minimumScore: 2,
+    };
   }
 
   if (/(beauty|makeup|skincare|cosmetic)/.test(haystack)) {
-    return [
-      "commercial.health_and_beauty",
-      "commercial.health_and_beauty.cosmetics",
-    ];
+    return {
+      categories: [
+        "commercial.health_and_beauty",
+        "commercial.health_and_beauty.cosmetics",
+      ],
+      strongMatchKeywords: [
+        "beauty",
+        "makeup",
+        "skincare",
+        "cosmetic",
+        "fragrance",
+        "perfume",
+      ],
+      supportKeywords: ["health and beauty", "department store"],
+      excludeKeywords: ["clinic", "dental", "hospital"],
+      categoryHints: ["health_and_beauty", "cosmetics", "department_store"],
+      minimumScore: 2,
+    };
   }
 
   if (/(gift|souvenir)/.test(haystack)) {
-    return ["commercial.gift_and_souvenir", "commercial.department_store"];
+    return {
+      categories: ["commercial.gift_and_souvenir", "commercial.department_store"],
+      strongMatchKeywords: ["gift", "souvenir", "party", "novelty", "toy"],
+      supportKeywords: ["department store", "shopping mall", "variety store"],
+      excludeKeywords: ["funeral"],
+      categoryHints: ["gift_and_souvenir", "department_store", "shopping_mall"],
+      minimumScore: 2,
+    };
   }
 
-  return ["commercial.department_store", "commercial.shopping_mall"];
+  return {
+    categories: ["commercial.department_store", "commercial.shopping_mall"],
+    strongMatchKeywords: ["gift", "department store", "shopping mall", "store"],
+    supportKeywords: ["boutique", "variety", "shop"],
+    excludeKeywords: ["warehouse", "industrial"],
+    categoryHints: ["department_store", "shopping_mall"],
+    minimumScore: 2,
+  };
+}
+
+function buildPlaceHaystack(properties: GeoapifyPlacesFeature["properties"]): string {
+  return [
+    properties?.name,
+    properties?.formatted,
+    properties?.address_line1,
+    properties?.address_line2,
+    ...(properties?.categories || []),
+  ]
+    .filter(Boolean)
+    .join(" ")
+    .toLowerCase();
+}
+
+function countKeywordMatches(haystack: string, keywords: string[]): number {
+  return keywords.reduce((count, keyword) => {
+    return haystack.includes(keyword) ? count + 1 : count;
+  }, 0);
+}
+
+function getDisplayPrimaryType(categories: string[] | undefined): string | null {
+  if (!categories || categories.length === 0) {
+    return null;
+  }
+
+  const preferredCategory =
+    categories.find((category) => category.includes(".")) || categories[0];
+  const segments = preferredCategory.split(".");
+  const rawLabel = segments[segments.length - 1] || preferredCategory;
+
+  return rawLabel
+    .replace(/_/g, " ")
+    .replace(/\belektronics\b/g, "electronics")
+    .replace(/\b\w/g, (character) => character.toUpperCase());
+}
+
+function scorePlaceResult(
+  profile: PlaceSearchProfile,
+  properties: GeoapifyPlacesFeature["properties"]
+): number {
+  const fullHaystack = buildPlaceHaystack(properties);
+  const nameHaystack = [properties?.name, properties?.address_line1]
+    .filter(Boolean)
+    .join(" ")
+    .toLowerCase();
+  const categoriesHaystack = (properties?.categories || []).join(" ").toLowerCase();
+
+  if (
+    profile.excludeKeywords.some((keyword) => fullHaystack.includes(keyword))
+  ) {
+    return -1;
+  }
+
+  const strongNameMatches = countKeywordMatches(
+    nameHaystack,
+    profile.strongMatchKeywords
+  );
+  const strongFullMatches = countKeywordMatches(
+    fullHaystack,
+    profile.strongMatchKeywords
+  );
+  const supportMatches = countKeywordMatches(fullHaystack, profile.supportKeywords);
+  const categoryMatches = countKeywordMatches(
+    categoriesHaystack,
+    profile.categoryHints
+  );
+
+  let score = 0;
+  score += strongNameMatches * 4;
+  score += Math.max(0, strongFullMatches - strongNameMatches) * 2;
+  score += supportMatches;
+  score += categoryMatches * 2;
+
+  // Nearby malls and department stores can still be useful fallback destinations,
+  // but we keep them below explicit specialty stores when a stronger match exists.
+  if (
+    properties?.distance !== undefined &&
+    Number.isFinite(properties.distance) &&
+    properties.distance <= 3000
+  ) {
+    score += 1;
+  }
+
+  return score >= profile.minimumScore ? score : -1;
 }
 
 // Nearby store search stays server-side so the Geoapify key does not ship to the browser.
@@ -225,8 +418,9 @@ export async function POST(request: NextRequest) {
 
     const responses = await Promise.all(
       queries.map(async (query) => {
+        const profile = getPlaceSearchProfile(query);
         const params = new URLSearchParams({
-          categories: getPlaceCategories(query).join(","),
+          categories: profile.categories.join(","),
           filter: `circle:${searchLon},${searchLat},15000`,
           bias: `proximity:${searchLon},${searchLat}`,
           limit: "4",
@@ -246,20 +440,29 @@ export async function POST(request: NextRequest) {
         }
 
         const payload = (await response.json()) as GeoapifyPlacesResponse;
-        return payload.features || [];
+        return {
+          profile,
+          features: payload.features || [],
+        };
       })
     );
 
-    const dedupedStores = new Map<string, NearbyStoreResult>();
+    const dedupedStores = new Map<string, ScoredNearbyStoreResult>();
 
-    for (const features of responses) {
+    for (const { profile, features } of responses) {
       for (const feature of features) {
         const properties = feature.properties;
         const key =
           properties?.place_id ||
           `${properties?.formatted || ""}-${properties?.lat || ""}-${properties?.lon || ""}`;
 
-        if (!properties || !key || dedupedStores.has(key)) {
+        if (!properties || !key) {
+          continue;
+        }
+
+        const relevanceScore = scorePlaceResult(profile, properties);
+
+        if (relevanceScore < 0) {
           continue;
         }
 
@@ -270,7 +473,7 @@ export async function POST(request: NextRequest) {
             .join(", ") ||
           "Address unavailable";
 
-        dedupedStores.set(key, {
+        const scoredStore: ScoredNearbyStoreResult = {
           id: key,
           name: properties.name || properties.address_line1 || "Nearby store",
           address,
@@ -283,21 +486,32 @@ export async function POST(request: NextRequest) {
           rating: null,
           userRatingCount: null,
           openNow: null,
-          primaryType: properties.categories?.[0] || null,
-        });
+          primaryType: getDisplayPrimaryType(properties.categories),
+          relevanceScore,
+        };
 
-        if (dedupedStores.size >= MAX_RESULTS) {
-          break;
+        const existingStore = dedupedStores.get(key);
+
+        if (!existingStore || scoredStore.relevanceScore > existingStore.relevanceScore) {
+          dedupedStores.set(key, scoredStore);
         }
-      }
-
-      if (dedupedStores.size >= MAX_RESULTS) {
-        break;
       }
     }
 
     return NextResponse.json({
-      stores: Array.from(dedupedStores.values()),
+      stores: Array.from(dedupedStores.values())
+        .sort((left, right) => right.relevanceScore - left.relevanceScore)
+        .slice(0, MAX_RESULTS)
+        .map((store) => ({
+          id: store.id,
+          name: store.name,
+          address: store.address,
+          mapsUrl: store.mapsUrl,
+          rating: store.rating,
+          userRatingCount: store.userRatingCount,
+          openNow: store.openNow,
+          primaryType: store.primaryType,
+        })),
     });
   } catch {
     return NextResponse.json(
