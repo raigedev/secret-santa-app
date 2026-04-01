@@ -52,6 +52,13 @@ export type NearbyStoreLink = {
   href: string;
 };
 
+export type NearbyStoreQuery = {
+  id: string;
+  title: string;
+  subtitle: string;
+  query: string;
+};
+
 type SuggestionTemplate = {
   title: string;
   subtitle: string;
@@ -698,6 +705,22 @@ export function buildNearbyStoreLinks(
   itemCategory: string,
   areaHint: string
 ): NearbyStoreLink[] {
+  return buildNearbyStoreQueries(option, itemName, itemCategory, areaHint).map(
+    (query) => ({
+      id: query.id,
+      title: query.title,
+      subtitle: query.subtitle,
+      href: buildMapsSearchUrl(query.query),
+    })
+  );
+}
+
+export function buildNearbyStoreQueries(
+  option: WishlistSuggestionOption,
+  itemName: string,
+  itemCategory: string,
+  areaHint: string
+): NearbyStoreQuery[] {
   // We intentionally build store-category searches instead of promising
   // exact branch inventory. That keeps the nearby-store experience useful
   // without overstating what the app can verify.
@@ -711,6 +734,6 @@ export function buildNearbyStoreLinks(
       displayArea === "near me"
         ? "Open Maps and compare nearby physical shops."
         : `Open Maps and compare shops around ${displayArea}.`,
-    href: buildMapsSearchUrl(`${storeSearch} ${displayArea}`),
+    query: `${storeSearch} ${displayArea}`,
   }));
 }
