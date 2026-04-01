@@ -89,6 +89,11 @@ type NearbyStoreState = {
   stores: NearbyStoreResult[];
 };
 
+type NearbyCoordinates = {
+  latitude: number;
+  longitude: number;
+};
+
 type GroupRow = {
   id: string;
   name: string | null;
@@ -518,6 +523,9 @@ export default function SecretSantaPage() {
   // them once and reuse them across every giftee item on the screen.
   const [shoppingRegion, setShoppingRegion] = useState<ShoppingRegion>("GLOBAL");
   const [nearbyArea, setNearbyArea] = useState("");
+  const [nearbyCoordinates, setNearbyCoordinates] = useState<NearbyCoordinates | null>(null);
+  const [locatingNearbyArea, setLocatingNearbyArea] = useState(false);
+  const [nearbyLocationMessage, setNearbyLocationMessage] = useState<ActionMessage>(null);
   const [nearbyStoreStateByItem, setNearbyStoreStateByItem] = useState<
     Record<string, NearbyStoreState>
   >({});
@@ -1038,9 +1046,14 @@ export default function SecretSantaPage() {
   const buildNearbyStoreRequestKey = (
     itemId: string,
     area: string,
-    queries: NearbyStoreQuery[]
+    queries: NearbyStoreQuery[],
+    coordinates: NearbyCoordinates | null
   ) => {
-    return `${itemId}:${area.trim().toLowerCase()}:${queries.map((query) => query.id).join("|")}`;
+    const locationKey = coordinates
+      ? `${coordinates.latitude.toFixed(4)},${coordinates.longitude.toFixed(4)}`
+      : area.trim().toLowerCase();
+
+    return `${itemId}:${locationKey}:${queries.map((query) => query.id).join("|")}`;
   };
 
   const loadNearbyStores = async (
@@ -1049,12 +1062,12 @@ export default function SecretSantaPage() {
   ) => {
     const trimmedArea = normalizeTextInput(nearbyArea, 120);
 
-    if (!trimmedArea) {
+    if (!trimmedArea && !nearbyCoordinates) {
       setNearbyStoreStateByItem((current) => ({
         ...current,
         [itemId]: {
           loading: false,
-          error: "Add an area or city above to load nearby stores here.",
+          error: "Add an area or city above, or use your current location first.",
           requestKey: "",
           stores: [],
         },
@@ -1062,7 +1075,12 @@ export default function SecretSantaPage() {
       return;
     }
 
-    const requestKey = buildNearbyStoreRequestKey(itemId, trimmedArea, queries);
+    const requestKey = buildNearbyStoreRequestKey(
+      itemId,
+      trimmedArea,
+      queries,
+      nearbyCoordinates
+    );
     const existingState = nearbyStoreStateByItem[itemId];
 
     if (existingState?.loading && existingState.requestKey === requestKey) {
@@ -1095,6 +1113,8 @@ export default function SecretSantaPage() {
         },
         body: JSON.stringify({
           area: trimmedArea,
+          latitude: nearbyCoordinates?.latitude,
+          longitude: nearbyCoordinates?.longitude,
           queries: queries.map((query) => query.query),
         }),
       });
@@ -1125,6 +1145,58 @@ export default function SecretSantaPage() {
         },
       }));
     }
+  };
+
+  const handleUseCurrentLocation = () => {
+    if (!navigator.geolocation) {
+      setNearbyLocationMessage({
+        type: "error",
+        text: "This browser doesn't support location access. You can still type an area or city.",
+      });
+      return;
+    }
+
+    setLocatingNearbyArea(true);
+    setNearbyLocationMessage(null);
+
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        setNearbyCoordinates({
+          latitude: position.coords.latitude,
+          longitude: position.coords.longitude,
+        });
+        setNearbyLocationMessage({
+          type: "success",
+          text: "Using your current location for nearby store searches on this page.",
+        });
+        setLocatingNearbyArea(false);
+      },
+      (error) => {
+        let text =
+          "We couldn't use your current location. You can still type an area or city.";
+
+        if (error.code === error.PERMISSION_DENIED) {
+          text =
+            "Location permission was denied. You can still type an area or city instead.";
+        }
+
+        setNearbyLocationMessage({
+          type: "error",
+          text,
+        });
+        setLocatingNearbyArea(false);
+      },
+      {
+        enableHighAccuracy: false,
+        timeout: 10000,
+        maximumAge: 300000,
+      }
+    );
+  };
+
+  const clearCurrentLocation = () => {
+    setNearbyCoordinates(null);
+    setNearbyLocationMessage(null);
   };
 
   if (loading) {
@@ -1234,8 +1306,9 @@ export default function SecretSantaPage() {
                 className="text-[11px] mt-1 leading-relaxed"
                 style={{ color: TEXT_MUTED }}
               >
-                We&apos;ll use this region for online shop suggestions and this
-                area for nearby in-person store searches.
+                We&apos;ll use this region for online shop suggestions and either
+                your typed area or your current location for nearby in-person
+                store searches.
               </div>
             </div>
             <span
@@ -1295,7 +1368,13 @@ export default function SecretSantaPage() {
               <input
                 type="text"
                 value={nearbyArea}
-                onChange={(event) => setNearbyArea(event.target.value)}
+                onChange={(event) => {
+                  setNearbyArea(event.target.value);
+                  if (nearbyCoordinates) {
+                    setNearbyCoordinates(null);
+                    setNearbyLocationMessage(null);
+                  }
+                }}
                 placeholder="Example: Makati, Quezon City, BGC, London, Toronto"
                 className="w-full rounded-xl px-3 py-2 text-[12px] font-semibold"
                 style={{
@@ -1306,10 +1385,62 @@ export default function SecretSantaPage() {
                 }}
               />
               <div className="text-[10px] mt-1" style={{ color: TEXT_SOFT }}>
-                Leave this blank to use a generic &quot;near me&quot; Maps search.
+                Type an area manually, or use the location button below for this
+                page only.
               </div>
             </label>
           </div>
+
+          <div className="flex items-center gap-2 flex-wrap mt-3">
+            <button
+              type="button"
+              onClick={handleUseCurrentLocation}
+              disabled={locatingNearbyArea}
+              className="px-3 py-2 rounded-xl text-[11px] font-extrabold transition"
+              style={{
+                background: locatingNearbyArea
+                  ? "rgba(148,163,184,.18)"
+                  : "rgba(88,116,142,.12)",
+                color: locatingNearbyArea ? TEXT_MUTED : HOLIDAY_BLUE,
+                border: "1px solid rgba(88,116,142,.18)",
+                fontFamily: "inherit",
+                cursor: locatingNearbyArea ? "wait" : "pointer",
+              }}
+            >
+              {locatingNearbyArea ? "Getting your location..." : "Use my location"}
+            </button>
+
+            {nearbyCoordinates && (
+              <button
+                type="button"
+                onClick={clearCurrentLocation}
+                className="px-3 py-2 rounded-xl text-[11px] font-extrabold transition"
+                style={{
+                  background: "rgba(159,78,66,.08)",
+                  color: HOLIDAY_RED,
+                  border: "1px solid rgba(159,78,66,.14)",
+                  fontFamily: "inherit",
+                  cursor: "pointer",
+                }}
+              >
+                Use typed area instead
+              </button>
+            )}
+          </div>
+
+          {nearbyLocationMessage && (
+            <div
+              className="text-[10px] font-bold mt-2"
+              style={{
+                color:
+                  nearbyLocationMessage.type === "success"
+                    ? HOLIDAY_GREEN
+                    : HOLIDAY_RED,
+              }}
+            >
+              {nearbyLocationMessage.text}
+            </div>
+          )}
         </div>
 
         {/* Recipient cards show assigned recipients, their wishlist items, and gift confirmation state. */}
@@ -1478,7 +1609,12 @@ export default function SecretSantaPage() {
                           )
                         : [];
                       const nearbyStoreRequestKey = selectedSuggestion
-                        ? buildNearbyStoreRequestKey(item.id, nearbyArea, nearbyStoreQueries)
+                        ? buildNearbyStoreRequestKey(
+                            item.id,
+                            nearbyArea,
+                            nearbyStoreQueries,
+                            nearbyCoordinates
+                          )
                         : "";
                       const nearbyStoreState = nearbyStoreStateByItem[item.id];
                       const visibleNearbyStoreState =
@@ -1912,7 +2048,11 @@ export default function SecretSantaPage() {
                                             color: HOLIDAY_GREEN,
                                           }}
                                         >
-                                          {nearbyArea.trim() ? nearbyArea.trim() : "Near me"}
+                                          {nearbyCoordinates
+                                            ? "Current location"
+                                            : nearbyArea.trim()
+                                              ? nearbyArea.trim()
+                                              : "Near me"}
                                         </span>
                                       </div>
 
@@ -1922,25 +2062,25 @@ export default function SecretSantaPage() {
                                           loadNearbyStores(item.id, nearbyStoreQueries)
                                         }
                                         disabled={
-                                          !nearbyArea.trim() ||
+                                          (!nearbyArea.trim() && !nearbyCoordinates) ||
                                           visibleNearbyStoreState?.loading === true
                                         }
                                         className="w-full rounded-xl px-3 py-2 text-[11px] font-extrabold transition"
                                         style={{
                                           background:
-                                            !nearbyArea.trim() ||
+                                            (!nearbyArea.trim() && !nearbyCoordinates) ||
                                             visibleNearbyStoreState?.loading
                                               ? "rgba(148,163,184,.18)"
                                               : "rgba(47,107,86,.12)",
                                           color:
-                                            !nearbyArea.trim() ||
+                                            (!nearbyArea.trim() && !nearbyCoordinates) ||
                                             visibleNearbyStoreState?.loading
                                               ? TEXT_MUTED
                                               : HOLIDAY_GREEN,
                                           border: "1px solid rgba(96,117,122,.16)",
                                           fontFamily: "inherit",
                                           cursor:
-                                            !nearbyArea.trim() ||
+                                            (!nearbyArea.trim() && !nearbyCoordinates) ||
                                             visibleNearbyStoreState?.loading
                                               ? "not-allowed"
                                               : "pointer",
@@ -1951,13 +2091,13 @@ export default function SecretSantaPage() {
                                           : "Load nearby stores here"}
                                       </button>
 
-                                      {!nearbyArea.trim() && (
+                                      {!nearbyArea.trim() && !nearbyCoordinates && (
                                         <div
                                           className="text-[10px] mt-2"
                                           style={{ color: TEXT_SOFT }}
                                         >
                                           Add an area or city above first so we can search for
-                                          nearby shops here.
+                                          nearby shops here, or use your current location.
                                         </div>
                                       )}
 

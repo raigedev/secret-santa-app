@@ -1,7 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 
 type NearbyStoresRequest = {
-  area: string;
+  area?: string;
+  latitude?: number;
+  longitude?: number;
   queries: string[];
 };
 
@@ -72,6 +74,10 @@ function isRequestBody(value: unknown): value is NearbyStoresRequest {
   return Array.isArray(candidate.queries);
 }
 
+function isFiniteCoordinate(value: unknown): value is number {
+  return typeof value === "number" && Number.isFinite(value);
+}
+
 function buildMapsUrl(lat: number | null, lon: number | null, fallbackLabel: string): string {
   if (typeof lat === "number" && typeof lon === "number") {
     return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${lat},${lon}`)}`;
@@ -132,14 +138,16 @@ export async function POST(request: NextRequest) {
   }
 
   const area = sanitizeText(body.area, 120);
+  const latitude = isFiniteCoordinate(body.latitude) ? body.latitude : null;
+  const longitude = isFiniteCoordinate(body.longitude) ? body.longitude : null;
   const queries = body.queries
     .map((query) => sanitizeText(query, 140))
     .filter(Boolean)
     .slice(0, MAX_QUERIES);
 
-  if (!area || queries.length === 0) {
+  if ((!area && (latitude === null || longitude === null)) || queries.length === 0) {
     return NextResponse.json(
-      { error: "Area and store queries are required.", stores: [] },
+      { error: "An area or current location is required.", stores: [] },
       { status: 400 }
     );
   }
@@ -158,44 +166,49 @@ export async function POST(request: NextRequest) {
   }
 
   try {
-    const areaParams = new URLSearchParams({
-      text: area,
-      format: "geojson",
-      limit: "1",
-      apiKey,
-    });
+    let searchLat = latitude;
+    let searchLon = longitude;
 
-    const areaResponse = await fetch(
-      `https://api.geoapify.com/v1/geocode/search?${areaParams.toString()}`,
-      {
-        cache: "no-store",
-      }
-    );
+    if (searchLat === null || searchLon === null) {
+      const areaParams = new URLSearchParams({
+        text: area,
+        format: "geojson",
+        limit: "1",
+        apiKey,
+      });
 
-    if (!areaResponse.ok) {
-      throw new Error(`Geoapify area search failed with status ${areaResponse.status}.`);
-    }
-
-    const areaPayload = (await areaResponse.json()) as GeoapifyGeocodeResponse;
-    const areaFeature = areaPayload.features?.[0]?.properties;
-
-    if (
-      !areaFeature ||
-      typeof areaFeature.lat !== "number" ||
-      typeof areaFeature.lon !== "number"
-    ) {
-      return NextResponse.json(
+      const areaResponse = await fetch(
+        `https://api.geoapify.com/v1/geocode/search?${areaParams.toString()}`,
         {
-          error:
-            "We couldn't place that area yet. Try a more specific city or district name.",
-          stores: [],
-        },
-        { status: 404 }
+          cache: "no-store",
+        }
       );
-    }
 
-    const searchLat = areaFeature.lat;
-    const searchLon = areaFeature.lon;
+      if (!areaResponse.ok) {
+        throw new Error(`Geoapify area search failed with status ${areaResponse.status}.`);
+      }
+
+      const areaPayload = (await areaResponse.json()) as GeoapifyGeocodeResponse;
+      const areaFeature = areaPayload.features?.[0]?.properties;
+
+      if (
+        !areaFeature ||
+        typeof areaFeature.lat !== "number" ||
+        typeof areaFeature.lon !== "number"
+      ) {
+        return NextResponse.json(
+          {
+            error:
+              "We couldn't place that area yet. Try a more specific city or district name.",
+            stores: [],
+          },
+          { status: 404 }
+        );
+      }
+
+      searchLat = areaFeature.lat;
+      searchLon = areaFeature.lon;
+    }
 
     const responses = await Promise.all(
       queries.map(async (query) => {
