@@ -70,6 +70,35 @@ export type LazadaNormalizedPromotionLink = {
   errorMessage: string | null;
 };
 
+export type LazadaPromotionLinkResolution = {
+  mode: "promotion-link" | "search-fallback";
+  reason:
+    | "missing-product-id"
+    | "open-api-disabled"
+    | "open-api-not-live"
+    | "open-api-pending"
+    | "promotion-link-ready";
+  targetUrl: string;
+};
+
+type LazadaCachedPromotionLinkEntry = {
+  expiresAt: number;
+  links: LazadaNormalizedPromotionLink[];
+};
+
+const LAZADA_PROMOTION_LINK_CACHE_TTL_MS = 1000 * 60 * 60 * 6;
+const lazadaGlobalCache = globalThis as typeof globalThis & {
+  __lazadaPromotionLinkCache?: Map<string, LazadaCachedPromotionLinkEntry>;
+};
+
+function getLazadaPromotionLinkCache(): Map<string, LazadaCachedPromotionLinkEntry> {
+  if (!lazadaGlobalCache.__lazadaPromotionLinkCache) {
+    lazadaGlobalCache.__lazadaPromotionLinkCache = new Map();
+  }
+
+  return lazadaGlobalCache.__lazadaPromotionLinkCache;
+}
+
 function sanitizeOptionalIdentifier(value: string | null | undefined): string | null {
   if (!value) {
     return null;
@@ -116,6 +145,20 @@ export function getLazadaOpenApiStatus(): LazadaOpenApiStatus {
     missingEnvVars,
     ready: missingEnvVars.length === 0,
   };
+}
+
+export function buildLazadaWishlistSubIds(searchQuery: string): LazadaSubIds {
+  const slugifiedQuery = searchQuery
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 40);
+
+  return sanitizeLazadaSubIds({
+    subId1: "secret-santa",
+    subId2: "wishlist",
+    subId3: slugifiedQuery || "gift",
+  });
 }
 
 export function chunkLazadaInputValues(values: string[]): string[][] {
@@ -182,6 +225,36 @@ export function buildLazadaGetLinkCacheKey(
   return createHash("sha256").update(payload).digest("hex");
 }
 
+export function readCachedLazadaPromotionLinks(
+  cacheKey: string
+): LazadaNormalizedPromotionLink[] | null {
+  const cache = getLazadaPromotionLinkCache();
+  const cachedEntry = cache.get(cacheKey);
+
+  if (!cachedEntry) {
+    return null;
+  }
+
+  if (cachedEntry.expiresAt <= Date.now()) {
+    cache.delete(cacheKey);
+    return null;
+  }
+
+  return cachedEntry.links;
+}
+
+export function storeCachedLazadaPromotionLinks(
+  cacheKey: string,
+  links: LazadaNormalizedPromotionLink[]
+): void {
+  const cache = getLazadaPromotionLinkCache();
+
+  cache.set(cacheKey, {
+    expiresAt: Date.now() + LAZADA_PROMOTION_LINK_CACHE_TTL_MS,
+    links,
+  });
+}
+
 export function normalizeLazadaGetLinkResponse(
   inputType: LazadaLinkInputType,
   response: LazadaRawGetLinkResponse
@@ -205,4 +278,63 @@ export function normalizeLazadaGetLinkResponse(
     errorCode: item.errorCode || response.error_code || null,
     errorMessage: item.errorMsg || response.error_msg || null,
   }));
+}
+
+// This helper is the switch point for real Lazada promotion links.
+// Today it safely falls back to the normal Lazada search URL when API access is
+// still pending. Once the Open API credentials are approved, we can replace the
+// internals here with the signed /marketing/getlink call and keep the redirect
+// route contract unchanged.
+export async function resolveLazadaPromotionLinkTarget(options: {
+  fallbackUrl: string;
+  productId: string | null;
+  searchQuery: string;
+}): Promise<LazadaPromotionLinkResolution> {
+  if (!options.productId) {
+    return {
+      mode: "search-fallback",
+      reason: "missing-product-id",
+      targetUrl: options.fallbackUrl,
+    };
+  }
+
+  const openApiStatus = getLazadaOpenApiStatus();
+
+  if (!openApiStatus.ready) {
+    return {
+      mode: "search-fallback",
+      reason: "open-api-pending",
+      targetUrl: options.fallbackUrl,
+    };
+  }
+
+  if (process.env.LAZADA_OPEN_API_ENABLED !== "true") {
+    return {
+      mode: "search-fallback",
+      reason: "open-api-disabled",
+      targetUrl: options.fallbackUrl,
+    };
+  }
+
+  const cacheKey = buildLazadaGetLinkCacheKey({
+    inputType: "productId",
+    inputValues: [options.productId],
+    subIds: buildLazadaWishlistSubIds(options.searchQuery),
+  });
+  const cachedLinks = readCachedLazadaPromotionLinks(cacheKey);
+  const cachedPromotionLink = cachedLinks?.find((link) => link.productId === options.productId);
+
+  if (cachedPromotionLink?.promotionLink) {
+    return {
+      mode: "promotion-link",
+      reason: "promotion-link-ready",
+      targetUrl: cachedPromotionLink.promotionLink,
+    };
+  }
+
+  return {
+    mode: "search-fallback",
+    reason: "open-api-not-live",
+    targetUrl: options.fallbackUrl,
+  };
 }

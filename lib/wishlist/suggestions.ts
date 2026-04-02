@@ -53,6 +53,9 @@ export type WishlistFeaturedProductCard = {
   id: string;
   merchant: "lazada";
   merchantLabel: string;
+  catalogSource: "catalog-product" | "search-backed";
+  productId: string | null;
+  skuId: string | null;
   title: string;
   subtitle: string;
   href: string;
@@ -392,7 +395,12 @@ function buildTrackedSuggestionHref(
   wishlistItemId: string,
   searchQuery: string,
   title: string,
-  region: ShoppingRegion
+  region: ShoppingRegion,
+  options?: {
+    catalogSource?: string | null;
+    productId?: string | null;
+    skuId?: string | null;
+  }
 ): string {
   const params = new URLSearchParams({
     merchant,
@@ -402,6 +410,18 @@ function buildTrackedSuggestionHref(
     title,
     region,
   });
+
+  if (options?.productId) {
+    params.set("productId", options.productId);
+  }
+
+  if (options?.skuId) {
+    params.set("skuId", options.skuId);
+  }
+
+  if (options?.catalogSource) {
+    params.set("catalogSource", options.catalogSource);
+  }
 
   return `/go/suggestion?${params.toString()}`;
 }
@@ -730,6 +750,9 @@ export function buildWishlistFeaturedLazadaProducts(input: {
     id: `lazada-featured-${slugify(template.searchQuery)}`,
     merchant: "lazada",
     merchantLabel: MERCHANT_LABELS.lazada,
+    catalogSource: template.source,
+    productId: template.productId,
+    skuId: template.skuId,
     title: template.title,
     subtitle: template.subtitle,
     href: buildTrackedSuggestionHref(
@@ -738,7 +761,12 @@ export function buildWishlistFeaturedLazadaProducts(input: {
       input.wishlistItemId,
       template.searchQuery,
       template.title,
-      input.region
+      input.region,
+      {
+        catalogSource: template.source,
+        productId: template.productId,
+        skuId: template.skuId,
+      }
     ),
     searchQuery: template.searchQuery,
     priceLabel: getSuggestionPriceLabel(

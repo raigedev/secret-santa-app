@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 
+import { resolveLazadaPromotionLinkTarget } from "@/lib/affiliate/lazada";
 import { supabaseAdmin } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 import {
@@ -29,6 +30,9 @@ export async function GET(request: NextRequest) {
   const wishlistItemId = searchParams.get("itemId");
   const searchQuery = searchParams.get("q")?.trim() || "";
   const suggestionTitle = searchParams.get("title")?.trim() || "Suggested gift";
+  const productId = searchParams.get("productId")?.trim() || null;
+  const skuId = searchParams.get("skuId")?.trim() || null;
+  const catalogSource = searchParams.get("catalogSource")?.trim() || null;
   const requestedRegion = searchParams.get("region");
   const region: ShoppingRegion = isShoppingRegion(requestedRegion)
     ? requestedRegion
@@ -43,7 +47,17 @@ export async function GET(request: NextRequest) {
     return NextResponse.redirect(new URL("/secret-santa", request.url));
   }
 
-  const targetUrl = buildMerchantDestinationUrl(merchant, searchQuery, region);
+  let targetUrl = buildMerchantDestinationUrl(merchant, searchQuery, region);
+
+  if (merchant === "lazada") {
+    const lazadaTarget = await resolveLazadaPromotionLinkTarget({
+      fallbackUrl: targetUrl,
+      productId,
+      searchQuery,
+    });
+
+    targetUrl = lazadaTarget.targetUrl;
+  }
 
   try {
     const supabase = await createClient();
@@ -57,7 +71,10 @@ export async function GET(request: NextRequest) {
       wishlist_item_id: wishlistItemId,
       merchant,
       suggestion_title: suggestionTitle.slice(0, 120),
-      search_query: searchQuery.slice(0, 200),
+      search_query: [searchQuery, productId, skuId, catalogSource]
+        .filter(Boolean)
+        .join(" | ")
+        .slice(0, 200),
       target_url: targetUrl.slice(0, 1000),
     });
   } catch {
