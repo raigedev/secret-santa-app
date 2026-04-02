@@ -45,6 +45,20 @@ export type WishlistMerchantLink = {
   subtitle: string;
 };
 
+export type WishlistFeaturedProductCard = {
+  id: string;
+  merchant: "lazada";
+  merchantLabel: string;
+  title: string;
+  subtitle: string;
+  href: string;
+  searchQuery: string;
+  priceLabel: string | null;
+  fitLabel: string;
+  whyItFits: string;
+  trackingLabel: string;
+};
+
 export type NearbyStoreLink = {
   id: string;
   title: string;
@@ -65,6 +79,10 @@ type SuggestionTemplate = {
   searchQuery: string;
   typicalMin: number | null;
   typicalMax: number | null;
+};
+
+type FeaturedProductTemplate = SuggestionTemplate & {
+  whyItFits: string;
 };
 
 type SuggestionInput = {
@@ -473,6 +491,361 @@ function dedupeTemplates(templates: SuggestionTemplate[]): SuggestionTemplate[] 
   });
 }
 
+function dedupeFeaturedProductTemplates(
+  templates: FeaturedProductTemplate[]
+): FeaturedProductTemplate[] {
+  const dedupedTemplates = dedupeTemplates(templates);
+
+  return dedupedTemplates.map((template) => ({
+    ...template,
+    whyItFits:
+      templates.find(
+        (candidate) =>
+          candidate.searchQuery.toLowerCase() === template.searchQuery.toLowerCase()
+      )?.whyItFits || "",
+  }));
+}
+
+function getLazadaStarterProductTemplates(
+  option: WishlistSuggestionOption,
+  itemName: string,
+  itemCategory: string,
+  itemNote: string
+): FeaturedProductTemplate[] {
+  const cleanItemName = itemName.trim();
+  const cleanNote = itemNote.trim();
+  const haystack = `${cleanItemName} ${itemCategory} ${cleanNote} ${option.searchQuery}`.toLowerCase();
+
+  const exactMatchTemplate: FeaturedProductTemplate = {
+    title: cleanItemName,
+    subtitle: "Start with the giftee's exact wording before branching into alternatives.",
+    searchQuery: option.searchQuery,
+    typicalMin: null,
+    typicalMax: null,
+    whyItFits: "This stays closest to what the giftee actually asked for.",
+  };
+
+  if (/(tablet|ipad|android tab)/.test(haystack)) {
+    return [
+      exactMatchTemplate,
+      {
+        title: "Samsung Galaxy Tab A9",
+        subtitle: "A practical mainstream tablet for streaming, reading, and light study use.",
+        searchQuery: "Samsung Galaxy Tab A9",
+        typicalMin: 7000,
+        typicalMax: 11000,
+        whyItFits: "This is a realistic full-device pick when the wishlist means the tablet itself.",
+      },
+      {
+        title: "Xiaomi Redmi Pad SE",
+        subtitle: "A budget-friendly Android tablet with a strong value reputation.",
+        searchQuery: "Xiaomi Redmi Pad SE",
+        typicalMin: 8000,
+        typicalMax: 13000,
+        whyItFits: "It gives the giver a second strong tablet option at a nearby budget tier.",
+      },
+      {
+        title: "Tablet case with stand",
+        subtitle: "A fallback if the full device is too expensive but a useful add-on still works.",
+        searchQuery: "tablet case with stand",
+        typicalMin: 500,
+        typicalMax: 1800,
+        whyItFits: "This keeps the tablet theme alive without forcing the giver into the full device budget.",
+      },
+    ];
+  }
+
+  if (/(book|novel|manga|comic|journal|planner)/.test(haystack)) {
+    return [
+      exactMatchTemplate,
+      {
+        title: "Bestselling paperback books",
+        subtitle: "A broad book search that usually surfaces safe giftable titles first.",
+        searchQuery: "bestselling paperback books",
+        typicalMin: 300,
+        typicalMax: 900,
+        whyItFits: "This works well when the giftee wants a book but did not name an exact title yet.",
+      },
+      {
+        title: "Self-help hardcover picks",
+        subtitle: "Useful when the reader likes practical or motivational books.",
+        searchQuery: "self help hardcover book",
+        typicalMin: 350,
+        typicalMax: 1000,
+        whyItFits: "It gives the giver a clear subcategory to try when 'book' is still too broad.",
+      },
+      {
+        title: "Reading journal set",
+        subtitle: "A softer fallback if the giver wants something book-adjacent and gift-ready.",
+        searchQuery: "reading journal gift set",
+        typicalMin: 250,
+        typicalMax: 700,
+        whyItFits: "This is a practical fallback when the exact reading taste is still unclear.",
+      },
+    ];
+  }
+
+  if (/(bag|handbag|purse|wallet|luggage|backpack)/.test(haystack)) {
+    return [
+      exactMatchTemplate,
+      {
+        title: "Minimalist tote bag",
+        subtitle: "A safe everyday bag style that often works well for gifting.",
+        searchQuery: "minimalist tote bag",
+        typicalMin: 500,
+        typicalMax: 1800,
+        whyItFits: "This starts with a flexible bag style that suits a wide range of tastes.",
+      },
+      {
+        title: "Everyday backpack",
+        subtitle: "A useful route when the giftee wants something more practical.",
+        searchQuery: "everyday backpack",
+        typicalMin: 700,
+        typicalMax: 2200,
+        whyItFits: "It gives the giver a more functional bag direction without leaving the wishlist theme.",
+      },
+      {
+        title: "Crossbody bag",
+        subtitle: "A cleaner fashion-forward option when the gift should feel more styled.",
+        searchQuery: "crossbody bag",
+        typicalMin: 500,
+        typicalMax: 2000,
+        whyItFits: "This balances giftability and style when the wishlist item is simply 'bag'.",
+      },
+    ];
+  }
+
+  if (/(shirt|hoodie|dress|clothes|clothing|jacket|shoes|fashion|sneakers)/.test(haystack)) {
+    return [
+      exactMatchTemplate,
+      {
+        title: "Oversized hoodie",
+        subtitle: "A forgiving apparel gift shape that works well when sizing is not too exact.",
+        searchQuery: "oversized hoodie",
+        typicalMin: 700,
+        typicalMax: 1800,
+        whyItFits: "This is a common fashion gift fallback when the original clothing request is broad.",
+      },
+      {
+        title: "Everyday graphic tee",
+        subtitle: "A lighter clothing option with easier budget flexibility.",
+        searchQuery: "everyday graphic tee",
+        typicalMin: 300,
+        typicalMax: 900,
+        whyItFits: "It helps the giver try a simpler clothing gift before jumping to higher-price pieces.",
+      },
+      {
+        title: "Classic sneakers",
+        subtitle: "A stronger footwear route when the fashion ask can stretch into shoes.",
+        searchQuery: "classic sneakers",
+        typicalMin: 1000,
+        typicalMax: 3000,
+        whyItFits: "This gives one bigger fashion option if the giver wants something more substantial.",
+      },
+    ];
+  }
+
+  if (/(tool|hardware|diy|drill|wrench|screwdriver|hammer|repair kit)/.test(haystack)) {
+    return [
+      exactMatchTemplate,
+      {
+        title: "Household tool kit",
+        subtitle: "A broad and practical tool starting point for most giftees.",
+        searchQuery: "household tool kit",
+        typicalMin: 600,
+        typicalMax: 2200,
+        whyItFits: "This is the safest first step when the wishlist says tools but not a specific tool.",
+      },
+      {
+        title: "Cordless drill set",
+        subtitle: "A stronger premium route when the tool gift can be more substantial.",
+        searchQuery: "cordless drill set",
+        typicalMin: 1800,
+        typicalMax: 5500,
+        whyItFits: "It gives the giver a realistic higher-value option for hardware-oriented giftees.",
+      },
+      {
+        title: "Tool organizer bag",
+        subtitle: "A useful fallback if the giver wants something tool-related but easier to gift.",
+        searchQuery: "tool organizer bag",
+        typicalMin: 500,
+        typicalMax: 1600,
+        whyItFits: "This stays in the same hobby space without forcing a heavy equipment purchase.",
+      },
+    ];
+  }
+
+  if (/(beauty|makeup|skincare|perfume)/.test(haystack)) {
+    return [
+      exactMatchTemplate,
+      {
+        title: "Skincare gift set",
+        subtitle: "A dependable beauty route when brand preferences are still flexible.",
+        searchQuery: "skincare gift set",
+        typicalMin: 400,
+        typicalMax: 1800,
+        whyItFits: "This is a gift-ready beauty option that usually has a clean presentation.",
+      },
+      {
+        title: "Perfume discovery set",
+        subtitle: "A more expressive choice when the giftee likes fragrance.",
+        searchQuery: "perfume discovery set",
+        typicalMin: 600,
+        typicalMax: 2200,
+        whyItFits: "This gives the giver a beauty option that feels a little more special than basics.",
+      },
+      {
+        title: "Makeup organizer kit",
+        subtitle: "A safer fallback when exact products or shades are still uncertain.",
+        searchQuery: "makeup organizer kit",
+        typicalMin: 350,
+        typicalMax: 1200,
+        whyItFits: "It keeps the gift beauty-related without risking a bad shade or formula pick.",
+      },
+    ];
+  }
+
+  if (/(home|decor|kitchen|cookware|bedding|blanket|pillow|lamp|organizer|mug|candle)/.test(haystack)) {
+    return [
+      exactMatchTemplate,
+      {
+        title: "Scented candle set",
+        subtitle: "A cozy home gift that usually feels safe and polished.",
+        searchQuery: "scented candle gift set",
+        typicalMin: 300,
+        typicalMax: 1200,
+        whyItFits: "This is an easy home-category gift when the exact decor taste is still broad.",
+      },
+      {
+        title: "Bedside lamp",
+        subtitle: "A practical home item when the gift can be a bit more functional.",
+        searchQuery: "bedside lamp",
+        typicalMin: 500,
+        typicalMax: 1800,
+        whyItFits: "It gives the giver a more useful home-item path without being too niche.",
+      },
+      {
+        title: "Desk organizer",
+        subtitle: "A neat fallback for workspaces, bedrooms, and study corners.",
+        searchQuery: "desk organizer",
+        typicalMin: 250,
+        typicalMax: 900,
+        whyItFits: "This is a broad home-style gift that still feels purposeful and easy to buy.",
+      },
+    ];
+  }
+
+  if (/(food|snack|coffee|tea|treat|chocolate|pastry|cake|cookie|hamper|bakery|pasalubong)/.test(haystack)) {
+    return [
+      exactMatchTemplate,
+      {
+        title: "Premium snack box",
+        subtitle: "A dependable consumable gift when the food preference is broad.",
+        searchQuery: "premium snack box",
+        typicalMin: 300,
+        typicalMax: 1200,
+        whyItFits: "This works well when the giver wants a safe food gift that still feels generous.",
+      },
+      {
+        title: "Coffee gift set",
+        subtitle: "A stronger route when the giftee enjoys coffee or cozy drink gifts.",
+        searchQuery: "coffee gift set",
+        typicalMin: 400,
+        typicalMax: 1400,
+        whyItFits: "It gives the giver a themed food gift with a little more personality.",
+      },
+      {
+        title: "Chocolate hamper",
+        subtitle: "A celebratory fallback when you want the gift to feel festive and easy to share.",
+        searchQuery: "chocolate hamper gift",
+        typicalMin: 350,
+        typicalMax: 1500,
+        whyItFits: "This keeps the gift indulgent and simple when the exact food item is still open.",
+      },
+    ];
+  }
+
+  if (/(game|gaming|console|board game|toy|lego|card game)/.test(haystack)) {
+    return [
+      exactMatchTemplate,
+      {
+        title: "Family board game",
+        subtitle: "A social and giftable choice when the game type is still flexible.",
+        searchQuery: "family board game",
+        typicalMin: 600,
+        typicalMax: 1800,
+        whyItFits: "This gives the giver a gift-ready game option that works for many recipients.",
+      },
+      {
+        title: "Gaming headset",
+        subtitle: "A stronger gaming route when the recipient likely plays on PC or console.",
+        searchQuery: "gaming headset",
+        typicalMin: 800,
+        typicalMax: 2500,
+        whyItFits: "It keeps the gift inside gaming without needing an exact game title or platform accessory.",
+      },
+      {
+        title: "Mechanical keyboard",
+        subtitle: "A premium desk-gaming pick when the giver wants something more substantial.",
+        searchQuery: "mechanical keyboard",
+        typicalMin: 900,
+        typicalMax: 3000,
+        whyItFits: "This is a realistic higher-end gaming-adjacent option with strong gift appeal.",
+      },
+    ];
+  }
+
+  if (/(collectible|figure|anime|merch|funko|plush|trading card|model kit|hobby)/.test(haystack)) {
+    return [
+      exactMatchTemplate,
+      {
+        title: "Anime figure",
+        subtitle: "A common collectible route when the fandom is still somewhat broad.",
+        searchQuery: "anime figure",
+        typicalMin: 500,
+        typicalMax: 2500,
+        whyItFits: "This is a strong collectible starting point when the giftee likes merch or display pieces.",
+      },
+      {
+        title: "Blind box set",
+        subtitle: "A fun collectible format when you want something surprise-friendly.",
+        searchQuery: "blind box set",
+        typicalMin: 300,
+        typicalMax: 1500,
+        whyItFits: "It gives the giver a more playful collectible format with easier price flexibility.",
+      },
+      {
+        title: "Acrylic display case",
+        subtitle: "A practical fallback if the giftee already has collectibles to display.",
+        searchQuery: "acrylic display case",
+        typicalMin: 350,
+        typicalMax: 1200,
+        whyItFits: "This stays highly relevant even when the exact fandom item is hard to choose.",
+      },
+    ];
+  }
+
+  return [
+    exactMatchTemplate,
+    {
+      title: `Budget-friendly ${cleanItemName}`,
+      subtitle: "A lower-pressure starting point when the exact premium version feels too open.",
+      searchQuery: `budget ${option.searchQuery}`,
+      typicalMin: null,
+      typicalMax: null,
+      whyItFits: "This gives the giver a cheaper first pass before moving into bigger-ticket picks.",
+    },
+    {
+      title: `${cleanItemName} gift set`,
+      subtitle: "A gift-ready version of the idea when the giver wants something easier to pick.",
+      searchQuery: `${option.searchQuery} gift set`,
+      typicalMin: null,
+      typicalMax: null,
+      whyItFits: "This keeps the same theme while nudging the search toward ready-made gift options.",
+    },
+  ];
+}
+
 function getBudgetFitLabel(
   template: SuggestionTemplate,
   preferredMin: number | null,
@@ -660,6 +1033,68 @@ export function buildWishlistMerchantLinks(
       priceLabel: option.priceLabel,
     };
   });
+}
+
+export function buildWishlistFeaturedLazadaProducts(input: {
+  option: WishlistSuggestionOption;
+  groupId: string;
+  wishlistItemId: string;
+  itemName: string;
+  itemCategory: string;
+  itemNote: string;
+  preferredPriceMin: number | null;
+  preferredPriceMax: number | null;
+  groupBudget: number | null;
+  currency: string | null;
+  region: ShoppingRegion;
+}): WishlistFeaturedProductCard[] {
+  if (input.region !== "PH" && input.region !== "GLOBAL") {
+    return [];
+  }
+
+  // These cards intentionally use specific Lazada-oriented search picks now.
+  // Once the Lazada Open API is approved, the same UI can swap to real
+  // product-level promotion links without redesigning the wishlist flow.
+  const templates = dedupeFeaturedProductTemplates(
+    getLazadaStarterProductTemplates(
+      input.option,
+      input.itemName,
+      input.itemCategory,
+      input.itemNote
+    )
+  ).slice(0, 3);
+
+  return templates.map((template) => ({
+    id: `lazada-featured-${slugify(template.searchQuery)}`,
+    merchant: "lazada",
+    merchantLabel: MERCHANT_LABELS.lazada,
+    title: template.title,
+    subtitle: template.subtitle,
+    href: buildTrackedSuggestionHref(
+      "lazada",
+      input.groupId,
+      input.wishlistItemId,
+      template.searchQuery,
+      template.title,
+      input.region
+    ),
+    searchQuery: template.searchQuery,
+    priceLabel: getSuggestionPriceLabel(
+      template,
+      input.preferredPriceMin,
+      input.preferredPriceMax,
+      input.groupBudget,
+      input.currency
+    ),
+    fitLabel: getBudgetFitLabel(
+      template,
+      input.preferredPriceMin,
+      input.preferredPriceMax,
+      input.groupBudget
+    ),
+    whyItFits: template.whyItFits,
+    trackingLabel: "Search-backed pick",
+  }));
 }
 
 export function buildMerchantDestinationUrl(

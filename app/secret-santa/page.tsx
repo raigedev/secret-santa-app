@@ -15,6 +15,7 @@ import { formatPriceRange, normalizeOptionalPriceValue } from "@/lib/wishlist/pr
 import {
   buildNearbyStoreQueries,
   buildNearbyStoreLinks,
+  buildWishlistFeaturedLazadaProducts,
   buildWishlistMerchantLinks,
   buildWishlistSuggestionOptions,
   detectShoppingRegionFromLocale,
@@ -1664,6 +1665,21 @@ export default function SecretSantaPage() {
                             shoppingRegion
                           )
                         : [];
+                      const featuredLazadaProducts = selectedSuggestion
+                        ? buildWishlistFeaturedLazadaProducts({
+                            option: selectedSuggestion,
+                            groupId: assignment.group_id,
+                            wishlistItemId: item.id,
+                            itemName: item.item_name,
+                            itemCategory: item.item_category,
+                            itemNote: item.item_note,
+                            preferredPriceMin: item.preferred_price_min,
+                            preferredPriceMax: item.preferred_price_max,
+                            groupBudget: assignment.group_budget,
+                            currency: assignment.group_currency,
+                            region: shoppingRegion,
+                          })
+                        : [];
                       const nearbyStoreQueries = selectedSuggestion
                         ? buildNearbyStoreQueries(
                             selectedSuggestion,
@@ -1947,8 +1963,8 @@ export default function SecretSantaPage() {
                                   >
                                     Once you choose the kind of{" "}
                                     <strong>{item.item_name}</strong> you want to
-                                    explore, we&apos;ll show Lazada and Shopee links
-                                    that match that direction.
+                                    explore, we&apos;ll show starter Lazada picks and
+                                    broader store links that match that direction.
                                   </div>
                                 </div>
                               )}
@@ -1975,9 +1991,9 @@ export default function SecretSantaPage() {
                                             className="text-[11px] mt-0.5"
                                             style={{ color: TEXT_MUTED }}
                                           >
-                                            These links search for{" "}
-                                            <strong>{selectedSuggestion.searchQuery}</strong>{" "}
-                                            in your selected region.
+                                            Start with focused Lazada product-style
+                                            picks, then use the broader store links if
+                                            you want more choices.
                                           </div>
                                         </div>
                                         <span
@@ -1995,6 +2011,103 @@ export default function SecretSantaPage() {
                                         </span>
                                       </div>
 
+                                      {featuredLazadaProducts.length > 0 && (
+                                        <div className="grid gap-2 sm:grid-cols-3 mb-3">
+                                          {featuredLazadaProducts.map((product) => (
+                                            <a
+                                              key={product.id}
+                                              href={product.href}
+                                              target="_blank"
+                                              rel="noopener noreferrer"
+                                              className="rounded-2xl p-3 transition"
+                                              style={{
+                                                background:
+                                                  "linear-gradient(180deg,rgba(255,255,255,.94),rgba(248,250,248,.9))",
+                                                border: "1px solid rgba(96,117,122,.12)",
+                                                color: PAGE_TEXT_COLOR,
+                                                textDecoration: "none",
+                                                boxShadow:
+                                                  "0 8px 18px rgba(34,55,59,.05)",
+                                              }}
+                                            >
+                                              <div className="flex items-start justify-between gap-2 flex-wrap">
+                                                <span
+                                                  className="text-[9px] font-extrabold px-2 py-1 rounded-lg"
+                                                  style={getMerchantBadgeStyle("lazada", true)}
+                                                >
+                                                  Featured Lazada pick
+                                                </span>
+                                                <span
+                                                  className="text-[9px] font-extrabold"
+                                                  style={{ color: HOLIDAY_GREEN }}
+                                                >
+                                                  {product.fitLabel}
+                                                </span>
+                                              </div>
+                                              <div
+                                                className="text-[13px] font-extrabold mt-2 leading-tight"
+                                                style={{ color: PAGE_TEXT_COLOR }}
+                                              >
+                                                {product.title}
+                                              </div>
+                                              <div
+                                                className="text-[10px] mt-1 leading-relaxed"
+                                                style={{ color: TEXT_MUTED }}
+                                              >
+                                                {product.subtitle}
+                                              </div>
+                                              {product.priceLabel && (
+                                                <div
+                                                  className="text-[10px] font-bold mt-2"
+                                                  style={{ color: HOLIDAY_GOLD }}
+                                                >
+                                                  {product.priceLabel}
+                                                </div>
+                                              )}
+                                              <div
+                                                className="text-[10px] font-semibold mt-2 leading-relaxed"
+                                                style={{ color: TEXT_SOFT }}
+                                              >
+                                                {product.whyItFits}
+                                              </div>
+                                              <div className="flex items-center justify-between gap-2 mt-3 flex-wrap">
+                                                <div
+                                                  className="text-[11px] font-semibold"
+                                                  style={{ color: HOLIDAY_BLUE }}
+                                                >
+                                                  View on Lazada {"->"}
+                                                </div>
+                                                <span
+                                                  className="text-[9px] font-bold"
+                                                  style={{ color: HOLIDAY_GOLD }}
+                                                >
+                                                  {product.trackingLabel}
+                                                </span>
+                                              </div>
+                                            </a>
+                                          ))}
+                                        </div>
+                                      )}
+
+                                      {featuredLazadaProducts.length > 0 && (
+                                        <div
+                                          className="text-[10px] mb-3 leading-relaxed"
+                                          style={{ color: TEXT_SOFT }}
+                                        >
+                                          These product cards are the Lazada-ready layer
+                                          for this wishlist flow. They currently open a
+                                          focused Lazada search, and they can later swap to
+                                          official product-level affiliate links without
+                                          changing the UI.
+                                        </div>
+                                      )}
+
+                                      <div
+                                        className="text-[11px] font-extrabold mb-2"
+                                        style={{ color: HOLIDAY_GREEN }}
+                                      >
+                                        More store routes
+                                      </div>
                                       <div className="grid gap-2">
                                         {merchantLinks.map((merchantLink) => (
                                           <a
