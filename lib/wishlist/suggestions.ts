@@ -611,8 +611,8 @@ function getSuggestionPriceLabel(
   }
 
   if (groupBudget !== null) {
-    const groupBudgetLabel = formatPriceRange(null, groupBudget, currency);
-    return groupBudgetLabel ? `Group budget: ${groupBudgetLabel}` : null;
+    const groupBudgetLabel = formatPriceRange(groupBudget, groupBudget, currency);
+    return groupBudgetLabel ? `Budget target: ${groupBudgetLabel}` : null;
   }
 
   const typicalLabel = formatPriceRange(template.typicalMin, template.typicalMax, currency);
