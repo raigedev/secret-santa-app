@@ -61,6 +61,10 @@ export type LazadaFeedMatch = {
   reasons: string[];
 };
 
+const lazadaFeedGlobal = globalThis as typeof globalThis & {
+  __lazadaFeedProducts?: LazadaFeedProduct[];
+};
+
 function loadImportedLazadaFeedRows(): LazadaImportedFeedRow[] {
   const feedPath = path.join(
     process.cwd(),
@@ -68,7 +72,7 @@ function loadImportedLazadaFeedRows(): LazadaImportedFeedRow[] {
     "affiliate",
     "lazada-feed-data.generated.json"
   );
-  const fileContents = readFileSync(feedPath, "utf8");
+  const fileContents = readFileSync(feedPath, "utf8").replace(/^\uFEFF/, "");
   const parsed = JSON.parse(fileContents) as unknown;
 
   if (!Array.isArray(parsed)) {
@@ -77,8 +81,6 @@ function loadImportedLazadaFeedRows(): LazadaImportedFeedRow[] {
 
   return parsed as LazadaImportedFeedRow[];
 }
-
-const LAZADA_IMPORTED_FEED_ROWS = loadImportedLazadaFeedRows();
 
 const MATCH_STOPWORDS = new Set([
   "a",
@@ -167,9 +169,15 @@ function normalizeImportedFeedRow(row: LazadaImportedFeedRow): LazadaFeedProduct
   };
 }
 
-export const LAZADA_FEED_PRODUCTS: LazadaFeedProduct[] = LAZADA_IMPORTED_FEED_ROWS.map(
-  normalizeImportedFeedRow
-);
+function getLazadaFeedProducts(): LazadaFeedProduct[] {
+  if (!lazadaFeedGlobal.__lazadaFeedProducts) {
+    lazadaFeedGlobal.__lazadaFeedProducts = loadImportedLazadaFeedRows().map(
+      normalizeImportedFeedRow
+    );
+  }
+
+  return lazadaFeedGlobal.__lazadaFeedProducts;
+}
 
 export function findLazadaFeedProductByUrl(url: string): LazadaFeedProduct | null {
   const normalizedUrl = normalizeLazadaProductPageUrl(url);
@@ -179,7 +187,7 @@ export function findLazadaFeedProductByUrl(url: string): LazadaFeedProduct | nul
   }
 
   return (
-    LAZADA_FEED_PRODUCTS.find((product) => product.normalizedProductUrl === normalizedUrl) ||
+    getLazadaFeedProducts().find((product) => product.normalizedProductUrl === normalizedUrl) ||
     null
   );
 }
@@ -310,7 +318,7 @@ export function findBestLazadaFeedMatches(input: {
   const minimumScore = input.minimumScore ?? 0.72;
   const limit = input.limit ?? 3;
 
-  return LAZADA_FEED_PRODUCTS.map((product) =>
+  return getLazadaFeedProducts().map((product) =>
     scoreFeedMatch({
       ...input,
       product,
