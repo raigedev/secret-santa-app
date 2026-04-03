@@ -98,6 +98,12 @@ export type LazadaPromotionLinkResolution = {
   targetUrl: string;
 };
 
+export type LazadaPrimePromotionLinksResult = {
+  productIdsPrimed: number;
+  ready: boolean;
+  urlsPrimed: number;
+};
+
 type LazadaCachedPromotionLinkEntry = {
   expiresAt: number;
   links: LazadaNormalizedPromotionLink[];
@@ -217,6 +223,16 @@ export function buildLazadaWishlistSubIds(searchQuery: string): LazadaSubIds {
     subId1: "secret-santa",
     subId2: "wishlist",
     subId3: slugifiedQuery || "gift",
+  });
+}
+
+function buildGenericLazadaPromotionCacheKey(
+  inputType: LazadaLinkInputType,
+  inputValues: string[]
+): string {
+  return buildLazadaGetLinkCacheKey({
+    inputType,
+    inputValues,
   });
 }
 
@@ -340,6 +356,79 @@ export function normalizeLazadaGetLinkResponse(
   }));
 }
 
+export async function primeLazadaPromotionLinks(options: {
+  productIds?: string[] | null;
+  urls?: string[] | null;
+}): Promise<LazadaPrimePromotionLinksResult> {
+  const openApiStatus = getLazadaOpenApiStatus();
+
+  if (!openApiStatus.ready || process.env.LAZADA_OPEN_API_ENABLED !== "true") {
+    return {
+      productIdsPrimed: 0,
+      ready: false,
+      urlsPrimed: 0,
+    };
+  }
+
+  const uniqueProductIds = Array.from(
+    new Set(
+      (options.productIds || [])
+        .map((productId) => productId.trim())
+        .filter((productId) => productId.length > 0)
+    )
+  );
+  const uniqueUrls = Array.from(
+    new Set(
+      (options.urls || [])
+        .map((url) => normalizeLazadaProductPageUrl(url))
+        .filter((url): url is string => Boolean(url))
+    )
+  );
+  const urlFeedHits = uniqueUrls.filter(
+    (url) => Boolean(findLazadaFeedProductByUrl(url)?.promoShortLink)
+  );
+  const urlsNeedingApiFetch = uniqueUrls.filter(
+    (url) => !findLazadaFeedProductByUrl(url)?.promoShortLink
+  );
+
+  let productIdsPrimed = 0;
+  let urlsPrimed = 0;
+
+  if (uniqueProductIds.length > 0) {
+    const links = await fetchLazadaPromotionLinks({
+      apiBaseUrl: openApiStatus.apiBaseUrl,
+      appKey: process.env.LAZADA_APP_KEY!,
+      appSecret: process.env.LAZADA_APP_SECRET!,
+      userToken: process.env.LAZADA_USER_TOKEN!,
+      inputType: "productId",
+      inputValues: uniqueProductIds,
+    });
+
+    productIdsPrimed = links.filter((link) => Boolean(link.promotionLink)).length;
+  }
+
+  urlsPrimed = urlFeedHits.length;
+
+  if (urlsNeedingApiFetch.length > 0) {
+    const links = await fetchLazadaPromotionLinks({
+      apiBaseUrl: openApiStatus.apiBaseUrl,
+      appKey: process.env.LAZADA_APP_KEY!,
+      appSecret: process.env.LAZADA_APP_SECRET!,
+      userToken: process.env.LAZADA_USER_TOKEN!,
+      inputType: "url",
+      inputValues: urlsNeedingApiFetch,
+    });
+
+    urlsPrimed += links.filter((link) => Boolean(link.promotionLink)).length;
+  }
+
+  return {
+    productIdsPrimed,
+    ready: true,
+    urlsPrimed,
+  };
+}
+
 async function fetchLazadaPromotionLinks(
   options: Omit<LazadaGetLinkRequestOptions, "userToken"> & {
     apiBaseUrl: string;
@@ -430,6 +519,7 @@ export async function resolveLazadaPromotionLinkTarget(options: {
     };
   }
 
+  const wishlistSubIds = buildLazadaWishlistSubIds(options.searchQuery);
   const openApiStatus = getLazadaOpenApiStatus();
 
   if (!openApiStatus.ready) {
@@ -448,11 +538,7 @@ export async function resolveLazadaPromotionLinkTarget(options: {
     };
   }
 
-  const cacheKey = buildLazadaGetLinkCacheKey({
-    inputType: "productId",
-    inputValues: [options.productId],
-    subIds: buildLazadaWishlistSubIds(options.searchQuery),
-  });
+  const cacheKey = buildGenericLazadaPromotionCacheKey("productId", [options.productId]);
   const cachedLinks = readCachedLazadaPromotionLinks(cacheKey);
   const cachedPromotionLink = cachedLinks?.find((link) => link.productId === options.productId);
 
@@ -460,7 +546,10 @@ export async function resolveLazadaPromotionLinkTarget(options: {
     return {
       mode: "promotion-link",
       reason: "promotion-link-ready",
-      targetUrl: cachedPromotionLink.promotionLink,
+      targetUrl: appendLazadaSubIdsToPromotionLink(
+        cachedPromotionLink.promotionLink,
+        wishlistSubIds
+      ),
     };
   }
 
@@ -472,7 +561,6 @@ export async function resolveLazadaPromotionLinkTarget(options: {
       userToken: process.env.LAZADA_USER_TOKEN!,
       inputType: "productId",
       inputValues: [options.productId],
-      subIds: buildLazadaWishlistSubIds(options.searchQuery),
     });
     const livePromotionLink = links.find((link) => link.productId === options.productId);
 
@@ -480,7 +568,10 @@ export async function resolveLazadaPromotionLinkTarget(options: {
       return {
         mode: "promotion-link",
         reason: "promotion-link-ready",
-        targetUrl: livePromotionLink.promotionLink,
+        targetUrl: appendLazadaSubIdsToPromotionLink(
+          livePromotionLink.promotionLink,
+          wishlistSubIds
+        ),
       };
     }
   } catch {
@@ -542,11 +633,7 @@ export async function resolveLazadaWishlistItemLinkTarget(options: {
     };
   }
 
-  const cacheKey = buildLazadaGetLinkCacheKey({
-    inputType: "url",
-    inputValues: [normalizedItemUrl],
-    subIds: wishlistSubIds,
-  });
+  const cacheKey = buildGenericLazadaPromotionCacheKey("url", [normalizedItemUrl]);
   const cachedLinks = readCachedLazadaPromotionLinks(cacheKey);
   const cachedPromotionLink = cachedLinks?.find(
     (link) => normalizeLazadaProductPageUrl(link.originalUrl || "") === normalizedItemUrl
@@ -556,7 +643,10 @@ export async function resolveLazadaWishlistItemLinkTarget(options: {
     return {
       mode: "promotion-link",
       reason: "promotion-link-ready",
-      targetUrl: cachedPromotionLink.promotionLink,
+      targetUrl: appendLazadaSubIdsToPromotionLink(
+        cachedPromotionLink.promotionLink,
+        wishlistSubIds
+      ),
     };
   }
 
@@ -568,7 +658,6 @@ export async function resolveLazadaWishlistItemLinkTarget(options: {
       userToken: process.env.LAZADA_USER_TOKEN!,
       inputType: "url",
       inputValues: [normalizedItemUrl],
-      subIds: wishlistSubIds,
     });
     const livePromotionLink = links.find(
       (link) => normalizeLazadaProductPageUrl(link.originalUrl || "") === normalizedItemUrl
@@ -578,7 +667,10 @@ export async function resolveLazadaWishlistItemLinkTarget(options: {
       return {
         mode: "promotion-link",
         reason: "promotion-link-ready",
-        targetUrl: livePromotionLink.promotionLink,
+        targetUrl: appendLazadaSubIdsToPromotionLink(
+          livePromotionLink.promotionLink,
+          wishlistSubIds
+        ),
       };
     }
   } catch {

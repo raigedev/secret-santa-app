@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import {
@@ -615,6 +615,7 @@ export default function SecretSantaPage() {
   const [nearbyStoreStateByItem, setNearbyStoreStateByItem] = useState<
     Record<string, NearbyStoreState>
   >({});
+  const lazadaPrimedKeysRef = useRef<Set<string>>(new Set());
 
   useEffect(() => {
     router.prefetch("/dashboard");
@@ -644,6 +645,113 @@ export default function SecretSantaPage() {
   useEffect(() => {
     window.localStorage.setItem("secret-santa-nearby-area", nearbyArea);
   }, [nearbyArea]);
+
+  useEffect(() => {
+    const productIdsToPrime = new Set<string>();
+    const urlsToPrime = new Set<string>();
+
+    for (const assignment of assignments) {
+      for (const item of assignment.receiver_wishlist) {
+        const safeItemLink = normalizeOptionalUrl(item.item_link);
+
+        if (safeItemLink && isLazadaProductPageUrl(safeItemLink)) {
+          urlsToPrime.add(safeItemLink);
+        }
+
+        const selectedSuggestionId = selectedRecipientSuggestionByItem[item.id] || "";
+
+        if (!selectedSuggestionId) {
+          continue;
+        }
+
+        const suggestionOptions = buildWishlistSuggestionOptions({
+          groupId: assignment.group_id,
+          wishlistItemId: item.id,
+          itemName: item.item_name,
+          itemCategory: item.item_category,
+          itemNote: item.item_note,
+          preferredPriceMin: item.preferred_price_min,
+          preferredPriceMax: item.preferred_price_max,
+          groupBudget: assignment.group_budget,
+          currency: assignment.group_currency,
+        });
+        const selectedSuggestion =
+          suggestionOptions.find((suggestion) => suggestion.id === selectedSuggestionId) || null;
+
+        if (!selectedSuggestion) {
+          continue;
+        }
+
+        const featuredLazadaProducts = buildWishlistFeaturedLazadaProducts({
+          option: selectedSuggestion,
+          groupId: assignment.group_id,
+          wishlistItemId: item.id,
+          itemName: item.item_name,
+          itemCategory: item.item_category,
+          itemNote: item.item_note,
+          preferredPriceMin: item.preferred_price_min,
+          preferredPriceMax: item.preferred_price_max,
+          groupBudget: assignment.group_budget,
+          currency: assignment.group_currency,
+          region: shoppingRegion,
+        });
+
+        for (const product of featuredLazadaProducts) {
+          if (product.productId && product.catalogSource === "catalog-product") {
+            productIdsToPrime.add(product.productId);
+          }
+        }
+      }
+    }
+
+    const unprimedProductIds = Array.from(productIdsToPrime).filter(
+      (productId) => !lazadaPrimedKeysRef.current.has(`product:${productId}`)
+    );
+    const unprimedUrls = Array.from(urlsToPrime).filter(
+      (url) => !lazadaPrimedKeysRef.current.has(`url:${url}`)
+    );
+
+    if (unprimedProductIds.length === 0 && unprimedUrls.length === 0) {
+      return;
+    }
+
+    let cancelled = false;
+
+    const primeLazadaLinks = async () => {
+      try {
+        const response = await fetch("/api/affiliate/lazada/prime-links", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            productIds: unprimedProductIds,
+            urls: unprimedUrls,
+          }),
+        });
+
+        if (!response.ok || cancelled) {
+          return;
+        }
+
+        for (const productId of unprimedProductIds) {
+          lazadaPrimedKeysRef.current.add(`product:${productId}`);
+        }
+
+        for (const url of unprimedUrls) {
+          lazadaPrimedKeysRef.current.add(`url:${url}`);
+        }
+      } catch {
+        // Priming is a performance improvement only. Click-time resolution still works.
+      }
+    };
+
+    void primeLazadaLinks();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [assignments, selectedRecipientSuggestionByItem, shoppingRegion]);
 
   useEffect(() => {
     let isMounted = true;
