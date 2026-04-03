@@ -531,17 +531,13 @@ function getFeaturedLazadaCardTypeLabel(product: WishlistFeaturedProductCard): s
   return product.catalogSource === "catalog-product" ? "Direct product" : "Lazada search";
 }
 
-function getFeaturedLazadaRoleLabel(index: number, useMatchedProducts: boolean): string {
+function getFeaturedLazadaRoleLabel(
+  product: WishlistFeaturedProductCard,
+  index: number,
+  useMatchedProducts: boolean
+): string {
   if (useMatchedProducts) {
-    if (index === 0) {
-      return "Closest match";
-    }
-
-    if (index === 1) {
-      return "Backup option";
-    }
-
-    return "Another option";
+    return product.fitLabel || "Matched product";
   }
 
   if (index === 0) {
@@ -2452,6 +2448,7 @@ export default function SecretSantaPage() {
                                               const cardTypeLabel =
                                                 getFeaturedLazadaCardTypeLabel(product);
                                               const roleLabel = getFeaturedLazadaRoleLabel(
+                                                product,
                                                 index,
                                                 usingMatchedLazadaProducts
                                               );

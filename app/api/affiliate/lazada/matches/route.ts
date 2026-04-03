@@ -43,34 +43,130 @@ function isShoppingRegion(value: string): value is ShoppingRegion {
   return ["AU", "CA", "GLOBAL", "JP", "PH", "UK", "US"].includes(value);
 }
 
-function buildMatchFitLabel(score: number): string {
-  if (score >= 0.92) {
+type MatchCardRole = "alternate" | "closest" | "premium";
+
+function getMatchProductPrice(
+  match: { product: { discountedPrice: number | null; salePrice: number | null } }
+): number | null {
+  return match.product.discountedPrice ?? match.product.salePrice;
+}
+
+function buildRoleOrderedMatches<T extends { product: { itemId: string; discountedPrice: number | null; salePrice: number | null } }>(
+  matches: T[]
+): Array<{ match: T; role: MatchCardRole }> {
+  const uniqueMatches = matches.filter(
+    (match, index, array) =>
+      array.findIndex((candidate) => candidate.product.itemId === match.product.itemId) === index
+  );
+
+  if (uniqueMatches.length === 0) {
+    return [];
+  }
+
+  const closest = uniqueMatches[0];
+  const remaining = uniqueMatches.slice(1);
+  const basePrice = getMatchProductPrice(closest);
+
+  let alternate: T | null = null;
+  let premium: T | null = null;
+
+  if (remaining.length > 0) {
+    alternate =
+      remaining.find((candidate) => {
+        const candidatePrice = getMatchProductPrice(candidate);
+
+        if (basePrice === null || candidatePrice === null) {
+          return true;
+        }
+
+        return candidatePrice <= basePrice * 1.2;
+      }) || remaining[0];
+  }
+
+  const premiumPool = remaining.filter(
+    (candidate) => candidate.product.itemId !== alternate?.product.itemId
+  );
+
+  if (premiumPool.length > 0) {
+    premium =
+      [...premiumPool].sort((left, right) => {
+        const leftPrice = getMatchProductPrice(left) ?? Number.NEGATIVE_INFINITY;
+        const rightPrice = getMatchProductPrice(right) ?? Number.NEGATIVE_INFINITY;
+
+        if (rightPrice !== leftPrice) {
+          return rightPrice - leftPrice;
+        }
+
+        return 0;
+      })[0] || null;
+  }
+
+  const ordered: Array<{ match: T; role: MatchCardRole }> = [
+    { match: closest, role: "closest" },
+  ];
+
+  if (alternate) {
+    ordered.push({ match: alternate, role: "alternate" });
+  }
+
+  if (premium) {
+    ordered.push({ match: premium, role: "premium" });
+  }
+
+  return ordered.slice(0, 3);
+}
+
+function buildMatchFitLabel(role: MatchCardRole): string {
+  if (role === "closest") {
     return "Closest match";
   }
 
-  if (score >= 0.84) {
-    return "Strong match";
+  if (role === "alternate") {
+    return "Alternate option";
   }
 
-  return "Good match";
+  return "Higher-budget option";
 }
 
-function buildMatchSubtitle(brand: string | null, category: string | null): string {
-  const parts = [brand, category].filter(Boolean);
-
-  if (parts.length > 0) {
-    return parts.join(" - ");
+function buildMatchSubtitle(role: MatchCardRole): string {
+  if (role === "closest") {
+    return "Best overall fit for the wishlist wording.";
   }
 
-  return "Matched from the Lazada affiliate feed.";
+  if (role === "alternate") {
+    return "A similar option if you want a different take first.";
+  }
+
+  return "A pricier step-up if you want a more premium pick.";
 }
 
-function buildMatchWhyItFits(reasons: string[]): string {
-  if (reasons.length === 0) {
-    return "Matched from the Lazada affiliate feed using the wishlist wording.";
+function buildMatchWhyItFits(
+  role: MatchCardRole,
+  reasons: string[],
+  productPrice: number | null,
+  basePrice: number | null
+): string {
+  if (role === "closest") {
+    return "This is the strongest overall match for the wishlist wording and gift theme.";
   }
 
-  return `Matched from the Lazada affiliate feed: ${reasons.join(", ")}.`;
+  if (role === "alternate") {
+    if (productPrice !== null && basePrice !== null && productPrice < basePrice) {
+      return "This keeps the same idea but gives you a lighter price option to consider.";
+    }
+
+    return "This keeps the same idea while giving you a different style or price point.";
+  }
+
+  if (productPrice !== null && basePrice !== null && productPrice > basePrice) {
+    return "This is the more premium step-up if you are comfortable spending more.";
+  }
+
+  if (reasons.includes("price fit")) {
+    return "This is a stronger spend-up option without drifting too far from the original gift idea.";
+  }
+
+  return "This is the higher-end option for the same general gift direction.";
 }
 
 export async function POST(request: NextRequest) {
@@ -122,12 +218,15 @@ export async function POST(request: NextRequest) {
     preferredPriceMin,
     preferredPriceMax,
     groupBudget,
-    limit: 3,
+    limit: 8,
     minimumScore: 0.5,
   });
 
-  const products: WishlistFeaturedProductCard[] = matches.map((match, index) => {
-    const lazadaPrice = match.product.discountedPrice ?? match.product.salePrice;
+  const orderedMatches = buildRoleOrderedMatches(matches);
+  const basePrice = orderedMatches[0] ? getMatchProductPrice(orderedMatches[0].match) : null;
+
+  const products: WishlistFeaturedProductCard[] = orderedMatches.map(({ match, role }, index) => {
+    const lazadaPrice = getMatchProductPrice(match);
 
     return {
       id: `lazada-match-${wishlistItemId}-${match.product.itemId}-${index}`,
@@ -138,7 +237,7 @@ export async function POST(request: NextRequest) {
       productId: match.product.itemId,
       skuId: match.product.skuId || null,
       title: match.product.productName,
-      subtitle: buildMatchSubtitle(match.product.brand, match.product.categoryLv1),
+      subtitle: buildMatchSubtitle(role),
       href: buildTrackedSuggestionHref(
         "lazada",
         groupId,
@@ -160,8 +259,8 @@ export async function POST(request: NextRequest) {
       ),
       searchQuery: match.product.productName,
       priceLabel: lazadaPrice !== null ? formatPriceRange(lazadaPrice, lazadaPrice, "PHP") : null,
-      fitLabel: buildMatchFitLabel(match.score),
-      whyItFits: buildMatchWhyItFits(match.reasons),
+      fitLabel: buildMatchFitLabel(role),
+      whyItFits: buildMatchWhyItFits(role, match.reasons, lazadaPrice, basePrice),
       trackingLabel: "Matched product",
     };
   });
