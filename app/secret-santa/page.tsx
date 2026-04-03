@@ -2339,18 +2339,11 @@ export default function SecretSantaPage() {
                                                     minHeight: 360,
                                                   }}
                                                 >
-                                                  <div
-                                                    className="rounded-[16px] px-3 py-2"
-                                                    style={{
-                                                      background:
-                                                        "linear-gradient(180deg,rgba(255,247,238,.96),rgba(247,239,231,.92))",
-                                                      border: "1px solid rgba(169,135,61,.12)",
-                                                    }}
-                                                  >
-                                                    <div className="flex items-center justify-between gap-2 flex-wrap">
+                                                  <div className="flex items-center justify-between gap-2 flex-wrap">
+                                                    <div className="flex items-center gap-2 flex-wrap">
                                                       <span
-                                                        className="text-[10px] font-extrabold"
-                                                        style={{ color: HOLIDAY_GOLD }}
+                                                        className="text-[10px] font-extrabold px-2.5 py-1 rounded-full"
+                                                        style={getMerchantBadgeStyle("lazada", true)}
                                                       >
                                                         Lazada
                                                       </span>
@@ -2365,8 +2358,8 @@ export default function SecretSantaPage() {
                                                       </span>
                                                     </div>
                                                     <div
-                                                      className="text-[12px] font-bold mt-1"
-                                                      style={{ color: TEXT_MUTED }}
+                                                      className="text-[11px] font-bold"
+                                                      style={{ color: HOLIDAY_GOLD }}
                                                     >
                                                       {product.priceLabel || product.trackingLabel}
                                                     </div>
@@ -2418,13 +2411,7 @@ export default function SecretSantaPage() {
                                                     {conciseSubtitle}
                                                   </div>
 
-                                                  <div
-                                                    className="mt-3 rounded-2xl px-3 py-2 flex-1"
-                                                    style={{
-                                                      background: "rgba(88,116,142,.06)",
-                                                      border: "1px solid rgba(88,116,142,.1)",
-                                                    }}
-                                                  >
+                                                  <div className="mt-3 flex-1">
                                                     <div
                                                       className="text-[10px] font-semibold uppercase tracking-[0.08em]"
                                                       style={{ color: HOLIDAY_BLUE }}
