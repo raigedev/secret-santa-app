@@ -323,6 +323,6 @@ if ($mergedRecords.Count -eq 1) {
   $json = "[`n$json`n]"
 }
 
-Set-Content -LiteralPath $OutputPath -Value $json
+Set-Content -LiteralPath $OutputPath -Value $json -Encoding utf8
 
 Write-Output "Imported $($mergedRecords.Count) Lazada feed row(s) from $($sourceFiles.Count) file(s) into $OutputPath"

@@ -1,6 +1,7 @@
 import "server-only";
 
-import importedLazadaFeedRows from "@/lib/affiliate/lazada-feed-data.generated.json";
+import { readFileSync } from "fs";
+import path from "path";
 import { normalizeLazadaProductPageUrl } from "@/lib/affiliate/lazada-url";
 
 export type LazadaImportedFeedRow = {
@@ -60,8 +61,24 @@ export type LazadaFeedMatch = {
   reasons: string[];
 };
 
-const LAZADA_IMPORTED_FEED_ROWS =
-  importedLazadaFeedRows as LazadaImportedFeedRow[];
+function loadImportedLazadaFeedRows(): LazadaImportedFeedRow[] {
+  const feedPath = path.join(
+    process.cwd(),
+    "lib",
+    "affiliate",
+    "lazada-feed-data.generated.json"
+  );
+  const fileContents = readFileSync(feedPath, "utf8");
+  const parsed = JSON.parse(fileContents) as unknown;
+
+  if (!Array.isArray(parsed)) {
+    return [];
+  }
+
+  return parsed as LazadaImportedFeedRow[];
+}
+
+const LAZADA_IMPORTED_FEED_ROWS = loadImportedLazadaFeedRows();
 
 const MATCH_STOPWORDS = new Set([
   "a",
