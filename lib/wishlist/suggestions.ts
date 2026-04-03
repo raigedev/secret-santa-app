@@ -426,6 +426,15 @@ function buildTrackedSuggestionHref(
   return `/go/suggestion?${params.toString()}`;
 }
 
+function getFeaturedLazadaTrackingLabel(template: {
+  productId: string | null;
+  source: "catalog-product" | "search-backed";
+}): string {
+  return template.productId && template.source === "catalog-product"
+    ? "Product-linked pick"
+    : "Search-backed pick";
+}
+
 function getKeywordTemplates(itemName: string, itemNote: string): SuggestionTemplate[] {
   const haystack = `${itemName} ${itemNote}`.toLowerCase();
 
@@ -783,7 +792,7 @@ export function buildWishlistFeaturedLazadaProducts(input: {
       input.groupBudget
     ),
     whyItFits: template.whyItFits,
-    trackingLabel: "Search-backed pick",
+    trackingLabel: getFeaturedLazadaTrackingLabel(template),
   }));
 }
 

@@ -47,6 +47,30 @@ function buildSearchBackedProduct(
   };
 }
 
+function buildCatalogBackedProduct(
+  title: string,
+  subtitle: string,
+  searchQuery: string,
+  whyItFits: string,
+  typicalMin: number | null,
+  typicalMax: number | null,
+  productId: string,
+  skuId: string
+): LazadaStarterCatalogProduct {
+  return {
+    id: `catalog-${slugify(searchQuery)}-${productId}`,
+    title,
+    subtitle,
+    searchQuery,
+    typicalMin,
+    typicalMax,
+    whyItFits,
+    productId,
+    skuId,
+    source: "catalog-product",
+  };
+}
+
 // These starter catalog picks are intentionally search-backed today.
 // Once the Lazada Open API is approved, we can enrich the same catalog
 // entries with real item_id / sku_id values from a feed import.
@@ -69,13 +93,15 @@ export function getLazadaStarterProducts(
   if (/(tablet|ipad|android tab)/.test(haystack)) {
     return [
       exactMatchProduct,
-      buildSearchBackedProduct(
+      buildCatalogBackedProduct(
         "Samsung Galaxy Tab A9",
         "A practical mainstream tablet for streaming, reading, and light study use.",
         "Samsung Galaxy Tab A9",
         "This is a realistic full-device pick when the wishlist means the tablet itself.",
         7000,
-        11000
+        11000,
+        "5343634107",
+        "31890603703"
       ),
       buildSearchBackedProduct(
         "Xiaomi Redmi Pad SE",
