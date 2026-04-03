@@ -398,7 +398,13 @@ function buildTrackedSuggestionHref(
   region: ShoppingRegion,
   options?: {
     catalogSource?: string | null;
+    groupBudget?: number | null;
+    itemCategory?: string | null;
+    itemName?: string | null;
+    itemNote?: string | null;
     productId?: string | null;
+    preferredPriceMax?: number | null;
+    preferredPriceMin?: number | null;
     skuId?: string | null;
   }
 ): string {
@@ -421,6 +427,30 @@ function buildTrackedSuggestionHref(
 
   if (options?.catalogSource) {
     params.set("catalogSource", options.catalogSource);
+  }
+
+  if (options?.itemName) {
+    params.set("itemName", options.itemName);
+  }
+
+  if (options?.itemCategory) {
+    params.set("itemCategory", options.itemCategory);
+  }
+
+  if (options?.itemNote) {
+    params.set("itemNote", options.itemNote);
+  }
+
+  if (options?.preferredPriceMin !== null && options?.preferredPriceMin !== undefined) {
+    params.set("preferredPriceMin", String(options.preferredPriceMin));
+  }
+
+  if (options?.preferredPriceMax !== null && options?.preferredPriceMax !== undefined) {
+    params.set("preferredPriceMax", String(options.preferredPriceMax));
+  }
+
+  if (options?.groupBudget !== null && options?.groupBudget !== undefined) {
+    params.set("groupBudget", String(options.groupBudget));
   }
 
   return `/go/suggestion?${params.toString()}`;
@@ -776,7 +806,13 @@ export function buildWishlistFeaturedLazadaProducts(input: {
       input.region,
       {
         catalogSource: template.source,
+        groupBudget: input.groupBudget,
+        itemCategory: input.itemCategory,
+        itemName: input.itemName,
+        itemNote: input.itemNote,
         productId: template.productId,
+        preferredPriceMax: input.preferredPriceMax,
+        preferredPriceMin: input.preferredPriceMin,
         skuId: template.skuId,
       }
     ),

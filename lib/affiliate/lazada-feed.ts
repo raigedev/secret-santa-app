@@ -1,3 +1,5 @@
+import "server-only";
+
 import importedLazadaFeedRows from "@/lib/affiliate/lazada-feed-data.generated.json";
 import { normalizeLazadaProductPageUrl } from "@/lib/affiliate/lazada-url";
 

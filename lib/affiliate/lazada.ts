@@ -1,7 +1,10 @@
 import "server-only";
 
 import { createHash, createHmac } from "crypto";
-import { findLazadaFeedProductByUrl } from "@/lib/affiliate/lazada-feed";
+import {
+  findBestLazadaFeedMatches,
+  findLazadaFeedProductByUrl,
+} from "@/lib/affiliate/lazada-feed";
 import { normalizeLazadaProductPageUrl } from "@/lib/affiliate/lazada-url";
 
 export const LAZADA_DEFAULT_API_BASE_URL = "https://api.lazada.com.ph/rest";
@@ -587,6 +590,63 @@ export async function resolveLazadaPromotionLinkTarget(options: {
     reason: "open-api-not-live",
     targetUrl: options.fallbackUrl,
   };
+}
+
+export async function resolveLazadaSuggestionLinkTarget(options: {
+  fallbackUrl: string;
+  productId: string | null;
+  searchQuery: string;
+  itemName: string;
+  itemCategory: string;
+  itemNote: string;
+  preferredPriceMin: number | null;
+  preferredPriceMax: number | null;
+  groupBudget: number | null;
+}): Promise<LazadaPromotionLinkResolution> {
+  if (options.productId) {
+    return resolveLazadaPromotionLinkTarget({
+      fallbackUrl: options.fallbackUrl,
+      productId: options.productId,
+      searchQuery: options.searchQuery,
+    });
+  }
+
+  const feedMatches = findBestLazadaFeedMatches({
+    itemName: options.itemName,
+    itemCategory: options.itemCategory,
+    itemNote: options.itemNote,
+    searchQuery: options.searchQuery,
+    preferredPriceMin: options.preferredPriceMin,
+    preferredPriceMax: options.preferredPriceMax,
+    groupBudget: options.groupBudget,
+    limit: 1,
+    minimumScore: 0.9,
+  });
+  const topMatch = feedMatches[0] || null;
+
+  if (!topMatch) {
+    return {
+      mode: "search-fallback",
+      reason: "missing-product-id",
+      targetUrl: options.fallbackUrl,
+    };
+  }
+
+  const wishlistSubIds = buildLazadaWishlistSubIds(options.searchQuery);
+
+  if (topMatch.product.promoShortLink) {
+    return {
+      mode: "promotion-link",
+      reason: "feed-promo-link-ready",
+      targetUrl: appendLazadaSubIdsToPromotionLink(topMatch.product.promoShortLink, wishlistSubIds),
+    };
+  }
+
+  return resolveLazadaPromotionLinkTarget({
+    fallbackUrl: options.fallbackUrl,
+    productId: topMatch.product.itemId,
+    searchQuery: options.searchQuery,
+  });
 }
 
 export async function resolveLazadaWishlistItemLinkTarget(options: {

@@ -1,8 +1,3 @@
-import {
-  findBestLazadaFeedMatches,
-  type LazadaFeedMatch,
-} from "@/lib/affiliate/lazada-feed";
-
 export type LazadaStarterCatalogProduct = {
   id: string;
   title: string;
@@ -55,30 +50,6 @@ function buildSearchBackedProduct(
   };
 }
 
-function buildCatalogBackedProduct(
-  title: string,
-  subtitle: string,
-  searchQuery: string,
-  whyItFits: string,
-  typicalMin: number | null,
-  typicalMax: number | null,
-  productId: string,
-  skuId: string
-): LazadaStarterCatalogProduct {
-  return {
-    id: `catalog-${slugify(searchQuery)}-${productId}`,
-    title,
-    subtitle,
-    searchQuery,
-    typicalMin,
-    typicalMax,
-    whyItFits,
-    productId,
-    skuId,
-    source: "catalog-product",
-  };
-}
-
 function normalizeExactLazadaSearchQuery(itemName: string, haystack: string): string {
   const cleanItemName = itemName.trim().replace(/\s+/g, " ");
 
@@ -97,33 +68,6 @@ function normalizeExactLazadaSearchQuery(itemName: string, haystack: string): st
   return cleanItemName;
 }
 
-function buildFeedBackedProduct(
-  match: LazadaFeedMatch,
-  options?: {
-    titleOverride?: string | null;
-    subtitleOverride?: string | null;
-    searchQueryOverride?: string | null;
-    whyItFitsOverride?: string | null;
-  }
-): LazadaStarterCatalogProduct {
-  const effectivePrice = match.product.discountedPrice ?? match.product.salePrice;
-  const scoreLabel =
-    match.score >= 0.92 ? "very close title match" : match.score >= 0.82 ? "strong feed match" : "close feed match";
-
-  return buildCatalogBackedProduct(
-    options?.titleOverride || match.product.productName,
-    options?.subtitleOverride ||
-      `Matched from the Lazada feed using a ${scoreLabel}.`,
-    options?.searchQueryOverride || match.product.productName,
-    options?.whyItFitsOverride ||
-      `This direct product match came from the Lazada feed and scored ${Math.round(match.score * 100)}% confidence.`,
-    effectivePrice,
-    match.product.salePrice,
-    match.product.itemId,
-    match.product.skuId
-  );
-}
-
 function buildExactMatchProduct(
   itemName: string,
   haystack: string
@@ -140,48 +84,17 @@ function buildExactMatchProduct(
   );
 }
 
-// These starter catalog picks are intentionally search-backed today.
-// Once the Lazada Open API is approved, we can enrich the same catalog
-// entries with real item_id / sku_id values from a feed import.
 export function getLazadaStarterProducts(
   input: LazadaStarterCatalogInput
 ): LazadaStarterCatalogProduct[] {
   const cleanItemName = input.itemName.trim();
   const cleanNote = input.itemNote.trim();
   const haystack = `${cleanItemName} ${input.itemCategory} ${cleanNote} ${input.searchQuery}`.toLowerCase();
-
-  const feedMatches = findBestLazadaFeedMatches({
-    itemName: cleanItemName,
-    itemCategory: input.itemCategory,
-    itemNote: cleanNote,
-    searchQuery: input.searchQuery,
-    preferredPriceMin: input.preferredPriceMin ?? null,
-    preferredPriceMax: input.preferredPriceMax ?? null,
-    groupBudget: input.groupBudget ?? null,
-    limit: 3,
-  });
-
-  const topFeedMatch = feedMatches[0] || null;
-  const exactMatchProduct =
-    topFeedMatch && topFeedMatch.score >= 0.9
-      ? buildFeedBackedProduct(topFeedMatch, {
-          titleOverride: cleanItemName,
-          searchQueryOverride: normalizeExactLazadaSearchQuery(cleanItemName, haystack),
-          subtitleOverride:
-            "This keeps the giftee's wording while using a high-confidence Lazada feed match.",
-          whyItFitsOverride:
-            "This direct product match cleared the high-confidence threshold in the Lazada feed.",
-        })
-      : buildExactMatchProduct(cleanItemName, haystack);
-
-  const remainingFeedProducts = feedMatches
-    .filter((match) => !topFeedMatch || match.product.itemId !== topFeedMatch.product.itemId)
-    .map((match) => buildFeedBackedProduct(match));
+  const exactMatchProduct = buildExactMatchProduct(cleanItemName, haystack);
 
   if (/(tablet|ipad|android tab)/.test(haystack)) {
     return [
       exactMatchProduct,
-      ...remainingFeedProducts,
       buildSearchBackedProduct(
         "Samsung Galaxy Tab A9",
         "A practical mainstream tablet for streaming, reading, and light study use.",
@@ -212,7 +125,6 @@ export function getLazadaStarterProducts(
   if (/(book|novel|manga|comic|journal|planner)/.test(haystack)) {
     return [
       exactMatchProduct,
-      ...remainingFeedProducts,
       buildSearchBackedProduct(
         "Bestselling paperback books",
         "A broad book search that usually surfaces safe giftable titles first.",
@@ -243,7 +155,6 @@ export function getLazadaStarterProducts(
   if (/(bag|handbag|purse|wallet|luggage|backpack)/.test(haystack)) {
     return [
       exactMatchProduct,
-      ...remainingFeedProducts,
       buildSearchBackedProduct(
         "Minimalist tote bag",
         "A safe everyday bag style that often works well for gifting.",
@@ -274,7 +185,6 @@ export function getLazadaStarterProducts(
   if (/(shirt|hoodie|dress|clothes|clothing|jacket|shoes|fashion|sneakers)/.test(haystack)) {
     return [
       exactMatchProduct,
-      ...remainingFeedProducts,
       buildSearchBackedProduct(
         "Oversized hoodie",
         "A forgiving apparel gift shape that works well when sizing is not too exact.",
@@ -305,7 +215,6 @@ export function getLazadaStarterProducts(
   if (/(tool|hardware|diy|drill|wrench|screwdriver|hammer|repair kit)/.test(haystack)) {
     return [
       exactMatchProduct,
-      ...remainingFeedProducts,
       buildSearchBackedProduct(
         "Household tool kit",
         "A broad and practical tool starting point for most giftees.",
@@ -336,7 +245,6 @@ export function getLazadaStarterProducts(
   if (/(beauty|makeup|skincare|perfume)/.test(haystack)) {
     return [
       exactMatchProduct,
-      ...remainingFeedProducts,
       buildSearchBackedProduct(
         "Skincare gift set",
         "A dependable beauty route when brand preferences are still flexible.",
@@ -367,7 +275,6 @@ export function getLazadaStarterProducts(
   if (/(home|decor|kitchen|cookware|bedding|blanket|pillow|lamp|organizer|mug|candle)/.test(haystack)) {
     return [
       exactMatchProduct,
-      ...remainingFeedProducts,
       buildSearchBackedProduct(
         "Scented candle set",
         "A cozy home gift that usually feels safe and polished.",
@@ -398,7 +305,6 @@ export function getLazadaStarterProducts(
   if (/(food|snack|coffee|tea|treat|chocolate|pastry|cake|cookie|hamper|bakery|pasalubong)/.test(haystack)) {
     return [
       exactMatchProduct,
-      ...remainingFeedProducts,
       buildSearchBackedProduct(
         "Premium snack box",
         "A dependable consumable gift when the food preference is broad.",
@@ -429,7 +335,6 @@ export function getLazadaStarterProducts(
   if (/(game|gaming|console|board game|toy|lego|card game)/.test(haystack)) {
     return [
       exactMatchProduct,
-      ...remainingFeedProducts,
       buildSearchBackedProduct(
         "Family board game",
         "A social and giftable choice when the game type is still flexible.",
@@ -460,7 +365,6 @@ export function getLazadaStarterProducts(
   if (/(collectible|figure|anime|merch|funko|plush|trading card|model kit|hobby)/.test(haystack)) {
     return [
       exactMatchProduct,
-      ...remainingFeedProducts,
       buildSearchBackedProduct(
         "Anime figure",
         "A common collectible route when the fandom is still somewhat broad.",
@@ -490,7 +394,6 @@ export function getLazadaStarterProducts(
 
   return [
     exactMatchProduct,
-    ...remainingFeedProducts,
     buildSearchBackedProduct(
       `Budget-friendly ${cleanItemName}`,
       "A lower-pressure starting point when the exact premium version feels too open.",

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 
-import { resolveLazadaPromotionLinkTarget } from "@/lib/affiliate/lazada";
+import { resolveLazadaSuggestionLinkTarget } from "@/lib/affiliate/lazada";
 import { supabaseAdmin } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 import {
@@ -33,6 +33,12 @@ export async function GET(request: NextRequest) {
   const productId = searchParams.get("productId")?.trim() || null;
   const skuId = searchParams.get("skuId")?.trim() || null;
   const catalogSource = searchParams.get("catalogSource")?.trim() || null;
+  const itemName = searchParams.get("itemName")?.trim() || searchQuery;
+  const itemCategory = searchParams.get("itemCategory")?.trim() || "";
+  const itemNote = searchParams.get("itemNote")?.trim() || "";
+  const preferredPriceMinRaw = searchParams.get("preferredPriceMin");
+  const preferredPriceMaxRaw = searchParams.get("preferredPriceMax");
+  const groupBudgetRaw = searchParams.get("groupBudget");
   const requestedRegion = searchParams.get("region");
   const region: ShoppingRegion = isShoppingRegion(requestedRegion)
     ? requestedRegion
@@ -49,10 +55,27 @@ export async function GET(request: NextRequest) {
 
   let targetUrl = buildMerchantDestinationUrl(merchant, searchQuery, region);
 
+  const preferredPriceMin =
+    preferredPriceMinRaw !== null && preferredPriceMinRaw.trim().length > 0
+      ? Number(preferredPriceMinRaw)
+      : null;
+  const preferredPriceMax =
+    preferredPriceMaxRaw !== null && preferredPriceMaxRaw.trim().length > 0
+      ? Number(preferredPriceMaxRaw)
+      : null;
+  const groupBudget =
+    groupBudgetRaw !== null && groupBudgetRaw.trim().length > 0 ? Number(groupBudgetRaw) : null;
+
   if (merchant === "lazada") {
-    const lazadaTarget = await resolveLazadaPromotionLinkTarget({
+    const lazadaTarget = await resolveLazadaSuggestionLinkTarget({
       fallbackUrl: targetUrl,
+      groupBudget: Number.isFinite(groupBudget) ? groupBudget : null,
+      itemCategory,
+      itemName,
+      itemNote,
       productId,
+      preferredPriceMax: Number.isFinite(preferredPriceMax) ? preferredPriceMax : null,
+      preferredPriceMin: Number.isFinite(preferredPriceMin) ? preferredPriceMin : null,
       searchQuery,
     });
 
