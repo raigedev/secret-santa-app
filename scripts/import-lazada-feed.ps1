@@ -228,7 +228,8 @@ function Get-WorkbookRecords {
       "subId4",
       "subId5",
       "subId6",
-      "pickChannel"
+      "pickChannel",
+      "sourceCategory"
     )
 
     $records = New-Object System.Collections.Generic.List[object]
@@ -255,6 +256,8 @@ function Get-WorkbookRecords {
       if ([string]::IsNullOrWhiteSpace($record.itemId) -or [string]::IsNullOrWhiteSpace($record.productName)) {
         continue
       }
+
+      $record.sourceCategory = [System.IO.Path]::GetFileNameWithoutExtension($WorkbookPath)
 
       $records.Add([pscustomobject]$record)
     }

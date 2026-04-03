@@ -34,6 +34,7 @@ export type LazadaImportedFeedRow = {
   subId5: string;
   subId6: string;
   pickChannel: string;
+  sourceCategory: string;
 };
 
 export type LazadaFeedProduct = {
@@ -53,6 +54,7 @@ export type LazadaFeedProduct = {
   maximumCommissionRate: string | null;
   pickChannel: string | null;
   normalizedProductUrl: string | null;
+  sourceCategory: string | null;
 };
 
 export type LazadaFeedMatch = {
@@ -171,6 +173,101 @@ const FEED_MATCH_PROFILES: Array<{
   },
 ];
 
+const SOURCE_CATEGORY_PROFILES: Array<{
+  categories: string[];
+  id: string;
+  test: RegExp;
+}> = [
+  {
+    id: "bag source category",
+    categories: ["Bags and Travel", "Fashion Accessories"],
+    test: /\b(tote|bag|backpack|crossbody|wallet|purse|handbag|luggage)\b/,
+  },
+  {
+    id: "fashion source category",
+    categories: [
+      "Kid's Fashion",
+      "Lingerie, Sleep, Lounge and Thermal Wear",
+      "Men's Clothing",
+      "Men's Shoes",
+      "Sports, Shoes and Clothing",
+      "Women's Clothing",
+      "Women's Shoes",
+    ],
+    test: /\b(hoodie|shirt|tee|jacket|sweater|dress|sneaker|shoe|clothing|fashion)\b/,
+  },
+  {
+    id: "book source category",
+    categories: ["Media, Music and Books", "Stationery, Craft and Gift Cards"],
+    test: /\b(book|novel|manga|comic|journal|planner|stationery|craft|gift card)\b/,
+  },
+  {
+    id: "tech source category",
+    categories: [
+      "Audio",
+      "Cameras and Drones",
+      "Computers and Components",
+      "Data Storage",
+      "Electronic Parts and Accessories",
+      "Mobile accessories",
+      "Mobiles and Tablets",
+      "Printers and Scanners",
+      "Smart Devices",
+      "Televisions and Videos",
+    ],
+    test: /\b(tablet|ipad|galaxy tab|redmi pad|power bank|charger|battery|phone|mobile|gadget|headset|earbuds|keyboard|monitor|printer|camera|drone|smart)\b/,
+  },
+  {
+    id: "beauty source category",
+    categories: ["Beauty", "Beauty, Skincare & Wellness", "Health"],
+    test: /\b(beauty|makeup|skincare|perfume|wellness|self care|cosmetic)\b/,
+  },
+  {
+    id: "home source category",
+    categories: [
+      "Bedding and Bath",
+      "Furniture and Organization",
+      "Home Appliances",
+      "House Hold Supplies",
+      "Kitchenware and Tableware",
+      "Laundry And Cleaning Equipments",
+      "Lighting and Decor",
+      "Outdoor and Garden",
+    ],
+    test: /\b(home|decor|kitchen|cookware|bedding|blanket|pillow|lamp|organizer|mug|candle|laundry|garden|appliance)\b/,
+  },
+  {
+    id: "tool source category",
+    categories: ["Tools and Home Improvements", "Automotive"],
+    test: /\b(tool|hardware|diy|drill|wrench|screwdriver|hammer|repair|improvement|automotive)\b/,
+  },
+  {
+    id: "food source category",
+    categories: ["Groceries"],
+    test: /\b(food|snack|coffee|tea|treat|chocolate|pastry|cake|cookie|hamper|bakery|pasalubong|grocery)\b/,
+  },
+  {
+    id: "game source category",
+    categories: ["Gaming Devices and Software", "Toys and Games"],
+    test: /\b(game|gaming|console|board game|toy|lego|card game)\b/,
+  },
+  {
+    id: "collectible source category",
+    categories: ["Toys and Games"],
+    test: /\b(collectible|figure|anime|merch|funko|plush|trading card|model kit|hobby)\b/,
+  },
+  {
+    id: "baby source category",
+    categories: ["Mother And Baby"],
+    test: /\b(baby|newborn|infant|toddler|stroller|feeding)\b/,
+  },
+  {
+    id: "pet source category",
+    categories: ["Pet Supplies"],
+    test: /\b(pet|dog|cat|feline|canine|vet|veterinary|litter)\b/,
+  },
+];
+
 const BAG_SUBTYPE_RULES: Array<{
   exclude: string[];
   id: string;
@@ -246,6 +343,7 @@ function normalizeImportedFeedRow(row: LazadaImportedFeedRow): LazadaFeedProduct
     maximumCommissionRate: row.maximumCommissionRate.trim() || null,
     pickChannel: row.pickChannel.trim() || null,
     normalizedProductUrl: normalizeLazadaProductPageUrl(row.productUrl),
+    sourceCategory: row.sourceCategory?.trim() || null,
   };
 }
 
@@ -393,6 +491,52 @@ function filterLazadaFeedProductsBySubtype(
       : [];
 }
 
+function getRelevantLazadaSourceCategories(input: {
+  itemCategory: string;
+  itemName: string;
+  itemNote: string;
+  searchQuery: string;
+}): string[] {
+  const searchContext = normalizeFeedString(
+    `${input.itemName} ${input.itemCategory} ${input.itemNote} ${input.searchQuery}`
+  );
+  const categories = new Set<string>();
+
+  for (const profile of SOURCE_CATEGORY_PROFILES) {
+    if (!profile.test.test(searchContext)) {
+      continue;
+    }
+
+    for (const category of profile.categories) {
+      categories.add(category);
+    }
+  }
+
+  return Array.from(categories);
+}
+
+function filterLazadaFeedProductsBySourceCategory(
+  products: LazadaFeedProduct[],
+  input: {
+    itemCategory: string;
+    itemName: string;
+    itemNote: string;
+    searchQuery: string;
+  }
+): LazadaFeedProduct[] {
+  const relevantCategories = getRelevantLazadaSourceCategories(input);
+
+  if (relevantCategories.length === 0) {
+    return products;
+  }
+
+  const categoryMatches = products.filter((product) =>
+    product.sourceCategory ? relevantCategories.includes(product.sourceCategory) : false
+  );
+
+  return categoryMatches.length > 0 ? categoryMatches : products;
+}
+
 function getTargetPrice(
   preferredMin: number | null | undefined,
   preferredMax: number | null | undefined,
@@ -444,6 +588,7 @@ function scoreFeedMatch(input: {
   const searchQueryTokens = Array.from(new Set(tokenizeFeedText(input.searchQuery)));
   const noteTokens = Array.from(new Set(tokenizeFeedText(input.itemNote)));
   const categoryTokens = Array.from(new Set(tokenizeFeedText(input.itemCategory)));
+  const relevantSourceCategories = getRelevantLazadaSourceCategories(input);
   const reasons: string[] = [];
   let score = 0;
 
@@ -515,6 +660,14 @@ function scoreFeedMatch(input: {
     }
   }
 
+  if (
+    input.product.sourceCategory &&
+    relevantSourceCategories.includes(input.product.sourceCategory)
+  ) {
+    score += 0.16;
+    reasons.push("source category match");
+  }
+
   const targetPrice = getTargetPrice(
     input.preferredPriceMin ?? null,
     input.preferredPriceMax ?? null,
@@ -563,8 +716,12 @@ export function findBestLazadaFeedMatches(input: {
     input,
     budgetMode
   );
-  const candidateProducts = filterLazadaFeedProductsBySubtype(
+  const sourceShortlistedProducts = filterLazadaFeedProductsBySourceCategory(
     budgetShortlistedProducts,
+    input
+  );
+  const candidateProducts = filterLazadaFeedProductsBySubtype(
+    sourceShortlistedProducts,
     input
   );
 
