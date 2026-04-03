@@ -389,7 +389,7 @@ function getMerchantSearchUrl(
   }
 }
 
-function buildTrackedSuggestionHref(
+export function buildTrackedSuggestionHref(
   merchant: SuggestionMerchant,
   groupId: string,
   wishlistItemId: string,
@@ -461,8 +461,8 @@ function getFeaturedLazadaTrackingLabel(template: {
   source: "catalog-product" | "search-backed";
 }): string {
   return template.productId && template.source === "catalog-product"
-    ? "Product-linked pick"
-    : "Search-backed pick";
+    ? "Direct product link"
+    : "Fallback search";
 }
 
 function getKeywordTemplates(itemName: string, itemNote: string): SuggestionTemplate[] {

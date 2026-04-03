@@ -123,6 +123,47 @@ const TECH_EXCLUDE_WORDS = [
   "veterinary",
 ];
 
+const FEED_MATCH_PROFILES: Array<{
+  id: string;
+  include: string[];
+  test: RegExp;
+}> = [
+  {
+    id: "bag keyword match",
+    include: ["bag", "tote", "backpack", "crossbody", "shoulder", "wallet"],
+    test: /\b(tote|bag|backpack|crossbody|wallet|purse|handbag|luggage)\b/,
+  },
+  {
+    id: "apparel keyword match",
+    include: [
+      "hoodie",
+      "shirt",
+      "tee",
+      "jacket",
+      "sweater",
+      "dress",
+      "sneaker",
+      "shoe",
+    ],
+    test: /\b(hoodie|shirt|tee|jacket|sweater|dress|sneaker|shoe|clothing|fashion)\b/,
+  },
+  {
+    id: "organizer keyword match",
+    include: ["organizer", "stand", "bookshelf", "shelf", "holder"],
+    test: /\b(organizer|book stand|desk organizer|bookshelf|shelf|stand|holder)\b/,
+  },
+  {
+    id: "power keyword match",
+    include: ["power bank", "charger", "battery", "charging"],
+    test: /\b(power bank|charger|battery pack|battery|charging)\b/,
+  },
+  {
+    id: "book keyword match",
+    include: ["book", "novel", "manga", "comic", "journal", "planner"],
+    test: /\b(book|novel|manga|comic|journal|planner)\b/,
+  },
+];
+
 function normalizeFeedString(value: string | null | undefined): string {
   return (value || "")
     .toLowerCase()
@@ -233,35 +274,60 @@ function scoreFeedMatch(input: {
   ]
     .filter(Boolean)
     .join(" ");
-  const haystack = [
-    input.itemName,
-    input.itemCategory,
-    input.itemNote,
-    input.searchQuery,
-  ].join(" ");
-
   const productNormalized = normalizeFeedString(productText);
-  const haystackNormalized = normalizeFeedString(haystack);
   const productTokens = new Set(tokenizeFeedText(productText));
-  const queryTokens = Array.from(new Set(tokenizeFeedText(haystack)));
-  const overlappingTokens = queryTokens.filter((token) => productTokens.has(token));
+  const itemNameNormalized = normalizeFeedString(input.itemName);
+  const searchQueryNormalized = normalizeFeedString(input.searchQuery);
+  const itemNoteNormalized = normalizeFeedString(input.itemNote);
+  const categoryNormalized = normalizeFeedString(input.itemCategory);
+  const itemNameTokens = Array.from(new Set(tokenizeFeedText(input.itemName)));
+  const searchQueryTokens = Array.from(new Set(tokenizeFeedText(input.searchQuery)));
+  const noteTokens = Array.from(new Set(tokenizeFeedText(input.itemNote)));
+  const categoryTokens = Array.from(new Set(tokenizeFeedText(input.itemCategory)));
   const reasons: string[] = [];
   let score = 0;
 
-  if (queryTokens.length > 0) {
-    score += Math.min(overlappingTokens.length / queryTokens.length, 1) * 0.55;
+  if (itemNameTokens.length > 0) {
+    const overlappingItemTokens = itemNameTokens.filter((token) => productTokens.has(token));
+    score += Math.min(overlappingItemTokens.length / itemNameTokens.length, 1) * 0.45;
+  }
+
+  if (searchQueryTokens.length > 0) {
+    const overlappingSearchTokens = searchQueryTokens.filter((token) => productTokens.has(token));
+    score += Math.min(overlappingSearchTokens.length / searchQueryTokens.length, 1) * 0.25;
+  }
+
+  if (noteTokens.length > 0) {
+    const overlappingNoteTokens = noteTokens.filter((token) => productTokens.has(token));
+    score += Math.min(overlappingNoteTokens.length / noteTokens.length, 1) * 0.08;
+  }
+
+  if (categoryTokens.length > 0) {
+    const overlappingCategoryTokens = categoryTokens.filter((token) => productTokens.has(token));
+    score += Math.min(overlappingCategoryTokens.length / categoryTokens.length, 1) * 0.05;
   }
 
   if (
-    haystackNormalized.length > 4 &&
-    (productNormalized.includes(haystackNormalized) || haystackNormalized.includes(productNormalized))
+    itemNameNormalized.length > 3 &&
+    (productNormalized.includes(itemNameNormalized) ||
+      itemNameNormalized.includes(productNormalized))
   ) {
-    score += 0.22;
-    reasons.push("title overlap");
+    score += 0.18;
+    reasons.push("item title overlap");
+  }
+
+  if (
+    searchQueryNormalized.length > 4 &&
+    searchQueryNormalized !== itemNameNormalized &&
+    (productNormalized.includes(searchQueryNormalized) ||
+      searchQueryNormalized.includes(productNormalized))
+  ) {
+    score += 0.12;
+    reasons.push("search overlap");
   }
 
   const techSearch = /(tablet|ipad|android tab|galaxy tab|redmi pad|xiaomi pad)/.test(
-    haystackNormalized
+    `${itemNameNormalized} ${searchQueryNormalized} ${itemNoteNormalized}`
   );
 
   if (techSearch) {
@@ -273,6 +339,19 @@ function scoreFeedMatch(input: {
     if (TECH_EXCLUDE_WORDS.some((word) => productNormalized.includes(word))) {
       score -= 0.9;
       reasons.push("tech mismatch");
+    }
+  }
+
+  const profileHaystack = `${itemNameNormalized} ${searchQueryNormalized} ${itemNoteNormalized} ${categoryNormalized}`;
+
+  for (const profile of FEED_MATCH_PROFILES) {
+    if (!profile.test.test(profileHaystack)) {
+      continue;
+    }
+
+    if (profile.include.some((term) => productNormalized.includes(term))) {
+      score += 0.14;
+      reasons.push(profile.id);
     }
   }
 

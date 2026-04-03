@@ -620,7 +620,7 @@ export async function resolveLazadaSuggestionLinkTarget(options: {
     preferredPriceMax: options.preferredPriceMax,
     groupBudget: options.groupBudget,
     limit: 1,
-    minimumScore: 0.9,
+    minimumScore: 0.78,
   });
   const topMatch = feedMatches[0] || null;
 

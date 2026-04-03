@@ -23,6 +23,7 @@ import {
   SHOPPING_REGION_OPTIONS,
   type NearbyStoreQuery,
   type ShoppingRegion,
+  type WishlistFeaturedProductCard,
 } from "@/lib/wishlist/suggestions";
 
 type WishlistItem = {
@@ -92,6 +93,11 @@ type NearbyStoreState = {
   error: string | null;
   requestKey: string;
   stores: NearbyStoreResult[];
+};
+
+type LazadaFeaturedProductsState = {
+  loading: boolean;
+  products: WishlistFeaturedProductCard[];
 };
 
 type NearbyCoordinates = {
@@ -226,6 +232,14 @@ const DATE_FORMATTER = new Intl.DateTimeFormat(undefined, {
 // This avoids repeatedly scanning arrays when building recipient cards.
 function createGroupUserKey(groupId: string, userId: string): string {
   return `${groupId}:${userId}`;
+}
+
+function createLazadaMatchRequestKey(
+  itemId: string,
+  suggestionId: string,
+  region: ShoppingRegion
+): string {
+  return `${itemId}:${suggestionId}:${region}`;
 }
 
 // Normalize text before it is submitted so the UI and server action receive cleaner input.
@@ -605,6 +619,9 @@ export default function SecretSantaPage() {
   const [selectedRecipientSuggestionByItem, setSelectedRecipientSuggestionByItem] = useState<
     Record<string, string>
   >({});
+  const [matchedLazadaProductsByKey, setMatchedLazadaProductsByKey] = useState<
+    Record<string, LazadaFeaturedProductsState>
+  >({});
   // These shopping preferences are page-level on purpose so the giver can set
   // them once and reuse them across every giftee item on the screen.
   const [shoppingRegion, setShoppingRegion] = useState<ShoppingRegion>("GLOBAL");
@@ -698,6 +715,144 @@ export default function SecretSantaPage() {
       cancelled = true;
     };
   }, [assignments]);
+
+  useEffect(() => {
+    if (shoppingRegion !== "PH") {
+      return;
+    }
+
+    const pendingRequests: Array<{
+      body: Record<string, string | number | null>;
+      requestKey: string;
+    }> = [];
+
+    for (const assignment of assignments) {
+      for (const item of assignment.receiver_wishlist) {
+        const selectedSuggestionId = selectedRecipientSuggestionByItem[item.id] || "";
+
+        if (!selectedSuggestionId) {
+          continue;
+        }
+
+        const suggestionOptions = buildWishlistSuggestionOptions({
+          groupId: assignment.group_id,
+          wishlistItemId: item.id,
+          itemName: item.item_name,
+          itemCategory: item.item_category,
+          itemNote: item.item_note,
+          preferredPriceMin: item.preferred_price_min,
+          preferredPriceMax: item.preferred_price_max,
+          groupBudget: assignment.group_budget,
+          currency: assignment.group_currency,
+        });
+        const selectedSuggestion =
+          suggestionOptions.find((suggestion) => suggestion.id === selectedSuggestionId) || null;
+
+        if (!selectedSuggestion) {
+          continue;
+        }
+
+        const requestKey = createLazadaMatchRequestKey(
+          item.id,
+          selectedSuggestion.id,
+          shoppingRegion
+        );
+
+        if (matchedLazadaProductsByKey[requestKey]) {
+          continue;
+        }
+
+        pendingRequests.push({
+          requestKey,
+          body: {
+            groupBudget: assignment.group_budget,
+            groupId: assignment.group_id,
+            itemCategory: item.item_category,
+            itemName: item.item_name,
+            itemNote: item.item_note,
+            preferredPriceMax: item.preferred_price_max,
+            preferredPriceMin: item.preferred_price_min,
+            region: shoppingRegion,
+            searchQuery: selectedSuggestion.searchQuery,
+            wishlistItemId: item.id,
+          },
+        });
+      }
+    }
+
+    if (pendingRequests.length === 0) {
+      return;
+    }
+
+    let cancelled = false;
+
+    setMatchedLazadaProductsByKey((current) => {
+      const nextState = { ...current };
+
+      for (const request of pendingRequests) {
+        if (!nextState[request.requestKey]) {
+          nextState[request.requestKey] = {
+            loading: true,
+            products: [],
+          };
+        }
+      }
+
+      return nextState;
+    });
+
+    const loadLazadaMatches = async () => {
+      await Promise.all(
+        pendingRequests.map(async (requestEntry) => {
+          try {
+            const response = await fetch("/api/affiliate/lazada/matches", {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify(requestEntry.body),
+            });
+
+            const payload = response.ok
+              ? ((await response.json()) as {
+                  products?: WishlistFeaturedProductCard[];
+                })
+              : { products: [] };
+
+            if (cancelled) {
+              return;
+            }
+
+            setMatchedLazadaProductsByKey((current) => ({
+              ...current,
+              [requestEntry.requestKey]: {
+                loading: false,
+                products: Array.isArray(payload.products) ? payload.products : [],
+              },
+            }));
+          } catch {
+            if (cancelled) {
+              return;
+            }
+
+            setMatchedLazadaProductsByKey((current) => ({
+              ...current,
+              [requestEntry.requestKey]: {
+                loading: false,
+                products: [],
+              },
+            }));
+          }
+        })
+      );
+    };
+
+    void loadLazadaMatches();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [assignments, matchedLazadaProductsByKey, selectedRecipientSuggestionByItem, shoppingRegion]);
 
   useEffect(() => {
     let isMounted = true;
@@ -1745,7 +1900,7 @@ export default function SecretSantaPage() {
                             shoppingRegion
                           )
                         : [];
-                      const featuredLazadaProducts = selectedSuggestion
+                      const fallbackFeaturedLazadaProducts = selectedSuggestion
                         ? buildWishlistFeaturedLazadaProducts({
                             option: selectedSuggestion,
                             groupId: assignment.group_id,
@@ -1760,6 +1915,24 @@ export default function SecretSantaPage() {
                             region: shoppingRegion,
                           })
                         : [];
+                      const lazadaMatchRequestKey = selectedSuggestion
+                        ? createLazadaMatchRequestKey(
+                            item.id,
+                            selectedSuggestion.id,
+                            shoppingRegion
+                          )
+                        : "";
+                      const lazadaMatchedProductsState = lazadaMatchRequestKey
+                        ? matchedLazadaProductsByKey[lazadaMatchRequestKey] || null
+                        : null;
+                      const featuredLazadaProducts =
+                        lazadaMatchedProductsState &&
+                        lazadaMatchedProductsState.products.length > 0
+                          ? lazadaMatchedProductsState.products
+                          : fallbackFeaturedLazadaProducts;
+                      const usingMatchedLazadaProducts = Boolean(
+                        lazadaMatchedProductsState?.products.length
+                      );
                       const nearbyStoreQueries = selectedSuggestion
                         ? buildNearbyStoreQueries(
                             selectedSuggestion,
@@ -2092,6 +2265,16 @@ export default function SecretSantaPage() {
                                         </span>
                                       </div>
 
+                                      {lazadaMatchedProductsState?.loading && (
+                                        <div
+                                          className="text-[10px] mb-3 leading-relaxed"
+                                          style={{ color: TEXT_SOFT }}
+                                        >
+                                          Checking the imported Lazada feed for direct
+                                          product matches...
+                                        </div>
+                                      )}
+
                                       {featuredLazadaProducts.length > 0 && (
                                         <div className="grid gap-2 sm:grid-cols-3 mb-3">
                                           {featuredLazadaProducts.map((product) => (
@@ -2175,11 +2358,9 @@ export default function SecretSantaPage() {
                                           className="text-[10px] mb-3 leading-relaxed"
                                           style={{ color: TEXT_SOFT }}
                                         >
-                                          These product cards are the Lazada-ready layer
-                                          for this wishlist flow. They currently open a
-                                          focused Lazada search, and they can later swap to
-                                          official product-level affiliate links without
-                                          changing the UI.
+                                          {usingMatchedLazadaProducts
+                                            ? "These cards are real Lazada feed matches, so they should take you closer to direct product pages through the tracked Lazada flow."
+                                            : "We did not find a strong direct Lazada product match yet, so these cards stay as broader search fallbacks for now."}
                                         </div>
                                       )}
 
