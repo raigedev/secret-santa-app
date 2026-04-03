@@ -848,12 +848,16 @@ export default function SecretSantaPage() {
     const loadLazadaMatches = async () => {
       await Promise.all(
         pendingRequests.map(async (requestEntry) => {
+          const controller = new AbortController();
+          const timeoutId = window.setTimeout(() => controller.abort(), 12000);
+
           try {
             const response = await fetch("/api/affiliate/lazada/matches", {
               method: "POST",
               headers: {
                 "Content-Type": "application/json",
               },
+              signal: controller.signal,
               body: JSON.stringify(requestEntry.body),
             });
 
@@ -886,6 +890,8 @@ export default function SecretSantaPage() {
                 products: [],
               },
             }));
+          } finally {
+            window.clearTimeout(timeoutId);
           }
         })
       );

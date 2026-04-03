@@ -117,8 +117,7 @@ const MERCHANT_LABELS: Record<SuggestionMerchant, string> = {
   walmart: "Walmart",
 };
 
-const AFFILIATE_DISCLOSURE =
-  "We may earn a commission if you buy through this link.";
+const AFFILIATE_DISCLOSURE = "Partner link";
 
 export const AFFILIATE_READY_MERCHANTS: SuggestionMerchant[] = [
   "amazon",
