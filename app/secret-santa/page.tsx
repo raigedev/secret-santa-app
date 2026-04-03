@@ -2235,7 +2235,7 @@ export default function SecretSantaPage() {
 
                               {selectedSuggestion && (
                                 <div className="mt-4">
-                                  <div className="grid gap-3 xl:grid-cols-2">
+                                  <div className="grid gap-3 2xl:grid-cols-2">
                                     <div
                                       className="rounded-2xl p-3"
                                       style={{
@@ -2307,7 +2307,7 @@ export default function SecretSantaPage() {
                                             </div>
                                           </div>
 
-                                          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                                          <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
                                             {featuredLazadaProducts.map((product) => {
                                               const safeProductImageUrl = normalizeOptionalUrl(
                                                 product.imageUrl || ""
