@@ -557,7 +557,7 @@ function getFeaturedLazadaRoleLabel(index: number, useMatchedProducts: boolean):
 
 function getFeaturedLazadaButtonLabel(product: WishlistFeaturedProductCard): string {
   return product.catalogSource === "catalog-product"
-    ? "Open product on Lazada"
+    ? "Open on Lazada"
     : "Search on Lazada";
 }
 
@@ -2316,14 +2316,18 @@ export default function SecretSantaPage() {
 
                                       {lazadaMatchedProductsState?.loading && (
                                         <div
-                                          className="text-[11px] mb-3 leading-relaxed rounded-2xl px-3 py-2"
-                                          style={{
-                                            color: TEXT_SOFT,
-                                            background: "rgba(255,255,255,.7)",
-                                            border: "1px solid rgba(96,117,122,.1)",
-                                          }}
+                                          className="mb-3 flex items-center gap-2 text-[10px] font-semibold"
+                                          style={{ color: TEXT_SOFT }}
                                         >
-                                          Checking Lazada for direct product matches...
+                                          <span
+                                            className="inline-block h-2 w-2 rounded-full"
+                                            style={{
+                                              background: HOLIDAY_BLUE,
+                                              boxShadow:
+                                                "0 0 0 4px rgba(88,116,142,.12)",
+                                            }}
+                                          />
+                                          Finding better Lazada matches...
                                         </div>
                                       )}
 
@@ -2349,12 +2353,8 @@ export default function SecretSantaPage() {
                                           </div>
 
                                           <div
-                                            className="text-[11px] mb-3 leading-relaxed rounded-2xl px-3 py-2"
-                                            style={{
-                                              color: TEXT_SOFT,
-                                              background: "rgba(255,255,255,.7)",
-                                              border: "1px solid rgba(96,117,122,.1)",
-                                            }}
+                                            className="text-[11px] mb-3 leading-relaxed"
+                                            style={{ color: TEXT_SOFT }}
                                           >
                                             {usingMatchedLazadaProducts
                                               ? "Tap any card to open a specific Lazada product."
@@ -2495,16 +2495,32 @@ export default function SecretSantaPage() {
                                                   </div>
 
                                                   <div
-                                                    className="mt-4 rounded-2xl px-4 py-3 text-[13px] font-extrabold text-center"
+                                                    className="mt-4 pt-3"
                                                     style={{
-                                                      background:
-                                                        "linear-gradient(180deg,#5f7f9b 0%, #4c6d89 100%)",
-                                                      color: "#f8fbfc",
-                                                      boxShadow: "0 10px 18px rgba(88,116,142,.18)",
-                                                      border: "1px solid rgba(76,109,137,.28)",
+                                                      borderTop:
+                                                        "1px solid rgba(96,117,122,.08)",
                                                     }}
                                                   >
-                                                    {buttonLabel} {"->"}
+                                                    <div
+                                                      className="inline-flex w-full items-center justify-center gap-2 rounded-2xl px-4 py-3 text-[12px] font-extrabold leading-none whitespace-nowrap"
+                                                      style={{
+                                                        background:
+                                                          "linear-gradient(180deg,#5f7f9b 0%, #4c6d89 100%)",
+                                                        color: "#f8fbfc",
+                                                        boxShadow:
+                                                          "0 10px 18px rgba(88,116,142,.18)",
+                                                        border:
+                                                          "1px solid rgba(76,109,137,.28)",
+                                                      }}
+                                                    >
+                                                      <span>{buttonLabel}</span>
+                                                      <span
+                                                        aria-hidden="true"
+                                                        className="text-[14px]"
+                                                      >
+                                                        →
+                                                      </span>
+                                                    </div>
                                                   </div>
                                                 </a>
                                               );
