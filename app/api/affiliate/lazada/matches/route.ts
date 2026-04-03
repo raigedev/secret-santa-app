@@ -50,9 +50,10 @@ function isShoppingRegion(value: string): value is ShoppingRegion {
 type MatchCardRole = "alternate" | "closest" | "premium";
 
 function buildRoleOrderedMatches<T extends { product: { itemId: string; discountedPrice: number | null; salePrice: number | null } }>(
-  matches: T[]
+  primaryMatches: T[],
+  premiumCandidates?: T[]
 ): Array<{ match: T; role: MatchCardRole }> {
-  const uniqueMatches = matches.filter(
+  const uniqueMatches = primaryMatches.filter(
     (match, index, array) =>
       array.findIndex((candidate) => candidate.product.itemId === match.product.itemId) === index
   );
@@ -81,8 +82,14 @@ function buildRoleOrderedMatches<T extends { product: { itemId: string; discount
       }) || remaining[0];
   }
 
-  const premiumPool = remaining.filter(
-    (candidate) => candidate.product.itemId !== alternate?.product.itemId
+  const premiumPoolSource = (premiumCandidates || primaryMatches).filter(
+    (candidate, index, array) =>
+      array.findIndex((existing) => existing.product.itemId === candidate.product.itemId) === index
+  );
+  const premiumPool = premiumPoolSource.filter(
+    (candidate) =>
+      candidate.product.itemId !== closest.product.itemId &&
+      candidate.product.itemId !== alternate?.product.itemId
   );
 
   if (premiumPool.length > 0) {
@@ -219,7 +226,19 @@ export async function POST(request: NextRequest) {
     limit: 8,
     minimumScore: 0.5,
   });
-  const orderedMatches = buildRoleOrderedMatches(matches);
+  const premiumMatches = findBestLazadaFeedMatches({
+    itemName,
+    itemCategory,
+    itemNote,
+    searchQuery,
+    budgetMode: "minimum-only",
+    preferredPriceMin,
+    preferredPriceMax,
+    groupBudget,
+    limit: 12,
+    minimumScore: 0.5,
+  });
+  const orderedMatches = buildRoleOrderedMatches(matches, premiumMatches);
   const basePrice = orderedMatches[0]
     ? getLazadaFeedProductPrice(orderedMatches[0].match.product)
     : null;

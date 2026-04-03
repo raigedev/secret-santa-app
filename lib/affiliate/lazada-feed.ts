@@ -61,6 +61,8 @@ export type LazadaFeedMatch = {
   reasons: string[];
 };
 
+export type LazadaFeedBudgetMode = "minimum-only" | "window";
+
 type LazadaFeedBudgetWindow = {
   maximum: number | null;
   minimum: number | null;
@@ -293,7 +295,7 @@ function buildLazadaFeedBudgetWindow(input: {
   preferredPriceMin?: number | null;
   preferredPriceMax?: number | null;
   groupBudget?: number | null;
-}): LazadaFeedBudgetWindow {
+}, budgetMode: LazadaFeedBudgetMode = "window"): LazadaFeedBudgetWindow {
   const preferredMin = input.preferredPriceMin ?? null;
   const preferredMax = input.preferredPriceMax ?? null;
   const groupBudget = input.groupBudget ?? null;
@@ -305,7 +307,7 @@ function buildLazadaFeedBudgetWindow(input: {
 
   let maximum = preferredMax;
 
-  if (maximum === null && groupBudget !== null) {
+  if (budgetMode === "window" && maximum === null && groupBudget !== null) {
     maximum = Math.max(groupBudget * 1.6, groupBudget + 500);
   }
 
@@ -325,9 +327,10 @@ function filterLazadaFeedProductsByBudgetWindow(
     preferredPriceMin?: number | null;
     preferredPriceMax?: number | null;
     groupBudget?: number | null;
-  }
+  },
+  budgetMode: LazadaFeedBudgetMode = "window"
 ): LazadaFeedProduct[] {
-  const budgetWindow = buildLazadaFeedBudgetWindow(input);
+  const budgetWindow = buildLazadaFeedBudgetWindow(input, budgetMode);
 
   if (budgetWindow.minimum === null && budgetWindow.maximum === null) {
     return products;
@@ -359,6 +362,9 @@ function filterLazadaFeedProductsBySubtype(
     itemName: string;
     itemNote: string;
     searchQuery: string;
+  },
+  options?: {
+    allowFallbackToOriginal?: boolean;
   }
 ): LazadaFeedProduct[] {
   const searchContext = normalizeFeedString(
@@ -380,7 +386,11 @@ function filterLazadaFeedProductsBySubtype(
     return hasInclude && !hasExclude;
   });
 
-  return subtypeMatches.length > 0 ? subtypeMatches : products;
+  return subtypeMatches.length > 0
+    ? subtypeMatches
+    : options?.allowFallbackToOriginal
+      ? products
+      : [];
 }
 
 function getTargetPrice(
@@ -538,17 +548,20 @@ export function findBestLazadaFeedMatches(input: {
   itemCategory: string;
   itemNote: string;
   searchQuery: string;
+  budgetMode?: LazadaFeedBudgetMode;
   preferredPriceMin?: number | null;
   preferredPriceMax?: number | null;
   groupBudget?: number | null;
   limit?: number;
   minimumScore?: number;
 }): LazadaFeedMatch[] {
+  const budgetMode = input.budgetMode ?? "window";
   const minimumScore = input.minimumScore ?? 0.72;
   const limit = input.limit ?? 3;
   const budgetShortlistedProducts = filterLazadaFeedProductsByBudgetWindow(
     getLazadaFeedProducts(),
-    input
+    input,
+    budgetMode
   );
   const candidateProducts = filterLazadaFeedProductsBySubtype(
     budgetShortlistedProducts,
