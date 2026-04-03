@@ -48,13 +48,12 @@ function buildSearchBackedProduct(
 }
 
 function buildExactMatchProduct(
-  itemName: string,
-  searchQuery: string
+  itemName: string
 ): LazadaStarterCatalogProduct {
   return buildSearchBackedProduct(
     itemName,
     "Start with the giftee's exact wording before branching into alternatives.",
-    searchQuery,
+    itemName,
     "This stays closest to what the giftee actually asked for.",
     null,
     null
@@ -71,10 +70,7 @@ export function getLazadaStarterProducts(
   const cleanNote = input.itemNote.trim();
   const haystack = `${cleanItemName} ${input.itemCategory} ${cleanNote} ${input.searchQuery}`.toLowerCase();
 
-  const exactMatchProduct = buildExactMatchProduct(
-    cleanItemName,
-    input.searchQuery
-  );
+  const exactMatchProduct = buildExactMatchProduct(cleanItemName);
 
   if (/(tablet|ipad|android tab)/.test(haystack)) {
     return [
