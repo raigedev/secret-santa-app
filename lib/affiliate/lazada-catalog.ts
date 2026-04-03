@@ -71,6 +71,34 @@ function buildCatalogBackedProduct(
   };
 }
 
+function buildExactMatchProduct(
+  itemName: string,
+  searchQuery: string,
+  haystack: string
+): LazadaStarterCatalogProduct {
+  if (haystack.includes("samsung galaxy tab a9")) {
+    return buildCatalogBackedProduct(
+      itemName,
+      "This keeps the giftee's exact wording while opening the real Samsung Galaxy Tab A9 product route.",
+      searchQuery,
+      "This preserves the exact wishlist wording but still uses a direct product-linked tablet pick.",
+      7000,
+      11000,
+      "5343634107",
+      "31890603703"
+    );
+  }
+
+  return buildSearchBackedProduct(
+    itemName,
+    "Start with the giftee's exact wording before branching into alternatives.",
+    searchQuery,
+    "This stays closest to what the giftee actually asked for.",
+    null,
+    null
+  );
+}
+
 // These starter catalog picks are intentionally search-backed today.
 // Once the Lazada Open API is approved, we can enrich the same catalog
 // entries with real item_id / sku_id values from a feed import.
@@ -81,13 +109,10 @@ export function getLazadaStarterProducts(
   const cleanNote = input.itemNote.trim();
   const haystack = `${cleanItemName} ${input.itemCategory} ${cleanNote} ${input.searchQuery}`.toLowerCase();
 
-  const exactMatchProduct = buildSearchBackedProduct(
+  const exactMatchProduct = buildExactMatchProduct(
     cleanItemName,
-    "Start with the giftee's exact wording before branching into alternatives.",
     input.searchQuery,
-    "This stays closest to what the giftee actually asked for.",
-    null,
-    null
+    haystack
   );
 
   if (/(tablet|ipad|android tab)/.test(haystack)) {
