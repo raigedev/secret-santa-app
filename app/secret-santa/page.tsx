@@ -517,6 +517,16 @@ function getNearbyAvailabilityBadgeStyle(label: string) {
   }
 }
 
+function summarizeCardCopy(value: string, maxLength: number): string {
+  const normalized = value.replace(/\s+/g, " ").trim();
+
+  if (normalized.length <= maxLength) {
+    return normalized;
+  }
+
+  return `${normalized.slice(0, Math.max(maxLength - 1, 0)).trimEnd()}…`;
+}
+
 function buildRecipientWishlistProductHref(
   groupId: string,
   wishlistItemId: string,
@@ -2225,7 +2235,7 @@ export default function SecretSantaPage() {
 
                               {selectedSuggestion && (
                                 <div className="mt-4">
-                                  <div className="grid gap-3 lg:grid-cols-2">
+                                  <div className="grid gap-3 xl:grid-cols-2">
                                     <div
                                       className="rounded-2xl p-3"
                                       style={{
@@ -2297,40 +2307,55 @@ export default function SecretSantaPage() {
                                             </div>
                                           </div>
 
-                                          <div className="overflow-x-auto pb-2 -mx-1 px-1">
-                                            <div className="flex gap-3 snap-x snap-mandatory">
-                                              {featuredLazadaProducts.map((product) => {
-                                                const safeProductImageUrl = normalizeOptionalUrl(
-                                                  product.imageUrl || ""
-                                                );
+                                          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                                            {featuredLazadaProducts.map((product) => {
+                                              const safeProductImageUrl = normalizeOptionalUrl(
+                                                product.imageUrl || ""
+                                              );
+                                              const conciseSubtitle = summarizeCardCopy(
+                                                product.subtitle,
+                                                60
+                                              );
+                                              const conciseReason = summarizeCardCopy(
+                                                product.whyItFits,
+                                                92
+                                              );
 
-                                                return (
-                                                  <a
-                                                    key={product.id}
-                                                    href={product.href}
-                                                    target="_blank"
-                                                    rel="noopener noreferrer"
-                                                    className="snap-start shrink-0 w-[260px] sm:w-[280px] rounded-[22px] p-4 transition flex flex-col"
+                                              return (
+                                                <a
+                                                  key={product.id}
+                                                  href={product.href}
+                                                  target="_blank"
+                                                  rel="noopener noreferrer"
+                                                  className="rounded-[22px] p-4 transition flex flex-col h-full"
+                                                  style={{
+                                                    background:
+                                                      "linear-gradient(180deg,rgba(255,255,255,.97),rgba(245,248,246,.94))",
+                                                    border: "1px solid rgba(96,117,122,.12)",
+                                                    color: PAGE_TEXT_COLOR,
+                                                    textDecoration: "none",
+                                                    boxShadow:
+                                                      "0 10px 24px rgba(34,55,59,.06)",
+                                                    minHeight: 360,
+                                                  }}
+                                                >
+                                                  <div
+                                                    className="rounded-[16px] px-3 py-2"
                                                     style={{
                                                       background:
-                                                        "linear-gradient(180deg,rgba(255,255,255,.97),rgba(245,248,246,.94))",
-                                                      border: "1px solid rgba(96,117,122,.12)",
-                                                      color: PAGE_TEXT_COLOR,
-                                                      textDecoration: "none",
-                                                      boxShadow:
-                                                        "0 10px 24px rgba(34,55,59,.06)",
-                                                      minHeight: 420,
+                                                        "linear-gradient(180deg,rgba(255,247,238,.96),rgba(247,239,231,.92))",
+                                                      border: "1px solid rgba(169,135,61,.12)",
                                                     }}
                                                   >
                                                     <div className="flex items-center justify-between gap-2 flex-wrap">
                                                       <span
-                                                        className="text-[9px] font-extrabold px-2.5 py-1 rounded-full"
-                                                        style={getMerchantBadgeStyle("lazada", true)}
+                                                        className="text-[10px] font-extrabold"
+                                                        style={{ color: HOLIDAY_GOLD }}
                                                       >
                                                         Lazada
                                                       </span>
                                                       <span
-                                                        className="text-[9px] font-extrabold px-2.5 py-1 rounded-full"
+                                                        className="text-[9px] font-extrabold px-2 py-1 rounded-full"
                                                         style={{
                                                           color: HOLIDAY_GREEN,
                                                           background: "rgba(47,107,86,.1)",
@@ -2339,123 +2364,94 @@ export default function SecretSantaPage() {
                                                         {product.fitLabel}
                                                       </span>
                                                     </div>
-
                                                     <div
-                                                      className="mt-3 rounded-[18px] overflow-hidden flex items-center justify-center"
-                                                      style={{
-                                                        minHeight: 160,
-                                                        background:
-                                                          "linear-gradient(180deg,rgba(239,244,241,.9),rgba(229,236,233,.86))",
-                                                        border: "1px solid rgba(96,117,122,.08)",
-                                                      }}
+                                                      className="text-[12px] font-bold mt-1"
+                                                      style={{ color: TEXT_MUTED }}
                                                     >
-                                                      {safeProductImageUrl ? (
-                                                        // eslint-disable-next-line @next/next/no-img-element
-                                                        <img
-                                                          src={safeProductImageUrl}
-                                                          alt={product.title}
-                                                          className="w-full h-[160px] object-contain"
-                                                        />
-                                                      ) : (
-                                                        <div
-                                                          className="text-[12px] font-bold text-center px-5"
-                                                          style={{ color: TEXT_MUTED }}
-                                                        >
-                                                          {product.trackingLabel}
-                                                        </div>
-                                                      )}
+                                                      {product.priceLabel || product.trackingLabel}
                                                     </div>
+                                                  </div>
 
-                                                    <div
-                                                      className="text-[18px] font-extrabold mt-3 leading-snug"
-                                                      style={{
-                                                        color: PAGE_TEXT_COLOR,
-                                                        display: "-webkit-box",
-                                                        WebkitLineClamp: 2,
-                                                        WebkitBoxOrient: "vertical",
-                                                        overflow: "hidden",
-                                                      }}
-                                                    >
-                                                      {product.title}
-                                                    </div>
-
-                                                    <div
-                                                      className="text-[12px] mt-1 leading-relaxed"
-                                                      style={{
-                                                        color: TEXT_MUTED,
-                                                        display: "-webkit-box",
-                                                        WebkitLineClamp: 2,
-                                                        WebkitBoxOrient: "vertical",
-                                                        overflow: "hidden",
-                                                      }}
-                                                    >
-                                                      {product.subtitle}
-                                                    </div>
-
-                                                    <div className="flex items-center gap-2 flex-wrap mt-3">
-                                                      {product.priceLabel && (
-                                                        <span
-                                                          className="text-[10px] font-bold px-2.5 py-1 rounded-full"
-                                                          style={{
-                                                            color: HOLIDAY_GREEN,
-                                                            background: "rgba(47,107,86,.1)",
-                                                          }}
-                                                        >
-                                                          {product.priceLabel}
-                                                        </span>
-                                                      )}
-                                                      <span
-                                                        className="text-[10px] font-bold px-2.5 py-1 rounded-full"
-                                                        style={{
-                                                          color: HOLIDAY_GOLD,
-                                                          background: "rgba(169,135,61,.1)",
-                                                        }}
+                                                  <div
+                                                    className="mt-3 rounded-[18px] overflow-hidden flex items-center justify-center"
+                                                    style={{
+                                                      minHeight: 118,
+                                                      background:
+                                                        "linear-gradient(180deg,rgba(239,244,241,.9),rgba(229,236,233,.86))",
+                                                      border: "1px solid rgba(96,117,122,.08)",
+                                                    }}
+                                                  >
+                                                    {safeProductImageUrl ? (
+                                                      // eslint-disable-next-line @next/next/no-img-element
+                                                      <img
+                                                        src={safeProductImageUrl}
+                                                        alt={product.title}
+                                                        className="w-full h-[118px] object-contain"
+                                                      />
+                                                    ) : (
+                                                      <div
+                                                        className="text-[12px] font-bold text-center px-4"
+                                                        style={{ color: TEXT_MUTED }}
                                                       >
                                                         {product.trackingLabel}
-                                                      </span>
-                                                    </div>
-
-                                                    <div
-                                                      className="mt-3 rounded-2xl px-3 py-2 flex-1"
-                                                      style={{
-                                                        background: "rgba(88,116,142,.06)",
-                                                        border: "1px solid rgba(88,116,142,.1)",
-                                                      }}
-                                                    >
-                                                      <div
-                                                        className="text-[11px] font-semibold"
-                                                        style={{ color: HOLIDAY_BLUE }}
-                                                      >
-                                                        Why this fits
                                                       </div>
-                                                      <div
-                                                        className="text-[11px] mt-1 leading-relaxed"
-                                                        style={{
-                                                          color: TEXT_SOFT,
-                                                          display: "-webkit-box",
-                                                          WebkitLineClamp: 3,
-                                                          WebkitBoxOrient: "vertical",
-                                                          overflow: "hidden",
-                                                        }}
-                                                      >
-                                                        {product.whyItFits}
-                                                      </div>
-                                                    </div>
+                                                    )}
+                                                  </div>
 
+                                                  <div
+                                                    className="text-[16px] font-extrabold mt-3 leading-snug"
+                                                    style={{
+                                                      color: PAGE_TEXT_COLOR,
+                                                      display: "-webkit-box",
+                                                      WebkitLineClamp: 2,
+                                                      WebkitBoxOrient: "vertical",
+                                                      overflow: "hidden",
+                                                    }}
+                                                  >
+                                                    {product.title}
+                                                  </div>
+
+                                                  <div
+                                                    className="text-[11px] mt-1 leading-relaxed"
+                                                    style={{ color: TEXT_MUTED }}
+                                                  >
+                                                    {conciseSubtitle}
+                                                  </div>
+
+                                                  <div
+                                                    className="mt-3 rounded-2xl px-3 py-2 flex-1"
+                                                    style={{
+                                                      background: "rgba(88,116,142,.06)",
+                                                      border: "1px solid rgba(88,116,142,.1)",
+                                                    }}
+                                                  >
                                                     <div
-                                                      className="mt-4 rounded-xl px-3 py-2 text-[13px] font-extrabold text-center"
-                                                      style={{
-                                                        color: HOLIDAY_BLUE,
-                                                        background: "rgba(88,116,142,.08)",
-                                                        border: "1px solid rgba(88,116,142,.12)",
-                                                      }}
+                                                      className="text-[10px] font-semibold uppercase tracking-[0.08em]"
+                                                      style={{ color: HOLIDAY_BLUE }}
                                                     >
-                                                      View on Lazada {"->"}
+                                                      Why this fits
                                                     </div>
-                                                  </a>
-                                                );
-                                              })}
-                                            </div>
+                                                    <div
+                                                      className="text-[11px] mt-1 leading-relaxed"
+                                                      style={{ color: TEXT_SOFT }}
+                                                    >
+                                                      {conciseReason}
+                                                    </div>
+                                                  </div>
+
+                                                  <div
+                                                    className="mt-4 rounded-xl px-3 py-2 text-[13px] font-extrabold text-center"
+                                                    style={{
+                                                      color: HOLIDAY_BLUE,
+                                                      background: "rgba(88,116,142,.08)",
+                                                      border: "1px solid rgba(88,116,142,.12)",
+                                                    }}
+                                                  >
+                                                    View on Lazada {"->"}
+                                                  </div>
+                                                </a>
+                                              );
+                                            })}
                                           </div>
                                         </div>
                                       )}
