@@ -51,6 +51,25 @@ function getMatchProductPrice(
   return match.product.discountedPrice ?? match.product.salePrice;
 }
 
+function filterBudgetWindowMatches<
+  T extends {
+    product: { discountedPrice: number | null; salePrice: number | null };
+  },
+>(matches: T[], groupBudget: number | null): T[] {
+  if (groupBudget === null) {
+    return matches;
+  }
+
+  const minimumPrice = groupBudget;
+  const maximumPrice = Math.max(groupBudget * 1.6, groupBudget + 500);
+
+  return matches.filter((match) => {
+    const price = getMatchProductPrice(match);
+
+    return price !== null && price >= minimumPrice && price <= maximumPrice;
+  });
+}
+
 function buildRoleOrderedMatches<T extends { product: { itemId: string; discountedPrice: number | null; salePrice: number | null } }>(
   matches: T[]
 ): Array<{ match: T; role: MatchCardRole }> {
@@ -222,13 +241,7 @@ export async function POST(request: NextRequest) {
     minimumScore: 0.5,
   });
 
-  const budgetAlignedMatches =
-    groupBudget !== null
-      ? matches.filter((match) => {
-          const price = getMatchProductPrice(match);
-          return price !== null && price >= groupBudget;
-        })
-      : matches;
+  const budgetAlignedMatches = filterBudgetWindowMatches(matches, groupBudget);
 
   const orderedMatches = buildRoleOrderedMatches(budgetAlignedMatches);
   const basePrice = orderedMatches[0] ? getMatchProductPrice(orderedMatches[0].match) : null;

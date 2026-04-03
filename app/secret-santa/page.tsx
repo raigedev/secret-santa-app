@@ -2446,7 +2446,8 @@ export default function SecretSantaPage() {
                                                 className="text-[10px] mb-2 font-semibold"
                                                 style={{ color: HOLIDAY_GOLD }}
                                               >
-                                                Showing products from {activeGroupBudgetLabel} and up.
+                                                Showing direct product matches near your{" "}
+                                                {activeGroupBudgetLabel} budget.
                                               </div>
                                             )}
 
