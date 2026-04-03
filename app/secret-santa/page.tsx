@@ -1979,6 +1979,14 @@ export default function SecretSantaPage() {
                       const lazadaMatchesLoading = Boolean(
                         lazadaMatchedProductsState?.loading
                       );
+                      const activeGroupBudgetLabel =
+                        assignment.group_budget !== null
+                          ? formatPriceRange(
+                              assignment.group_budget,
+                              assignment.group_budget,
+                              assignment.group_currency
+                            )
+                          : null;
                       const featuredLazadaProducts =
                         lazadaMatchesLoading
                           ? []
@@ -2431,6 +2439,27 @@ export default function SecretSantaPage() {
                                               ? "Use the button on each card to open a specific Lazada product."
                                               : "Use the button on each card to open Lazada search results for that shopping angle."}
                                           </div>
+
+                                          {usingMatchedLazadaProducts &&
+                                            activeGroupBudgetLabel && (
+                                              <div
+                                                className="text-[10px] mb-2 font-semibold"
+                                                style={{ color: HOLIDAY_GOLD }}
+                                              >
+                                                Showing products from {activeGroupBudgetLabel} and up.
+                                              </div>
+                                            )}
+
+                                          {usingMatchedLazadaProducts && (
+                                            <div
+                                              className="text-[10px] mb-3 leading-relaxed"
+                                              style={{ color: TEXT_SOFT }}
+                                            >
+                                              Prices come from the Lazada affiliate feed and can
+                                              differ from live listings after vouchers, seller
+                                              changes, or variant selection.
+                                            </div>
+                                          )}
 
                                           <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
                                             {featuredLazadaProducts.map((product, index) => {
