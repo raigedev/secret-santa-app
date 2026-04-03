@@ -123,7 +123,7 @@ export async function POST(request: NextRequest) {
     preferredPriceMax,
     groupBudget,
     limit: 3,
-    minimumScore: 0.72,
+    minimumScore: 0.5,
   });
 
   const products: WishlistFeaturedProductCard[] = matches.map((match, index) => {
