@@ -531,10 +531,28 @@ function getFeaturedLazadaCardTypeLabel(product: WishlistFeaturedProductCard): s
   return product.catalogSource === "catalog-product" ? "Direct product" : "Lazada search";
 }
 
-function getFeaturedLazadaCtaLabel(product: WishlistFeaturedProductCard): string {
-  return product.catalogSource === "catalog-product"
-    ? "Open product on Lazada ->"
-    : "Search on Lazada ->";
+function getFeaturedLazadaRoleLabel(index: number, useMatchedProducts: boolean): string {
+  if (useMatchedProducts) {
+    if (index === 0) {
+      return "Closest match";
+    }
+
+    if (index === 1) {
+      return "Backup option";
+    }
+
+    return "Another option";
+  }
+
+  if (index === 0) {
+    return "Closest to request";
+  }
+
+  if (index === 1) {
+    return "Budget-friendly option";
+  }
+
+  return "Gift-ready option";
 }
 
 function buildRecipientWishlistProductHref(
@@ -2324,8 +2342,21 @@ export default function SecretSantaPage() {
                                             </div>
                                           </div>
 
+                                          <div
+                                            className="text-[11px] mb-3 leading-relaxed rounded-2xl px-3 py-2"
+                                            style={{
+                                              color: TEXT_SOFT,
+                                              background: "rgba(255,255,255,.7)",
+                                              border: "1px solid rgba(96,117,122,.1)",
+                                            }}
+                                          >
+                                            {usingMatchedLazadaProducts
+                                              ? "Tap any card to open a specific Lazada product."
+                                              : "Tap any card to open Lazada search results for that shopping angle."}
+                                          </div>
+
                                           <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
-                                            {featuredLazadaProducts.map((product) => {
+                                            {featuredLazadaProducts.map((product, index) => {
                                               const safeProductImageUrl = normalizeOptionalUrl(
                                                 product.imageUrl || ""
                                               );
@@ -2339,8 +2370,10 @@ export default function SecretSantaPage() {
                                               );
                                               const cardTypeLabel =
                                                 getFeaturedLazadaCardTypeLabel(product);
-                                              const ctaLabel =
-                                                getFeaturedLazadaCtaLabel(product);
+                                              const roleLabel = getFeaturedLazadaRoleLabel(
+                                                index,
+                                                usingMatchedLazadaProducts
+                                              );
                                               const showVisualPreview = Boolean(
                                                 safeProductImageUrl || product.catalogSource === "catalog-product"
                                               );
@@ -2364,23 +2397,15 @@ export default function SecretSantaPage() {
                                                   }}
                                                 >
                                                   <div className="flex items-center justify-between gap-2 flex-wrap">
-                                                    <div className="flex items-center gap-2 flex-wrap">
-                                                      <span
-                                                        className="text-[10px] font-extrabold px-2.5 py-1 rounded-full"
-                                                        style={getMerchantBadgeStyle("lazada", true)}
-                                                      >
-                                                        Lazada
-                                                      </span>
-                                                      <span
-                                                        className="text-[9px] font-extrabold px-2 py-1 rounded-full"
-                                                        style={{
-                                                          color: HOLIDAY_GREEN,
-                                                          background: "rgba(47,107,86,.1)",
-                                                        }}
-                                                      >
-                                                        {product.fitLabel}
-                                                      </span>
-                                                    </div>
+                                                    <span
+                                                      className="text-[10px] font-extrabold px-2.5 py-1 rounded-full"
+                                                      style={{
+                                                        color: HOLIDAY_GREEN,
+                                                        background: "rgba(47,107,86,.1)",
+                                                      }}
+                                                    >
+                                                      {roleLabel}
+                                                    </span>
                                                     <div
                                                       className="text-[11px] font-bold"
                                                       style={{ color: product.priceLabel ? HOLIDAY_GOLD : TEXT_MUTED }}
@@ -2430,12 +2455,21 @@ export default function SecretSantaPage() {
                                                     {product.title}
                                                   </div>
 
-                                                  <div
-                                                    className="text-[11px] mt-1 leading-relaxed"
-                                                    style={{ color: TEXT_MUTED }}
-                                                  >
-                                                    {conciseSubtitle}
-                                                  </div>
+                                                    <div
+                                                      className="text-[11px] mt-1 leading-relaxed"
+                                                      style={{ color: TEXT_MUTED }}
+                                                    >
+                                                      {conciseSubtitle}
+                                                    </div>
+
+                                                    {!usingMatchedLazadaProducts && (
+                                                      <div
+                                                        className="text-[10px] font-semibold mt-2"
+                                                        style={{ color: TEXT_SOFT }}
+                                                      >
+                                                        Opens Lazada search results
+                                                      </div>
+                                                    )}
 
                                                   <div className="mt-3 flex-1">
                                                     <div
@@ -2451,16 +2485,6 @@ export default function SecretSantaPage() {
                                                       {conciseReason}
                                                     </div>
                                                   </div>
-
-                                                  <div
-                                                    className="mt-4 pt-3 text-[13px] font-extrabold text-center"
-                                                    style={{
-                                                      color: HOLIDAY_BLUE,
-                                                      borderTop: "1px solid rgba(96,117,122,.1)",
-                                                    }}
-                                                  >
-                                                    {ctaLabel}
-                                                  </div>
                                                 </a>
                                               );
                                             })}
@@ -2474,7 +2498,7 @@ export default function SecretSantaPage() {
                                           style={{ color: TEXT_SOFT }}
                                         >
                                           {usingMatchedLazadaProducts
-                                            ? "These are matched Lazada products from the affiliate feed, so they should be closer to what the giftee actually meant."
+                                            ? "These cards are matched Lazada products from the affiliate feed, so they should be closer to what the giftee actually meant."
                                             : "These are broader Lazada searches for the same gift idea. Pick the one that feels closest and refine from there."}
                                         </div>
                                       )}
