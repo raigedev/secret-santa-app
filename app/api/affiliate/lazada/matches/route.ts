@@ -5,6 +5,7 @@ import {
   getLazadaFeedProductPrice,
 } from "@/lib/affiliate/lazada-feed";
 import { primeLazadaPromotionLinks } from "@/lib/affiliate/lazada";
+import { getLazadaStarterProducts } from "@/lib/affiliate/lazada-catalog";
 import { createClient } from "@/lib/supabase/server";
 import { formatPriceRange } from "@/lib/wishlist/pricing";
 import {
@@ -130,7 +131,7 @@ function buildMatchFitLabel(role: MatchCardRole): string {
     return "Alternate option";
   }
 
-  return "Higher-budget option";
+  return "Highest-price option";
 }
 
 function buildMatchSubtitle(role: MatchCardRole): string {
@@ -239,21 +240,35 @@ export async function POST(request: NextRequest) {
     minimumScore: 0.5,
   });
   const orderedMatches = buildRoleOrderedMatches(matches, premiumMatches);
-  const basePrice = orderedMatches[0]
-    ? getLazadaFeedProductPrice(orderedMatches[0].match.product)
+  const premiumOnlyMatch =
+    orderedMatches.length === 0
+      ? [...premiumMatches].sort((left, right) => {
+          const leftPrice =
+            getLazadaFeedProductPrice(left.product) ?? Number.NEGATIVE_INFINITY;
+          const rightPrice =
+            getLazadaFeedProductPrice(right.product) ?? Number.NEGATIVE_INFINITY;
+
+          return rightPrice - leftPrice;
+        })[0] || null
+      : null;
+  const effectiveRoleMatches = premiumOnlyMatch
+    ? [{ match: premiumOnlyMatch, role: "premium" as const }]
+    : orderedMatches;
+  const basePrice = effectiveRoleMatches[0]
+    ? getLazadaFeedProductPrice(effectiveRoleMatches[0].match.product)
     : null;
 
-  if (orderedMatches.length > 0) {
+  if (effectiveRoleMatches.length > 0) {
     try {
       await primeLazadaPromotionLinks({
-        productIds: orderedMatches.map(({ match }) => match.product.itemId),
+        productIds: effectiveRoleMatches.map(({ match }) => match.product.itemId),
       });
     } catch {
       // Priming only improves click performance. The suggestion route still resolves links on click.
     }
   }
 
-  const products: WishlistFeaturedProductCard[] = orderedMatches.map(({ match, role }, index) => {
+  const products: WishlistFeaturedProductCard[] = effectiveRoleMatches.map(({ match, role }, index) => {
     const lazadaPrice = getLazadaFeedProductPrice(match.product);
 
     return {
@@ -292,6 +307,61 @@ export async function POST(request: NextRequest) {
       trackingLabel: "Matched product",
     };
   });
+
+  if (products.length === 1 && premiumOnlyMatch) {
+    const fallbackProducts = getLazadaStarterProducts({
+      itemName,
+      itemCategory,
+      itemNote,
+      searchQuery,
+      preferredPriceMin,
+      preferredPriceMax,
+      groupBudget,
+    });
+    const searchFallbackCards: WishlistFeaturedProductCard[] = fallbackProducts
+      .filter((product) => product.source === "search-backed")
+      .slice(0, 2)
+      .map((product, index) => ({
+        id: `fallback-lazada-${wishlistItemId}-${product.id}-${index}`,
+        merchant: "lazada",
+        merchantLabel: "Lazada",
+        catalogSource: "search-backed",
+        imageUrl: null,
+        productId: null,
+        skuId: null,
+        title: product.title,
+        subtitle: product.subtitle,
+        href: buildTrackedSuggestionHref(
+          "lazada",
+          groupId,
+          wishlistItemId,
+          product.searchQuery,
+          product.title,
+          region,
+          {
+            catalogSource: "search-backed",
+            groupBudget,
+            itemCategory,
+            itemName,
+            itemNote,
+            preferredPriceMax,
+            preferredPriceMin,
+          }
+        ),
+        searchQuery: product.searchQuery,
+        priceLabel:
+          groupBudget !== null
+            ? `Budget target: ${formatPriceRange(groupBudget, groupBudget, "PHP")}`
+            : null,
+        fitLabel: index === 0 ? "Closest to request" : "Alternate option",
+        whyItFits: product.whyItFits,
+        trackingLabel: "Search route",
+      }));
+
+    return NextResponse.json({
+      products: [...searchFallbackCards, ...products],
+    });
+  }
 
   return NextResponse.json({ products });
 }

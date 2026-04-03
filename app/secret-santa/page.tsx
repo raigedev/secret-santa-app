@@ -533,10 +533,9 @@ function getFeaturedLazadaCardTypeLabel(product: WishlistFeaturedProductCard): s
 
 function getFeaturedLazadaRoleLabel(
   product: WishlistFeaturedProductCard,
-  index: number,
-  useMatchedProducts: boolean
+  index: number
 ): string {
-  if (useMatchedProducts) {
+  if (product.catalogSource === "catalog-product") {
     return product.fitLabel || "Matched product";
   }
 
@@ -545,10 +544,10 @@ function getFeaturedLazadaRoleLabel(
   }
 
   if (index === 1) {
-    return "Budget-friendly option";
+    return "Alternate option";
   }
 
-  return "Gift-ready option";
+  return "Highest-price option";
 }
 
 function getFeaturedLazadaButtonLabel(product: WishlistFeaturedProductCard): string {
@@ -1987,19 +1986,37 @@ export default function SecretSantaPage() {
                               assignment.group_currency
                             )
                           : null;
+                      const rawMatchedLazadaProducts =
+                        lazadaMatchedProductsState?.products || [];
+                      const premiumOnlyMatchedProducts =
+                        rawMatchedLazadaProducts.length === 1 &&
+                        rawMatchedLazadaProducts[0]?.catalogSource === "catalog-product" &&
+                        rawMatchedLazadaProducts[0]?.fitLabel === "Highest-price option"
+                          ? rawMatchedLazadaProducts
+                          : [];
                       const featuredLazadaProducts =
                         lazadaMatchesLoading
                           ? []
-                          : lazadaMatchedProductsState &&
-                              lazadaMatchedProductsState.products.length > 0
-                            ? lazadaMatchedProductsState.products
+                          : premiumOnlyMatchedProducts.length > 0
+                            ? [
+                                ...fallbackFeaturedLazadaProducts.slice(0, 2),
+                                premiumOnlyMatchedProducts[0],
+                              ]
+                            : rawMatchedLazadaProducts.length > 0
+                              ? rawMatchedLazadaProducts
                             : fallbackFeaturedLazadaProducts;
-                      const usingMatchedLazadaProducts = Boolean(
-                        lazadaMatchedProductsState?.products.length
+                      const hasDirectFeaturedLazadaProducts = featuredLazadaProducts.some(
+                        (product) => product.catalogSource === "catalog-product"
                       );
                       const allFeaturedLazadaProductsSearchBacked =
                         featuredLazadaProducts.length > 0 &&
                         featuredLazadaProducts.every(
+                          (product) => product.catalogSource !== "catalog-product"
+                        );
+                      const usingMatchedLazadaProducts = hasDirectFeaturedLazadaProducts;
+                      const hasMixedFeaturedLazadaProducts =
+                        hasDirectFeaturedLazadaProducts &&
+                        featuredLazadaProducts.some(
                           (product) => product.catalogSource !== "catalog-product"
                         );
                       const nearbyStoreQueries = selectedSuggestion
@@ -2423,11 +2440,13 @@ export default function SecretSantaPage() {
                                               className="text-[10px] font-semibold"
                                               style={{ color: TEXT_SOFT }}
                                             >
-                                              {usingMatchedLazadaProducts
-                                                ? "Matched products"
-                                                : allFeaturedLazadaProductsSearchBacked
-                                                  ? "Search-based suggestions"
-                                                  : "Mixed suggestions"}
+                                              {hasMixedFeaturedLazadaProducts
+                                                ? "Mixed suggestions"
+                                                : usingMatchedLazadaProducts
+                                                  ? "Matched products"
+                                                  : allFeaturedLazadaProductsSearchBacked
+                                                    ? "Search-based suggestions"
+                                                    : "Mixed suggestions"}
                                             </div>
                                           </div>
 
@@ -2435,12 +2454,14 @@ export default function SecretSantaPage() {
                                             className="text-[11px] mb-3 leading-relaxed"
                                             style={{ color: TEXT_SOFT }}
                                           >
-                                            {usingMatchedLazadaProducts
-                                              ? "Use the button on each card to open a specific Lazada product."
-                                              : "Use the button on each card to open Lazada search results for that shopping angle."}
+                                            {hasMixedFeaturedLazadaProducts
+                                              ? "Use the button on each card to open either a specific Lazada product or a broader Lazada search."
+                                              : usingMatchedLazadaProducts
+                                                ? "Use the button on each card to open a specific Lazada product."
+                                                : "Use the button on each card to open Lazada search results for that shopping angle."}
                                           </div>
 
-                                          {usingMatchedLazadaProducts &&
+                                          {hasDirectFeaturedLazadaProducts &&
                                             activeGroupBudgetLabel && (
                                               <div
                                                 className="text-[10px] mb-2 font-semibold"
@@ -2452,7 +2473,7 @@ export default function SecretSantaPage() {
                                               </div>
                                             )}
 
-                                          {usingMatchedLazadaProducts && (
+                                          {hasDirectFeaturedLazadaProducts && (
                                             <div
                                               className="text-[10px] mb-3 leading-relaxed"
                                               style={{ color: TEXT_SOFT }}
@@ -2480,8 +2501,7 @@ export default function SecretSantaPage() {
                                                 getFeaturedLazadaCardTypeLabel(product);
                                               const roleLabel = getFeaturedLazadaRoleLabel(
                                                 product,
-                                                index,
-                                                usingMatchedLazadaProducts
+                                                index
                                               );
                                               const buttonLabel =
                                                 getFeaturedLazadaButtonLabel(product);
@@ -2571,7 +2591,7 @@ export default function SecretSantaPage() {
                                                       {conciseSubtitle}
                                                     </div>
 
-                                                    {!usingMatchedLazadaProducts && (
+                                                    {product.catalogSource !== "catalog-product" && (
                                                       <div
                                                         className="text-[10px] font-semibold mt-2"
                                                         style={{ color: TEXT_SOFT }}
@@ -2640,9 +2660,11 @@ export default function SecretSantaPage() {
                                           className="text-[11px] mb-3 leading-relaxed rounded-2xl px-3 py-2"
                                           style={{ color: TEXT_SOFT }}
                                         >
-                                          {usingMatchedLazadaProducts
-                                            ? "These cards are matched Lazada products from the affiliate feed, so they should be closer to what the giftee actually meant."
-                                            : "These are broader Lazada searches for the same gift idea. Pick the one that feels closest and refine from there."}
+                                          {hasMixedFeaturedLazadaProducts
+                                            ? "The first cards stay as broader searches, while the last card gives you a higher-priced direct Lazada option when we find one."
+                                            : usingMatchedLazadaProducts
+                                              ? "These cards are matched Lazada products from the affiliate feed, so they should be closer to what the giftee actually meant."
+                                              : "These are broader Lazada searches for the same gift idea. Pick the one that feels closest and refine from there."}
                                         </div>
                                       )}
 
