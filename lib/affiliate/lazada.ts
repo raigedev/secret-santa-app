@@ -1,6 +1,6 @@
 import "server-only";
 
-import { createHash } from "crypto";
+import { createHash, createHmac } from "crypto";
 
 export const LAZADA_DEFAULT_API_BASE_URL = "https://api.lazada.com.ph/rest";
 export const LAZADA_GET_LINK_PATH = "/marketing/getlink";
@@ -48,6 +48,7 @@ export type LazadaRawGetLinkItem = {
 };
 
 export type LazadaRawGetLinkResponse = {
+  code?: string | null;
   data?: {
     offerBatchGetLinkInfoList?: LazadaRawGetLinkItem[] | null;
     productBatchGetLinkInfoList?: LazadaRawGetLinkItem[] | null;
@@ -55,7 +56,10 @@ export type LazadaRawGetLinkResponse = {
   } | null;
   error_code?: string | null;
   error_msg?: string | null;
+  message?: string | null;
+  request_id?: string | null;
   success?: boolean | null;
+  type?: string | null;
 };
 
 export type LazadaNormalizedPromotionLink = {
@@ -73,6 +77,7 @@ export type LazadaNormalizedPromotionLink = {
 export type LazadaPromotionLinkResolution = {
   mode: "promotion-link" | "search-fallback";
   reason:
+    | "api-error"
     | "missing-product-id"
     | "open-api-disabled"
     | "open-api-not-live"
@@ -90,6 +95,27 @@ const LAZADA_PROMOTION_LINK_CACHE_TTL_MS = 1000 * 60 * 60 * 6;
 const lazadaGlobalCache = globalThis as typeof globalThis & {
   __lazadaPromotionLinkCache?: Map<string, LazadaCachedPromotionLinkEntry>;
 };
+
+function canonicalizeLazadaRequestParams(params: Record<string, string>): string {
+  return Object.keys(params)
+    .filter((key) => key !== "sign")
+    .sort((left, right) => left.localeCompare(right))
+    .map((key) => `${key}${params[key] ?? ""}`)
+    .join("");
+}
+
+function signLazadaRequest(
+  path: string,
+  params: Record<string, string>,
+  appSecret: string
+): string {
+  const payload = `${path}${canonicalizeLazadaRequestParams(params)}`;
+
+  return createHmac("sha256", appSecret)
+    .update(payload, "utf8")
+    .digest("hex")
+    .toUpperCase();
+}
 
 function getLazadaPromotionLinkCache(): Map<string, LazadaCachedPromotionLinkEntry> {
   if (!lazadaGlobalCache.__lazadaPromotionLinkCache) {
@@ -275,9 +301,79 @@ export function normalizeLazadaGetLinkResponse(
     promotionLink:
       item.regularPromotionLink || item.offerPromotionLink || item.mmPromotionLink || null,
     regularCommission: item.regularCommission || null,
-    errorCode: item.errorCode || response.error_code || null,
-    errorMessage: item.errorMsg || response.error_msg || null,
+    errorCode: item.errorCode || response.error_code || response.code || null,
+    errorMessage: item.errorMsg || response.error_msg || response.message || null,
   }));
+}
+
+async function fetchLazadaPromotionLinks(
+  options: Omit<LazadaGetLinkRequestOptions, "userToken"> & {
+    apiBaseUrl: string;
+    appKey: string;
+    appSecret: string;
+    userToken: string;
+  }
+): Promise<LazadaNormalizedPromotionLink[]> {
+  const cacheKey = buildLazadaGetLinkCacheKey({
+    inputType: options.inputType,
+    inputValues: options.inputValues,
+    subAffId: options.subAffId,
+    subIds: options.subIds,
+    dmInviteId: options.dmInviteId,
+    mmCampaignId: options.mmCampaignId,
+  });
+  const cachedLinks = readCachedLazadaPromotionLinks(cacheKey);
+
+  if (cachedLinks) {
+    return cachedLinks;
+  }
+
+  const chunks = chunkLazadaInputValues(options.inputValues);
+  const normalizedLinks: LazadaNormalizedPromotionLink[] = [];
+
+  for (const chunk of chunks) {
+    const businessParams = buildLazadaGetLinkRequest({
+      inputType: options.inputType,
+      inputValues: chunk,
+      userToken: options.userToken,
+      subAffId: options.subAffId,
+      subIds: options.subIds,
+      dmInviteId: options.dmInviteId,
+      mmCampaignId: options.mmCampaignId,
+    });
+    const requestParams: Record<string, string> = {
+      ...businessParams,
+      app_key: options.appKey,
+      sign_method: "sha256",
+      timestamp: Date.now().toString(),
+    };
+    const sign = signLazadaRequest(LAZADA_GET_LINK_PATH, requestParams, options.appSecret);
+
+    requestParams.sign = sign;
+
+    const response = await fetch(
+      `${options.apiBaseUrl}${LAZADA_GET_LINK_PATH}?${new URLSearchParams(requestParams).toString()}`,
+      {
+        method: "GET",
+        cache: "no-store",
+        headers: {
+          Accept: "application/json",
+        },
+      }
+    );
+
+    if (!response.ok) {
+      throw new Error(`Lazada getlink failed with status ${response.status}.`);
+    }
+
+    const payload = (await response.json()) as LazadaRawGetLinkResponse;
+    const links = normalizeLazadaGetLinkResponse(options.inputType, payload);
+
+    normalizedLinks.push(...links);
+  }
+
+  storeCachedLazadaPromotionLinks(cacheKey, normalizedLinks);
+  return normalizedLinks;
 }
 
 // This helper is the switch point for real Lazada promotion links.
@@ -329,6 +425,33 @@ export async function resolveLazadaPromotionLinkTarget(options: {
       mode: "promotion-link",
       reason: "promotion-link-ready",
       targetUrl: cachedPromotionLink.promotionLink,
+    };
+  }
+
+  try {
+    const links = await fetchLazadaPromotionLinks({
+      apiBaseUrl: openApiStatus.apiBaseUrl,
+      appKey: process.env.LAZADA_APP_KEY!,
+      appSecret: process.env.LAZADA_APP_SECRET!,
+      userToken: process.env.LAZADA_USER_TOKEN!,
+      inputType: "productId",
+      inputValues: [options.productId],
+      subIds: buildLazadaWishlistSubIds(options.searchQuery),
+    });
+    const livePromotionLink = links.find((link) => link.productId === options.productId);
+
+    if (livePromotionLink?.promotionLink) {
+      return {
+        mode: "promotion-link",
+        reason: "promotion-link-ready",
+        targetUrl: livePromotionLink.promotionLink,
+      };
+    }
+  } catch {
+    return {
+      mode: "search-fallback",
+      reason: "api-error",
+      targetUrl: options.fallbackUrl,
     };
   }
 
