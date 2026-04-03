@@ -677,6 +677,7 @@ export default function SecretSantaPage() {
     Record<string, NearbyStoreState>
   >({});
   const lazadaPrimedKeysRef = useRef<Set<string>>(new Set());
+  const matchedLazadaProductsByKeyRef = useRef(matchedLazadaProductsByKey);
 
   useEffect(() => {
     router.prefetch("/dashboard");
@@ -706,6 +707,10 @@ export default function SecretSantaPage() {
   useEffect(() => {
     window.localStorage.setItem("secret-santa-nearby-area", nearbyArea);
   }, [nearbyArea]);
+
+  useEffect(() => {
+    matchedLazadaProductsByKeyRef.current = matchedLazadaProductsByKey;
+  }, [matchedLazadaProductsByKey]);
 
   useEffect(() => {
     const urlsToPrime = new Set<string>();
@@ -802,7 +807,7 @@ export default function SecretSantaPage() {
           shoppingRegion
         );
 
-        if (matchedLazadaProductsByKey[requestKey]) {
+        if (matchedLazadaProductsByKeyRef.current[requestKey]) {
           continue;
         }
 
@@ -902,7 +907,7 @@ export default function SecretSantaPage() {
     return () => {
       cancelled = true;
     };
-  }, [assignments, matchedLazadaProductsByKey, selectedRecipientSuggestionByItem, shoppingRegion]);
+  }, [assignments, selectedRecipientSuggestionByItem, shoppingRegion]);
 
   useEffect(() => {
     let isMounted = true;
