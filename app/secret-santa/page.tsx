@@ -1969,11 +1969,16 @@ export default function SecretSantaPage() {
                       const lazadaMatchedProductsState = lazadaMatchRequestKey
                         ? matchedLazadaProductsByKey[lazadaMatchRequestKey] || null
                         : null;
+                      const lazadaMatchesLoading = Boolean(
+                        lazadaMatchedProductsState?.loading
+                      );
                       const featuredLazadaProducts =
-                        lazadaMatchedProductsState &&
-                        lazadaMatchedProductsState.products.length > 0
-                          ? lazadaMatchedProductsState.products
-                          : fallbackFeaturedLazadaProducts;
+                        lazadaMatchesLoading
+                          ? []
+                          : lazadaMatchedProductsState &&
+                              lazadaMatchedProductsState.products.length > 0
+                            ? lazadaMatchedProductsState.products
+                            : fallbackFeaturedLazadaProducts;
                       const usingMatchedLazadaProducts = Boolean(
                         lazadaMatchedProductsState?.products.length
                       );
@@ -2330,6 +2335,65 @@ export default function SecretSantaPage() {
                                           Finding better Lazada matches...
                                         </div>
                                       )}
+
+                                      {lazadaMatchedProductsState?.loading &&
+                                        fallbackFeaturedLazadaProducts.length > 0 && (
+                                          <div className="mb-3 grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+                                            {fallbackFeaturedLazadaProducts.map((product) => (
+                                              <div
+                                                key={`loading-${product.id}`}
+                                                className="rounded-[22px] p-4"
+                                                style={{
+                                                  background:
+                                                    "linear-gradient(180deg,rgba(255,255,255,.9),rgba(245,248,246,.86))",
+                                                  border:
+                                                    "1px solid rgba(96,117,122,.1)",
+                                                  boxShadow:
+                                                    "0 10px 24px rgba(34,55,59,.04)",
+                                                }}
+                                              >
+                                                <div
+                                                  className="h-6 w-32 rounded-full"
+                                                  style={{
+                                                    background:
+                                                      "rgba(47,107,86,.08)",
+                                                  }}
+                                                />
+                                                <div
+                                                  className="mt-3 h-[118px] rounded-[18px]"
+                                                  style={{
+                                                    background:
+                                                      "linear-gradient(180deg,rgba(239,244,241,.82),rgba(229,236,233,.76))",
+                                                    border:
+                                                      "1px solid rgba(96,117,122,.08)",
+                                                  }}
+                                                />
+                                                <div
+                                                  className="mt-3 h-5 rounded-lg"
+                                                  style={{
+                                                    background:
+                                                      "rgba(96,117,122,.1)",
+                                                  }}
+                                                />
+                                                <div
+                                                  className="mt-2 h-4 rounded-lg"
+                                                  style={{
+                                                    width: "85%",
+                                                    background:
+                                                      "rgba(96,117,122,.08)",
+                                                  }}
+                                                />
+                                                <div
+                                                  className="mt-4 h-10 rounded-2xl"
+                                                  style={{
+                                                    background:
+                                                      "rgba(88,116,142,.12)",
+                                                  }}
+                                                />
+                                              </div>
+                                            ))}
+                                          </div>
+                                        )}
 
                                       {featuredLazadaProducts.length > 0 && (
                                         <div className="mb-3">
