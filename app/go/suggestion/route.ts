@@ -66,7 +66,7 @@ export async function GET(request: NextRequest) {
   const groupBudget =
     groupBudgetRaw !== null && groupBudgetRaw.trim().length > 0 ? Number(groupBudgetRaw) : null;
 
-  if (merchant === "lazada") {
+  if (merchant === "lazada" && catalogSource !== "search-backed") {
     const lazadaTarget = await resolveLazadaSuggestionLinkTarget({
       fallbackUrl: targetUrl,
       groupBudget: Number.isFinite(groupBudget) ? groupBudget : null,
