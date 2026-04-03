@@ -47,13 +47,34 @@ function buildSearchBackedProduct(
   };
 }
 
+function normalizeExactLazadaSearchQuery(itemName: string, haystack: string): string {
+  const cleanItemName = itemName.trim().replace(/\s+/g, " ");
+
+  if (/(tablet|ipad|android tab|galaxy tab|redmi pad|xiaomi pad)/.test(haystack)) {
+    const stripped = cleanItemName
+      .replace(
+        /\b(gift set|gift|bundle|package|budget|affordable|cheap|best|usually above target|usually below target)\b/gi,
+        " "
+      )
+      .replace(/\s+/g, " ")
+      .trim();
+
+    return stripped.length > 0 ? stripped : cleanItemName;
+  }
+
+  return cleanItemName;
+}
+
 function buildExactMatchProduct(
-  itemName: string
+  itemName: string,
+  haystack: string
 ): LazadaStarterCatalogProduct {
+  const exactSearchQuery = normalizeExactLazadaSearchQuery(itemName, haystack);
+
   return buildSearchBackedProduct(
     itemName,
     "Start with the giftee's exact wording before branching into alternatives.",
-    itemName,
+    exactSearchQuery,
     "This stays closest to what the giftee actually asked for.",
     null,
     null
@@ -70,7 +91,7 @@ export function getLazadaStarterProducts(
   const cleanNote = input.itemNote.trim();
   const haystack = `${cleanItemName} ${input.itemCategory} ${cleanNote} ${input.searchQuery}`.toLowerCase();
 
-  const exactMatchProduct = buildExactMatchProduct(cleanItemName);
+  const exactMatchProduct = buildExactMatchProduct(cleanItemName, haystack);
 
   if (/(tablet|ipad|android tab)/.test(haystack)) {
     return [
