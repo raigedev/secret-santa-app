@@ -10,6 +10,7 @@ import {
 } from "@/app/dashboard/wishlist-actions";
 import { confirmGiftReceived, updateGiftPrepStatus } from "./actions";
 import { SecretSantaSkeleton } from "@/app/components/PageSkeleton";
+import { isLazadaProductPageUrl } from "@/lib/affiliate/lazada-url";
 import { WISHLIST_CATEGORIES } from "@/lib/wishlist/options";
 import { formatPriceRange, normalizeOptionalPriceValue } from "@/lib/wishlist/pricing";
 import {
@@ -500,6 +501,22 @@ function getNearbyAvailabilityBadgeStyle(label: string) {
         color: TEXT_MUTED,
       };
   }
+}
+
+function buildRecipientWishlistProductHref(
+  groupId: string,
+  wishlistItemId: string,
+  itemName: string,
+  itemUrl: string
+): string {
+  const params = new URLSearchParams({
+    groupId,
+    itemId: wishlistItemId,
+    name: itemName,
+    url: itemUrl,
+  });
+
+  return `/go/wishlist-link?${params.toString()}`;
 }
 
 function getMerchantBadgeStyle(
@@ -1629,6 +1646,15 @@ export default function SecretSantaPage() {
                   ) : (
                     assignment.receiver_wishlist.map((item) => {
                       const safeItemLink = normalizeOptionalUrl(item.item_link);
+                      const lazadaWishlistProductHref =
+                        safeItemLink && isLazadaProductPageUrl(safeItemLink)
+                          ? buildRecipientWishlistProductHref(
+                              assignment.group_id,
+                              item.id,
+                              item.item_name,
+                              safeItemLink
+                            )
+                          : "";
                       const safeItemImageUrl = normalizeOptionalUrl(item.item_image_url);
                       const categoryStyle = item.item_category
                         ? getWishlistCategoryStyle(item.item_category)
@@ -1802,7 +1828,7 @@ export default function SecretSantaPage() {
                                   )}
                                   {safeItemLink && (
                                     <a
-                                      href={safeItemLink}
+                                      href={lazadaWishlistProductHref || safeItemLink}
                                       target="_blank"
                                       rel="noopener noreferrer"
                                       title={safeItemLink}
@@ -1813,7 +1839,8 @@ export default function SecretSantaPage() {
                                         textDecoration: "none",
                                       }}
                                     >
-                                      Reference link {"->"}
+                                      {lazadaWishlistProductHref ? "Buy on Lazada" : "Reference link"}{" "}
+                                      {"->"}
                                     </a>
                                   )}
                                 </div>

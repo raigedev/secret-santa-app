@@ -46,6 +46,7 @@ export type LazadaFeedProduct = {
   discountedPercentage: string | null;
   maximumCommissionRate: string | null;
   pickChannel: string | null;
+  normalizedProductUrl: string | null;
 };
 
 export type LazadaFeedMatch = {
@@ -176,12 +177,26 @@ function normalizeImportedFeedRow(row: LazadaImportedFeedRow): LazadaFeedProduct
     discountedPercentage: row.discountedPercentage.trim() || null,
     maximumCommissionRate: row.maximumCommissionRate.trim() || null,
     pickChannel: row.pickChannel.trim() || null,
+    normalizedProductUrl: normalizeLazadaProductPageUrl(row.productUrl),
   };
 }
 
 export const LAZADA_FEED_PRODUCTS: LazadaFeedProduct[] = LAZADA_IMPORTED_FEED_ROWS.map(
   normalizeImportedFeedRow
 );
+
+export function findLazadaFeedProductByUrl(url: string): LazadaFeedProduct | null {
+  const normalizedUrl = normalizeLazadaProductPageUrl(url);
+
+  if (!normalizedUrl) {
+    return null;
+  }
+
+  return (
+    LAZADA_FEED_PRODUCTS.find((product) => product.normalizedProductUrl === normalizedUrl) ||
+    null
+  );
+}
 
 function getTargetPrice(
   preferredMin: number | null | undefined,
@@ -319,3 +334,4 @@ export function findBestLazadaFeedMatches(input: {
     .sort((left, right) => right.score - left.score)
     .slice(0, limit);
 }
+import { normalizeLazadaProductPageUrl } from "@/lib/affiliate/lazada-url";
