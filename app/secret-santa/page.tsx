@@ -2357,8 +2357,8 @@ export default function SecretSantaPage() {
                                             style={{ color: TEXT_SOFT }}
                                           >
                                             {usingMatchedLazadaProducts
-                                              ? "Tap any card to open a specific Lazada product."
-                                              : "Tap any card to open Lazada search results for that shopping angle."}
+                                              ? "Use the button on each card to open a specific Lazada product."
+                                              : "Use the button on each card to open Lazada search results for that shopping angle."}
                                           </div>
 
                                           <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
@@ -2387,23 +2387,21 @@ export default function SecretSantaPage() {
                                               );
 
                                               return (
-                                                <a
+                                                <div
                                                   key={product.id}
-                                                  href={product.href}
-                                                  target="_blank"
-                                                  rel="noopener noreferrer"
                                                   className="rounded-[22px] p-4 transition flex flex-col h-full"
                                                   style={{
                                                     background:
                                                       "linear-gradient(180deg,rgba(255,255,255,.97),rgba(245,248,246,.94))",
                                                     border: "1px solid rgba(96,117,122,.12)",
                                                     color: PAGE_TEXT_COLOR,
-                                                    textDecoration: "none",
                                                     boxShadow:
                                                       "0 10px 24px rgba(34,55,59,.06)",
                                                     minHeight: 360,
+                                                    cursor: "default",
                                                   }}
                                                 >
+                                                  <div style={{ pointerEvents: "none" }}>
                                                   <div className="flex items-center justify-between gap-2 flex-wrap">
                                                     <span
                                                       className="text-[10px] font-extrabold px-2.5 py-1 rounded-full"
@@ -2493,6 +2491,7 @@ export default function SecretSantaPage() {
                                                       {conciseReason}
                                                     </div>
                                                   </div>
+                                                  </div>
 
                                                   <div
                                                     className="mt-4 pt-3"
@@ -2501,7 +2500,10 @@ export default function SecretSantaPage() {
                                                         "1px solid rgba(96,117,122,.08)",
                                                     }}
                                                   >
-                                                    <div
+                                                    <a
+                                                      href={product.href}
+                                                      target="_blank"
+                                                      rel="noopener noreferrer"
                                                       className="inline-flex w-full items-center justify-center gap-2 rounded-2xl px-4 py-3 text-[12px] font-extrabold leading-none whitespace-nowrap"
                                                       style={{
                                                         background:
@@ -2511,6 +2513,7 @@ export default function SecretSantaPage() {
                                                           "0 10px 18px rgba(88,116,142,.18)",
                                                         border:
                                                           "1px solid rgba(76,109,137,.28)",
+                                                        textDecoration: "none",
                                                       }}
                                                     >
                                                       <span>{buttonLabel}</span>
@@ -2520,9 +2523,9 @@ export default function SecretSantaPage() {
                                                       >
                                                         →
                                                       </span>
-                                                    </div>
+                                                    </a>
                                                   </div>
-                                                </a>
+                                                </div>
                                               );
                                             })}
                                           </div>
