@@ -752,6 +752,9 @@ export function buildWishlistFeaturedLazadaProducts(input: {
       itemCategory: input.itemCategory,
       itemNote: input.itemNote,
       searchQuery: input.option.searchQuery,
+      preferredPriceMin: input.preferredPriceMin,
+      preferredPriceMax: input.preferredPriceMax,
+      groupBudget: input.groupBudget,
     })
   ).slice(0, 3);
 
