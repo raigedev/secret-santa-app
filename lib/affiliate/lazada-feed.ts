@@ -171,6 +171,51 @@ const FEED_MATCH_PROFILES: Array<{
     include: ["book", "novel", "manga", "comic", "journal", "planner"],
     test: /\b(book|novel|manga|comic|journal|planner)\b/,
   },
+  {
+    id: "stationery keyword match",
+    include: ["notebook", "pen", "marker", "stationery", "sketchbook", "planner", "journal"],
+    test: /\b(stationery|notebook|pen|marker|sketchbook|art supplies|craft|gift card)\b/,
+  },
+  {
+    id: "baby keyword match",
+    include: ["baby", "newborn", "infant", "toddler", "feeding", "stroller", "diaper"],
+    test: /\b(baby|newborn|infant|toddler|feeding|stroller|diaper|nursery)\b/,
+  },
+  {
+    id: "pet keyword match",
+    include: ["pet", "dog", "cat", "litter", "leash", "scratch", "bowl", "kennel"],
+    test: /\b(pet|dog|cat|feline|canine|litter|leash|scratch|kennel|aquarium)\b/,
+  },
+  {
+    id: "audio keyword match",
+    include: ["audio", "earbuds", "headset", "speaker", "microphone", "soundbar"],
+    test: /\b(audio|earbuds|headset|speaker|microphone|soundbar|headphones)\b/,
+  },
+  {
+    id: "camera keyword match",
+    include: ["camera", "drone", "tripod", "lens", "gimbal", "action cam"],
+    test: /\b(camera|drone|tripod|lens|gimbal|action cam)\b/,
+  },
+  {
+    id: "computer keyword match",
+    include: ["keyboard", "mouse", "monitor", "ssd", "laptop", "printer", "router", "webcam"],
+    test: /\b(keyboard|mouse|monitor|ssd|laptop|printer|router|webcam|storage|desktop)\b/,
+  },
+  {
+    id: "appliance keyword match",
+    include: ["fan", "blender", "vacuum", "rice cooker", "air fryer", "kettle", "appliance"],
+    test: /\b(fan|blender|vacuum|rice cooker|air fryer|kettle|appliance|microwave)\b/,
+  },
+  {
+    id: "automotive keyword match",
+    include: ["car", "motorcycle", "helmet", "dash cam", "seat cover", "automotive"],
+    test: /\b(car|motorcycle|helmet|dash cam|seat cover|automotive)\b/,
+  },
+  {
+    id: "digital keyword match",
+    include: ["voucher", "gift card", "subscription", "top up", "load", "software", "license"],
+    test: /\b(voucher|gift card|subscription|top up|topup|load|software|license|digital)\b/,
+  },
 ];
 
 const SOURCE_CATEGORY_PROFILES: Array<{
@@ -202,6 +247,17 @@ const SOURCE_CATEGORY_PROFILES: Array<{
     test: /\b(book|novel|manga|comic|journal|planner|stationery|craft|gift card)\b/,
   },
   {
+    id: "digital source category",
+    categories: [
+      "Digital Goods",
+      "Digital Utilities",
+      "Services",
+      "Special Digital Products",
+      "Stationery, Craft and Gift Cards",
+    ],
+    test: /\b(voucher|gift card|subscription|top up|topup|load|software|license|digital|service)\b/,
+  },
+  {
     id: "tech source category",
     categories: [
       "Audio",
@@ -216,6 +272,11 @@ const SOURCE_CATEGORY_PROFILES: Array<{
       "Televisions and Videos",
     ],
     test: /\b(tablet|ipad|galaxy tab|redmi pad|power bank|charger|battery|phone|mobile|gadget|headset|earbuds|keyboard|monitor|printer|camera|drone|smart)\b/,
+  },
+  {
+    id: "appliance source category",
+    categories: ["Home Appliances", "Kitchenware and Tableware", "House Hold Supplies"],
+    test: /\b(fan|blender|vacuum|rice cooker|air fryer|kettle|appliance|microwave)\b/,
   },
   {
     id: "beauty source category",

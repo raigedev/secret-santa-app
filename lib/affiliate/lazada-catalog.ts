@@ -122,6 +122,36 @@ export function getLazadaStarterProducts(
     ];
   }
 
+  if (/(stationery|notebook|pen|marker|sketchbook|art supplies|craft|gift card)/.test(haystack)) {
+    return [
+      exactMatchProduct,
+      buildSearchBackedProduct(
+        "Stationery gift set",
+        "A tidy stationery route when the exact supply list is still flexible.",
+        "stationery gift set",
+        "This keeps the idea practical and giftable without overcommitting to one specific tool.",
+        250,
+        900
+      ),
+      buildSearchBackedProduct(
+        "Planner and notebook set",
+        "A safer everyday option for writing, planning, and school or work use.",
+        "planner notebook set",
+        "This gives the giver a more polished paper-goods option with easy gifting appeal.",
+        300,
+        1100
+      ),
+      buildSearchBackedProduct(
+        "Art supplies starter set",
+        "A stronger creative route when the giftee is clearly into drawing or crafts.",
+        "art supplies starter set",
+        "This keeps the stationery-and-craft direction while widening into more substantial hobby picks.",
+        500,
+        1800
+      ),
+    ];
+  }
+
   if (/(book|novel|manga|comic|journal|planner)/.test(haystack)) {
     return [
       exactMatchProduct,
@@ -148,6 +178,96 @@ export function getLazadaStarterProducts(
         "This is a practical fallback when the exact reading taste is still unclear.",
         250,
         700
+      ),
+    ];
+  }
+
+  if (/(earbuds|headset|headphones|speaker|microphone|audio|soundbar)/.test(haystack)) {
+    return [
+      exactMatchProduct,
+      buildSearchBackedProduct(
+        "Bluetooth earbuds",
+        "A practical everyday audio gift when the exact device type is still open.",
+        "bluetooth earbuds",
+        "This is an easy audio-category gift that still feels useful and modern.",
+        500,
+        1800
+      ),
+      buildSearchBackedProduct(
+        "Portable speaker",
+        "A stronger shared-use audio option if the giftee likes music in rooms or on the go.",
+        "portable speaker",
+        "This gives a more social audio route without locking into headphone fit or comfort.",
+        700,
+        2200
+      ),
+      buildSearchBackedProduct(
+        "Wireless gaming headset",
+        "A step-up audio route when the gift can be more substantial.",
+        "wireless gaming headset",
+        "This is the pricier audio direction when the giver wants something more premium than a basic accessory.",
+        1500,
+        4500
+      ),
+    ];
+  }
+
+  if (/(camera|drone|tripod|lens|gimbal|action cam)/.test(haystack)) {
+    return [
+      exactMatchProduct,
+      buildSearchBackedProduct(
+        "Camera accessory kit",
+        "A practical camera route when the exact device body is too expensive or too open.",
+        "camera accessory kit",
+        "This keeps the photography theme without forcing a full camera purchase.",
+        600,
+        1800
+      ),
+      buildSearchBackedProduct(
+        "Tripod and phone mount",
+        "A safe content-creation pick for both cameras and phones.",
+        "tripod phone mount",
+        "This gives the giver a useful photo-video route that still feels giftable.",
+        500,
+        1600
+      ),
+      buildSearchBackedProduct(
+        "Mini camera drone",
+        "A stronger tech-photo route when the budget can stretch higher.",
+        "mini camera drone",
+        "This is a more ambitious camera-adjacent option if the gift is meant to feel substantial.",
+        1800,
+        6500
+      ),
+    ];
+  }
+
+  if (/(keyboard|mouse|monitor|ssd|laptop|printer|router|webcam|storage|desktop|computer)/.test(haystack)) {
+    return [
+      exactMatchProduct,
+      buildSearchBackedProduct(
+        "Wireless keyboard and mouse set",
+        "A practical computer gift when the exact setup is still flexible.",
+        "wireless keyboard mouse set",
+        "This stays inside the computer category but keeps the gift easier to choose and ship.",
+        700,
+        2200
+      ),
+      buildSearchBackedProduct(
+        "Portable SSD",
+        "A stronger tech utility option for work, school, and creative use.",
+        "portable ssd",
+        "This gives the giver a more premium computer accessory that still feels broadly useful.",
+        1200,
+        3500
+      ),
+      buildSearchBackedProduct(
+        "Monitor light bar",
+        "A desk-friendly fallback when the giftee is into setup upgrades.",
+        "monitor light bar",
+        "This keeps the computer theme alive while nudging the search toward polished workspace upgrades.",
+        900,
+        2500
       ),
     ];
   }
@@ -242,6 +362,66 @@ export function getLazadaStarterProducts(
     ];
   }
 
+  if (/(baby|newborn|infant|toddler|feeding|stroller|diaper|nursery)/.test(haystack)) {
+    return [
+      exactMatchProduct,
+      buildSearchBackedProduct(
+        "Baby essentials set",
+        "A dependable starting point when the exact baby item is still broad.",
+        "baby essentials set",
+        "This is a safe first route when the giver wants something practical for a baby or new parent.",
+        500,
+        1800
+      ),
+      buildSearchBackedProduct(
+        "Feeding and nursery picks",
+        "Useful when the gift should feel practical and everyday.",
+        "baby feeding nursery essentials",
+        "This keeps the baby category focused on the most consistently useful gift areas.",
+        600,
+        2200
+      ),
+      buildSearchBackedProduct(
+        "Baby walker or stroller accessories",
+        "A more substantial route when the gift can stretch upward.",
+        "baby stroller accessories",
+        "This gives the giver a bigger-ticket baby direction without assuming the exact core item.",
+        1200,
+        4000
+      ),
+    ];
+  }
+
+  if (/(pet|dog|cat|feline|canine|litter|leash|scratch|kennel|aquarium)/.test(haystack)) {
+    return [
+      exactMatchProduct,
+      buildSearchBackedProduct(
+        "Pet essentials",
+        "A practical pet route when the exact accessory or treat is still open.",
+        "pet essentials",
+        "This is the safest first step when the giftee really means something for their pet.",
+        400,
+        1400
+      ),
+      buildSearchBackedProduct(
+        "Cat and dog toy set",
+        "A fun pet-friendly option that stays broadly giftable.",
+        "cat dog toy set",
+        "This keeps the pet category light and useful when the exact breed or need is unclear.",
+        300,
+        1100
+      ),
+      buildSearchBackedProduct(
+        "Pet carrier or bed",
+        "A stronger pet route when the gift can be more substantial.",
+        "pet carrier bed",
+        "This gives the giver a more premium pet-item direction if they want something bigger than toys or treats.",
+        900,
+        3200
+      ),
+    ];
+  }
+
   if (/(shirt|hoodie|dress|clothes|clothing|jacket|shoes|fashion|sneakers)/.test(haystack)) {
     return [
       exactMatchProduct,
@@ -268,6 +448,36 @@ export function getLazadaStarterProducts(
         "This gives one bigger fashion option if the giver wants something more substantial.",
         1000,
         3000
+      ),
+    ];
+  }
+
+  if (/(fan|blender|vacuum|rice cooker|air fryer|kettle|appliance|microwave)/.test(haystack)) {
+    return [
+      exactMatchProduct,
+      buildSearchBackedProduct(
+        "Kitchen appliance picks",
+        "A useful appliance route when the exact machine type is still flexible.",
+        "kitchen appliance",
+        "This keeps the gift practical while leaving room for the giver to compare common household appliances.",
+        900,
+        3500
+      ),
+      buildSearchBackedProduct(
+        "Portable home appliance",
+        "A smaller appliance route for useful everyday upgrades.",
+        "portable home appliance",
+        "This gives a lower-pressure appliance direction before moving into larger higher-ticket machines.",
+        700,
+        2500
+      ),
+      buildSearchBackedProduct(
+        "Air fryer or rice cooker",
+        "A stronger home-appliance route when the gift can be more substantial.",
+        "air fryer rice cooker",
+        "This is the pricier appliance direction when the giver wants a more meaningful kitchen upgrade.",
+        1800,
+        6000
       ),
     ];
   }
@@ -302,6 +512,36 @@ export function getLazadaStarterProducts(
     ];
   }
 
+  if (/(car|motorcycle|helmet|dash cam|seat cover|automotive)/.test(haystack)) {
+    return [
+      exactMatchProduct,
+      buildSearchBackedProduct(
+        "Car accessory kit",
+        "A practical automotive route when the exact car item is still broad.",
+        "car accessory kit",
+        "This is the safest first automotive step when the giftee wants something useful for a vehicle.",
+        500,
+        1800
+      ),
+      buildSearchBackedProduct(
+        "Dash cam and mounts",
+        "A stronger car-tech direction when the gift can stretch upward.",
+        "dash cam car mount",
+        "This gives the giver a more premium automotive route without jumping straight to costly major parts.",
+        1500,
+        4500
+      ),
+      buildSearchBackedProduct(
+        "Motorcycle helmet accessories",
+        "Useful when the giftee is more bike-oriented than car-oriented.",
+        "motorcycle helmet accessories",
+        "This keeps the automotive category open to two-wheel riders instead of assuming only car accessories.",
+        800,
+        2500
+      ),
+    ];
+  }
+
   if (/(beauty|makeup|skincare|perfume)/.test(haystack)) {
     return [
       exactMatchProduct,
@@ -328,6 +568,36 @@ export function getLazadaStarterProducts(
         "It keeps the gift beauty-related without risking a bad shade or formula pick.",
         350,
         1200
+      ),
+    ];
+  }
+
+  if (/(voucher|gift card|subscription|top up|topup|load|software|license|digital|service)/.test(haystack)) {
+    return [
+      exactMatchProduct,
+      buildSearchBackedProduct(
+        "Gift card and voucher picks",
+        "A broad digital route when the giver wants something quick and flexible.",
+        "gift card voucher",
+        "This is the safest digital fallback when the exact platform or brand is still open.",
+        300,
+        1500
+      ),
+      buildSearchBackedProduct(
+        "Gaming and streaming credits",
+        "Useful when the recipient is more entertainment-focused.",
+        "gaming streaming credits",
+        "This gives the giver a clearer digital direction when the gift should feel fun and easy to use right away.",
+        300,
+        2000
+      ),
+      buildSearchBackedProduct(
+        "Software and subscription picks",
+        "A stronger digital route when the gift is more functional or work-oriented.",
+        "software subscription",
+        "This keeps the digital gift idea but nudges it toward more practical higher-value options.",
+        500,
+        3000
       ),
     ];
   }

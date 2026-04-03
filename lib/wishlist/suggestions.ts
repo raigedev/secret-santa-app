@@ -468,6 +468,25 @@ function getFeaturedLazadaTrackingLabel(template: {
 function getKeywordTemplates(itemName: string, itemNote: string): SuggestionTemplate[] {
   const haystack = `${itemName} ${itemNote}`.toLowerCase();
 
+  if (/(stationery|notebook|pen|marker|sketchbook|art supplies|craft|gift card)/.test(haystack)) {
+    return [
+      {
+        title: "Stationery gift picks",
+        subtitle: "A tidy route for practical desk, school, or craft gifts.",
+        searchQuery: "stationery gift set",
+        typicalMin: 250,
+        typicalMax: 1000,
+      },
+      {
+        title: "Planner and notebook picks",
+        subtitle: "Useful when the wishlist leans toward writing or organization.",
+        searchQuery: "planner notebook set",
+        typicalMin: 300,
+        typicalMax: 1200,
+      },
+    ];
+  }
+
   if (/(book|novel|manga|comic|journal)/.test(haystack)) {
     return [
       {
@@ -483,6 +502,63 @@ function getKeywordTemplates(itemName: string, itemNote: string): SuggestionTemp
         searchQuery: "giftable journal and book set",
         typicalMin: 250,
         typicalMax: 900,
+      },
+    ];
+  }
+
+  if (/(earbuds|headset|headphones|speaker|microphone|audio|soundbar)/.test(haystack)) {
+    return [
+      {
+        title: "Audio accessory picks",
+        subtitle: "A practical route when the giftee wants music or listening gear.",
+        searchQuery: "audio accessories gift",
+        typicalMin: 500,
+        typicalMax: 2200,
+      },
+      {
+        title: "Portable speaker and earbuds",
+        subtitle: "Useful when the exact audio device is still flexible.",
+        searchQuery: "portable speaker earbuds",
+        typicalMin: 700,
+        typicalMax: 2500,
+      },
+    ];
+  }
+
+  if (/(camera|drone|tripod|lens|gimbal|action cam)/.test(haystack)) {
+    return [
+      {
+        title: "Camera accessory picks",
+        subtitle: "A safer photography route when the full device is too open.",
+        searchQuery: "camera accessory gift",
+        typicalMin: 600,
+        typicalMax: 2200,
+      },
+      {
+        title: "Tripods and content gear",
+        subtitle: "Good for creators when the exact camera body is unknown.",
+        searchQuery: "tripod content creator gear",
+        typicalMin: 500,
+        typicalMax: 1800,
+      },
+    ];
+  }
+
+  if (/(keyboard|mouse|monitor|ssd|laptop|printer|router|webcam|storage|desktop|computer)/.test(haystack)) {
+    return [
+      {
+        title: "Computer accessory picks",
+        subtitle: "A broad route for work, gaming, or desk setup upgrades.",
+        searchQuery: "computer accessories gift",
+        typicalMin: 600,
+        typicalMax: 2500,
+      },
+      {
+        title: "Desk setup tech",
+        subtitle: "Useful when the giftee likes practical computer upgrades.",
+        searchQuery: "desk setup tech gift",
+        typicalMin: 800,
+        typicalMax: 3000,
       },
     ];
   }
@@ -513,6 +589,44 @@ function getKeywordTemplates(itemName: string, itemNote: string): SuggestionTemp
     ];
   }
 
+  if (/(baby|newborn|infant|toddler|feeding|stroller|diaper|nursery)/.test(haystack)) {
+    return [
+      {
+        title: "Baby essentials",
+        subtitle: "A practical starting point for baby or parent-friendly gifts.",
+        searchQuery: "baby essentials gift",
+        typicalMin: 500,
+        typicalMax: 1800,
+      },
+      {
+        title: "Nursery and feeding picks",
+        subtitle: "Useful when the gift should feel practical and everyday.",
+        searchQuery: "baby nursery feeding essentials",
+        typicalMin: 600,
+        typicalMax: 2200,
+      },
+    ];
+  }
+
+  if (/(pet|dog|cat|feline|canine|litter|leash|scratch|kennel|aquarium)/.test(haystack)) {
+    return [
+      {
+        title: "Pet gift picks",
+        subtitle: "A broad route for useful or fun pet-related gifts.",
+        searchQuery: "pet gift essentials",
+        typicalMin: 350,
+        typicalMax: 1400,
+      },
+      {
+        title: "Pet toys and essentials",
+        subtitle: "Helpful when the exact pet need is still open.",
+        searchQuery: "pet toys essentials",
+        typicalMin: 300,
+        typicalMax: 1200,
+      },
+    ];
+  }
+
   if (/(shirt|hoodie|dress|clothes|clothing|jacket|shoes)/.test(haystack)) {
     return [
       {
@@ -528,6 +642,63 @@ function getKeywordTemplates(itemName: string, itemNote: string): SuggestionTemp
         searchQuery: "cozy casual wear gift",
         typicalMin: 400,
         typicalMax: 1600,
+      },
+    ];
+  }
+
+  if (/(fan|blender|vacuum|rice cooker|air fryer|kettle|appliance|microwave)/.test(haystack)) {
+    return [
+      {
+        title: "Useful home appliances",
+        subtitle: "A practical route for kitchen or home upgrades.",
+        searchQuery: "useful home appliance",
+        typicalMin: 900,
+        typicalMax: 3500,
+      },
+      {
+        title: "Kitchen appliance upgrades",
+        subtitle: "Good when the gift should feel more substantial.",
+        searchQuery: "kitchen appliance upgrade",
+        typicalMin: 1500,
+        typicalMax: 5000,
+      },
+    ];
+  }
+
+  if (/(car|motorcycle|helmet|dash cam|seat cover|automotive)/.test(haystack)) {
+    return [
+      {
+        title: "Car accessory picks",
+        subtitle: "A broad route for useful automotive gifts.",
+        searchQuery: "car accessories gift",
+        typicalMin: 500,
+        typicalMax: 1800,
+      },
+      {
+        title: "Dash cam and ride upgrades",
+        subtitle: "Helpful when the gift can stretch a bit higher.",
+        searchQuery: "dash cam ride upgrade",
+        typicalMin: 1500,
+        typicalMax: 4500,
+      },
+    ];
+  }
+
+  if (/(voucher|gift card|subscription|top up|topup|load|software|license|digital|service)/.test(haystack)) {
+    return [
+      {
+        title: "Digital gift picks",
+        subtitle: "A flexible route for vouchers, subscriptions, and credits.",
+        searchQuery: "digital gift voucher",
+        typicalMin: 300,
+        typicalMax: 1800,
+      },
+      {
+        title: "Software and subscription ideas",
+        subtitle: "Useful when the gift should feel practical or instantly usable.",
+        searchQuery: "software subscription gift",
+        typicalMin: 500,
+        typicalMax: 2500,
       },
     ];
   }
@@ -626,12 +797,32 @@ function getNearbySearchBase(itemName: string, itemCategory: string, searchQuery
     return ["electronics store", "computer shop", "gadget store"];
   }
 
+  if (/(earbuds|headset|headphones|speaker|microphone|audio|soundbar)/.test(haystack)) {
+    return ["audio store", "electronics store", "gadget store"];
+  }
+
+  if (/(camera|drone|tripod|lens|gimbal|action cam)/.test(haystack)) {
+    return ["camera store", "electronics store", "photography shop"];
+  }
+
+  if (/(keyboard|mouse|monitor|ssd|laptop|printer|router|webcam|storage|desktop|computer)/.test(haystack)) {
+    return ["computer shop", "electronics store", "office tech store"];
+  }
+
   if (/(tool|hardware|diy|drill|wrench|screwdriver|hammer|repair kit)/.test(haystack)) {
     return ["hardware store", "tool shop", "home improvement store"];
   }
 
   if (/(book|novel|manga|comic|journal|planner|stationery|art supplies)/.test(haystack)) {
     return ["bookstore", "school and office supplies", "mall bookstore"];
+  }
+
+  if (/(baby|newborn|infant|toddler|feeding|stroller|diaper|nursery)/.test(haystack)) {
+    return ["baby store", "department store", "mother and baby shop"];
+  }
+
+  if (/(pet|dog|cat|feline|canine|litter|leash|scratch|kennel|aquarium)/.test(haystack)) {
+    return ["pet store", "veterinary supply store", "mall pet shop"];
   }
 
   if (/(bag|handbag|purse|wallet|luggage|backpack)/.test(haystack)) {
@@ -658,12 +849,24 @@ function getNearbySearchBase(itemName: string, itemCategory: string, searchQuery
     return ["home store", "kitchenware shop", "department store"];
   }
 
+  if (/(fan|blender|vacuum|rice cooker|air fryer|kettle|appliance|microwave)/.test(haystack)) {
+    return ["appliance store", "home store", "department store"];
+  }
+
+  if (/(car|motorcycle|helmet|dash cam|seat cover|automotive)/.test(haystack)) {
+    return ["automotive store", "motorcycle shop", "car accessories shop"];
+  }
+
   if (/(food|snack|coffee|tea|treat|chocolate|pastry|cake|cookie|hamper|bakery|pasalubong)/.test(haystack)) {
     return ["specialty food store", "bakery", "pasalubong shop"];
   }
 
   if (/(experience|voucher|spa|massage|cinema|activity|class|workshop)/.test(haystack)) {
     return ["spa and wellness center", "cinema", "activity center"];
+  }
+
+  if (/(voucher|gift card|subscription|top up|topup|load|software|license|digital|service)/.test(haystack)) {
+    return ["mall gift shop", "gaming store", "electronics store"];
   }
 
   return ["gift shop", "department store", "mall store"];
