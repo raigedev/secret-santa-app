@@ -1,4 +1,7 @@
-type LazadaImportedFeedRow = {
+import importedLazadaFeedRows from "@/lib/affiliate/lazada-feed-data.generated.json";
+import { normalizeLazadaProductPageUrl } from "@/lib/affiliate/lazada-url";
+
+export type LazadaImportedFeedRow = {
   date: string;
   skuId: string;
   itemId: string;
@@ -55,44 +58,8 @@ export type LazadaFeedMatch = {
   reasons: string[];
 };
 
-const LAZADA_IMPORTED_FEED_ROWS: LazadaImportedFeedRow[] = [
-  {
-    date: "2026-04-03",
-    skuId: "31890603703",
-    itemId: "5343634107",
-    productName:
-      "Portable Pet Heart Rate Monitor - Animal ECG & Vital Signs Monitoring Device, Veterinary-Grade Heart Rate Monitor for Dogs, Cats, and Small Animals.",
-    salePrice: "56277.78",
-    discountedPrice: "55522.58",
-    discountedPercentage: "-1%",
-    pictureUrl:
-      "https://my-live-01.slatic.net/p/5bec63c9a28132b8b4ab6597ea5111df.jpg",
-    productUrl:
-      "https://pages.lazada.com.ph/products/pdp-i5343634107-s31890603703.html",
-    brand: "No Brand",
-    maximumCommissionRate: "22.09%",
-    categoryLv1: "N/A",
-    sellerId: "501122080800",
-    inviteId: "N/A",
-    dmInviteStartTime: "N/A",
-    dmInviteEndTime: "N/A",
-    promoLink:
-      "https://pages.lazada.com.ph/products/pdp-i5343634107-s31890603703.html?exlaz=e_7yXqighYAL9sbdaDA0DvZK%252F23Xvf8d6ADAo3n60nGqHWTxJfsb%252BNdNYnaND6549nPdfWnr5gjMsf93k%252FUtMIzOUrmUuWMVw%252FmdxXgFYnvoxBxaI2SDa2Zil6XgQIOLbo4M5B1Suvbb0zZBSbSOQYPSsMlra7h%252BeCQurNMkZ7LZ4WIS45ORi19PbrBDlN5ICQ%252BlPuw2EihQFZDH0k40l8bi2WBAyD9bUWRwtKfSXhnchbIJp0%252B%252Fp6d5oezcbR%252BE4grgjSbwN1VFolQMLdWwuCTdEUr4CXa5%252BGQ8IGCPbf%252B5rSDNL3cp8jjdGt0m0EtnCGkJXWebI3UhxG7eIq%252Bnuj3Ef9OtQDrwmK86iyu60CgNTgFt9UxjjmSwib9tsvqswRab0kUCnTYmdaANM%252BMLvs2nyXb%252BVCI0U6apvwW63pOXTm42JXw2YvyN8HbJJmBvdvx7FaHvblnSg%253D",
-    promoDeepLink:
-      "lazada://ph/pdp?itemId=5343634107&skuId=31890603703&t=pdp&from_affiliate=1&dsource=sml&exlaz=e_tOo8wiEdkOTGip8qo24MCWmYAMry59QRmdxXgFYnvowrDJa2u4fngkLqzTJGey2eFiEuOTkYtfT26wQ5TeSAkKpK8NtSwPUdSPdvZ0DPOq0%3D",
-    promoShortLink: "https://c.lazada.com.ph/t/c.diJmcM",
-    promoCode: "$f8s4y$",
-    subAffId: "N/A",
-    subId1: "N/A",
-    subId2: "N/A",
-    subId3: "N/A",
-    mediaLandingPage: "N/A",
-    subId4: "N/A",
-    subId5: "N/A",
-    subId6: "N/A",
-    pickChannel: "Bonus Products Link",
-  },
-];
+const LAZADA_IMPORTED_FEED_ROWS =
+  importedLazadaFeedRows as LazadaImportedFeedRow[];
 
 const MATCH_STOPWORDS = new Set([
   "a",
@@ -334,4 +301,3 @@ export function findBestLazadaFeedMatches(input: {
     .sort((left, right) => right.score - left.score)
     .slice(0, limit);
 }
-import { normalizeLazadaProductPageUrl } from "@/lib/affiliate/lazada-url";

@@ -6,7 +6,8 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "import:lazada-feed": "powershell -ExecutionPolicy Bypass -File ./scripts/import-lazada-feed.ps1"
   },
   "dependencies": {
     "@supabase/auth-helpers-nextjs": "^0.15.0",
