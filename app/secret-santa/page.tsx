@@ -1953,6 +1953,11 @@ export default function SecretSantaPage() {
                       const usingMatchedLazadaProducts = Boolean(
                         lazadaMatchedProductsState?.products.length
                       );
+                      const allFeaturedLazadaProductsSearchBacked =
+                        featuredLazadaProducts.length > 0 &&
+                        featuredLazadaProducts.every(
+                          (product) => product.catalogSource !== "catalog-product"
+                        );
                       const nearbyStoreQueries = selectedSuggestion
                         ? buildNearbyStoreQueries(
                             selectedSuggestion,
@@ -2312,8 +2317,10 @@ export default function SecretSantaPage() {
                                               style={{ color: TEXT_SOFT }}
                                             >
                                               {usingMatchedLazadaProducts
-                                                ? "Feed-matched products"
-                                                : "Broader search routes"}
+                                                ? "Matched products"
+                                                : allFeaturedLazadaProductsSearchBacked
+                                                  ? "Search-based suggestions"
+                                                  : "Mixed suggestions"}
                                             </div>
                                           </div>
 
@@ -2334,6 +2341,9 @@ export default function SecretSantaPage() {
                                                 getFeaturedLazadaCardTypeLabel(product);
                                               const ctaLabel =
                                                 getFeaturedLazadaCtaLabel(product);
+                                              const showVisualPreview = Boolean(
+                                                safeProductImageUrl || product.catalogSource === "catalog-product"
+                                              );
 
                                               return (
                                                 <a
@@ -2373,37 +2383,39 @@ export default function SecretSantaPage() {
                                                     </div>
                                                     <div
                                                       className="text-[11px] font-bold"
-                                                      style={{ color: HOLIDAY_GOLD }}
+                                                      style={{ color: product.priceLabel ? HOLIDAY_GOLD : TEXT_MUTED }}
                                                     >
                                                       {product.priceLabel || cardTypeLabel}
                                                     </div>
                                                   </div>
 
-                                                  <div
-                                                    className="mt-3 rounded-[18px] overflow-hidden flex items-center justify-center"
-                                                    style={{
-                                                      minHeight: 118,
-                                                      background:
-                                                        "linear-gradient(180deg,rgba(239,244,241,.9),rgba(229,236,233,.86))",
-                                                      border: "1px solid rgba(96,117,122,.08)",
-                                                    }}
-                                                  >
-                                                    {safeProductImageUrl ? (
-                                                      // eslint-disable-next-line @next/next/no-img-element
-                                                      <img
-                                                        src={safeProductImageUrl}
-                                                        alt={product.title}
-                                                        className="w-full h-[118px] object-contain"
-                                                      />
-                                                    ) : (
-                                                      <div
-                                                        className="text-[12px] font-bold text-center px-4"
-                                                        style={{ color: TEXT_MUTED }}
-                                                      >
-                                                        {cardTypeLabel}
-                                                      </div>
-                                                    )}
-                                                  </div>
+                                                  {showVisualPreview && (
+                                                    <div
+                                                      className="mt-3 rounded-[18px] overflow-hidden flex items-center justify-center"
+                                                      style={{
+                                                        minHeight: 118,
+                                                        background:
+                                                          "linear-gradient(180deg,rgba(239,244,241,.9),rgba(229,236,233,.86))",
+                                                        border: "1px solid rgba(96,117,122,.08)",
+                                                      }}
+                                                    >
+                                                      {safeProductImageUrl ? (
+                                                        // eslint-disable-next-line @next/next/no-img-element
+                                                        <img
+                                                          src={safeProductImageUrl}
+                                                          alt={product.title}
+                                                          className="w-full h-[118px] object-contain"
+                                                        />
+                                                      ) : (
+                                                        <div
+                                                          className="text-[12px] font-bold text-center px-4"
+                                                          style={{ color: TEXT_MUTED }}
+                                                        >
+                                                          {cardTypeLabel}
+                                                        </div>
+                                                      )}
+                                                    </div>
+                                                  )}
 
                                                   <div
                                                     className="text-[16px] font-extrabold mt-3 leading-snug"
@@ -2441,11 +2453,10 @@ export default function SecretSantaPage() {
                                                   </div>
 
                                                   <div
-                                                    className="mt-4 rounded-xl px-3 py-2 text-[13px] font-extrabold text-center"
+                                                    className="mt-4 pt-3 text-[13px] font-extrabold text-center"
                                                     style={{
                                                       color: HOLIDAY_BLUE,
-                                                      background: "rgba(88,116,142,.08)",
-                                                      border: "1px solid rgba(88,116,142,.12)",
+                                                      borderTop: "1px solid rgba(96,117,122,.1)",
                                                     }}
                                                   >
                                                     {ctaLabel}
@@ -2463,8 +2474,8 @@ export default function SecretSantaPage() {
                                           style={{ color: TEXT_SOFT }}
                                         >
                                           {usingMatchedLazadaProducts
-                                            ? "These are matched Lazada products from the affiliate feed, so they should be much closer to what the giftee actually meant."
-                                            : "We did not find a confident direct product yet, so these stay as broader search routes for now."}
+                                            ? "These are matched Lazada products from the affiliate feed, so they should be closer to what the giftee actually meant."
+                                            : "These are broader Lazada searches for the same gift idea. Pick the one that feels closest and refine from there."}
                                         </div>
                                       )}
 
