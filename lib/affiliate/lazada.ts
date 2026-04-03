@@ -3,6 +3,7 @@ import "server-only";
 import { createHash, createHmac } from "crypto";
 import {
   findBestLazadaFeedMatches,
+  findLazadaFeedProductByItemId,
   findLazadaFeedProductByUrl,
 } from "@/lib/affiliate/lazada-feed";
 import { normalizeLazadaProductPageUrl } from "@/lib/affiliate/lazada-url";
@@ -387,6 +388,12 @@ export async function primeLazadaPromotionLinks(options: {
         .filter((url): url is string => Boolean(url))
     )
   );
+  const productFeedHits = uniqueProductIds.filter(
+    (productId) => Boolean(findLazadaFeedProductByItemId(productId)?.promoShortLink)
+  );
+  const productIdsNeedingApiFetch = uniqueProductIds.filter(
+    (productId) => !findLazadaFeedProductByItemId(productId)?.promoShortLink
+  );
   const urlFeedHits = uniqueUrls.filter(
     (url) => Boolean(findLazadaFeedProductByUrl(url)?.promoShortLink)
   );
@@ -397,17 +404,19 @@ export async function primeLazadaPromotionLinks(options: {
   let productIdsPrimed = 0;
   let urlsPrimed = 0;
 
-  if (uniqueProductIds.length > 0) {
+  productIdsPrimed = productFeedHits.length;
+
+  if (productIdsNeedingApiFetch.length > 0) {
     const links = await fetchLazadaPromotionLinks({
       apiBaseUrl: openApiStatus.apiBaseUrl,
       appKey: process.env.LAZADA_APP_KEY!,
       appSecret: process.env.LAZADA_APP_SECRET!,
       userToken: process.env.LAZADA_USER_TOKEN!,
       inputType: "productId",
-      inputValues: uniqueProductIds,
+      inputValues: productIdsNeedingApiFetch,
     });
 
-    productIdsPrimed = links.filter((link) => Boolean(link.promotionLink)).length;
+    productIdsPrimed += links.filter((link) => Boolean(link.promotionLink)).length;
   }
 
   urlsPrimed = urlFeedHits.length;
@@ -523,6 +532,16 @@ export async function resolveLazadaPromotionLinkTarget(options: {
   }
 
   const wishlistSubIds = buildLazadaWishlistSubIds(options.searchQuery);
+  const feedProduct = findLazadaFeedProductByItemId(options.productId);
+
+  if (feedProduct?.promoShortLink) {
+    return {
+      mode: "promotion-link",
+      reason: "feed-promo-link-ready",
+      targetUrl: appendLazadaSubIdsToPromotionLink(feedProduct.promoShortLink, wishlistSubIds),
+    };
+  }
+
   const openApiStatus = getLazadaOpenApiStatus();
 
   if (!openApiStatus.ready) {

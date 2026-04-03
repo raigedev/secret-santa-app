@@ -1,6 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 
-import { findBestLazadaFeedMatches } from "@/lib/affiliate/lazada-feed";
+import {
+  findBestLazadaFeedMatches,
+  getLazadaFeedProductPrice,
+} from "@/lib/affiliate/lazada-feed";
+import { primeLazadaPromotionLinks } from "@/lib/affiliate/lazada";
 import { createClient } from "@/lib/supabase/server";
 import { formatPriceRange } from "@/lib/wishlist/pricing";
 import {
@@ -45,31 +49,6 @@ function isShoppingRegion(value: string): value is ShoppingRegion {
 
 type MatchCardRole = "alternate" | "closest" | "premium";
 
-function getMatchProductPrice(
-  match: { product: { discountedPrice: number | null; salePrice: number | null } }
-): number | null {
-  return match.product.discountedPrice ?? match.product.salePrice;
-}
-
-function filterBudgetWindowMatches<
-  T extends {
-    product: { discountedPrice: number | null; salePrice: number | null };
-  },
->(matches: T[], groupBudget: number | null): T[] {
-  if (groupBudget === null) {
-    return matches;
-  }
-
-  const minimumPrice = groupBudget;
-  const maximumPrice = Math.max(groupBudget * 1.6, groupBudget + 500);
-
-  return matches.filter((match) => {
-    const price = getMatchProductPrice(match);
-
-    return price !== null && price >= minimumPrice && price <= maximumPrice;
-  });
-}
-
 function buildRoleOrderedMatches<T extends { product: { itemId: string; discountedPrice: number | null; salePrice: number | null } }>(
   matches: T[]
 ): Array<{ match: T; role: MatchCardRole }> {
@@ -84,7 +63,7 @@ function buildRoleOrderedMatches<T extends { product: { itemId: string; discount
 
   const closest = uniqueMatches[0];
   const remaining = uniqueMatches.slice(1);
-  const basePrice = getMatchProductPrice(closest);
+  const basePrice = getLazadaFeedProductPrice(closest.product);
 
   let alternate: T | null = null;
   let premium: T | null = null;
@@ -92,7 +71,7 @@ function buildRoleOrderedMatches<T extends { product: { itemId: string; discount
   if (remaining.length > 0) {
     alternate =
       remaining.find((candidate) => {
-        const candidatePrice = getMatchProductPrice(candidate);
+        const candidatePrice = getLazadaFeedProductPrice(candidate.product);
 
         if (basePrice === null || candidatePrice === null) {
           return true;
@@ -109,8 +88,8 @@ function buildRoleOrderedMatches<T extends { product: { itemId: string; discount
   if (premiumPool.length > 0) {
     premium =
       [...premiumPool].sort((left, right) => {
-        const leftPrice = getMatchProductPrice(left) ?? Number.NEGATIVE_INFINITY;
-        const rightPrice = getMatchProductPrice(right) ?? Number.NEGATIVE_INFINITY;
+        const leftPrice = getLazadaFeedProductPrice(left.product) ?? Number.NEGATIVE_INFINITY;
+        const rightPrice = getLazadaFeedProductPrice(right.product) ?? Number.NEGATIVE_INFINITY;
 
         if (rightPrice !== leftPrice) {
           return rightPrice - leftPrice;
@@ -240,14 +219,23 @@ export async function POST(request: NextRequest) {
     limit: 8,
     minimumScore: 0.5,
   });
+  const orderedMatches = buildRoleOrderedMatches(matches);
+  const basePrice = orderedMatches[0]
+    ? getLazadaFeedProductPrice(orderedMatches[0].match.product)
+    : null;
 
-  const budgetAlignedMatches = filterBudgetWindowMatches(matches, groupBudget);
-
-  const orderedMatches = buildRoleOrderedMatches(budgetAlignedMatches);
-  const basePrice = orderedMatches[0] ? getMatchProductPrice(orderedMatches[0].match) : null;
+  if (orderedMatches.length > 0) {
+    try {
+      await primeLazadaPromotionLinks({
+        productIds: orderedMatches.map(({ match }) => match.product.itemId),
+      });
+    } catch {
+      // Priming only improves click performance. The suggestion route still resolves links on click.
+    }
+  }
 
   const products: WishlistFeaturedProductCard[] = orderedMatches.map(({ match, role }, index) => {
-    const lazadaPrice = getMatchProductPrice(match);
+    const lazadaPrice = getLazadaFeedProductPrice(match.product);
 
     return {
       id: `lazada-match-${wishlistItemId}-${match.product.itemId}-${index}`,
