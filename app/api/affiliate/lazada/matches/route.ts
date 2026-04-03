@@ -134,6 +134,7 @@ export async function POST(request: NextRequest) {
       merchant: "lazada",
       merchantLabel: "Lazada",
       catalogSource: "catalog-product",
+      imageUrl: match.product.pictureUrl,
       productId: match.product.itemId,
       skuId: match.product.skuId || null,
       title: match.product.productName,
@@ -161,7 +162,7 @@ export async function POST(request: NextRequest) {
       priceLabel: lazadaPrice !== null ? formatPriceRange(lazadaPrice, lazadaPrice, "PHP") : null,
       fitLabel: buildMatchFitLabel(match.score),
       whyItFits: buildMatchWhyItFits(match.reasons),
-      trackingLabel: "Direct product link",
+      trackingLabel: "Matched product",
     };
   });
 

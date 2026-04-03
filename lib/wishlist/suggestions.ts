@@ -54,6 +54,7 @@ export type WishlistFeaturedProductCard = {
   merchant: "lazada";
   merchantLabel: string;
   catalogSource: "catalog-product" | "search-backed";
+  imageUrl: string | null;
   productId: string | null;
   skuId: string | null;
   title: string;
@@ -461,8 +462,8 @@ function getFeaturedLazadaTrackingLabel(template: {
   source: "catalog-product" | "search-backed";
 }): string {
   return template.productId && template.source === "catalog-product"
-    ? "Direct product link"
-    : "Fallback search";
+    ? "Matched product"
+    : "Search route";
 }
 
 function getKeywordTemplates(itemName: string, itemNote: string): SuggestionTemplate[] {
@@ -793,6 +794,7 @@ export function buildWishlistFeaturedLazadaProducts(input: {
     merchant: "lazada",
     merchantLabel: MERCHANT_LABELS.lazada,
     catalogSource: template.source,
+    imageUrl: null,
     productId: template.productId,
     skuId: template.skuId,
     title: template.title,
