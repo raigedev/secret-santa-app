@@ -527,6 +527,16 @@ function summarizeCardCopy(value: string, maxLength: number): string {
   return `${normalized.slice(0, Math.max(maxLength - 1, 0)).trimEnd()}…`;
 }
 
+function getFeaturedLazadaCardTypeLabel(product: WishlistFeaturedProductCard): string {
+  return product.catalogSource === "catalog-product" ? "Direct product" : "Lazada search";
+}
+
+function getFeaturedLazadaCtaLabel(product: WishlistFeaturedProductCard): string {
+  return product.catalogSource === "catalog-product"
+    ? "Open product on Lazada ->"
+    : "Search on Lazada ->";
+}
+
 function buildRecipientWishlistProductHref(
   groupId: string,
   wishlistItemId: string,
@@ -2320,6 +2330,10 @@ export default function SecretSantaPage() {
                                                 product.whyItFits,
                                                 92
                                               );
+                                              const cardTypeLabel =
+                                                getFeaturedLazadaCardTypeLabel(product);
+                                              const ctaLabel =
+                                                getFeaturedLazadaCtaLabel(product);
 
                                               return (
                                                 <a
@@ -2361,7 +2375,7 @@ export default function SecretSantaPage() {
                                                       className="text-[11px] font-bold"
                                                       style={{ color: HOLIDAY_GOLD }}
                                                     >
-                                                      {product.priceLabel || product.trackingLabel}
+                                                      {product.priceLabel || cardTypeLabel}
                                                     </div>
                                                   </div>
 
@@ -2386,7 +2400,7 @@ export default function SecretSantaPage() {
                                                         className="text-[12px] font-bold text-center px-4"
                                                         style={{ color: TEXT_MUTED }}
                                                       >
-                                                        {product.trackingLabel}
+                                                        {cardTypeLabel}
                                                       </div>
                                                     )}
                                                   </div>
@@ -2434,7 +2448,7 @@ export default function SecretSantaPage() {
                                                       border: "1px solid rgba(88,116,142,.12)",
                                                     }}
                                                   >
-                                                    View on Lazada {"->"}
+                                                    {ctaLabel}
                                                   </div>
                                                 </a>
                                               );
