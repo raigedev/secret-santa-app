@@ -50,6 +50,28 @@ function isShoppingRegion(value: string): value is ShoppingRegion {
 
 type MatchCardRole = "closest" | "premium" | "step-up";
 
+function sortMatchesByPriceAscending<
+  T extends { product: { discountedPrice: number | null; salePrice: number | null } },
+>(matches: T[]): T[] {
+  return [...matches].sort((left, right) => {
+    const leftPrice = getLazadaFeedProductPrice(left.product) ?? Number.POSITIVE_INFINITY;
+    const rightPrice = getLazadaFeedProductPrice(right.product) ?? Number.POSITIVE_INFINITY;
+
+    return leftPrice - rightPrice;
+  });
+}
+
+function sortMatchesByPriceDescending<
+  T extends { product: { discountedPrice: number | null; salePrice: number | null } },
+>(matches: T[]): T[] {
+  return [...matches].sort((left, right) => {
+    const leftPrice = getLazadaFeedProductPrice(left.product) ?? Number.NEGATIVE_INFINITY;
+    const rightPrice = getLazadaFeedProductPrice(right.product) ?? Number.NEGATIVE_INFINITY;
+
+    return rightPrice - leftPrice;
+  });
+}
+
 function buildRoleOrderedMatches<T extends { product: { itemId: string; discountedPrice: number | null; salePrice: number | null } }>(
   primaryMatches: T[],
   premiumCandidates?: T[],
@@ -252,20 +274,47 @@ export async function POST(request: NextRequest) {
     minimumScore: 0.5,
   });
   const orderedMatches = buildRoleOrderedMatches(matches, premiumMatches, groupBudget);
+  const premiumFloor = groupBudget ?? preferredPriceMin ?? 0;
+  const premiumStepUpMatch =
+    orderedMatches.length === 0
+      ? sortMatchesByPriceAscending(premiumMatches).find((candidate) => {
+          const candidatePrice = getLazadaFeedProductPrice(candidate.product);
+
+          return candidatePrice !== null && candidatePrice > premiumFloor;
+        }) || null
+      : null;
   const premiumOnlyMatch =
     orderedMatches.length === 0
-      ? [...premiumMatches].sort((left, right) => {
-          const leftPrice =
-            getLazadaFeedProductPrice(left.product) ?? Number.NEGATIVE_INFINITY;
-          const rightPrice =
-            getLazadaFeedProductPrice(right.product) ?? Number.NEGATIVE_INFINITY;
-
-          return rightPrice - leftPrice;
-        })[0] || null
+      ? sortMatchesByPriceDescending(premiumMatches).find(
+          (candidate) => candidate.product.itemId !== premiumStepUpMatch?.product.itemId
+        ) ||
+        (premiumStepUpMatch
+          ? null
+          : sortMatchesByPriceDescending(premiumMatches)[0] || null)
       : null;
-  const effectiveRoleMatches = premiumOnlyMatch
-    ? [{ match: premiumOnlyMatch, role: "premium" as const }]
-    : orderedMatches;
+  const fallbackRoleMatches: Array<{
+    match: (typeof premiumMatches)[number];
+    role: MatchCardRole;
+  }> = [];
+
+  if (premiumStepUpMatch) {
+    fallbackRoleMatches.push({
+      match: premiumStepUpMatch,
+      role: "step-up",
+    });
+  }
+
+  if (premiumOnlyMatch) {
+    fallbackRoleMatches.push({
+      match: premiumOnlyMatch,
+      role: "premium",
+    });
+  }
+
+  const effectiveRoleMatches =
+    orderedMatches.length > 0
+      ? orderedMatches
+      : fallbackRoleMatches;
   const basePrice = effectiveRoleMatches[0]
     ? getLazadaFeedProductPrice(effectiveRoleMatches[0].match.product)
     : null;
@@ -320,7 +369,7 @@ export async function POST(request: NextRequest) {
     };
   });
 
-  if (products.length === 1 && premiumOnlyMatch) {
+  if (orderedMatches.length === 0 && products.length > 0) {
     const fallbackProducts = getLazadaStarterProducts({
       itemName,
       itemCategory,
@@ -332,7 +381,7 @@ export async function POST(request: NextRequest) {
     });
     const searchFallbackCards: WishlistFeaturedProductCard[] = fallbackProducts
       .filter((product) => product.source === "search-backed")
-      .slice(0, 2)
+      .slice(0, 1)
       .map((product, index) => ({
         id: `fallback-lazada-${wishlistItemId}-${product.id}-${index}`,
         merchant: "lazada",
@@ -371,7 +420,7 @@ export async function POST(request: NextRequest) {
       }));
 
     return NextResponse.json({
-      products: [...searchFallbackCards, ...products],
+      products: [...searchFallbackCards, ...products].slice(0, 3),
     });
   }
 

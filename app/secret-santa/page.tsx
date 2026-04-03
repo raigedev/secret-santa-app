@@ -2661,7 +2661,7 @@ export default function SecretSantaPage() {
                                           style={{ color: TEXT_SOFT }}
                                         >
                                           {hasMixedFeaturedLazadaProducts
-                                            ? "The first cards stay as broader searches, while the last card gives you a higher-priced direct Lazada option when we find one."
+                                            ? "The first card stays as a broader search when needed, while later cards move into direct Lazada products as stronger premium matches appear."
                                             : usingMatchedLazadaProducts
                                               ? "These cards are matched Lazada products from the affiliate feed, so they should be closer to what the giftee actually meant."
                                               : "These are broader Lazada searches for the same gift idea. Pick the one that feels closest and refine from there."}
