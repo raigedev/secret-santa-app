@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 
-import { resolveLazadaSuggestionLinkTarget } from "@/lib/affiliate/lazada";
+import {
+  resolveLazadaSearchRouteLinkTarget,
+  resolveLazadaSuggestionLinkTarget,
+} from "@/lib/affiliate/lazada";
 import { supabaseAdmin } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 import {
@@ -66,18 +69,24 @@ export async function GET(request: NextRequest) {
   const groupBudget =
     groupBudgetRaw !== null && groupBudgetRaw.trim().length > 0 ? Number(groupBudgetRaw) : null;
 
-  if (merchant === "lazada" && catalogSource !== "search-backed") {
-    const lazadaTarget = await resolveLazadaSuggestionLinkTarget({
-      fallbackUrl: targetUrl,
-      groupBudget: Number.isFinite(groupBudget) ? groupBudget : null,
-      itemCategory,
-      itemName,
-      itemNote,
-      productId,
-      preferredPriceMax: Number.isFinite(preferredPriceMax) ? preferredPriceMax : null,
-      preferredPriceMin: Number.isFinite(preferredPriceMin) ? preferredPriceMin : null,
-      searchQuery,
-    });
+  if (merchant === "lazada") {
+    const lazadaTarget =
+      catalogSource === "search-backed"
+        ? await resolveLazadaSearchRouteLinkTarget({
+            fallbackUrl: targetUrl,
+            searchQuery,
+          })
+        : await resolveLazadaSuggestionLinkTarget({
+            fallbackUrl: targetUrl,
+            groupBudget: Number.isFinite(groupBudget) ? groupBudget : null,
+            itemCategory,
+            itemName,
+            itemNote,
+            productId,
+            preferredPriceMax: Number.isFinite(preferredPriceMax) ? preferredPriceMax : null,
+            preferredPriceMin: Number.isFinite(preferredPriceMin) ? preferredPriceMin : null,
+            searchQuery,
+          });
 
     targetUrl = lazadaTarget.targetUrl;
   }

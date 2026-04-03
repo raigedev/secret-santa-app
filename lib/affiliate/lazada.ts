@@ -94,6 +94,7 @@ export type LazadaPromotionLinkResolution = {
     | "api-error"
     | "feed-promo-link-ready"
     | "invalid-product-url"
+    | "invalid-search-url"
     | "missing-product-id"
     | "open-api-disabled"
     | "open-api-not-live"
@@ -165,6 +166,16 @@ function appendLazadaSubIdsToPromotionLink(
     return parsed.toString();
   } catch {
     return targetUrl;
+  }
+}
+
+function isResolvableLazadaUrl(value: string): boolean {
+  try {
+    const parsed = new URL(value);
+
+    return /(^|\.)lazada\.com\.ph$/i.test(parsed.hostname);
+  } catch {
+    return false;
   }
 }
 
@@ -740,6 +751,111 @@ export async function resolveLazadaWishlistItemLinkTarget(options: {
     });
     const livePromotionLink = links.find(
       (link) => normalizeLazadaProductPageUrl(link.originalUrl || "") === normalizedItemUrl
+    );
+
+    if (livePromotionLink?.promotionLink) {
+      return {
+        mode: "promotion-link",
+        reason: "promotion-link-ready",
+        targetUrl: appendLazadaSubIdsToPromotionLink(
+          livePromotionLink.promotionLink,
+          wishlistSubIds
+        ),
+      };
+    }
+  } catch {
+    return {
+      mode: "search-fallback",
+      reason: "api-error",
+      targetUrl: options.fallbackUrl,
+    };
+  }
+
+  return {
+    mode: "search-fallback",
+    reason: "open-api-not-live",
+    targetUrl: options.fallbackUrl,
+  };
+}
+
+export async function resolveLazadaSearchRouteLinkTarget(options: {
+  fallbackUrl: string;
+  searchQuery: string;
+}): Promise<LazadaPromotionLinkResolution> {
+  if (!isResolvableLazadaUrl(options.fallbackUrl)) {
+    return {
+      mode: "search-fallback",
+      reason: "invalid-search-url",
+      targetUrl: options.fallbackUrl,
+    };
+  }
+
+  const wishlistSubIds = buildLazadaWishlistSubIds(options.searchQuery);
+
+  try {
+    const parsedFallbackUrl = new URL(options.fallbackUrl);
+
+    if (/^c\.lazada\.com\.ph$/i.test(parsedFallbackUrl.hostname)) {
+      return {
+        mode: "promotion-link",
+        reason: "promotion-link-ready",
+        targetUrl: appendLazadaSubIdsToPromotionLink(options.fallbackUrl, wishlistSubIds),
+      };
+    }
+  } catch {
+    return {
+      mode: "search-fallback",
+      reason: "invalid-search-url",
+      targetUrl: options.fallbackUrl,
+    };
+  }
+
+  const openApiStatus = getLazadaOpenApiStatus();
+
+  if (!openApiStatus.ready) {
+    return {
+      mode: "search-fallback",
+      reason: "open-api-pending",
+      targetUrl: options.fallbackUrl,
+    };
+  }
+
+  if (process.env.LAZADA_OPEN_API_ENABLED !== "true") {
+    return {
+      mode: "search-fallback",
+      reason: "open-api-disabled",
+      targetUrl: options.fallbackUrl,
+    };
+  }
+
+  const cacheKey = buildGenericLazadaPromotionCacheKey("url", [options.fallbackUrl]);
+  const cachedLinks = readCachedLazadaPromotionLinks(cacheKey);
+  const cachedPromotionLink = cachedLinks?.find(
+    (link) => (link.originalUrl || link.inputValue || "") === options.fallbackUrl
+  );
+
+  if (cachedPromotionLink?.promotionLink) {
+    return {
+      mode: "promotion-link",
+      reason: "promotion-link-ready",
+      targetUrl: appendLazadaSubIdsToPromotionLink(
+        cachedPromotionLink.promotionLink,
+        wishlistSubIds
+      ),
+    };
+  }
+
+  try {
+    const links = await fetchLazadaPromotionLinks({
+      apiBaseUrl: openApiStatus.apiBaseUrl,
+      appKey: process.env.LAZADA_APP_KEY!,
+      appSecret: process.env.LAZADA_APP_SECRET!,
+      userToken: process.env.LAZADA_USER_TOKEN!,
+      inputType: "url",
+      inputValues: [options.fallbackUrl],
+    });
+    const livePromotionLink = links.find(
+      (link) => (link.originalUrl || link.inputValue || "") === options.fallbackUrl
     );
 
     if (livePromotionLink?.promotionLink) {
