@@ -555,6 +555,12 @@ function getFeaturedLazadaRoleLabel(index: number, useMatchedProducts: boolean):
   return "Gift-ready option";
 }
 
+function getFeaturedLazadaButtonLabel(product: WishlistFeaturedProductCard): string {
+  return product.catalogSource === "catalog-product"
+    ? "Open product on Lazada"
+    : "Search on Lazada";
+}
+
 function buildRecipientWishlistProductHref(
   groupId: string,
   wishlistItemId: string,
@@ -2374,6 +2380,8 @@ export default function SecretSantaPage() {
                                                 index,
                                                 usingMatchedLazadaProducts
                                               );
+                                              const buttonLabel =
+                                                getFeaturedLazadaButtonLabel(product);
                                               const showVisualPreview = Boolean(
                                                 safeProductImageUrl || product.catalogSource === "catalog-product"
                                               );
@@ -2484,6 +2492,19 @@ export default function SecretSantaPage() {
                                                     >
                                                       {conciseReason}
                                                     </div>
+                                                  </div>
+
+                                                  <div
+                                                    className="mt-4 rounded-2xl px-4 py-3 text-[13px] font-extrabold text-center"
+                                                    style={{
+                                                      background:
+                                                        "linear-gradient(180deg,#5f7f9b 0%, #4c6d89 100%)",
+                                                      color: "#f8fbfc",
+                                                      boxShadow: "0 10px 18px rgba(88,116,142,.18)",
+                                                      border: "1px solid rgba(76,109,137,.28)",
+                                                    }}
+                                                  >
+                                                    {buttonLabel} {"->"}
                                                   </div>
                                                 </a>
                                               );
