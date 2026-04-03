@@ -153,6 +153,66 @@ export function getLazadaStarterProducts(
   }
 
   if (/(bag|handbag|purse|wallet|luggage|backpack)/.test(haystack)) {
+    if (/\btote\b/.test(haystack)) {
+      return [
+        exactMatchProduct,
+        buildSearchBackedProduct(
+          "Structured tote bag",
+          "A slightly more polished tote direction when you want something a little stronger.",
+          "structured tote bag",
+          "This keeps the tote idea intact while nudging the search toward a more elevated everyday option.",
+          700,
+          1800
+        ),
+        buildSearchBackedProduct(
+          "Premium tote bag",
+          "A higher-end tote route if the giver is comfortable spending more.",
+          "premium tote bag",
+          "This is the pricier tote search when the gift can stretch into a more premium bag.",
+          1200,
+          3500
+        ),
+        buildSearchBackedProduct(
+          "Leather tote bag",
+          "A stronger fashion-forward tote search for a more substantial gift.",
+          "leather tote bag",
+          "This keeps the tote category but pushes the search toward pricier materials and dressier options.",
+          1500,
+          4500
+        ),
+      ];
+    }
+
+    if (/\bbackpack\b/.test(haystack)) {
+      return [
+        exactMatchProduct,
+        buildSearchBackedProduct(
+          "Commuter backpack",
+          "A practical daily bag route with a little more structure than a generic backpack.",
+          "commuter backpack",
+          "This keeps the backpack direction but pushes it toward more purposeful daily-use picks.",
+          700,
+          2200
+        ),
+        buildSearchBackedProduct(
+          "Premium laptop backpack",
+          "A higher-end backpack route if the gift can stretch upward.",
+          "premium laptop backpack",
+          "This gives the giver a pricier backpack option that still stays in the same practical category.",
+          1500,
+          4500
+        ),
+        buildSearchBackedProduct(
+          "Travel backpack",
+          "A bigger-capacity backpack search when the gift should feel more substantial.",
+          "travel backpack",
+          "This stays inside the backpack category while widening the search toward larger higher-ticket picks.",
+          1200,
+          3500
+        ),
+      ];
+    }
+
     return [
       exactMatchProduct,
       buildSearchBackedProduct(
@@ -164,20 +224,20 @@ export function getLazadaStarterProducts(
         1800
       ),
       buildSearchBackedProduct(
-        "Everyday backpack",
-        "A useful route when the giftee wants something more practical.",
-        "everyday backpack",
-        "It gives the giver a more functional bag direction without leaving the wishlist theme.",
-        700,
+        "Structured handbag",
+        "A small spend-up if the giver wants something more polished than a basic everyday bag.",
+        "structured handbag",
+        "This nudges the search into a slightly more elevated bag style without jumping straight to luxury.",
+        800,
         2200
       ),
       buildSearchBackedProduct(
-        "Crossbody bag",
-        "A cleaner fashion-forward option when the gift should feel more styled.",
-        "crossbody bag",
-        "This balances giftability and style when the wishlist item is simply 'bag'.",
-        500,
-        2000
+        "Premium bag",
+        "A higher-priced bag search when the gift can stretch further.",
+        "premium bag",
+        "This keeps the same general bag theme while pushing the search toward pricier options.",
+        1400,
+        4000
       ),
     ];
   }

@@ -48,11 +48,12 @@ function isShoppingRegion(value: string): value is ShoppingRegion {
   return ["AU", "CA", "GLOBAL", "JP", "PH", "UK", "US"].includes(value);
 }
 
-type MatchCardRole = "alternate" | "closest" | "premium";
+type MatchCardRole = "closest" | "premium" | "step-up";
 
 function buildRoleOrderedMatches<T extends { product: { itemId: string; discountedPrice: number | null; salePrice: number | null } }>(
   primaryMatches: T[],
-  premiumCandidates?: T[]
+  premiumCandidates?: T[],
+  groupBudget?: number | null
 ): Array<{ match: T; role: MatchCardRole }> {
   const uniqueMatches = primaryMatches.filter(
     (match, index, array) =>
@@ -64,33 +65,44 @@ function buildRoleOrderedMatches<T extends { product: { itemId: string; discount
   }
 
   const closest = uniqueMatches[0];
-  const remaining = uniqueMatches.slice(1);
   const basePrice = getLazadaFeedProductPrice(closest.product);
 
-  let alternate: T | null = null;
+  let stepUp: T | null = null;
   let premium: T | null = null;
-
-  if (remaining.length > 0) {
-    alternate =
-      remaining.find((candidate) => {
-        const candidatePrice = getLazadaFeedProductPrice(candidate.product);
-
-        if (basePrice === null || candidatePrice === null) {
-          return true;
-        }
-
-        return candidatePrice <= basePrice * 1.2;
-      }) || remaining[0];
-  }
 
   const premiumPoolSource = (premiumCandidates || primaryMatches).filter(
     (candidate, index, array) =>
       array.findIndex((existing) => existing.product.itemId === candidate.product.itemId) === index
   );
+  const budgetFloor = Math.max(groupBudget ?? 0, basePrice ?? 0);
+  const stepUpPool = premiumPoolSource.filter((candidate) => {
+    if (candidate.product.itemId === closest.product.itemId) {
+      return false;
+    }
+
+    const candidatePrice = getLazadaFeedProductPrice(candidate.product);
+
+    if (candidatePrice === null) {
+      return false;
+    }
+
+    return candidatePrice > budgetFloor;
+  });
+
+  if (stepUpPool.length > 0) {
+    stepUp =
+      [...stepUpPool].sort((left, right) => {
+        const leftPrice = getLazadaFeedProductPrice(left.product) ?? Number.POSITIVE_INFINITY;
+        const rightPrice = getLazadaFeedProductPrice(right.product) ?? Number.POSITIVE_INFINITY;
+
+        return leftPrice - rightPrice;
+      })[0] || null;
+  }
+
   const premiumPool = premiumPoolSource.filter(
     (candidate) =>
       candidate.product.itemId !== closest.product.itemId &&
-      candidate.product.itemId !== alternate?.product.itemId
+      candidate.product.itemId !== stepUp?.product.itemId
   );
 
   if (premiumPool.length > 0) {
@@ -111,8 +123,8 @@ function buildRoleOrderedMatches<T extends { product: { itemId: string; discount
     { match: closest, role: "closest" },
   ];
 
-  if (alternate) {
-    ordered.push({ match: alternate, role: "alternate" });
+  if (stepUp) {
+    ordered.push({ match: stepUp, role: "step-up" });
   }
 
   if (premium) {
@@ -127,8 +139,8 @@ function buildMatchFitLabel(role: MatchCardRole): string {
     return "Closest match";
   }
 
-  if (role === "alternate") {
-    return "Alternate option";
+  if (role === "step-up") {
+    return "Step-up option";
   }
 
   return "Highest-price option";
@@ -139,8 +151,8 @@ function buildMatchSubtitle(role: MatchCardRole): string {
     return "Best overall fit for the wishlist wording.";
   }
 
-  if (role === "alternate") {
-    return "A similar option if you want a different take first.";
+  if (role === "step-up") {
+    return "A sensible spend-more option if you want something stronger.";
   }
 
   return "A pricier step-up if you want a more premium pick.";
@@ -156,12 +168,12 @@ function buildMatchWhyItFits(
     return "This is the strongest overall match for the wishlist wording and gift theme.";
   }
 
-  if (role === "alternate") {
-    if (productPrice !== null && basePrice !== null && productPrice < basePrice) {
-      return "This keeps the same idea but gives you a lighter price option to consider.";
+  if (role === "step-up") {
+    if (productPrice !== null && basePrice !== null && productPrice > basePrice) {
+      return "This stays in the same gift direction while stepping up to a more substantial price point.";
     }
 
-    return "This keeps the same idea while giving you a different style or price point.";
+    return "This is the next sensible spend-up option in the same gift direction.";
   }
 
   if (productPrice !== null && basePrice !== null && productPrice > basePrice) {
@@ -239,7 +251,7 @@ export async function POST(request: NextRequest) {
     limit: 12,
     minimumScore: 0.5,
   });
-  const orderedMatches = buildRoleOrderedMatches(matches, premiumMatches);
+  const orderedMatches = buildRoleOrderedMatches(matches, premiumMatches, groupBudget);
   const premiumOnlyMatch =
     orderedMatches.length === 0
       ? [...premiumMatches].sort((left, right) => {
@@ -353,7 +365,7 @@ export async function POST(request: NextRequest) {
           groupBudget !== null
             ? `Budget target: ${formatPriceRange(groupBudget, groupBudget, "PHP")}`
             : null,
-        fitLabel: index === 0 ? "Closest to request" : "Alternate option",
+        fitLabel: index === 0 ? "Closest to request" : "Step-up option",
         whyItFits: product.whyItFits,
         trackingLabel: "Search route",
       }));

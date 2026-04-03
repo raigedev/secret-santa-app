@@ -544,7 +544,7 @@ function getFeaturedLazadaRoleLabel(
   }
 
   if (index === 1) {
-    return "Alternate option";
+    return "Step-up option";
   }
 
   return "Highest-price option";
