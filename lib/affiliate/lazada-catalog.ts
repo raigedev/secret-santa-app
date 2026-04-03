@@ -47,48 +47,10 @@ function buildSearchBackedProduct(
   };
 }
 
-function buildCatalogBackedProduct(
-  title: string,
-  subtitle: string,
-  searchQuery: string,
-  whyItFits: string,
-  typicalMin: number | null,
-  typicalMax: number | null,
-  productId: string,
-  skuId: string
-): LazadaStarterCatalogProduct {
-  return {
-    id: `catalog-${slugify(searchQuery)}-${productId}`,
-    title,
-    subtitle,
-    searchQuery,
-    typicalMin,
-    typicalMax,
-    whyItFits,
-    productId,
-    skuId,
-    source: "catalog-product",
-  };
-}
-
 function buildExactMatchProduct(
   itemName: string,
-  searchQuery: string,
-  haystack: string
+  searchQuery: string
 ): LazadaStarterCatalogProduct {
-  if (haystack.includes("samsung galaxy tab a9")) {
-    return buildCatalogBackedProduct(
-      itemName,
-      "This keeps the giftee's exact wording while opening the real Samsung Galaxy Tab A9 product route.",
-      searchQuery,
-      "This preserves the exact wishlist wording but still uses a direct product-linked tablet pick.",
-      7000,
-      11000,
-      "5343634107",
-      "31890603703"
-    );
-  }
-
   return buildSearchBackedProduct(
     itemName,
     "Start with the giftee's exact wording before branching into alternatives.",
@@ -111,22 +73,19 @@ export function getLazadaStarterProducts(
 
   const exactMatchProduct = buildExactMatchProduct(
     cleanItemName,
-    input.searchQuery,
-    haystack
+    input.searchQuery
   );
 
   if (/(tablet|ipad|android tab)/.test(haystack)) {
     return [
       exactMatchProduct,
-      buildCatalogBackedProduct(
+      buildSearchBackedProduct(
         "Samsung Galaxy Tab A9",
         "A practical mainstream tablet for streaming, reading, and light study use.",
         "Samsung Galaxy Tab A9",
         "This is a realistic full-device pick when the wishlist means the tablet itself.",
         7000,
-        11000,
-        "5343634107",
-        "31890603703"
+        11000
       ),
       buildSearchBackedProduct(
         "Xiaomi Redmi Pad SE",
