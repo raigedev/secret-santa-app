@@ -222,7 +222,15 @@ export async function POST(request: NextRequest) {
     minimumScore: 0.5,
   });
 
-  const orderedMatches = buildRoleOrderedMatches(matches);
+  const budgetAlignedMatches =
+    groupBudget !== null
+      ? matches.filter((match) => {
+          const price = getMatchProductPrice(match);
+          return price !== null && price >= groupBudget;
+        })
+      : matches;
+
+  const orderedMatches = buildRoleOrderedMatches(budgetAlignedMatches);
   const basePrice = orderedMatches[0] ? getMatchProductPrice(orderedMatches[0].match) : null;
 
   const products: WishlistFeaturedProductCard[] = orderedMatches.map(({ match, role }, index) => {
