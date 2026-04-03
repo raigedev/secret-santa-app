@@ -58,6 +58,14 @@ export type LazadaRawGetLinkResponse = {
   error_msg?: string | null;
   message?: string | null;
   request_id?: string | null;
+  result?: {
+    data?: {
+      offerBatchGetLinkInfoList?: LazadaRawGetLinkItem[] | null;
+      productBatchGetLinkInfoList?: LazadaRawGetLinkItem[] | null;
+      urlBatchGetLinkInfoList?: LazadaRawGetLinkItem[] | null;
+    } | null;
+    success?: boolean | null;
+  } | null;
   success?: boolean | null;
   type?: string | null;
 };
@@ -285,12 +293,13 @@ export function normalizeLazadaGetLinkResponse(
   inputType: LazadaLinkInputType,
   response: LazadaRawGetLinkResponse
 ): LazadaNormalizedPromotionLink[] {
+  const responseData = response.result?.data || response.data;
   const list =
     inputType === "productId"
-      ? response.data?.productBatchGetLinkInfoList
+      ? responseData?.productBatchGetLinkInfoList
       : inputType === "url"
-        ? response.data?.urlBatchGetLinkInfoList
-        : response.data?.offerBatchGetLinkInfoList;
+        ? responseData?.urlBatchGetLinkInfoList
+        : responseData?.offerBatchGetLinkInfoList;
 
   return (list || []).map((item) => ({
     inputValue: item.inputValue || item.productId || item.originalUrl || "",
@@ -352,13 +361,15 @@ async function fetchLazadaPromotionLinks(
     requestParams.sign = sign;
 
     const response = await fetch(
-      `${options.apiBaseUrl}${LAZADA_GET_LINK_PATH}?${new URLSearchParams(requestParams).toString()}`,
+      `${options.apiBaseUrl}${LAZADA_GET_LINK_PATH}`,
       {
-        method: "GET",
+        method: "POST",
         cache: "no-store",
         headers: {
           Accept: "application/json",
+          "Content-Type": "application/x-www-form-urlencoded",
         },
+        body: new URLSearchParams(requestParams).toString(),
       }
     );
 
