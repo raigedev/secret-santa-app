@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 
+import { supabaseAdmin } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 
 type AffiliateClickRow = {
@@ -13,6 +14,7 @@ type AffiliateClickRow = {
   search_query: string;
   suggestion_title: string;
   tracking_label: string | null;
+  user_id: string | null;
 };
 
 type AffiliateConversionRow = {
@@ -88,7 +90,7 @@ function summarizeSearchQuery(value: string): string {
   return firstPart.length > 70 ? `${firstPart.slice(0, 67)}...` : firstPart;
 }
 
-function buildFallbackPerformanceRows(
+function buildPerformanceRows(
   clicks: AffiliateClickRow[],
   conversions: AffiliateConversionRow[]
 ): AffiliatePerformanceRow[] {
@@ -174,34 +176,40 @@ export default async function AffiliateReportPage() {
     redirect("/dashboard");
   }
 
-  const [{ data: clicks }, { data: conversions }, { data: performanceRows, error: performanceError }] =
-    await Promise.all([
-      supabase
-        .from("affiliate_clicks")
-        .select(
-          "id, catalog_source, created_at, fit_label, merchant, resolution_mode, search_query, suggestion_title, tracking_label"
-        )
-        .order("created_at", { ascending: false })
-        .limit(250),
-      supabase
-        .from("affiliate_conversions")
-        .select("id, affiliate_click_id, amount, click_token, conversion_status, payout, received_at")
-        .order("received_at", { ascending: false })
-        .limit(250),
-      supabase
-        .from("affiliate_performance")
-        .select(
-          "affiliate_click_id, affiliate_conversion_id, amount, catalog_source, clicked_at, conversion_status, converted_at, currency, fit_label, merchant, payout, resolution_mode, search_query, suggestion_title, tracking_label"
-        )
-        .order("clicked_at", { ascending: false })
-        .limit(50),
-    ]);
+  const { data: clicks, error: clicksError } = await supabaseAdmin
+    .from("affiliate_clicks")
+    .select(
+      "id, catalog_source, created_at, fit_label, merchant, resolution_mode, search_query, suggestion_title, tracking_label, user_id"
+    )
+    .eq("user_id", user.id)
+    .order("created_at", { ascending: false })
+    .limit(250);
+
+  if (clicksError) {
+    throw new Error("Failed to load affiliate clicks.");
+  }
 
   const clickRows = (clicks || []) as AffiliateClickRow[];
-  const conversionRows = (conversions || []) as AffiliateConversionRow[];
-  const reportRows = performanceError
-    ? buildFallbackPerformanceRows(clickRows, conversionRows).slice(0, 50)
-    : ((performanceRows || []) as AffiliatePerformanceRow[]);
+  const clickIds = clickRows.map((row) => row.id);
+
+  let conversionRows: AffiliateConversionRow[] = [];
+
+  if (clickIds.length > 0) {
+    const { data: conversions, error: conversionsError } = await supabaseAdmin
+      .from("affiliate_conversions")
+      .select("id, affiliate_click_id, amount, click_token, conversion_status, payout, received_at")
+      .in("affiliate_click_id", clickIds)
+      .order("received_at", { ascending: false })
+      .limit(250);
+
+    if (conversionsError) {
+      throw new Error("Failed to load affiliate conversions.");
+    }
+
+    conversionRows = (conversions || []) as AffiliateConversionRow[];
+  }
+
+  const reportRows = buildPerformanceRows(clickRows, conversionRows).slice(0, 50);
 
   const totalClicks = clickRows.length;
   const totalSearchClicks = clickRows.filter((row) => row.catalog_source === "search-backed").length;
@@ -284,15 +292,7 @@ export default async function AffiliateReportPage() {
               </h2>
             </div>
             <p className="text-sm text-slate-500">
-              {performanceError ? (
-                <>
-                  Using the fallback dataset because the view is not available yet.
-                </>
-              ) : (
-                <>
-                  The Supabase view name is <span className="font-semibold text-slate-700">affiliate_performance</span>.
-                </>
-              )}
+              The Supabase view name is <span className="font-semibold text-slate-700">affiliate_performance</span>.
             </p>
           </div>
 
