@@ -740,5 +740,13 @@ export function getLazadaStarterProducts(
       null,
       null
     ),
+    buildSearchBackedProduct(
+      `Premium ${cleanItemName}`,
+      "A higher-end route when the giver wants a more substantial version of the same idea.",
+      `premium ${input.searchQuery}`,
+      "This keeps the original idea but pushes the search toward more premium picks.",
+      null,
+      null
+    ),
   ];
 }

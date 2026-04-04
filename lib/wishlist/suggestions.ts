@@ -748,6 +748,24 @@ function dedupeFeaturedLazadaProducts(
   });
 }
 
+function buildStarterSuggestionTemplates(input: SuggestionInput): SuggestionTemplate[] {
+  return getLazadaStarterProducts({
+    itemName: input.itemName,
+    itemCategory: input.itemCategory,
+    itemNote: input.itemNote,
+    searchQuery: input.itemName.trim(),
+    preferredPriceMin: input.preferredPriceMin,
+    preferredPriceMax: input.preferredPriceMax,
+    groupBudget: input.groupBudget,
+  }).map((product) => ({
+    title: product.title,
+    subtitle: product.subtitle,
+    searchQuery: product.searchQuery,
+    typicalMin: product.typicalMin,
+    typicalMax: product.typicalMax,
+  }));
+}
+
 function getBudgetFitLabel(
   template: SuggestionTemplate,
   preferredMin: number | null,
@@ -898,6 +916,7 @@ export function buildWishlistSuggestionOptions(
   const baseQuery = input.itemName.trim();
   const categoryTemplates = CATEGORY_TEMPLATES[input.itemCategory] || CATEGORY_TEMPLATES.Other;
   const keywordTemplates = getKeywordTemplates(input.itemName, input.itemNote);
+  const starterTemplates = buildStarterSuggestionTemplates(input);
 
   const templates = dedupeTemplates(
     [
@@ -911,6 +930,7 @@ export function buildWishlistSuggestionOptions(
         typicalMax: null,
       },
       ...keywordTemplates,
+      ...starterTemplates,
       ...categoryTemplates,
     ].filter((template) => template.searchQuery.trim().length > 0)
   ).slice(0, 4);
