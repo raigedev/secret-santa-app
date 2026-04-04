@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useState } from "react";
 import { acceptInvite, declineInvite } from "./actions";
@@ -87,7 +87,7 @@ export default function InviteCard({
           <p className="mt-2 text-sm font-medium text-slate-500">Event date: {eventDate}</p>
         </div>
         <div className="hidden h-16 w-16 shrink-0 items-center justify-center rounded-full bg-[linear-gradient(145deg,#eff6ff,#dbeafe)] text-2xl shadow-[0_14px_34px_rgba(59,130,246,0.15)] sm:flex">
-          ✉️
+          Invite
         </div>
       </div>
 

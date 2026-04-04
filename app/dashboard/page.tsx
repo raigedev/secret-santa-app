@@ -799,7 +799,7 @@ export default function DashboardPage() {
               className={`mt-6 inline-flex items-center gap-2 rounded-full px-5 py-2.5 text-sm font-semibold text-white transition hover:-translate-y-0.5 ${theme.button}`}
             >
               <span>{buttonLabel}</span>
-              <span aria-hidden="true">â†’</span>
+              <span aria-hidden="true">{"->"}</span>
             </button>
           </div>
         </div>
@@ -857,7 +857,7 @@ export default function DashboardPage() {
             onClick={() => router.push("/notifications")}
             className="relative inline-flex items-center gap-2 rounded-full border border-white/70 bg-white/90 px-4 py-2.5 text-sm font-semibold text-slate-700 shadow-[0_18px_50px_rgba(148,163,184,0.14)] backdrop-blur-md transition hover:-translate-y-0.5"
           >
-            <span aria-hidden="true">ðŸ””</span>
+            <span aria-hidden="true">Bell</span>
             <span>Notifications</span>
             {unreadNotificationCount > 0 && (
               <span className="absolute -right-1 -top-1 inline-flex min-h-5 min-w-5 items-center justify-center rounded-full bg-rose-500 px-1 text-[10px] font-bold text-white">
@@ -883,7 +883,7 @@ export default function DashboardPage() {
         <div data-fade className="mb-10 text-center">
           <div className="mx-auto inline-flex items-center gap-3 rounded-full bg-white/85 px-5 py-2 shadow-[0_18px_50px_rgba(148,163,184,0.15)] backdrop-blur-md">
             <span aria-hidden="true" className="text-2xl">
-              ðŸŽ
+              Gift
             </span>
             <span className="text-sm font-semibold uppercase tracking-[0.2em] text-sky-600">
               Secret Santa
@@ -950,10 +950,10 @@ export default function DashboardPage() {
             buttonLabel="New group"
             onClick={() => router.push("/create-group")}
             scene={
-              <div className="flex items-center gap-3 text-2xl text-white/90">
-                <span>ðŸŽŠ</span>
-                <span>ðŸŽ„</span>
-                <span>ðŸŽ</span>
+              <div className="flex items-center gap-3 text-sm font-semibold uppercase tracking-[0.16em] text-white/90">
+                <span>Plan</span>
+                <span>Invite</span>
+                <span>Draw</span>
               </div>
             }
           />
@@ -985,7 +985,7 @@ export default function DashboardPage() {
                   className="mt-6 inline-flex items-center gap-2 rounded-full bg-[linear-gradient(135deg,#2f80ff,#1f66e5)] px-5 py-2.5 text-sm font-semibold text-white shadow-[0_14px_35px_rgba(37,99,235,0.22)] transition hover:-translate-y-0.5"
                 >
                   <span>Start new group</span>
-                  <span aria-hidden="true">â†’</span>
+                  <span aria-hidden="true">{"->"}</span>
                 </button>
               </section>
             </div>

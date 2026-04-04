@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useRouter } from "next/navigation";
 
@@ -20,7 +20,7 @@ export default function SecretSantaCard({ recipientNames }: Props) {
       <div className="relative z-10 flex items-start justify-between gap-4">
         <div>
           <div className="mb-2 inline-flex items-center gap-2 rounded-full bg-white/90 px-3 py-1 text-sm font-semibold text-sky-700">
-            <span aria-hidden="true">🎅</span>
+            <span aria-hidden="true">Santa</span>
             <span>Your Secret Santa</span>
           </div>
           <h2 className="text-[1.55rem] font-bold leading-tight text-white">
@@ -39,8 +39,8 @@ export default function SecretSantaCard({ recipientNames }: Props) {
 
       <div className="relative z-10 mt-5 rounded-[26px] border border-white/55 bg-white/92 p-4 text-slate-800 shadow-[inset_0_1px_0_rgba(255,255,255,0.7)]">
         <div className="flex items-start gap-4">
-          <div className="flex h-20 w-20 shrink-0 items-center justify-center rounded-[24px] bg-[linear-gradient(145deg,#eff6ff,#dbeafe)] text-4xl shadow-[0_16px_40px_rgba(148,163,184,0.18)]">
-            {hasAssignments ? "🎁" : "❄️"}
+          <div className="flex h-20 w-20 shrink-0 items-center justify-center rounded-[24px] bg-[linear-gradient(145deg,#eff6ff,#dbeafe)] px-3 text-center text-[11px] font-semibold uppercase tracking-[0.16em] text-sky-700 shadow-[0_16px_40px_rgba(148,163,184,0.18)]">
+            {hasAssignments ? "Ready" : "Waiting"}
           </div>
           <div className="min-w-0 flex-1">
             <p className="text-sm font-semibold uppercase tracking-[0.18em] text-sky-500">
@@ -80,15 +80,7 @@ export default function SecretSantaCard({ recipientNames }: Props) {
             className="inline-flex items-center gap-2 rounded-full bg-[linear-gradient(135deg,#2f80ff,#1f66e5)] px-5 py-2.5 text-sm font-semibold text-white shadow-[0_14px_35px_rgba(37,99,235,0.28)] transition hover:-translate-y-0.5"
           >
             <span>{hasAssignments ? "Open assignments" : "Open Secret Santa"}</span>
-            <span aria-hidden="true">→</span>
-          </button>
-          <button
-            type="button"
-            onClick={() => router.push("/secret-santa-chat")}
-            className="inline-flex items-center gap-2 rounded-full bg-sky-50 px-4 py-2.5 text-sm font-semibold text-sky-700 transition hover:bg-sky-100"
-          >
-            <span>Anonymous chat</span>
-            <span aria-hidden="true">→</span>
+            <span aria-hidden="true">{"->"}</span>
           </button>
         </div>
       </div>
