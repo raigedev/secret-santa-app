@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import InviteCard from "./InviteCard";
@@ -23,6 +23,8 @@ type Group = {
   name: string;
   description?: string;
   event_date: string;
+  budget: number | null;
+  currency: string | null;
   owner_id: string;
   created_at: string;
   members: GroupMember[];
@@ -47,6 +49,8 @@ type GroupRow = {
   name: string;
   description: string;
   event_date: string;
+  budget: number | null;
+  currency: string | null;
   owner_id: string;
   created_at: string;
 };
@@ -88,6 +92,48 @@ function createGroupUserKey(groupId: string, userId: string): string {
 
 function createEmptyQueryResult<T>(data: T[] = []): Promise<{ data: T[]; error: null }> {
   return Promise.resolve({ data, error: null });
+}
+
+const CURRENCY_SYMBOLS: Record<string, string> = {
+  AUD: "A$",
+  CAD: "C$",
+  EUR: "EUR",
+  GBP: "GBP",
+  JPY: "JPY",
+  PHP: "PHP",
+  USD: "$",
+};
+
+function formatDashboardDate(value: string): string {
+  const parsed = new Date(value);
+
+  if (Number.isNaN(parsed.getTime())) {
+    return value;
+  }
+
+  return parsed.toLocaleDateString(undefined, {
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+  });
+}
+
+function formatDashboardBudget(budget: number | null, currency: string | null): string | null {
+  if (budget === null) {
+    return null;
+  }
+
+  const code = (currency || "PHP").toUpperCase();
+  const symbol = CURRENCY_SYMBOLS[code] || code;
+  const formatter = new Intl.NumberFormat(undefined, {
+    maximumFractionDigits: 0,
+  });
+
+  if (code === "PHP") {
+    return `P ${formatter.format(budget)}`;
+  }
+
+  return `${symbol} ${formatter.format(budget)}`;
 }
 
 export default function DashboardPage() {
@@ -187,7 +233,7 @@ export default function DashboardPage() {
             acceptedGroupIds.length > 0
               ? supabase
                   .from("groups")
-                  .select("id, name, description, event_date, owner_id, created_at")
+                  .select("id, name, description, event_date, budget, currency, owner_id, created_at")
                   .in("id", acceptedGroupIds)
               : createEmptyQueryResult<GroupRow>(),
             acceptedGroupIds.length > 0
@@ -595,104 +641,174 @@ export default function DashboardPage() {
   }: {
     group: Group;
     type: "owned" | "invited";
-  }) => (
-    <div
-      onClick={() => router.push(`/group/${group.id}`)}
-      className="cursor-pointer rounded-[14px] overflow-hidden transition hover:-translate-y-1"
-      style={{
-        background:
-          type === "owned"
-            ? "linear-gradient(135deg,#1e40af,#2563eb)"
-            : "linear-gradient(135deg,#b45309,#f59e0b)",
-        boxShadow:
-          type === "owned"
-            ? "0 4px 20px rgba(37,99,235,.25)"
-            : "0 4px 20px rgba(245,158,11,.25)",
-      }}
-    >
-      <div
-        className="flex items-center justify-between px-4 py-2.5"
-        style={{ background: "rgba(255,255,255,.92)" }}
-      >
-        <span
-          className="text-sm font-extrabold"
-          style={{ color: type === "owned" ? "#1e40af" : "#b45309" }}
-        >
-          🎁 {group.name}
-        </span>
-        <span
-          className="text-[9px] font-extrabold px-2 py-0.5 rounded-full uppercase tracking-wide"
-          style={{
-            background:
-              type === "owned" ? "rgba(37,99,235,.1)" : "rgba(245,158,11,.1)",
-            color: type === "owned" ? "#1e40af" : "#b45309",
-          }}
-        >
-          {type === "owned" ? "👑 Owner" : "🎁 Member"}
-        </span>
-      </div>
-      <div className="px-4 py-3 text-white">
-        {group.description && (
-          <p className="text-xs opacity-85 mb-1.5 leading-relaxed">{group.description}</p>
-        )}
-        <p className="text-xs opacity-70 mb-2.5">📅 {group.event_date}</p>
-        {group.members.length > 0 && (
-          <div className="mb-2.5">
-            <p className="text-[10px] font-bold opacity-60 mb-1.5">
-              👥 {group.members.length} Members
-            </p>
-            <div className="flex flex-wrap gap-1">
-              {group.members.slice(0, 4).map((member, index) => (
-                <span
-                  key={index}
-                  className="text-[10px] font-bold px-2.5 py-0.5 rounded-full"
-                  style={{ background: "rgba(255,255,255,.2)" }}
-                >
-                  {member.nickname || "Anonymous"}
-                </span>
-              ))}
-              {group.members.length > 4 && (
-                <span
-                  className="text-[10px] font-bold px-2.5 py-0.5 rounded-full"
-                  style={{ background: "rgba(255,255,255,.15)" }}
-                >
-                  +{group.members.length - 4} more
-                </span>
-              )}
-            </div>
+  }) => {
+    const budgetLabel = formatDashboardBudget(group.budget, group.currency);
+
+    return (
+      <article className="relative overflow-hidden rounded-[32px] border border-white/75 bg-white/88 p-6 shadow-[0_28px_80px_rgba(148,163,184,0.16)] backdrop-blur-md">
+        <div className="absolute inset-y-0 right-0 hidden w-44 bg-[radial-gradient(circle_at_center,rgba(147,197,253,0.28),transparent_70%)] lg:block" />
+        <div className="absolute bottom-6 right-10 hidden lg:block">
+          <div className="relative h-28 w-28 rounded-full border border-white/70 bg-[linear-gradient(180deg,#d9efff,#f4fbff)] shadow-[0_18px_40px_rgba(148,163,184,0.18)]">
+            <div className="absolute left-4 top-6 h-10 w-10 rounded-2xl bg-[linear-gradient(180deg,#60a5fa,#3b82f6)]" />
+            <div className="absolute left-[1.65rem] top-6 h-2 w-10 rounded-full bg-white/70" />
+            <div className="absolute left-8 top-[1.1rem] h-3 w-3 rounded-full bg-amber-300" />
+            <div className="absolute right-5 top-10 h-12 w-12 rounded-2xl bg-[linear-gradient(180deg,#f9a8d4,#fb7185)]" />
+            <div className="absolute right-[1.55rem] top-10 h-2 w-12 rounded-full bg-white/70" />
+            <div className="absolute right-9 top-[2.25rem] h-3 w-3 rounded-full bg-amber-300" />
+            <div className="absolute bottom-3 left-3 h-6 w-6 rounded-full bg-white/90" />
+            <div className="absolute bottom-3 left-8 h-8 w-8 rounded-full bg-white/90" />
           </div>
-        )}
-        <div className="flex items-center gap-1.5 text-[11px] font-bold opacity-80">
-          🎲 Draw: {group.hasDrawn ? "Done ✓" : "Not yet"}
         </div>
-        {type === "owned" && (
-          <div className="mt-3 flex justify-end">
+
+        <div className="relative z-10 max-w-3xl">
+          <div className="flex flex-wrap items-center gap-2">
+            <span
+              className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold ${
+                type === "owned" ? "bg-blue-100 text-blue-700" : "bg-amber-100 text-amber-700"
+              }`}
+            >
+              {type === "owned" ? "My group" : "Invited group"}
+            </span>
+            <span className="inline-flex rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-600">
+              {group.members.length} participants
+            </span>
+            <span
+              className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold ${
+                group.hasDrawn ? "bg-emerald-100 text-emerald-700" : "bg-sky-100 text-sky-700"
+              }`}
+            >
+              {group.hasDrawn ? "Draw completed" : "Draw pending"}
+            </span>
+          </div>
+
+          <h3 className="mt-4 text-[1.85rem] font-bold leading-tight text-slate-900">
+            {group.name}
+          </h3>
+          <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-600">
+            {group.description || "A shared Secret Santa group ready for planning, matching, and gifting."}
+          </p>
+
+          <div className="mt-4 flex flex-wrap items-center gap-3 text-sm text-slate-600">
+            <span className="inline-flex items-center gap-2 rounded-full bg-slate-50 px-3 py-1.5 font-medium">
+              <span className="h-2 w-2 rounded-full bg-blue-500" />
+              Event date: {formatDashboardDate(group.event_date)}
+            </span>
+            {budgetLabel && (
+              <span className="inline-flex items-center gap-2 rounded-full bg-emerald-50 px-3 py-1.5 font-semibold text-emerald-700">
+                <span className="h-2 w-2 rounded-full bg-emerald-500" />
+                Budget: {budgetLabel}
+              </span>
+            )}
+          </div>
+
+          <div className="mt-5 flex flex-wrap gap-2">
+            {group.members.slice(0, 4).map((member, index) => (
+              <span
+                key={`${group.id}-${member.email || member.nickname || index}`}
+                className="inline-flex rounded-full bg-slate-100 px-3 py-1 text-xs font-medium text-slate-600"
+              >
+                {member.nickname || member.email || "Participant"}
+              </span>
+            ))}
+            {group.members.length > 4 && (
+              <span className="inline-flex rounded-full bg-slate-100 px-3 py-1 text-xs font-medium text-slate-500">
+                +{group.members.length - 4} more
+              </span>
+            )}
+          </div>
+
+          <div className="mt-6 flex flex-wrap items-center gap-3">
             <button
               type="button"
-              onClick={(event) => {
-                event.stopPropagation();
-                void handleDeleteGroup(group.id, group.name);
-              }}
-              disabled={deletingGroupId === group.id}
-              className="px-3 py-1.5 rounded-lg text-[10px] font-extrabold uppercase tracking-wide transition"
-              style={{
-                background: "rgba(127,29,29,.85)",
-                color: "#fff",
-                border: "1px solid rgba(255,255,255,.18)",
-                cursor: deletingGroupId === group.id ? "wait" : "pointer",
-                opacity: deletingGroupId === group.id ? 0.75 : 1,
-              }}
+              onClick={() => router.push(`/group/${group.id}`)}
+              className="inline-flex items-center gap-2 rounded-full bg-[linear-gradient(135deg,#2f80ff,#1f66e5)] px-5 py-2.5 text-sm font-semibold text-white shadow-[0_14px_35px_rgba(37,99,235,0.22)] transition hover:-translate-y-0.5"
             >
-              {deletingGroupId === group.id ? "Deleting..." : "Delete Group"}
+              <span>View Group</span>
+              <span aria-hidden="true">→</span>
+            </button>
+            {type === "owned" && (
+              <button
+                type="button"
+                onClick={() => void handleDeleteGroup(group.id, group.name)}
+                disabled={deletingGroupId === group.id}
+                className={`inline-flex items-center gap-2 rounded-full px-4 py-2.5 text-sm font-semibold transition ${
+                  deletingGroupId === group.id
+                    ? "cursor-wait bg-rose-100 text-rose-500"
+                    : "bg-rose-50 text-rose-600 hover:bg-rose-100"
+                }`}
+              >
+                {deletingGroupId === group.id ? "Deleting..." : "Delete Group"}
+              </button>
+            )}
+          </div>
+        </div>
+      </article>
+    );
+  };
+
+  const ActionCard = ({
+    accent,
+    subtitle,
+    title,
+    description,
+    buttonLabel,
+    onClick,
+    scene,
+  }: {
+    accent: "green" | "blue";
+    subtitle: string;
+    title: string;
+    description: string;
+    buttonLabel: string;
+    onClick: () => void;
+    scene: ReactNode;
+  }) => {
+    const theme =
+      accent === "green"
+        ? {
+            body: "bg-[linear-gradient(145deg,#8ee6c6_0%,#56d79b_40%,#3ebf84_100%)]",
+            button:
+              "bg-[linear-gradient(135deg,#22c55e,#16a34a)] shadow-[0_14px_35px_rgba(34,197,94,0.25)]",
+            text: "text-emerald-700",
+          }
+        : {
+            body: "bg-[linear-gradient(145deg,#9ac4ff_0%,#6da6ff_42%,#4f87f7_100%)]",
+            button:
+              "bg-[linear-gradient(135deg,#2f80ff,#1f66e5)] shadow-[0_14px_35px_rgba(37,99,235,0.25)]",
+            text: "text-blue-700",
+          };
+
+    return (
+      <section className="overflow-hidden rounded-[32px] border border-white/80 bg-white/90 shadow-[0_28px_80px_rgba(148,163,184,0.16)] backdrop-blur-md">
+        <div className="px-6 pt-5">
+          <div
+            className={`inline-flex rounded-full bg-slate-50 px-3 py-1 text-xs font-semibold ${theme.text}`}
+          >
+            {subtitle}
+          </div>
+          <h2 className="mt-3 text-[1.8rem] font-bold text-slate-900">{title}</h2>
+        </div>
+        <div className={`relative mt-5 px-6 pb-6 pt-6 ${theme.body}`}>
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(255,255,255,0.32),transparent_32%),radial-gradient(circle_at_bottom_right,rgba(255,255,255,0.18),transparent_35%)]" />
+          <div className="relative z-10">
+            <p className="max-w-sm text-sm leading-6 text-slate-700">{description}</p>
+            <div className="mt-5">{scene}</div>
+            <button
+              type="button"
+              onClick={onClick}
+              className={`mt-6 inline-flex items-center gap-2 rounded-full px-5 py-2.5 text-sm font-semibold text-white transition hover:-translate-y-0.5 ${theme.button}`}
+            >
+              <span>{buttonLabel}</span>
+              <span aria-hidden="true">→</span>
             </button>
           </div>
-        )}
-      </div>
-    </div>
-  );
+        </div>
+      </section>
+    );
+  };
 
   return (
-    <main className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-b from-sky-100 via-white to-sky-200 text-gray-900 relative">
+    <main className="relative min-h-screen overflow-hidden bg-[linear-gradient(180deg,#edf6ff_0%,#f8fbff_45%,#eef5ff_100%)] text-slate-900">
       {showProfileSetup && (
         <ProfileSetupModal
           defaultName={userName}
@@ -701,84 +817,109 @@ export default function DashboardPage() {
         />
       )}
 
-      <div className="absolute inset-0 bg-[url('/snowflakes.png')] opacity-20 z-0" />
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(125,180,255,0.26),transparent_25%),radial-gradient(circle_at_top_right,rgba(255,255,255,0.9),transparent_28%),radial-gradient(circle_at_bottom_left,rgba(191,219,254,0.35),transparent_32%)]" />
+      <div className="pointer-events-none absolute inset-0 opacity-60">
+        {[
+          "left-[8%] top-[12%]",
+          "left-[22%] top-[18%]",
+          "left-[70%] top-[15%]",
+          "left-[84%] top-[24%]",
+          "left-[11%] top-[58%]",
+          "left-[60%] top-[66%]",
+          "left-[88%] top-[72%]",
+        ].map((position) => (
+          <span
+            key={position}
+            className={`absolute ${position} h-3 w-3 rounded-full bg-white/85 shadow-[0_0_12px_rgba(255,255,255,0.85)]`}
+          />
+        ))}
+      </div>
 
-      <FadeIn className="relative z-10 text-center max-w-5xl w-full p-10 rounded-xl shadow-xl bg-white/40 backdrop-blur-md">
+      <FadeIn className="relative z-10 mx-auto w-full max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
         {actionMessage && (
           <div
             data-fade
             role="status"
             aria-live="polite"
-            className="mb-6 rounded-xl px-4 py-3 text-sm font-bold"
-            style={{
-              background:
-                actionMessage.type === "success"
-                  ? "rgba(34,197,94,.12)"
-                  : "rgba(239,68,68,.12)",
-              color: actionMessage.type === "success" ? "#166534" : "#991b1b",
-              border:
-                actionMessage.type === "success"
-                  ? "1px solid rgba(34,197,94,.2)"
-                  : "1px solid rgba(239,68,68,.2)",
-            }}
+            className={`mb-6 rounded-[24px] px-4 py-3 text-sm font-semibold ${
+              actionMessage.type === "success"
+                ? "border border-emerald-200 bg-emerald-50 text-emerald-700"
+                : "border border-rose-200 bg-rose-50 text-rose-700"
+            }`}
           >
             {actionMessage.text}
           </div>
         )}
 
-        <div data-fade className="flex justify-end mb-4">
+        <div data-fade className="mb-8 flex justify-end gap-3">
           <button
             type="button"
             onClick={() => router.push("/notifications")}
-            className="relative inline-flex items-center gap-2 px-4 py-2.5 rounded-full text-sm font-bold transition hover:scale-105"
-            style={{
-              color: "#14532d",
-              background: "rgba(255,255,255,.82)",
-              border: "1px solid rgba(21,101,52,.1)",
-              boxShadow: "0 4px 12px rgba(15,23,42,.06)",
-            }}
+            className="relative inline-flex items-center gap-2 rounded-full border border-white/70 bg-white/90 px-4 py-2.5 text-sm font-semibold text-slate-700 shadow-[0_18px_50px_rgba(148,163,184,0.14)] backdrop-blur-md transition hover:-translate-y-0.5"
           >
-            <span className="text-base">🔔</span>
-            Notifications
+            <span aria-hidden="true">🔔</span>
+            <span>Notifications</span>
             {unreadNotificationCount > 0 && (
-              <span
-                className="absolute -top-2 -right-1 min-w-[22px] h-[22px] px-1 rounded-full flex items-center justify-center text-[10px] font-extrabold text-white"
-                style={{
-                  background: "linear-gradient(135deg,#dc2626,#ef4444)",
-                  boxShadow: "0 3px 10px rgba(220,38,38,.22)",
-                }}
-              >
+              <span className="absolute -right-1 -top-1 inline-flex min-h-5 min-w-5 items-center justify-center rounded-full bg-rose-500 px-1 text-[10px] font-bold text-white">
                 {unreadNotificationCount > 99 ? "99+" : unreadNotificationCount}
               </span>
             )}
           </button>
-        </div>
-
-        {/* Header */}
-        <div data-fade className="flex items-center justify-center gap-3 mb-2">
-          <div
-            className="w-[48px] h-[48px] rounded-full flex items-center justify-center text-[26px]"
-            style={{
-              background: "linear-gradient(135deg,#fef2f2,#fee2e2)",
-              border: "3px solid #fff",
-              boxShadow: "0 2px 10px rgba(192,57,43,.1)",
-            }}
+          <button
+            type="button"
+            onClick={() => router.push("/secret-santa")}
+            className="inline-flex items-center gap-2 rounded-full border border-white/70 bg-white/90 px-4 py-2.5 text-sm font-semibold text-slate-700 shadow-[0_18px_50px_rgba(148,163,184,0.14)] backdrop-blur-md transition hover:-translate-y-0.5"
           >
-            {userEmoji}
-          </div>
-          <h1 className="text-4xl font-bold drop-shadow-lg" style={{ color: "#1E3A8A" }}>
-            My Secret Santa
-          </h1>
+            <span aria-hidden="true">🎁</span>
+            <span>Gift ideas</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => router.push("/profile")}
+            className="inline-flex items-center gap-2 rounded-full border border-white/70 bg-white/90 px-4 py-2.5 text-sm font-semibold text-slate-700 shadow-[0_18px_50px_rgba(148,163,184,0.14)] backdrop-blur-md transition hover:-translate-y-0.5"
+          >
+            <span
+              aria-hidden="true"
+              className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-[linear-gradient(145deg,#eff6ff,#dbeafe)] text-base"
+            >
+              {userEmoji}
+            </span>
+            <span>Profile</span>
+          </button>
         </div>
-        <p data-fade className="text-lg mb-8 font-semibold" style={{ color: "#334155" }}>
-          Welcome, {userName} 🎁
-        </p>
 
-        {/* Pending Invitations */}
+        <div data-fade className="mb-10 text-center">
+          <div className="mx-auto inline-flex items-center gap-3 rounded-full bg-white/85 px-5 py-2 shadow-[0_18px_50px_rgba(148,163,184,0.15)] backdrop-blur-md">
+            <span aria-hidden="true" className="text-2xl">
+              🎁
+            </span>
+            <span className="text-sm font-semibold uppercase tracking-[0.2em] text-sky-600">
+              Dashboard
+            </span>
+          </div>
+          <h1 className="mt-4 text-4xl font-bold tracking-tight text-sky-900 sm:text-5xl">
+            GiftDraw Dashboard
+          </h1>
+          <p className="mt-3 text-lg font-medium text-slate-600">Welcome back, {userName}</p>
+          <p className="mt-2 text-sm text-slate-500">
+            Keep your groups, draw results, and gift ideas in one festive workspace.
+          </p>
+        </div>
+
         {pendingInvites.length > 0 && (
-          <div data-fade className="text-left mb-10">
-            <h2 className="text-2xl font-bold mb-4 text-orange-600">📩 Pending Invitations</h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <section data-fade className="mb-10">
+            <div className="mb-4 flex items-center justify-between gap-4">
+              <div>
+                <p className="text-sm font-semibold uppercase tracking-[0.18em] text-orange-500">
+                  Invitations
+                </p>
+                <h2 className="mt-1 text-3xl font-bold text-slate-900">Pending invites</h2>
+              </div>
+              <span className="inline-flex rounded-full bg-orange-50 px-3 py-1 text-sm font-semibold text-orange-700">
+                {pendingInvites.length} waiting
+              </span>
+            </div>
+            <div className="grid gap-4 md:grid-cols-2">
               {pendingInvites.map((invite) => (
                 <InviteCard
                   key={invite.group_id}
@@ -789,126 +930,168 @@ export default function DashboardPage() {
                 />
               ))}
             </div>
-          </div>
+          </section>
         )}
 
-        {/* Action Cards */}
-        <div data-fade className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
+        <section data-fade className="mb-10 grid gap-5 xl:grid-cols-[minmax(0,1.1fr)_minmax(0,0.95fr)_minmax(0,0.95fr)]">
           <SecretSantaCard recipientNames={recipientNames} />
-          <div
-            onClick={() => router.push("/secret-santa-chat")}
-            className="cursor-pointer text-white rounded-t-[2rem] rounded-b-xl hover:scale-105 transition transform relative overflow-hidden"
-            style={{
-              background: "linear-gradient(135deg, #86EFAC, #22C55E)",
-              boxShadow: "0 0 20px rgba(34, 197, 94, 0.7)",
-            }}
-          >
-            <div className="bg-white text-green-700 font-bold py-2 text-center rounded-t-[2rem]">
-              💬🎅 Secret Santa Chat
-            </div>
-            <div className="p-4 text-center">
-              <p className="text-sm" style={{ color: "#334155" }}>
-                Chat with your matches anonymously
-              </p>
-              <div className="mt-4 flex justify-center gap-2 text-xl">💬 🎅 🎁</div>
-            </div>
-          </div>
-          <div
+          <ActionCard
+            accent="green"
+            subtitle="Gift Ideas"
+            title="Gift ideas"
+            description="Share and explore festive gift ideas, then jump straight into browsing with the budget and wishlist already in mind."
+            buttonLabel="Browse gifts"
+            onClick={() => router.push("/secret-santa")}
+            scene={
+              <div className="flex items-center gap-3 text-2xl text-white/90">
+                <span>❄️</span>
+                <span>🎁</span>
+                <span>🎉</span>
+              </div>
+            }
+          />
+          <ActionCard
+            accent="blue"
+            subtitle="Create Group"
+            title="Create group"
+            description="Start a new Secret Santa event, invite your friends, and keep the whole draw organized from one shared place."
+            buttonLabel="New group"
             onClick={() => router.push("/create-group")}
-            className="cursor-pointer text-white rounded-t-[2rem] rounded-b-xl hover:scale-105 transition transform relative overflow-hidden"
-            style={{
-              background: "linear-gradient(135deg, #60A5FA, #3B82F6)",
-              boxShadow: "0 0 20px rgba(59, 130, 246, 0.7)",
-            }}
-          >
-            <div className="bg-white text-blue-700 font-bold py-2 text-center rounded-t-[2rem]">
-              📋🎉 Create Group
-            </div>
-            <div className="p-4 text-center">
-              <p className="text-sm" style={{ color: "#334155" }}>
-                Start a new Secret Santa event
-              </p>
-              <div className="mt-4 flex justify-center gap-2 text-xl">🎊 🎄 🎁</div>
-            </div>
-          </div>
-        </div>
+            scene={
+              <div className="flex items-center gap-3 text-2xl text-white/90">
+                <span>🎊</span>
+                <span>🎄</span>
+                <span>🎁</span>
+              </div>
+            }
+          />
+        </section>
 
-        {/* My Groups */}
-        <div data-fade className="text-left mb-8">
-          <h2 className="text-2xl font-bold mb-4 text-blue-700">👑 My Groups</h2>
+        <section data-fade className="mb-10">
+          <div className="mb-5">
+            <p className="text-sm font-semibold uppercase tracking-[0.18em] text-sky-600">
+              Groups
+            </p>
+            <h2 className="mt-1 text-3xl font-bold text-slate-900">Your groups</h2>
+          </div>
           {ownedGroups.length === 0 ? (
-            <div
-              className="text-center py-5 rounded-xl"
-              style={{ background: "rgba(0,0,0,.02)", border: "1px dashed rgba(0,0,0,.08)" }}
-            >
-              <p className="text-gray-500 text-sm font-semibold">
-                You haven&apos;t created any groups yet.
-              </p>
-              <button
-                type="button"
-                onClick={() => router.push("/create-group")}
-                className="mt-3 px-5 py-2 rounded-lg text-sm font-bold text-white transition hover:scale-105"
-                style={{ background: "linear-gradient(135deg,#2563eb,#3b82f6)" }}
-              >
-                + Create Your First Group
-              </button>
+            <div className="grid gap-5 lg:grid-cols-2">
+              <section className="relative overflow-hidden rounded-[30px] border border-white/70 bg-white/90 p-6 shadow-[0_24px_70px_rgba(148,163,184,0.16)] backdrop-blur-md">
+                <div className="absolute bottom-4 right-5 h-24 w-24 rounded-full bg-[radial-gradient(circle_at_center,#dbeafe,transparent_70%)]" />
+                <p className="text-sm font-semibold uppercase tracking-[0.16em] text-slate-500">
+                  Start here
+                </p>
+                <h3 className="mt-3 text-2xl font-bold text-slate-900">
+                  Don&apos;t have a group yet?
+                </h3>
+                <p className="mt-3 max-w-md text-sm leading-6 text-slate-600">
+                  Create a group and start your Secret Santa planning with a budget, date, and invite list already in place.
+                </p>
+                <button
+                  type="button"
+                  onClick={() => router.push("/create-group")}
+                  className="mt-6 inline-flex items-center gap-2 rounded-full bg-[linear-gradient(135deg,#2f80ff,#1f66e5)] px-5 py-2.5 text-sm font-semibold text-white shadow-[0_14px_35px_rgba(37,99,235,0.22)] transition hover:-translate-y-0.5"
+                >
+                  <span>Start new group</span>
+                  <span aria-hidden="true">→</span>
+                </button>
+              </section>
+              <section className="relative overflow-hidden rounded-[30px] border border-white/70 bg-white/90 p-6 shadow-[0_24px_70px_rgba(148,163,184,0.16)] backdrop-blur-md">
+                <div className="absolute bottom-4 right-5 h-24 w-24 rounded-full bg-[radial-gradient(circle_at_center,#dcfce7,transparent_70%)]" />
+                <p className="text-sm font-semibold uppercase tracking-[0.16em] text-slate-500">
+                  Need a gift idea?
+                </p>
+                <h3 className="mt-3 text-2xl font-bold text-slate-900">Browse suggestions</h3>
+                <p className="mt-3 max-w-md text-sm leading-6 text-slate-600">
+                  Jump straight into the shopping helper if you want a faster way to compare product ideas and partner links.
+                </p>
+                <button
+                  type="button"
+                  onClick={() => router.push("/secret-santa")}
+                  className="mt-6 inline-flex items-center gap-2 rounded-full bg-[linear-gradient(135deg,#22c55e,#16a34a)] px-5 py-2.5 text-sm font-semibold text-white shadow-[0_14px_35px_rgba(34,197,94,0.22)] transition hover:-translate-y-0.5"
+                >
+                  <span>Browse gift ideas</span>
+                  <span aria-hidden="true">→</span>
+                </button>
+              </section>
             </div>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid gap-5">
               {ownedGroups.map((group) => (
                 <GroupCard key={group.id} group={group} type="owned" />
               ))}
             </div>
           )}
-        </div>
+        </section>
 
-        {/* Invited Groups */}
-        <div data-fade className="text-left mb-10">
-          <h2 className="text-2xl font-bold mb-4 text-green-700">🎄 Invited Groups</h2>
+        <section data-fade className="mb-10">
+          <div className="mb-5">
+            <p className="text-sm font-semibold uppercase tracking-[0.18em] text-emerald-600">
+              Shared with you
+            </p>
+            <h2 className="mt-1 text-3xl font-bold text-slate-900">Invited groups</h2>
+          </div>
           {invitedGroups.length === 0 ? (
-            <div
-              className="text-center py-5 rounded-xl"
-              style={{ background: "rgba(0,0,0,.02)", border: "1px dashed rgba(0,0,0,.08)" }}
-            >
-              <p className="text-gray-500 text-sm font-semibold">
-                No group invitations accepted yet.
-              </p>
+            <div className="rounded-[28px] border border-dashed border-slate-300 bg-white/70 px-6 py-10 text-center text-sm font-medium text-slate-500">
+              Accepted invitations will appear here once you join them.
             </div>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid gap-5">
               {invitedGroups.map((group) => (
                 <GroupCard key={group.id} group={group} type="invited" />
               ))}
             </div>
           )}
-        </div>
+        </section>
 
-        {/* Profile + Logout */}
-        <div data-fade className="flex justify-center gap-3">
-          <button
-            type="button"
-            onClick={() => router.push("/profile")}
-            className="font-bold px-6 py-3 rounded-full hover:scale-105 transition flex items-center gap-2"
-            style={{
-              color: "#c0392b",
-              background: "rgba(192,57,43,.06)",
-              border: "1px solid rgba(192,57,43,.1)",
-            }}
-          >
-            🎅 Edit Profile
-          </button>
-          <button
-            type="button"
-            onClick={handleLogout}
-            className="text-white font-bold px-6 py-3 rounded-full hover:scale-105 transition flex items-center gap-2"
-            style={{
-              background: "linear-gradient(135deg, #FBBF24, #F59E0B)",
-              boxShadow: "0 0 20px rgba(251, 191, 36, 0.7)",
-            }}
-          >
-            🍭 Logout
-          </button>
-        </div>
+        <section data-fade className="grid gap-5 lg:grid-cols-2">
+          <section className="relative overflow-hidden rounded-[30px] border border-white/70 bg-white/90 p-6 shadow-[0_24px_70px_rgba(148,163,184,0.16)] backdrop-blur-md">
+            <div className="absolute bottom-4 right-6 h-24 w-24 rounded-full bg-[radial-gradient(circle_at_center,#dcfce7,transparent_70%)]" />
+            <p className="text-sm font-semibold uppercase tracking-[0.16em] text-slate-500">
+              Need help picking a gift?
+            </p>
+            <h3 className="mt-3 text-2xl font-bold text-slate-900">Browse curated suggestions</h3>
+            <p className="mt-3 max-w-md text-sm leading-6 text-slate-600">
+              Open the shopping flow any time to compare direct product matches, nearby ideas, and partner links.
+            </p>
+            <button
+              type="button"
+              onClick={() => router.push("/secret-santa")}
+              className="mt-6 inline-flex items-center gap-2 rounded-full bg-[linear-gradient(135deg,#22c55e,#16a34a)] px-5 py-2.5 text-sm font-semibold text-white shadow-[0_14px_35px_rgba(34,197,94,0.22)] transition hover:-translate-y-0.5"
+            >
+              <span>Browse gift ideas</span>
+              <span aria-hidden="true">→</span>
+            </button>
+          </section>
+          <section className="relative overflow-hidden rounded-[30px] border border-white/70 bg-white/90 p-6 shadow-[0_24px_70px_rgba(148,163,184,0.16)] backdrop-blur-md">
+            <div className="absolute bottom-4 right-6 h-24 w-24 rounded-full bg-[radial-gradient(circle_at_center,#fde68a,transparent_70%)]" />
+            <p className="text-sm font-semibold uppercase tracking-[0.16em] text-slate-500">
+              Account
+            </p>
+            <h3 className="mt-3 text-2xl font-bold text-slate-900">Manage your profile</h3>
+            <p className="mt-3 max-w-md text-sm leading-6 text-slate-600">
+              Update your emoji, profile details, or sign out when you are done for the day.
+            </p>
+            <div className="mt-6 flex flex-wrap gap-3">
+              <button
+                type="button"
+                onClick={() => router.push("/profile")}
+                className="inline-flex items-center gap-2 rounded-full bg-slate-100 px-5 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-200"
+              >
+                <span>Open profile</span>
+                <span aria-hidden="true">→</span>
+              </button>
+              <button
+                type="button"
+                onClick={handleLogout}
+                className="inline-flex items-center gap-2 rounded-full bg-[linear-gradient(135deg,#f59e0b,#f97316)] px-5 py-2.5 text-sm font-semibold text-white shadow-[0_14px_35px_rgba(249,115,22,0.22)] transition hover:-translate-y-0.5"
+              >
+                <span>Logout</span>
+                <span aria-hidden="true">→</span>
+              </button>
+            </div>
+          </section>
+        </section>
       </FadeIn>
     </main>
   );

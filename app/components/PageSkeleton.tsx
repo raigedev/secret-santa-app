@@ -23,27 +23,44 @@ const shimmerCSS = `@keyframes shimmer{0%{background-position:-200% 0;}100%{back
 // ─── Dashboard Skeleton ───
 export function DashboardSkeleton() {
   return (
-    <main className="min-h-screen flex flex-col items-center justify-center" style={{ background: "linear-gradient(180deg,#e0ecfc,#fff,#e8f0fe)" }}>
+    <main className="min-h-screen bg-[linear-gradient(180deg,#edf6ff_0%,#f8fbff_45%,#eef5ff_100%)]">
       <style>{shimmerCSS}</style>
-      <div className="max-w-5xl w-full p-10 rounded-xl" style={{ background: "rgba(255,255,255,.4)" }}>
-        {/* Header */}
-        <div className="flex flex-col items-center mb-8">
-          <Bone w="48px" h="48px" r={50} />
-          <Bone w="220px" h="28px" className="mt-3" />
-          <Bone w="160px" h="16px" className="mt-2" />
+      <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
+        <div className="mb-8 flex justify-end gap-3">
+          <Bone w="140px" h="42px" r={999} />
+          <Bone w="126px" h="42px" r={999} />
+          <Bone w="118px" h="42px" r={999} />
         </div>
-        {/* Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
-          <Bone w="100%" h="140px" r={16} />
-          <Bone w="100%" h="140px" r={16} />
-          <Bone w="100%" h="140px" r={16} />
+
+        <div className="mb-10 flex flex-col items-center">
+          <Bone w="180px" h="38px" r={999} />
+          <Bone w="340px" h="42px" className="mt-4" />
+          <Bone w="250px" h="16px" className="mt-3" />
         </div>
-        {/* Groups */}
-        <Bone w="140px" h="22px" className="mb-3" />
-        <Bone w="100%" h="90px" r={12} className="mb-3" />
-        <Bone w="100%" h="90px" r={12} className="mb-6" />
-        <Bone w="140px" h="22px" className="mb-3" />
-        <Bone w="100%" h="90px" r={12} />
+
+        <div className="grid grid-cols-1 gap-5 xl:grid-cols-[1.1fr_0.95fr_0.95fr]">
+          <Bone w="100%" h="360px" r={32} />
+          <Bone w="100%" h="280px" r={32} />
+          <Bone w="100%" h="280px" r={32} />
+        </div>
+
+        <div className="mt-10">
+          <Bone w="170px" h="18px" className="mb-3" />
+          <Bone w="240px" h="34px" className="mb-5" />
+          <Bone w="100%" h="240px" r={32} className="mb-5" />
+          <Bone w="100%" h="240px" r={32} />
+        </div>
+
+        <div className="mt-10">
+          <Bone w="180px" h="18px" className="mb-3" />
+          <Bone w="240px" h="34px" className="mb-5" />
+          <Bone w="100%" h="220px" r={32} />
+        </div>
+
+        <div className="mt-10 grid grid-cols-1 gap-5 lg:grid-cols-2">
+          <Bone w="100%" h="220px" r={30} />
+          <Bone w="100%" h="220px" r={30} />
+        </div>
       </div>
     </main>
   );
