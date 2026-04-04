@@ -635,6 +635,7 @@ export default function DashboardPage() {
     router.prefetch("/secret-santa-chat");
     router.prefetch("/create-group");
     router.prefetch("/profile");
+    router.prefetch("/dashboard/affiliate-report");
 
     for (const group of [...ownedGroups, ...invitedGroups]) {
       router.prefetch(`/group/${group.id}`);
@@ -906,6 +907,14 @@ export default function DashboardPage() {
         )}
 
         <div data-fade className="mb-8 flex justify-end gap-3">
+          <button
+            type="button"
+            onClick={() => router.push("/dashboard/affiliate-report")}
+            className="inline-flex items-center gap-2 rounded-full border border-white/70 bg-white/90 px-4 py-2.5 text-sm font-semibold text-slate-700 shadow-[0_18px_50px_rgba(148,163,184,0.14)] backdrop-blur-md transition hover:-translate-y-0.5"
+          >
+            <GiftIcon className="h-4 w-4 text-sky-600" />
+            <span>Affiliate report</span>
+          </button>
           <button
             type="button"
             onClick={() => router.push("/notifications")}
