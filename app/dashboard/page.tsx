@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
@@ -140,7 +140,7 @@ export default function DashboardPage() {
   const router = useRouter();
   const [supabase] = useState(() => createClient());
   const [userName, setUserName] = useState("");
-  const [userEmoji, setUserEmoji] = useState("🎅");
+  const [userEmoji, setUserEmoji] = useState("ðŸŽ…");
   const [ownedGroups, setOwnedGroups] = useState<Group[]>([]);
   const [invitedGroups, setInvitedGroups] = useState<Group[]>([]);
   const [pendingInvites, setPendingInvites] = useState<PendingInvite[]>([]);
@@ -369,7 +369,7 @@ export default function DashboardPage() {
       if (profileData) {
         setShowProfileSetup(!profileData.profile_setup_complete);
         setUserName(profileData.display_name || defaultName);
-        setUserEmoji(profileData.avatar_emoji || "🎅");
+        setUserEmoji(profileData.avatar_emoji || "ðŸŽ…");
       }
     };
 
@@ -724,7 +724,7 @@ export default function DashboardPage() {
               className="inline-flex items-center gap-2 rounded-full bg-[linear-gradient(135deg,#2f80ff,#1f66e5)] px-5 py-2.5 text-sm font-semibold text-white shadow-[0_14px_35px_rgba(37,99,235,0.22)] transition hover:-translate-y-0.5"
             >
               <span>View Group</span>
-              <span aria-hidden="true">→</span>
+              <span aria-hidden="true">â†’</span>
             </button>
             {type === "owned" && (
               <button
@@ -799,7 +799,7 @@ export default function DashboardPage() {
               className={`mt-6 inline-flex items-center gap-2 rounded-full px-5 py-2.5 text-sm font-semibold text-white transition hover:-translate-y-0.5 ${theme.button}`}
             >
               <span>{buttonLabel}</span>
-              <span aria-hidden="true">→</span>
+              <span aria-hidden="true">â†’</span>
             </button>
           </div>
         </div>
@@ -857,21 +857,13 @@ export default function DashboardPage() {
             onClick={() => router.push("/notifications")}
             className="relative inline-flex items-center gap-2 rounded-full border border-white/70 bg-white/90 px-4 py-2.5 text-sm font-semibold text-slate-700 shadow-[0_18px_50px_rgba(148,163,184,0.14)] backdrop-blur-md transition hover:-translate-y-0.5"
           >
-            <span aria-hidden="true">🔔</span>
+            <span aria-hidden="true">ðŸ””</span>
             <span>Notifications</span>
             {unreadNotificationCount > 0 && (
               <span className="absolute -right-1 -top-1 inline-flex min-h-5 min-w-5 items-center justify-center rounded-full bg-rose-500 px-1 text-[10px] font-bold text-white">
                 {unreadNotificationCount > 99 ? "99+" : unreadNotificationCount}
               </span>
             )}
-          </button>
-          <button
-            type="button"
-            onClick={() => router.push("/secret-santa")}
-            className="inline-flex items-center gap-2 rounded-full border border-white/70 bg-white/90 px-4 py-2.5 text-sm font-semibold text-slate-700 shadow-[0_18px_50px_rgba(148,163,184,0.14)] backdrop-blur-md transition hover:-translate-y-0.5"
-          >
-            <span aria-hidden="true">🎁</span>
-            <span>Gift ideas</span>
           </button>
           <button
             type="button"
@@ -891,18 +883,18 @@ export default function DashboardPage() {
         <div data-fade className="mb-10 text-center">
           <div className="mx-auto inline-flex items-center gap-3 rounded-full bg-white/85 px-5 py-2 shadow-[0_18px_50px_rgba(148,163,184,0.15)] backdrop-blur-md">
             <span aria-hidden="true" className="text-2xl">
-              🎁
+              ðŸŽ
             </span>
             <span className="text-sm font-semibold uppercase tracking-[0.2em] text-sky-600">
-              Dashboard
+              Secret Santa
             </span>
           </div>
           <h1 className="mt-4 text-4xl font-bold tracking-tight text-sky-900 sm:text-5xl">
-            GiftDraw Dashboard
+            My Secret Santa
           </h1>
           <p className="mt-3 text-lg font-medium text-slate-600">Welcome back, {userName}</p>
           <p className="mt-2 text-sm text-slate-500">
-            Keep your groups, draw results, and gift ideas in one festive workspace.
+            Keep your groups, draws, and chats in one festive workspace.
           </p>
         </div>
 
@@ -937,16 +929,16 @@ export default function DashboardPage() {
           <SecretSantaCard recipientNames={recipientNames} />
           <ActionCard
             accent="green"
-            subtitle="Gift Ideas"
-            title="Gift ideas"
-            description="Share and explore festive gift ideas, then jump straight into browsing with the budget and wishlist already in mind."
-            buttonLabel="Browse gifts"
-            onClick={() => router.push("/secret-santa")}
+            subtitle="Secret Santa Chat"
+            title="Secret Santa chat"
+            description="Chat with your groupmates anonymously, send hints, and keep the guessing game going without spoiling the surprise."
+            buttonLabel="Open chat"
+            onClick={() => router.push("/secret-santa-chat")}
             scene={
-              <div className="flex items-center gap-3 text-2xl text-white/90">
-                <span>❄️</span>
-                <span>🎁</span>
-                <span>🎉</span>
+              <div className="flex items-center gap-3 text-sm font-semibold uppercase tracking-[0.16em] text-white/90">
+                <span>Hints</span>
+                <span>Notes</span>
+                <span>Chat</span>
               </div>
             }
           />
@@ -959,9 +951,9 @@ export default function DashboardPage() {
             onClick={() => router.push("/create-group")}
             scene={
               <div className="flex items-center gap-3 text-2xl text-white/90">
-                <span>🎊</span>
-                <span>🎄</span>
-                <span>🎁</span>
+                <span>ðŸŽŠ</span>
+                <span>ðŸŽ„</span>
+                <span>ðŸŽ</span>
               </div>
             }
           />
@@ -975,7 +967,7 @@ export default function DashboardPage() {
             <h2 className="mt-1 text-3xl font-bold text-slate-900">Your groups</h2>
           </div>
           {ownedGroups.length === 0 ? (
-            <div className="grid gap-5 lg:grid-cols-2">
+            <div className="grid gap-5">
               <section className="relative overflow-hidden rounded-[30px] border border-white/70 bg-white/90 p-6 shadow-[0_24px_70px_rgba(148,163,184,0.16)] backdrop-blur-md">
                 <div className="absolute bottom-4 right-5 h-24 w-24 rounded-full bg-[radial-gradient(circle_at_center,#dbeafe,transparent_70%)]" />
                 <p className="text-sm font-semibold uppercase tracking-[0.16em] text-slate-500">
@@ -993,25 +985,7 @@ export default function DashboardPage() {
                   className="mt-6 inline-flex items-center gap-2 rounded-full bg-[linear-gradient(135deg,#2f80ff,#1f66e5)] px-5 py-2.5 text-sm font-semibold text-white shadow-[0_14px_35px_rgba(37,99,235,0.22)] transition hover:-translate-y-0.5"
                 >
                   <span>Start new group</span>
-                  <span aria-hidden="true">→</span>
-                </button>
-              </section>
-              <section className="relative overflow-hidden rounded-[30px] border border-white/70 bg-white/90 p-6 shadow-[0_24px_70px_rgba(148,163,184,0.16)] backdrop-blur-md">
-                <div className="absolute bottom-4 right-5 h-24 w-24 rounded-full bg-[radial-gradient(circle_at_center,#dcfce7,transparent_70%)]" />
-                <p className="text-sm font-semibold uppercase tracking-[0.16em] text-slate-500">
-                  Need a gift idea?
-                </p>
-                <h3 className="mt-3 text-2xl font-bold text-slate-900">Browse suggestions</h3>
-                <p className="mt-3 max-w-md text-sm leading-6 text-slate-600">
-                  Jump straight into the shopping helper if you want a faster way to compare product ideas and partner links.
-                </p>
-                <button
-                  type="button"
-                  onClick={() => router.push("/secret-santa")}
-                  className="mt-6 inline-flex items-center gap-2 rounded-full bg-[linear-gradient(135deg,#22c55e,#16a34a)] px-5 py-2.5 text-sm font-semibold text-white shadow-[0_14px_35px_rgba(34,197,94,0.22)] transition hover:-translate-y-0.5"
-                >
-                  <span>Browse gift ideas</span>
-                  <span aria-hidden="true">→</span>
+                  <span aria-hidden="true">â†’</span>
                 </button>
               </section>
             </div>
@@ -1044,54 +1018,25 @@ export default function DashboardPage() {
           )}
         </section>
 
-        <section data-fade className="grid gap-5 lg:grid-cols-2">
-          <section className="relative overflow-hidden rounded-[30px] border border-white/70 bg-white/90 p-6 shadow-[0_24px_70px_rgba(148,163,184,0.16)] backdrop-blur-md">
-            <div className="absolute bottom-4 right-6 h-24 w-24 rounded-full bg-[radial-gradient(circle_at_center,#dcfce7,transparent_70%)]" />
-            <p className="text-sm font-semibold uppercase tracking-[0.16em] text-slate-500">
-              Need help picking a gift?
-            </p>
-            <h3 className="mt-3 text-2xl font-bold text-slate-900">Browse curated suggestions</h3>
-            <p className="mt-3 max-w-md text-sm leading-6 text-slate-600">
-              Open the shopping flow any time to compare direct product matches, nearby ideas, and partner links.
-            </p>
-            <button
-              type="button"
-              onClick={() => router.push("/secret-santa")}
-              className="mt-6 inline-flex items-center gap-2 rounded-full bg-[linear-gradient(135deg,#22c55e,#16a34a)] px-5 py-2.5 text-sm font-semibold text-white shadow-[0_14px_35px_rgba(34,197,94,0.22)] transition hover:-translate-y-0.5"
-            >
-              <span>Browse gift ideas</span>
-              <span aria-hidden="true">→</span>
-            </button>
-          </section>
-          <section className="relative overflow-hidden rounded-[30px] border border-white/70 bg-white/90 p-6 shadow-[0_24px_70px_rgba(148,163,184,0.16)] backdrop-blur-md">
-            <div className="absolute bottom-4 right-6 h-24 w-24 rounded-full bg-[radial-gradient(circle_at_center,#fde68a,transparent_70%)]" />
-            <p className="text-sm font-semibold uppercase tracking-[0.16em] text-slate-500">
-              Account
-            </p>
-            <h3 className="mt-3 text-2xl font-bold text-slate-900">Manage your profile</h3>
-            <p className="mt-3 max-w-md text-sm leading-6 text-slate-600">
-              Update your emoji, profile details, or sign out when you are done for the day.
-            </p>
-            <div className="mt-6 flex flex-wrap gap-3">
-              <button
-                type="button"
-                onClick={() => router.push("/profile")}
-                className="inline-flex items-center gap-2 rounded-full bg-slate-100 px-5 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-200"
-              >
-                <span>Open profile</span>
-                <span aria-hidden="true">→</span>
-              </button>
-              <button
-                type="button"
-                onClick={handleLogout}
-                className="inline-flex items-center gap-2 rounded-full bg-[linear-gradient(135deg,#f59e0b,#f97316)] px-5 py-2.5 text-sm font-semibold text-white shadow-[0_14px_35px_rgba(249,115,22,0.22)] transition hover:-translate-y-0.5"
-              >
-                <span>Logout</span>
-                <span aria-hidden="true">→</span>
-              </button>
-            </div>
-          </section>
+        <section data-fade className="flex flex-wrap items-center justify-center gap-3 rounded-[30px] border border-white/70 bg-white/80 px-6 py-5 shadow-[0_24px_70px_rgba(148,163,184,0.12)] backdrop-blur-md">
+          <button
+            type="button"
+            onClick={() => router.push("/profile")}
+            className="inline-flex items-center gap-2 rounded-full bg-white px-5 py-2.5 text-sm font-semibold text-slate-700 shadow-[0_12px_30px_rgba(148,163,184,0.16)] transition hover:-translate-y-0.5"
+          >
+            <span>Edit profile</span>
+            <span aria-hidden="true">→</span>
+          </button>
+          <button
+            type="button"
+            onClick={handleLogout}
+            className="inline-flex items-center gap-2 rounded-full bg-[linear-gradient(135deg,#f59e0b,#f97316)] px-5 py-2.5 text-sm font-semibold text-white shadow-[0_14px_35px_rgba(249,115,22,0.22)] transition hover:-translate-y-0.5"
+          >
+            <span>Logout</span>
+            <span aria-hidden="true">→</span>
+          </button>
         </section>
+
       </FadeIn>
     </main>
   );
