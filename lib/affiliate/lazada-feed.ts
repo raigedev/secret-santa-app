@@ -655,12 +655,12 @@ function scoreFeedMatch(input: {
 
   if (itemNameTokens.length > 0) {
     const overlappingItemTokens = itemNameTokens.filter((token) => productTokens.has(token));
-    score += Math.min(overlappingItemTokens.length / itemNameTokens.length, 1) * 0.45;
+    score += Math.min(overlappingItemTokens.length / itemNameTokens.length, 1) * 0.32;
   }
 
   if (searchQueryTokens.length > 0) {
     const overlappingSearchTokens = searchQueryTokens.filter((token) => productTokens.has(token));
-    score += Math.min(overlappingSearchTokens.length / searchQueryTokens.length, 1) * 0.25;
+    score += Math.min(overlappingSearchTokens.length / searchQueryTokens.length, 1) * 0.38;
   }
 
   if (noteTokens.length > 0) {
@@ -688,7 +688,7 @@ function scoreFeedMatch(input: {
     (productNormalized.includes(searchQueryNormalized) ||
       searchQueryNormalized.includes(productNormalized))
   ) {
-    score += 0.12;
+    score += 0.2;
     reasons.push("search overlap");
   }
 
