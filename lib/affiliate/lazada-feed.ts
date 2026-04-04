@@ -132,6 +132,68 @@ const TECH_EXCLUDE_WORDS = [
   "veterinary",
 ];
 
+const ACCESSORY_INTENT_TERMS = [
+  "accessor",
+  "adapter",
+  "bundle",
+  "cable",
+  "case",
+  "cover",
+  "holder",
+  "kit",
+  "mount",
+  "remote",
+  "stand",
+];
+
+const STRICT_DEVICE_MATCH_RULES: Array<{
+  exclude: string[];
+  id: string;
+  include: string[];
+  test: RegExp;
+}> = [
+  {
+    id: "tablet device match",
+    include: ["tablet", "tab", "ipad", "pad"],
+    exclude: [
+      "remote",
+      "controller",
+      "memory card",
+      "micro sd",
+      "sd card",
+      "adapter",
+      "cable",
+      "case",
+      "cover",
+      "holder",
+      "mount",
+      "stylus",
+      "screen protector",
+      "tempered glass",
+    ],
+    test: /\b(tablet|ipad|android tab|galaxy tab|redmi pad|xiaomi pad|mi pad|matepad|lenovo tab)\b/,
+  },
+  {
+    id: "power bank device match",
+    include: ["power bank", "powerbank", "portable charger", "battery pack", "battery bank"],
+    exclude: [
+      "solar",
+      "tank",
+      "station",
+      "jump starter",
+      "remote",
+      "controller",
+      "adapter",
+      "cable",
+      "case",
+      "cover",
+      "holder",
+      "mount",
+    ],
+    test: /\b(power bank|powerbank|portable charger|battery pack|battery bank)\b/,
+  },
+];
+
 const FEED_MATCH_PROFILES: Array<{
   id: string;
   include: string[];
@@ -552,6 +614,55 @@ function filterLazadaFeedProductsBySubtype(
       : [];
 }
 
+function isAccessoryIntent(searchContext: string): boolean {
+  return ACCESSORY_INTENT_TERMS.some((term) => searchContext.includes(term));
+}
+
+function filterLazadaFeedProductsByStrictDeviceIntent(
+  products: LazadaFeedProduct[],
+  input: {
+    itemCategory: string;
+    itemName: string;
+    itemNote: string;
+    searchQuery: string;
+  },
+  options?: {
+    allowFallbackToOriginal?: boolean;
+  }
+): LazadaFeedProduct[] {
+  const searchContext = normalizeFeedString(
+    `${input.itemName} ${input.itemCategory} ${input.itemNote} ${input.searchQuery}`
+  );
+
+  if (isAccessoryIntent(searchContext)) {
+    return products;
+  }
+
+  const matchedRule = STRICT_DEVICE_MATCH_RULES.find((rule) =>
+    rule.test.test(searchContext)
+  );
+
+  if (!matchedRule) {
+    return products;
+  }
+
+  const strictMatches = products.filter((product) => {
+    const productText = normalizeFeedString(
+      `${product.productName} ${product.brand} ${product.categoryLv1}`
+    );
+    const hasInclude = matchedRule.include.some((term) => productText.includes(term));
+    const hasExclude = matchedRule.exclude.some((term) => productText.includes(term));
+
+    return hasInclude && !hasExclude;
+  });
+
+  return strictMatches.length > 0
+    ? strictMatches
+    : options?.allowFallbackToOriginal
+      ? products
+      : [];
+}
+
 function getRelevantLazadaSourceCategories(input: {
   itemCategory: string;
   itemName: string;
@@ -781,10 +892,11 @@ export function findBestLazadaFeedMatches(input: {
     budgetShortlistedProducts,
     input
   );
-  const candidateProducts = filterLazadaFeedProductsBySubtype(
+  const strictDeviceProducts = filterLazadaFeedProductsByStrictDeviceIntent(
     sourceShortlistedProducts,
     input
   );
+  const candidateProducts = filterLazadaFeedProductsBySubtype(strictDeviceProducts, input);
 
   return candidateProducts.map((product) =>
     scoreFeedMatch({
