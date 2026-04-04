@@ -109,6 +109,15 @@ export type LazadaPrimePromotionLinksResult = {
   urlsPrimed: number;
 };
 
+type LazadaAffiliateAttributionContext = {
+  catalogSource?: string | null;
+  fitLabel?: string | null;
+  groupId?: string | null;
+  searchQuery: string;
+  trackingLabel?: string | null;
+  wishlistItemId?: string | null;
+};
+
 type LazadaCachedPromotionLinkEntry = {
   expiresAt: number;
   links: LazadaNormalizedPromotionLink[];
@@ -228,16 +237,55 @@ export function getLazadaOpenApiStatus(): LazadaOpenApiStatus {
 }
 
 export function buildLazadaWishlistSubIds(searchQuery: string): LazadaSubIds {
-  const slugifiedQuery = searchQuery
+  return buildLazadaWishlistSubIdsFromContext({
+    searchQuery,
+  });
+}
+
+function slugifyLazadaSubIdValue(value: string | null | undefined, fallback: string): string {
+  const slug = (value || "")
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/^-+|-+$/g, "")
     .slice(0, 40);
 
+  return slug || fallback;
+}
+
+function buildLazadaClickToken(context: LazadaAffiliateAttributionContext): string {
+  return createHash("sha256")
+    .update(
+      JSON.stringify({
+        catalogSource: context.catalogSource || "",
+        fitLabel: context.fitLabel || "",
+        groupId: context.groupId || "",
+        searchQuery: context.searchQuery,
+        trackingLabel: context.trackingLabel || "",
+        wishlistItemId: context.wishlistItemId || "",
+      })
+    )
+    .digest("hex")
+    .slice(0, 16);
+}
+
+function buildLazadaWishlistSubIdsFromContext(
+  context: LazadaAffiliateAttributionContext
+): LazadaSubIds {
+  const sourceToken = slugifyLazadaSubIdValue(context.catalogSource, "search");
+  const roleToken = slugifyLazadaSubIdValue(
+    context.fitLabel || context.trackingLabel,
+    "gift"
+  );
+  const queryToken = slugifyLazadaSubIdValue(context.searchQuery, "gift");
+  const clickToken = buildLazadaClickToken(context);
+
   return sanitizeLazadaSubIds({
     subId1: "secret-santa",
     subId2: "wishlist",
-    subId3: slugifiedQuery || "gift",
+    subId3: sourceToken,
+    subId4: roleToken,
+    subId5: queryToken,
+    subId6: clickToken,
   });
 }
 
@@ -530,6 +578,7 @@ async function fetchLazadaPromotionLinks(
 // internals here with the signed /marketing/getlink call and keep the redirect
 // route contract unchanged.
 export async function resolveLazadaPromotionLinkTarget(options: {
+  attribution?: Omit<LazadaAffiliateAttributionContext, "searchQuery">;
   fallbackUrl: string;
   productId: string | null;
   searchQuery: string;
@@ -542,7 +591,10 @@ export async function resolveLazadaPromotionLinkTarget(options: {
     };
   }
 
-  const wishlistSubIds = buildLazadaWishlistSubIds(options.searchQuery);
+  const wishlistSubIds = buildLazadaWishlistSubIdsFromContext({
+    searchQuery: options.searchQuery,
+    ...options.attribution,
+  });
   const feedProduct = findLazadaFeedProductByItemId(options.productId);
 
   if (feedProduct?.promoShortLink) {
@@ -623,6 +675,7 @@ export async function resolveLazadaPromotionLinkTarget(options: {
 }
 
 export async function resolveLazadaSuggestionLinkTarget(options: {
+  attribution?: Omit<LazadaAffiliateAttributionContext, "searchQuery">;
   fallbackUrl: string;
   productId: string | null;
   searchQuery: string;
@@ -635,6 +688,7 @@ export async function resolveLazadaSuggestionLinkTarget(options: {
 }): Promise<LazadaPromotionLinkResolution> {
   if (options.productId) {
     return resolveLazadaPromotionLinkTarget({
+      attribution: options.attribution,
       fallbackUrl: options.fallbackUrl,
       productId: options.productId,
       searchQuery: options.searchQuery,
@@ -662,7 +716,10 @@ export async function resolveLazadaSuggestionLinkTarget(options: {
     };
   }
 
-  const wishlistSubIds = buildLazadaWishlistSubIds(options.searchQuery);
+  const wishlistSubIds = buildLazadaWishlistSubIdsFromContext({
+    searchQuery: options.searchQuery,
+    ...options.attribution,
+  });
 
   if (topMatch.product.promoShortLink) {
     return {
@@ -673,6 +730,7 @@ export async function resolveLazadaSuggestionLinkTarget(options: {
   }
 
   return resolveLazadaPromotionLinkTarget({
+    attribution: options.attribution,
     fallbackUrl: options.fallbackUrl,
     productId: topMatch.product.itemId,
     searchQuery: options.searchQuery,
@@ -680,6 +738,7 @@ export async function resolveLazadaSuggestionLinkTarget(options: {
 }
 
 export async function resolveLazadaWishlistItemLinkTarget(options: {
+  attribution?: Omit<LazadaAffiliateAttributionContext, "searchQuery">;
   fallbackUrl: string;
   itemName: string;
   itemUrl: string;
@@ -694,7 +753,10 @@ export async function resolveLazadaWishlistItemLinkTarget(options: {
     };
   }
 
-  const wishlistSubIds = buildLazadaWishlistSubIds(options.itemName);
+  const wishlistSubIds = buildLazadaWishlistSubIdsFromContext({
+    searchQuery: options.itemName,
+    ...options.attribution,
+  });
   const feedProduct = findLazadaFeedProductByUrl(normalizedItemUrl);
 
   if (feedProduct?.promoShortLink) {
@@ -779,6 +841,7 @@ export async function resolveLazadaWishlistItemLinkTarget(options: {
 }
 
 export async function resolveLazadaSearchRouteLinkTarget(options: {
+  attribution?: Omit<LazadaAffiliateAttributionContext, "searchQuery">;
   fallbackUrl: string;
   searchQuery: string;
 }): Promise<LazadaPromotionLinkResolution> {
@@ -790,7 +853,10 @@ export async function resolveLazadaSearchRouteLinkTarget(options: {
     };
   }
 
-  const wishlistSubIds = buildLazadaWishlistSubIds(options.searchQuery);
+  const wishlistSubIds = buildLazadaWishlistSubIdsFromContext({
+    searchQuery: options.searchQuery,
+    ...options.attribution,
+  });
 
   try {
     const parsedFallbackUrl = new URL(options.fallbackUrl);

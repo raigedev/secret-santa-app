@@ -36,12 +36,14 @@ export async function GET(request: NextRequest) {
   const productId = searchParams.get("productId")?.trim() || null;
   const skuId = searchParams.get("skuId")?.trim() || null;
   const catalogSource = searchParams.get("catalogSource")?.trim() || null;
+  const fitLabel = searchParams.get("fitLabel")?.trim() || null;
   const itemName = searchParams.get("itemName")?.trim() || searchQuery;
   const itemCategory = searchParams.get("itemCategory")?.trim() || "";
   const itemNote = searchParams.get("itemNote")?.trim() || "";
   const preferredPriceMinRaw = searchParams.get("preferredPriceMin");
   const preferredPriceMaxRaw = searchParams.get("preferredPriceMax");
   const groupBudgetRaw = searchParams.get("groupBudget");
+  const trackingLabel = searchParams.get("trackingLabel")?.trim() || null;
   const requestedRegion = searchParams.get("region");
   const region: ShoppingRegion = isShoppingRegion(requestedRegion)
     ? requestedRegion
@@ -57,6 +59,12 @@ export async function GET(request: NextRequest) {
   }
 
   let targetUrl = buildMerchantDestinationUrl(merchant, searchQuery, region);
+  let lazadaResolution:
+    | {
+        mode: string;
+        reason: string;
+      }
+    | null = null;
 
   const preferredPriceMin =
     preferredPriceMinRaw !== null && preferredPriceMinRaw.trim().length > 0
@@ -73,10 +81,24 @@ export async function GET(request: NextRequest) {
     const lazadaTarget =
       catalogSource === "search-backed"
         ? await resolveLazadaSearchRouteLinkTarget({
+            attribution: {
+              catalogSource,
+              fitLabel,
+              groupId,
+              trackingLabel,
+              wishlistItemId,
+            },
             fallbackUrl: targetUrl,
             searchQuery,
           })
         : await resolveLazadaSuggestionLinkTarget({
+            attribution: {
+              catalogSource,
+              fitLabel,
+              groupId,
+              trackingLabel,
+              wishlistItemId,
+            },
             fallbackUrl: targetUrl,
             groupBudget: Number.isFinite(groupBudget) ? groupBudget : null,
             itemCategory,
@@ -89,6 +111,10 @@ export async function GET(request: NextRequest) {
           });
 
     targetUrl = lazadaTarget.targetUrl;
+    lazadaResolution = {
+      mode: lazadaTarget.mode,
+      reason: lazadaTarget.reason,
+    };
   }
 
   try {
@@ -103,7 +129,16 @@ export async function GET(request: NextRequest) {
       wishlist_item_id: wishlistItemId,
       merchant,
       suggestion_title: suggestionTitle.slice(0, 120),
-      search_query: [searchQuery, productId, skuId, catalogSource]
+      search_query: [
+        searchQuery,
+        productId,
+        skuId,
+        catalogSource,
+        fitLabel,
+        trackingLabel,
+        lazadaResolution?.mode,
+        lazadaResolution?.reason,
+      ]
         .filter(Boolean)
         .join(" | ")
         .slice(0, 200),

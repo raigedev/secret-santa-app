@@ -331,6 +331,8 @@ export async function POST(request: NextRequest) {
 
   const products: WishlistFeaturedProductCard[] = effectiveRoleMatches.map(({ match, role }, index) => {
     const lazadaPrice = getLazadaFeedProductPrice(match.product);
+    const fitLabel = buildMatchFitLabel(role);
+    const trackingLabel = "Matched product";
 
     return {
       id: `lazada-match-${wishlistItemId}-${match.product.itemId}-${index}`,
@@ -351,6 +353,7 @@ export async function POST(request: NextRequest) {
         region,
         {
           catalogSource: "catalog-product",
+          fitLabel,
           groupBudget,
           itemCategory,
           itemName,
@@ -359,13 +362,14 @@ export async function POST(request: NextRequest) {
           preferredPriceMax,
           preferredPriceMin,
           skuId: match.product.skuId || null,
+          trackingLabel,
         }
       ),
       searchQuery: match.product.productName,
       priceLabel: lazadaPrice !== null ? formatPriceRange(lazadaPrice, lazadaPrice, "PHP") : null,
-      fitLabel: buildMatchFitLabel(role),
+      fitLabel,
       whyItFits: buildMatchWhyItFits(role, match.reasons, lazadaPrice, basePrice),
-      trackingLabel: "Matched product",
+      trackingLabel,
     };
   });
 
@@ -382,42 +386,49 @@ export async function POST(request: NextRequest) {
     const searchFallbackCards: WishlistFeaturedProductCard[] = fallbackProducts
       .filter((product) => product.source === "search-backed")
       .slice(0, 1)
-      .map((product, index) => ({
-        id: `fallback-lazada-${wishlistItemId}-${product.id}-${index}`,
-        merchant: "lazada",
-        merchantLabel: "Lazada",
-        catalogSource: "search-backed",
-        imageUrl: null,
-        productId: null,
-        skuId: null,
-        title: product.title,
-        subtitle: product.subtitle,
-        href: buildTrackedSuggestionHref(
-          "lazada",
-          groupId,
-          wishlistItemId,
-          product.searchQuery,
-          product.title,
-          region,
-          {
-            catalogSource: "search-backed",
-            groupBudget,
-            itemCategory,
-            itemName,
-            itemNote,
-            preferredPriceMax,
-            preferredPriceMin,
-          }
-        ),
-        searchQuery: product.searchQuery,
-        priceLabel:
-          groupBudget !== null
-            ? `Budget target: ${formatPriceRange(groupBudget, groupBudget, "PHP")}`
-            : null,
-        fitLabel: index === 0 ? "Closest to request" : "Step-up option",
-        whyItFits: product.whyItFits,
-        trackingLabel: "Search route",
-      }));
+      .map((product, index) => {
+        const fitLabel = index === 0 ? "Closest to request" : "Step-up option";
+        const trackingLabel = "Search route";
+
+        return {
+          id: `fallback-lazada-${wishlistItemId}-${product.id}-${index}`,
+          merchant: "lazada",
+          merchantLabel: "Lazada",
+          catalogSource: "search-backed",
+          imageUrl: null,
+          productId: null,
+          skuId: null,
+          title: product.title,
+          subtitle: product.subtitle,
+          href: buildTrackedSuggestionHref(
+            "lazada",
+            groupId,
+            wishlistItemId,
+            product.searchQuery,
+            product.title,
+            region,
+            {
+              catalogSource: "search-backed",
+              fitLabel,
+              groupBudget,
+              itemCategory,
+              itemName,
+              itemNote,
+              preferredPriceMax,
+              preferredPriceMin,
+              trackingLabel,
+            }
+          ),
+          searchQuery: product.searchQuery,
+          priceLabel:
+            groupBudget !== null
+              ? `Budget target: ${formatPriceRange(groupBudget, groupBudget, "PHP")}`
+              : null,
+          fitLabel,
+          whyItFits: product.whyItFits,
+          trackingLabel,
+        };
+      });
 
     return NextResponse.json({
       products: [...searchFallbackCards, ...products].slice(0, 3),

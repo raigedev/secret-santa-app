@@ -19,6 +19,13 @@ export async function GET(request: NextRequest) {
   }
 
   const lazadaTarget = await resolveLazadaWishlistItemLinkTarget({
+    attribution: {
+      catalogSource: "wishlist-product",
+      fitLabel: "Wishlist item",
+      groupId,
+      trackingLabel: "Partner link",
+      wishlistItemId,
+    },
     fallbackUrl: normalizedItemUrl,
     itemName,
     itemUrl: normalizedItemUrl,
@@ -36,7 +43,17 @@ export async function GET(request: NextRequest) {
       wishlist_item_id: wishlistItemId,
       merchant: "lazada",
       suggestion_title: itemName.slice(0, 120),
-      search_query: normalizedItemUrl.slice(0, 200),
+      search_query: [
+        normalizedItemUrl,
+        "wishlist-product",
+        "Wishlist item",
+        "Partner link",
+        lazadaTarget.mode,
+        lazadaTarget.reason,
+      ]
+        .filter(Boolean)
+        .join(" | ")
+        .slice(0, 200),
       target_url: lazadaTarget.targetUrl.slice(0, 1000),
     });
   } catch {

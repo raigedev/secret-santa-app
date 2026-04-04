@@ -398,6 +398,7 @@ export function buildTrackedSuggestionHref(
   region: ShoppingRegion,
   options?: {
     catalogSource?: string | null;
+    fitLabel?: string | null;
     groupBudget?: number | null;
     itemCategory?: string | null;
     itemName?: string | null;
@@ -406,6 +407,7 @@ export function buildTrackedSuggestionHref(
     preferredPriceMax?: number | null;
     preferredPriceMin?: number | null;
     skuId?: string | null;
+    trackingLabel?: string | null;
   }
 ): string {
   const params = new URLSearchParams({
@@ -427,6 +429,14 @@ export function buildTrackedSuggestionHref(
 
   if (options?.catalogSource) {
     params.set("catalogSource", options.catalogSource);
+  }
+
+  if (options?.fitLabel) {
+    params.set("fitLabel", options.fitLabel);
+  }
+
+  if (options?.trackingLabel) {
+    params.set("trackingLabel", options.trackingLabel);
   }
 
   if (options?.itemName) {
@@ -949,7 +959,10 @@ export function buildWishlistMerchantLinks(
             wishlistItemId,
             option.searchQuery,
             option.title,
-            region
+            region,
+            {
+              fitLabel: option.fitLabel,
+            }
           )
         : getMerchantSearchUrl(merchant, option.searchQuery, region),
       isAffiliateReady,
@@ -1001,25 +1014,32 @@ export function buildWishlistFeaturedLazadaProducts(input: {
     skuId: template.skuId,
     title: template.title,
     subtitle: template.subtitle,
-    href: buildTrackedSuggestionHref(
-      "lazada",
-      input.groupId,
+      href: buildTrackedSuggestionHref(
+        "lazada",
+        input.groupId,
       input.wishlistItemId,
       template.searchQuery,
       template.title,
       input.region,
-      {
-        catalogSource: template.source,
-        groupBudget: input.groupBudget,
-        itemCategory: input.itemCategory,
-        itemName: input.itemName,
+        {
+          catalogSource: template.source,
+          fitLabel: getBudgetFitLabel(
+            template,
+            input.preferredPriceMin,
+            input.preferredPriceMax,
+            input.groupBudget
+          ),
+          groupBudget: input.groupBudget,
+          itemCategory: input.itemCategory,
+          itemName: input.itemName,
         itemNote: input.itemNote,
         productId: template.productId,
-        preferredPriceMax: input.preferredPriceMax,
-        preferredPriceMin: input.preferredPriceMin,
-        skuId: template.skuId,
-      }
-    ),
+          preferredPriceMax: input.preferredPriceMax,
+          preferredPriceMin: input.preferredPriceMin,
+          skuId: template.skuId,
+          trackingLabel: getFeaturedLazadaTrackingLabel(template),
+        }
+      ),
     searchQuery: template.searchQuery,
     priceLabel: getSuggestionPriceLabel(
       template,
