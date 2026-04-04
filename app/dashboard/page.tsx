@@ -136,11 +136,65 @@ function formatDashboardBudget(budget: number | null, currency: string | null): 
   return `${symbol} ${formatter.format(budget)}`;
 }
 
+function ArrowRightIcon({ className = "h-4 w-4" }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 20 20" fill="none" className={className} aria-hidden="true">
+      <path
+        d="M4 10h12M11.5 5.5 16 10l-4.5 4.5"
+        stroke="currentColor"
+        strokeWidth="1.8"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
+
+function BellIcon({ className = "h-4 w-4" }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 20 20" fill="none" className={className} aria-hidden="true">
+      <path
+        d="M10 3.5a3 3 0 0 0-3 3v1.1c0 .8-.2 1.6-.6 2.3l-1 1.7a1 1 0 0 0 .9 1.5h7.4a1 1 0 0 0 .9-1.5l-1-1.7a4.5 4.5 0 0 1-.6-2.3V6.5a3 3 0 0 0-3-3Z"
+        stroke="currentColor"
+        strokeWidth="1.6"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <path d="M8.5 15a1.8 1.8 0 0 0 3 0" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+    </svg>
+  );
+}
+
+function GiftIcon({ className = "h-5 w-5" }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" className={className} aria-hidden="true">
+      <rect x="4" y="10" width="16" height="10" rx="2" stroke="currentColor" strokeWidth="1.8" />
+      <path d="M12 10v10M4 10h16" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+      <path
+        d="M9.2 10c-1.6 0-2.7-1-2.7-2.3 0-1.1.8-2 1.9-2 1.7 0 2.9 2.1 3.6 4.3H9.2Z"
+        stroke="currentColor"
+        strokeWidth="1.8"
+        strokeLinejoin="round"
+      />
+      <path
+        d="M14.8 10c1.6 0 2.7-1 2.7-2.3 0-1.1-.8-2-1.9-2-1.7 0-2.9 2.1-3.6 4.3h2.8Z"
+        stroke="currentColor"
+        strokeWidth="1.8"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
+
+function MiniStatusDot({ className }: { className: string }) {
+  return <span aria-hidden="true" className={`h-2.5 w-2.5 rounded-full ${className}`} />;
+}
+
 export default function DashboardPage() {
   const router = useRouter();
   const [supabase] = useState(() => createClient());
   const [userName, setUserName] = useState("");
-  const [userEmoji, setUserEmoji] = useState("ðŸŽ…");
+  const [userEmoji, setUserEmoji] = useState("\u{1F385}");
   const [ownedGroups, setOwnedGroups] = useState<Group[]>([]);
   const [invitedGroups, setInvitedGroups] = useState<Group[]>([]);
   const [pendingInvites, setPendingInvites] = useState<PendingInvite[]>([]);
@@ -369,7 +423,7 @@ export default function DashboardPage() {
       if (profileData) {
         setShowProfileSetup(!profileData.profile_setup_complete);
         setUserName(profileData.display_name || defaultName);
-        setUserEmoji(profileData.avatar_emoji || "ðŸŽ…");
+        setUserEmoji(profileData.avatar_emoji || "\u{1F385}");
       }
     };
 
@@ -724,7 +778,7 @@ export default function DashboardPage() {
               className="inline-flex items-center gap-2 rounded-full bg-[linear-gradient(135deg,#2f80ff,#1f66e5)] px-5 py-2.5 text-sm font-semibold text-white shadow-[0_14px_35px_rgba(37,99,235,0.22)] transition hover:-translate-y-0.5"
             >
               <span>View Group</span>
-              <span aria-hidden="true">â†’</span>
+              <ArrowRightIcon />
             </button>
             {type === "owned" && (
               <button
@@ -799,7 +853,7 @@ export default function DashboardPage() {
               className={`mt-6 inline-flex items-center gap-2 rounded-full px-5 py-2.5 text-sm font-semibold text-white transition hover:-translate-y-0.5 ${theme.button}`}
             >
               <span>{buttonLabel}</span>
-              <span aria-hidden="true">{"->"}</span>
+              <ArrowRightIcon />
             </button>
           </div>
         </div>
@@ -857,7 +911,7 @@ export default function DashboardPage() {
             onClick={() => router.push("/notifications")}
             className="relative inline-flex items-center gap-2 rounded-full border border-white/70 bg-white/90 px-4 py-2.5 text-sm font-semibold text-slate-700 shadow-[0_18px_50px_rgba(148,163,184,0.14)] backdrop-blur-md transition hover:-translate-y-0.5"
           >
-            <span aria-hidden="true">Bell</span>
+            <BellIcon />
             <span>Notifications</span>
             {unreadNotificationCount > 0 && (
               <span className="absolute -right-1 -top-1 inline-flex min-h-5 min-w-5 items-center justify-center rounded-full bg-rose-500 px-1 text-[10px] font-bold text-white">
@@ -882,9 +936,7 @@ export default function DashboardPage() {
 
         <div data-fade className="mb-10 text-center">
           <div className="mx-auto inline-flex items-center gap-3 rounded-full bg-white/85 px-5 py-2 shadow-[0_18px_50px_rgba(148,163,184,0.15)] backdrop-blur-md">
-            <span aria-hidden="true" className="text-2xl">
-              Gift
-            </span>
+            <GiftIcon className="h-6 w-6 text-sky-600" />
             <span className="text-sm font-semibold uppercase tracking-[0.2em] text-sky-600">
               Secret Santa
             </span>
@@ -935,10 +987,16 @@ export default function DashboardPage() {
             buttonLabel="Open chat"
             onClick={() => router.push("/secret-santa-chat")}
             scene={
-              <div className="flex items-center gap-3 text-sm font-semibold uppercase tracking-[0.16em] text-white/90">
-                <span>Hints</span>
-                <span>Notes</span>
-                <span>Chat</span>
+              <div className="flex items-center gap-3">
+                <span className="inline-flex rounded-full bg-white/20 px-3 py-1 text-xs font-semibold uppercase tracking-[0.14em] text-white/90">
+                  Hints
+                </span>
+                <span className="inline-flex rounded-full bg-white/20 px-3 py-1 text-xs font-semibold uppercase tracking-[0.14em] text-white/90">
+                  Notes
+                </span>
+                <span className="inline-flex rounded-full bg-white/20 px-3 py-1 text-xs font-semibold uppercase tracking-[0.14em] text-white/90">
+                  Chat
+                </span>
               </div>
             }
           />
@@ -950,10 +1008,19 @@ export default function DashboardPage() {
             buttonLabel="New group"
             onClick={() => router.push("/create-group")}
             scene={
-              <div className="flex items-center gap-3 text-sm font-semibold uppercase tracking-[0.16em] text-white/90">
-                <span>Plan</span>
-                <span>Invite</span>
-                <span>Draw</span>
+              <div className="flex items-center gap-3">
+                <span className="inline-flex items-center gap-2 rounded-full bg-white/20 px-3 py-1 text-xs font-semibold uppercase tracking-[0.14em] text-white/90">
+                  <MiniStatusDot className="bg-white/90" />
+                  Plan
+                </span>
+                <span className="inline-flex items-center gap-2 rounded-full bg-white/20 px-3 py-1 text-xs font-semibold uppercase tracking-[0.14em] text-white/90">
+                  <MiniStatusDot className="bg-white/90" />
+                  Invite
+                </span>
+                <span className="inline-flex items-center gap-2 rounded-full bg-white/20 px-3 py-1 text-xs font-semibold uppercase tracking-[0.14em] text-white/90">
+                  <MiniStatusDot className="bg-white/90" />
+                  Draw
+                </span>
               </div>
             }
           />
@@ -985,7 +1052,7 @@ export default function DashboardPage() {
                   className="mt-6 inline-flex items-center gap-2 rounded-full bg-[linear-gradient(135deg,#2f80ff,#1f66e5)] px-5 py-2.5 text-sm font-semibold text-white shadow-[0_14px_35px_rgba(37,99,235,0.22)] transition hover:-translate-y-0.5"
                 >
                   <span>Start new group</span>
-                  <span aria-hidden="true">{"->"}</span>
+                  <ArrowRightIcon />
                 </button>
               </section>
             </div>
@@ -1025,7 +1092,7 @@ export default function DashboardPage() {
             className="inline-flex items-center gap-2 rounded-full bg-white px-5 py-2.5 text-sm font-semibold text-slate-700 shadow-[0_12px_30px_rgba(148,163,184,0.16)] transition hover:-translate-y-0.5"
           >
             <span>Edit profile</span>
-            <span aria-hidden="true">→</span>
+            <ArrowRightIcon />
           </button>
           <button
             type="button"
@@ -1033,7 +1100,7 @@ export default function DashboardPage() {
             className="inline-flex items-center gap-2 rounded-full bg-[linear-gradient(135deg,#f59e0b,#f97316)] px-5 py-2.5 text-sm font-semibold text-white shadow-[0_14px_35px_rgba(249,115,22,0.22)] transition hover:-translate-y-0.5"
           >
             <span>Logout</span>
-            <span aria-hidden="true">→</span>
+            <ArrowRightIcon />
           </button>
         </section>
 

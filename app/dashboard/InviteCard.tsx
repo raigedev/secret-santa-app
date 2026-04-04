@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useState } from "react";
 import { acceptInvite, declineInvite } from "./actions";
@@ -9,6 +9,21 @@ type Props = {
   eventDate: string;
   description?: string;
 };
+
+function EnvelopeIcon({ className = "h-7 w-7" }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" className={className} aria-hidden="true">
+      <rect x="4" y="6" width="16" height="12" rx="2.5" stroke="currentColor" strokeWidth="1.8" />
+      <path
+        d="m5.5 8 5.7 4.5a1.3 1.3 0 0 0 1.6 0L18.5 8"
+        stroke="currentColor"
+        strokeWidth="1.8"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
 
 export default function InviteCard({
   groupId,
@@ -86,8 +101,8 @@ export default function InviteCard({
           <h3 className="mt-3 text-xl font-bold text-slate-900">{groupName}</h3>
           <p className="mt-2 text-sm font-medium text-slate-500">Event date: {eventDate}</p>
         </div>
-        <div className="hidden h-16 w-16 shrink-0 items-center justify-center rounded-full bg-[linear-gradient(145deg,#eff6ff,#dbeafe)] text-2xl shadow-[0_14px_34px_rgba(59,130,246,0.15)] sm:flex">
-          Invite
+        <div className="hidden h-16 w-16 shrink-0 items-center justify-center rounded-full bg-[linear-gradient(145deg,#eff6ff,#dbeafe)] text-sky-600 shadow-[0_14px_34px_rgba(59,130,246,0.15)] sm:flex">
+          <EnvelopeIcon />
         </div>
       </div>
 
