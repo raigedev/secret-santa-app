@@ -193,6 +193,7 @@ function MiniStatusDot({ className }: { className: string }) {
 export default function DashboardPage() {
   const router = useRouter();
   const [supabase] = useState(() => createClient());
+  const [canViewAffiliateReport, setCanViewAffiliateReport] = useState(false);
   const [userName, setUserName] = useState("");
   const [userEmoji, setUserEmoji] = useState("\u{1F385}");
   const [ownedGroups, setOwnedGroups] = useState<Group[]>([]);
@@ -409,6 +410,31 @@ export default function DashboardPage() {
       }
     };
 
+    const loadAffiliateReportAccess = async () => {
+      try {
+        const response = await fetch("/api/affiliate/report-access", {
+          credentials: "same-origin",
+        });
+
+        if (!response.ok) {
+          if (isMounted) {
+            setCanViewAffiliateReport(false);
+          }
+          return;
+        }
+
+        const payload = (await response.json()) as { allowed?: boolean };
+
+        if (isMounted) {
+          setCanViewAffiliateReport(Boolean(payload.allowed));
+        }
+      } catch {
+        if (isMounted) {
+          setCanViewAffiliateReport(false);
+        }
+      }
+    };
+
     loadDashboardDataRef.current = loadDashboardData;
 
     const loadProfileData = async () => {
@@ -521,7 +547,11 @@ export default function DashboardPage() {
 
         setUserName(defaultName);
 
-        await Promise.all([loadProfileData(), claimInvitedMemberships()]);
+        await Promise.all([
+          loadProfileData(),
+          claimInvitedMemberships(),
+          loadAffiliateReportAccess(),
+        ]);
 
         if (!isMounted) {
           return;
@@ -635,11 +665,14 @@ export default function DashboardPage() {
     router.prefetch("/secret-santa-chat");
     router.prefetch("/create-group");
     router.prefetch("/profile");
+    if (canViewAffiliateReport) {
+      router.prefetch("/dashboard/affiliate-report");
+    }
 
     for (const group of [...ownedGroups, ...invitedGroups]) {
       router.prefetch(`/group/${group.id}`);
     }
-  }, [router, ownedGroups, invitedGroups]);
+  }, [router, ownedGroups, invitedGroups, canViewAffiliateReport]);
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
@@ -906,6 +939,16 @@ export default function DashboardPage() {
         )}
 
         <div data-fade className="mb-8 flex justify-end gap-3">
+          {canViewAffiliateReport && (
+            <button
+              type="button"
+              onClick={() => router.push("/dashboard/affiliate-report")}
+              className="inline-flex items-center gap-2 rounded-full border border-white/70 bg-white/90 px-4 py-2.5 text-sm font-semibold text-slate-700 shadow-[0_18px_50px_rgba(148,163,184,0.14)] backdrop-blur-md transition hover:-translate-y-0.5"
+            >
+              <GiftIcon className="h-4 w-4 text-sky-600" />
+              <span>Affiliate report</span>
+            </button>
+          )}
           <button
             type="button"
             onClick={() => router.push("/notifications")}
