@@ -49,6 +49,78 @@ function isShoppingRegion(value: string): value is ShoppingRegion {
 }
 
 type MatchCardRole = "closest" | "premium" | "step-up";
+type SearchAngleIntent =
+  | "accessory"
+  | "budget"
+  | "exact"
+  | "gift-ready"
+  | "generic"
+  | "premium";
+
+function normalizeAngleQuery(value: string): string {
+  return value.trim().toLowerCase().replace(/\s+/g, " ");
+}
+
+function detectSearchAngleIntent(searchQuery: string, itemName: string): SearchAngleIntent {
+  const normalizedQuery = normalizeAngleQuery(searchQuery);
+  const normalizedItemName = normalizeAngleQuery(itemName);
+
+  if (normalizedQuery === normalizedItemName) {
+    return "exact";
+  }
+
+  if (/\b(accessories|accessory|bundle|case|stand|mount|adapter|cable|cover)\b/.test(normalizedQuery)) {
+    return "accessory";
+  }
+
+  if (/\b(gift set|gift box|gift pack|bundle|kit|set)\b/.test(normalizedQuery)) {
+    return "gift-ready";
+  }
+
+  if (/\b(budget|affordable|entry|starter|cheap)\b/.test(normalizedQuery)) {
+    return "budget";
+  }
+
+  if (/\b(premium|high end|highest|luxury|upgrade|pro|max|ultra)\b/.test(normalizedQuery)) {
+    return "premium";
+  }
+
+  return "generic";
+}
+
+function doesProductMatchKeywordGroup(
+  productName: string,
+  keywords: string[]
+): boolean {
+  const haystack = productName.toLowerCase();
+  return keywords.some((keyword) => haystack.includes(keyword));
+}
+
+function filterMatchesByKeywords<
+  T extends { product: { productName: string } },
+>(matches: T[], keywords: string[]): T[] {
+  return matches.filter((match) =>
+    doesProductMatchKeywordGroup(match.product.productName, keywords)
+  );
+}
+
+function filterMatchesByMinimumPrice<
+  T extends { product: { discountedPrice: number | null; salePrice: number | null } },
+>(matches: T[], minimumPrice: number): T[] {
+  return matches.filter((match) => {
+    const price = getLazadaFeedProductPrice(match.product);
+    return price !== null && price >= minimumPrice;
+  });
+}
+
+function filterMatchesByMaximumPrice<
+  T extends { product: { discountedPrice: number | null; salePrice: number | null } },
+>(matches: T[], maximumPrice: number): T[] {
+  return matches.filter((match) => {
+    const price = getLazadaFeedProductPrice(match.product);
+    return price !== null && price <= maximumPrice;
+  });
+}
 
 function sortMatchesByPriceAscending<
   T extends { product: { discountedPrice: number | null; salePrice: number | null } },
@@ -249,6 +321,7 @@ export async function POST(request: NextRequest) {
   const preferredPriceMin = sanitizeOptionalNumber(payload.preferredPriceMin);
   const preferredPriceMax = sanitizeOptionalNumber(payload.preferredPriceMax);
   const groupBudget = sanitizeOptionalNumber(payload.groupBudget);
+  const searchAngleIntent = detectSearchAngleIntent(searchQuery, itemName);
 
   const matches = findBestLazadaFeedMatches({
     itemName,
@@ -273,11 +346,74 @@ export async function POST(request: NextRequest) {
     limit: 12,
     minimumScore: 0.5,
   });
-  const orderedMatches = buildRoleOrderedMatches(matches, premiumMatches, groupBudget);
+  let primaryMatches = matches;
+  let premiumCandidates = premiumMatches;
+
+  if (searchAngleIntent === "budget") {
+    const budgetCap =
+      preferredPriceMax ??
+      (groupBudget !== null ? Math.max(groupBudget, groupBudget + 200) : null);
+
+    if (budgetCap !== null) {
+      const lowerPriceMatches = filterMatchesByMaximumPrice(matches, budgetCap);
+
+      if (lowerPriceMatches.length > 0) {
+        primaryMatches = sortMatchesByPriceAscending(lowerPriceMatches);
+      }
+    }
+  }
+
+  if (searchAngleIntent === "premium") {
+    const premiumFloor =
+      groupBudget !== null
+        ? Math.max(groupBudget * 1.5, groupBudget + 300)
+        : preferredPriceMin !== null
+          ? Math.max(preferredPriceMin * 1.5, preferredPriceMin + 300)
+          : 0;
+
+    const strongerPremiumMatches = filterMatchesByMinimumPrice(
+      premiumMatches,
+      premiumFloor
+    );
+
+    primaryMatches = strongerPremiumMatches.length > 0 ? strongerPremiumMatches : [];
+    premiumCandidates = strongerPremiumMatches.length > 0 ? strongerPremiumMatches : [];
+  }
+
+  if (searchAngleIntent === "gift-ready") {
+    const giftMatches = filterMatchesByKeywords(matches, [
+      "gift",
+      "set",
+      "bundle",
+      "kit",
+      "box",
+      "pack",
+    ]);
+    primaryMatches = giftMatches;
+    premiumCandidates = giftMatches;
+  }
+
+  if (searchAngleIntent === "accessory") {
+    const accessoryMatches = filterMatchesByKeywords(matches, [
+      "accessor",
+      "case",
+      "stand",
+      "mount",
+      "adapter",
+      "cable",
+      "cover",
+      "bundle",
+      "kit",
+    ]);
+    primaryMatches = accessoryMatches;
+    premiumCandidates = accessoryMatches;
+  }
+
+  const orderedMatches = buildRoleOrderedMatches(primaryMatches, premiumCandidates, groupBudget);
   const premiumFloor = groupBudget ?? preferredPriceMin ?? 0;
   const premiumStepUpMatch =
     orderedMatches.length === 0
-      ? sortMatchesByPriceAscending(premiumMatches).find((candidate) => {
+      ? sortMatchesByPriceAscending(premiumCandidates).find((candidate) => {
           const candidatePrice = getLazadaFeedProductPrice(candidate.product);
 
           return candidatePrice !== null && candidatePrice > premiumFloor;
@@ -285,12 +421,12 @@ export async function POST(request: NextRequest) {
       : null;
   const premiumOnlyMatch =
     orderedMatches.length === 0
-      ? sortMatchesByPriceDescending(premiumMatches).find(
+      ? sortMatchesByPriceDescending(premiumCandidates).find(
           (candidate) => candidate.product.itemId !== premiumStepUpMatch?.product.itemId
         ) ||
         (premiumStepUpMatch
           ? null
-          : sortMatchesByPriceDescending(premiumMatches)[0] || null)
+          : sortMatchesByPriceDescending(premiumCandidates)[0] || null)
       : null;
   const fallbackRoleMatches: Array<{
     match: (typeof premiumMatches)[number];
