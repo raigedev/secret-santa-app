@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 
 import {
+  buildLazadaClickToken,
   resolveLazadaSearchRouteLinkTarget,
   resolveLazadaSuggestionLinkTarget,
 } from "@/lib/affiliate/lazada";
@@ -65,6 +66,17 @@ export async function GET(request: NextRequest) {
         reason: string;
       }
     | null = null;
+  const clickToken =
+    merchant === "lazada"
+      ? buildLazadaClickToken({
+          catalogSource,
+          fitLabel,
+          groupId,
+          searchQuery,
+          trackingLabel,
+          wishlistItemId,
+        })
+      : null;
 
   const preferredPriceMin =
     preferredPriceMinRaw !== null && preferredPriceMinRaw.trim().length > 0
@@ -129,6 +141,11 @@ export async function GET(request: NextRequest) {
       wishlist_item_id: wishlistItemId,
       merchant,
       suggestion_title: suggestionTitle.slice(0, 120),
+      catalog_source: catalogSource,
+      click_token: clickToken,
+      fit_label: fitLabel,
+      resolution_mode: lazadaResolution?.mode || null,
+      resolution_reason: lazadaResolution?.reason || null,
       search_query: [
         searchQuery,
         productId,
@@ -143,6 +160,7 @@ export async function GET(request: NextRequest) {
         .join(" | ")
         .slice(0, 200),
       target_url: targetUrl.slice(0, 1000),
+      tracking_label: trackingLabel,
     });
   } catch {
     // Click tracking should never block the user from reaching the merchant page.

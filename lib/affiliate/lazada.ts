@@ -109,7 +109,7 @@ export type LazadaPrimePromotionLinksResult = {
   urlsPrimed: number;
 };
 
-type LazadaAffiliateAttributionContext = {
+export type LazadaAffiliateAttributionContext = {
   catalogSource?: string | null;
   fitLabel?: string | null;
   groupId?: string | null;
@@ -252,7 +252,7 @@ function slugifyLazadaSubIdValue(value: string | null | undefined, fallback: str
   return slug || fallback;
 }
 
-function buildLazadaClickToken(context: LazadaAffiliateAttributionContext): string {
+export function buildLazadaClickToken(context: LazadaAffiliateAttributionContext): string {
   return createHash("sha256")
     .update(
       JSON.stringify({
@@ -268,7 +268,7 @@ function buildLazadaClickToken(context: LazadaAffiliateAttributionContext): stri
     .slice(0, 16);
 }
 
-function buildLazadaWishlistSubIdsFromContext(
+export function buildLazadaWishlistSubIdsFromContext(
   context: LazadaAffiliateAttributionContext
 ): LazadaSubIds {
   const sourceToken = slugifyLazadaSubIdValue(context.catalogSource, "search");

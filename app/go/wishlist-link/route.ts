@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 
-import { resolveLazadaWishlistItemLinkTarget } from "@/lib/affiliate/lazada";
+import {
+  buildLazadaClickToken,
+  resolveLazadaWishlistItemLinkTarget,
+} from "@/lib/affiliate/lazada";
 import { normalizeLazadaProductPageUrl } from "@/lib/affiliate/lazada-url";
 import { supabaseAdmin } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
@@ -30,6 +33,14 @@ export async function GET(request: NextRequest) {
     itemName,
     itemUrl: normalizedItemUrl,
   });
+  const clickToken = buildLazadaClickToken({
+    catalogSource: "wishlist-product",
+    fitLabel: "Wishlist item",
+    groupId,
+    searchQuery: itemName,
+    trackingLabel: "Partner link",
+    wishlistItemId,
+  });
 
   try {
     const supabase = await createClient();
@@ -42,6 +53,11 @@ export async function GET(request: NextRequest) {
       group_id: groupId,
       wishlist_item_id: wishlistItemId,
       merchant: "lazada",
+      catalog_source: "wishlist-product",
+      click_token: clickToken,
+      fit_label: "Wishlist item",
+      resolution_mode: lazadaTarget.mode,
+      resolution_reason: lazadaTarget.reason,
       suggestion_title: itemName.slice(0, 120),
       search_query: [
         normalizedItemUrl,
@@ -55,6 +71,7 @@ export async function GET(request: NextRequest) {
         .join(" | ")
         .slice(0, 200),
       target_url: lazadaTarget.targetUrl.slice(0, 1000),
+      tracking_label: "Partner link",
     });
   } catch {
     // Tracking should never block the shopper from reaching Lazada.
