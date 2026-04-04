@@ -573,7 +573,7 @@ function getKeywordTemplates(itemName: string, itemNote: string): SuggestionTemp
     ];
   }
 
-  if (/(tablet|ipad|android tab)/.test(haystack)) {
+  if (/(tablet|ipad|android tab|\btab\b|galaxy tab|redmi pad|xiaomi pad|mi pad|matepad|lenovo tab)/.test(haystack)) {
     return [
       {
         title: "Budget tablets",
@@ -803,7 +803,7 @@ function getSuggestionPriceLabel(
 function getNearbySearchBase(itemName: string, itemCategory: string, searchQuery: string): string[] {
   const haystack = `${itemName} ${itemCategory} ${searchQuery}`.toLowerCase();
 
-  if (/(tablet|ipad|android tab|laptop|gadget|tech|phone|mobile|earbuds|headphone|camera)/.test(haystack)) {
+  if (/(tablet|ipad|android tab|\btab\b|galaxy tab|redmi pad|xiaomi pad|mi pad|matepad|lenovo tab|laptop|gadget|tech|phone|mobile|earbuds|headphone|camera)/.test(haystack)) {
     return ["electronics store", "computer shop", "gadget store"];
   }
 
