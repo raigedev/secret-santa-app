@@ -17,6 +17,11 @@ type AffiliateClickRow = {
   user_id: string | null;
 };
 
+type ProfileRow = {
+  display_name: string | null;
+  user_id: string;
+};
+
 type AffiliateConversionRow = {
   affiliate_click_id: string | null;
   id: string;
@@ -31,6 +36,7 @@ type AffiliatePerformanceRow = {
   affiliate_click_id: string;
   affiliate_conversion_id: string | null;
   amount: number | string | null;
+  actor_label: string;
   catalog_source: string | null;
   clicked_at: string;
   conversion_status: string | null;
@@ -90,9 +96,25 @@ function summarizeSearchQuery(value: string): string {
   return firstPart.length > 70 ? `${firstPart.slice(0, 67)}...` : firstPart;
 }
 
+function buildActorLabel(userId: string | null, profilesByUserId: Map<string, ProfileRow>): string {
+  if (!userId) {
+    return "Unknown user";
+  }
+
+  const profile = profilesByUserId.get(userId);
+  const displayName = profile?.display_name?.trim();
+
+  if (displayName) {
+    return displayName;
+  }
+
+  return `User ${userId.slice(0, 8)}`;
+}
+
 function buildPerformanceRows(
   clicks: AffiliateClickRow[],
-  conversions: AffiliateConversionRow[]
+  conversions: AffiliateConversionRow[],
+  profilesByUserId: Map<string, ProfileRow>
 ): AffiliatePerformanceRow[] {
   const conversionsByClickId = new Map<string, AffiliateConversionRow>();
 
@@ -115,6 +137,7 @@ function buildPerformanceRows(
       affiliate_click_id: click.id,
       affiliate_conversion_id: matchingConversion?.id || null,
       amount: matchingConversion?.amount || null,
+      actor_label: buildActorLabel(click.user_id, profilesByUserId),
       catalog_source: click.catalog_source,
       clicked_at: click.created_at,
       conversion_status: matchingConversion?.conversion_status || null,
@@ -176,21 +199,73 @@ export default async function AffiliateReportPage() {
     redirect("/dashboard");
   }
 
-  const { data: clicks, error: clicksError } = await supabaseAdmin
-    .from("affiliate_clicks")
-    .select(
-      "id, catalog_source, created_at, fit_label, merchant, resolution_mode, search_query, suggestion_title, tracking_label, user_id"
-    )
-    .eq("user_id", user.id)
-    .order("created_at", { ascending: false })
-    .limit(250);
+  const [
+    { count: totalClicksCount, error: totalClicksError },
+    { count: totalSearchClicksCount, error: totalSearchClicksError },
+    { count: totalDirectClicksCount, error: totalDirectClicksError },
+    { count: totalConversionsCount, error: totalConversionsError },
+    { data: clicks, error: clicksError },
+  ] = await Promise.all([
+    supabaseAdmin
+      .from("affiliate_clicks")
+      .select("*", { count: "exact", head: true })
+      .eq("merchant", "lazada"),
+    supabaseAdmin
+      .from("affiliate_clicks")
+      .select("*", { count: "exact", head: true })
+      .eq("merchant", "lazada")
+      .eq("catalog_source", "search-backed"),
+    supabaseAdmin
+      .from("affiliate_clicks")
+      .select("*", { count: "exact", head: true })
+      .eq("merchant", "lazada")
+      .in("catalog_source", ["catalog-product", "wishlist-product"]),
+    supabaseAdmin
+      .from("affiliate_conversions")
+      .select("*", { count: "exact", head: true })
+      .eq("merchant", "lazada"),
+    supabaseAdmin
+      .from("affiliate_clicks")
+      .select(
+        "id, catalog_source, created_at, fit_label, merchant, resolution_mode, search_query, suggestion_title, tracking_label, user_id"
+      )
+      .eq("merchant", "lazada")
+      .order("created_at", { ascending: false })
+      .limit(250),
+  ]);
 
-  if (clicksError) {
+  if (
+    totalClicksError ||
+    totalSearchClicksError ||
+    totalDirectClicksError ||
+    totalConversionsError ||
+    clicksError
+  ) {
     throw new Error("Failed to load affiliate clicks.");
   }
 
   const clickRows = (clicks || []) as AffiliateClickRow[];
   const clickIds = clickRows.map((row) => row.id);
+  const uniqueUserIds = Array.from(
+    new Set(clickRows.map((row) => row.user_id).filter((value): value is string => Boolean(value)))
+  );
+
+  let profilesByUserId = new Map<string, ProfileRow>();
+
+  if (uniqueUserIds.length > 0) {
+    const { data: profiles, error: profilesError } = await supabaseAdmin
+      .from("profiles")
+      .select("user_id, display_name")
+      .in("user_id", uniqueUserIds);
+
+    if (profilesError) {
+      throw new Error("Failed to load affiliate user profiles.");
+    }
+
+    profilesByUserId = new Map(
+      ((profiles || []) as ProfileRow[]).map((profile) => [profile.user_id, profile])
+    );
+  }
 
   let conversionRows: AffiliateConversionRow[] = [];
 
@@ -209,14 +284,12 @@ export default async function AffiliateReportPage() {
     conversionRows = (conversions || []) as AffiliateConversionRow[];
   }
 
-  const reportRows = buildPerformanceRows(clickRows, conversionRows).slice(0, 50);
+  const reportRows = buildPerformanceRows(clickRows, conversionRows, profilesByUserId).slice(0, 50);
 
-  const totalClicks = clickRows.length;
-  const totalSearchClicks = clickRows.filter((row) => row.catalog_source === "search-backed").length;
-  const totalDirectClicks = clickRows.filter(
-    (row) => row.catalog_source === "catalog-product" || row.catalog_source === "wishlist-product"
-  ).length;
-  const totalConversions = conversionRows.length;
+  const totalClicks = totalClicksCount || 0;
+  const totalSearchClicks = totalSearchClicksCount || 0;
+  const totalDirectClicks = totalDirectClicksCount || 0;
+  const totalConversions = totalConversionsCount || 0;
   const totalSales = conversionRows.reduce((sum, row) => sum + parseNumericValue(row.amount), 0);
   const totalPayout = conversionRows.reduce((sum, row) => sum + parseNumericValue(row.payout), 0);
 
@@ -232,8 +305,9 @@ export default async function AffiliateReportPage() {
               Lazada affiliate report
             </h1>
             <p className="mt-3 max-w-3xl text-sm leading-6 text-slate-600">
-              This page combines your tracked affiliate clicks and mapped Lazada conversions so
-              you can see what people clicked, what converted, and what payout came back.
+              This owner-only page combines tracked Lazada affiliate clicks and mapped conversions
+              across your app so you can see what users clicked, what converted, and which paths
+              are actually working.
             </p>
           </div>
 
@@ -257,27 +331,27 @@ export default async function AffiliateReportPage() {
           <SummaryCard
             label="Total clicks"
             value={String(totalClicks)}
-            helper="All tracked affiliate clicks from your Secret Santa shopping flow."
+            helper="All tracked Lazada affiliate clicks across your app."
           />
           <SummaryCard
             label="Direct clicks"
             value={String(totalDirectClicks)}
-            helper="Clicks that opened a direct Lazada product or wishlist product route."
+            helper="App-wide clicks that opened a direct Lazada product or wishlist product route."
           />
           <SummaryCard
             label="Search clicks"
             value={String(totalSearchClicks)}
-            helper="Tracked search-backed Lazada clicks that open broader catalog or tag routes."
+            helper="App-wide tracked search-backed Lazada clicks that open broader catalog or tag routes."
           />
           <SummaryCard
             label="Conversions"
             value={String(totalConversions)}
-            helper="Postback events successfully stored and linked to your affiliate system."
+            helper="All stored Lazada postback events currently tracked in the system."
           />
           <SummaryCard
-            label="Estimated payout"
+            label="Recent payout"
             value={formatPesoAmount(totalPayout)}
-            helper={`Tracked payout so far. Total tested sale amount: ${formatPesoAmount(totalSales)}.`}
+            helper={`From the latest tracked conversions loaded below. Recent tested sale amount: ${formatPesoAmount(totalSales)}.`}
           />
         </section>
 
@@ -305,6 +379,7 @@ export default async function AffiliateReportPage() {
               <table className="min-w-full border-separate border-spacing-y-3">
                 <thead>
                   <tr className="text-left text-xs font-semibold uppercase tracking-[0.14em] text-slate-500">
+                    <th className="px-3 py-2">User</th>
                     <th className="px-3 py-2">Suggestion</th>
                     <th className="px-3 py-2">Type</th>
                     <th className="px-3 py-2">Resolution</th>
@@ -322,6 +397,10 @@ export default async function AffiliateReportPage() {
                       className="rounded-[22px] bg-slate-50/80 text-sm text-slate-700 shadow-[0_10px_25px_rgba(148,163,184,0.08)]"
                     >
                       <td className="rounded-l-[22px] px-3 py-3 align-top">
+                        <div className="font-semibold text-slate-900">{row.actor_label}</div>
+                        <div className="mt-1 text-xs text-slate-500">Owner-only visibility</div>
+                      </td>
+                      <td className="px-3 py-3 align-top">
                         <div className="font-semibold text-slate-900">{row.suggestion_title}</div>
                         <div className="mt-1 text-xs text-slate-500">
                           {summarizeSearchQuery(row.search_query)}
