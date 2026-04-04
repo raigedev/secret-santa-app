@@ -291,6 +291,9 @@ export default async function AffiliateReportPage() {
                 Clicks and conversions
               </h2>
             </div>
+            <p className="text-sm text-slate-500">
+              The Supabase view name is <span className="font-semibold text-slate-700">affiliate_performance</span>.
+            </p>
           </div>
 
           {reportRows.length === 0 ? (
