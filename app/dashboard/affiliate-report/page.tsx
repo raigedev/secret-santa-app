@@ -7,12 +7,22 @@ type AffiliateClickRow = {
   id: string;
   catalog_source: string | null;
   created_at: string;
+  fit_label: string | null;
+  merchant: string;
+  resolution_mode: string | null;
+  search_query: string;
+  suggestion_title: string;
+  tracking_label: string | null;
 };
 
 type AffiliateConversionRow = {
+  affiliate_click_id: string | null;
   id: string;
   amount: number | string | null;
+  click_token: string | null;
+  conversion_status: string | null;
   payout: number | string | null;
+  received_at: string;
 };
 
 type AffiliatePerformanceRow = {
@@ -78,6 +88,47 @@ function summarizeSearchQuery(value: string): string {
   return firstPart.length > 70 ? `${firstPart.slice(0, 67)}...` : firstPart;
 }
 
+function buildFallbackPerformanceRows(
+  clicks: AffiliateClickRow[],
+  conversions: AffiliateConversionRow[]
+): AffiliatePerformanceRow[] {
+  const conversionsByClickId = new Map<string, AffiliateConversionRow>();
+
+  for (const conversion of conversions) {
+    if (!conversion.affiliate_click_id) {
+      continue;
+    }
+
+    const existing = conversionsByClickId.get(conversion.affiliate_click_id);
+
+    if (!existing || new Date(conversion.received_at).getTime() > new Date(existing.received_at).getTime()) {
+      conversionsByClickId.set(conversion.affiliate_click_id, conversion);
+    }
+  }
+
+  return clicks.map((click) => {
+    const matchingConversion = conversionsByClickId.get(click.id) || null;
+
+    return {
+      affiliate_click_id: click.id,
+      affiliate_conversion_id: matchingConversion?.id || null,
+      amount: matchingConversion?.amount || null,
+      catalog_source: click.catalog_source,
+      clicked_at: click.created_at,
+      conversion_status: matchingConversion?.conversion_status || null,
+      converted_at: matchingConversion?.received_at || null,
+      currency: "PHP",
+      fit_label: click.fit_label,
+      merchant: click.merchant,
+      payout: matchingConversion?.payout || null,
+      resolution_mode: click.resolution_mode,
+      search_query: click.search_query,
+      suggestion_title: click.suggestion_title,
+      tracking_label: click.tracking_label,
+    };
+  });
+}
+
 function SummaryCard({
   label,
   value,
@@ -106,16 +157,35 @@ export default async function AffiliateReportPage() {
     redirect("/login");
   }
 
+  const allowedEmails = (
+    process.env.AFFILIATE_REPORT_ALLOWED_EMAILS ||
+    process.env.AFFILIATE_REPORT_OWNER_EMAIL ||
+    ""
+  )
+    .split(",")
+    .map((value) => value.trim().toLowerCase())
+    .filter((value) => value.length > 0);
+
+  if (
+    allowedEmails.length === 0 ||
+    !user.email ||
+    !allowedEmails.includes(user.email.toLowerCase())
+  ) {
+    redirect("/dashboard");
+  }
+
   const [{ data: clicks }, { data: conversions }, { data: performanceRows, error: performanceError }] =
     await Promise.all([
       supabase
         .from("affiliate_clicks")
-        .select("id, catalog_source, created_at")
+        .select(
+          "id, catalog_source, created_at, fit_label, merchant, resolution_mode, search_query, suggestion_title, tracking_label"
+        )
         .order("created_at", { ascending: false })
         .limit(250),
       supabase
         .from("affiliate_conversions")
-        .select("id, amount, payout")
+        .select("id, affiliate_click_id, amount, click_token, conversion_status, payout, received_at")
         .order("received_at", { ascending: false })
         .limit(250),
       supabase
@@ -127,13 +197,11 @@ export default async function AffiliateReportPage() {
         .limit(50),
     ]);
 
-  if (performanceError) {
-    throw new Error("Failed to load affiliate report.");
-  }
-
   const clickRows = (clicks || []) as AffiliateClickRow[];
   const conversionRows = (conversions || []) as AffiliateConversionRow[];
-  const reportRows = (performanceRows || []) as AffiliatePerformanceRow[];
+  const reportRows = performanceError
+    ? buildFallbackPerformanceRows(clickRows, conversionRows).slice(0, 50)
+    : ((performanceRows || []) as AffiliatePerformanceRow[]);
 
   const totalClicks = clickRows.length;
   const totalSearchClicks = clickRows.filter((row) => row.catalog_source === "search-backed").length;
@@ -216,7 +284,15 @@ export default async function AffiliateReportPage() {
               </h2>
             </div>
             <p className="text-sm text-slate-500">
-              The Supabase view name is <span className="font-semibold text-slate-700">affiliate_performance</span>.
+              {performanceError ? (
+                <>
+                  Using the fallback dataset because the view is not available yet.
+                </>
+              ) : (
+                <>
+                  The Supabase view name is <span className="font-semibold text-slate-700">affiliate_performance</span>.
+                </>
+              )}
             </p>
           </div>
 
