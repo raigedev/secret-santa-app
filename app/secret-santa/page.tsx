@@ -2311,7 +2311,7 @@ export default function SecretSantaPage() {
 
                               {selectedSuggestion && (
                                 <div className="mt-4">
-                                  <div className="grid gap-3 2xl:grid-cols-2">
+                                  <div className="grid gap-3">
                                     <div
                                       className="rounded-2xl p-3"
                                       style={{
