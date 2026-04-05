@@ -241,10 +241,6 @@ export default function NotificationsPage() {
         fontFamily: "'Nunito', sans-serif",
       }}
     >
-      <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&family=Fredoka:wght@500;600;700&display=swap');
-      `}</style>
-
       <FadeIn className="max-w-[760px] mx-auto px-4 py-6">
         <button
           onClick={() => router.push("/dashboard")}

@@ -34,7 +34,6 @@ export default function ProfileSetupModal({ defaultName, onComplete, onSkip }: P
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4"
       style={{ background: "rgba(0,0,0,.5)", backdropFilter: "blur(8px)" }}>
       <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&family=Fredoka:wght@500;600;700&display=swap');
         @keyframes modalIn{0%{opacity:0;transform:scale(.95) translateY(10px);}100%{opacity:1;transform:scale(1) translateY(0);}}
       `}</style>
 

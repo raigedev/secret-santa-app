@@ -106,7 +106,6 @@ export default function CreateGroupPage() {
         fontFamily: "'Nunito', sans-serif",
       }}
     >
-      <style>{`@import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&family=Fredoka:wght@500;600;700&display=swap');`}</style>
       <div className="absolute inset-0 bg-[url('/snowflakes.png')] opacity-20 z-0" />
 
       <div

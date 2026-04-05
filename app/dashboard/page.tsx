@@ -551,6 +551,7 @@ export default function DashboardPage() {
           loadProfileData(),
           claimInvitedMemberships(),
           loadAffiliateReportAccess(),
+          loadNotificationCount(session.user.id),
         ]);
 
         if (!isMounted) {
@@ -559,7 +560,6 @@ export default function DashboardPage() {
 
 
         await loadDashboardData(session.user);
-        await loadNotificationCount(session.user.id);
 
         if (notificationPollInterval) {
           clearInterval(notificationPollInterval);

@@ -214,10 +214,6 @@ export default function ProfilePage() {
 
   return (
     <main className="min-h-screen" style={{ background: "linear-gradient(180deg,#eef4fb,#dce8f5,#e8dce0)", fontFamily: "'Nunito', sans-serif" }}>
-      <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;500;600;700;800;900&family=Fredoka:wght@400;500;600;700&display=swap');
-      `}</style>
-
       <FadeIn className="max-w-[640px] mx-auto px-4 py-6">
 
         {/* Back */}
