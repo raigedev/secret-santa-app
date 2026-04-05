@@ -58,6 +58,7 @@ type SearchAngleIntent =
   | "gift-ready"
   | "generic"
   | "premium";
+type MatchStrictness = "balanced" | "flexible" | "strict";
 
 function normalizeAngleQuery(value: string): string {
   return value.trim().toLowerCase().replace(/\s+/g, " ");
@@ -272,19 +273,78 @@ function buildMatchWhyItFits(
   return "This is the higher-end option for the same general gift direction.";
 }
 
+function detectMatchStrictness(input: {
+  itemCategory: string;
+  itemName: string;
+  itemNote: string;
+  searchQuery: string;
+}): MatchStrictness {
+  const haystack = normalizeAngleQuery(
+    `${input.itemName} ${input.itemCategory} ${input.itemNote} ${input.searchQuery}`
+  );
+
+  if (
+    /\b(tablet|ipad|galaxy tab|android tab|redmi pad|xiaomi pad|power bank|powerbank|portable charger|battery pack|charger|mobile|phone|laptop|keyboard|mouse|monitor|printer|router|webcam|ssd|audio|earbuds|headset|speaker|microphone|soundbar|camera|drone|tripod|lens|gimbal|smart device)\b/.test(
+      haystack
+    )
+  ) {
+    return "strict";
+  }
+
+  if (
+    /\b(tote|bag|backpack|crossbody|wallet|purse|handbag|luggage|hoodie|shirt|tee|jacket|sweater|dress|sneaker|shoe|book|novel|manga|comic|journal|planner|stationery|notebook|pen|marker|sketchbook|craft|beauty|makeup|skincare|perfume|wellness|self care|home|decor|kitchen|cookware|bedding|blanket|pillow|lamp|organizer|mug|candle|pet|dog|cat|baby|newborn|infant|toddler|snack|coffee|tea|chocolate)\b/.test(
+      haystack
+    )
+  ) {
+    return "flexible";
+  }
+
+  return "balanced";
+}
+
+function hasCategoryAnchor(match: LazadaFeedMatch): boolean {
+  return (
+    match.reasons.includes("source category match") ||
+    match.reasons.some((reason) => reason.endsWith("keyword match"))
+  );
+}
+
 function isAcceptableDirectMatch(
   match: LazadaFeedMatch,
   role: MatchCardRole,
-  searchAngleIntent: SearchAngleIntent
+  searchAngleIntent: SearchAngleIntent,
+  strictness: MatchStrictness
 ): boolean {
   const confidence = getLazadaFeedMatchConfidence(match);
   const hasSemanticAnchor =
     match.reasons.includes("search overlap") ||
     match.reasons.includes("item title overlap") ||
     match.reasons.includes("core intent match");
+  const categoryAnchor = hasCategoryAnchor(match);
+  const score = match.score;
 
   if (!hasSemanticAnchor) {
     return false;
+  }
+
+  if (strictness === "flexible") {
+    if (role === "closest") {
+      return confidence !== "low" || (categoryAnchor && score >= 0.58);
+    }
+
+    return confidence !== "low" || (categoryAnchor && score >= 0.56);
+  }
+
+  if (strictness === "balanced") {
+    if (role === "closest") {
+      if (searchAngleIntent === "premium" || searchAngleIntent === "accessory" || searchAngleIntent === "gift-ready") {
+        return confidence !== "low";
+      }
+
+      return confidence === "high" || (confidence === "medium" && categoryAnchor && score >= 0.64);
+    }
+
+    return confidence !== "low";
   }
 
   if (role === "closest") {
@@ -300,11 +360,12 @@ function isAcceptableDirectMatch(
 
 function getConfidentRoleMatches(
   roleMatches: Array<{ match: LazadaFeedMatch; role: MatchCardRole }>,
-  searchAngleIntent: SearchAngleIntent
+  searchAngleIntent: SearchAngleIntent,
+  strictness: MatchStrictness
 ): Array<{ match: LazadaFeedMatch; role: MatchCardRole }> {
   const closest = roleMatches.find((entry) => entry.role === "closest");
 
-  if (!closest || !isAcceptableDirectMatch(closest.match, closest.role, searchAngleIntent)) {
+  if (!closest || !isAcceptableDirectMatch(closest.match, closest.role, searchAngleIntent, strictness)) {
     return [];
   }
 
@@ -312,11 +373,11 @@ function getConfidentRoleMatches(
   const stepUp = roleMatches.find((entry) => entry.role === "step-up");
   const premium = roleMatches.find((entry) => entry.role === "premium");
 
-  if (stepUp && isAcceptableDirectMatch(stepUp.match, stepUp.role, searchAngleIntent)) {
+  if (stepUp && isAcceptableDirectMatch(stepUp.match, stepUp.role, searchAngleIntent, strictness)) {
     confidentMatches.push(stepUp);
   }
 
-  if (premium && isAcceptableDirectMatch(premium.match, premium.role, searchAngleIntent)) {
+  if (premium && isAcceptableDirectMatch(premium.match, premium.role, searchAngleIntent, strictness)) {
     confidentMatches.push(premium);
   }
 
@@ -455,6 +516,12 @@ export async function POST(request: NextRequest) {
   const preferredPriceMax = sanitizeOptionalNumber(payload.preferredPriceMax);
   const groupBudget = sanitizeOptionalNumber(payload.groupBudget);
   const searchAngleIntent = detectSearchAngleIntent(searchQuery, itemName);
+  const matchStrictness = detectMatchStrictness({
+    itemCategory,
+    itemName,
+    itemNote,
+    searchQuery,
+  });
 
   const matches = findBestLazadaFeedMatches({
     itemName,
@@ -543,7 +610,11 @@ export async function POST(request: NextRequest) {
   }
 
   const orderedMatches = buildRoleOrderedMatches(primaryMatches, premiumCandidates, groupBudget);
-  const confidentRoleMatches = getConfidentRoleMatches(orderedMatches, searchAngleIntent);
+  const confidentRoleMatches = getConfidentRoleMatches(
+    orderedMatches,
+    searchAngleIntent,
+    matchStrictness
+  );
   const basePrice = confidentRoleMatches[0]
     ? getLazadaFeedProductPrice(confidentRoleMatches[0].match.product)
     : null;
