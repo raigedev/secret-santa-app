@@ -549,7 +549,7 @@ export async function POST(request: NextRequest) {
     minimumScore: 0.5,
   });
   const broadenedBaseMatches =
-    matchStrictness !== "strict" && normalizedSearchQuery !== normalizedItemName
+    normalizedSearchQuery !== normalizedItemName
       ? findBestLazadaFeedMatches({
           itemName,
           itemCategory,
@@ -560,7 +560,7 @@ export async function POST(request: NextRequest) {
           preferredPriceMax,
           groupBudget,
           limit: 12,
-          minimumScore: 0.45,
+          minimumScore: matchStrictness === "strict" ? 0.5 : 0.45,
         })
       : [];
   let primaryMatches = matches;
@@ -634,11 +634,7 @@ export async function POST(request: NextRequest) {
     primaryMatches = sortMatchesByPriceAscending(premiumCandidates);
   }
 
-  if (
-    primaryMatches.length === 0 &&
-    broadenedBaseMatches.length > 0 &&
-    matchStrictness !== "strict"
-  ) {
+  if (primaryMatches.length === 0 && broadenedBaseMatches.length > 0) {
     primaryMatches = sortMatchesByPriceAscending(broadenedBaseMatches);
   }
 
@@ -646,12 +642,29 @@ export async function POST(request: NextRequest) {
     premiumCandidates = broadenedBaseMatches;
   }
 
-  const orderedMatches = buildRoleOrderedMatches(primaryMatches, premiumCandidates, groupBudget);
-  const confidentRoleMatches = getConfidentRoleMatches(
+  let orderedMatches = buildRoleOrderedMatches(primaryMatches, premiumCandidates, groupBudget);
+  let confidentRoleMatches = getConfidentRoleMatches(
     orderedMatches,
     searchAngleIntent,
     matchStrictness
   );
+
+  if (
+    confidentRoleMatches.length === 0 &&
+    broadenedBaseMatches.length > 0 &&
+    normalizedSearchQuery !== normalizedItemName
+  ) {
+    orderedMatches = buildRoleOrderedMatches(
+      sortMatchesByPriceAscending(broadenedBaseMatches),
+      broadenedBaseMatches,
+      groupBudget
+    );
+    confidentRoleMatches = getConfidentRoleMatches(
+      orderedMatches,
+      searchAngleIntent,
+      matchStrictness
+    );
+  }
   const basePrice = confidentRoleMatches[0]
     ? getLazadaFeedProductPrice(confidentRoleMatches[0].match.product)
     : null;
