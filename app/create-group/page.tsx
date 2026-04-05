@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createGroupWithInvites } from "./actions";
 
@@ -21,6 +21,10 @@ function sanitize(input: string, max: number): string {
 
 export default function CreateGroupPage() {
   const router = useRouter();
+
+  useEffect(() => {
+    router.prefetch("/dashboard");
+  }, [router]);
 
   const [groupName, setGroupName] = useState("");
   const [description, setDescription] = useState("");

@@ -180,3 +180,44 @@ export function SecretSantaSkeleton() {
     </main>
   );
 }
+
+export function NotificationsSkeleton() {
+  return (
+    <main className="min-h-screen bg-[linear-gradient(180deg,#edf6ff_0%,#f8fbff_45%,#eef5ff_100%)]">
+      <style>{shimmerCSS}</style>
+      <div className="mx-auto max-w-4xl px-4 py-8 sm:px-6">
+        <Bone w="120px" h="32px" r={999} className="mb-6" />
+        <Bone w="220px" h="34px" className="mb-3" />
+        <Bone w="280px" h="16px" className="mb-8" />
+        <div className="space-y-4">
+          {Array.from({ length: 5 }).map((_, index) => (
+            <Bone key={index} w="100%" h="116px" r={28} />
+          ))}
+        </div>
+      </div>
+    </main>
+  );
+}
+
+export function CreateGroupSkeleton() {
+  return (
+    <main className="min-h-screen bg-[linear-gradient(180deg,#eef4fb,#dce8f5,#e8dce0)]">
+      <style>{shimmerCSS}</style>
+      <div className="mx-auto flex min-h-screen max-w-3xl items-center justify-center px-4 py-8">
+        <div className="w-full max-w-lg rounded-[24px] bg-white/80 p-8 shadow-[0_24px_70px_rgba(148,163,184,0.18)] backdrop-blur-md">
+          <Bone w="120px" h="32px" r={999} className="mb-6" />
+          <Bone w="220px" h="34px" className="mb-3" />
+          <Bone w="260px" h="16px" className="mb-8" />
+          <div className="space-y-4">
+            <Bone w="100%" h="48px" r={14} />
+            <Bone w="100%" h="96px" r={14} />
+            <Bone w="100%" h="48px" r={14} />
+            <Bone w="100%" h="48px" r={14} />
+            <Bone w="100%" h="84px" r={14} />
+            <Bone w="100%" h="48px" r={14} />
+          </div>
+        </div>
+      </div>
+    </main>
+  );
+}

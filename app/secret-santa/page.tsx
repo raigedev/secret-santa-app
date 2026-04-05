@@ -679,6 +679,24 @@ export default function SecretSantaPage() {
   }, [router]);
 
   useEffect(() => {
+    router.prefetch("/secret-santa-chat");
+
+    const groupIds = new Set<string>();
+
+    for (const group of availableGroups) {
+      groupIds.add(group.id);
+    }
+
+    for (const assignment of assignments) {
+      groupIds.add(assignment.group_id);
+    }
+
+    for (const groupId of groupIds) {
+      router.prefetch(`/group/${groupId}`);
+    }
+  }, [router, availableGroups, assignments]);
+
+  useEffect(() => {
     const savedRegion = window.localStorage.getItem("secret-santa-shopping-region");
     const savedArea = window.localStorage.getItem("secret-santa-nearby-area");
 

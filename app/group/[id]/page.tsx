@@ -214,44 +214,44 @@ export default function GroupDetailsPage() {
       if (!isMounted) return;
       setCurrentUserId(user.id);
 
-      const { data: group, error: groupError } = await supabase
-        .from("groups")
-        .select("name, description, event_date, owner_id, budget, currency, revealed, revealed_at")
-        .eq("id", id)
-        .maybeSingle();
+      const [groupResult, membersResult] = await Promise.all([
+        supabase
+          .from("groups")
+          .select("name, description, event_date, owner_id, budget, currency, revealed, revealed_at")
+          .eq("id", id)
+          .maybeSingle(),
+        supabase
+          .from("group_members")
+          .select("id, user_id, nickname, email, role, status")
+          .eq("group_id", id),
+      ]);
 
       if (!isMounted) return;
 
-      if (groupError) {
+      if (groupResult.error) {
         setError("Error loading group.");
         setLoading(false);
         return;
       }
 
-      if (!group) {
+      if (!groupResult.data) {
         setError("Group not found.");
         setLoading(false);
         return;
       }
 
-      setGroupData(group);
-      const isCurrentUserOwner = user.id === group.owner_id;
-      setIsOwner(isCurrentUserOwner);
-
-      const { data: membersData, error: membersError } = await supabase
-        .from("group_members")
-        .select("id, user_id, nickname, email, role, status")
-        .eq("group_id", id);
-
-      if (!isMounted) return;
-
-      if (membersError) {
+      if (membersResult.error) {
         setError("Error loading members.");
         setLoading(false);
         return;
       }
 
-      const safeMembers = (membersData ?? []) as Member[];
+      const group = groupResult.data;
+      setGroupData(group);
+      const isCurrentUserOwner = user.id === group.owner_id;
+      setIsOwner(isCurrentUserOwner);
+
+      const safeMembers = (membersResult.data ?? []) as Member[];
       setMembers(safeMembers);
 
       // Keep the owner's readiness panel in sync with the main group data.
@@ -408,6 +408,8 @@ export default function GroupDetailsPage() {
 
   useEffect(() => {
     router.prefetch("/dashboard");
+    router.prefetch("/secret-santa");
+    router.prefetch("/secret-santa-chat");
     router.prefetch(`/group/${id}/reveal`);
   }, [router, id]);
 

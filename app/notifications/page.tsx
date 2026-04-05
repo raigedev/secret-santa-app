@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
+import { NotificationsSkeleton } from "@/app/components/PageSkeleton";
 import { markAllNotificationsRead, markNotificationRead } from "./actions";
 import FadeIn from "@/app/components/FadeIn";
 
@@ -178,6 +179,10 @@ export default function NotificationsPage() {
       }
     }
   }, [router, notifications]);
+
+  if (loading) {
+    return <NotificationsSkeleton />;
+  }
 
   const unreadCount = notifications.filter((notification) => !notification.read_at).length;
 
