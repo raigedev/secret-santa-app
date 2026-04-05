@@ -1405,6 +1405,8 @@ type RevealSessionState = {
 };
 
 async function loadRevealSourceData(groupId: string): Promise<RevealSourceData> {
+  const supabase = await createClient();
+
   const [{ data: assignments }, { data: members }, { data: profiles }] = await Promise.all([
     supabaseAdmin.from("assignments").select("giver_id, receiver_id").eq("group_id", groupId),
     supabaseAdmin
@@ -1412,7 +1414,7 @@ async function loadRevealSourceData(groupId: string): Promise<RevealSourceData> 
       .select("user_id, nickname, email")
       .eq("group_id", groupId)
       .eq("status", "accepted"),
-    supabaseAdmin.from("profiles").select("user_id, display_name, avatar_emoji"),
+    supabase.rpc("list_group_peer_profiles", { p_group_id: groupId }),
   ]);
 
   const profileByUserId = new Map<
