@@ -148,7 +148,6 @@ export async function createGroupWithInvites(
       description: cleanDescription,
       event_date: input.eventDate,
       owner_id: user.id,
-      invites: inviteEmails,
       budget: cleanBudget,
       currency: cleanCurrency,
     })
