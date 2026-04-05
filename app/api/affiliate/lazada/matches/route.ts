@@ -60,6 +60,43 @@ type SearchAngleIntent =
   | "premium";
 type MatchStrictness = "balanced" | "flexible" | "strict";
 
+const ACCESSORY_MATCH_KEYWORDS = [
+  "accessor",
+  "adapter",
+  "bundle",
+  "cable",
+  "case",
+  "charger",
+  "cover",
+  "dock",
+  "folio",
+  "glass",
+  "holder",
+  "hub",
+  "keyboard",
+  "kit",
+  "memory card",
+  "micro sd",
+  "mount",
+  "pen",
+  "screen protector",
+  "sleeve",
+  "stand",
+  "stylus",
+  "tempered glass",
+];
+
+const GIFT_READY_MATCH_KEYWORDS = [
+  "box",
+  "bundle",
+  "collection",
+  "gift",
+  "hamper",
+  "kit",
+  "pack",
+  "set",
+];
+
 function normalizeAngleQuery(value: string): string {
   return value.trim().toLowerCase().replace(/\s+/g, " ");
 }
@@ -305,7 +342,10 @@ function detectMatchStrictness(input: {
 function hasCategoryAnchor(match: LazadaFeedMatch): boolean {
   return (
     match.reasons.includes("source category match") ||
-    match.reasons.some((reason) => reason.endsWith("keyword match"))
+    match.reasons.some(
+      (reason) =>
+        reason.endsWith("family match") || reason.endsWith("keyword match")
+    )
   );
 }
 
@@ -603,30 +643,13 @@ export async function POST(request: NextRequest) {
   }
 
   if (searchAngleIntent === "gift-ready") {
-    const giftMatches = filterMatchesByKeywords(matches, [
-      "gift",
-      "set",
-      "bundle",
-      "kit",
-      "box",
-      "pack",
-    ]);
+    const giftMatches = filterMatchesByKeywords(matches, GIFT_READY_MATCH_KEYWORDS);
     primaryMatches = giftMatches;
     premiumCandidates = giftMatches;
   }
 
   if (searchAngleIntent === "accessory") {
-    const accessoryMatches = filterMatchesByKeywords(matches, [
-      "accessor",
-      "case",
-      "stand",
-      "mount",
-      "adapter",
-      "cable",
-      "cover",
-      "bundle",
-      "kit",
-    ]);
+    const accessoryMatches = filterMatchesByKeywords(matches, ACCESSORY_MATCH_KEYWORDS);
     primaryMatches = accessoryMatches;
     premiumCandidates = accessoryMatches;
   }

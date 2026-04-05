@@ -189,11 +189,144 @@ const ACCESSORY_INTENT_TERMS = [
   "cable",
   "case",
   "cover",
+  "dock",
   "holder",
+  "keyboard",
   "kit",
   "mount",
+  "pen",
   "remote",
+  "screen protector",
   "stand",
+  "stylus",
+  "tempered glass",
+];
+
+type LazadaSearchFamilyRule = {
+  exclude?: string[];
+  id: string;
+  include: string[];
+  test: RegExp;
+};
+
+const SEARCH_FAMILY_FILTER_RULES: LazadaSearchFamilyRule[] = [
+  {
+    id: "tablet family match",
+    include: [
+      "tablet",
+      "ipad",
+      "galaxy tab",
+      "android tab",
+      "redmi pad",
+      "xiaomi pad",
+      "mi pad",
+      "matepad",
+      "lenovo tab",
+      "tab a",
+    ],
+    exclude: ["tablecloth", "tabletops"],
+    test: /\b(tablet|ipad|android tab|galaxy tab|redmi pad|xiaomi pad|mi pad|matepad|lenovo tab)\b/,
+  },
+  {
+    id: "power bank family match",
+    include: ["power bank", "powerbank", "portable charger", "battery pack", "battery bank"],
+    test: /\b(power bank|powerbank|portable charger|battery pack|battery bank)\b/,
+  },
+  {
+    id: "laptop family match",
+    include: ["laptop", "notebook", "notebook computer", "chromebook", "macbook"],
+    test: /\b(laptop|notebook|chromebook|macbook)\b/,
+  },
+  {
+    id: "audio family match",
+    include: ["earbuds", "headset", "headphone", "speaker", "microphone", "soundbar"],
+    test: /\b(earbuds|headset|headphones|speaker|microphone|soundbar)\b/,
+  },
+  {
+    id: "camera family match",
+    include: ["camera", "drone", "tripod", "lens", "gimbal", "action cam"],
+    test: /\b(camera|drone|tripod|lens|gimbal|action cam)\b/,
+  },
+  {
+    id: "computer family match",
+    include: ["keyboard", "mouse", "monitor", "ssd", "printer", "router", "webcam"],
+    test: /\b(keyboard|mouse|monitor|ssd|printer|router|webcam|desktop computer)\b/,
+  },
+  {
+    id: "bag family match",
+    include: ["bag", "tote", "backpack", "crossbody", "wallet", "purse", "handbag", "luggage"],
+    test: /\b(tote|bag|backpack|crossbody|wallet|purse|handbag|luggage)\b/,
+  },
+  {
+    id: "apparel family match",
+    include: ["hoodie", "shirt", "tee", "jacket", "sweater", "dress", "sneaker", "shoe", "clothing"],
+    test: /\b(hoodie|shirt|tee|jacket|sweater|dress|sneaker|shoe|clothing|fashion)\b/,
+  },
+  {
+    id: "book family match",
+    include: ["book", "novel", "manga", "comic", "journal", "planner"],
+    test: /\b(book|novel|manga|comic|journal|planner)\b/,
+  },
+  {
+    id: "stationery family match",
+    include: ["stationery", "notebook", "pen", "marker", "sketchbook", "art supplies"],
+    test: /\b(stationery|notebook|pen|marker|sketchbook|art supplies|craft)\b/,
+  },
+  {
+    id: "baby family match",
+    include: ["baby", "newborn", "infant", "toddler", "feeding", "stroller", "diaper"],
+    test: /\b(baby|newborn|infant|toddler|feeding|stroller|diaper|nursery)\b/,
+  },
+  {
+    id: "pet family match",
+    include: ["pet", "dog", "cat", "litter", "leash", "scratch", "kennel", "aquarium"],
+    test: /\b(pet|dog|cat|litter|leash|scratch|kennel|aquarium)\b/,
+  },
+  {
+    id: "beauty family match",
+    include: ["beauty", "makeup", "skincare", "perfume", "cosmetic", "wellness"],
+    test: /\b(beauty|makeup|skincare|perfume|cosmetic|wellness)\b/,
+  },
+  {
+    id: "home family match",
+    include: ["decor", "kitchen", "cookware", "bedding", "blanket", "pillow", "lamp", "organizer", "mug", "candle"],
+    test: /\b(home|decor|kitchen|cookware|bedding|blanket|pillow|lamp|organizer|mug|candle)\b/,
+  },
+  {
+    id: "appliance family match",
+    include: ["fan", "blender", "vacuum", "rice cooker", "air fryer", "kettle", "appliance", "microwave"],
+    test: /\b(fan|blender|vacuum|rice cooker|air fryer|kettle|appliance|microwave)\b/,
+  },
+  {
+    id: "tool family match",
+    include: ["tool", "hardware", "drill", "wrench", "screwdriver", "hammer", "repair kit"],
+    test: /\b(tool|hardware|diy|drill|wrench|screwdriver|hammer|repair kit)\b/,
+  },
+  {
+    id: "automotive family match",
+    include: ["car", "motorcycle", "helmet", "dash cam", "seat cover", "automotive"],
+    test: /\b(car|motorcycle|helmet|dash cam|seat cover|automotive)\b/,
+  },
+  {
+    id: "digital family match",
+    include: ["voucher", "gift card", "subscription", "top up", "software", "license", "digital"],
+    test: /\b(voucher|gift card|subscription|top up|topup|load|software|license|digital|service)\b/,
+  },
+  {
+    id: "food family match",
+    include: ["food", "snack", "coffee", "tea", "chocolate", "pastry", "cake", "cookie", "hamper", "bakery"],
+    test: /\b(food|snack|coffee|tea|treat|chocolate|pastry|cake|cookie|hamper|bakery|pasalubong)\b/,
+  },
+  {
+    id: "game family match",
+    include: ["game", "gaming", "console", "board game", "toy", "lego", "card game"],
+    test: /\b(game|gaming|console|board game|toy|lego|card game)\b/,
+  },
+  {
+    id: "collectible family match",
+    include: ["collectible", "figure", "anime", "merch", "funko", "plush", "trading card", "model kit", "hobby"],
+    test: /\b(collectible|figure|anime|merch|funko|plush|trading card|model kit|hobby)\b/,
+  },
 ];
 
 const STRICT_DEVICE_MATCH_RULES: Array<{
@@ -215,8 +348,14 @@ const STRICT_DEVICE_MATCH_RULES: Array<{
       "cable",
       "case",
       "cover",
+      "earbuds",
+      "gaming headset",
+      "headphone",
+      "headset",
       "holder",
       "mount",
+      "microphone",
+      "speaker",
       "stylus",
       "screen protector",
       "tempered glass",
@@ -494,6 +633,12 @@ function tokenizeFeedText(value: string): string[] {
   return normalizeFeedString(value)
     .split(" ")
     .filter((token) => token.length > 1 && !MATCH_STOPWORDS.has(token));
+}
+
+function buildLazadaProductMatchText(product: LazadaFeedProduct): string {
+  return normalizeFeedString(
+    `${product.productName} ${product.brand} ${product.categoryLv1} ${product.sourceCategory}`
+  );
 }
 
 function parseOptionalFeedNumber(value: string): number | null {
@@ -824,6 +969,55 @@ function filterLazadaFeedProductsBySourceCategory(
   return categoryMatches.length > 0 ? categoryMatches : products;
 }
 
+function getMatchedLazadaSearchFamilyRule(input: {
+  itemCategory: string;
+  itemName: string;
+  itemNote: string;
+  searchQuery: string;
+}): LazadaSearchFamilyRule | null {
+  const searchContext = normalizeFeedString(
+    `${input.itemName} ${input.itemCategory} ${input.itemNote} ${input.searchQuery}`
+  );
+
+  return (
+    SEARCH_FAMILY_FILTER_RULES.find((rule) => rule.test.test(searchContext)) || null
+  );
+}
+
+function filterLazadaFeedProductsBySearchFamily(
+  products: LazadaFeedProduct[],
+  input: {
+    itemCategory: string;
+    itemName: string;
+    itemNote: string;
+    searchQuery: string;
+  },
+  options?: {
+    allowFallbackToOriginal?: boolean;
+  }
+): LazadaFeedProduct[] {
+  const matchedRule = getMatchedLazadaSearchFamilyRule(input);
+
+  if (!matchedRule) {
+    return products;
+  }
+
+  const familyMatches = products.filter((product) => {
+    const productText = buildLazadaProductMatchText(product);
+    const hasInclude = matchedRule.include.some((term) => productText.includes(term));
+    const hasExclude =
+      matchedRule.exclude?.some((term) => productText.includes(term)) ?? false;
+
+    return hasInclude && !hasExclude;
+  });
+
+  return familyMatches.length > 0
+    ? familyMatches
+    : options?.allowFallbackToOriginal
+      ? products
+      : [];
+}
+
 function getTargetPrice(
   preferredMin: number | null | undefined,
   preferredMax: number | null | undefined,
@@ -870,6 +1064,7 @@ function scoreFeedMatch(input: {
     input.product.productName,
     input.product.brand,
     input.product.categoryLv1,
+    input.product.sourceCategory,
   ]
     .filter(Boolean)
     .join(" ");
@@ -892,6 +1087,7 @@ function scoreFeedMatch(input: {
   const overlappingNoteTokens = noteTokens.filter((token) => productTokens.has(token));
   const overlappingCategoryTokens = categoryTokens.filter((token) => productTokens.has(token));
   const overlappingCoreIntentTokens = coreIntentTokens.filter((token) => productTokens.has(token));
+  const matchedFamilyRule = getMatchedLazadaSearchFamilyRule(input);
 
   if (itemNameTokens.length > 0) {
     score += Math.min(overlappingItemTokens.length / itemNameTokens.length, 1) * 0.32;
@@ -971,6 +1167,14 @@ function scoreFeedMatch(input: {
   ) {
     score += 0.16;
     reasons.push("source category match");
+  }
+
+  if (
+    matchedFamilyRule &&
+    matchedFamilyRule.include.some((term) => productNormalized.includes(term))
+  ) {
+    score += 0.14;
+    reasons.push(matchedFamilyRule.id);
   }
 
   const targetPrice = getTargetPrice(
@@ -1063,8 +1267,12 @@ export function findBestLazadaFeedMatches(input: {
     budgetShortlistedProducts,
     input
   );
-  const coreIntentProducts = filterLazadaFeedProductsByCoreIntent(
+  const familyShortlistedProducts = filterLazadaFeedProductsBySearchFamily(
     sourceShortlistedProducts,
+    input
+  );
+  const coreIntentProducts = filterLazadaFeedProductsByCoreIntent(
+    familyShortlistedProducts,
     input
   );
   const strictDeviceProducts = filterLazadaFeedProductsByStrictDeviceIntent(
