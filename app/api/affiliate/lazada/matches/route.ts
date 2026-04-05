@@ -384,6 +384,10 @@ function getConfidentRoleMatches(
   return confidentMatches;
 }
 
+function shouldUseBaseItemFallback(searchAngleIntent: SearchAngleIntent): boolean {
+  return searchAngleIntent !== "accessory" && searchAngleIntent !== "gift-ready";
+}
+
 function buildSearchFallbackCards(input: {
   groupBudget: number | null;
   groupId: string;
@@ -518,6 +522,7 @@ export async function POST(request: NextRequest) {
   const normalizedSearchQuery = normalizeAngleQuery(searchQuery);
   const normalizedItemName = normalizeAngleQuery(itemName);
   const searchAngleIntent = detectSearchAngleIntent(searchQuery, itemName);
+  const allowBaseItemFallback = shouldUseBaseItemFallback(searchAngleIntent);
   const matchStrictness = detectMatchStrictness({
     itemCategory,
     itemName,
@@ -549,7 +554,7 @@ export async function POST(request: NextRequest) {
     minimumScore: 0.5,
   });
   const broadenedBaseMatches =
-    normalizedSearchQuery !== normalizedItemName
+    allowBaseItemFallback && normalizedSearchQuery !== normalizedItemName
       ? findBestLazadaFeedMatches({
           itemName,
           itemCategory,
@@ -652,6 +657,7 @@ export async function POST(request: NextRequest) {
   if (
     confidentRoleMatches.length === 0 &&
     broadenedBaseMatches.length > 0 &&
+    allowBaseItemFallback &&
     normalizedSearchQuery !== normalizedItemName
   ) {
     orderedMatches = buildRoleOrderedMatches(
