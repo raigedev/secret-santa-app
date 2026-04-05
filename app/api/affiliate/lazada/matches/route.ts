@@ -515,6 +515,8 @@ export async function POST(request: NextRequest) {
   const preferredPriceMin = sanitizeOptionalNumber(payload.preferredPriceMin);
   const preferredPriceMax = sanitizeOptionalNumber(payload.preferredPriceMax);
   const groupBudget = sanitizeOptionalNumber(payload.groupBudget);
+  const normalizedSearchQuery = normalizeAngleQuery(searchQuery);
+  const normalizedItemName = normalizeAngleQuery(itemName);
   const searchAngleIntent = detectSearchAngleIntent(searchQuery, itemName);
   const matchStrictness = detectMatchStrictness({
     itemCategory,
@@ -546,6 +548,21 @@ export async function POST(request: NextRequest) {
     limit: 12,
     minimumScore: 0.5,
   });
+  const broadenedBaseMatches =
+    matchStrictness !== "strict" && normalizedSearchQuery !== normalizedItemName
+      ? findBestLazadaFeedMatches({
+          itemName,
+          itemCategory,
+          itemNote,
+          searchQuery: itemName,
+          budgetMode: "minimum-only",
+          preferredPriceMin,
+          preferredPriceMax,
+          groupBudget,
+          limit: 12,
+          minimumScore: 0.45,
+        })
+      : [];
   let primaryMatches = matches;
   let premiumCandidates = premiumMatches;
 
@@ -607,6 +624,26 @@ export async function POST(request: NextRequest) {
     ]);
     primaryMatches = accessoryMatches;
     premiumCandidates = accessoryMatches;
+  }
+
+  if (
+    primaryMatches.length === 0 &&
+    premiumCandidates.length > 0 &&
+    matchStrictness !== "strict"
+  ) {
+    primaryMatches = sortMatchesByPriceAscending(premiumCandidates);
+  }
+
+  if (
+    primaryMatches.length === 0 &&
+    broadenedBaseMatches.length > 0 &&
+    matchStrictness !== "strict"
+  ) {
+    primaryMatches = sortMatchesByPriceAscending(broadenedBaseMatches);
+  }
+
+  if (premiumCandidates.length === 0 && broadenedBaseMatches.length > 0) {
+    premiumCandidates = broadenedBaseMatches;
   }
 
   const orderedMatches = buildRoleOrderedMatches(primaryMatches, premiumCandidates, groupBudget);
