@@ -61,7 +61,15 @@ export type LazadaFeedMatch = {
   product: LazadaFeedProduct;
   score: number;
   reasons: string[];
+  coreIntentOverlapCount: number;
+  coreIntentTokenCount: number;
+  itemTokenOverlapCount: number;
+  itemTokenCount: number;
+  searchTokenOverlapCount: number;
+  searchTokenCount: number;
 };
+
+export type LazadaFeedMatchConfidence = "high" | "low" | "medium";
 
 export type LazadaFeedBudgetMode = "minimum-only" | "window";
 
@@ -840,6 +848,14 @@ function getTargetPrice(
   return normalizedPreferredMin;
 }
 
+function getOverlapRatio(matchedCount: number, tokenCount: number): number {
+  if (tokenCount <= 0) {
+    return 0;
+  }
+
+  return matchedCount / tokenCount;
+}
+
 function scoreFeedMatch(input: {
   itemName: string;
   itemCategory: string;
@@ -867,28 +883,38 @@ function scoreFeedMatch(input: {
   const searchQueryTokens = Array.from(new Set(tokenizeFeedText(input.searchQuery)));
   const noteTokens = Array.from(new Set(tokenizeFeedText(input.itemNote)));
   const categoryTokens = Array.from(new Set(tokenizeFeedText(input.itemCategory)));
+  const coreIntentTokens = getCoreIntentTokens(input);
   const relevantSourceCategories = getRelevantLazadaSourceCategories(input);
   const reasons: string[] = [];
   let score = 0;
+  const overlappingItemTokens = itemNameTokens.filter((token) => productTokens.has(token));
+  const overlappingSearchTokens = searchQueryTokens.filter((token) => productTokens.has(token));
+  const overlappingNoteTokens = noteTokens.filter((token) => productTokens.has(token));
+  const overlappingCategoryTokens = categoryTokens.filter((token) => productTokens.has(token));
+  const overlappingCoreIntentTokens = coreIntentTokens.filter((token) => productTokens.has(token));
 
   if (itemNameTokens.length > 0) {
-    const overlappingItemTokens = itemNameTokens.filter((token) => productTokens.has(token));
     score += Math.min(overlappingItemTokens.length / itemNameTokens.length, 1) * 0.32;
   }
 
   if (searchQueryTokens.length > 0) {
-    const overlappingSearchTokens = searchQueryTokens.filter((token) => productTokens.has(token));
     score += Math.min(overlappingSearchTokens.length / searchQueryTokens.length, 1) * 0.38;
   }
 
   if (noteTokens.length > 0) {
-    const overlappingNoteTokens = noteTokens.filter((token) => productTokens.has(token));
     score += Math.min(overlappingNoteTokens.length / noteTokens.length, 1) * 0.08;
   }
 
   if (categoryTokens.length > 0) {
-    const overlappingCategoryTokens = categoryTokens.filter((token) => productTokens.has(token));
     score += Math.min(overlappingCategoryTokens.length / categoryTokens.length, 1) * 0.05;
+  }
+
+  if (coreIntentTokens.length > 0) {
+    score += Math.min(overlappingCoreIntentTokens.length / coreIntentTokens.length, 1) * 0.12;
+
+    if (overlappingCoreIntentTokens.length > 0) {
+      reasons.push("core intent match");
+    }
   }
 
   if (
@@ -969,10 +995,48 @@ function scoreFeedMatch(input: {
   }
 
   return {
+    coreIntentOverlapCount: overlappingCoreIntentTokens.length,
+    coreIntentTokenCount: coreIntentTokens.length,
+    itemTokenOverlapCount: overlappingItemTokens.length,
+    itemTokenCount: itemNameTokens.length,
     product: input.product,
     score,
     reasons,
+    searchTokenOverlapCount: overlappingSearchTokens.length,
+    searchTokenCount: searchQueryTokens.length,
   };
+}
+
+export function getLazadaFeedMatchConfidence(
+  match: LazadaFeedMatch
+): LazadaFeedMatchConfidence {
+  const searchRatio = getOverlapRatio(
+    match.searchTokenOverlapCount,
+    match.searchTokenCount
+  );
+  const itemRatio = getOverlapRatio(
+    match.itemTokenOverlapCount,
+    match.itemTokenCount
+  );
+  const coreRatio = getOverlapRatio(
+    match.coreIntentOverlapCount,
+    match.coreIntentTokenCount
+  );
+  const strongestRatio = Math.max(searchRatio, itemRatio, coreRatio);
+  const hasStrongAnchor =
+    match.reasons.includes("search overlap") ||
+    match.reasons.includes("item title overlap") ||
+    match.reasons.includes("core intent match");
+
+  if (match.score >= 0.72 && strongestRatio >= 0.5 && hasStrongAnchor) {
+    return "high";
+  }
+
+  if (match.score >= 0.6 && strongestRatio >= 0.4 && hasStrongAnchor) {
+    return "medium";
+  }
+
+  return "low";
 }
 
 export function findBestLazadaFeedMatches(input: {

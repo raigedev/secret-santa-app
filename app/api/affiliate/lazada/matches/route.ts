@@ -2,7 +2,9 @@ import { NextRequest, NextResponse } from "next/server";
 
 import {
   findBestLazadaFeedMatches,
+  getLazadaFeedMatchConfidence,
   getLazadaFeedProductPrice,
+  type LazadaFeedMatch,
 } from "@/lib/affiliate/lazada-feed";
 import { primeLazadaPromotionLinks } from "@/lib/affiliate/lazada";
 import { getLazadaStarterProducts } from "@/lib/affiliate/lazada-catalog";
@@ -130,17 +132,6 @@ function sortMatchesByPriceAscending<
     const rightPrice = getLazadaFeedProductPrice(right.product) ?? Number.POSITIVE_INFINITY;
 
     return leftPrice - rightPrice;
-  });
-}
-
-function sortMatchesByPriceDescending<
-  T extends { product: { discountedPrice: number | null; salePrice: number | null } },
->(matches: T[]): T[] {
-  return [...matches].sort((left, right) => {
-    const leftPrice = getLazadaFeedProductPrice(left.product) ?? Number.NEGATIVE_INFINITY;
-    const rightPrice = getLazadaFeedProductPrice(right.product) ?? Number.NEGATIVE_INFINITY;
-
-    return rightPrice - leftPrice;
   });
 }
 
@@ -281,6 +272,148 @@ function buildMatchWhyItFits(
   return "This is the higher-end option for the same general gift direction.";
 }
 
+function isAcceptableDirectMatch(
+  match: LazadaFeedMatch,
+  role: MatchCardRole,
+  searchAngleIntent: SearchAngleIntent
+): boolean {
+  const confidence = getLazadaFeedMatchConfidence(match);
+  const hasSemanticAnchor =
+    match.reasons.includes("search overlap") ||
+    match.reasons.includes("item title overlap") ||
+    match.reasons.includes("core intent match");
+
+  if (!hasSemanticAnchor) {
+    return false;
+  }
+
+  if (role === "closest") {
+    if (searchAngleIntent === "premium" || searchAngleIntent === "accessory" || searchAngleIntent === "gift-ready") {
+      return confidence !== "low";
+    }
+
+    return confidence === "high";
+  }
+
+  return confidence !== "low";
+}
+
+function getConfidentRoleMatches(
+  roleMatches: Array<{ match: LazadaFeedMatch; role: MatchCardRole }>,
+  searchAngleIntent: SearchAngleIntent
+): Array<{ match: LazadaFeedMatch; role: MatchCardRole }> {
+  const closest = roleMatches.find((entry) => entry.role === "closest");
+
+  if (!closest || !isAcceptableDirectMatch(closest.match, closest.role, searchAngleIntent)) {
+    return [];
+  }
+
+  const confidentMatches: Array<{ match: LazadaFeedMatch; role: MatchCardRole }> = [closest];
+  const stepUp = roleMatches.find((entry) => entry.role === "step-up");
+  const premium = roleMatches.find((entry) => entry.role === "premium");
+
+  if (stepUp && isAcceptableDirectMatch(stepUp.match, stepUp.role, searchAngleIntent)) {
+    confidentMatches.push(stepUp);
+  }
+
+  if (premium && isAcceptableDirectMatch(premium.match, premium.role, searchAngleIntent)) {
+    confidentMatches.push(premium);
+  }
+
+  return confidentMatches;
+}
+
+function buildSearchFallbackCards(input: {
+  groupBudget: number | null;
+  groupId: string;
+  itemCategory: string;
+  itemName: string;
+  itemNote: string;
+  limit: number;
+  preferredPriceMax: number | null;
+  preferredPriceMin: number | null;
+  region: ShoppingRegion;
+  searchQuery: string;
+  wishlistItemId: string;
+  excludeSearchQueries?: string[];
+}): WishlistFeaturedProductCard[] {
+  const normalizedSelectedQuery = normalizeAngleQuery(input.searchQuery);
+  const excludedQueries = new Set(
+    (input.excludeSearchQueries || []).map((query) => normalizeAngleQuery(query))
+  );
+  const fallbackProducts = getLazadaStarterProducts({
+    itemName: input.itemName,
+    itemCategory: input.itemCategory,
+    itemNote: input.itemNote,
+    searchQuery: input.searchQuery,
+    preferredPriceMin: input.preferredPriceMin,
+    preferredPriceMax: input.preferredPriceMax,
+    groupBudget: input.groupBudget,
+  })
+    .filter((product) => product.source === "search-backed")
+    .sort((left, right) => {
+      const leftSelected = normalizeAngleQuery(left.searchQuery) === normalizedSelectedQuery ? 0 : 1;
+      const rightSelected = normalizeAngleQuery(right.searchQuery) === normalizedSelectedQuery ? 0 : 1;
+
+      if (leftSelected !== rightSelected) {
+        return leftSelected - rightSelected;
+      }
+
+      return 0;
+    })
+    .filter((product) => !excludedQueries.has(normalizeAngleQuery(product.searchQuery)))
+    .slice(0, input.limit);
+
+  return fallbackProducts.map((product, index) => {
+    const fitLabel =
+      normalizeAngleQuery(product.searchQuery) === normalizedSelectedQuery
+        ? "Selected angle"
+        : index === 0
+          ? "Closest to request"
+          : "Search route";
+    const trackingLabel = "Search route";
+
+    return {
+      id: `fallback-lazada-${input.wishlistItemId}-${product.id}-${index}`,
+      merchant: "lazada",
+      merchantLabel: "Lazada",
+      catalogSource: "search-backed",
+      imageUrl: null,
+      productId: null,
+      skuId: null,
+      title: product.title,
+      subtitle: product.subtitle,
+      href: buildTrackedSuggestionHref(
+        "lazada",
+        input.groupId,
+        input.wishlistItemId,
+        product.searchQuery,
+        product.title,
+        input.region,
+        {
+          catalogSource: "search-backed",
+          fitLabel,
+          groupBudget: input.groupBudget,
+          itemCategory: input.itemCategory,
+          itemName: input.itemName,
+          itemNote: input.itemNote,
+          preferredPriceMax: input.preferredPriceMax,
+          preferredPriceMin: input.preferredPriceMin,
+          trackingLabel,
+        }
+      ),
+      searchQuery: product.searchQuery,
+      priceLabel:
+        input.groupBudget !== null
+          ? `Budget target: ${formatPriceRange(input.groupBudget, input.groupBudget, "PHP")}`
+          : null,
+      fitLabel,
+      whyItFits: product.whyItFits,
+      trackingLabel,
+    };
+  });
+}
+
 export async function POST(request: NextRequest) {
   const supabase = await createClient();
   const {
@@ -410,166 +543,99 @@ export async function POST(request: NextRequest) {
   }
 
   const orderedMatches = buildRoleOrderedMatches(primaryMatches, premiumCandidates, groupBudget);
-  const premiumFloor = groupBudget ?? preferredPriceMin ?? 0;
-  const premiumStepUpMatch =
-    orderedMatches.length === 0
-      ? sortMatchesByPriceAscending(premiumCandidates).find((candidate) => {
-          const candidatePrice = getLazadaFeedProductPrice(candidate.product);
-
-          return candidatePrice !== null && candidatePrice > premiumFloor;
-        }) || null
-      : null;
-  const premiumOnlyMatch =
-    orderedMatches.length === 0
-      ? sortMatchesByPriceDescending(premiumCandidates).find(
-          (candidate) => candidate.product.itemId !== premiumStepUpMatch?.product.itemId
-        ) ||
-        (premiumStepUpMatch
-          ? null
-          : sortMatchesByPriceDescending(premiumCandidates)[0] || null)
-      : null;
-  const fallbackRoleMatches: Array<{
-    match: (typeof premiumMatches)[number];
-    role: MatchCardRole;
-  }> = [];
-
-  if (premiumStepUpMatch) {
-    fallbackRoleMatches.push({
-      match: premiumStepUpMatch,
-      role: "step-up",
-    });
-  }
-
-  if (premiumOnlyMatch) {
-    fallbackRoleMatches.push({
-      match: premiumOnlyMatch,
-      role: "premium",
-    });
-  }
-
-  const effectiveRoleMatches =
-    orderedMatches.length > 0
-      ? orderedMatches
-      : fallbackRoleMatches;
-  const basePrice = effectiveRoleMatches[0]
-    ? getLazadaFeedProductPrice(effectiveRoleMatches[0].match.product)
+  const confidentRoleMatches = getConfidentRoleMatches(orderedMatches, searchAngleIntent);
+  const basePrice = confidentRoleMatches[0]
+    ? getLazadaFeedProductPrice(confidentRoleMatches[0].match.product)
     : null;
 
-  if (effectiveRoleMatches.length > 0) {
+  if (confidentRoleMatches.length > 0) {
     try {
       await primeLazadaPromotionLinks({
-        productIds: effectiveRoleMatches.map(({ match }) => match.product.itemId),
+        productIds: confidentRoleMatches.map(({ match }) => match.product.itemId),
       });
     } catch {
       // Priming only improves click performance. The suggestion route still resolves links on click.
     }
   }
 
-  const products: WishlistFeaturedProductCard[] = effectiveRoleMatches.map(({ match, role }, index) => {
-    const lazadaPrice = getLazadaFeedProductPrice(match.product);
-    const fitLabel = buildMatchFitLabel(role);
-    const trackingLabel = "Matched product";
+  const directProducts: WishlistFeaturedProductCard[] = confidentRoleMatches.map(
+    ({ match, role }, index) => {
+      const lazadaPrice = getLazadaFeedProductPrice(match.product);
+      const fitLabel = buildMatchFitLabel(role);
+      const trackingLabel = "Matched product";
 
-    return {
-      id: `lazada-match-${wishlistItemId}-${match.product.itemId}-${index}`,
-      merchant: "lazada",
-      merchantLabel: "Lazada",
-      catalogSource: "catalog-product",
-      imageUrl: match.product.pictureUrl,
-      productId: match.product.itemId,
-      skuId: match.product.skuId || null,
-      title: match.product.productName,
-      subtitle: buildMatchSubtitle(role),
-      href: buildTrackedSuggestionHref(
-        "lazada",
-        groupId,
-        wishlistItemId,
-        match.product.productName,
-        match.product.productName,
-        region,
-        {
-          catalogSource: "catalog-product",
-          fitLabel,
+      return {
+        id: `lazada-match-${wishlistItemId}-${match.product.itemId}-${index}`,
+        merchant: "lazada",
+        merchantLabel: "Lazada",
+        catalogSource: "catalog-product",
+        imageUrl: match.product.pictureUrl,
+        productId: match.product.itemId,
+        skuId: match.product.skuId || null,
+        title: match.product.productName,
+        subtitle: buildMatchSubtitle(role),
+        href: buildTrackedSuggestionHref(
+          "lazada",
+          groupId,
+          wishlistItemId,
+          match.product.productName,
+          match.product.productName,
+          region,
+          {
+            catalogSource: "catalog-product",
+            fitLabel,
+            groupBudget,
+            itemCategory,
+            itemName,
+            itemNote,
+            productId: match.product.itemId,
+            preferredPriceMax,
+            preferredPriceMin,
+            skuId: match.product.skuId || null,
+            trackingLabel,
+          }
+        ),
+        searchQuery: match.product.productName,
+        priceLabel:
+          lazadaPrice !== null ? formatPriceRange(lazadaPrice, lazadaPrice, "PHP") : null,
+        fitLabel,
+        whyItFits: buildMatchWhyItFits(role, match.reasons, lazadaPrice, basePrice),
+        trackingLabel,
+      };
+    }
+  );
+
+  const searchFallbackCards = buildSearchFallbackCards({
+    groupBudget,
+    groupId,
+    itemCategory,
+    itemName,
+    itemNote,
+    limit: Math.max(3 - directProducts.length, 0),
+    preferredPriceMax,
+    preferredPriceMin,
+    region,
+    searchQuery,
+    wishlistItemId,
+    excludeSearchQueries: directProducts.length > 0 ? [searchQuery] : [],
+  });
+
+  const products =
+    directProducts.length > 0
+      ? [...directProducts, ...searchFallbackCards].slice(0, 3)
+      : buildSearchFallbackCards({
           groupBudget,
+          groupId,
           itemCategory,
           itemName,
           itemNote,
-          productId: match.product.itemId,
+          limit: 3,
           preferredPriceMax,
           preferredPriceMin,
-          skuId: match.product.skuId || null,
-          trackingLabel,
-        }
-      ),
-      searchQuery: match.product.productName,
-      priceLabel: lazadaPrice !== null ? formatPriceRange(lazadaPrice, lazadaPrice, "PHP") : null,
-      fitLabel,
-      whyItFits: buildMatchWhyItFits(role, match.reasons, lazadaPrice, basePrice),
-      trackingLabel,
-    };
-  });
-
-  if (orderedMatches.length === 0 && products.length > 0) {
-    const fallbackProducts = getLazadaStarterProducts({
-      itemName,
-      itemCategory,
-      itemNote,
-      searchQuery,
-      preferredPriceMin,
-      preferredPriceMax,
-      groupBudget,
-    });
-    const searchFallbackCards: WishlistFeaturedProductCard[] = fallbackProducts
-      .filter((product) => product.source === "search-backed")
-      .slice(0, 1)
-      .map((product, index) => {
-        const fitLabel = index === 0 ? "Closest to request" : "Step-up option";
-        const trackingLabel = "Search route";
-
-        return {
-          id: `fallback-lazada-${wishlistItemId}-${product.id}-${index}`,
-          merchant: "lazada",
-          merchantLabel: "Lazada",
-          catalogSource: "search-backed",
-          imageUrl: null,
-          productId: null,
-          skuId: null,
-          title: product.title,
-          subtitle: product.subtitle,
-          href: buildTrackedSuggestionHref(
-            "lazada",
-            groupId,
-            wishlistItemId,
-            product.searchQuery,
-            product.title,
-            region,
-            {
-              catalogSource: "search-backed",
-              fitLabel,
-              groupBudget,
-              itemCategory,
-              itemName,
-              itemNote,
-              preferredPriceMax,
-              preferredPriceMin,
-              trackingLabel,
-            }
-          ),
-          searchQuery: product.searchQuery,
-          priceLabel:
-            groupBudget !== null
-              ? `Budget target: ${formatPriceRange(groupBudget, groupBudget, "PHP")}`
-              : null,
-          fitLabel,
-          whyItFits: product.whyItFits,
-          trackingLabel,
-        };
-      });
-
-    return NextResponse.json({
-      products: [...searchFallbackCards, ...products].slice(0, 3),
-    });
-  }
+          region,
+          searchQuery,
+          wishlistItemId,
+        });
 
   return NextResponse.json({ products });
 }
