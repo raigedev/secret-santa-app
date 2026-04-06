@@ -193,6 +193,7 @@ function MiniStatusDot({ className }: { className: string }) {
 export default function DashboardPage() {
   const router = useRouter();
   const [supabase] = useState(() => createClient());
+  const prefetchedRoutesRef = useRef<Set<string>>(new Set());
   const [canViewAffiliateReport, setCanViewAffiliateReport] = useState(false);
   const [userName, setUserName] = useState("");
   const [userEmoji, setUserEmoji] = useState("\u{1F385}");
@@ -550,7 +551,7 @@ export default function DashboardPage() {
         // bell accurate if the browser misses a websocket event or resumes from sleep.
         notificationPollInterval = setInterval(() => {
           refreshNotificationsIfVisible();
-        }, 2500);
+        }, 8000);
       } catch {
         if (!isMounted) {
           return;
@@ -641,17 +642,26 @@ export default function DashboardPage() {
   }, [supabase, router]);
 
   useEffect(() => {
-    router.prefetch("/notifications");
-    router.prefetch("/secret-santa");
-    router.prefetch("/secret-santa-chat");
-    router.prefetch("/create-group");
-    router.prefetch("/profile");
+    const prefetchOnce = (route: string) => {
+      if (prefetchedRoutesRef.current.has(route)) {
+        return;
+      }
+
+      prefetchedRoutesRef.current.add(route);
+      router.prefetch(route);
+    };
+
+    prefetchOnce("/notifications");
+    prefetchOnce("/secret-santa");
+    prefetchOnce("/secret-santa-chat");
+    prefetchOnce("/create-group");
+    prefetchOnce("/profile");
     if (canViewAffiliateReport) {
-      router.prefetch("/dashboard/affiliate-report");
+      prefetchOnce("/dashboard/affiliate-report");
     }
 
-    for (const group of [...ownedGroups, ...invitedGroups]) {
-      router.prefetch(`/group/${group.id}`);
+    for (const group of [...ownedGroups, ...invitedGroups].slice(0, 8)) {
+      prefetchOnce(`/group/${group.id}`);
     }
   }, [router, ownedGroups, invitedGroups, canViewAffiliateReport]);
 

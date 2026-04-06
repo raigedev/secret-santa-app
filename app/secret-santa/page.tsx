@@ -672,15 +672,22 @@ export default function SecretSantaPage() {
   const [nearbyStoreStateByItem, setNearbyStoreStateByItem] = useState<
     Record<string, NearbyStoreState>
   >({});
+  const prefetchedRoutesRef = useRef<Set<string>>(new Set());
   const lazadaPrimedKeysRef = useRef<Set<string>>(new Set());
   const matchedLazadaProductsByKeyRef = useRef(matchedLazadaProductsByKey);
 
   useEffect(() => {
-    router.prefetch("/dashboard");
+    if (!prefetchedRoutesRef.current.has("/dashboard")) {
+      prefetchedRoutesRef.current.add("/dashboard");
+      router.prefetch("/dashboard");
+    }
   }, [router]);
 
   useEffect(() => {
-    router.prefetch("/secret-santa-chat");
+    if (!prefetchedRoutesRef.current.has("/secret-santa-chat")) {
+      prefetchedRoutesRef.current.add("/secret-santa-chat");
+      router.prefetch("/secret-santa-chat");
+    }
 
     const groupIds = new Set<string>();
 
@@ -695,7 +702,14 @@ export default function SecretSantaPage() {
     // Prefetch only the first few likely navigation targets to avoid warming
     // dozens of routes on large group lists.
     for (const groupId of Array.from(groupIds).slice(0, MAX_GROUP_ROUTE_PREFETCH)) {
-      router.prefetch(`/group/${groupId}`);
+      const route = `/group/${groupId}`;
+
+      if (prefetchedRoutesRef.current.has(route)) {
+        continue;
+      }
+
+      prefetchedRoutesRef.current.add(route);
+      router.prefetch(route);
     }
   }, [router, availableGroups, assignments]);
 

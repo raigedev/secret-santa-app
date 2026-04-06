@@ -46,6 +46,7 @@ function getNotificationIcon(type: string): string {
 export default function NotificationsPage() {
   const router = useRouter();
   const [supabase] = useState(() => createClient());
+  const prefetchedRoutesRef = useRef<Set<string>>(new Set());
   const [userId, setUserId] = useState<string | null>(null);
   const [notifications, setNotifications] = useState<NotificationItem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -152,7 +153,7 @@ export default function NotificationsPage() {
     // update after missed websocket events, network hiccups, or sleeping tabs.
     pollInterval = setInterval(() => {
       refreshIfVisible();
-    }, 2500);
+    }, 8000);
 
     window.addEventListener("focus", refreshIfVisible);
     document.addEventListener("visibilitychange", refreshIfVisible);
@@ -171,11 +172,20 @@ export default function NotificationsPage() {
   }, [supabase, userId]);
 
   useEffect(() => {
-    router.prefetch("/dashboard");
+    const prefetchOnce = (route: string) => {
+      if (prefetchedRoutesRef.current.has(route)) {
+        return;
+      }
+
+      prefetchedRoutesRef.current.add(route);
+      router.prefetch(route);
+    };
+
+    prefetchOnce("/dashboard");
 
     for (const notification of notifications.slice(0, 20)) {
       if (notification.link_path) {
-        router.prefetch(notification.link_path);
+        prefetchOnce(notification.link_path);
       }
     }
   }, [router, notifications]);
@@ -241,7 +251,7 @@ export default function NotificationsPage() {
         fontFamily: "'Nunito', sans-serif",
       }}
     >
-      <FadeIn className="max-w-[760px] mx-auto px-4 py-6">
+      <FadeIn className="max-w-190 mx-auto px-4 py-6">
         <button
           onClick={() => router.push("/dashboard")}
           className="inline-flex items-center gap-1.5 text-sm font-bold mb-5 px-4 py-2 rounded-lg transition"
@@ -256,7 +266,7 @@ export default function NotificationsPage() {
         </button>
 
         <div
-          className="rounded-[24px] overflow-hidden"
+          className="rounded-3xl overflow-hidden"
           style={{
             background: "linear-gradient(180deg,#fffdf9,#f8f5ef)",
             border: "2px solid rgba(21,101,52,.1)",
@@ -388,7 +398,7 @@ export default function NotificationsPage() {
                   >
                     <div className="flex items-start gap-4">
                       <div
-                        className="w-[46px] h-[46px] rounded-[14px] flex items-center justify-center text-[22px] flex-shrink-0"
+                        className="w-11.5 h-11.5 rounded-[14px] flex items-center justify-center text-[22px] shrink-0"
                         style={{
                           background: notification.read_at
                             ? "rgba(148,163,184,.12)"
