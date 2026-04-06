@@ -5,10 +5,12 @@ import { enforceRateLimit } from "@/lib/security/rate-limit";
 import { supabaseAdmin } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 
+const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
 export async function markNotificationRead(
   notificationId: string
 ): Promise<{ success: boolean; message: string }> {
-  if (!notificationId) {
+  if (!notificationId || !UUID_PATTERN.test(notificationId)) {
     return { success: false, message: "Missing notification." };
   }
 

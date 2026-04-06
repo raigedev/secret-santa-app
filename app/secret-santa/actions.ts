@@ -19,11 +19,13 @@ function isGiftPrepStatus(value: string): value is GiftPrepStatus {
   return GIFT_PREP_STATUSES.includes(value as GiftPrepStatus);
 }
 
+const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
 export async function updateGiftPrepStatus(
   groupId: string,
   status: string
 ): Promise<{ success: boolean; message: string }> {
-  if (!groupId || typeof groupId !== "string" || !status || !isGiftPrepStatus(status)) {
+  if (!groupId || !UUID_PATTERN.test(groupId) || !status || !isGiftPrepStatus(status)) {
     return { success: false, message: "Invalid gift progress update." };
   }
 
@@ -121,7 +123,7 @@ export async function updateGiftPrepStatus(
 export async function confirmGiftReceived(
   groupId: string
 ): Promise<{ success: boolean; message: string }> {
-  if (!groupId || typeof groupId !== "string") {
+  if (!groupId || !UUID_PATTERN.test(groupId)) {
     return { success: false, message: "Invalid group ID." };
   }
 

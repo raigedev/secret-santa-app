@@ -6,6 +6,8 @@ import { createClient } from "@/lib/supabase/server";
 import { isWishlistCategory, WishlistCategory } from "@/lib/wishlist/options";
 import { normalizeOptionalPriceValue } from "@/lib/wishlist/pricing";
 
+const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
 function sanitizeText(input: string, maxLength: number): string {
   return input
     .replace(/<[^>]*>/g, "")
@@ -71,7 +73,7 @@ export async function addWishlistItem(
   preferredPriceMin: string,
   preferredPriceMax: string
 ): Promise<{ success: boolean; message: string }> {
-  if (!groupId || typeof groupId !== "string") {
+  if (!groupId || !UUID_PATTERN.test(groupId)) {
     return { success: false, message: "Invalid group." };
   }
 
@@ -176,7 +178,7 @@ export async function editWishlistItem(
   preferredPriceMin: string,
   preferredPriceMax: string
 ): Promise<{ success: boolean; message: string }> {
-  if (!itemId || typeof itemId !== "string") {
+  if (!itemId || !UUID_PATTERN.test(itemId)) {
     return { success: false, message: "Invalid item." };
   }
 
@@ -271,7 +273,7 @@ export async function editWishlistItem(
 export async function deleteWishlistItem(
   itemId: string
 ): Promise<{ success: boolean; message: string }> {
-  if (!itemId || typeof itemId !== "string") {
+  if (!itemId || !UUID_PATTERN.test(itemId)) {
     return { success: false, message: "Invalid item." };
   }
 

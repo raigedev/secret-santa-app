@@ -529,19 +529,35 @@ export default function DashboardPage() {
 
         setUserName(defaultName);
 
+        // claimInvitedMemberships only needs to run once per browser session.
+        // Email-linked invites don't change between visits; realtime will trigger
+        // a data reload automatically when a brand-new invite arrives.
+        const CLAIM_KEY = "ss_mc";
+        const alreadyClaimed =
+          typeof sessionStorage !== "undefined" &&
+          sessionStorage.getItem(CLAIM_KEY) === "1";
+
+        const claimAction = alreadyClaimed
+          ? Promise.resolve()
+          : claimInvitedMemberships().then(() => {
+              if (typeof sessionStorage !== "undefined") {
+                sessionStorage.setItem(CLAIM_KEY, "1");
+              }
+            });
+
+        // All five loads run in parallel — group cards start loading immediately
+        // instead of waiting for the profile/affiliate/notification round-trips.
         await Promise.all([
           loadProfileData(),
-          claimInvitedMemberships(),
+          claimAction,
           loadAffiliateReportAccess(),
           loadNotificationCount(session.user.id),
+          loadDashboardData(session.user),
         ]);
 
         if (!isMounted) {
           return;
         }
-
-
-        await loadDashboardData(session.user);
 
         if (notificationPollInterval) {
           clearInterval(notificationPollInterval);
