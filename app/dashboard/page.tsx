@@ -190,6 +190,51 @@ function MiniStatusDot({ className }: { className: string }) {
   return <span aria-hidden="true" className={`h-2.5 w-2.5 rounded-full ${className}`} />;
 }
 
+function EventCountdownBadge({ eventDate }: { eventDate: string }) {
+  const [now, setNow] = useState(() => Date.now());
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setNow(Date.now());
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, []);
+
+  const eventTime = new Date(eventDate).getTime();
+
+  if (Number.isNaN(eventTime)) {
+    return (
+      <span className="inline-flex items-center gap-2 rounded-full bg-slate-50 px-3 py-1.5 font-medium text-sm text-slate-600">
+        <span className="h-2 w-2 rounded-full bg-blue-500" />
+        Event date: {formatDashboardDate(eventDate)}
+      </span>
+    );
+  }
+
+  const remaining = Math.max(0, eventTime - now);
+
+  if (remaining === 0) {
+    return (
+      <span className="inline-flex items-center gap-2 rounded-full bg-amber-50 px-3 py-1.5 font-medium text-sm text-amber-700">
+        <span className="h-2 w-2 rounded-full bg-amber-500" />
+        Event in progress!
+      </span>
+    );
+  }
+
+  const days = Math.floor(remaining / (1000 * 60 * 60 * 24));
+  const hours = Math.floor((remaining % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+  const minutes = Math.floor((remaining % (1000 * 60 * 60)) / (1000 * 60));
+
+  return (
+    <span className="inline-flex items-center gap-2 rounded-full bg-blue-50 px-3 py-1.5 font-medium text-sm text-blue-700">
+      <span className="h-2 w-2 rounded-full bg-blue-500 animate-pulse" />
+      {days > 0 ? `${days}d ` : ""}{hours}h {minutes}m
+    </span>
+  );
+}
+
 export default function DashboardPage() {
   const router = useRouter();
   const [supabase] = useState(() => createClient());
@@ -804,10 +849,7 @@ export default function DashboardPage() {
           </p>
 
           <div className="mt-4 flex flex-wrap items-center gap-3 text-sm text-slate-600">
-            <span className="inline-flex items-center gap-2 rounded-full bg-slate-50 px-3 py-1.5 font-medium">
-              <span className="h-2 w-2 rounded-full bg-blue-500" />
-              Event date: {formatDashboardDate(group.event_date)}
-            </span>
+            <EventCountdownBadge eventDate={group.event_date} />
             {budgetLabel && (
               <span className="inline-flex items-center gap-2 rounded-full bg-emerald-50 px-3 py-1.5 font-semibold text-emerald-700">
                 <span className="h-2 w-2 rounded-full bg-emerald-500" />
