@@ -87,11 +87,17 @@ export default function SecretSantaCard({ recipientNames }: Props) {
   return (
     <section className="group relative overflow-hidden rounded-[32px] border border-rose-200/70 bg-[linear-gradient(145deg,#d44949_0%,#b8324e_38%,#8c2f7d_100%)] p-5 text-white shadow-[0_30px_90px_rgba(127,29,29,0.28)] transition duration-300 hover:-translate-y-0.5">
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(255,255,255,0.3),transparent_33%),radial-gradient(circle_at_bottom_right,rgba(255,225,170,0.24),transparent_36%)]" />
+      <div className="pointer-events-none absolute inset-y-0 left-10 w-3 rounded-full bg-white/20" />
+      <div className="pointer-events-none absolute inset-x-0 top-14 h-3 bg-white/18" />
+      <div className="pointer-events-none absolute left-7 top-10 z-20 flex h-8 w-8 items-center justify-center rounded-full border border-white/45 bg-white/25 shadow-[0_8px_20px_rgba(15,23,42,0.16)]">
+        <span className="absolute -left-3 h-4 w-4 rotate-12 rounded-full border border-white/45 bg-white/22" />
+        <span className="absolute -right-3 h-4 w-4 -rotate-12 rounded-full border border-white/45 bg-white/22" />
+        <span className="h-2.5 w-2.5 rounded-full bg-amber-100/95" />
+      </div>
       <div className="absolute right-4 top-4 h-20 w-20 rounded-full border border-white/35 bg-white/15 blur-[1px]" />
       <div className="absolute -right-4 bottom-2 h-20 w-20 rounded-full bg-white/12 blur-sm" />
       <div className="absolute bottom-8 right-10 h-3 w-3 rounded-full bg-amber-200/90" />
       <div className="absolute left-8 top-20 h-2 w-2 rounded-full bg-white/70" />
-      <div className="absolute left-0 top-14 h-2 w-full bg-white/18" />
 
       <div className="relative z-10 flex items-start justify-between gap-4">
         <div>
