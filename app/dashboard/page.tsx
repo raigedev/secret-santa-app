@@ -952,24 +952,30 @@ export default function DashboardPage() {
     const theme =
       accent === "green"
         ? {
-            card: "bg-[linear-gradient(145deg,#4ade80_0%,#16a34a_40%,#14532d_100%)] border-emerald-400/40 shadow-[0_30px_90px_rgba(20,83,45,0.30)]",
+            card: "bg-[linear-gradient(145deg,#4ade80_0%,#16a34a_40%,#14532d_100%)]",
+            borderGrad: "bg-[linear-gradient(135deg,#bbf7d0,#4ade80,#15803d,#86efac,#14532d)]",
+            shadow: "shadow-[0_32px_80px_rgba(20,83,45,0.38)]",
             eyebrow: "bg-white/92 text-emerald-700 shadow-[0_8px_20px_rgba(15,23,42,0.10)]",
             subtitleText: "text-emerald-50/90",
             panel: "border-white/60 bg-white/94",
-            panelLabel: "text-emerald-500",
             button: "bg-[linear-gradient(135deg,#15803d,#14532d)] shadow-[0_14px_35px_rgba(20,83,45,0.30)]",
             ribbonColor: "bg-white/14",
             bowColor: "bg-emerald-50/90",
+            corner: "bg-white/30",
+            ribbonBar: "bg-white/18",
           }
         : {
-            card: "bg-[linear-gradient(145deg,#fbbf24_0%,#d97706_40%,#78350f_100%)] border-amber-400/40 shadow-[0_30px_90px_rgba(120,53,15,0.30)]",
+            card: "bg-[linear-gradient(145deg,#fbbf24_0%,#d97706_40%,#78350f_100%)]",
+            borderGrad: "bg-[linear-gradient(135deg,#fef08a,#fbbf24,#b45309,#fde68a,#78350f)]",
+            shadow: "shadow-[0_32px_80px_rgba(120,53,15,0.38)]",
             eyebrow: "bg-white/92 text-amber-700 shadow-[0_8px_20px_rgba(15,23,42,0.10)]",
             subtitleText: "text-amber-50/90",
             panel: "border-white/60 bg-white/94",
-            panelLabel: "text-amber-500",
             button: "bg-[linear-gradient(135deg,#b45309,#78350f)] shadow-[0_14px_35px_rgba(120,53,15,0.30)]",
             ribbonColor: "bg-white/14",
             bowColor: "bg-amber-100/90",
+            corner: "bg-amber-200/30",
+            ribbonBar: "bg-white/18",
           };
 
     return (

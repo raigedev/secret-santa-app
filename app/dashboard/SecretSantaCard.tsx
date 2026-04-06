@@ -85,33 +85,52 @@ export default function SecretSantaCard({ recipientNames }: Props) {
   const hasAssignments = recipientNames.length > 0;
 
   return (
-    <section className="group relative overflow-hidden rounded-[32px] border border-rose-200/70 bg-[linear-gradient(145deg,#d44949_0%,#b8324e_38%,#8c2f7d_100%)] p-5 text-white shadow-[0_30px_90px_rgba(127,29,29,0.28)] transition duration-300 hover:-translate-y-0.5">
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(255,255,255,0.3),transparent_33%),radial-gradient(circle_at_bottom_right,rgba(255,225,170,0.24),transparent_36%)]" />
-      <div className="pointer-events-none absolute bottom-0 left-10 h-20 w-2 rounded-t-full bg-white/14" />
-      <div className="pointer-events-none absolute bottom-14 left-0 h-2 w-24 bg-white/12" />
-      <div className="pointer-events-none absolute bottom-11 left-7 z-0 flex h-6 w-6 items-center justify-center rounded-full border border-white/35 bg-white/18 shadow-[0_6px_16px_rgba(15,23,42,0.12)]">
-        <span className="absolute -left-2.5 h-3.5 w-3.5 rotate-12 rounded-full border border-white/35 bg-white/16" />
-        <span className="absolute -right-2.5 h-3.5 w-3.5 -rotate-12 rounded-full border border-white/35 bg-white/16" />
-        <span className="h-2.5 w-2.5 rounded-full bg-amber-100/95" />
-      </div>
-      {/* Gift box watermark — top right */}
-      <div className="pointer-events-none absolute right-4 top-3 opacity-[0.22]">
-        <div className="relative w-14">
-          <div className="absolute -top-2.5 left-1/2 flex -translate-x-1/2 items-center gap-0.5">
-            <div className="h-3.5 w-4 -rotate-12 rounded-full border border-white bg-white/45" />
-            <div className="h-2 w-2 rounded-full bg-white" />
-            <div className="h-3.5 w-4 rotate-12 rounded-full border border-white bg-white/45" />
-          </div>
-          <div className="h-3 w-14 rounded-t-[4px] border border-white bg-white/30" />
-          <div className="relative mt-px h-11 w-14 rounded-b-[4px] border border-white bg-white/30">
-            <div className="absolute left-1/2 top-0 h-full w-[1.5px] -translate-x-1/2 bg-white/90" />
+    <div className="group rounded-[34px] p-[2.5px] transition duration-300 hover:-translate-y-0.5 bg-[linear-gradient(135deg,#fecdd3,#f43f5e,#9f1239,#fda4af,#881337)] shadow-[0_32px_80px_rgba(127,29,29,0.38)]">
+      <section className="relative overflow-hidden rounded-[32px] bg-[linear-gradient(145deg,#d44949_0%,#b8324e_38%,#8c2f7d_100%)] p-5 text-white">
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(255,255,255,0.3),transparent_33%),radial-gradient(circle_at_bottom_right,rgba(255,225,170,0.24),transparent_36%)]" />
+        {/* Horizontal ribbon bar */}
+        <div className="pointer-events-none absolute left-0 right-0 top-[38%] h-[3px] bg-white/16" />
+        {/* Corner washi-tape ribbon strips */}
+        <div className="pointer-events-none absolute left-0 top-0 h-11 w-11 overflow-hidden">
+          <div className="absolute -left-3 top-3 h-[10px] w-16 -rotate-45 bg-white/28" />
+        </div>
+        <div className="pointer-events-none absolute right-0 top-0 h-11 w-11 overflow-hidden">
+          <div className="absolute -right-3 top-3 h-[10px] w-16 rotate-45 bg-white/28" />
+        </div>
+        <div className="pointer-events-none absolute bottom-0 left-0 h-11 w-11 overflow-hidden">
+          <div className="absolute -left-3 bottom-3 h-[10px] w-16 rotate-45 bg-white/28" />
+        </div>
+        <div className="pointer-events-none absolute bottom-0 right-0 h-11 w-11 overflow-hidden">
+          <div className="absolute -right-3 bottom-3 h-[10px] w-16 -rotate-45 bg-white/28" />
+        </div>
+        {/* Ribbon/bow — bottom-left */}
+        <div className="pointer-events-none absolute bottom-0 left-10 h-20 w-2 rounded-t-full bg-white/14" />
+        <div className="pointer-events-none absolute bottom-14 left-0 h-2 w-24 bg-white/12" />
+        <div className="pointer-events-none absolute bottom-11 left-7 z-0 flex h-6 w-6 items-center justify-center rounded-full border border-white/35 bg-white/18 shadow-[0_6px_16px_rgba(15,23,42,0.12)]">
+          <span className="absolute -left-2.5 h-3.5 w-3.5 rotate-12 rounded-full border border-white/35 bg-white/16" />
+          <span className="absolute -right-2.5 h-3.5 w-3.5 -rotate-12 rounded-full border border-white/35 bg-white/16" />
+          <span className="h-2.5 w-2.5 rounded-full bg-amber-100/95" />
+        </div>
+        {/* Gift box watermark — top right */}
+        <div className="pointer-events-none absolute right-5 top-3 opacity-[0.20]">
+          <div className="relative flex w-[60px] flex-col items-center">
+            <div className="mb-0.5 flex items-center gap-0.5">
+              <div className="h-4 w-5 -rotate-[18deg] rounded-full border-[1.5px] border-white bg-white/20" />
+              <div className="h-2.5 w-2.5 rounded-full bg-white" />
+              <div className="h-4 w-5 rotate-[18deg] rounded-full border-[1.5px] border-white bg-white/20" />
+            </div>
+            <div className="relative h-3.5 w-[60px] rounded-t-sm border border-white bg-white/20">
+              <div className="absolute left-1/2 top-0 h-full w-[3px] -translate-x-1/2 bg-white/75" />
+            </div>
+            <div className="relative mt-px h-12 w-[60px] rounded-b-sm border border-white bg-white/15">
+              <div className="absolute left-1/2 top-0 h-full w-[3px] -translate-x-1/2 bg-white/75" />
+            </div>
           </div>
         </div>
-      </div>
-      {/* Sparkle stars */}
-      <span className="pointer-events-none absolute left-4 top-3 select-none text-sm leading-none text-white/20">✦</span>
-      <span className="pointer-events-none absolute bottom-[32%] right-4 select-none text-base leading-none text-white/18">✦</span>
-      <span className="pointer-events-none absolute left-[42%] top-[15%] select-none text-xs leading-none text-white/16">✦</span>
+        {/* Sparkles */}
+        <span className="pointer-events-none absolute left-5 top-4 select-none text-base leading-none text-white/22">✦</span>
+        <span className="pointer-events-none absolute bottom-[28%] right-5 select-none text-sm leading-none text-white/18">✦</span>
+        <span className="pointer-events-none absolute left-[40%] top-[12%] select-none text-xs leading-none text-white/15">✦</span>
 
       <div className="relative z-10 flex items-start justify-between gap-4">
         <div>
@@ -191,6 +210,7 @@ export default function SecretSantaCard({ recipientNames }: Props) {
           </button>
         </div>
       </div>
-    </section>
+      </section>
+    </div>
   );
 }
