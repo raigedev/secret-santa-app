@@ -984,11 +984,11 @@ export default function DashboardPage() {
         </div>
         <div className={`relative mt-5 px-6 pb-6 pt-6 ${theme.body}`}>
           <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(255,255,255,0.34),transparent_33%),radial-gradient(circle_at_bottom_right,rgba(255,255,255,0.2),transparent_35%)]" />
-          <div className={`pointer-events-none absolute inset-y-0 left-9 w-3 ${theme.ribbon}`} />
-          <div className={`pointer-events-none absolute inset-x-0 top-7 h-3 ${theme.ribbon}`} />
-          <div className={`pointer-events-none absolute left-6 top-4 z-20 flex h-8 w-8 items-center justify-center rounded-full border border-white/50 ${theme.bow} shadow-[0_8px_20px_rgba(15,23,42,0.16)]`}>
-            <span className="absolute -left-3 h-4 w-4 rotate-12 rounded-full border border-white/50 bg-white/30" />
-            <span className="absolute -right-3 h-4 w-4 -rotate-12 rounded-full border border-white/50 bg-white/30" />
+          <div className={`pointer-events-none absolute bottom-0 left-9 h-16 w-2 ${theme.ribbon}`} />
+          <div className={`pointer-events-none absolute bottom-11 left-0 h-2 w-20 ${theme.ribbon}`} />
+          <div className={`pointer-events-none absolute bottom-8 left-6 z-0 flex h-6 w-6 items-center justify-center rounded-full border border-white/40 ${theme.bow} shadow-[0_6px_16px_rgba(15,23,42,0.14)]`}>
+            <span className="absolute -left-2.5 h-3.5 w-3.5 rotate-12 rounded-full border border-white/45 bg-white/26" />
+            <span className="absolute -right-2.5 h-3.5 w-3.5 -rotate-12 rounded-full border border-white/45 bg-white/26" />
             <span className="h-2.5 w-2.5 rounded-full bg-white/95" />
           </div>
           <div className="absolute -top-10 right-4 h-28 w-28 rounded-full border border-white/30 bg-white/12 blur-[1px]" />
