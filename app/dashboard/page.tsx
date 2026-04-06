@@ -832,103 +832,146 @@ export default function DashboardPage() {
     type: "owned" | "invited";
   }) => {
     const budgetLabel = formatDashboardBudget(group.budget, group.currency);
+    const theme =
+      type === "owned"
+        ? {
+            borderGrad: "bg-[linear-gradient(135deg,#bfdbfe,#60a5fa,#2563eb,#93c5fd,#1d4ed8)]",
+            cardBg: "bg-[linear-gradient(145deg,#60a5fa_0%,#3b82f6_38%,#1e3a8a_100%)]",
+            shadow: "shadow-[0_30px_90px_rgba(30,64,175,0.30)]",
+            eyebrow: "bg-white/92 text-blue-700",
+            bodyText: "text-blue-50/95",
+            panelAccent: "bg-blue-500",
+            participantPill: "bg-blue-50 text-blue-700",
+            drawPillDone: "bg-emerald-100 text-emerald-700",
+            drawPillPending: "bg-sky-100 text-sky-700",
+            memberPill: "bg-blue-50 text-blue-700 border-blue-100",
+            primaryButton:
+              "bg-[linear-gradient(135deg,#2f80ff,#1f66e5)] shadow-[0_14px_35px_rgba(37,99,235,0.24)]",
+          }
+        : {
+            borderGrad: "bg-[linear-gradient(135deg,#fde68a,#fbbf24,#d97706,#fcd34d,#b45309)]",
+            cardBg: "bg-[linear-gradient(145deg,#fbbf24_0%,#d97706_38%,#78350f_100%)]",
+            shadow: "shadow-[0_30px_90px_rgba(146,64,14,0.30)]",
+            eyebrow: "bg-white/92 text-amber-700",
+            bodyText: "text-amber-50/95",
+            panelAccent: "bg-amber-500",
+            participantPill: "bg-amber-50 text-amber-700",
+            drawPillDone: "bg-emerald-100 text-emerald-700",
+            drawPillPending: "bg-amber-100 text-amber-700",
+            memberPill: "bg-amber-50 text-amber-700 border-amber-100",
+            primaryButton:
+              "bg-[linear-gradient(135deg,#c26d18,#8b4513)] shadow-[0_14px_35px_rgba(120,53,15,0.24)]",
+          };
 
     return (
-      <article className="relative overflow-hidden rounded-4xl border border-white/75 bg-white/88 p-6 shadow-[0_28px_80px_rgba(148,163,184,0.16)] backdrop-blur-md">
-        <div className="absolute inset-y-0 right-0 hidden w-44 bg-[radial-gradient(circle_at_center,rgba(147,197,253,0.28),transparent_70%)] lg:block" />
-        <div className="absolute bottom-6 right-10 hidden lg:block">
-          <div className="relative h-28 w-28 rounded-full border border-white/70 bg-[linear-gradient(180deg,#d9efff,#f4fbff)] shadow-[0_18px_40px_rgba(148,163,184,0.18)]">
-            <div className="absolute left-4 top-6 h-10 w-10 rounded-2xl bg-[linear-gradient(180deg,#60a5fa,#3b82f6)]" />
-            <div className="absolute left-[1.65rem] top-6 h-2 w-10 rounded-full bg-white/70" />
-            <div className="absolute left-8 top-[1.1rem] h-3 w-3 rounded-full bg-amber-300" />
-            <div className="absolute right-5 top-10 h-12 w-12 rounded-2xl bg-[linear-gradient(180deg,#f9a8d4,#fb7185)]" />
-            <div className="absolute right-[1.55rem] top-10 h-2 w-12 rounded-full bg-white/70" />
-            <div className="absolute right-9 top-9 h-3 w-3 rounded-full bg-amber-300" />
-            <div className="absolute bottom-3 left-3 h-6 w-6 rounded-full bg-white/90" />
-            <div className="absolute bottom-3 left-8 h-8 w-8 rounded-full bg-white/90" />
+      <div className={`rounded-[34px] p-[3px] ${theme.borderGrad} ${theme.shadow}`}>
+        <article className={`relative overflow-hidden rounded-[32px] p-6 text-white ${theme.cardBg}`}>
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(255,255,255,0.32),transparent_36%),radial-gradient(circle_at_bottom_right,rgba(255,225,170,0.18),transparent_40%)]" />
+          <div
+            className="pointer-events-none absolute inset-0 opacity-[0.05]"
+            style={{
+              backgroundImage:
+                "repeating-linear-gradient(45deg, rgba(255,255,255,1) 0, rgba(255,255,255,1) 1px, transparent 1px, transparent 14px), repeating-linear-gradient(-45deg, rgba(255,255,255,1) 0, rgba(255,255,255,1) 1px, transparent 1px, transparent 14px)",
+            }}
+          />
+          <div className="pointer-events-none absolute left-0 right-0 top-[40%] h-[3px] bg-white/18" />
+          <div className="pointer-events-none absolute left-1/2 top-0 h-[40%] w-[3px] -translate-x-1/2 bg-white/18" />
+          <div className="pointer-events-none absolute right-0 top-0 z-20 h-10 w-10 overflow-hidden">
+            <div className="absolute -right-5 -top-5 h-10 w-10 rotate-45 bg-white/25 shadow-[inset_-1px_1px_3px_rgba(255,255,255,0.2)]" />
           </div>
-        </div>
+          <span className="pointer-events-none absolute left-5 top-4 select-none text-base leading-none text-white/22">✦</span>
+          <span className="pointer-events-none absolute right-20 top-8 select-none text-xs leading-none text-white/14">✦</span>
 
-        <div className="relative z-10 max-w-3xl">
-          <div className="flex flex-wrap items-center gap-2">
-            <span
-              className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold ${
-                type === "owned" ? "bg-blue-100 text-blue-700" : "bg-amber-100 text-amber-700"
-              }`}
-            >
-              {type === "owned" ? "My group" : "Invited group"}
-            </span>
-            <span className="inline-flex rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-600">
-              {group.members.length} participants
-            </span>
-            <span
-              className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold ${
-                group.hasDrawn ? "bg-emerald-100 text-emerald-700" : "bg-sky-100 text-sky-700"
-              }`}
-            >
-              {group.hasDrawn ? "Draw completed" : "Draw pending"}
-            </span>
-          </div>
-
-          <h3 className="mt-4 text-[1.85rem] font-bold leading-tight text-slate-900">
-            {group.name}
-          </h3>
-          <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-600">
-            {group.description || "A shared Secret Santa group ready for planning, matching, and gifting."}
-          </p>
-
-          <div className="mt-4 flex flex-wrap items-center gap-3 text-sm text-slate-600">
-            <EventCountdownBadge eventDate={group.event_date} />
-            {budgetLabel && (
-              <span className="inline-flex items-center gap-2 rounded-full bg-emerald-50 px-3 py-1.5 font-semibold text-emerald-700">
-                <span className="h-2 w-2 rounded-full bg-emerald-500" />
-                Budget: {budgetLabel}
+          <div className="relative z-10">
+            <div className="flex flex-wrap items-center gap-2">
+              <span className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold ${theme.eyebrow}`}>
+                {type === "owned" ? "My group" : "Invited group"}
               </span>
-            )}
-          </div>
-
-          <div className="mt-5 flex flex-wrap gap-2">
-            {group.members.slice(0, 4).map((member, index) => (
+              <span className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold ${theme.participantPill}`}>
+                {group.members.length} participants
+              </span>
               <span
-                key={`${group.id}-${member.email || member.nickname || index}`}
-                className="inline-flex rounded-full bg-slate-100 px-3 py-1 text-xs font-medium text-slate-600"
-              >
-                {member.nickname || member.email || "Participant"}
-              </span>
-            ))}
-            {group.members.length > 4 && (
-              <span className="inline-flex rounded-full bg-slate-100 px-3 py-1 text-xs font-medium text-slate-500">
-                +{group.members.length - 4} more
-              </span>
-            )}
-          </div>
-
-          <div className="mt-6 flex flex-wrap items-center gap-3">
-            <button
-              type="button"
-              onClick={() => router.push(`/group/${group.id}`)}
-              className="inline-flex items-center gap-2 rounded-full bg-[linear-gradient(135deg,#2f80ff,#1f66e5)] px-5 py-2.5 text-sm font-semibold text-white shadow-[0_14px_35px_rgba(37,99,235,0.22)] transition hover:-translate-y-0.5"
-            >
-              <span>View Group</span>
-              <ArrowRightIcon />
-            </button>
-            {type === "owned" && (
-              <button
-                type="button"
-                onClick={() => void handleDeleteGroup(group.id, group.name)}
-                disabled={deletingGroupId === group.id}
-                className={`inline-flex items-center gap-2 rounded-full px-4 py-2.5 text-sm font-semibold transition ${
-                  deletingGroupId === group.id
-                    ? "cursor-wait bg-rose-100 text-rose-500"
-                    : "bg-rose-50 text-rose-600 hover:bg-rose-100"
+                className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold ${
+                  group.hasDrawn ? theme.drawPillDone : theme.drawPillPending
                 }`}
               >
-                {deletingGroupId === group.id ? "Deleting..." : "Delete Group"}
-              </button>
-            )}
+                {group.hasDrawn ? "Draw completed" : "Draw pending"}
+              </span>
+            </div>
+
+            <h3 className="mt-4 text-[2rem] font-extrabold leading-tight text-white">{group.name}</h3>
+            <p className={`mt-2 max-w-2xl text-sm leading-6 ${theme.bodyText}`}>
+              {group.description || "A shared Secret Santa group ready for planning, matching, and gifting."}
+            </p>
+
+            <div className="relative mt-5 overflow-hidden rounded-[26px] border border-white/60 bg-white/94 p-4 text-slate-800 shadow-[0_4px_18px_rgba(0,0,0,0.10),inset_0_1px_0_rgba(255,255,255,0.9)]">
+              <div className={`absolute bottom-0 left-0 top-0 w-1 rounded-l-[26px] ${theme.panelAccent}`} />
+              <div className="pointer-events-none absolute inset-0 opacity-40 [background-image:radial-gradient(circle_at_1px_1px,rgba(148,163,184,0.18)_1px,transparent_0)] [background-size:16px_16px]" />
+              <div className="relative z-10 pl-3">
+                <div className="flex items-center justify-between gap-3">
+                  <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-600">
+                    Group overview
+                  </p>
+                  <span className="inline-flex rounded-full bg-slate-100 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.12em] text-slate-600">
+                    Active
+                  </span>
+                </div>
+
+                <div className="mt-3 flex flex-wrap items-center gap-3 text-sm text-slate-600">
+                  <EventCountdownBadge eventDate={group.event_date} />
+                  {budgetLabel && (
+                    <span className="inline-flex items-center gap-2 rounded-full bg-emerald-50 px-3 py-1.5 font-semibold text-emerald-700">
+                      <span className="h-2 w-2 rounded-full bg-emerald-500" />
+                      Budget: {budgetLabel}
+                    </span>
+                  )}
+                </div>
+
+                <div className="mt-4 flex flex-wrap gap-2">
+                  {group.members.slice(0, 4).map((member, index) => (
+                    <span
+                      key={`${group.id}-${member.email || member.nickname || index}`}
+                      className={`inline-flex rounded-full border px-3 py-1 text-xs font-medium ${theme.memberPill}`}
+                    >
+                      {member.nickname || member.email || "Participant"}
+                    </span>
+                  ))}
+                  {group.members.length > 4 && (
+                    <span className="inline-flex rounded-full border border-slate-200 bg-slate-100 px-3 py-1 text-xs font-medium text-slate-500">
+                      +{group.members.length - 4} more
+                    </span>
+                  )}
+                </div>
+
+                <div className="mt-5 flex flex-wrap items-center gap-3 border-t border-slate-200 pt-4">
+                  <button
+                    type="button"
+                    onClick={() => router.push(`/group/${group.id}`)}
+                    className={`inline-flex items-center gap-2 rounded-full px-5 py-2.5 text-sm font-semibold text-white transition hover:-translate-y-0.5 ${theme.primaryButton}`}
+                  >
+                    <span>View Group</span>
+                    <ArrowRightIcon />
+                  </button>
+                  {type === "owned" && (
+                    <button
+                      type="button"
+                      onClick={() => void handleDeleteGroup(group.id, group.name)}
+                      disabled={deletingGroupId === group.id}
+                      className={`inline-flex items-center gap-2 rounded-full px-4 py-2.5 text-sm font-semibold transition ${
+                        deletingGroupId === group.id
+                          ? "cursor-wait bg-rose-100 text-rose-500"
+                          : "bg-rose-50 text-rose-600 hover:bg-rose-100"
+                      }`}
+                    >
+                      {deletingGroupId === group.id ? "Deleting..." : "Delete Group"}
+                    </button>
+                  )}
+                </div>
+              </div>
+            </div>
           </div>
-        </div>
-      </article>
+        </article>
+      </div>
     );
   };
 
