@@ -19,6 +19,7 @@ type AffiliateClickRow = {
   merchant: string;
   resolution_mode: string | null;
   search_query: string;
+  selected_query: string | null;
   suggestion_title: string;
   tracking_label: string | null;
   user_id: string | null;
@@ -35,6 +36,7 @@ type AffiliateConversionRow = {
   amount: number | string | null;
   click_token: string | null;
   conversion_status: string | null;
+  external_order_id: string | null;
   payout: number | string | null;
   received_at: string;
 };
@@ -54,6 +56,7 @@ type AffiliatePerformanceRow = {
   payout: number | string | null;
   resolution_mode: string | null;
   search_query: string;
+  selected_query: string | null;
   suggestion_title: string;
   tracking_label: string | null;
 };
@@ -64,6 +67,13 @@ type TopItemInsight = {
   dominant_route: string;
   payout_total: number;
   suggestion_title: string;
+};
+
+type TopAngleInsight = {
+  click_count: number;
+  conversion_count: number;
+  label: string;
+  payout_total: number;
 };
 
 type WindowFilter = "7d" | "30d" | "90d" | "all";
@@ -116,6 +126,28 @@ function formatDateTime(value: string | null): string {
 function summarizeSearchQuery(value: string): string {
   const firstPart = value.split(" | ")[0] || value;
   return firstPart.length > 70 ? `${firstPart.slice(0, 67)}...` : firstPart;
+}
+
+function normalizeInsightLabel(value: string | null | undefined, fallback: string): string {
+  const normalized = (value || "").trim();
+
+  if (normalized.length === 0) {
+    return fallback;
+  }
+
+  return normalized.length > 70 ? `${normalized.slice(0, 67)}...` : normalized;
+}
+
+function isLikelyTestConversion(row: AffiliateConversionRow): boolean {
+  const orderId = row.external_order_id?.trim().toLowerCase() || "";
+  const clickToken = row.click_token?.trim().toLowerCase() || "";
+
+  return (
+    orderId.startsWith("test") ||
+    orderId.startsWith("debug") ||
+    clickToken.startsWith("test-") ||
+    clickToken.startsWith("debug-")
+  );
 }
 
 function buildActorLabel(userId: string | null, profilesByUserId: Map<string, ProfileRow>): string {
@@ -229,6 +261,7 @@ function buildPerformanceRows(
       payout: matchingConversion?.payout || null,
       resolution_mode: click.resolution_mode,
       search_query: click.search_query,
+      selected_query: click.selected_query,
       suggestion_title: click.suggestion_title,
       tracking_label: click.tracking_label,
     };
@@ -304,6 +337,55 @@ function buildTopItemInsights(rows: AffiliatePerformanceRow[]): TopItemInsight[]
     .slice(0, 3);
 }
 
+function buildTopAngleInsights(rows: AffiliatePerformanceRow[]): TopAngleInsight[] {
+  const grouped = new Map<
+    string,
+    {
+      click_count: number;
+      conversion_count: number;
+      label: string;
+      payout_total: number;
+    }
+  >();
+
+  for (const row of rows) {
+    const label = normalizeInsightLabel(
+      row.selected_query,
+      row.fit_label || row.tracking_label || "Unknown angle"
+    );
+    const key = label.toLowerCase();
+    const existing = grouped.get(key) || {
+      click_count: 0,
+      conversion_count: 0,
+      label,
+      payout_total: 0,
+    };
+
+    existing.click_count += 1;
+
+    if (row.affiliate_conversion_id) {
+      existing.conversion_count += 1;
+      existing.payout_total += parseNumericValue(row.payout);
+    }
+
+    grouped.set(key, existing);
+  }
+
+  return Array.from(grouped.values())
+    .sort((left, right) => {
+      if (right.conversion_count !== left.conversion_count) {
+        return right.conversion_count - left.conversion_count;
+      }
+
+      if (right.click_count !== left.click_count) {
+        return right.click_count - left.click_count;
+      }
+
+      return right.payout_total - left.payout_total;
+    })
+    .slice(0, 5);
+}
+
 function SummaryCard({
   label,
   value,
@@ -355,6 +437,34 @@ function InsightCard({ insight }: { insight: TopItemInsight }) {
       <p className="mt-4 text-sm leading-6 text-slate-600">
         Dominant route: <span className="font-semibold text-slate-800">{insight.dominant_route}</span>
       </p>
+    </section>
+  );
+}
+
+function AngleInsightCard({ insight }: { insight: TopAngleInsight }) {
+  const conversionRate =
+    insight.click_count > 0
+      ? `${Math.round((insight.conversion_count / insight.click_count) * 100)}%`
+      : "0%";
+
+  return (
+    <section className="rounded-[24px] border border-white/70 bg-white/88 p-4 shadow-[0_18px_50px_rgba(148,163,184,0.12)] backdrop-blur-md">
+      <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">Selected angle</p>
+      <h3 className="mt-2 text-lg font-bold text-slate-900">{insight.label}</h3>
+      <div className="mt-4 grid gap-3 text-sm text-slate-600 sm:grid-cols-3">
+        <div>
+          <p className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-500">Clicks</p>
+          <p className="mt-1 text-lg font-semibold text-slate-900">{insight.click_count}</p>
+        </div>
+        <div>
+          <p className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-500">Conversions</p>
+          <p className="mt-1 text-lg font-semibold text-slate-900">{insight.conversion_count}</p>
+        </div>
+        <div>
+          <p className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-500">Rate</p>
+          <p className="mt-1 text-lg font-semibold text-slate-900">{conversionRate}</p>
+        </div>
+      </div>
     </section>
   );
 }
@@ -413,7 +523,7 @@ export default async function AffiliateReportPage({
   let clicksQuery = supabaseAdmin
     .from("affiliate_clicks")
     .select(
-      "id, catalog_source, created_at, fit_label, merchant, resolution_mode, search_query, suggestion_title, tracking_label, user_id"
+      "id, catalog_source, created_at, fit_label, merchant, resolution_mode, search_query, selected_query, suggestion_title, tracking_label, user_id"
     )
     .eq("merchant", "lazada")
     .order("created_at", { ascending: false })
@@ -478,7 +588,7 @@ export default async function AffiliateReportPage({
   if (clickIds.length > 0) {
     const { data: conversions, error: conversionsError } = await supabaseAdmin
       .from("affiliate_conversions")
-      .select("id, affiliate_click_id, amount, click_token, conversion_status, payout, received_at")
+      .select("id, affiliate_click_id, amount, click_token, conversion_status, external_order_id, payout, received_at")
       .in("affiliate_click_id", clickIds)
       .order("received_at", { ascending: false });
 
@@ -489,16 +599,27 @@ export default async function AffiliateReportPage({
     conversionRows = (conversions || []) as AffiliateConversionRow[];
   }
 
-  const allReportRows = buildPerformanceRows(clickRows, conversionRows, profilesByUserId);
+  const hiddenTestConversions = conversionRows.filter(isLikelyTestConversion);
+  const realConversionRows = conversionRows.filter((row) => !isLikelyTestConversion(row));
+  const allReportRows = buildPerformanceRows(clickRows, realConversionRows, profilesByUserId);
   const reportRows = allReportRows.slice(0, REPORT_TABLE_LIMIT);
   const topItemInsights = buildTopItemInsights(allReportRows);
+  const topAngleInsights = buildTopAngleInsights(allReportRows);
 
   const totalClicks = totalClicksCount || 0;
   const totalDirectClicks = totalDirectClicksCount || 0;
   const totalSearchClicks = totalSearchClicksCount || 0;
-  const totalConversions = conversionRows.length;
-  const totalSales = conversionRows.reduce((sum, row) => sum + parseNumericValue(row.amount), 0);
-  const totalPayout = conversionRows.reduce((sum, row) => sum + parseNumericValue(row.payout), 0);
+  const totalConversions = realConversionRows.length;
+  const totalSales = realConversionRows.reduce((sum, row) => sum + parseNumericValue(row.amount), 0);
+  const totalPayout = realConversionRows.reduce((sum, row) => sum + parseNumericValue(row.payout), 0);
+  const hiddenTestSales = hiddenTestConversions.reduce(
+    (sum, row) => sum + parseNumericValue(row.amount),
+    0
+  );
+  const hiddenTestPayout = hiddenTestConversions.reduce(
+    (sum, row) => sum + parseNumericValue(row.payout),
+    0
+  );
   const filterContext = `${describeWindowFilter(windowFilter)} | ${describeRouteFilter(routeFilter)}`;
 
   return (
@@ -596,6 +717,18 @@ export default async function AffiliateReportPage({
             capped to the latest {REPORT_ACTIVITY_LIMIT} Lazada clicks for performance, with the latest{" "}
             {REPORT_TABLE_LIMIT} rows shown in the table.
           </p>
+
+          {hiddenTestConversions.length > 0 && (
+            <div className="mt-4 rounded-[22px] border border-amber-200 bg-amber-50/80 px-4 py-3 text-sm text-amber-900">
+              Test conversions are hidden from the payout totals in this view.
+              {" "}
+              Hidden test rows: <span className="font-semibold">{hiddenTestConversions.length}</span>
+              {" "}
+              · Hidden sale amount: <span className="font-semibold">{formatPesoAmount(hiddenTestSales)}</span>
+              {" "}
+              · Hidden payout: <span className="font-semibold">{formatPesoAmount(hiddenTestPayout)}</span>
+            </div>
+          )}
         </section>
 
         <section className="mt-8 grid gap-4 md:grid-cols-2 xl:grid-cols-5">
@@ -639,6 +772,32 @@ export default async function AffiliateReportPage({
             </p>
           </div>
 
+          <div className="mb-6">
+            <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+              <div>
+                <p className="text-sm font-semibold uppercase tracking-[0.18em] text-slate-500">
+                  Angle signals
+                </p>
+                <h3 className="mt-1 text-xl font-bold text-slate-900">Top selected angles</h3>
+              </div>
+              <p className="text-sm text-slate-500">
+                New clicks now store the selected Step 1 angle directly.
+              </p>
+            </div>
+
+            {topAngleInsights.length === 0 ? (
+              <div className="rounded-[24px] border border-dashed border-slate-300 bg-slate-50/70 px-6 py-8 text-center text-sm font-medium text-slate-500">
+                No angle-level signals yet for this filter.
+              </div>
+            ) : (
+              <div className="grid gap-4 xl:grid-cols-2">
+                {topAngleInsights.map((insight) => (
+                  <AngleInsightCard key={insight.label} insight={insight} />
+                ))}
+              </div>
+            )}
+          </div>
+
           {topItemInsights.length === 0 ? (
             <div className="rounded-[24px] border border-dashed border-slate-300 bg-slate-50/70 px-6 py-10 text-center text-sm font-medium text-slate-500">
               No item insights yet for this filter. Click a few Lazada cards, then check back here.
@@ -675,6 +834,7 @@ export default async function AffiliateReportPage({
                 <thead>
                   <tr className="text-left text-xs font-semibold uppercase tracking-[0.14em] text-slate-500">
                     <th className="px-3 py-2">User</th>
+                    <th className="px-3 py-2">Selected angle</th>
                     <th className="px-3 py-2">Suggestion</th>
                     <th className="px-3 py-2">Type</th>
                     <th className="px-3 py-2">Resolution</th>
@@ -694,6 +854,15 @@ export default async function AffiliateReportPage({
                       <td className="rounded-l-[22px] px-3 py-3 align-top">
                         <div className="font-semibold text-slate-900">{row.actor_label}</div>
                         <div className="mt-1 text-xs text-slate-500">Owner-only visibility</div>
+                      </td>
+                      <td className="px-3 py-3 align-top">
+                        <div className="font-semibold text-slate-900">
+                          {normalizeInsightLabel(
+                            row.selected_query,
+                            row.fit_label || row.tracking_label || "Unknown angle"
+                          )}
+                        </div>
+                        <div className="mt-1 text-xs text-slate-500">Step 1 angle</div>
                       </td>
                       <td className="px-3 py-3 align-top">
                         <div className="font-semibold text-slate-900">{row.suggestion_title}</div>

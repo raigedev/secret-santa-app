@@ -58,6 +58,7 @@ export async function GET(request: NextRequest) {
       fit_label: "Wishlist item",
       resolution_mode: lazadaTarget.mode,
       resolution_reason: lazadaTarget.reason,
+      selected_query: itemName.slice(0, 200),
       suggestion_title: itemName.slice(0, 120),
       search_query: [
         normalizedItemUrl,

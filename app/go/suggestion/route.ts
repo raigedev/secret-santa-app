@@ -45,6 +45,7 @@ export async function GET(request: NextRequest) {
   const preferredPriceMaxRaw = searchParams.get("preferredPriceMax");
   const groupBudgetRaw = searchParams.get("groupBudget");
   const trackingLabel = searchParams.get("trackingLabel")?.trim() || null;
+  const selectedQuery = searchParams.get("selectedQuery")?.trim() || searchQuery;
   const requestedRegion = searchParams.get("region");
   const region: ShoppingRegion = isShoppingRegion(requestedRegion)
     ? requestedRegion
@@ -159,6 +160,7 @@ export async function GET(request: NextRequest) {
         .filter(Boolean)
         .join(" | ")
         .slice(0, 200),
+      selected_query: selectedQuery.slice(0, 200),
       target_url: targetUrl.slice(0, 1000),
       tracking_label: trackingLabel,
     });

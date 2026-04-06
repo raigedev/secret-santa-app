@@ -504,6 +504,7 @@ function buildSearchFallbackCards(input: {
           itemNote: input.itemNote,
           preferredPriceMax: input.preferredPriceMax,
           preferredPriceMin: input.preferredPriceMin,
+          selectedQuery: input.searchQuery,
           trackingLabel,
         }
       ),
@@ -741,6 +742,7 @@ export async function POST(request: NextRequest) {
             productId: match.product.itemId,
             preferredPriceMax,
             preferredPriceMin,
+            selectedQuery: searchQuery,
             skuId: match.product.skuId || null,
             trackingLabel,
           }

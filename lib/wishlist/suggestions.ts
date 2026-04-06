@@ -406,6 +406,7 @@ export function buildTrackedSuggestionHref(
     productId?: string | null;
     preferredPriceMax?: number | null;
     preferredPriceMin?: number | null;
+    selectedQuery?: string | null;
     skuId?: string | null;
     trackingLabel?: string | null;
   }
@@ -437,6 +438,10 @@ export function buildTrackedSuggestionHref(
 
   if (options?.trackingLabel) {
     params.set("trackingLabel", options.trackingLabel);
+  }
+
+  if (options?.selectedQuery) {
+    params.set("selectedQuery", options.selectedQuery);
   }
 
   if (options?.itemName) {
@@ -982,6 +987,7 @@ export function buildWishlistMerchantLinks(
             region,
             {
               fitLabel: option.fitLabel,
+              selectedQuery: option.searchQuery,
             }
           )
         : getMerchantSearchUrl(merchant, option.searchQuery, region),
@@ -1056,6 +1062,7 @@ export function buildWishlistFeaturedLazadaProducts(input: {
         productId: template.productId,
           preferredPriceMax: input.preferredPriceMax,
           preferredPriceMin: input.preferredPriceMin,
+          selectedQuery: input.option.searchQuery,
           skuId: template.skuId,
           trackingLabel: getFeaturedLazadaTrackingLabel(template),
         }
