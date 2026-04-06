@@ -158,6 +158,7 @@ const ITEM_NAME_MAX_LENGTH = 100;
 const ITEM_NOTE_MAX_LENGTH = 200;
 const ITEM_LINK_MAX_LENGTH = 500;
 const ITEM_IMAGE_URL_MAX_LENGTH = 500;
+const MAX_GROUP_ROUTE_PREFETCH = 8;
 const PAGE_BACKGROUND =
   "radial-gradient(circle at top, rgba(255,255,255,.28), transparent 32%), linear-gradient(180deg,#dfe7e4 0%,#d2dbd8 42%,#c9d4d4 100%)";
 const PAGE_TEXT_COLOR = "#25363a";
@@ -691,7 +692,9 @@ export default function SecretSantaPage() {
       groupIds.add(assignment.group_id);
     }
 
-    for (const groupId of groupIds) {
+    // Prefetch only the first few likely navigation targets to avoid warming
+    // dozens of routes on large group lists.
+    for (const groupId of Array.from(groupIds).slice(0, MAX_GROUP_ROUTE_PREFETCH)) {
       router.prefetch(`/group/${groupId}`);
     }
   }, [router, availableGroups, assignments]);

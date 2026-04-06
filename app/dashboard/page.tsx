@@ -21,7 +21,7 @@ type GroupMember = {
 type Group = {
   id: string;
   name: string;
-  description?: string;
+  description: string;
   event_date: string;
   budget: number | null;
   currency: string | null;
@@ -229,36 +229,17 @@ export default function DashboardPage() {
       try {
         const email = (user.email || "guest@example.com").toLowerCase();
 
-        const [membersByUserRes, membersByEmailRes] = await Promise.all([
-          supabase
-            .from("group_members")
-            .select("id, group_id, status, role")
-            .eq("user_id", user.id),
-          supabase
-            .from("group_members")
-            .select("id, group_id, status, role")
-            .eq("email", email),
-        ]);
+        // One query covers linked memberships (user_id) and pending email invites.
+        const membershipRes = await supabase
+          .from("group_members")
+          .select("id, group_id, status, role")
+          .or(`user_id.eq.${user.id},email.eq.${email}`);
 
-        if (membersByUserRes.error) {
-          throw membersByUserRes.error;
+        if (membershipRes.error) {
+          throw membershipRes.error;
         }
 
-        if (membersByEmailRes.error) {
-          throw membersByEmailRes.error;
-        }
-
-        const membershipMap = new Map<string, MembershipRow>();
-
-        for (const row of (membersByUserRes.data || []) as MembershipRow[]) {
-          membershipMap.set(row.id, row);
-        }
-
-        for (const row of (membersByEmailRes.data || []) as MembershipRow[]) {
-          membershipMap.set(row.id, row);
-        }
-
-        const memberRows = [...membershipMap.values()];
+        const memberRows = (membershipRes.data || []) as MembershipRow[];
 
         if (!isMounted) {
           return;

@@ -88,7 +88,8 @@ export async function middleware(req: NextRequest) {
 
 export const config = {
   matcher: [
-    // Skip static assets and Next.js internals.
-    "/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
+    // Only run middleware on page routes. API and redirect endpoints don't need
+    // per-request auth checks here and can handle auth in their own handlers.
+    "/((?!api|go|_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
   ],
 };

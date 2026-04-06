@@ -79,7 +79,7 @@ type TopAngleInsight = {
 type WindowFilter = "7d" | "30d" | "90d" | "all";
 type RouteFilter = "all" | "direct" | "search";
 
-const REPORT_ACTIVITY_LIMIT = 500;
+const REPORT_ACTIVITY_LIMIT = 300;
 const REPORT_TABLE_LIMIT = 50;
 const DIRECT_CATALOG_SOURCES = ["catalog-product", "wishlist-product"];
 const POSTGRES_UNDEFINED_COLUMN_ERROR_CODE = "42703";
@@ -657,8 +657,15 @@ export default async function AffiliateReportPage({
     windowStartIso,
   });
   const clickIds = clickRows.map((row) => row.id);
+  // Only the latest table rows show actor labels, so we can scope profile lookups
+  // to the visible slice instead of all sampled clicks.
+  const visibleClickRows = clickRows.slice(0, REPORT_TABLE_LIMIT);
   const uniqueUserIds = Array.from(
-    new Set(clickRows.map((row) => row.user_id).filter((value): value is string => Boolean(value)))
+    new Set(
+      visibleClickRows
+        .map((row) => row.user_id)
+        .filter((value): value is string => Boolean(value))
+    )
   );
 
   let profilesByUserId = new Map<string, ProfileRow>();
