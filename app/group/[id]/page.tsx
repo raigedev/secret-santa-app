@@ -8,7 +8,13 @@ import NicknameForm from "./NicknameForm";
 import ResendButton from "./ResendButton";
 import RevokeInviteButton from "./RevokeInviteButton";
 import ShareResultsCard from "./ShareResultsCard";
-import { drawSecretSanta, resetSecretSantaDraw } from "./draw-action";
+import {
+  addDrawExclusion,
+  drawSecretSanta,
+  getDrawExclusions,
+  removeDrawExclusion,
+  resetSecretSantaDraw,
+} from "./draw-action";
 import {
   deleteGroup,
   editGroup,
@@ -76,6 +82,15 @@ type GroupRecap = {
   wishlistReadyCount: number;
 };
 
+type DrawExclusionRule = {
+  createdAt: string;
+  giverNickname: string;
+  giverUserId: string;
+  id: string;
+  receiverNickname: string;
+  receiverUserId: string;
+};
+
 const BUDGET_OPTIONS = [10, 15, 25, 50, 100];
 const CURRENCIES = [
   { code: "USD", symbol: "$", label: "USD" },
@@ -131,6 +146,12 @@ export default function GroupDetailsPage() {
   const [drawMessage, setDrawMessage] = useState("");
   const [assignment, setAssignment] = useState<Assignment | null>(null);
   const [drawDone, setDrawDone] = useState(false);
+  const [drawExclusions, setDrawExclusions] = useState<DrawExclusionRule[]>([]);
+  const [newExclusionGiver, setNewExclusionGiver] = useState("");
+  const [newExclusionReceiver, setNewExclusionReceiver] = useState("");
+  const [newExclusionBidirectional, setNewExclusionBidirectional] = useState(true);
+  const [drawRuleMessage, setDrawRuleMessage] = useState("");
+  const [drawRuleSaving, setDrawRuleSaving] = useState(false);
   const [ownerInsights, setOwnerInsights] = useState<OwnerInsights | null>(null);
   const [revealMatches, setRevealMatches] = useState<RevealMatch[]>([]);
   const [groupRecap, setGroupRecap] = useState<GroupRecap | null>(null);
@@ -257,7 +278,7 @@ export default function GroupDetailsPage() {
       // Keep the owner's readiness panel in sync with the main group data.
       // Chat stays aggregate-only here so the owner gets engagement signals
       // without learning anything about the anonymous pairings themselves.
-      const [{ data: myAssignment }, insightsResult, revealResult, recapResult] = await Promise.all([
+      const [{ data: myAssignment }, insightsResult, revealResult, recapResult, exclusionResult] = await Promise.all([
         supabase
           .from("assignments")
           .select("receiver_id")
@@ -267,6 +288,7 @@ export default function GroupDetailsPage() {
         isCurrentUserOwner ? getGroupOwnerInsights(id) : Promise.resolve(null),
         group.revealed ? getRevealMatches(id) : Promise.resolve(null),
         group.revealed ? getGroupRecap(id) : Promise.resolve(null),
+        isCurrentUserOwner ? getDrawExclusions(id) : Promise.resolve(null),
       ]);
 
       if (!isMounted) return;
@@ -287,6 +309,12 @@ export default function GroupDetailsPage() {
         setGroupRecap(recapResult.recap);
       } else {
         setGroupRecap(null);
+      }
+
+      if (exclusionResult?.success && exclusionResult.exclusions) {
+        setDrawExclusions(exclusionResult.exclusions);
+      } else {
+        setDrawExclusions([]);
       }
 
       if (myAssignment) {
@@ -386,6 +414,15 @@ export default function GroupDetailsPage() {
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "messages" },
+        (payload) => {
+          if (matchesGroupChange(payload)) {
+            scheduleReload();
+          }
+        }
+      )
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "group_draw_exclusions" },
         (payload) => {
           if (matchesGroupChange(payload)) {
             scheduleReload();
@@ -519,6 +556,50 @@ export default function GroupDetailsPage() {
       }
     } finally {
       setDrawLoading(false);
+    }
+  };
+
+  const handleAddDrawRule = async () => {
+    if (!newExclusionGiver || !newExclusionReceiver) {
+      setDrawRuleMessage("Please choose both members for the draw rule.");
+      return;
+    }
+
+    setDrawRuleSaving(true);
+    setDrawRuleMessage("");
+
+    try {
+      const result = await addDrawExclusion(
+        id,
+        newExclusionGiver,
+        newExclusionReceiver,
+        newExclusionBidirectional
+      );
+      setDrawRuleMessage(result.message);
+
+      if (result.success) {
+        setNewExclusionGiver("");
+        setNewExclusionReceiver("");
+        notifyGroupRefresh();
+      }
+    } finally {
+      setDrawRuleSaving(false);
+    }
+  };
+
+  const handleRemoveDrawRule = async (exclusionId: string) => {
+    setDrawRuleSaving(true);
+    setDrawRuleMessage("");
+
+    try {
+      const result = await removeDrawExclusion(id, exclusionId);
+      setDrawRuleMessage(result.message);
+
+      if (result.success) {
+        notifyGroupRefresh();
+      }
+    } finally {
+      setDrawRuleSaving(false);
     }
   };
 
@@ -1526,6 +1607,145 @@ export default function GroupDetailsPage() {
                       </div>
                     ))}
                   </div>
+
+                  {isOwner && (
+                    <div
+                      className="mx-4 mt-1 mb-5 rounded-2xl p-4 text-left"
+                      style={{
+                        background: "rgba(255,255,255,.82)",
+                        border: "1px solid rgba(15,23,42,.08)",
+                      }}
+                    >
+                      <div
+                        className="text-[14px] font-extrabold"
+                        style={{ fontFamily: "'Fredoka', sans-serif", color: "#7f1d1d" }}
+                      >
+                        🚫 Exclusion Rules (Do Not Pair)
+                      </div>
+                      <p className="text-[12px] mt-1 mb-3" style={{ color: "#64748b" }}>
+                        Example: couples should not draw each other. Rules apply during draw only.
+                      </p>
+
+                      <div className="grid gap-2 md:grid-cols-[1fr_1fr_auto]">
+                        <select
+                          value={newExclusionGiver}
+                          onChange={(event) => setNewExclusionGiver(event.target.value)}
+                          className="w-full px-3 py-2.5 rounded-xl text-[13px] outline-none"
+                          style={{ border: "2px solid #e5e7eb", fontFamily: "inherit" }}
+                          disabled={drawRuleSaving || drawLoading || resetLoading}
+                        >
+                          <option value="">Member A</option>
+                          {acceptedMembers
+                            .filter((member) => Boolean(member.user_id))
+                            .map((member) => (
+                              <option key={`giver-${member.user_id}`} value={member.user_id || ""}>
+                                {member.nickname || "Member"}
+                              </option>
+                            ))}
+                        </select>
+
+                        <select
+                          value={newExclusionReceiver}
+                          onChange={(event) => setNewExclusionReceiver(event.target.value)}
+                          className="w-full px-3 py-2.5 rounded-xl text-[13px] outline-none"
+                          style={{ border: "2px solid #e5e7eb", fontFamily: "inherit" }}
+                          disabled={drawRuleSaving || drawLoading || resetLoading}
+                        >
+                          <option value="">Member B</option>
+                          {acceptedMembers
+                            .filter((member) => Boolean(member.user_id) && member.user_id !== newExclusionGiver)
+                            .map((member) => (
+                              <option key={`receiver-${member.user_id}`} value={member.user_id || ""}>
+                                {member.nickname || "Member"}
+                              </option>
+                            ))}
+                        </select>
+
+                        <button
+                          type="button"
+                          onClick={handleAddDrawRule}
+                          disabled={drawRuleSaving || drawLoading || resetLoading}
+                          className="px-4 py-2.5 rounded-xl text-[13px] font-extrabold text-white"
+                          style={{
+                            background:
+                              drawRuleSaving || drawLoading || resetLoading
+                                ? "#9ca3af"
+                                : "linear-gradient(135deg,#b91c1c,#ef4444)",
+                            border: "none",
+                            cursor:
+                              drawRuleSaving || drawLoading || resetLoading
+                                ? "not-allowed"
+                                : "pointer",
+                          }}
+                        >
+                          {drawRuleSaving ? "Saving..." : "Add Rule"}
+                        </button>
+                      </div>
+
+                      <label
+                        className="mt-2 inline-flex items-center gap-2 text-[12px] font-semibold"
+                        style={{ color: "#475569" }}
+                      >
+                        <input
+                          type="checkbox"
+                          checked={newExclusionBidirectional}
+                          onChange={(event) => setNewExclusionBidirectional(event.target.checked)}
+                          disabled={drawRuleSaving || drawLoading || resetLoading}
+                        />
+                        Block both directions (A↔B)
+                      </label>
+
+                      {drawRuleMessage && (
+                        <p
+                          className={`text-[12px] font-bold mt-2 ${
+                            drawRuleMessage.startsWith("✅") ? "text-green-600" : "text-red-600"
+                          }`}
+                        >
+                          {drawRuleMessage}
+                        </p>
+                      )}
+
+                      {drawExclusions.length > 0 ? (
+                        <div className="mt-3 space-y-2">
+                          {drawExclusions.map((rule) => (
+                            <div
+                              key={rule.id}
+                              className="flex items-center justify-between gap-3 rounded-xl px-3 py-2"
+                              style={{
+                                background: "rgba(248,250,252,.95)",
+                                border: "1px solid rgba(148,163,184,.25)",
+                              }}
+                            >
+                              <span className="text-[12px] font-bold" style={{ color: "#334155" }}>
+                                {rule.giverNickname} → {rule.receiverNickname}
+                              </span>
+                              <button
+                                type="button"
+                                onClick={() => handleRemoveDrawRule(rule.id)}
+                                disabled={drawRuleSaving || drawLoading || resetLoading}
+                                className="px-2.5 py-1 rounded-lg text-[11px] font-extrabold"
+                                style={{
+                                  background: "rgba(220,38,38,.08)",
+                                  color: "#dc2626",
+                                  border: "1px solid rgba(220,38,38,.2)",
+                                  cursor:
+                                    drawRuleSaving || drawLoading || resetLoading
+                                      ? "not-allowed"
+                                      : "pointer",
+                                }}
+                              >
+                                Remove
+                              </button>
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <div className="mt-3 text-[12px] font-semibold" style={{ color: "#64748b" }}>
+                          No exclusion rules yet.
+                        </div>
+                      )}
+                    </div>
+                  )}
 
                   {isOwner ? (
                     <div>
