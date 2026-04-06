@@ -592,7 +592,7 @@ function AngleInsightCard({ insight }: { insight: TopAngleInsight }) {
       : "0%";
 
   return (
-    <section className="rounded-[24px] border border-white/70 bg-white/88 p-4 shadow-[0_18px_50px_rgba(148,163,184,0.12)] backdrop-blur-md">
+    <section className="rounded-3xl border border-white/70 bg-white/88 p-4 shadow-[0_18px_50px_rgba(148,163,184,0.12)] backdrop-blur-md">
       <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">Selected angle</p>
       <h3 className="mt-2 text-lg font-bold text-slate-900">{insight.label}</h3>
       <div className="mt-4 grid gap-3 text-sm text-slate-600 sm:grid-cols-3">
@@ -758,7 +758,7 @@ export default async function AffiliateReportPage({
           </div>
         </div>
 
-        <section className="rounded-[32px] border border-white/70 bg-white/88 p-5 shadow-[0_24px_70px_rgba(148,163,184,0.14)] backdrop-blur-md">
+        <section className="rounded-4xl border border-white/70 bg-white/88 p-5 shadow-[0_24px_70px_rgba(148,163,184,0.14)] backdrop-blur-md">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div>
               <p className="text-sm font-semibold uppercase tracking-[0.18em] text-slate-500">
@@ -770,7 +770,7 @@ export default async function AffiliateReportPage({
           </div>
 
           <form className="mt-5 flex flex-wrap items-end gap-4" method="get">
-            <label className="flex min-w-[180px] flex-col gap-2 text-sm font-medium text-slate-700">
+            <label className="flex min-w-45 flex-col gap-2 text-sm font-medium text-slate-700">
               Date window
               <select
                 name="window"
@@ -784,7 +784,7 @@ export default async function AffiliateReportPage({
               </select>
             </label>
 
-            <label className="flex min-w-[180px] flex-col gap-2 text-sm font-medium text-slate-700">
+            <label className="flex min-w-45 flex-col gap-2 text-sm font-medium text-slate-700">
               Route type
               <select
                 name="route"
@@ -861,7 +861,7 @@ export default async function AffiliateReportPage({
           />
         </section>
 
-        <section className="mt-8 rounded-[32px] border border-white/70 bg-white/88 p-5 shadow-[0_24px_70px_rgba(148,163,184,0.14)] backdrop-blur-md">
+        <section className="mt-8 rounded-4xl border border-white/70 bg-white/88 p-5 shadow-[0_24px_70px_rgba(148,163,184,0.14)] backdrop-blur-md">
           <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
             <div>
               <p className="text-sm font-semibold uppercase tracking-[0.18em] text-slate-500">
@@ -888,7 +888,7 @@ export default async function AffiliateReportPage({
             </div>
 
             {topAngleInsights.length === 0 ? (
-              <div className="rounded-[24px] border border-dashed border-slate-300 bg-slate-50/70 px-6 py-8 text-center text-sm font-medium text-slate-500">
+              <div className="rounded-3xl border border-dashed border-slate-300 bg-slate-50/70 px-6 py-8 text-center text-sm font-medium text-slate-500">
                 No angle-level signals yet for this filter.
               </div>
             ) : (
@@ -901,7 +901,7 @@ export default async function AffiliateReportPage({
           </div>
 
           {topItemInsights.length === 0 ? (
-            <div className="rounded-[24px] border border-dashed border-slate-300 bg-slate-50/70 px-6 py-10 text-center text-sm font-medium text-slate-500">
+            <div className="rounded-3xl border border-dashed border-slate-300 bg-slate-50/70 px-6 py-10 text-center text-sm font-medium text-slate-500">
               No item insights yet for this filter. Click a few Lazada cards, then check back here.
             </div>
           ) : (
@@ -913,7 +913,7 @@ export default async function AffiliateReportPage({
           )}
         </section>
 
-        <section className="mt-8 rounded-[32px] border border-white/70 bg-white/88 p-5 shadow-[0_24px_70px_rgba(148,163,184,0.14)] backdrop-blur-md">
+        <section className="mt-8 rounded-4xl border border-white/70 bg-white/88 p-5 shadow-[0_24px_70px_rgba(148,163,184,0.14)] backdrop-blur-md">
           <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
             <div>
               <p className="text-sm font-semibold uppercase tracking-[0.18em] text-slate-500">
@@ -927,7 +927,7 @@ export default async function AffiliateReportPage({
           </div>
 
           {reportRows.length === 0 ? (
-            <div className="rounded-[24px] border border-dashed border-slate-300 bg-slate-50/70 px-6 py-10 text-center text-sm font-medium text-slate-500">
+            <div className="rounded-3xl border border-dashed border-slate-300 bg-slate-50/70 px-6 py-10 text-center text-sm font-medium text-slate-500">
               No affiliate clicks or conversions yet for this filter. Click a Lazada card first, then check back here.
             </div>
           ) : (

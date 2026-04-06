@@ -713,7 +713,7 @@ export default function DashboardPage() {
     const budgetLabel = formatDashboardBudget(group.budget, group.currency);
 
     return (
-      <article className="relative overflow-hidden rounded-[32px] border border-white/75 bg-white/88 p-6 shadow-[0_28px_80px_rgba(148,163,184,0.16)] backdrop-blur-md">
+      <article className="relative overflow-hidden rounded-4xl border border-white/75 bg-white/88 p-6 shadow-[0_28px_80px_rgba(148,163,184,0.16)] backdrop-blur-md">
         <div className="absolute inset-y-0 right-0 hidden w-44 bg-[radial-gradient(circle_at_center,rgba(147,197,253,0.28),transparent_70%)] lg:block" />
         <div className="absolute bottom-6 right-10 hidden lg:block">
           <div className="relative h-28 w-28 rounded-full border border-white/70 bg-[linear-gradient(180deg,#d9efff,#f4fbff)] shadow-[0_18px_40px_rgba(148,163,184,0.18)]">
@@ -722,7 +722,7 @@ export default function DashboardPage() {
             <div className="absolute left-8 top-[1.1rem] h-3 w-3 rounded-full bg-amber-300" />
             <div className="absolute right-5 top-10 h-12 w-12 rounded-2xl bg-[linear-gradient(180deg,#f9a8d4,#fb7185)]" />
             <div className="absolute right-[1.55rem] top-10 h-2 w-12 rounded-full bg-white/70" />
-            <div className="absolute right-9 top-[2.25rem] h-3 w-3 rounded-full bg-amber-300" />
+            <div className="absolute right-9 top-9 h-3 w-3 rounded-full bg-amber-300" />
             <div className="absolute bottom-3 left-3 h-6 w-6 rounded-full bg-white/90" />
             <div className="absolute bottom-3 left-8 h-8 w-8 rounded-full bg-white/90" />
           </div>
@@ -847,7 +847,7 @@ export default function DashboardPage() {
           };
 
     return (
-      <section className="overflow-hidden rounded-[32px] border border-white/80 bg-white/90 shadow-[0_28px_80px_rgba(148,163,184,0.16)] backdrop-blur-md">
+      <section className="overflow-hidden rounded-4xl border border-white/80 bg-white/90 shadow-[0_28px_80px_rgba(148,163,184,0.16)] backdrop-blur-md">
         <div className="px-6 pt-5">
           <div
             className={`inline-flex rounded-full bg-slate-50 px-3 py-1 text-xs font-semibold ${theme.text}`}
@@ -909,7 +909,7 @@ export default function DashboardPage() {
             data-fade
             role="status"
             aria-live="polite"
-            className={`mb-6 rounded-[24px] px-4 py-3 text-sm font-semibold ${
+            className={`mb-6 rounded-3xl px-4 py-3 text-sm font-semibold ${
               actionMessage.type === "success"
                 ? "border border-emerald-200 bg-emerald-50 text-emerald-700"
                 : "border border-rose-200 bg-rose-50 text-rose-700"

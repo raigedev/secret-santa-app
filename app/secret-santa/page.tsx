@@ -1593,7 +1593,7 @@ export default function SecretSantaPage() {
         @keyframes fall{0%{transform:translateY(-10px) translateX(0);opacity:.6;}50%{transform:translateY(50vh) translateX(12px);}100%{transform:translateY(105vh) translateX(-6px);opacity:.1;}}
       `}</style>
 
-      <div className="relative z-10 max-w-[720px] mx-auto px-4 py-6">
+      <div className="relative z-10 max-w-180 mx-auto px-4 py-6">
         {/* Primary navigation back to the dashboard. */}
         <button
           type="button"
@@ -1862,7 +1862,7 @@ export default function SecretSantaPage() {
                 >
                   <div className="flex items-center gap-3">
                     <div
-                      className="w-[44px] h-[44px] rounded-xl flex items-center justify-center text-[22px]"
+                      className="w-11 h-11 rounded-xl flex items-center justify-center text-[22px]"
                       style={{ background: ICON_COLORS[index % ICON_COLORS.length] }}
                     >
                       {ICON_EMOJIS[index % ICON_EMOJIS.length]}
@@ -2082,7 +2082,7 @@ export default function SecretSantaPage() {
                         >
                           <div className="flex items-start gap-3">
                             <div
-                              className="w-[56px] h-[56px] rounded-2xl flex items-center justify-center text-[18px] shrink-0"
+                              className="w-14 h-14 rounded-2xl flex items-center justify-center text-[18px] shrink-0"
                               style={{
                                 background: "rgba(255,255,255,.88)",
                                 border: "1px solid rgba(96,117,122,.12)",
@@ -2413,7 +2413,7 @@ export default function SecretSantaPage() {
                                                   }}
                                                 />
                                                 <div
-                                                  className="mt-3 h-[118px] rounded-[18px]"
+                                                  className="mt-3 h-29.5 rounded-[18px]"
                                                   style={{
                                                     background:
                                                       "linear-gradient(180deg,rgba(239,244,241,.82),rgba(229,236,233,.76))",
@@ -2579,7 +2579,7 @@ export default function SecretSantaPage() {
                                                         <img
                                                           src={safeProductImageUrl}
                                                           alt={product.title}
-                                                          className="w-full h-[118px] object-contain"
+                                                          className="w-full h-29.5 object-contain"
                                                         />
                                                       ) : (
                                                         <div
@@ -3266,7 +3266,7 @@ export default function SecretSantaPage() {
                   >
                     <div className="flex items-center gap-3">
                       <div
-                        className="w-[44px] h-[44px] rounded-xl flex items-center justify-center text-[22px]"
+                        className="w-11 h-11 rounded-xl flex items-center justify-center text-[22px]"
                         style={{ background: "rgba(31,122,77,.12)" }}
                       >
                         🎄
@@ -3384,7 +3384,7 @@ export default function SecretSantaPage() {
           >
             <div className="flex items-center gap-3">
               <div
-                className="w-[38px] h-[38px] rounded-lg flex items-center justify-center text-[18px]"
+                className="w-9.5 h-9.5 rounded-lg flex items-center justify-center text-[18px]"
                 style={{ background: "rgba(185,56,47,.12)" }}
               >
                 📝
@@ -3830,7 +3830,7 @@ export default function SecretSantaPage() {
                     >
                       <div className="flex items-start gap-3 flex-1 min-w-0">
                         <div
-                          className="w-[56px] h-[56px] rounded-xl flex items-center justify-center text-[18px] shrink-0"
+                          className="w-14 h-14 rounded-xl flex items-center justify-center text-[18px] shrink-0"
                           style={{
                             background: "rgba(255,255,255,.78)",
                             border: "1px solid rgba(96,117,122,.12)",

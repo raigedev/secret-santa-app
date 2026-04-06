@@ -37,7 +37,7 @@ export default function ProfileSetupModal({ defaultName, onComplete, onSkip }: P
         @keyframes modalIn{0%{opacity:0;transform:scale(.95) translateY(10px);}100%{opacity:1;transform:scale(1) translateY(0);}}
       `}</style>
 
-      <div className="rounded-[24px] p-10 max-w-[440px] w-full text-center"
+      <div className="rounded-3xl p-10 max-w-110 w-full text-center"
         style={{ background: "#fff", boxShadow: "0 24px 64px rgba(0,0,0,.15)", animation: "modalIn .4s ease", fontFamily: "'Nunito', sans-serif" }}>
 
         <p className="text-[11px] font-bold mb-4" style={{ color: "#c0392b" }}>Welcome — Set up your profile</p>
@@ -52,7 +52,7 @@ export default function ProfileSetupModal({ defaultName, onComplete, onSkip }: P
         </p>
 
         {/* Avatar preview */}
-        <div className="w-[100px] h-[100px] rounded-full mx-auto mb-3 flex items-center justify-center text-[48px]"
+        <div className="w-25 h-25 rounded-full mx-auto mb-3 flex items-center justify-center text-[48px]"
           style={{ background: "linear-gradient(135deg,#fef2f2,#fee2e2)", border: "3px solid #fff", boxShadow: "0 4px 16px rgba(192,57,43,.1)" }}>
           {emoji}
         </div>
@@ -61,7 +61,7 @@ export default function ProfileSetupModal({ defaultName, onComplete, onSkip }: P
         <div className="flex justify-center gap-2 mb-6">
           {QUICK_AVATARS.map((e) => (
             <button key={e} onClick={() => setEmoji(e)}
-              className="w-[44px] h-[44px] rounded-full flex items-center justify-center text-[22px] transition"
+              className="w-11 h-11 rounded-full flex items-center justify-center text-[22px] transition"
               style={{
                 background: emoji === e ? "#fef2f2" : "rgba(0,0,0,.02)",
                 border: `2px solid ${emoji === e ? "#c0392b" : "transparent"}`,
