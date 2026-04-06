@@ -3655,59 +3655,56 @@ export default function SecretSantaPage() {
                   />
                 </div>
 
-                <div className="flex items-center justify-between gap-2 flex-wrap">
-                  <label className="flex items-center gap-2 text-[11px] font-bold" style={{ color: TEXT_MUTED }}>
-                    Priority
-                    <select
-                      value={addPriority}
-                      onChange={(event) => setAddPriority(Number(event.target.value))}
-                      className="px-2.5 py-1.5 rounded-lg text-[11px] outline-none font-semibold"
-                      style={{
-                        background: INPUT_BACKGROUND,
-                        border: INPUT_BORDER,
-                        color: INPUT_TEXT,
-                        fontFamily: "inherit",
-                      }}
-                    >
-                      {WISHLIST_PRIORITY_OPTIONS.map((option) => (
-                        <option key={option.value} value={option.value}>
-                          {option.label}
-                        </option>
-                      ))}
-                    </select>
-                  </label>
+                <div className="flex gap-2 mb-2 flex-col sm:flex-row">
+                  <select
+                    value={addPriority}
+                    onChange={(event) => setAddPriority(Number(event.target.value))}
+                    className="flex-1 px-3 py-2.5 rounded-lg text-[13px] outline-none"
+                    style={{
+                      background: INPUT_BACKGROUND,
+                      border: INPUT_BORDER,
+                      color: INPUT_TEXT,
+                      fontFamily: "inherit",
+                    }}
+                  >
+                    {WISHLIST_PRIORITY_OPTIONS.map((option) => (
+                      <option key={option.value} value={option.value}>
+                        {option.label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
 
-                  <div className="flex gap-2">
-                    <button
-                      type="button"
-                      onClick={() => setShowAdd(false)}
-                      className="px-4 py-2 rounded-lg text-[11px] font-bold"
-                      style={{
-                        background: "rgba(255,255,255,.78)",
-                        color: TEXT_MUTED,
-                        border: "1px solid rgba(163,127,90,.14)",
-                        fontFamily: "inherit",
-                        cursor: "pointer",
-                      }}
-                    >
-                      Cancel
-                    </button>
-                    <button
-                      type="button"
-                      onClick={handleAdd}
-                      disabled={addLoading}
-                      className="px-4 py-2 rounded-lg text-[11px] font-bold text-white"
-                      style={{
-                        background: HOLIDAY_GREEN,
-                        border: "none",
-                        fontFamily: "inherit",
-                        cursor: addLoading ? "wait" : "pointer",
-                        opacity: addLoading ? 0.75 : 1,
-                      }}
-                    >
-                      {addLoading ? "Saving..." : "✅ Save"}
-                    </button>
-                  </div>
+                <div className="flex justify-end gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setShowAdd(false)}
+                    className="px-4 py-2 rounded-lg text-[11px] font-bold"
+                    style={{
+                      background: "rgba(255,255,255,.78)",
+                      color: TEXT_MUTED,
+                      border: "1px solid rgba(163,127,90,.14)",
+                      fontFamily: "inherit",
+                      cursor: "pointer",
+                    }}
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleAdd}
+                    disabled={addLoading}
+                    className="px-4 py-2 rounded-lg text-[11px] font-bold text-white"
+                    style={{
+                      background: HOLIDAY_GREEN,
+                      border: "none",
+                      fontFamily: "inherit",
+                      cursor: addLoading ? "wait" : "pointer",
+                      opacity: addLoading ? 0.75 : 1,
+                    }}
+                  >
+                    {addLoading ? "Saving..." : "✅ Save"}
+                  </button>
                 </div>
               </div>
             )}
@@ -3852,15 +3849,11 @@ export default function SecretSantaPage() {
                             }}
                           />
                         </div>
-                        <label
-                          className="flex items-center gap-2 text-[11px] font-bold mb-3"
-                          style={{ color: TEXT_MUTED }}
-                        >
-                          Priority
+                        <div className="flex gap-2 mb-2 flex-col sm:flex-row">
                           <select
                             value={editPriority}
                             onChange={(event) => setEditPriority(Number(event.target.value))}
-                            className="px-2.5 py-1.5 rounded-lg text-[11px] outline-none font-semibold"
+                            className="flex-1 px-3 py-2 rounded-lg text-[13px] outline-none"
                             style={{
                               background: INPUT_BACKGROUND,
                               border: INPUT_BORDER,
@@ -3874,7 +3867,7 @@ export default function SecretSantaPage() {
                               </option>
                             ))}
                           </select>
-                        </label>
+                        </div>
                         <div className="flex justify-end gap-2">
                           <button
                             type="button"
