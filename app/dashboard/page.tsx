@@ -958,11 +958,11 @@ export default function DashboardPage() {
             eyebrow: "bg-white/92 text-emerald-700 shadow-[0_8px_20px_rgba(15,23,42,0.10)]",
             subtitleText: "text-emerald-50/90",
             panel: "border-white/60 bg-white/94",
+            panelAccent: "bg-emerald-500",
             button: "bg-[linear-gradient(135deg,#15803d,#14532d)] shadow-[0_14px_35px_rgba(20,83,45,0.30)]",
             ribbonColor: "bg-white/14",
             bowColor: "bg-emerald-50/90",
-            corner: "bg-white/30",
-            ribbonBar: "bg-white/18",
+            corner: "bg-white/28",
           }
         : {
             card: "bg-[linear-gradient(145deg,#fbbf24_0%,#d97706_40%,#78350f_100%)]",
@@ -971,76 +971,98 @@ export default function DashboardPage() {
             eyebrow: "bg-white/92 text-amber-700 shadow-[0_8px_20px_rgba(15,23,42,0.10)]",
             subtitleText: "text-amber-50/90",
             panel: "border-white/60 bg-white/94",
+            panelAccent: "bg-amber-500",
             button: "bg-[linear-gradient(135deg,#b45309,#78350f)] shadow-[0_14px_35px_rgba(120,53,15,0.30)]",
             ribbonColor: "bg-white/14",
             bowColor: "bg-amber-100/90",
-            corner: "bg-amber-200/30",
-            ribbonBar: "bg-white/18",
+            corner: "bg-amber-100/28",
           };
 
     return (
-      <section
-        className={`group relative overflow-hidden rounded-[32px] border p-5 text-white transition duration-300 hover:-translate-y-0.5 ${theme.card}`}
+      <div
+        className={`group rounded-[34px] p-[3px] transition duration-300 hover:-translate-y-0.5 ${theme.borderGrad} ${theme.shadow}`}
       >
-        {/* Radial gloss */}
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(255,255,255,0.30),transparent_33%),radial-gradient(circle_at_bottom_right,rgba(255,225,170,0.20),transparent_36%)]" />
-        {/* Gift box watermark — top right */}
-        <div className="pointer-events-none absolute right-4 top-3 opacity-[0.22]">
-          <div className="relative w-14">
-            <div className="absolute -top-2.5 left-1/2 flex -translate-x-1/2 items-center gap-0.5">
-              <div className="h-3.5 w-4 -rotate-12 rounded-full border border-white bg-white/45" />
-              <div className="h-2 w-2 rounded-full bg-white" />
-              <div className="h-3.5 w-4 rotate-12 rounded-full border border-white bg-white/45" />
-            </div>
-            <div className="h-3 w-14 rounded-t-[4px] border border-white bg-white/30" />
-            <div className="relative mt-px h-11 w-14 rounded-b-[4px] border border-white bg-white/30">
-              <div className="absolute left-1/2 top-0 h-full w-[1.5px] -translate-x-1/2 bg-white/90" />
+        <section className={`relative overflow-hidden rounded-[32px] p-5 text-white ${theme.card}`}>
+          {/* Radial gloss */}
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(255,255,255,0.32),transparent_38%),radial-gradient(circle_at_bottom_right,rgba(255,225,170,0.18),transparent_40%)]" />
+          {/* Wrapping paper cross-hatch texture */}
+          <div
+            className="pointer-events-none absolute inset-0 opacity-[0.055]"
+            style={{backgroundImage: "repeating-linear-gradient(45deg, rgba(255,255,255,1) 0, rgba(255,255,255,1) 1px, transparent 1px, transparent 14px), repeating-linear-gradient(-45deg, rgba(255,255,255,1) 0, rgba(255,255,255,1) 1px, transparent 1px, transparent 14px)"}}
+          />
+          {/* Foil shimmer streak */}
+          <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(108deg,transparent_10%,rgba(255,255,255,0.07)_22%,rgba(255,255,255,0.17)_32%,rgba(255,255,255,0.05)_40%,transparent_50%)]" />
+          {/* Ribbon cross — horizontal */}
+          <div className="pointer-events-none absolute left-0 right-0 top-[40%] h-[3px] bg-white/18" />
+          {/* Ribbon cross — vertical (top zone only) */}
+          <div className="pointer-events-none absolute left-1/2 top-0 h-[40%] w-[3px] -translate-x-1/2 bg-white/18" />
+          {/* Wrapping paper fold — top-right corner */}
+          <div className="pointer-events-none absolute right-0 top-0 z-20 h-10 w-10 overflow-hidden">
+            <div className={`absolute -right-5 -top-5 h-10 w-10 rotate-45 ${theme.corner} shadow-[inset_-1px_1px_3px_rgba(255,255,255,0.2)]`} />
+          </div>
+          {/* Ribbon/bow — bottom-left */}
+          <div className={`pointer-events-none absolute bottom-0 left-10 h-20 w-2 rounded-t-full ${theme.ribbonColor}`} />
+          <div className={`pointer-events-none absolute bottom-14 left-0 h-2 w-24 ${theme.ribbonColor}`} />
+          <div
+            className={`pointer-events-none absolute bottom-11 left-7 z-0 flex h-6 w-6 items-center justify-center rounded-full border border-white/35 ${theme.bowColor} shadow-[0_6px_16px_rgba(15,23,42,0.12)]`}
+          >
+            <span className="absolute -left-2.5 h-3.5 w-3.5 rotate-12 rounded-full border border-white/35 bg-white/16" />
+            <span className="absolute -right-2.5 h-3.5 w-3.5 -rotate-12 rounded-full border border-white/35 bg-white/16" />
+            <span className="h-2.5 w-2.5 rounded-full bg-amber-100/95" />
+          </div>
+          {/* Gift box watermark — top right */}
+          <div className="pointer-events-none absolute right-5 top-3 opacity-[0.20]">
+            <div className="relative flex w-[60px] flex-col items-center">
+              <div className="mb-0.5 flex items-center gap-0.5">
+                <div className="h-4 w-5 -rotate-[18deg] rounded-full border-[1.5px] border-white bg-white/20" />
+                <div className="h-2.5 w-2.5 rounded-full bg-white" />
+                <div className="h-4 w-5 rotate-[18deg] rounded-full border-[1.5px] border-white bg-white/20" />
+              </div>
+              <div className="relative h-3.5 w-[60px] rounded-t-sm border border-white bg-white/20">
+                <div className="absolute left-1/2 top-0 h-full w-[3px] -translate-x-1/2 bg-white/75" />
+              </div>
+              <div className="relative mt-px h-12 w-[60px] rounded-b-sm border border-white bg-white/15">
+                <div className="absolute left-1/2 top-0 h-full w-[3px] -translate-x-1/2 bg-white/75" />
+              </div>
             </div>
           </div>
-        </div>
-        {/* Sparkle stars */}
-        <span className="pointer-events-none absolute left-4 top-3 select-none text-sm leading-none text-white/20">✦</span>
-        <span className="pointer-events-none absolute bottom-[32%] right-4 select-none text-base leading-none text-white/18">✦</span>
-        <span className="pointer-events-none absolute left-[42%] top-[15%] select-none text-xs leading-none text-white/16">✦</span>
-        {/* Ribbon/bow */}
-        <div className={`pointer-events-none absolute bottom-0 left-10 h-20 w-2 rounded-t-full ${theme.ribbonColor}`} />
-        <div className={`pointer-events-none absolute bottom-14 left-0 h-2 w-24 ${theme.ribbonColor}`} />
-        <div
-          className={`pointer-events-none absolute bottom-11 left-7 z-0 flex h-6 w-6 items-center justify-center rounded-full border border-white/35 ${theme.bowColor} shadow-[0_6px_16px_rgba(15,23,42,0.12)]`}
-        >
-          <span className="absolute -left-2.5 h-3.5 w-3.5 rotate-12 rounded-full border border-white/35 bg-white/16" />
-          <span className="absolute -right-2.5 h-3.5 w-3.5 -rotate-12 rounded-full border border-white/35 bg-white/16" />
-          <span className="h-2.5 w-2.5 rounded-full bg-amber-100/95" />
-        </div>
-
-        {/* Header */}
-        <div className="relative z-10 flex items-start justify-between gap-4">
-          <div>
-            <div className={`mb-2 inline-flex rounded-full px-3 py-1 text-sm font-semibold ${theme.eyebrow}`}>
-              {subtitle}
+          {/* Sparkles */}
+          <span className="pointer-events-none absolute left-5 top-4 select-none text-base leading-none text-white/22">✦</span>
+          <span className="pointer-events-none absolute bottom-[28%] right-5 select-none text-sm leading-none text-white/18">✦</span>
+          <span className="pointer-events-none absolute left-[40%] top-[12%] select-none text-xs leading-none text-white/15">✦</span>
+          <span className="pointer-events-none absolute right-[28%] bottom-[46%] select-none text-[10px] leading-none text-white/12">✦</span>
+          {/* Header */}
+          <div className="relative z-10 flex items-start justify-between gap-4">
+            <div>
+              <div className={`mb-2 inline-flex rounded-full px-3 py-1 text-sm font-semibold ${theme.eyebrow}`}>
+                {subtitle}
+              </div>
+              <h2 className="text-[1.6rem] font-extrabold leading-tight text-white">{title}</h2>
+              <p className={`mt-1.5 text-sm ${theme.subtitleText}`}>{description}</p>
             </div>
-            <h2 className="text-[1.6rem] font-extrabold leading-tight text-white">{title}</h2>
-            <p className={`mt-1.5 text-sm ${theme.subtitleText}`}>{description}</p>
           </div>
-        </div>
-
-        {/* Inner white panel */}
-        <div
-          className={`relative z-10 mt-5 rounded-[26px] border p-4 text-slate-800 shadow-[inset_0_1px_0_rgba(255,255,255,0.8)] ${theme.panel}`}
-        >
-          <div className="mt-1">{scene}</div>
-          <div className="mt-4 flex flex-wrap items-center gap-3 border-t border-slate-200 pt-4">
-            <button
-              type="button"
-              onClick={onClick}
-              className={`inline-flex items-center gap-2 rounded-full px-5 py-2.5 text-sm font-semibold text-white transition hover:-translate-y-0.5 group-hover:shadow-lg ${theme.button}`}
-            >
-              <span>{buttonLabel}</span>
-              <ArrowRightIcon />
-            </button>
+          {/* Inner white panel */}
+          <div
+            className={`relative z-10 mt-5 overflow-hidden rounded-[26px] border p-4 text-slate-800 shadow-[0_4px_18px_rgba(0,0,0,0.10),inset_0_1px_0_rgba(255,255,255,0.9)] ${theme.panel}`}
+          >
+            {/* Left accent bar */}
+            <div className={`absolute bottom-0 left-0 top-0 w-1 rounded-l-[26px] ${theme.panelAccent}`} />
+            <div className="pl-3">
+              <div className="mt-1">{scene}</div>
+              <div className="mt-4 flex flex-wrap items-center gap-3 border-t border-slate-200 pt-4">
+                <button
+                  type="button"
+                  onClick={onClick}
+                  className={`inline-flex items-center gap-2 rounded-full px-5 py-2.5 text-sm font-semibold text-white transition hover:-translate-y-0.5 group-hover:shadow-lg ${theme.button}`}
+                >
+                  <span>{buttonLabel}</span>
+                  <ArrowRightIcon />
+                </button>
+              </div>
+            </div>
           </div>
-        </div>
-      </section>
+        </section>
+      </div>
     );
   };
 

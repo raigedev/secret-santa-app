@@ -88,20 +88,20 @@ export default function SecretSantaCard({ recipientNames }: Props) {
     <div className="group rounded-[34px] p-[2.5px] transition duration-300 hover:-translate-y-0.5 bg-[linear-gradient(135deg,#fecdd3,#f43f5e,#9f1239,#fda4af,#881337)] shadow-[0_32px_80px_rgba(127,29,29,0.38)]">
       <section className="relative overflow-hidden rounded-[32px] bg-[linear-gradient(145deg,#d44949_0%,#b8324e_38%,#8c2f7d_100%)] p-5 text-white">
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(255,255,255,0.3),transparent_33%),radial-gradient(circle_at_bottom_right,rgba(255,225,170,0.24),transparent_36%)]" />
-        {/* Horizontal ribbon bar */}
-        <div className="pointer-events-none absolute left-0 right-0 top-[38%] h-[3px] bg-white/16" />
-        {/* Corner washi-tape ribbon strips */}
-        <div className="pointer-events-none absolute left-0 top-0 h-11 w-11 overflow-hidden">
-          <div className="absolute -left-3 top-3 h-[10px] w-16 -rotate-45 bg-white/28" />
-        </div>
-        <div className="pointer-events-none absolute right-0 top-0 h-11 w-11 overflow-hidden">
-          <div className="absolute -right-3 top-3 h-[10px] w-16 rotate-45 bg-white/28" />
-        </div>
-        <div className="pointer-events-none absolute bottom-0 left-0 h-11 w-11 overflow-hidden">
-          <div className="absolute -left-3 bottom-3 h-[10px] w-16 rotate-45 bg-white/28" />
-        </div>
-        <div className="pointer-events-none absolute bottom-0 right-0 h-11 w-11 overflow-hidden">
-          <div className="absolute -right-3 bottom-3 h-[10px] w-16 -rotate-45 bg-white/28" />
+        {/* Wrapping paper cross-hatch texture */}
+        <div
+          className="pointer-events-none absolute inset-0 opacity-[0.055]"
+          style={{backgroundImage: "repeating-linear-gradient(45deg, rgba(255,255,255,1) 0, rgba(255,255,255,1) 1px, transparent 1px, transparent 14px), repeating-linear-gradient(-45deg, rgba(255,255,255,1) 0, rgba(255,255,255,1) 1px, transparent 1px, transparent 14px)"}}
+        />
+        {/* Foil shimmer streak */}
+        <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(108deg,transparent_10%,rgba(255,255,255,0.07)_22%,rgba(255,255,255,0.17)_32%,rgba(255,255,255,0.05)_40%,transparent_50%)]" />
+        {/* Ribbon cross — horizontal */}
+        <div className="pointer-events-none absolute left-0 right-0 top-[38%] h-[3px] bg-white/18" />
+        {/* Ribbon cross — vertical (top zone only) */}
+        <div className="pointer-events-none absolute left-1/2 top-0 h-[38%] w-[3px] -translate-x-1/2 bg-white/18" />
+        {/* Wrapping paper fold — top-right corner */}
+        <div className="pointer-events-none absolute right-0 top-0 z-20 h-10 w-10 overflow-hidden">
+          <div className="absolute -right-5 -top-5 h-10 w-10 rotate-45 bg-rose-100/25 shadow-[inset_-1px_1px_3px_rgba(255,255,255,0.2)]" />
         </div>
         {/* Ribbon/bow — bottom-left */}
         <div className="pointer-events-none absolute bottom-0 left-10 h-20 w-2 rounded-t-full bg-white/14" />
@@ -131,6 +131,7 @@ export default function SecretSantaCard({ recipientNames }: Props) {
         <span className="pointer-events-none absolute left-5 top-4 select-none text-base leading-none text-white/22">✦</span>
         <span className="pointer-events-none absolute bottom-[28%] right-5 select-none text-sm leading-none text-white/18">✦</span>
         <span className="pointer-events-none absolute left-[40%] top-[12%] select-none text-xs leading-none text-white/15">✦</span>
+        <span className="pointer-events-none absolute right-[28%] bottom-[12%] select-none text-[10px] leading-none text-white/12">✦</span>
 
       <div className="relative z-10 flex items-start justify-between gap-4">
         <div>
@@ -158,7 +159,10 @@ export default function SecretSantaCard({ recipientNames }: Props) {
         </span>
       </div>
 
-      <div className="relative z-10 mt-5 rounded-[26px] border border-white/60 bg-white/94 p-4 text-slate-800 shadow-[inset_0_1px_0_rgba(255,255,255,0.8)]">
+      <div className="relative z-10 mt-5 overflow-hidden rounded-[26px] border border-white/60 bg-white/94 p-4 text-slate-800 shadow-[0_4px_18px_rgba(0,0,0,0.10),inset_0_1px_0_rgba(255,255,255,0.9)]">
+        {/* Left accent bar */}
+        <div className="absolute bottom-0 left-0 top-0 w-1 rounded-l-[26px] bg-rose-500" />
+        <div className="pl-3">
         <div className="flex items-start gap-4">
           <div className="flex h-20 w-20 shrink-0 items-center justify-center rounded-[24px] bg-[linear-gradient(145deg,#fff7ed,#fee2e2)] text-rose-700 shadow-[0_18px_42px_rgba(148,163,184,0.2)]">
             {hasAssignments ? <GiftIcon /> : <SnowflakeIcon />}
@@ -199,7 +203,7 @@ export default function SecretSantaCard({ recipientNames }: Props) {
           </div>
         </div>
 
-        <div className="mt-5 flex flex-wrap items-center gap-3 border-t border-slate-200 pt-4">
+        <div className="mt-5 flex flex-wrap items-center gap-3 border-t border-slate-200 pl-3 pt-4">
           <button
             type="button"
             onClick={() => router.push("/secret-santa")}
@@ -208,6 +212,7 @@ export default function SecretSantaCard({ recipientNames }: Props) {
             <span>{hasAssignments ? "Open assignments" : "Open Secret Santa"}</span>
             <ArrowRightIcon />
           </button>
+        </div>
         </div>
       </div>
       </section>
