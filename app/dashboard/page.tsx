@@ -952,62 +952,79 @@ export default function DashboardPage() {
     const theme =
       accent === "green"
         ? {
-            card: "bg-[linear-gradient(158deg,#34d399_0%,#059669_38%,#065f46_76%,#022c22_100%)]",
-            eyebrow: "border border-white/30 bg-white/18 text-white/92 backdrop-blur-sm",
-            title: "text-white",
-            bodyText: "text-white/82",
-            button:
-              "border border-white/20 bg-[linear-gradient(135deg,#065f46,#022c22)] shadow-[0_14px_35px_rgba(0,0,0,0.22)]",
-            ribbon: "bg-white/14",
-            bow: "bg-white/88",
+            card: "bg-[linear-gradient(145deg,#4ade80_0%,#16a34a_40%,#14532d_100%)] border-emerald-400/40 shadow-[0_30px_90px_rgba(20,83,45,0.30)]",
+            eyebrow: "bg-white/92 text-emerald-700 shadow-[0_8px_20px_rgba(15,23,42,0.10)]",
+            subtitleText: "text-emerald-50/90",
+            panel: "border-white/60 bg-white/94",
+            panelLabel: "text-emerald-500",
+            button: "bg-[linear-gradient(135deg,#15803d,#14532d)] shadow-[0_14px_35px_rgba(20,83,45,0.30)]",
+            dot1: "bg-white/70",
+            dot2: "bg-emerald-200/90",
+            ribbonColor: "bg-white/14",
+            bowColor: "bg-emerald-50/90",
           }
         : {
-            card: "bg-[linear-gradient(158deg,#fbbf24_0%,#d97706_36%,#92400e_72%,#5a1e06_100%)]",
-            eyebrow: "border border-white/30 bg-white/18 text-white/92 backdrop-blur-sm",
-            title: "text-white",
-            bodyText: "text-white/82",
-            button:
-              "border border-white/20 bg-[linear-gradient(135deg,#92400e,#5a1e06)] shadow-[0_14px_35px_rgba(0,0,0,0.22)]",
-            ribbon: "bg-white/14",
-            bow: "bg-amber-100/88",
+            card: "bg-[linear-gradient(145deg,#fbbf24_0%,#d97706_40%,#78350f_100%)] border-amber-400/40 shadow-[0_30px_90px_rgba(120,53,15,0.30)]",
+            eyebrow: "bg-white/92 text-amber-700 shadow-[0_8px_20px_rgba(15,23,42,0.10)]",
+            subtitleText: "text-amber-50/90",
+            panel: "border-white/60 bg-white/94",
+            panelLabel: "text-amber-500",
+            button: "bg-[linear-gradient(135deg,#b45309,#78350f)] shadow-[0_14px_35px_rgba(120,53,15,0.30)]",
+            dot1: "bg-white/70",
+            dot2: "bg-amber-200/90",
+            ribbonColor: "bg-white/14",
+            bowColor: "bg-amber-100/90",
           };
 
     return (
       <section
-        className={`group relative overflow-hidden rounded-4xl border border-white/40 shadow-[0_28px_80px_rgba(148,163,184,0.18)] transition duration-300 hover:-translate-y-0.5 hover:shadow-[0_34px_90px_rgba(148,163,184,0.24)] ${theme.card}`}
+        className={`group relative overflow-hidden rounded-[32px] border p-5 text-white transition duration-300 hover:-translate-y-0.5 ${theme.card}`}
       >
-        {/* Glass gloss */}
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(255,255,255,0.38),transparent_42%),radial-gradient(circle_at_bottom_right,rgba(0,0,0,0.10),transparent_40%)]" />
-        {/* Top sheen */}
-        <div className="absolute left-0 top-0 h-px w-full bg-white/50" />
-        {/* Decorative circle */}
-        <div className="absolute -top-6 right-2 h-32 w-32 rounded-full border border-white/20 bg-white/8 blur-sm" />
+        {/* Radial gloss */}
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(255,255,255,0.30),transparent_33%),radial-gradient(circle_at_bottom_right,rgba(255,225,170,0.20),transparent_36%)]" />
+        {/* Decorative circles */}
+        <div className="absolute right-4 top-4 h-20 w-20 rounded-full border border-white/35 bg-white/15 blur-[1px]" />
+        <div className="absolute -right-4 bottom-2 h-20 w-20 rounded-full bg-white/12 blur-sm" />
+        {/* Decorative dots */}
+        <div className={`absolute bottom-8 right-10 h-3 w-3 rounded-full ${theme.dot2}`} />
+        <div className={`absolute left-8 top-20 h-2 w-2 rounded-full ${theme.dot1}`} />
         {/* Ribbon/bow */}
-        <div className={`pointer-events-none absolute bottom-0 left-9 h-16 w-2 ${theme.ribbon}`} />
-        <div className={`pointer-events-none absolute bottom-11 left-0 h-2 w-20 ${theme.ribbon}`} />
+        <div className={`pointer-events-none absolute bottom-0 left-10 h-20 w-2 rounded-t-full ${theme.ribbonColor}`} />
+        <div className={`pointer-events-none absolute bottom-14 left-0 h-2 w-24 ${theme.ribbonColor}`} />
         <div
-          className={`pointer-events-none absolute bottom-8 left-6 z-0 flex h-6 w-6 items-center justify-center rounded-full border border-white/40 ${theme.bow} shadow-[0_6px_16px_rgba(15,23,42,0.14)]`}
+          className={`pointer-events-none absolute bottom-11 left-7 z-0 flex h-6 w-6 items-center justify-center rounded-full border border-white/35 ${theme.bowColor} shadow-[0_6px_16px_rgba(15,23,42,0.12)]`}
         >
-          <span className="absolute -left-2.5 h-3.5 w-3.5 rotate-12 rounded-full border border-white/45 bg-white/26" />
-          <span className="absolute -right-2.5 h-3.5 w-3.5 -rotate-12 rounded-full border border-white/45 bg-white/26" />
-          <span className="h-2.5 w-2.5 rounded-full bg-white/95" />
+          <span className="absolute -left-2.5 h-3.5 w-3.5 rotate-12 rounded-full border border-white/35 bg-white/16" />
+          <span className="absolute -right-2.5 h-3.5 w-3.5 -rotate-12 rounded-full border border-white/35 bg-white/16" />
+          <span className="h-2.5 w-2.5 rounded-full bg-amber-100/95" />
         </div>
-        {/* Content */}
-        <div className="relative z-10 px-6 pb-7 pt-6">
-          <div className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold ${theme.eyebrow}`}>
-            {subtitle}
+
+        {/* Header */}
+        <div className="relative z-10 flex items-start justify-between gap-4">
+          <div>
+            <div className={`mb-2 inline-flex rounded-full px-3 py-1 text-sm font-semibold ${theme.eyebrow}`}>
+              {subtitle}
+            </div>
+            <h2 className="text-[1.6rem] font-extrabold leading-tight text-white">{title}</h2>
+            <p className={`mt-1.5 text-sm ${theme.subtitleText}`}>{description}</p>
           </div>
-          <h2 className={`mt-3 text-[1.8rem] font-extrabold ${theme.title}`}>{title}</h2>
-          <p className={`mt-4 max-w-sm text-sm leading-6 ${theme.bodyText}`}>{description}</p>
-          <div className="mt-5">{scene}</div>
-          <button
-            type="button"
-            onClick={onClick}
-            className={`mt-6 inline-flex items-center gap-2 rounded-full px-5 py-2.5 text-sm font-semibold text-white transition hover:-translate-y-0.5 group-hover:scale-[1.01] ${theme.button}`}
-          >
-            <span>{buttonLabel}</span>
-            <ArrowRightIcon />
-          </button>
+        </div>
+
+        {/* Inner white panel */}
+        <div
+          className={`relative z-10 mt-5 rounded-[26px] border p-4 text-slate-800 shadow-[inset_0_1px_0_rgba(255,255,255,0.8)] ${theme.panel}`}
+        >
+          <div className="mt-1">{scene}</div>
+          <div className="mt-4 flex flex-wrap items-center gap-3 border-t border-slate-200 pt-4">
+            <button
+              type="button"
+              onClick={onClick}
+              className={`inline-flex items-center gap-2 rounded-full px-5 py-2.5 text-sm font-semibold text-white transition hover:-translate-y-0.5 group-hover:shadow-lg ${theme.button}`}
+            >
+              <span>{buttonLabel}</span>
+              <ArrowRightIcon />
+            </button>
+          </div>
         </div>
       </section>
     );
@@ -1150,13 +1167,13 @@ export default function DashboardPage() {
             onClick={() => router.push("/secret-santa-chat")}
             scene={
               <div className="flex items-center gap-3">
-                <span className="inline-flex rounded-full bg-white/22 px-3 py-1 text-xs font-semibold uppercase tracking-[0.14em] text-white/95">
+                <span className="inline-flex rounded-full bg-emerald-50 px-3 py-1 text-xs font-semibold uppercase tracking-[0.14em] text-emerald-700">
                   Hints
                 </span>
-                <span className="inline-flex rounded-full bg-white/22 px-3 py-1 text-xs font-semibold uppercase tracking-[0.14em] text-white/95">
+                <span className="inline-flex rounded-full bg-emerald-50 px-3 py-1 text-xs font-semibold uppercase tracking-[0.14em] text-emerald-700">
                   Notes
                 </span>
-                <span className="inline-flex rounded-full bg-white/22 px-3 py-1 text-xs font-semibold uppercase tracking-[0.14em] text-white/95">
+                <span className="inline-flex rounded-full bg-emerald-50 px-3 py-1 text-xs font-semibold uppercase tracking-[0.14em] text-emerald-700">
                   Chat
                 </span>
               </div>
@@ -1171,16 +1188,16 @@ export default function DashboardPage() {
             onClick={() => router.push("/create-group")}
             scene={
               <div className="flex items-center gap-3">
-                <span className="inline-flex items-center gap-2 rounded-full bg-white/22 px-3 py-1 text-xs font-semibold uppercase tracking-[0.14em] text-white/95">
-                  <MiniStatusDot className="bg-white/90" />
+                <span className="inline-flex items-center gap-2 rounded-full bg-amber-50 px-3 py-1 text-xs font-semibold uppercase tracking-[0.14em] text-amber-700">
+                  <MiniStatusDot className="bg-amber-400" />
                   Plan
                 </span>
-                <span className="inline-flex items-center gap-2 rounded-full bg-white/22 px-3 py-1 text-xs font-semibold uppercase tracking-[0.14em] text-white/95">
-                  <MiniStatusDot className="bg-white/90" />
+                <span className="inline-flex items-center gap-2 rounded-full bg-amber-50 px-3 py-1 text-xs font-semibold uppercase tracking-[0.14em] text-amber-700">
+                  <MiniStatusDot className="bg-amber-400" />
                   Invite
                 </span>
-                <span className="inline-flex items-center gap-2 rounded-full bg-white/22 px-3 py-1 text-xs font-semibold uppercase tracking-[0.14em] text-white/95">
-                  <MiniStatusDot className="bg-white/90" />
+                <span className="inline-flex items-center gap-2 rounded-full bg-amber-50 px-3 py-1 text-xs font-semibold uppercase tracking-[0.14em] text-amber-700">
+                  <MiniStatusDot className="bg-amber-400" />
                   Draw
                 </span>
               </div>
