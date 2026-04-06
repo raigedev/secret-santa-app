@@ -132,8 +132,8 @@ export default function SecretSantaCard({ recipientNames }: Props) {
           <span className="h-2.5 w-2.5 rounded-full bg-amber-100/95" />
         </div>
         {/* Gift box illustration — top right */}
-        <div className="pointer-events-none absolute right-3 top-1 opacity-90">
-          <DecorativeGiftBox className="h-[76px] w-[76px]" />
+        <div className="pointer-events-none absolute right-2 top-11 opacity-85">
+          <DecorativeGiftBox className="h-[64px] w-[64px]" />
         </div>
         {/* Sparkles */}
         <span className="pointer-events-none absolute left-5 top-4 select-none text-base leading-none text-white/22">✦</span>
