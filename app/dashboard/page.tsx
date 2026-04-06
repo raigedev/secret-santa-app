@@ -952,59 +952,62 @@ export default function DashboardPage() {
     const theme =
       accent === "green"
         ? {
-            body: "bg-[linear-gradient(145deg,#57c996_0%,#2fa26f_44%,#1f7f57_100%)]",
+            card: "bg-[linear-gradient(158deg,#34d399_0%,#059669_38%,#065f46_76%,#022c22_100%)]",
+            eyebrow: "border border-white/30 bg-white/18 text-white/92 backdrop-blur-sm",
+            title: "text-white",
+            bodyText: "text-white/82",
             button:
-              "bg-[linear-gradient(135deg,#22c55e,#16a34a)] shadow-[0_14px_35px_rgba(34,197,94,0.25)]",
-            text: "text-emerald-700",
-            eyebrow: "bg-emerald-50 text-emerald-700",
-            bodyText: "text-emerald-950/92",
-            ribbon: "bg-emerald-900/20",
-            bow: "bg-emerald-50/90",
+              "border border-white/20 bg-[linear-gradient(135deg,#065f46,#022c22)] shadow-[0_14px_35px_rgba(0,0,0,0.22)]",
+            ribbon: "bg-white/14",
+            bow: "bg-white/88",
           }
         : {
-            body: "bg-[linear-gradient(145deg,#f2c14f_0%,#df9e2d_34%,#cc6f1d_100%)]",
+            card: "bg-[linear-gradient(158deg,#fbbf24_0%,#d97706_36%,#92400e_72%,#5a1e06_100%)]",
+            eyebrow: "border border-white/30 bg-white/18 text-white/92 backdrop-blur-sm",
+            title: "text-white",
+            bodyText: "text-white/82",
             button:
-              "bg-[linear-gradient(135deg,#c2410c,#9a3412)] shadow-[0_14px_35px_rgba(154,52,18,0.28)]",
-            text: "text-amber-700",
-            eyebrow: "bg-amber-50 text-amber-700",
-            bodyText: "text-amber-950/92",
-            ribbon: "bg-amber-950/18",
-            bow: "bg-amber-100/90",
+              "border border-white/20 bg-[linear-gradient(135deg,#92400e,#5a1e06)] shadow-[0_14px_35px_rgba(0,0,0,0.22)]",
+            ribbon: "bg-white/14",
+            bow: "bg-amber-100/88",
           };
 
     return (
-      <section className="group overflow-hidden rounded-4xl border border-white/80 bg-white/90 shadow-[0_28px_80px_rgba(148,163,184,0.16)] backdrop-blur-md transition duration-300 hover:-translate-y-0.5 hover:shadow-[0_34px_90px_rgba(148,163,184,0.22)]">
-        <div className="px-6 pt-5">
-          <div
-            className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold ${theme.eyebrow}`}
-          >
+      <section
+        className={`group relative overflow-hidden rounded-4xl border border-white/40 shadow-[0_28px_80px_rgba(148,163,184,0.18)] transition duration-300 hover:-translate-y-0.5 hover:shadow-[0_34px_90px_rgba(148,163,184,0.24)] ${theme.card}`}
+      >
+        {/* Glass gloss */}
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(255,255,255,0.38),transparent_42%),radial-gradient(circle_at_bottom_right,rgba(0,0,0,0.10),transparent_40%)]" />
+        {/* Top sheen */}
+        <div className="absolute left-0 top-0 h-px w-full bg-white/50" />
+        {/* Decorative circle */}
+        <div className="absolute -top-6 right-2 h-32 w-32 rounded-full border border-white/20 bg-white/8 blur-sm" />
+        {/* Ribbon/bow */}
+        <div className={`pointer-events-none absolute bottom-0 left-9 h-16 w-2 ${theme.ribbon}`} />
+        <div className={`pointer-events-none absolute bottom-11 left-0 h-2 w-20 ${theme.ribbon}`} />
+        <div
+          className={`pointer-events-none absolute bottom-8 left-6 z-0 flex h-6 w-6 items-center justify-center rounded-full border border-white/40 ${theme.bow} shadow-[0_6px_16px_rgba(15,23,42,0.14)]`}
+        >
+          <span className="absolute -left-2.5 h-3.5 w-3.5 rotate-12 rounded-full border border-white/45 bg-white/26" />
+          <span className="absolute -right-2.5 h-3.5 w-3.5 -rotate-12 rounded-full border border-white/45 bg-white/26" />
+          <span className="h-2.5 w-2.5 rounded-full bg-white/95" />
+        </div>
+        {/* Content */}
+        <div className="relative z-10 px-6 pb-7 pt-6">
+          <div className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold ${theme.eyebrow}`}>
             {subtitle}
           </div>
-          <h2 className="mt-3 text-[1.8rem] font-extrabold text-slate-900">{title}</h2>
-        </div>
-        <div className={`relative mt-5 px-6 pb-6 pt-6 ${theme.body}`}>
-          <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(255,255,255,0.34),transparent_33%),radial-gradient(circle_at_bottom_right,rgba(255,255,255,0.2),transparent_35%)]" />
-          <div className={`pointer-events-none absolute bottom-0 left-9 h-16 w-2 ${theme.ribbon}`} />
-          <div className={`pointer-events-none absolute bottom-11 left-0 h-2 w-20 ${theme.ribbon}`} />
-          <div className={`pointer-events-none absolute bottom-8 left-6 z-0 flex h-6 w-6 items-center justify-center rounded-full border border-white/40 ${theme.bow} shadow-[0_6px_16px_rgba(15,23,42,0.14)]`}>
-            <span className="absolute -left-2.5 h-3.5 w-3.5 rotate-12 rounded-full border border-white/45 bg-white/26" />
-            <span className="absolute -right-2.5 h-3.5 w-3.5 -rotate-12 rounded-full border border-white/45 bg-white/26" />
-            <span className="h-2.5 w-2.5 rounded-full bg-white/95" />
-          </div>
-          <div className="absolute -top-10 right-4 h-28 w-28 rounded-full border border-white/30 bg-white/12 blur-[1px]" />
-          <div className="absolute left-0 top-0 h-1.5 w-full bg-white/20" />
-          <div className="relative z-10">
-            <p className={`max-w-sm text-sm leading-6 ${theme.bodyText}`}>{description}</p>
-            <div className="mt-5">{scene}</div>
-            <button
-              type="button"
-              onClick={onClick}
-              className={`mt-6 inline-flex items-center gap-2 rounded-full px-5 py-2.5 text-sm font-semibold text-white transition hover:-translate-y-0.5 group-hover:scale-[1.01] ${theme.button}`}
-            >
-              <span>{buttonLabel}</span>
-              <ArrowRightIcon />
-            </button>
-          </div>
+          <h2 className={`mt-3 text-[1.8rem] font-extrabold ${theme.title}`}>{title}</h2>
+          <p className={`mt-4 max-w-sm text-sm leading-6 ${theme.bodyText}`}>{description}</p>
+          <div className="mt-5">{scene}</div>
+          <button
+            type="button"
+            onClick={onClick}
+            className={`mt-6 inline-flex items-center gap-2 rounded-full px-5 py-2.5 text-sm font-semibold text-white transition hover:-translate-y-0.5 group-hover:scale-[1.01] ${theme.button}`}
+          >
+            <span>{buttonLabel}</span>
+            <ArrowRightIcon />
+          </button>
         </div>
       </section>
     );
