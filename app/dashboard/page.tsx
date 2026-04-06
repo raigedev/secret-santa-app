@@ -958,8 +958,6 @@ export default function DashboardPage() {
             panel: "border-white/60 bg-white/94",
             panelLabel: "text-emerald-500",
             button: "bg-[linear-gradient(135deg,#15803d,#14532d)] shadow-[0_14px_35px_rgba(20,83,45,0.30)]",
-            dot1: "bg-white/70",
-            dot2: "bg-emerald-200/90",
             ribbonColor: "bg-white/14",
             bowColor: "bg-emerald-50/90",
           }
@@ -970,8 +968,6 @@ export default function DashboardPage() {
             panel: "border-white/60 bg-white/94",
             panelLabel: "text-amber-500",
             button: "bg-[linear-gradient(135deg,#b45309,#78350f)] shadow-[0_14px_35px_rgba(120,53,15,0.30)]",
-            dot1: "bg-white/70",
-            dot2: "bg-amber-200/90",
             ribbonColor: "bg-white/14",
             bowColor: "bg-amber-100/90",
           };
@@ -982,12 +978,24 @@ export default function DashboardPage() {
       >
         {/* Radial gloss */}
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(255,255,255,0.30),transparent_33%),radial-gradient(circle_at_bottom_right,rgba(255,225,170,0.20),transparent_36%)]" />
-        {/* Decorative circles */}
-        <div className="absolute right-4 top-4 h-20 w-20 rounded-full border border-white/35 bg-white/15 blur-[1px]" />
-        <div className="absolute -right-4 bottom-2 h-20 w-20 rounded-full bg-white/12 blur-sm" />
-        {/* Decorative dots */}
-        <div className={`absolute bottom-8 right-10 h-3 w-3 rounded-full ${theme.dot2}`} />
-        <div className={`absolute left-8 top-20 h-2 w-2 rounded-full ${theme.dot1}`} />
+        {/* Gift box watermark — top right */}
+        <div className="pointer-events-none absolute right-4 top-3 opacity-[0.22]">
+          <div className="relative w-14">
+            <div className="absolute -top-2.5 left-1/2 flex -translate-x-1/2 items-center gap-0.5">
+              <div className="h-3.5 w-4 -rotate-12 rounded-full border border-white bg-white/45" />
+              <div className="h-2 w-2 rounded-full bg-white" />
+              <div className="h-3.5 w-4 rotate-12 rounded-full border border-white bg-white/45" />
+            </div>
+            <div className="h-3 w-14 rounded-t-[4px] border border-white bg-white/30" />
+            <div className="relative mt-px h-11 w-14 rounded-b-[4px] border border-white bg-white/30">
+              <div className="absolute left-1/2 top-0 h-full w-[1.5px] -translate-x-1/2 bg-white/90" />
+            </div>
+          </div>
+        </div>
+        {/* Sparkle stars */}
+        <span className="pointer-events-none absolute left-4 top-3 select-none text-sm leading-none text-white/20">✦</span>
+        <span className="pointer-events-none absolute bottom-[32%] right-4 select-none text-base leading-none text-white/18">✦</span>
+        <span className="pointer-events-none absolute left-[42%] top-[15%] select-none text-xs leading-none text-white/16">✦</span>
         {/* Ribbon/bow */}
         <div className={`pointer-events-none absolute bottom-0 left-10 h-20 w-2 rounded-t-full ${theme.ribbonColor}`} />
         <div className={`pointer-events-none absolute bottom-14 left-0 h-2 w-24 ${theme.ribbonColor}`} />

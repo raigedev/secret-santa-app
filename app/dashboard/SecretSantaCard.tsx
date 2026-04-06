@@ -94,10 +94,24 @@ export default function SecretSantaCard({ recipientNames }: Props) {
         <span className="absolute -right-2.5 h-3.5 w-3.5 -rotate-12 rounded-full border border-white/35 bg-white/16" />
         <span className="h-2.5 w-2.5 rounded-full bg-amber-100/95" />
       </div>
-      <div className="absolute right-4 top-4 h-20 w-20 rounded-full border border-white/35 bg-white/15 blur-[1px]" />
-      <div className="absolute -right-4 bottom-2 h-20 w-20 rounded-full bg-white/12 blur-sm" />
-      <div className="absolute bottom-8 right-10 h-3 w-3 rounded-full bg-amber-200/90" />
-      <div className="absolute left-8 top-20 h-2 w-2 rounded-full bg-white/70" />
+      {/* Gift box watermark — top right */}
+      <div className="pointer-events-none absolute right-4 top-3 opacity-[0.22]">
+        <div className="relative w-14">
+          <div className="absolute -top-2.5 left-1/2 flex -translate-x-1/2 items-center gap-0.5">
+            <div className="h-3.5 w-4 -rotate-12 rounded-full border border-white bg-white/45" />
+            <div className="h-2 w-2 rounded-full bg-white" />
+            <div className="h-3.5 w-4 rotate-12 rounded-full border border-white bg-white/45" />
+          </div>
+          <div className="h-3 w-14 rounded-t-[4px] border border-white bg-white/30" />
+          <div className="relative mt-px h-11 w-14 rounded-b-[4px] border border-white bg-white/30">
+            <div className="absolute left-1/2 top-0 h-full w-[1.5px] -translate-x-1/2 bg-white/90" />
+          </div>
+        </div>
+      </div>
+      {/* Sparkle stars */}
+      <span className="pointer-events-none absolute left-4 top-3 select-none text-sm leading-none text-white/20">✦</span>
+      <span className="pointer-events-none absolute bottom-[32%] right-4 select-none text-base leading-none text-white/18">✦</span>
+      <span className="pointer-events-none absolute left-[42%] top-[15%] select-none text-xs leading-none text-white/16">✦</span>
 
       <div className="relative z-10 flex items-start justify-between gap-4">
         <div>
