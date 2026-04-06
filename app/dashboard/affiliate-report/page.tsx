@@ -82,6 +82,25 @@ type RouteFilter = "all" | "direct" | "search";
 const REPORT_ACTIVITY_LIMIT = 500;
 const REPORT_TABLE_LIMIT = 50;
 const DIRECT_CATALOG_SOURCES = ["catalog-product", "wishlist-product"];
+const POSTGRES_UNDEFINED_COLUMN_ERROR_CODE = "42703";
+
+type QueryErrorLike = {
+  code?: string;
+  message?: string;
+} | null;
+
+function isMissingSelectedQueryError(error: QueryErrorLike): boolean {
+  if (!error) {
+    return false;
+  }
+
+  // Older deployments may not have the `selected_query` column yet.
+  if (error.code === POSTGRES_UNDEFINED_COLUMN_ERROR_CODE) {
+    return true;
+  }
+
+  return (error.message || "").toLowerCase().includes("selected_query");
+}
 
 function parseNumericValue(value: number | string | null | undefined): number {
   if (typeof value === "number") {
@@ -397,18 +416,18 @@ async function loadAffiliateClickRows(input: {
 }> {
   let totalClicksQuery = supabaseAdmin
     .from("affiliate_clicks")
-    .select("*", { count: "exact", head: true })
+    .select("id", { count: "exact", head: true })
     .eq("merchant", "lazada");
 
   let totalDirectClicksQuery = supabaseAdmin
     .from("affiliate_clicks")
-    .select("*", { count: "exact", head: true })
+    .select("id", { count: "exact", head: true })
     .eq("merchant", "lazada")
     .in("catalog_source", DIRECT_CATALOG_SOURCES);
 
   let totalSearchClicksQuery = supabaseAdmin
     .from("affiliate_clicks")
-    .select("*", { count: "exact", head: true })
+    .select("id", { count: "exact", head: true })
     .eq("merchant", "lazada")
     .eq("catalog_source", "search-backed");
 
@@ -452,6 +471,7 @@ async function loadAffiliateClickRows(input: {
     throw new Error("Failed to load affiliate report activity.");
   }
 
+  // Fast path: newer schema with `selected_query` available.
   if (!clickResult.error) {
     return {
       clicks: (clickResult.data || []) as AffiliateClickRow[],
@@ -461,14 +481,14 @@ async function loadAffiliateClickRows(input: {
     };
   }
 
-  const selectedQueryMissing =
-    clickResult.error.code === "42703" ||
-    clickResult.error.message.toLowerCase().includes("selected_query");
+  // Backward-compat path: keep report available while migrations roll out.
+  const selectedQueryMissing = isMissingSelectedQueryError(clickResult.error);
 
   if (!selectedQueryMissing) {
     throw new Error("Failed to load affiliate report activity.");
   }
 
+  // Retry with a column list compatible with older schemas.
   let fallbackClicksQuery = supabaseAdmin
     .from("affiliate_clicks")
     .select(
@@ -494,6 +514,7 @@ async function loadAffiliateClickRows(input: {
     throw new Error("Failed to load affiliate report activity.");
   }
 
+  // Normalize fallback rows so downstream UI can treat both schema versions uniformly.
   const normalizedFallbackClicks = ((fallbackClicks || []) as Array<
     Omit<AffiliateClickRow, "selected_query">
   >).map((row) => ({
