@@ -940,6 +940,7 @@ export default function DashboardPage() {
     buttonLabel,
     onClick,
     scene,
+    panelMeta,
   }: {
     accent: "green" | "blue";
     subtitle: string;
@@ -948,6 +949,7 @@ export default function DashboardPage() {
     buttonLabel: string;
     onClick: () => void;
     scene: ReactNode;
+    panelMeta?: ReactNode;
   }) => {
     const theme =
       accent === "green"
@@ -959,6 +961,8 @@ export default function DashboardPage() {
             subtitleText: "text-emerald-50/90",
             panel: "border-white/60 bg-white/94",
             panelAccent: "bg-emerald-500",
+            panelCaption: "text-emerald-700",
+            panelBadge: "bg-emerald-100 text-emerald-700",
             button: "bg-[linear-gradient(135deg,#15803d,#14532d)] shadow-[0_14px_35px_rgba(20,83,45,0.30)]",
             ribbonColor: "bg-white/14",
             bowColor: "bg-emerald-50/90",
@@ -972,6 +976,8 @@ export default function DashboardPage() {
             subtitleText: "text-amber-50/90",
             panel: "border-white/60 bg-white/94",
             panelAccent: "bg-amber-500",
+            panelCaption: "text-amber-700",
+            panelBadge: "bg-amber-100 text-amber-700",
             button: "bg-[linear-gradient(135deg,#b45309,#78350f)] shadow-[0_14px_35px_rgba(120,53,15,0.30)]",
             ribbonColor: "bg-white/14",
             bowColor: "bg-amber-100/90",
@@ -1047,8 +1053,23 @@ export default function DashboardPage() {
           >
             {/* Left accent bar */}
             <div className={`absolute bottom-0 left-0 top-0 w-1 rounded-l-[26px] ${theme.panelAccent}`} />
+            {/* Soft paper texture inside panel */}
+            <div className="pointer-events-none absolute inset-0 opacity-40 [background-image:radial-gradient(circle_at_1px_1px,rgba(148,163,184,0.18)_1px,transparent_0)] [background-size:16px_16px]" />
             <div className="pl-3">
-              <div className="mt-1">{scene}</div>
+              <div className="relative z-10 flex items-center justify-between gap-3">
+                <p className={`text-[11px] font-semibold uppercase tracking-[0.18em] ${theme.panelCaption}`}>
+                  Inside this gift
+                </p>
+                <span className={`inline-flex rounded-full px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.12em] ${theme.panelBadge}`}>
+                  Ready now
+                </span>
+              </div>
+              <div className="relative z-10 mt-3">{scene}</div>
+              {panelMeta ? (
+                <div className="relative z-10 mt-3 grid grid-cols-2 gap-2">
+                  {panelMeta}
+                </div>
+              ) : null}
               <div className="mt-4 flex flex-wrap items-center gap-3 border-t border-slate-200 pt-4">
                 <button
                   type="button"
@@ -1214,6 +1235,16 @@ export default function DashboardPage() {
                 </span>
               </div>
             }
+            panelMeta={
+              <>
+                <div className="rounded-xl border border-emerald-100 bg-white/80 px-3 py-2 text-xs font-semibold text-emerald-700">
+                  Anonymous mode
+                </div>
+                <div className="rounded-xl border border-emerald-100 bg-white/80 px-3 py-2 text-xs font-semibold text-emerald-700">
+                  Live hints
+                </div>
+              </>
+            }
           />
           <ActionCard
             accent="blue"
@@ -1237,6 +1268,16 @@ export default function DashboardPage() {
                   Draw
                 </span>
               </div>
+            }
+            panelMeta={
+              <>
+                <div className="rounded-xl border border-amber-100 bg-white/80 px-3 py-2 text-xs font-semibold text-amber-700">
+                  Quick setup
+                </div>
+                <div className="rounded-xl border border-amber-100 bg-white/80 px-3 py-2 text-xs font-semibold text-amber-700">
+                  Smart invites
+                </div>
+              </>
             }
           />
         </section>

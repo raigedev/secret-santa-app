@@ -162,8 +162,26 @@ export default function SecretSantaCard({ recipientNames }: Props) {
       <div className="relative z-10 mt-5 overflow-hidden rounded-[26px] border border-white/60 bg-white/94 p-4 text-slate-800 shadow-[0_4px_18px_rgba(0,0,0,0.10),inset_0_1px_0_rgba(255,255,255,0.9)]">
         {/* Left accent bar */}
         <div className="absolute bottom-0 left-0 top-0 w-1 rounded-l-[26px] bg-rose-500" />
+        {/* Soft paper texture inside panel */}
+        <div className="pointer-events-none absolute inset-0 opacity-40 [background-image:radial-gradient(circle_at_1px_1px,rgba(148,163,184,0.18)_1px,transparent_0)] [background-size:16px_16px]" />
         <div className="pl-3">
-        <div className="flex items-start gap-4">
+        <div className="relative z-10 flex items-center justify-between gap-3">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-rose-600">
+            Surprise details
+          </p>
+          <span className="inline-flex rounded-full bg-rose-100 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.12em] text-rose-700">
+            Gift ready
+          </span>
+        </div>
+        <div className="mt-2 grid grid-cols-2 gap-2">
+          <div className="rounded-xl border border-rose-100 bg-white/80 px-3 py-2 text-xs font-semibold text-rose-700">
+            Anonymous draw
+          </div>
+          <div className="rounded-xl border border-rose-100 bg-white/80 px-3 py-2 text-xs font-semibold text-rose-700">
+            Private reveal
+          </div>
+        </div>
+        <div className="mt-3 flex items-start gap-4">
           <div className="flex h-20 w-20 shrink-0 items-center justify-center rounded-[24px] bg-[linear-gradient(145deg,#fff7ed,#fee2e2)] text-rose-700 shadow-[0_18px_42px_rgba(148,163,184,0.2)]">
             {hasAssignments ? <GiftIcon /> : <SnowflakeIcon />}
           </div>
@@ -203,7 +221,7 @@ export default function SecretSantaCard({ recipientNames }: Props) {
           </div>
         </div>
 
-        <div className="mt-5 flex flex-wrap items-center gap-3 border-t border-slate-200 pl-3 pt-4">
+        <div className="mt-5 flex flex-wrap items-center gap-3 border-t border-slate-200 pt-4">
           <button
             type="button"
             onClick={() => router.push("/secret-santa")}
