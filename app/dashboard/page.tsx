@@ -192,6 +192,9 @@ function MiniStatusDot({ className }: { className: string }) {
 
 function EventCountdownBadge({ eventDate }: { eventDate: string }) {
   const [now, setNow] = useState(() => Date.now());
+  const DAY_MS = 1000 * 60 * 60 * 24;
+  const HOUR_MS = 1000 * 60 * 60;
+  const MINUTE_MS = 1000 * 60;
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -223,14 +226,40 @@ function EventCountdownBadge({ eventDate }: { eventDate: string }) {
     );
   }
 
-  const days = Math.floor(remaining / (1000 * 60 * 60 * 24));
-  const hours = Math.floor((remaining % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
-  const minutes = Math.floor((remaining % (1000 * 60 * 60)) / (1000 * 60));
+  const days = Math.floor(remaining / DAY_MS);
+  const hours = Math.floor((remaining % DAY_MS) / HOUR_MS);
+  const minutes = Math.floor((remaining % HOUR_MS) / MINUTE_MS);
+  const isUrgent = remaining <= DAY_MS;
+  const isSoon = remaining <= DAY_MS * 3;
+
+  const containerStyle = isUrgent
+    ? "border-rose-200 bg-rose-50 text-rose-800"
+    : isSoon
+      ? "border-amber-200 bg-amber-50 text-amber-800"
+      : "border-blue-200 bg-blue-50 text-blue-800";
+  const dotStyle = isUrgent ? "bg-rose-500" : isSoon ? "bg-amber-500" : "bg-blue-500";
+  const unitStyle = isUrgent
+    ? "bg-white/90 text-rose-900"
+    : isSoon
+      ? "bg-white/90 text-amber-900"
+      : "bg-white/90 text-blue-900";
 
   return (
-    <span className="inline-flex items-center gap-2 rounded-full bg-blue-50 px-3 py-1.5 font-medium text-sm text-blue-700">
-      <span className="h-2 w-2 rounded-full bg-blue-500 animate-pulse" />
-      {days > 0 ? `${days}d ` : ""}{hours}h {minutes}m
+    <span
+      className={`inline-flex items-center gap-2 rounded-xl border px-2.5 py-1.5 text-sm font-semibold shadow-[0_6px_18px_rgba(15,23,42,0.06)] ${containerStyle}`}
+      title={`Event date: ${formatDashboardDate(eventDate)}`}
+    >
+      <span className={`h-2 w-2 rounded-full animate-pulse ${dotStyle}`} />
+      <span className="text-[10px] font-extrabold uppercase tracking-[0.12em] opacity-80">Starts in</span>
+      <span className={`inline-flex items-center rounded-md px-2 py-0.5 font-bold tabular-nums ${unitStyle}`}>
+        {days}d
+      </span>
+      <span className={`inline-flex items-center rounded-md px-2 py-0.5 font-bold tabular-nums ${unitStyle}`}>
+        {hours}h
+      </span>
+      <span className={`inline-flex items-center rounded-md px-2 py-0.5 font-bold tabular-nums ${unitStyle}`}>
+        {minutes}m
+      </span>
     </span>
   );
 }
