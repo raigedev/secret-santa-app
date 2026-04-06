@@ -1630,16 +1630,18 @@ export default function GroupDetailsPage() {
                         <select
                           value={newExclusionGiver}
                           onChange={(event) => setNewExclusionGiver(event.target.value)}
-                          className="w-full px-3 py-2.5 rounded-xl text-[13px] outline-none"
+                          className="w-full px-3 py-2.5 rounded-xl text-[13px] outline-none font-semibold"
                           style={{
-                            border: "2px solid #e5e7eb",
+                            border: "2px solid #cbd5e1",
                             fontFamily: "inherit",
                             background: "#ffffff",
-                            color: newExclusionGiver ? "#111827" : "#94a3b8",
+                            color: newExclusionGiver ? "#0f172a" : "#475569",
+                            WebkitTextFillColor: newExclusionGiver ? "#0f172a" : "#475569",
+                            boxShadow: "inset 0 1px 0 rgba(255,255,255,.65)",
                           }}
                           disabled={drawRuleSaving || drawLoading || resetLoading}
                         >
-                          <option value="" style={{ color: "#94a3b8" }}>
+                          <option value="" style={{ color: "#475569", fontWeight: 700 }}>
                             Member A
                           </option>
                           {acceptedMembers
@@ -1648,7 +1650,7 @@ export default function GroupDetailsPage() {
                               <option
                                 key={`giver-${member.user_id}`}
                                 value={member.user_id || ""}
-                                style={{ color: "#111827" }}
+                                style={{ color: "#0f172a", fontWeight: 700 }}
                               >
                                 {member.nickname || "Member"}
                               </option>
@@ -1658,16 +1660,18 @@ export default function GroupDetailsPage() {
                         <select
                           value={newExclusionReceiver}
                           onChange={(event) => setNewExclusionReceiver(event.target.value)}
-                          className="w-full px-3 py-2.5 rounded-xl text-[13px] outline-none"
+                          className="w-full px-3 py-2.5 rounded-xl text-[13px] outline-none font-semibold"
                           style={{
-                            border: "2px solid #e5e7eb",
+                            border: "2px solid #cbd5e1",
                             fontFamily: "inherit",
                             background: "#ffffff",
-                            color: newExclusionReceiver ? "#111827" : "#94a3b8",
+                            color: newExclusionReceiver ? "#0f172a" : "#475569",
+                            WebkitTextFillColor: newExclusionReceiver ? "#0f172a" : "#475569",
+                            boxShadow: "inset 0 1px 0 rgba(255,255,255,.65)",
                           }}
                           disabled={drawRuleSaving || drawLoading || resetLoading}
                         >
-                          <option value="" style={{ color: "#94a3b8" }}>
+                          <option value="" style={{ color: "#475569", fontWeight: 700 }}>
                             Member B
                           </option>
                           {acceptedMembers
@@ -1676,7 +1680,7 @@ export default function GroupDetailsPage() {
                               <option
                                 key={`receiver-${member.user_id}`}
                                 value={member.user_id || ""}
-                                style={{ color: "#111827" }}
+                                style={{ color: "#0f172a", fontWeight: 700 }}
                               >
                                 {member.nickname || "Member"}
                               </option>
