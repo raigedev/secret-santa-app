@@ -194,7 +194,9 @@ export default function DashboardPage() {
   const router = useRouter();
   const [supabase] = useState(() => createClient());
   const prefetchedRoutesRef = useRef<Set<string>>(new Set());
-  const [canViewAffiliateReport, setCanViewAffiliateReport] = useState(false);
+  const [canViewAffiliateReport, setCanViewAffiliateReport] = useState(
+    () => typeof sessionStorage !== "undefined" && sessionStorage.getItem("ss_ara") === "1"
+  );
   const [userName, setUserName] = useState("");
   const [userEmoji, setUserEmoji] = useState("\u{1F385}");
   const [ownedGroups, setOwnedGroups] = useState<Group[]>([]);
@@ -406,9 +408,18 @@ export default function DashboardPage() {
         }
 
         const payload = (await response.json()) as { allowed?: boolean };
+        const allowed = Boolean(payload.allowed);
+
+        if (typeof sessionStorage !== "undefined") {
+          if (allowed) {
+            sessionStorage.setItem("ss_ara", "1");
+          } else {
+            sessionStorage.removeItem("ss_ara");
+          }
+        }
 
         if (isMounted) {
-          setCanViewAffiliateReport(Boolean(payload.allowed));
+          setCanViewAffiliateReport(allowed);
         }
       } catch {
         if (isMounted) {
