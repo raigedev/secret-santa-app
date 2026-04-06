@@ -85,23 +85,24 @@ export default function SecretSantaCard({ recipientNames }: Props) {
   const hasAssignments = recipientNames.length > 0;
 
   return (
-    <section className="group relative overflow-hidden rounded-[32px] border border-sky-200/70 bg-[linear-gradient(145deg,#5d9fff_0%,#4b88ee_44%,#8ec2ff_100%)] p-5 text-white shadow-[0_30px_90px_rgba(37,99,235,0.24)] transition duration-300 hover:-translate-y-0.5">
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(255,255,255,0.34),transparent_35%),radial-gradient(circle_at_bottom_right,rgba(255,255,255,0.16),transparent_34%)]" />
+    <section className="group relative overflow-hidden rounded-[32px] border border-rose-200/70 bg-[linear-gradient(145deg,#d44949_0%,#b8324e_38%,#8c2f7d_100%)] p-5 text-white shadow-[0_30px_90px_rgba(127,29,29,0.28)] transition duration-300 hover:-translate-y-0.5">
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(255,255,255,0.3),transparent_33%),radial-gradient(circle_at_bottom_right,rgba(255,225,170,0.24),transparent_36%)]" />
       <div className="absolute right-4 top-4 h-20 w-20 rounded-full border border-white/35 bg-white/15 blur-[1px]" />
       <div className="absolute -right-4 bottom-2 h-20 w-20 rounded-full bg-white/12 blur-sm" />
-      <div className="absolute bottom-8 right-10 h-3 w-3 rounded-full bg-white/60" />
+      <div className="absolute bottom-8 right-10 h-3 w-3 rounded-full bg-amber-200/90" />
       <div className="absolute left-8 top-20 h-2 w-2 rounded-full bg-white/70" />
+      <div className="absolute left-0 top-14 h-2 w-full bg-white/18" />
 
       <div className="relative z-10 flex items-start justify-between gap-4">
         <div>
-          <div className="mb-2 inline-flex items-center gap-2 rounded-full bg-white/92 px-3 py-1 text-sm font-semibold text-sky-700 shadow-[0_8px_20px_rgba(15,23,42,0.1)]">
+          <div className="mb-2 inline-flex items-center gap-2 rounded-full bg-white/92 px-3 py-1 text-sm font-semibold text-rose-700 shadow-[0_8px_20px_rgba(15,23,42,0.1)]">
             <SantaHatIcon />
             <span>Your Secret Santa</span>
           </div>
           <h2 className="text-[1.6rem] font-extrabold leading-tight text-white">
             {hasAssignments ? "Your draw is ready" : "Waiting for the draw"}
           </h2>
-          <p className="mt-1.5 text-sm text-sky-100/95">
+          <p className="mt-1.5 text-sm text-rose-50/95">
             {hasAssignments
               ? "Open your assignments and start planning the surprise."
               : "Once your group finishes the draw, your recipient will appear here."}
@@ -120,14 +121,14 @@ export default function SecretSantaCard({ recipientNames }: Props) {
 
       <div className="relative z-10 mt-5 rounded-[26px] border border-white/60 bg-white/94 p-4 text-slate-800 shadow-[inset_0_1px_0_rgba(255,255,255,0.8)]">
         <div className="flex items-start gap-4">
-          <div className="flex h-20 w-20 shrink-0 items-center justify-center rounded-[24px] bg-[linear-gradient(145deg,#eff6ff,#dbeafe)] text-sky-700 shadow-[0_18px_42px_rgba(148,163,184,0.2)]">
+          <div className="flex h-20 w-20 shrink-0 items-center justify-center rounded-[24px] bg-[linear-gradient(145deg,#fff7ed,#fee2e2)] text-rose-700 shadow-[0_18px_42px_rgba(148,163,184,0.2)]">
             {hasAssignments ? <GiftIcon /> : <SnowflakeIcon />}
           </div>
           <div className="min-w-0 flex-1">
-            <p className="text-sm font-semibold uppercase tracking-[0.18em] text-sky-500">
+            <p className="text-sm font-semibold uppercase tracking-[0.18em] text-rose-500">
               {hasAssignments ? "Assigned recipients" : "Status"}
             </p>
-            <div className="mt-2 inline-flex items-center gap-2 rounded-full bg-sky-50 px-3 py-1 text-xs font-semibold text-sky-700">
+            <div className="mt-2 inline-flex items-center gap-2 rounded-full bg-rose-50 px-3 py-1 text-xs font-semibold text-rose-700">
               {hasAssignments
                 ? `${recipientNames.length} recipient${recipientNames.length === 1 ? "" : "s"}`
                 : "Waiting for organizer"}
@@ -139,7 +140,7 @@ export default function SecretSantaCard({ recipientNames }: Props) {
                     key={name}
                     className="flex items-center gap-2 rounded-2xl bg-slate-50 px-3 py-2 text-sm font-medium text-slate-700"
                   >
-                    <span className="inline-flex h-6 w-6 items-center justify-center rounded-full bg-sky-100 text-xs font-bold text-sky-700">
+                    <span className="inline-flex h-6 w-6 items-center justify-center rounded-full bg-rose-100 text-xs font-bold text-rose-700">
                       {name.charAt(0).toUpperCase()}
                     </span>
                     <span className="truncate">{name}</span>
@@ -163,7 +164,7 @@ export default function SecretSantaCard({ recipientNames }: Props) {
           <button
             type="button"
             onClick={() => router.push("/secret-santa")}
-            className="inline-flex items-center gap-2 rounded-full bg-[linear-gradient(135deg,#2f80ff,#1f66e5)] px-5 py-2.5 text-sm font-semibold text-white shadow-[0_14px_35px_rgba(37,99,235,0.28)] transition hover:-translate-y-0.5 group-hover:shadow-[0_18px_42px_rgba(37,99,235,0.34)]"
+            className="inline-flex items-center gap-2 rounded-full bg-[linear-gradient(135deg,#d94633,#b91c1c)] px-5 py-2.5 text-sm font-semibold text-white shadow-[0_14px_35px_rgba(127,29,29,0.28)] transition hover:-translate-y-0.5 group-hover:shadow-[0_18px_42px_rgba(127,29,29,0.34)]"
           >
             <span>{hasAssignments ? "Open assignments" : "Open Secret Santa"}</span>
             <ArrowRightIcon />

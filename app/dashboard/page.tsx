@@ -952,22 +952,20 @@ export default function DashboardPage() {
     const theme =
       accent === "green"
         ? {
-            body: "bg-[linear-gradient(145deg,#86e6c2_0%,#4fcf95_42%,#34b67d_100%)]",
+            body: "bg-[linear-gradient(145deg,#57c996_0%,#2fa26f_44%,#1f7f57_100%)]",
             button:
               "bg-[linear-gradient(135deg,#22c55e,#16a34a)] shadow-[0_14px_35px_rgba(34,197,94,0.25)]",
             text: "text-emerald-700",
             eyebrow: "bg-emerald-50 text-emerald-700",
-            bodyText: "text-emerald-950/90",
-            sceneChip: "bg-white/24 text-white/95",
+            bodyText: "text-emerald-950/92",
           }
         : {
-            body: "bg-[linear-gradient(145deg,#a2c8ff_0%,#6ea8ff_42%,#4b86f7_100%)]",
+            body: "bg-[linear-gradient(145deg,#f2c14f_0%,#df9e2d_34%,#cc6f1d_100%)]",
             button:
-              "bg-[linear-gradient(135deg,#2f80ff,#1f66e5)] shadow-[0_14px_35px_rgba(37,99,235,0.25)]",
-            text: "text-blue-700",
-            eyebrow: "bg-blue-50 text-blue-700",
-            bodyText: "text-blue-950/90",
-            sceneChip: "bg-white/24 text-white/95",
+              "bg-[linear-gradient(135deg,#c2410c,#9a3412)] shadow-[0_14px_35px_rgba(154,52,18,0.28)]",
+            text: "text-amber-700",
+            eyebrow: "bg-amber-50 text-amber-700",
+            bodyText: "text-amber-950/92",
           };
 
     return (
@@ -983,6 +981,7 @@ export default function DashboardPage() {
         <div className={`relative mt-5 px-6 pb-6 pt-6 ${theme.body}`}>
           <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(255,255,255,0.34),transparent_33%),radial-gradient(circle_at_bottom_right,rgba(255,255,255,0.2),transparent_35%)]" />
           <div className="absolute -top-10 right-4 h-28 w-28 rounded-full border border-white/30 bg-white/12 blur-[1px]" />
+          <div className="absolute left-0 top-0 h-1.5 w-full bg-white/20" />
           <div className="relative z-10">
             <p className={`max-w-sm text-sm leading-6 ${theme.bodyText}`}>{description}</p>
             <div className="mt-5">{scene}</div>
@@ -1137,13 +1136,13 @@ export default function DashboardPage() {
             onClick={() => router.push("/secret-santa-chat")}
             scene={
               <div className="flex items-center gap-3">
-                <span className="inline-flex rounded-full bg-white/20 px-3 py-1 text-xs font-semibold uppercase tracking-[0.14em] text-white/90">
+                <span className="inline-flex rounded-full bg-white/22 px-3 py-1 text-xs font-semibold uppercase tracking-[0.14em] text-white/95">
                   Hints
                 </span>
-                <span className="inline-flex rounded-full bg-white/20 px-3 py-1 text-xs font-semibold uppercase tracking-[0.14em] text-white/90">
+                <span className="inline-flex rounded-full bg-white/22 px-3 py-1 text-xs font-semibold uppercase tracking-[0.14em] text-white/95">
                   Notes
                 </span>
-                <span className="inline-flex rounded-full bg-white/20 px-3 py-1 text-xs font-semibold uppercase tracking-[0.14em] text-white/90">
+                <span className="inline-flex rounded-full bg-white/22 px-3 py-1 text-xs font-semibold uppercase tracking-[0.14em] text-white/95">
                   Chat
                 </span>
               </div>
@@ -1158,15 +1157,15 @@ export default function DashboardPage() {
             onClick={() => router.push("/create-group")}
             scene={
               <div className="flex items-center gap-3">
-                <span className="inline-flex items-center gap-2 rounded-full bg-white/20 px-3 py-1 text-xs font-semibold uppercase tracking-[0.14em] text-white/90">
+                <span className="inline-flex items-center gap-2 rounded-full bg-white/22 px-3 py-1 text-xs font-semibold uppercase tracking-[0.14em] text-white/95">
                   <MiniStatusDot className="bg-white/90" />
                   Plan
                 </span>
-                <span className="inline-flex items-center gap-2 rounded-full bg-white/20 px-3 py-1 text-xs font-semibold uppercase tracking-[0.14em] text-white/90">
+                <span className="inline-flex items-center gap-2 rounded-full bg-white/22 px-3 py-1 text-xs font-semibold uppercase tracking-[0.14em] text-white/95">
                   <MiniStatusDot className="bg-white/90" />
                   Invite
                 </span>
-                <span className="inline-flex items-center gap-2 rounded-full bg-white/20 px-3 py-1 text-xs font-semibold uppercase tracking-[0.14em] text-white/90">
+                <span className="inline-flex items-center gap-2 rounded-full bg-white/22 px-3 py-1 text-xs font-semibold uppercase tracking-[0.14em] text-white/95">
                   <MiniStatusDot className="bg-white/90" />
                   Draw
                 </span>
