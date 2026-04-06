@@ -386,6 +386,129 @@ function buildTopAngleInsights(rows: AffiliatePerformanceRow[]): TopAngleInsight
     .slice(0, 5);
 }
 
+async function loadAffiliateClickRows(input: {
+  routeFilter: RouteFilter;
+  windowStartIso: string | null;
+}): Promise<{
+  clicks: AffiliateClickRow[];
+  totalClicksCount: number;
+  totalDirectClicksCount: number;
+  totalSearchClicksCount: number;
+}> {
+  let totalClicksQuery = supabaseAdmin
+    .from("affiliate_clicks")
+    .select("*", { count: "exact", head: true })
+    .eq("merchant", "lazada");
+
+  let totalDirectClicksQuery = supabaseAdmin
+    .from("affiliate_clicks")
+    .select("*", { count: "exact", head: true })
+    .eq("merchant", "lazada")
+    .in("catalog_source", DIRECT_CATALOG_SOURCES);
+
+  let totalSearchClicksQuery = supabaseAdmin
+    .from("affiliate_clicks")
+    .select("*", { count: "exact", head: true })
+    .eq("merchant", "lazada")
+    .eq("catalog_source", "search-backed");
+
+  let clicksQuery = supabaseAdmin
+    .from("affiliate_clicks")
+    .select(
+      "id, catalog_source, created_at, fit_label, merchant, resolution_mode, search_query, selected_query, suggestion_title, tracking_label, user_id"
+    )
+    .eq("merchant", "lazada")
+    .order("created_at", { ascending: false })
+    .limit(REPORT_ACTIVITY_LIMIT);
+
+  if (input.windowStartIso) {
+    totalClicksQuery = totalClicksQuery.gte("created_at", input.windowStartIso);
+    totalDirectClicksQuery = totalDirectClicksQuery.gte("created_at", input.windowStartIso);
+    totalSearchClicksQuery = totalSearchClicksQuery.gte("created_at", input.windowStartIso);
+    clicksQuery = clicksQuery.gte("created_at", input.windowStartIso);
+  }
+
+  if (input.routeFilter === "direct") {
+    totalClicksQuery = totalClicksQuery.in("catalog_source", DIRECT_CATALOG_SOURCES);
+    clicksQuery = clicksQuery.in("catalog_source", DIRECT_CATALOG_SOURCES);
+  } else if (input.routeFilter === "search") {
+    totalClicksQuery = totalClicksQuery.eq("catalog_source", "search-backed");
+    clicksQuery = clicksQuery.eq("catalog_source", "search-backed");
+  }
+
+  const [
+    { count: totalClicksCount, error: totalClicksError },
+    { count: totalDirectClicksCount, error: totalDirectClicksError },
+    { count: totalSearchClicksCount, error: totalSearchClicksError },
+    clickResult,
+  ] = await Promise.all([
+    totalClicksQuery,
+    totalDirectClicksQuery,
+    totalSearchClicksQuery,
+    clicksQuery,
+  ]);
+
+  if (totalClicksError || totalDirectClicksError || totalSearchClicksError) {
+    throw new Error("Failed to load affiliate report activity.");
+  }
+
+  if (!clickResult.error) {
+    return {
+      clicks: (clickResult.data || []) as AffiliateClickRow[],
+      totalClicksCount: totalClicksCount || 0,
+      totalDirectClicksCount: totalDirectClicksCount || 0,
+      totalSearchClicksCount: totalSearchClicksCount || 0,
+    };
+  }
+
+  const selectedQueryMissing =
+    clickResult.error.code === "42703" ||
+    clickResult.error.message.toLowerCase().includes("selected_query");
+
+  if (!selectedQueryMissing) {
+    throw new Error("Failed to load affiliate report activity.");
+  }
+
+  let fallbackClicksQuery = supabaseAdmin
+    .from("affiliate_clicks")
+    .select(
+      "id, catalog_source, created_at, fit_label, merchant, resolution_mode, search_query, suggestion_title, tracking_label, user_id"
+    )
+    .eq("merchant", "lazada")
+    .order("created_at", { ascending: false })
+    .limit(REPORT_ACTIVITY_LIMIT);
+
+  if (input.windowStartIso) {
+    fallbackClicksQuery = fallbackClicksQuery.gte("created_at", input.windowStartIso);
+  }
+
+  if (input.routeFilter === "direct") {
+    fallbackClicksQuery = fallbackClicksQuery.in("catalog_source", DIRECT_CATALOG_SOURCES);
+  } else if (input.routeFilter === "search") {
+    fallbackClicksQuery = fallbackClicksQuery.eq("catalog_source", "search-backed");
+  }
+
+  const { data: fallbackClicks, error: fallbackClicksError } = await fallbackClicksQuery;
+
+  if (fallbackClicksError) {
+    throw new Error("Failed to load affiliate report activity.");
+  }
+
+  const normalizedFallbackClicks = ((fallbackClicks || []) as Array<
+    Omit<AffiliateClickRow, "selected_query">
+  >).map((row) => ({
+    ...row,
+    selected_query: null,
+  }));
+
+  return {
+    clicks: normalizedFallbackClicks,
+    totalClicksCount: totalClicksCount || 0,
+    totalDirectClicksCount: totalDirectClicksCount || 0,
+    totalSearchClicksCount: totalSearchClicksCount || 0,
+  };
+}
+
 function SummaryCard({
   label,
   value,
@@ -503,64 +626,15 @@ export default async function AffiliateReportPage({
     redirect("/dashboard");
   }
 
-  let totalClicksQuery = supabaseAdmin
-    .from("affiliate_clicks")
-    .select("*", { count: "exact", head: true })
-    .eq("merchant", "lazada");
-
-  let totalDirectClicksQuery = supabaseAdmin
-    .from("affiliate_clicks")
-    .select("*", { count: "exact", head: true })
-    .eq("merchant", "lazada")
-    .in("catalog_source", DIRECT_CATALOG_SOURCES);
-
-  let totalSearchClicksQuery = supabaseAdmin
-    .from("affiliate_clicks")
-    .select("*", { count: "exact", head: true })
-    .eq("merchant", "lazada")
-    .eq("catalog_source", "search-backed");
-
-  let clicksQuery = supabaseAdmin
-    .from("affiliate_clicks")
-    .select(
-      "id, catalog_source, created_at, fit_label, merchant, resolution_mode, search_query, selected_query, suggestion_title, tracking_label, user_id"
-    )
-    .eq("merchant", "lazada")
-    .order("created_at", { ascending: false })
-    .limit(REPORT_ACTIVITY_LIMIT);
-
-  if (windowStartIso) {
-    totalClicksQuery = totalClicksQuery.gte("created_at", windowStartIso);
-    totalDirectClicksQuery = totalDirectClicksQuery.gte("created_at", windowStartIso);
-    totalSearchClicksQuery = totalSearchClicksQuery.gte("created_at", windowStartIso);
-    clicksQuery = clicksQuery.gte("created_at", windowStartIso);
-  }
-
-  if (routeFilter === "direct") {
-    totalClicksQuery = totalClicksQuery.in("catalog_source", DIRECT_CATALOG_SOURCES);
-    clicksQuery = clicksQuery.in("catalog_source", DIRECT_CATALOG_SOURCES);
-  } else if (routeFilter === "search") {
-    totalClicksQuery = totalClicksQuery.eq("catalog_source", "search-backed");
-    clicksQuery = clicksQuery.eq("catalog_source", "search-backed");
-  }
-
-  const [
-    { count: totalClicksCount, error: totalClicksError },
-    { count: totalDirectClicksCount, error: totalDirectClicksError },
-    { count: totalSearchClicksCount, error: totalSearchClicksError },
-    { data: clicks, error: clicksError },
-  ] = await Promise.all([
-    totalClicksQuery,
-    totalDirectClicksQuery,
-    totalSearchClicksQuery,
-    clicksQuery,
-  ]);
-
-  if (totalClicksError || totalDirectClicksError || totalSearchClicksError || clicksError) {
-    throw new Error("Failed to load affiliate report activity.");
-  }
-
-  const clickRows = (clicks || []) as AffiliateClickRow[];
+  const {
+    clicks: clickRows,
+    totalClicksCount,
+    totalDirectClicksCount,
+    totalSearchClicksCount,
+  } = await loadAffiliateClickRows({
+    routeFilter,
+    windowStartIso,
+  });
   const clickIds = clickRows.map((row) => row.id);
   const uniqueUserIds = Array.from(
     new Set(clickRows.map((row) => row.user_id).filter((value): value is string => Boolean(value)))
