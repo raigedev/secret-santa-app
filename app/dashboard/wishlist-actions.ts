@@ -4,7 +4,6 @@ import { recordServerFailure } from "@/lib/security/audit";
 import { enforceRateLimit } from "@/lib/security/rate-limit";
 import { createClient } from "@/lib/supabase/server";
 import { isWishlistCategory, WishlistCategory } from "@/lib/wishlist/options";
-import { normalizeOptionalPriceValue } from "@/lib/wishlist/pricing";
 
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -69,9 +68,7 @@ export async function addWishlistItem(
   itemNote: string,
   priority: number,
   itemCategory: string,
-  itemImageUrl: string,
-  preferredPriceMin: string,
-  preferredPriceMax: string
+  itemImageUrl: string
 ): Promise<{ success: boolean; message: string }> {
   if (!groupId || !UUID_PATTERN.test(groupId)) {
     return { success: false, message: "Invalid group." };
@@ -83,8 +80,6 @@ export async function addWishlistItem(
   const cleanImageUrl = normalizeOptionalUrl(itemImageUrl);
   const cleanCategory = normalizeWishlistCategory(itemCategory);
   const cleanPriority = Math.min(Math.max(Math.floor(priority || 0), 0), 10);
-  const cleanPreferredPriceMin = normalizeOptionalPriceValue(preferredPriceMin);
-  const cleanPreferredPriceMax = normalizeOptionalPriceValue(preferredPriceMax);
 
   if (cleanName.length === 0) {
     return { success: false, message: "Item name is required." };
@@ -92,22 +87,6 @@ export async function addWishlistItem(
 
   if (itemCategory.trim() && !cleanCategory) {
     return { success: false, message: "Choose a valid wishlist category." };
-  }
-
-  if (preferredPriceMin.trim() && cleanPreferredPriceMin === null) {
-    return { success: false, message: "Enter a valid minimum price." };
-  }
-
-  if (preferredPriceMax.trim() && cleanPreferredPriceMax === null) {
-    return { success: false, message: "Enter a valid maximum price." };
-  }
-
-  if (
-    cleanPreferredPriceMin !== null &&
-    cleanPreferredPriceMax !== null &&
-    cleanPreferredPriceMin > cleanPreferredPriceMax
-  ) {
-    return { success: false, message: "Minimum price cannot be greater than maximum price." };
   }
 
   const supabase = await createClient();
@@ -147,8 +126,6 @@ export async function addWishlistItem(
     item_note: cleanNote,
     item_category: cleanCategory,
     item_image_url: cleanImageUrl,
-    preferred_price_min: cleanPreferredPriceMin,
-    preferred_price_max: cleanPreferredPriceMax,
     priority: cleanPriority,
   });
 
@@ -174,9 +151,7 @@ export async function editWishlistItem(
   itemNote: string,
   priority: number,
   itemCategory: string,
-  itemImageUrl: string,
-  preferredPriceMin: string,
-  preferredPriceMax: string
+  itemImageUrl: string
 ): Promise<{ success: boolean; message: string }> {
   if (!itemId || !UUID_PATTERN.test(itemId)) {
     return { success: false, message: "Invalid item." };
@@ -188,8 +163,6 @@ export async function editWishlistItem(
   const cleanImageUrl = normalizeOptionalUrl(itemImageUrl);
   const cleanCategory = normalizeWishlistCategory(itemCategory);
   const cleanPriority = Math.min(Math.max(Math.floor(priority || 0), 0), 10);
-  const cleanPreferredPriceMin = normalizeOptionalPriceValue(preferredPriceMin);
-  const cleanPreferredPriceMax = normalizeOptionalPriceValue(preferredPriceMax);
 
   if (cleanName.length === 0) {
     return { success: false, message: "Item name is required." };
@@ -197,22 +170,6 @@ export async function editWishlistItem(
 
   if (itemCategory.trim() && !cleanCategory) {
     return { success: false, message: "Choose a valid wishlist category." };
-  }
-
-  if (preferredPriceMin.trim() && cleanPreferredPriceMin === null) {
-    return { success: false, message: "Enter a valid minimum price." };
-  }
-
-  if (preferredPriceMax.trim() && cleanPreferredPriceMax === null) {
-    return { success: false, message: "Enter a valid maximum price." };
-  }
-
-  if (
-    cleanPreferredPriceMin !== null &&
-    cleanPreferredPriceMax !== null &&
-    cleanPreferredPriceMin > cleanPreferredPriceMax
-  ) {
-    return { success: false, message: "Minimum price cannot be greater than maximum price." };
   }
 
   const supabase = await createClient();
@@ -248,8 +205,6 @@ export async function editWishlistItem(
       item_note: cleanNote,
       item_category: cleanCategory,
       item_image_url: cleanImageUrl,
-      preferred_price_min: cleanPreferredPriceMin,
-      preferred_price_max: cleanPreferredPriceMax,
       priority: cleanPriority,
     })
     .eq("id", itemId)
