@@ -190,6 +190,26 @@ function MiniStatusDot({ className }: { className: string }) {
   return <span aria-hidden="true" className={`h-2.5 w-2.5 rounded-full ${className}`} />;
 }
 
+function DecorativeGiftBox({ className = "h-16 w-16" }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 120 120" className={className} aria-hidden="true">
+      <ellipse cx="60" cy="102" rx="32" ry="8" fill="rgba(15,23,42,0.18)" />
+      <rect x="27" y="56" width="66" height="42" rx="9" fill="#A95AA8" />
+      <rect x="27" y="56" width="66" height="9" rx="4.5" fill="#8C3E8A" />
+      <rect x="23" y="46" width="74" height="16" rx="6" fill="#B96AB8" />
+      <rect x="55" y="46" width="10" height="52" fill="#F6C343" />
+      <rect x="23" y="53" width="74" height="8" fill="#F6C343" />
+      <path d="M60 30c-6 0-12 3-12 9 0 4 4 7 9 7h3V30Z" fill="#FFD76A" />
+      <path d="M60 30c6 0 12 3 12 9 0 4-4 7-9 7h-3V30Z" fill="#FFC94D" />
+      <circle cx="60" cy="45" r="5" fill="#F6C343" />
+      <circle cx="26" cy="36" r="2.8" fill="#FFD76A" />
+      <circle cx="92" cy="32" r="2.5" fill="#F8A7C8" />
+      <circle cx="96" cy="43" r="1.9" fill="#7DD3FC" />
+      <circle cx="20" cy="48" r="2" fill="#A7F3D0" />
+    </svg>
+  );
+}
+
 function EventCountdownBadge({ eventDate }: { eventDate: string }) {
   const [now, setNow] = useState(() => Date.now());
   const DAY_MS = 1000 * 60 * 60 * 24;
@@ -1059,21 +1079,9 @@ export default function DashboardPage() {
             <span className="absolute -right-2.5 h-3.5 w-3.5 -rotate-12 rounded-full border border-white/35 bg-white/16" />
             <span className="h-2.5 w-2.5 rounded-full bg-amber-100/95" />
           </div>
-          {/* Gift box watermark — top right */}
-          <div className="pointer-events-none absolute right-5 top-3 opacity-[0.20]">
-            <div className="relative flex w-[60px] flex-col items-center">
-              <div className="mb-0.5 flex items-center gap-0.5">
-                <div className="h-4 w-5 -rotate-[18deg] rounded-full border-[1.5px] border-white bg-white/20" />
-                <div className="h-2.5 w-2.5 rounded-full bg-white" />
-                <div className="h-4 w-5 rotate-[18deg] rounded-full border-[1.5px] border-white bg-white/20" />
-              </div>
-              <div className="relative h-3.5 w-[60px] rounded-t-sm border border-white bg-white/20">
-                <div className="absolute left-1/2 top-0 h-full w-[3px] -translate-x-1/2 bg-white/75" />
-              </div>
-              <div className="relative mt-px h-12 w-[60px] rounded-b-sm border border-white bg-white/15">
-                <div className="absolute left-1/2 top-0 h-full w-[3px] -translate-x-1/2 bg-white/75" />
-              </div>
-            </div>
+          {/* Gift box illustration — top right */}
+          <div className="pointer-events-none absolute right-3 top-1 opacity-90">
+            <DecorativeGiftBox className="h-[76px] w-[76px]" />
           </div>
           {/* Sparkles */}
           <span className="pointer-events-none absolute left-5 top-4 select-none text-base leading-none text-white/22">✦</span>
