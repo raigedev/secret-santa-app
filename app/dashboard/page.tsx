@@ -197,8 +197,12 @@ export default function DashboardPage() {
   const [canViewAffiliateReport, setCanViewAffiliateReport] = useState(
     () => typeof sessionStorage !== "undefined" && sessionStorage.getItem("ss_ara") === "1"
   );
-  const [userName, setUserName] = useState("");
-  const [userEmoji, setUserEmoji] = useState("\u{1F385}");
+  const [userName, setUserName] = useState(
+    () => (typeof sessionStorage !== "undefined" ? (sessionStorage.getItem("ss_un") ?? "") : "")
+  );
+  const [userEmoji, setUserEmoji] = useState(
+    () => (typeof sessionStorage !== "undefined" ? (sessionStorage.getItem("ss_ue") ?? "\u{1F385}") : "\u{1F385}")
+  );
   const [ownedGroups, setOwnedGroups] = useState<Group[]>([]);
   const [invitedGroups, setInvitedGroups] = useState<Group[]>([]);
   const [pendingInvites, setPendingInvites] = useState<PendingInvite[]>([]);
@@ -440,9 +444,15 @@ export default function DashboardPage() {
       const defaultName = (sessionUser.email || "guest@example.com").split("@")[0];
 
       if (profileData) {
+        const resolvedName = profileData.display_name || defaultName;
+        const resolvedEmoji = profileData.avatar_emoji || "\u{1F385}";
         setShowProfileSetup(!profileData.profile_setup_complete);
-        setUserName(profileData.display_name || defaultName);
-        setUserEmoji(profileData.avatar_emoji || "\u{1F385}");
+        setUserName(resolvedName);
+        setUserEmoji(resolvedEmoji);
+        if (typeof sessionStorage !== "undefined") {
+          sessionStorage.setItem("ss_un", resolvedName);
+          sessionStorage.setItem("ss_ue", resolvedEmoji);
+        }
       }
     };
 

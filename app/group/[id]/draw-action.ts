@@ -7,6 +7,8 @@ import { enforceRateLimit } from "@/lib/security/rate-limit";
 import { supabaseAdmin } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 
+const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
 const DRAW_MAX_ATTEMPTS = 5;
 const DRAW_WINDOW_SECONDS = 3600;
 
@@ -56,7 +58,7 @@ function buildRandomAssignments(groupId: string, members: DrawMember[]) {
 export async function drawSecretSanta(
   groupId: string
 ): Promise<{ success: boolean; message: string }> {
-  if (!groupId || typeof groupId !== "string" || groupId.trim().length === 0) {
+  if (!groupId || !UUID_PATTERN.test(groupId)) {
     return { success: false, message: "Invalid group ID." };
   }
 
@@ -221,7 +223,7 @@ export async function drawSecretSanta(
 export async function resetSecretSantaDraw(
   groupId: string
 ): Promise<{ success: boolean; message: string }> {
-  if (!groupId || typeof groupId !== "string" || groupId.trim().length === 0) {
+  if (!groupId || !UUID_PATTERN.test(groupId)) {
     return { success: false, message: "Invalid group ID." };
   }
 

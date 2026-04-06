@@ -6,6 +6,8 @@ import { enforceRateLimit } from "@/lib/security/rate-limit";
 import { supabaseAdmin } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 
+const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
 type MembershipActionResult = {
   success: boolean;
   message: string;
@@ -139,6 +141,10 @@ export async function claimInvitedMemberships(): Promise<{
 }
 
 export async function acceptInvite(groupId: string): Promise<MembershipActionResult> {
+  if (!groupId || !UUID_PATTERN.test(groupId)) {
+    return { success: false, message: "Invalid group ID." };
+  }
+
   const supabase = await createClient();
   const {
     data: { user },
@@ -217,6 +223,10 @@ export async function acceptInvite(groupId: string): Promise<MembershipActionRes
 }
 
 export async function declineInvite(groupId: string): Promise<MembershipActionResult> {
+  if (!groupId || !UUID_PATTERN.test(groupId)) {
+    return { success: false, message: "Invalid group ID." };
+  }
+
   const supabase = await createClient();
   const {
     data: { user },

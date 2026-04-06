@@ -20,6 +20,8 @@ import { createNotification } from "@/lib/notifications";
 import { enforceRateLimit } from "@/lib/security/rate-limit";
 import { createClient } from "@/lib/supabase/server";
 
+const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
 // Core#1: Strip HTML tags, trim, enforce max length
 function sanitizeMessage(input: string): string {
   return input
@@ -37,7 +39,11 @@ export async function sendMessage(
 ): Promise<{ success: boolean; message: string }> {
 
   // Core#1: Validate inputs
-  if (!groupId || !threadGiverId || !threadReceiverId) {
+  if (
+    !groupId || !UUID_PATTERN.test(groupId) ||
+    !threadGiverId || !UUID_PATTERN.test(threadGiverId) ||
+    !threadReceiverId || !UUID_PATTERN.test(threadReceiverId)
+  ) {
     return { success: false, message: "Invalid chat thread." };
   }
 
