@@ -1631,14 +1631,25 @@ export default function GroupDetailsPage() {
                           value={newExclusionGiver}
                           onChange={(event) => setNewExclusionGiver(event.target.value)}
                           className="w-full px-3 py-2.5 rounded-xl text-[13px] outline-none"
-                          style={{ border: "2px solid #e5e7eb", fontFamily: "inherit" }}
+                          style={{
+                            border: "2px solid #e5e7eb",
+                            fontFamily: "inherit",
+                            background: "#ffffff",
+                            color: newExclusionGiver ? "#111827" : "#94a3b8",
+                          }}
                           disabled={drawRuleSaving || drawLoading || resetLoading}
                         >
-                          <option value="">Member A</option>
+                          <option value="" style={{ color: "#94a3b8" }}>
+                            Member A
+                          </option>
                           {acceptedMembers
                             .filter((member) => Boolean(member.user_id))
                             .map((member) => (
-                              <option key={`giver-${member.user_id}`} value={member.user_id || ""}>
+                              <option
+                                key={`giver-${member.user_id}`}
+                                value={member.user_id || ""}
+                                style={{ color: "#111827" }}
+                              >
                                 {member.nickname || "Member"}
                               </option>
                             ))}
@@ -1648,14 +1659,25 @@ export default function GroupDetailsPage() {
                           value={newExclusionReceiver}
                           onChange={(event) => setNewExclusionReceiver(event.target.value)}
                           className="w-full px-3 py-2.5 rounded-xl text-[13px] outline-none"
-                          style={{ border: "2px solid #e5e7eb", fontFamily: "inherit" }}
+                          style={{
+                            border: "2px solid #e5e7eb",
+                            fontFamily: "inherit",
+                            background: "#ffffff",
+                            color: newExclusionReceiver ? "#111827" : "#94a3b8",
+                          }}
                           disabled={drawRuleSaving || drawLoading || resetLoading}
                         >
-                          <option value="">Member B</option>
+                          <option value="" style={{ color: "#94a3b8" }}>
+                            Member B
+                          </option>
                           {acceptedMembers
                             .filter((member) => Boolean(member.user_id) && member.user_id !== newExclusionGiver)
                             .map((member) => (
-                              <option key={`receiver-${member.user_id}`} value={member.user_id || ""}>
+                              <option
+                                key={`receiver-${member.user_id}`}
+                                value={member.user_id || ""}
+                                style={{ color: "#111827" }}
+                              >
                                 {member.nickname || "Member"}
                               </option>
                             ))}
