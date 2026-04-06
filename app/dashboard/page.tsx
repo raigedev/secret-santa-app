@@ -952,37 +952,44 @@ export default function DashboardPage() {
     const theme =
       accent === "green"
         ? {
-            body: "bg-[linear-gradient(145deg,#8ee6c6_0%,#56d79b_40%,#3ebf84_100%)]",
+            body: "bg-[linear-gradient(145deg,#86e6c2_0%,#4fcf95_42%,#34b67d_100%)]",
             button:
               "bg-[linear-gradient(135deg,#22c55e,#16a34a)] shadow-[0_14px_35px_rgba(34,197,94,0.25)]",
             text: "text-emerald-700",
+            eyebrow: "bg-emerald-50 text-emerald-700",
+            bodyText: "text-emerald-950/90",
+            sceneChip: "bg-white/24 text-white/95",
           }
         : {
-            body: "bg-[linear-gradient(145deg,#9ac4ff_0%,#6da6ff_42%,#4f87f7_100%)]",
+            body: "bg-[linear-gradient(145deg,#a2c8ff_0%,#6ea8ff_42%,#4b86f7_100%)]",
             button:
               "bg-[linear-gradient(135deg,#2f80ff,#1f66e5)] shadow-[0_14px_35px_rgba(37,99,235,0.25)]",
             text: "text-blue-700",
+            eyebrow: "bg-blue-50 text-blue-700",
+            bodyText: "text-blue-950/90",
+            sceneChip: "bg-white/24 text-white/95",
           };
 
     return (
-      <section className="overflow-hidden rounded-4xl border border-white/80 bg-white/90 shadow-[0_28px_80px_rgba(148,163,184,0.16)] backdrop-blur-md">
+      <section className="group overflow-hidden rounded-4xl border border-white/80 bg-white/90 shadow-[0_28px_80px_rgba(148,163,184,0.16)] backdrop-blur-md transition duration-300 hover:-translate-y-0.5 hover:shadow-[0_34px_90px_rgba(148,163,184,0.22)]">
         <div className="px-6 pt-5">
           <div
-            className={`inline-flex rounded-full bg-slate-50 px-3 py-1 text-xs font-semibold ${theme.text}`}
+            className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold ${theme.eyebrow}`}
           >
             {subtitle}
           </div>
-          <h2 className="mt-3 text-[1.8rem] font-bold text-slate-900">{title}</h2>
+          <h2 className="mt-3 text-[1.8rem] font-extrabold text-slate-900">{title}</h2>
         </div>
         <div className={`relative mt-5 px-6 pb-6 pt-6 ${theme.body}`}>
-          <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(255,255,255,0.32),transparent_32%),radial-gradient(circle_at_bottom_right,rgba(255,255,255,0.18),transparent_35%)]" />
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(255,255,255,0.34),transparent_33%),radial-gradient(circle_at_bottom_right,rgba(255,255,255,0.2),transparent_35%)]" />
+          <div className="absolute -top-10 right-4 h-28 w-28 rounded-full border border-white/30 bg-white/12 blur-[1px]" />
           <div className="relative z-10">
-            <p className="max-w-sm text-sm leading-6 text-slate-700">{description}</p>
+            <p className={`max-w-sm text-sm leading-6 ${theme.bodyText}`}>{description}</p>
             <div className="mt-5">{scene}</div>
             <button
               type="button"
               onClick={onClick}
-              className={`mt-6 inline-flex items-center gap-2 rounded-full px-5 py-2.5 text-sm font-semibold text-white transition hover:-translate-y-0.5 ${theme.button}`}
+              className={`mt-6 inline-flex items-center gap-2 rounded-full px-5 py-2.5 text-sm font-semibold text-white transition hover:-translate-y-0.5 group-hover:scale-[1.01] ${theme.button}`}
             >
               <span>{buttonLabel}</span>
               <ArrowRightIcon />

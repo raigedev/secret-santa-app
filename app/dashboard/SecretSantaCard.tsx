@@ -85,41 +85,53 @@ export default function SecretSantaCard({ recipientNames }: Props) {
   const hasAssignments = recipientNames.length > 0;
 
   return (
-    <section className="relative overflow-hidden rounded-[32px] border border-sky-200/70 bg-[linear-gradient(145deg,#65a8ff_0%,#4d8ff8_45%,#7db8ff_100%)] p-5 text-white shadow-[0_28px_80px_rgba(59,130,246,0.22)]">
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(255,255,255,0.35),transparent_34%),radial-gradient(circle_at_bottom_right,rgba(255,255,255,0.16),transparent_30%)]" />
-      <div className="absolute right-5 top-5 h-16 w-16 rounded-full border border-white/30 bg-white/12 blur-[1px]" />
-      <div className="absolute bottom-6 right-10 h-3 w-3 rounded-full bg-white/60" />
+    <section className="group relative overflow-hidden rounded-[32px] border border-sky-200/70 bg-[linear-gradient(145deg,#5d9fff_0%,#4b88ee_44%,#8ec2ff_100%)] p-5 text-white shadow-[0_30px_90px_rgba(37,99,235,0.24)] transition duration-300 hover:-translate-y-0.5">
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(255,255,255,0.34),transparent_35%),radial-gradient(circle_at_bottom_right,rgba(255,255,255,0.16),transparent_34%)]" />
+      <div className="absolute right-4 top-4 h-20 w-20 rounded-full border border-white/35 bg-white/15 blur-[1px]" />
+      <div className="absolute -right-4 bottom-2 h-20 w-20 rounded-full bg-white/12 blur-sm" />
+      <div className="absolute bottom-8 right-10 h-3 w-3 rounded-full bg-white/60" />
       <div className="absolute left-8 top-20 h-2 w-2 rounded-full bg-white/70" />
 
       <div className="relative z-10 flex items-start justify-between gap-4">
         <div>
-          <div className="mb-2 inline-flex items-center gap-2 rounded-full bg-white/90 px-3 py-1 text-sm font-semibold text-sky-700">
+          <div className="mb-2 inline-flex items-center gap-2 rounded-full bg-white/92 px-3 py-1 text-sm font-semibold text-sky-700 shadow-[0_8px_20px_rgba(15,23,42,0.1)]">
             <SantaHatIcon />
             <span>Your Secret Santa</span>
           </div>
-          <h2 className="text-[1.55rem] font-bold leading-tight text-white">
+          <h2 className="text-[1.6rem] font-extrabold leading-tight text-white">
             {hasAssignments ? "Your draw is ready" : "Waiting for the draw"}
           </h2>
-          <p className="mt-1 text-sm text-sky-100/95">
+          <p className="mt-1.5 text-sm text-sky-100/95">
             {hasAssignments
               ? "Open your assignments and start planning the surprise."
               : "Once your group finishes the draw, your recipient will appear here."}
           </p>
         </div>
-        <span className="inline-flex rounded-full bg-white/18 px-3 py-1 text-xs font-semibold tracking-wide text-white/90">
+        <span
+          className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold tracking-wide ${
+            hasAssignments
+              ? "bg-emerald-100/95 text-emerald-700"
+              : "bg-white/22 text-white/95"
+          }`}
+        >
           {hasAssignments ? "Draw completed" : "Pending draw"}
         </span>
       </div>
 
-      <div className="relative z-10 mt-5 rounded-[26px] border border-white/55 bg-white/92 p-4 text-slate-800 shadow-[inset_0_1px_0_rgba(255,255,255,0.7)]">
+      <div className="relative z-10 mt-5 rounded-[26px] border border-white/60 bg-white/94 p-4 text-slate-800 shadow-[inset_0_1px_0_rgba(255,255,255,0.8)]">
         <div className="flex items-start gap-4">
-          <div className="flex h-20 w-20 shrink-0 items-center justify-center rounded-[24px] bg-[linear-gradient(145deg,#eff6ff,#dbeafe)] text-sky-700 shadow-[0_16px_40px_rgba(148,163,184,0.18)]">
+          <div className="flex h-20 w-20 shrink-0 items-center justify-center rounded-[24px] bg-[linear-gradient(145deg,#eff6ff,#dbeafe)] text-sky-700 shadow-[0_18px_42px_rgba(148,163,184,0.2)]">
             {hasAssignments ? <GiftIcon /> : <SnowflakeIcon />}
           </div>
           <div className="min-w-0 flex-1">
             <p className="text-sm font-semibold uppercase tracking-[0.18em] text-sky-500">
               {hasAssignments ? "Assigned recipients" : "Status"}
             </p>
+            <div className="mt-2 inline-flex items-center gap-2 rounded-full bg-sky-50 px-3 py-1 text-xs font-semibold text-sky-700">
+              {hasAssignments
+                ? `${recipientNames.length} recipient${recipientNames.length === 1 ? "" : "s"}`
+                : "Waiting for organizer"}
+            </div>
             {hasAssignments ? (
               <ul className="mt-3 space-y-2">
                 {recipientNames.slice(0, 3).map((name) => (
@@ -151,7 +163,7 @@ export default function SecretSantaCard({ recipientNames }: Props) {
           <button
             type="button"
             onClick={() => router.push("/secret-santa")}
-            className="inline-flex items-center gap-2 rounded-full bg-[linear-gradient(135deg,#2f80ff,#1f66e5)] px-5 py-2.5 text-sm font-semibold text-white shadow-[0_14px_35px_rgba(37,99,235,0.28)] transition hover:-translate-y-0.5"
+            className="inline-flex items-center gap-2 rounded-full bg-[linear-gradient(135deg,#2f80ff,#1f66e5)] px-5 py-2.5 text-sm font-semibold text-white shadow-[0_14px_35px_rgba(37,99,235,0.28)] transition hover:-translate-y-0.5 group-hover:shadow-[0_18px_42px_rgba(37,99,235,0.34)]"
           >
             <span>{hasAssignments ? "Open assignments" : "Open Secret Santa"}</span>
             <ArrowRightIcon />
