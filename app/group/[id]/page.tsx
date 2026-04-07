@@ -807,7 +807,13 @@ export default function GroupDetailsPage() {
                 onChange={(e) => setEditName(e.target.value)}
                 maxLength={100}
                 className="w-full px-3 py-2.5 rounded-xl text-[14px] outline-none"
-                style={{ border: "2px solid #e5e7eb", fontFamily: "inherit" }}
+                style={{
+                  border: "2px solid #e5e7eb",
+                  fontFamily: "inherit",
+                  background: "#ffffff",
+                  color: "#0f172a",
+                  WebkitTextFillColor: "#0f172a",
+                }}
               />
             </div>
 
@@ -823,7 +829,13 @@ export default function GroupDetailsPage() {
                 onChange={(e) => setEditDesc(e.target.value)}
                 maxLength={300}
                 className="w-full px-3 py-2.5 rounded-xl text-[14px] outline-none"
-                style={{ border: "2px solid #e5e7eb", fontFamily: "inherit" }}
+                style={{
+                  border: "2px solid #e5e7eb",
+                  fontFamily: "inherit",
+                  background: "#ffffff",
+                  color: "#0f172a",
+                  WebkitTextFillColor: "#0f172a",
+                }}
               />
             </div>
 
@@ -839,7 +851,13 @@ export default function GroupDetailsPage() {
                 value={editDate}
                 onChange={(e) => setEditDate(e.target.value)}
                 className="w-full px-3 py-2.5 rounded-xl text-[14px] outline-none"
-                style={{ border: "2px solid #e5e7eb", fontFamily: "inherit" }}
+                style={{
+                  border: "2px solid #e5e7eb",
+                  fontFamily: "inherit",
+                  background: "#ffffff",
+                  color: "#0f172a",
+                  WebkitTextFillColor: "#0f172a",
+                }}
               />
             </div>
 
@@ -899,7 +917,13 @@ export default function GroupDetailsPage() {
                   value={editBudget}
                   onChange={(e) => setEditBudget(parseInt(e.target.value, 10) || 0)}
                   className="mt-2 w-28 px-3 py-2 rounded-lg text-[13px] outline-none"
-                  style={{ border: "2px solid #c0392b", fontFamily: "inherit" }}
+                  style={{
+                    border: "2px solid #c0392b",
+                    fontFamily: "inherit",
+                    background: "#ffffff",
+                    color: "#0f172a",
+                    WebkitTextFillColor: "#0f172a",
+                  }}
                 />
               )}
             </div>
@@ -915,7 +939,13 @@ export default function GroupDetailsPage() {
                 value={editCurrency}
                 onChange={(e) => setEditCurrency(e.target.value)}
                 className="w-full px-3 py-2.5 rounded-xl text-[14px] outline-none"
-                style={{ border: "2px solid #e5e7eb", fontFamily: "inherit" }}
+                style={{
+                  border: "2px solid #e5e7eb",
+                  fontFamily: "inherit",
+                  background: "#ffffff",
+                  color: "#0f172a",
+                  WebkitTextFillColor: "#0f172a",
+                }}
               >
                 {CURRENCIES.map((currency) => (
                   <option key={currency.code} value={currency.code}>
