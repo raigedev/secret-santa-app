@@ -145,6 +145,39 @@ function Modal({
   );
 }
 
+function HistorySkeletonRows({
+  tone = "blue",
+}: {
+  tone?: "blue" | "orange";
+}) {
+  const border = tone === "orange" ? "rgba(249,115,22,.2)" : "rgba(37,99,235,.18)";
+  const base = tone === "orange" ? "rgba(255,247,237,.95)" : "rgba(248,250,252,.95)";
+
+  return (
+    <div className="space-y-2">
+      {[0, 1].map((item) => (
+        <div
+          key={item}
+          className="rounded-lg px-2.5 py-2"
+          style={{
+            background: base,
+            border: `1px solid ${border}`,
+          }}
+        >
+          <div
+            className="h-2.5 w-3/4 rounded"
+            style={{ background: "rgba(148,163,184,.28)" }}
+          />
+          <div
+            className="mt-2 h-2 w-1/2 rounded"
+            style={{ background: "rgba(148,163,184,.22)" }}
+          />
+        </div>
+      ))}
+    </div>
+  );
+}
+
 export default function GroupDetailsPage() {
   const router = useRouter();
   const params = useParams();
@@ -1994,6 +2027,10 @@ export default function GroupDetailsPage() {
                                   {drawCycleHistoryLoadingMore ? "Loading..." : "Load more cycles"}
                                 </button>
                               )}
+
+                              {drawCycleHistoryLoadingMore && (
+                                <HistorySkeletonRows tone="blue" />
+                              )}
                             </div>
                           )}
 
@@ -2029,6 +2066,10 @@ export default function GroupDetailsPage() {
                                 >
                                   {drawResetHistoryLoadingMore ? "Loading..." : "Load more resets"}
                                 </button>
+                              )}
+
+                              {drawResetHistoryLoadingMore && (
+                                <HistorySkeletonRows tone="orange" />
                               )}
                             </div>
                           )}
