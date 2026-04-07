@@ -1026,7 +1026,14 @@ export async function resetSecretSantaDraw(
   };
 }
 
-export async function getDrawRerollHistory(groupId: string): Promise<{
+export async function getDrawRerollHistory(
+  groupId: string,
+  options?: {
+    cycleOffset?: number;
+    pageSize?: number;
+    resetOffset?: number;
+  }
+): Promise<{
   cycles?: Array<{
     assignmentCount: number;
     avoidPreviousRecipient: boolean;
@@ -1035,6 +1042,8 @@ export async function getDrawRerollHistory(groupId: string): Promise<{
     id: string;
     repeatAvoidanceRelaxed: boolean;
   }>;
+  hasMoreCycles?: boolean;
+  hasMoreResets?: boolean;
   message: string;
   resets?: Array<{
     assignmentCount: number;
@@ -1048,6 +1057,10 @@ export async function getDrawRerollHistory(groupId: string): Promise<{
   if (!groupId || !UUID_PATTERN.test(groupId)) {
     return { success: false, message: "Invalid group ID." };
   }
+
+  const cycleOffset = Math.max(0, Math.floor(options?.cycleOffset || 0));
+  const resetOffset = Math.max(0, Math.floor(options?.resetOffset || 0));
+  const pageSize = Math.min(25, Math.max(1, Math.floor(options?.pageSize || 5)));
 
   const supabase = await createClient();
   const {
@@ -1075,13 +1088,13 @@ export async function getDrawRerollHistory(groupId: string): Promise<{
         .select("id, cycle_number, created_at, assignment_count, avoid_previous_recipient, repeat_avoidance_relaxed")
         .eq("group_id", groupId)
         .order("cycle_number", { ascending: false })
-        .limit(20),
+        .range(cycleOffset, cycleOffset + pageSize),
       supabaseAdmin
         .from("group_draw_resets")
         .select("id, created_at, reason, assignment_count, confirmed_gift_count")
         .eq("group_id", groupId)
         .order("created_at", { ascending: false })
-        .limit(20),
+        .range(resetOffset, resetOffset + pageSize),
     ]);
 
   if (cycleError || resetError) {
@@ -1100,10 +1113,18 @@ export async function getDrawRerollHistory(groupId: string): Promise<{
     return { success: false, message: "Failed to load reroll history." };
   }
 
+  const cycleRowsTyped = (cycleRows || []) as DrawCycleRow[];
+  const resetRowsTyped = (resetRows || []) as DrawResetHistoryRow[];
+
+  const hasMoreCycles = cycleRowsTyped.length > pageSize;
+  const hasMoreResets = resetRowsTyped.length > pageSize;
+
   return {
     success: true,
     message: "Reroll history loaded.",
-    cycles: ((cycleRows || []) as DrawCycleRow[]).map((row) => ({
+    hasMoreCycles,
+    hasMoreResets,
+    cycles: cycleRowsTyped.slice(0, pageSize).map((row) => ({
       id: row.id,
       cycleNumber: row.cycle_number,
       createdAt: row.created_at,
@@ -1111,7 +1132,7 @@ export async function getDrawRerollHistory(groupId: string): Promise<{
       avoidPreviousRecipient: row.avoid_previous_recipient,
       repeatAvoidanceRelaxed: row.repeat_avoidance_relaxed,
     })),
-    resets: ((resetRows || []) as DrawResetHistoryRow[]).map((row) => ({
+    resets: resetRowsTyped.slice(0, pageSize).map((row) => ({
       id: row.id,
       createdAt: row.created_at,
       reason: row.reason,

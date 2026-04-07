@@ -110,6 +110,7 @@ type DrawResetHistoryItem = {
 };
 
 const BUDGET_OPTIONS = [10, 15, 25, 50, 100];
+const HISTORY_PAGE_SIZE = 5;
 const CURRENCIES = [
   { code: "USD", symbol: "$", label: "USD" },
   { code: "EUR", symbol: "€", label: "EUR" },
@@ -174,6 +175,10 @@ export default function GroupDetailsPage() {
   const [resetReason, setResetReason] = useState("");
   const [drawCycleHistory, setDrawCycleHistory] = useState<DrawCycleHistoryItem[]>([]);
   const [drawResetHistory, setDrawResetHistory] = useState<DrawResetHistoryItem[]>([]);
+  const [hasMoreDrawCycles, setHasMoreDrawCycles] = useState(false);
+  const [hasMoreDrawResets, setHasMoreDrawResets] = useState(false);
+  const [drawCycleHistoryLoadingMore, setDrawCycleHistoryLoadingMore] = useState(false);
+  const [drawResetHistoryLoadingMore, setDrawResetHistoryLoadingMore] = useState(false);
   const [ownerInsights, setOwnerInsights] = useState<OwnerInsights | null>(null);
   const [revealMatches, setRevealMatches] = useState<RevealMatch[]>([]);
   const [groupRecap, setGroupRecap] = useState<GroupRecap | null>(null);
@@ -311,7 +316,13 @@ export default function GroupDetailsPage() {
         group.revealed ? getRevealMatches(id) : Promise.resolve(null),
         group.revealed ? getGroupRecap(id) : Promise.resolve(null),
         isCurrentUserOwner ? getDrawExclusions(id) : Promise.resolve(null),
-        isCurrentUserOwner ? getDrawRerollHistory(id) : Promise.resolve(null),
+        isCurrentUserOwner
+          ? getDrawRerollHistory(id, {
+              cycleOffset: 0,
+              resetOffset: 0,
+              pageSize: HISTORY_PAGE_SIZE,
+            })
+          : Promise.resolve(null),
       ]);
 
       if (!isMounted) return;
@@ -343,9 +354,13 @@ export default function GroupDetailsPage() {
       if (rerollHistoryResult?.success) {
         setDrawCycleHistory(rerollHistoryResult.cycles || []);
         setDrawResetHistory(rerollHistoryResult.resets || []);
+        setHasMoreDrawCycles(Boolean(rerollHistoryResult.hasMoreCycles));
+        setHasMoreDrawResets(Boolean(rerollHistoryResult.hasMoreResets));
       } else {
         setDrawCycleHistory([]);
         setDrawResetHistory([]);
+        setHasMoreDrawCycles(false);
+        setHasMoreDrawResets(false);
       }
 
       if (myAssignment) {
@@ -676,6 +691,52 @@ export default function GroupDetailsPage() {
       }
     } finally {
       setResetLoading(false);
+    }
+  };
+
+  const handleLoadMoreCycleHistory = async () => {
+    if (!isOwner || drawCycleHistoryLoadingMore || !hasMoreDrawCycles) {
+      return;
+    }
+
+    setDrawCycleHistoryLoadingMore(true);
+
+    try {
+      const result = await getDrawRerollHistory(id, {
+        cycleOffset: drawCycleHistory.length,
+        resetOffset: 0,
+        pageSize: HISTORY_PAGE_SIZE,
+      });
+
+      if (result.success) {
+        setDrawCycleHistory((current) => [...current, ...(result.cycles || [])]);
+        setHasMoreDrawCycles(Boolean(result.hasMoreCycles));
+      }
+    } finally {
+      setDrawCycleHistoryLoadingMore(false);
+    }
+  };
+
+  const handleLoadMoreResetHistory = async () => {
+    if (!isOwner || drawResetHistoryLoadingMore || !hasMoreDrawResets) {
+      return;
+    }
+
+    setDrawResetHistoryLoadingMore(true);
+
+    try {
+      const result = await getDrawRerollHistory(id, {
+        cycleOffset: 0,
+        resetOffset: drawResetHistory.length,
+        pageSize: HISTORY_PAGE_SIZE,
+      });
+
+      if (result.success) {
+        setDrawResetHistory((current) => [...current, ...(result.resets || [])]);
+        setHasMoreDrawResets(Boolean(result.hasMoreResets));
+      }
+    } finally {
+      setDrawResetHistoryLoadingMore(false);
     }
   };
 
@@ -1899,7 +1960,7 @@ export default function GroupDetailsPage() {
 
                           {drawCycleHistory.length > 0 && (
                             <div className="mt-2 space-y-2">
-                              {drawCycleHistory.slice(0, 5).map((cycle) => (
+                              {drawCycleHistory.map((cycle) => (
                                 <div
                                   key={cycle.id}
                                   className="rounded-lg px-2.5 py-2 text-[11px]"
@@ -1916,12 +1977,29 @@ export default function GroupDetailsPage() {
                                   </div>
                                 </div>
                               ))}
+
+                              {hasMoreDrawCycles && (
+                                <button
+                                  type="button"
+                                  onClick={handleLoadMoreCycleHistory}
+                                  disabled={drawCycleHistoryLoadingMore}
+                                  className="w-full rounded-lg px-3 py-2 text-[11px] font-extrabold"
+                                  style={{
+                                    background: "rgba(37,99,235,.08)",
+                                    color: "#1d4ed8",
+                                    border: "1px solid rgba(37,99,235,.18)",
+                                    cursor: drawCycleHistoryLoadingMore ? "not-allowed" : "pointer",
+                                  }}
+                                >
+                                  {drawCycleHistoryLoadingMore ? "Loading..." : "Load more cycles"}
+                                </button>
+                              )}
                             </div>
                           )}
 
                           {drawResetHistory.length > 0 && (
                             <div className="mt-3 space-y-2">
-                              {drawResetHistory.slice(0, 5).map((reset) => (
+                              {drawResetHistory.map((reset) => (
                                 <div
                                   key={reset.id}
                                   className="rounded-lg px-2.5 py-2 text-[11px]"
@@ -1935,6 +2013,23 @@ export default function GroupDetailsPage() {
                                   <div style={{ color: "#9a3412" }}>Reason: {reset.reason}</div>
                                 </div>
                               ))}
+
+                              {hasMoreDrawResets && (
+                                <button
+                                  type="button"
+                                  onClick={handleLoadMoreResetHistory}
+                                  disabled={drawResetHistoryLoadingMore}
+                                  className="w-full rounded-lg px-3 py-2 text-[11px] font-extrabold"
+                                  style={{
+                                    background: "rgba(249,115,22,.08)",
+                                    color: "#c2410c",
+                                    border: "1px solid rgba(249,115,22,.2)",
+                                    cursor: drawResetHistoryLoadingMore ? "not-allowed" : "pointer",
+                                  }}
+                                >
+                                  {drawResetHistoryLoadingMore ? "Loading..." : "Load more resets"}
+                                </button>
+                              )}
                             </div>
                           )}
                         </div>
