@@ -12,6 +12,7 @@ import {
   addDrawExclusion,
   drawSecretSanta,
   getDrawExclusions,
+  getDrawRerollHistory,
   removeDrawExclusion,
   resetSecretSantaDraw,
 } from "./draw-action";
@@ -91,6 +92,23 @@ type DrawExclusionRule = {
   receiverUserId: string;
 };
 
+type DrawCycleHistoryItem = {
+  assignmentCount: number;
+  avoidPreviousRecipient: boolean;
+  createdAt: string;
+  cycleNumber: number;
+  id: string;
+  repeatAvoidanceRelaxed: boolean;
+};
+
+type DrawResetHistoryItem = {
+  assignmentCount: number;
+  confirmedGiftCount: number;
+  createdAt: string;
+  id: string;
+  reason: string;
+};
+
 const BUDGET_OPTIONS = [10, 15, 25, 50, 100];
 const CURRENCIES = [
   { code: "USD", symbol: "$", label: "USD" },
@@ -152,6 +170,10 @@ export default function GroupDetailsPage() {
   const [newExclusionBidirectional, setNewExclusionBidirectional] = useState(true);
   const [drawRuleMessage, setDrawRuleMessage] = useState("");
   const [drawRuleSaving, setDrawRuleSaving] = useState(false);
+  const [avoidPreviousRecipient, setAvoidPreviousRecipient] = useState(true);
+  const [resetReason, setResetReason] = useState("");
+  const [drawCycleHistory, setDrawCycleHistory] = useState<DrawCycleHistoryItem[]>([]);
+  const [drawResetHistory, setDrawResetHistory] = useState<DrawResetHistoryItem[]>([]);
   const [ownerInsights, setOwnerInsights] = useState<OwnerInsights | null>(null);
   const [revealMatches, setRevealMatches] = useState<RevealMatch[]>([]);
   const [groupRecap, setGroupRecap] = useState<GroupRecap | null>(null);
@@ -278,7 +300,7 @@ export default function GroupDetailsPage() {
       // Keep the owner's readiness panel in sync with the main group data.
       // Chat stays aggregate-only here so the owner gets engagement signals
       // without learning anything about the anonymous pairings themselves.
-      const [{ data: myAssignment }, insightsResult, revealResult, recapResult, exclusionResult] = await Promise.all([
+      const [{ data: myAssignment }, insightsResult, revealResult, recapResult, exclusionResult, rerollHistoryResult] = await Promise.all([
         supabase
           .from("assignments")
           .select("receiver_id")
@@ -289,6 +311,7 @@ export default function GroupDetailsPage() {
         group.revealed ? getRevealMatches(id) : Promise.resolve(null),
         group.revealed ? getGroupRecap(id) : Promise.resolve(null),
         isCurrentUserOwner ? getDrawExclusions(id) : Promise.resolve(null),
+        isCurrentUserOwner ? getDrawRerollHistory(id) : Promise.resolve(null),
       ]);
 
       if (!isMounted) return;
@@ -315,6 +338,14 @@ export default function GroupDetailsPage() {
         setDrawExclusions(exclusionResult.exclusions);
       } else {
         setDrawExclusions([]);
+      }
+
+      if (rerollHistoryResult?.success) {
+        setDrawCycleHistory(rerollHistoryResult.cycles || []);
+        setDrawResetHistory(rerollHistoryResult.resets || []);
+      } else {
+        setDrawCycleHistory([]);
+        setDrawResetHistory([]);
       }
 
       if (myAssignment) {
@@ -549,7 +580,9 @@ export default function GroupDetailsPage() {
     setDrawMessage("");
 
     try {
-      const result = await drawSecretSanta(id);
+      const result = await drawSecretSanta(id, {
+        avoidPreviousRecipient,
+      });
       setDrawMessage(result.message);
       if (result.success) {
         notifyGroupRefresh();
@@ -604,6 +637,13 @@ export default function GroupDetailsPage() {
   };
 
   const handleResetDraw = async () => {
+    const trimmedReason = resetReason.trim();
+
+    if (trimmedReason.length < 8) {
+      setDrawMessage("Please provide at least 8 characters for reset reason.");
+      return;
+    }
+
     if (
       !confirm(
         "Reset this draw? This will permanently delete the current assignments, anonymous chat messages, read markers, and gift received confirmations for this group. You can draw again afterwards."
@@ -616,9 +656,10 @@ export default function GroupDetailsPage() {
     setDrawMessage("");
 
     try {
-      const result = await resetSecretSantaDraw(id);
+      const result = await resetSecretSantaDraw(id, trimmedReason);
       setDrawMessage(result.message);
       if (result.success) {
+        setResetReason("");
         setRevealMatches([]);
         setGroupRecap(null);
         setRevealMessage("");
@@ -1538,6 +1579,22 @@ export default function GroupDetailsPage() {
                         markers, and any gift confirmations for this group.
                       </p>
 
+                      <textarea
+                        value={resetReason}
+                        onChange={(event) => setResetReason(event.target.value)}
+                        placeholder="Required reason for reset (at least 8 characters)"
+                        className="mb-3 w-full rounded-xl px-3 py-2 text-[12px] font-semibold outline-none"
+                        style={{
+                          border: "2px solid #fecaca",
+                          background: "rgba(255,255,255,.92)",
+                          color: "#7f1d1d",
+                          fontFamily: "inherit",
+                        }}
+                        rows={2}
+                        maxLength={300}
+                        disabled={resetLoading || drawLoading}
+                      />
+
                       <button
                         onClick={handleResetDraw}
                         disabled={resetLoading || drawLoading}
@@ -1768,6 +1825,88 @@ export default function GroupDetailsPage() {
                       ) : (
                         <div className="mt-3 text-[12px] font-semibold" style={{ color: "#64748b" }}>
                           No exclusion rules yet.
+                        </div>
+                      )}
+
+                      <div
+                        className="mt-4 rounded-xl p-3"
+                        style={{
+                          background: "rgba(15,23,42,.04)",
+                          border: "1px solid rgba(148,163,184,.25)",
+                        }}
+                      >
+                        <div className="text-[13px] font-extrabold" style={{ color: "#334155" }}>
+                          🧭 Fairness Options
+                        </div>
+                        <label
+                          className="mt-2 inline-flex items-center gap-2 text-[12px] font-semibold"
+                          style={{ color: "#475569" }}
+                        >
+                          <input
+                            type="checkbox"
+                            checked={avoidPreviousRecipient}
+                            onChange={(event) => setAvoidPreviousRecipient(event.target.checked)}
+                            disabled={drawRuleSaving || drawLoading || resetLoading}
+                          />
+                          Try to avoid assigning the same recipient from the previous cycle
+                        </label>
+                        <p className="mt-1 text-[11px]" style={{ color: "#64748b" }}>
+                          If impossible with current exclusions, the draw will automatically relax this preference.
+                        </p>
+                      </div>
+
+                      {(drawCycleHistory.length > 0 || drawResetHistory.length > 0) && (
+                        <div
+                          className="mt-4 rounded-xl p-3"
+                          style={{
+                            background: "rgba(255,255,255,.95)",
+                            border: "1px solid rgba(148,163,184,.25)",
+                          }}
+                        >
+                          <div className="text-[13px] font-extrabold" style={{ color: "#334155" }}>
+                            📜 Reroll History
+                          </div>
+
+                          {drawCycleHistory.length > 0 && (
+                            <div className="mt-2 space-y-2">
+                              {drawCycleHistory.slice(0, 5).map((cycle) => (
+                                <div
+                                  key={cycle.id}
+                                  className="rounded-lg px-2.5 py-2 text-[11px]"
+                                  style={{
+                                    background: "rgba(248,250,252,.95)",
+                                    border: "1px solid rgba(148,163,184,.2)",
+                                    color: "#334155",
+                                  }}
+                                >
+                                  <strong>Cycle {cycle.cycleNumber}</strong> • {new Date(cycle.createdAt).toLocaleString()} • {cycle.assignmentCount} assignments
+                                  <div style={{ color: "#64748b" }}>
+                                    Avoid previous recipient: {cycle.avoidPreviousRecipient ? "On" : "Off"}
+                                    {cycle.repeatAvoidanceRelaxed ? " (relaxed)" : ""}
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          )}
+
+                          {drawResetHistory.length > 0 && (
+                            <div className="mt-3 space-y-2">
+                              {drawResetHistory.slice(0, 5).map((reset) => (
+                                <div
+                                  key={reset.id}
+                                  className="rounded-lg px-2.5 py-2 text-[11px]"
+                                  style={{
+                                    background: "rgba(255,247,237,.95)",
+                                    border: "1px solid rgba(251,146,60,.2)",
+                                    color: "#7c2d12",
+                                  }}
+                                >
+                                  <strong>Reset</strong> • {new Date(reset.createdAt).toLocaleString()} • {reset.assignmentCount} assignments, {reset.confirmedGiftCount} confirmed gifts
+                                  <div style={{ color: "#9a3412" }}>Reason: {reset.reason}</div>
+                                </div>
+                              ))}
+                            </div>
+                          )}
                         </div>
                       )}
                     </div>

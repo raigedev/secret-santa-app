@@ -28,6 +28,28 @@ type DrawExclusionRow = {
   receiver_user_id: string;
 };
 
+type DrawCycleRow = {
+  assignment_count: number;
+  avoid_previous_recipient: boolean;
+  created_at: string;
+  cycle_number: number;
+  id: string;
+  repeat_avoidance_relaxed: boolean;
+};
+
+type DrawResetHistoryRow = {
+  assignment_count: number;
+  confirmed_gift_count: number;
+  created_at: string;
+  id: string;
+  reason: string;
+};
+
+type DrawCyclePairRow = {
+  giver_id: string;
+  receiver_id: string;
+};
+
 function buildBlockedPairKey(giverUserId: string, receiverUserId: string): string {
   return `${giverUserId}:${receiverUserId}`;
 }
@@ -39,7 +61,7 @@ function shuffleInPlace<T>(items: T[]): void {
   }
 }
 
-function buildRandomAssignments(
+function buildAssignmentsAttempt(
   groupId: string,
   members: DrawMember[],
   blockedPairs: Set<string>
@@ -79,6 +101,88 @@ function buildRandomAssignments(
   }
 
   return null;
+}
+
+function buildRandomAssignments(
+  groupId: string,
+  members: DrawMember[],
+  blockedPairs: Set<string>,
+  preferredBlockedPairs: Set<string>
+) {
+  const blockedWithPreferred = new Set<string>([
+    ...blockedPairs,
+    ...preferredBlockedPairs,
+  ]);
+
+  const preferredAssignments = buildAssignmentsAttempt(
+    groupId,
+    members,
+    blockedWithPreferred
+  );
+
+  if (preferredAssignments) {
+    return {
+      assignments: preferredAssignments,
+      repeatAvoidanceRelaxed: false,
+    };
+  }
+
+  if (preferredBlockedPairs.size === 0) {
+    return null;
+  }
+
+  const relaxedAssignments = buildAssignmentsAttempt(groupId, members, blockedPairs);
+
+  if (!relaxedAssignments) {
+    return null;
+  }
+
+  return {
+    assignments: relaxedAssignments,
+    repeatAvoidanceRelaxed: true,
+  };
+}
+
+async function getLatestCycleBlockedPairs(groupId: string): Promise<Set<string>> {
+  const { data: latestCycle, error: latestCycleError } = await supabaseAdmin
+    .from("group_draw_cycles")
+    .select("id")
+    .eq("group_id", groupId)
+    .order("cycle_number", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (latestCycleError || !latestCycle) {
+    return new Set<string>();
+  }
+
+  const { data: pairs, error: pairsError } = await supabaseAdmin
+    .from("group_draw_cycle_pairs")
+    .select("giver_id, receiver_id")
+    .eq("group_id", groupId)
+    .eq("cycle_id", latestCycle.id);
+
+  if (pairsError || !pairs) {
+    return new Set<string>();
+  }
+
+  return new Set(
+    (pairs as DrawCyclePairRow[])
+      .map((pair) => buildBlockedPairKey(pair.giver_id, pair.receiver_id))
+      .filter((value): value is string => Boolean(value))
+  );
+}
+
+async function getNextDrawCycleNumber(groupId: string): Promise<number> {
+  const { data: latestCycle } = await supabaseAdmin
+    .from("group_draw_cycles")
+    .select("cycle_number")
+    .eq("group_id", groupId)
+    .order("cycle_number", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  return (latestCycle?.cycle_number || 0) + 1;
 }
 
 async function groupHasDrawStarted(groupId: string): Promise<boolean> {
@@ -423,7 +527,10 @@ export async function removeDrawExclusion(
 }
 
 export async function drawSecretSanta(
-  groupId: string
+  groupId: string,
+  options?: {
+    avoidPreviousRecipient?: boolean;
+  }
 ): Promise<{ success: boolean; message: string }> {
   if (!groupId || !UUID_PATTERN.test(groupId)) {
     return { success: false, message: "Invalid group ID." };
@@ -553,12 +660,25 @@ export async function drawSecretSanta(
       .filter((value): value is string => Boolean(value))
   );
 
-  const assignments = buildRandomAssignments(groupId, members, blockedPairs);
+  const shouldAvoidPreviousRecipient = Boolean(options?.avoidPreviousRecipient);
+  const previousCyclePairs = shouldAvoidPreviousRecipient
+    ? await getLatestCycleBlockedPairs(groupId)
+    : new Set<string>();
 
-  if (!assignments) {
+  const buildResult = buildRandomAssignments(
+    groupId,
+    members,
+    blockedPairs,
+    previousCyclePairs
+  );
+
+  if (!buildResult) {
     await recordServerFailure({
       actorUserId: user.id,
-      details: { memberCount: members.length },
+      details: {
+        avoidPreviousRecipient: shouldAvoidPreviousRecipient,
+        memberCount: members.length,
+      },
       errorMessage: "Failed to build a valid random derangement.",
       eventType: "group.draw_secret_santa.build_assignments",
       resourceId: groupId,
@@ -570,6 +690,8 @@ export async function drawSecretSanta(
       message: "Failed to generate a fair draw with the current exclusion rules. Please adjust rules and try again.",
     };
   }
+
+  const { assignments, repeatAvoidanceRelaxed } = buildResult;
 
   const { error: insertError } = await supabaseAdmin.from("assignments").insert(assignments);
 
@@ -584,6 +706,67 @@ export async function drawSecretSanta(
     });
 
     return { success: false, message: "Failed to save assignments. Please try again." };
+  }
+
+  const cycleNumber = await getNextDrawCycleNumber(groupId);
+  const { data: insertedCycle, error: cycleInsertError } = await supabaseAdmin
+    .from("group_draw_cycles")
+    .insert({
+      assignment_count: assignments.length,
+      avoid_previous_recipient: shouldAvoidPreviousRecipient,
+      created_by: user.id,
+      cycle_number: cycleNumber,
+      draw_source: cycleNumber === 1 ? "initial" : "reroll",
+      group_id: groupId,
+      repeat_avoidance_relaxed: repeatAvoidanceRelaxed,
+    })
+    .select("id")
+    .maybeSingle();
+
+  if (cycleInsertError || !insertedCycle) {
+    await recordServerFailure({
+      actorUserId: user.id,
+      details: {
+        assignmentCount: assignments.length,
+        avoidPreviousRecipient: shouldAvoidPreviousRecipient,
+        repeatAvoidanceRelaxed,
+      },
+      errorMessage: cycleInsertError?.message || "Cycle insert failed.",
+      eventType: "group.draw_secret_santa.log_cycle",
+      resourceId: groupId,
+      resourceType: "group",
+    });
+  } else {
+    const pairRows = assignments
+      .filter(
+        (assignment) =>
+          Boolean(assignment.giver_id) &&
+          Boolean(assignment.receiver_id)
+      )
+      .map((assignment) => ({
+        cycle_id: insertedCycle.id,
+        giver_id: assignment.giver_id,
+        group_id: groupId,
+        receiver_id: assignment.receiver_id,
+      }));
+
+    const { error: pairInsertError } = await supabaseAdmin
+      .from("group_draw_cycle_pairs")
+      .insert(pairRows);
+
+    if (pairInsertError) {
+      await recordServerFailure({
+        actorUserId: user.id,
+        details: {
+          assignmentCount: assignments.length,
+          cycleId: insertedCycle.id,
+        },
+        errorMessage: pairInsertError.message,
+        eventType: "group.draw_secret_santa.log_cycle_pairs",
+        resourceId: groupId,
+        resourceType: "group",
+      });
+    }
   }
 
   await createNotifications(
@@ -605,7 +788,11 @@ export async function drawSecretSanta(
 
   await recordAuditEvent({
     actorUserId: user.id,
-    details: { assignmentCount: assignments.length },
+    details: {
+      assignmentCount: assignments.length,
+      avoidPreviousRecipient: shouldAvoidPreviousRecipient,
+      repeatAvoidanceRelaxed,
+    },
     eventType: "group.draw_secret_santa",
     outcome: "success",
     resourceId: groupId,
@@ -614,12 +801,15 @@ export async function drawSecretSanta(
 
   return {
     success: true,
-    message: `✅ Names drawn! ${assignments.length} members assigned.`,
+    message: repeatAvoidanceRelaxed
+      ? `✅ Names drawn! ${assignments.length} members assigned. Repeat-avoidance was relaxed because the current rules left no valid draw.`
+      : `✅ Names drawn! ${assignments.length} members assigned.`,
   };
 }
 
 export async function resetSecretSantaDraw(
-  groupId: string
+  groupId: string,
+  reason: string
 ): Promise<{ success: boolean; message: string }> {
   if (!groupId || !UUID_PATTERN.test(groupId)) {
     return { success: false, message: "Invalid group ID." };
@@ -632,6 +822,21 @@ export async function resetSecretSantaDraw(
 
   if (!user) {
     return { success: false, message: "You must be logged in." };
+  }
+
+  const trimmedReason = reason.trim();
+  if (trimmedReason.length < 8) {
+    return {
+      success: false,
+      message: "Please provide at least 8 characters explaining why you are resetting the draw.",
+    };
+  }
+
+  if (trimmedReason.length > 300) {
+    return {
+      success: false,
+      message: "Reset reason is too long. Please keep it under 300 characters.",
+    };
   }
 
   const rateLimit = await enforceRateLimit({
@@ -785,6 +990,7 @@ export async function resetSecretSantaDraw(
     details: {
       assignmentCount,
       confirmedGiftCount,
+      reason: trimmedReason,
     },
     eventType: "group.reset_secret_santa",
     outcome: "success",
@@ -792,8 +998,125 @@ export async function resetSecretSantaDraw(
     resourceType: "group",
   });
 
+  const { error: resetLogError } = await supabaseAdmin.from("group_draw_resets").insert({
+    assignment_count: assignmentCount,
+    confirmed_gift_count: confirmedGiftCount,
+    created_by: user.id,
+    group_id: groupId,
+    reason: trimmedReason,
+  });
+
+  if (resetLogError) {
+    await recordServerFailure({
+      actorUserId: user.id,
+      details: {
+        assignmentCount,
+        confirmedGiftCount,
+      },
+      errorMessage: resetLogError.message,
+      eventType: "group.reset_secret_santa.log_reset",
+      resourceId: groupId,
+      resourceType: "group",
+    });
+  }
+
   return {
     success: true,
     message: `✅ Draw reset. Removed ${assignmentCount} assignment(s) and cleared anonymous chat history.`,
+  };
+}
+
+export async function getDrawRerollHistory(groupId: string): Promise<{
+  cycles?: Array<{
+    assignmentCount: number;
+    avoidPreviousRecipient: boolean;
+    createdAt: string;
+    cycleNumber: number;
+    id: string;
+    repeatAvoidanceRelaxed: boolean;
+  }>;
+  message: string;
+  resets?: Array<{
+    assignmentCount: number;
+    confirmedGiftCount: number;
+    createdAt: string;
+    id: string;
+    reason: string;
+  }>;
+  success: boolean;
+}> {
+  if (!groupId || !UUID_PATTERN.test(groupId)) {
+    return { success: false, message: "Invalid group ID." };
+  }
+
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    return { success: false, message: "You must be logged in." };
+  }
+
+  const { data: group } = await supabase
+    .from("groups")
+    .select("owner_id")
+    .eq("id", groupId)
+    .maybeSingle();
+
+  if (!group || group.owner_id !== user.id) {
+    return { success: false, message: "Only the group owner can view reroll history." };
+  }
+
+  const [{ data: cycleRows, error: cycleError }, { data: resetRows, error: resetError }] =
+    await Promise.all([
+      supabaseAdmin
+        .from("group_draw_cycles")
+        .select("id, cycle_number, created_at, assignment_count, avoid_previous_recipient, repeat_avoidance_relaxed")
+        .eq("group_id", groupId)
+        .order("cycle_number", { ascending: false })
+        .limit(20),
+      supabaseAdmin
+        .from("group_draw_resets")
+        .select("id, created_at, reason, assignment_count, confirmed_gift_count")
+        .eq("group_id", groupId)
+        .order("created_at", { ascending: false })
+        .limit(20),
+    ]);
+
+  if (cycleError || resetError) {
+    await recordServerFailure({
+      actorUserId: user.id,
+      details: {
+        cycleError: cycleError?.message || null,
+        resetError: resetError?.message || null,
+      },
+      errorMessage: "Failed to load reroll history.",
+      eventType: "group.get_draw_reroll_history",
+      resourceId: groupId,
+      resourceType: "group",
+    });
+
+    return { success: false, message: "Failed to load reroll history." };
+  }
+
+  return {
+    success: true,
+    message: "Reroll history loaded.",
+    cycles: ((cycleRows || []) as DrawCycleRow[]).map((row) => ({
+      id: row.id,
+      cycleNumber: row.cycle_number,
+      createdAt: row.created_at,
+      assignmentCount: row.assignment_count,
+      avoidPreviousRecipient: row.avoid_previous_recipient,
+      repeatAvoidanceRelaxed: row.repeat_avoidance_relaxed,
+    })),
+    resets: ((resetRows || []) as DrawResetHistoryRow[]).map((row) => ({
+      id: row.id,
+      createdAt: row.created_at,
+      reason: row.reason,
+      assignmentCount: row.assignment_count,
+      confirmedGiftCount: row.confirmed_gift_count,
+    })),
   };
 }
