@@ -89,6 +89,14 @@ type FallbackReasonInsight = {
   label: string;
 };
 
+type FamilyQualityInsight = {
+  click_count: number;
+  coverage: number;
+  family: string;
+  fallback_clicks: number;
+  promotion_link_clicks: number;
+};
+
 type WindowFilter = "7d" | "30d" | "90d" | "all";
 type RouteFilter = "all" | "direct" | "search";
 
@@ -189,9 +197,87 @@ function normalizeFallbackReasonLabel(value: string | null | undefined): string 
   }
 
   return normalized
+    .replace(/_/g, "-")
     .split("-")
     .map((part) => (part.length > 0 ? `${part[0]!.toUpperCase()}${part.slice(1)}` : part))
     .join(" ");
+}
+
+function buildSelectedAngleLabel(
+  row:
+    | Pick<AffiliateClickRow, "fit_label" | "search_query" | "selected_query" | "tracking_label">
+    | Pick<AffiliatePerformanceRow, "fit_label" | "search_query" | "selected_query" | "tracking_label">
+): string {
+  return normalizeInsightLabel(
+    row.selected_query,
+    row.fit_label || row.tracking_label || summarizeSearchQuery(row.search_query) || "Legacy click"
+  );
+}
+
+function inferItemFamily(value: string): string {
+  const normalized = value.trim().toLowerCase();
+
+  if (normalized.length === 0) {
+    return "General";
+  }
+
+  if (
+    /(tablet|ipad|galaxy tab|lenovo tab|matepad|xiaomi pad|e-reader|ereader|kindle)/.test(
+      normalized
+    )
+  ) {
+    return "Tablets";
+  }
+
+  if (/(power bank|charger|charging|magsafe|battery pack|fast charge)/.test(normalized)) {
+    return "Charging";
+  }
+
+  if (/(hoodie|shirt|jacket|dress|shoes|sneaker|bag|tote|backpack|wallet|purse)/.test(normalized)) {
+    return "Fashion";
+  }
+
+  if (/(book|novel|journal|planner|workbook|bible|comic)/.test(normalized)) {
+    return "Books";
+  }
+
+  if (/(pen|notebook|stationery|marker|highlighter|paper|school supplies|pencil)/.test(normalized)) {
+    return "Stationery";
+  }
+
+  if (/(dog|cat|pet|leash|litter|pet bed|pet toy|treat)/.test(normalized)) {
+    return "Pet";
+  }
+
+  if (/(skincare|makeup|beauty|serum|lotion|perfume|lipstick|sunscreen)/.test(normalized)) {
+    return "Beauty";
+  }
+
+  if (/(mug|pillow|blanket|organizer|storage|kitchen|lamp|home)/.test(normalized)) {
+    return "Home";
+  }
+
+  if (/(headphone|earbud|speaker|microphone|mic|audio)/.test(normalized)) {
+    return "Audio";
+  }
+
+  if (/(laptop|keyboard|mouse|monitor|hub|dock|usb|ssd|computer)/.test(normalized)) {
+    return "Computers";
+  }
+
+  if (/(controller|gaming|ps5|xbox|switch|steam deck)/.test(normalized)) {
+    return "Gaming";
+  }
+
+  if (/(baby|toddler|stroller|feeding bottle|diaper)/.test(normalized)) {
+    return "Baby";
+  }
+
+  if (/(voucher|gift card|load|digital)/.test(normalized)) {
+    return "Digital";
+  }
+
+  return "General";
 }
 
 function isLikelyTestConversion(row: AffiliateConversionRow): boolean {
@@ -277,7 +363,7 @@ function describeCatalogSource(source: string | null): string {
     return "Wishlist product";
   }
 
-  return source || "Unknown route";
+  return source || "Legacy route";
 }
 
 function buildPerformanceRows(
@@ -405,10 +491,7 @@ function buildTopAngleInsights(rows: AffiliatePerformanceRow[]): TopAngleInsight
   >();
 
   for (const row of rows) {
-    const label = normalizeInsightLabel(
-      row.selected_query,
-      row.fit_label || row.tracking_label || "Unknown angle"
-    );
+    const label = buildSelectedAngleLabel(row);
     const key = label.toLowerCase();
     const existing = grouped.get(key) || {
       click_count: 0,
@@ -491,6 +574,58 @@ function buildFallbackReasonInsights(rows: AffiliateClickRow[]): FallbackReasonI
     .slice(0, 5);
 }
 
+function buildFamilyQualityInsights(rows: AffiliateClickRow[]): FamilyQualityInsight[] {
+  const grouped = new Map<
+    string,
+    {
+      click_count: number;
+      fallback_clicks: number;
+      family: string;
+      promotion_link_clicks: number;
+    }
+  >();
+
+  for (const row of rows) {
+    const family = inferItemFamily(
+      [row.selected_query, row.search_query, row.suggestion_title].filter(Boolean).join(" ")
+    );
+    const key = family.toLowerCase();
+    const existing = grouped.get(key) || {
+      click_count: 0,
+      fallback_clicks: 0,
+      family,
+      promotion_link_clicks: 0,
+    };
+
+    existing.click_count += 1;
+
+    if (row.resolution_mode === "promotion-link") {
+      existing.promotion_link_clicks += 1;
+    } else {
+      existing.fallback_clicks += 1;
+    }
+
+    grouped.set(key, existing);
+  }
+
+  return Array.from(grouped.values())
+    .map((item) => ({
+      click_count: item.click_count,
+      coverage: item.click_count > 0 ? (item.promotion_link_clicks / item.click_count) * 100 : 0,
+      family: item.family,
+      fallback_clicks: item.fallback_clicks,
+      promotion_link_clicks: item.promotion_link_clicks,
+    }))
+    .sort((left, right) => {
+      if (left.coverage !== right.coverage) {
+        return left.coverage - right.coverage;
+      }
+
+      return right.click_count - left.click_count;
+    })
+    .slice(0, 6);
+}
+
 async function loadAffiliateClickRows(input: {
   routeFilter: RouteFilter;
   windowStartIso: string | null;
@@ -570,14 +705,34 @@ async function loadAffiliateClickRows(input: {
 
   if (input.routeFilter === "direct") {
     totalClicksQuery = totalClicksQuery.in("catalog_source", DIRECT_CATALOG_SOURCES);
+    totalDirectClicksQuery = totalDirectClicksQuery.in("catalog_source", DIRECT_CATALOG_SOURCES);
+    totalSearchClicksQuery = totalSearchClicksQuery.in("catalog_source", DIRECT_CATALOG_SOURCES);
     totalPromotionLinkClicksQuery = totalPromotionLinkClicksQuery.in(
+      "catalog_source",
+      DIRECT_CATALOG_SOURCES
+    );
+    totalDirectPromotionLinkClicksQuery = totalDirectPromotionLinkClicksQuery.in(
+      "catalog_source",
+      DIRECT_CATALOG_SOURCES
+    );
+    totalSearchPromotionLinkClicksQuery = totalSearchPromotionLinkClicksQuery.in(
       "catalog_source",
       DIRECT_CATALOG_SOURCES
     );
     clicksQuery = clicksQuery.in("catalog_source", DIRECT_CATALOG_SOURCES);
   } else if (input.routeFilter === "search") {
     totalClicksQuery = totalClicksQuery.eq("catalog_source", "search-backed");
+    totalDirectClicksQuery = totalDirectClicksQuery.eq("catalog_source", "search-backed");
+    totalSearchClicksQuery = totalSearchClicksQuery.eq("catalog_source", "search-backed");
     totalPromotionLinkClicksQuery = totalPromotionLinkClicksQuery.eq(
+      "catalog_source",
+      "search-backed"
+    );
+    totalDirectPromotionLinkClicksQuery = totalDirectPromotionLinkClicksQuery.eq(
+      "catalog_source",
+      "search-backed"
+    );
+    totalSearchPromotionLinkClicksQuery = totalSearchPromotionLinkClicksQuery.eq(
       "catalog_source",
       "search-backed"
     );
@@ -795,6 +950,31 @@ function RouteQualityCard({ insight }: { insight: RouteQualityInsight }) {
   );
 }
 
+function FamilyQualityCard({ insight }: { insight: FamilyQualityInsight }) {
+  return (
+    <section className="rounded-3xl border border-white/70 bg-white/88 p-4 shadow-[0_18px_50px_rgba(148,163,184,0.12)] backdrop-blur-md">
+      <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">Item family</p>
+      <h3 className="mt-2 text-lg font-bold text-slate-900">{insight.family}</h3>
+      <div className="mt-4 grid gap-3 text-sm text-slate-600 sm:grid-cols-3">
+        <div>
+          <p className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-500">Coverage</p>
+          <p className="mt-1 text-lg font-semibold text-slate-900">
+            {formatPercentValue(insight.coverage)}
+          </p>
+        </div>
+        <div>
+          <p className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-500">Fallback clicks</p>
+          <p className="mt-1 text-lg font-semibold text-slate-900">{insight.fallback_clicks}</p>
+        </div>
+        <div>
+          <p className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-500">Total clicks</p>
+          <p className="mt-1 text-lg font-semibold text-slate-900">{insight.click_count}</p>
+        </div>
+      </div>
+    </section>
+  );
+}
+
 export default async function AffiliateReportPage({
   searchParams,
 }: AffiliateReportPageProps) {
@@ -899,6 +1079,7 @@ export default async function AffiliateReportPage({
     totalSearchPromotionLinkClicks: totalSearchPromotionLinkClicksCount || 0,
   });
   const fallbackReasonInsights = buildFallbackReasonInsights(clickRows);
+  const familyQualityInsights = buildFamilyQualityInsights(clickRows);
 
   const totalClicks = totalClicksCount || 0;
   const totalDirectClicks = totalDirectClicksCount || 0;
@@ -918,6 +1099,16 @@ export default async function AffiliateReportPage({
     0
   );
   const filterContext = `${describeWindowFilter(windowFilter)} | ${describeRouteFilter(routeFilter)}`;
+  const visibleRouteQualityInsights =
+    routeFilter === "all"
+      ? routeQualityInsights
+      : routeQualityInsights.filter((insight) =>
+          routeFilter === "direct"
+            ? insight.label === "Direct product routes"
+            : insight.label === "Search-backed routes"
+        );
+  const routeScopedLabel =
+    routeFilter === "all" ? "selected route view" : describeRouteFilter(routeFilter).toLowerCase();
 
   return (
     <main className="min-h-screen bg-[linear-gradient(180deg,#edf6ff_0%,#f8fbff_45%,#eef5ff_100%)] px-4 py-8 text-slate-900 sm:px-6 lg:px-8">
@@ -1017,13 +1208,10 @@ export default async function AffiliateReportPage({
 
           {hiddenTestConversions.length > 0 && (
             <div className="mt-4 rounded-[22px] border border-amber-200 bg-amber-50/80 px-4 py-3 text-sm text-amber-900">
-              Test conversions are hidden from the payout totals in this view.
-              {" "}
-              Hidden test rows: <span className="font-semibold">{hiddenTestConversions.length}</span>
-              {" "}
-              · Hidden sale amount: <span className="font-semibold">{formatPesoAmount(hiddenTestSales)}</span>
-              {" "}
-              · Hidden payout: <span className="font-semibold">{formatPesoAmount(hiddenTestPayout)}</span>
+              Test conversions are hidden from the payout totals in this view. Hidden test rows:{" "}
+              <span className="font-semibold">{hiddenTestConversions.length}</span> | Hidden sale amount:{" "}
+              <span className="font-semibold">{formatPesoAmount(hiddenTestSales)}</span> | Hidden payout:{" "}
+              <span className="font-semibold">{formatPesoAmount(hiddenTestPayout)}</span>
             </div>
           )}
         </section>
@@ -1037,12 +1225,12 @@ export default async function AffiliateReportPage({
           <SummaryCard
             label="Direct clicks"
             value={String(totalDirectClicks)}
-            helper={`Direct product clicks in ${describeWindowFilter(windowFilter).toLowerCase()} across the app.`}
+            helper={`Direct product clicks in ${describeWindowFilter(windowFilter).toLowerCase()} for ${routeScopedLabel}.`}
           />
           <SummaryCard
             label="Search clicks"
             value={String(totalSearchClicks)}
-            helper={`Search-backed Lazada clicks in ${describeWindowFilter(windowFilter).toLowerCase()} across the app.`}
+            helper={`Search-backed Lazada clicks in ${describeWindowFilter(windowFilter).toLowerCase()} for ${routeScopedLabel}.`}
           />
           <SummaryCard
             label="Promotion-link coverage"
@@ -1114,7 +1302,7 @@ export default async function AffiliateReportPage({
             </div>
 
             <div className="grid gap-4 xl:grid-cols-2">
-              {routeQualityInsights.map((insight) => (
+              {visibleRouteQualityInsights.map((insight) => (
                 <RouteQualityCard key={insight.label} insight={insight} />
               ))}
             </div>
@@ -1152,6 +1340,32 @@ export default async function AffiliateReportPage({
                       Clicks in sample: <span className="font-semibold text-slate-900">{insight.click_count}</span>
                     </p>
                   </section>
+                ))}
+              </div>
+            )}
+          </div>
+
+          <div className="mb-6">
+            <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+              <div>
+                <p className="text-sm font-semibold uppercase tracking-[0.18em] text-slate-500">
+                  Family weak spots
+                </p>
+                <h3 className="mt-1 text-xl font-bold text-slate-900">Item family health</h3>
+              </div>
+              <p className="text-sm text-slate-500">
+                Sample-based coverage by item family so we can see where Lazada still needs tuning.
+              </p>
+            </div>
+
+            {familyQualityInsights.length === 0 ? (
+              <div className="rounded-3xl border border-dashed border-slate-300 bg-slate-50/70 px-6 py-8 text-center text-sm font-medium text-slate-500">
+                No family-level signals yet for this filter.
+              </div>
+            ) : (
+              <div className="grid gap-4 xl:grid-cols-3">
+                {familyQualityInsights.map((insight) => (
+                  <FamilyQualityCard key={insight.family} insight={insight} />
                 ))}
               </div>
             )}
@@ -1216,10 +1430,7 @@ export default async function AffiliateReportPage({
                       </td>
                       <td className="px-3 py-3 align-top">
                         <div className="font-semibold text-slate-900">
-                          {normalizeInsightLabel(
-                            row.selected_query,
-                            row.fit_label || row.tracking_label || "Unknown angle"
-                          )}
+                          {buildSelectedAngleLabel(row)}
                         </div>
                         <div className="mt-1 text-xs text-slate-500">Step 1 angle</div>
                       </td>
