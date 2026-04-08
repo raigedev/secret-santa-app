@@ -1955,27 +1955,13 @@ export default function DashboardPage() {
             <div className={`flex flex-col gap-4 ${dashboardInnerPanelClass}`}>
               <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                 <div>
-                  <div className="inline-flex items-center gap-2 rounded-full bg-blue-100 px-3 py-1 text-xs font-semibold text-blue-700">
+                  <div className="inline-flex items-center gap-2 rounded-full bg-blue-100 px-4 py-1.5 text-[13px] font-bold text-blue-700 shadow-[0_10px_22px_rgba(59,130,246,0.14)]">
                     Activity feed
                   </div>
                   <h3 className={`mt-2.5 text-[1.35rem] font-bold ${dashboardPanelHeadingClass}`}>Recent moments that matter</h3>
                   <p className={`mt-1.5 max-w-xl text-sm leading-5 ${dashboardPanelTextClass}`}>
                     Your live pulse for gift prep, chat updates, and draw milestones.
                   </p>
-                </div>
-                <div className="flex flex-wrap items-center gap-2">
-                  <div className={`${dashboardStatChipClass} inline-flex items-center gap-2 px-3 py-2`}>
-                    <span className={`text-lg font-black leading-none ${dashboardStatValueClass}`}>{activityFeedItems.length}</span>
-                    <span className={`text-[11px] font-extrabold uppercase tracking-[0.16em] ${dashboardStatLabelClass}`}>
-                      updates
-                    </span>
-                  </div>
-                  <div className={`${dashboardStatChipClass} inline-flex items-center gap-2 px-3 py-2`}>
-                    <span className={`text-lg font-black leading-none ${dashboardStatValueClass}`}>{unreadNotificationCount}</span>
-                    <span className={`text-[11px] font-extrabold uppercase tracking-[0.16em] ${dashboardStatLabelClass}`}>
-                      unread
-                    </span>
-                  </div>
                 </div>
               </div>
 
