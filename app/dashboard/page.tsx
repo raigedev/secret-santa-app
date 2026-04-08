@@ -124,6 +124,17 @@ type DashboardNotificationPreviewItem = {
 
 type DashboardTheme = "default" | "midnight";
 
+type DashboardGiftProgressSummary = {
+  receiverName: string;
+  groupName: string;
+  currentStatus: DashboardGiftProgressStatus;
+  hasStarted: boolean;
+  currentStepIndex: number;
+  totalRecipients: number;
+  readyCount: number;
+  updatedAt: string | null;
+};
+
 type PeerProfileRow = {
   user_id: string | null;
   display_name: string | null;
@@ -138,6 +149,15 @@ function createGroupUserKey(groupId: string, userId: string): string {
 function createEmptyQueryResult<T>(data: T[] = []): Promise<{ data: T[]; error: null }> {
   return Promise.resolve({ data, error: null });
 }
+
+const DASHBOARD_GIFT_PROGRESS_STEPS = [
+  { value: "planning", label: "Planning", icon: "↗" },
+  { value: "purchased", label: "Purchased", icon: "✓" },
+  { value: "wrapped", label: "Wrapped", icon: "▣" },
+  { value: "ready_to_give", label: "Gift Sent", icon: "🎁" },
+] as const;
+
+type DashboardGiftProgressStatus = (typeof DASHBOARD_GIFT_PROGRESS_STEPS)[number]["value"];
 
 const CURRENCY_SYMBOLS: Record<string, string> = {
   AUD: "A$",
@@ -226,6 +246,14 @@ function formatGiftPrepStatusLabel(status: string | null): string {
     default:
       return "updated";
   }
+}
+
+function isDashboardGiftProgressStatus(value: string | null): value is DashboardGiftProgressStatus {
+  return DASHBOARD_GIFT_PROGRESS_STEPS.some((step) => step.value === value);
+}
+
+function getDashboardGiftProgressLabel(status: DashboardGiftProgressStatus): string {
+  return DASHBOARD_GIFT_PROGRESS_STEPS.find((step) => step.value === status)?.label || "Planning";
 }
 
 function getActivityFeedVisual(type: string): Pick<DashboardActivityItem, "icon" | "tone"> {
@@ -660,6 +688,7 @@ export default function DashboardPage() {
   const [notificationPreviewItems, setNotificationPreviewItems] = useState<
     DashboardNotificationPreviewItem[]
   >([]);
+  const [giftProgressSummary, setGiftProgressSummary] = useState<DashboardGiftProgressSummary | null>(null);
   const [dashboardTheme, setDashboardTheme] = useState<DashboardTheme>(() => {
     if (typeof window === "undefined") {
       return "default";
@@ -728,6 +757,7 @@ export default function DashboardPage() {
           setWishlistGroupCount(0);
           setActivityFeedItems([]);
           setNotificationPreviewItems([]);
+          setGiftProgressSummary(null);
           setLoading(false);
           return;
         }
@@ -936,6 +966,45 @@ export default function DashboardPage() {
 
         setWishlistItemCount(wishlistSummary.length);
         setWishlistGroupCount(new Set(wishlistSummary.map((row) => row.group_id)).size);
+
+        const assignmentsWithContext = myAssignments.map((assignment) => ({
+          ...assignment,
+          receiverName:
+            receiverNameByGroupUser.get(
+              createGroupUserKey(assignment.group_id, assignment.receiver_id)
+            ) || "your recipient",
+          groupName: groupNameById.get(assignment.group_id) || "your group",
+        }));
+
+        if (assignmentsWithContext.length > 0) {
+          const activeAssignment = [...assignmentsWithContext].sort((left, right) => {
+            const leftUpdated = left.gift_prep_updated_at ? new Date(left.gift_prep_updated_at).getTime() : 0;
+            const rightUpdated = right.gift_prep_updated_at ? new Date(right.gift_prep_updated_at).getTime() : 0;
+
+            return rightUpdated - leftUpdated;
+          })[0];
+
+          const normalizedStatus = isDashboardGiftProgressStatus(activeAssignment.gift_prep_status)
+            ? activeAssignment.gift_prep_status
+            : "planning";
+
+          setGiftProgressSummary({
+            receiverName: activeAssignment.receiverName,
+            groupName: activeAssignment.groupName,
+            currentStatus: normalizedStatus,
+            hasStarted: Boolean(activeAssignment.gift_prep_status),
+            currentStepIndex: DASHBOARD_GIFT_PROGRESS_STEPS.findIndex(
+              (step) => step.value === normalizedStatus
+            ),
+            totalRecipients: assignmentsWithContext.length,
+            readyCount: assignmentsWithContext.filter(
+              (assignment) => assignment.gift_prep_status === "ready_to_give"
+            ).length,
+            updatedAt: activeAssignment.gift_prep_updated_at,
+          });
+        } else {
+          setGiftProgressSummary(null);
+        }
 
         // The dashboard feed combines "what changed around me" notifications
         // with the user's own gift-progress actions so the home page feels alive
@@ -1907,45 +1976,154 @@ export default function DashboardPage() {
           </div>
 
           <div className={dashboardCardShellClass}>
-            <div className="inline-flex items-center gap-2 rounded-full bg-emerald-100 px-3 py-1 text-xs font-semibold text-emerald-700">
-              Home status
-            </div>
-            <h3 className={`mt-2.5 text-[1.35rem] font-bold ${dashboardPanelHeadingClass}`}>Quick dashboard pulse</h3>
-            <div className="mt-3 space-y-3">
-              <div className={`rounded-2xl px-4 py-3 ${isDarkTheme ? "bg-slate-950/45" : "bg-slate-50"}`}>
-                <div className={`text-[11px] font-extrabold uppercase tracking-[0.14em] ${dashboardStatLabelClass}`}>
-                  Total groups
-                </div>
-                <div className={`mt-1 text-[24px] font-black ${dashboardStatValueClass}`}>
-                  {ownedGroups.length + invitedGroups.length}
-                </div>
+            <div className={dashboardInnerPanelClass}>
+              <div className="inline-flex items-center gap-2 rounded-full bg-emerald-100 px-3 py-1 text-xs font-semibold text-emerald-700">
+                Gift planning
               </div>
-              <div className={`rounded-2xl px-4 py-3 ${isDarkTheme ? "bg-slate-950/45" : "bg-slate-50"}`}>
-                <div className={`text-[11px] font-extrabold uppercase tracking-[0.14em] ${dashboardStatLabelClass}`}>
-                  Draw-ready groups
+              <h3 className={`mt-2.5 text-[1.35rem] font-bold ${dashboardPanelHeadingClass}`}>Track your gift progress</h3>
+              <p className={`mt-1.5 text-sm leading-5 ${dashboardPanelTextClass}`}>
+                {giftProgressSummary
+                  ? `Stay on top of ${giftProgressSummary.receiverName} in ${giftProgressSummary.groupName}.`
+                  : hasAssignments
+                    ? "Open your Secret Santa page to start tracking each gift properly."
+                    : "Once the draw is done, your dashboard can track how far along each gift is."}
+              </p>
+
+              {giftProgressSummary ? (
+                <>
+                  <div className={`mt-4 overflow-hidden rounded-[20px] border ${isDarkTheme ? "border-slate-700/70 bg-slate-950/45" : "border-slate-200/80 bg-white/95"}`}>
+                    <div className={`grid grid-cols-4 ${isDarkTheme ? "bg-slate-900/70" : "bg-slate-100/95"}`}>
+                      {DASHBOARD_GIFT_PROGRESS_STEPS.map((step, index) => {
+                        const isComplete = giftProgressSummary.hasStarted && index < giftProgressSummary.currentStepIndex;
+                        const isCurrent = index === giftProgressSummary.currentStepIndex;
+                        const segmentClass = isComplete
+                          ? "bg-[linear-gradient(135deg,#8bd55a,#5db93d)] text-white"
+                          : isCurrent
+                            ? "bg-[linear-gradient(135deg,#9ad96b,#6cc347)] text-white"
+                            : isDarkTheme
+                              ? "bg-[linear-gradient(135deg,#27445f,#3e6589)] text-slate-200"
+                              : "bg-[linear-gradient(135deg,#4d83b2,#7aa6cf)] text-white";
+
+                        return (
+                          <div
+                            key={step.value}
+                            className={`flex h-11 items-center justify-center border-r border-white/15 px-2 text-center text-[11px] font-bold tracking-[0.08em] ${segmentClass} ${
+                              index === 0 ? "rounded-l-[18px]" : ""
+                            } ${index === DASHBOARD_GIFT_PROGRESS_STEPS.length - 1 ? "rounded-r-[18px] border-r-0" : ""}`}
+                          >
+                            {isCurrent ? getDashboardGiftProgressLabel(step.value) : isComplete ? "Done" : ""}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  <div className="mt-3 space-y-2.5">
+                    {DASHBOARD_GIFT_PROGRESS_STEPS.map((step, index) => {
+                      const isCurrent = index === giftProgressSummary.currentStepIndex;
+                      const isComplete = giftProgressSummary.hasStarted && index < giftProgressSummary.currentStepIndex;
+                      const isReached = giftProgressSummary.hasStarted && index <= giftProgressSummary.currentStepIndex;
+
+                      return (
+                        <div
+                          key={step.value}
+                          className={`flex items-center justify-between gap-3 rounded-[18px] border px-3.5 py-3 ${
+                            isCurrent
+                              ? isDarkTheme
+                                ? "border-emerald-400/35 bg-emerald-500/10"
+                                : "border-emerald-200 bg-emerald-50/80"
+                              : isReached
+                                ? isDarkTheme
+                                  ? "border-slate-700/70 bg-slate-950/45"
+                                  : "border-slate-200/80 bg-white"
+                                : isDarkTheme
+                                  ? "border-slate-700/70 bg-slate-950/30"
+                                  : "border-slate-200/80 bg-white/90"
+                          }`}
+                        >
+                          <div className="flex items-center gap-3">
+                            <span
+                              className={`inline-flex h-9 w-9 items-center justify-center rounded-xl text-[18px] font-bold ${
+                                isCurrent
+                                  ? "bg-[linear-gradient(135deg,#9ad96b,#6cc347)] text-white"
+                                  : isComplete
+                                    ? "bg-[linear-gradient(135deg,#8bd55a,#5db93d)] text-white"
+                                    : isDarkTheme
+                                      ? "bg-slate-800 text-slate-200"
+                                      : "bg-slate-100 text-slate-500"
+                              }`}
+                            >
+                              {step.icon}
+                            </span>
+                            <span className={`text-[15px] font-semibold ${isDarkTheme ? "text-slate-100" : "text-slate-900"}`}>
+                              {step.label}
+                            </span>
+                          </div>
+                          {isCurrent ? (
+                            <span className="inline-flex rounded-full bg-emerald-500 px-3 py-1 text-[11px] font-bold uppercase tracking-[0.14em] text-white">
+                              Current
+                            </span>
+                          ) : isComplete ? (
+                            <span className="inline-flex h-9 min-w-9 items-center justify-center rounded-xl bg-[linear-gradient(135deg,#8bd55a,#5db93d)] px-3 text-[18px] font-bold text-white">
+                              ✓
+                            </span>
+                          ) : (
+                            <span className={`text-sm font-medium ${isDarkTheme ? "text-slate-500" : "text-slate-300"}`}>
+                              {index > giftProgressSummary.currentStepIndex ? "Next" : ""}
+                            </span>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+
+                  <div className={`mt-4 flex items-center justify-between gap-3 rounded-[20px] border px-4 py-3 ${dashboardSubtleSurfaceClass} ${isDarkTheme ? "shadow-[0_10px_24px_rgba(2,8,23,0.18)]" : "shadow-[0_10px_24px_rgba(148,163,184,0.08)]"}`}>
+                    <div>
+                      <div className={`text-[11px] font-extrabold uppercase tracking-[0.14em] ${dashboardStatLabelClass}`}>
+                        Progress snapshot
+                      </div>
+                      <div className={`mt-1 text-sm font-semibold ${isDarkTheme ? "text-slate-200" : "text-slate-700"}`}>
+                        {giftProgressSummary.totalRecipients} recipient{giftProgressSummary.totalRecipients === 1 ? "" : "s"} • {giftProgressSummary.readyCount} ready to give
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => router.push("/secret-santa")}
+                      className="inline-flex items-center gap-2 rounded-full bg-[linear-gradient(135deg,#2f80ff,#1f66e5)] px-4 py-2.5 text-sm font-semibold text-white shadow-[0_14px_35px_rgba(37,99,235,0.22)] transition hover:-translate-y-0.5"
+                    >
+                      <span>Open gift planning</span>
+                      <ArrowRightIcon />
+                    </button>
+                  </div>
+                </>
+              ) : (
+                <div className={`mt-4 rounded-[20px] border border-dashed px-4 py-5 ${isDarkTheme ? "border-slate-700/70 bg-slate-950/45 text-slate-300" : "border-slate-200 bg-white/90 text-slate-600"}`}>
+                  <div className="text-sm leading-6">
+                    {hasAssignments
+                      ? "You have recipients, but no saved progress yet. Open Secret Santa to mark your current gift stage."
+                      : "No active assignments yet. Once your organizer runs the draw, this card will track your progress here."}
+                  </div>
                 </div>
-                <div className={`mt-1 text-[24px] font-black ${dashboardStatValueClass}`}>
-                  {[...ownedGroups, ...invitedGroups].filter((group) => group.hasDrawn).length}
-                </div>
+              )}
+
+              <div className="mt-3 flex flex-wrap gap-3">
+                <button
+                  type="button"
+                  onClick={() => router.push("/profile")}
+                  className={`inline-flex items-center gap-2 rounded-full px-4 py-2.5 text-sm font-semibold transition hover:-translate-y-0.5 ${isDarkTheme ? "bg-slate-900 text-slate-100 shadow-[0_12px_30px_rgba(2,8,23,0.24)]" : "bg-white text-slate-700 shadow-[0_12px_30px_rgba(148,163,184,0.16)]"}`}
+                >
+                  <span>Edit profile</span>
+                  <ArrowRightIcon />
+                </button>
+                <button
+                  type="button"
+                  onClick={handleLogout}
+                  className="inline-flex items-center gap-2 rounded-full bg-[linear-gradient(135deg,#f59e0b,#f97316)] px-4 py-2.5 text-sm font-semibold text-white shadow-[0_14px_35px_rgba(249,115,22,0.22)] transition hover:-translate-y-0.5"
+                >
+                  <span>Logout</span>
+                  <ArrowRightIcon />
+                </button>
               </div>
-            </div>
-            <div className="mt-3 flex flex-wrap gap-3">
-              <button
-                type="button"
-                onClick={() => router.push("/profile")}
-                className={`inline-flex items-center gap-2 rounded-full px-4 py-2.5 text-sm font-semibold transition hover:-translate-y-0.5 ${isDarkTheme ? "bg-slate-900 text-slate-100 shadow-[0_12px_30px_rgba(2,8,23,0.24)]" : "bg-white text-slate-700 shadow-[0_12px_30px_rgba(148,163,184,0.16)]"}`}
-              >
-                <span>Edit profile</span>
-                <ArrowRightIcon />
-              </button>
-              <button
-                type="button"
-                onClick={handleLogout}
-                className="inline-flex items-center gap-2 rounded-full bg-[linear-gradient(135deg,#f59e0b,#f97316)] px-4 py-2.5 text-sm font-semibold text-white shadow-[0_14px_35px_rgba(249,115,22,0.22)] transition hover:-translate-y-0.5"
-              >
-                <span>Logout</span>
-                <ArrowRightIcon />
-              </button>
             </div>
           </div>
         </section>
