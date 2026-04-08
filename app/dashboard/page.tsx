@@ -268,6 +268,32 @@ function getNotificationPreviewTitle(type: string, title: string): string {
   }
 }
 
+function getDisplayFirstName(name: string): string {
+  const trimmed = name.trim();
+
+  if (!trimmed) {
+    return "friend";
+  }
+
+  const [first] = trimmed.split(/\s+/);
+
+  return first.charAt(0).toUpperCase() + first.slice(1);
+}
+
+function getAvatarLabel(value: string | null): string {
+  if (!value) {
+    return "?";
+  }
+
+  const trimmed = value.trim();
+
+  if (!trimmed) {
+    return "?";
+  }
+
+  return trimmed.charAt(0).toUpperCase();
+}
+
 function ArrowRightIcon({ className = "h-4 w-4" }: { className?: string }) {
   return (
     <svg viewBox="0 0 20 20" fill="none" className={className} aria-hidden="true">
@@ -1097,6 +1123,7 @@ export default function DashboardPage() {
   }
 
   const hasAssignments = recipientNames.length > 0;
+  const displayFirstName = getDisplayFirstName(userName);
   const dashboardGroups = [
     ...ownedGroups.map((group) => ({ group, type: "owned" as const })),
     ...invitedGroups.map((group) => ({ group, type: "invited" as const })),
@@ -1118,11 +1145,8 @@ export default function DashboardPage() {
             shadow: "shadow-[0_18px_40px_rgba(148,163,184,0.16)]",
             eyebrow: "bg-blue-100 text-blue-700",
             bodyText: "text-slate-600",
-            panelAccent: "bg-blue-500",
-            participantPill: "bg-blue-50 text-blue-700",
             drawPillDone: "bg-emerald-100 text-emerald-700",
             drawPillPending: "bg-sky-100 text-sky-700",
-            memberPill: "bg-blue-50 text-blue-700 border-blue-100",
             primaryButton:
               "bg-[linear-gradient(135deg,#2f80ff,#1f66e5)] shadow-[0_14px_35px_rgba(37,99,235,0.24)]",
             secondaryButton: "bg-blue-50 text-blue-700 hover:bg-blue-100",
@@ -1133,11 +1157,8 @@ export default function DashboardPage() {
             shadow: "shadow-[0_18px_40px_rgba(148,163,184,0.16)]",
             eyebrow: "bg-amber-100 text-amber-700",
             bodyText: "text-slate-600",
-            panelAccent: "bg-amber-500",
-            participantPill: "bg-amber-50 text-amber-700",
             drawPillDone: "bg-emerald-100 text-emerald-700",
             drawPillPending: "bg-amber-100 text-amber-700",
-            memberPill: "bg-amber-50 text-amber-700 border-amber-100",
             primaryButton:
               "bg-[linear-gradient(135deg,#c26d18,#8b4513)] shadow-[0_14px_35px_rgba(120,53,15,0.24)]",
             secondaryButton: "bg-amber-50 text-amber-700 hover:bg-amber-100",
@@ -1145,7 +1166,7 @@ export default function DashboardPage() {
 
     return (
       <article
-        className={`relative overflow-hidden rounded-[24px] border border-white/70 p-4 ${theme.surface} ${theme.shadow}`}
+        className={`relative overflow-hidden rounded-[20px] border border-white/70 p-4 ${theme.surface} ${theme.shadow}`}
       >
         <div className={`absolute inset-x-0 top-0 h-1.5 bg-gradient-to-r ${theme.accent}`} />
         <div className="relative z-10">
@@ -1155,28 +1176,49 @@ export default function DashboardPage() {
                 <span className={`inline-flex rounded-full px-2.5 py-1 text-[11px] font-semibold ${theme.eyebrow}`}>
                   {type === "owned" ? "My group" : "Invited group"}
                 </span>
-                <span
-                  className={`inline-flex rounded-full px-2.5 py-1 text-[11px] font-semibold ${
-                    group.hasDrawn ? theme.drawPillDone : theme.drawPillPending
-                  }`}
-                >
-                  {group.hasDrawn ? "Draw completed" : "Awaiting draw"}
-                </span>
               </div>
 
               <h3 className="mt-3 text-[1.35rem] font-extrabold leading-tight text-slate-900">
                 {group.name}
               </h3>
-              <p className={`mt-1.5 text-sm leading-5 ${theme.bodyText}`}>
-                {group.description || "Ready for planning, matching, and gifting."}
-              </p>
+              {group.description ? (
+                <p className={`mt-1 text-sm leading-5 ${theme.bodyText} line-clamp-1`}>
+                  {group.description}
+                </p>
+              ) : null}
             </div>
-            <div className={`shrink-0 rounded-full px-2.5 py-1 text-[11px] font-semibold ${theme.participantPill}`}>
+            <div className="shrink-0 rounded-full bg-slate-100 px-2.5 py-1 text-[11px] font-semibold text-slate-600">
               {group.members.length} members
             </div>
           </div>
 
-          <div className="mt-4 rounded-[20px] border border-slate-200/80 bg-slate-50/90 p-3">
+          <div className="mt-3 flex items-center justify-between gap-3">
+            <span
+              className={`inline-flex rounded-full px-2.5 py-1 text-[11px] font-semibold ${
+                group.hasDrawn ? theme.drawPillDone : theme.drawPillPending
+              }`}
+            >
+              {group.hasDrawn ? "Draw completed" : "Awaiting draw"}
+            </span>
+            <div className="flex -space-x-2">
+              {group.members.slice(0, 3).map((member, index) => (
+                <span
+                  key={`${group.id}-${member.email || member.nickname || index}-avatar`}
+                  className="inline-flex h-8 w-8 items-center justify-center rounded-full border-2 border-white bg-slate-200 text-xs font-bold text-slate-700 shadow-sm"
+                  title={member.nickname || member.email || "Participant"}
+                >
+                  {getAvatarLabel(member.nickname || member.email)}
+                </span>
+              ))}
+              {group.members.length > 3 && (
+                <span className="inline-flex h-8 w-8 items-center justify-center rounded-full border-2 border-white bg-slate-100 text-[11px] font-bold text-slate-500 shadow-sm">
+                  +{group.members.length - 3}
+                </span>
+              )}
+            </div>
+          </div>
+
+          <div className="mt-3 rounded-[18px] border border-slate-200/80 bg-slate-50/90 p-3">
             <div className="flex flex-wrap items-center gap-2">
               <EventCountdownBadge eventDate={group.event_date} />
               {budgetLabel && (
@@ -1186,25 +1228,9 @@ export default function DashboardPage() {
                 </span>
               )}
             </div>
-
-            <div className="mt-3 flex flex-wrap gap-2">
-              {group.members.slice(0, 4).map((member, index) => (
-                <span
-                  key={`${group.id}-${member.email || member.nickname || index}`}
-                  className={`inline-flex rounded-full border px-2.5 py-1 text-[11px] font-medium ${theme.memberPill}`}
-                >
-                  {member.nickname || member.email || "Participant"}
-                </span>
-              ))}
-              {group.members.length > 4 && (
-                <span className="inline-flex rounded-full border border-slate-200 bg-slate-100 px-2.5 py-1 text-[11px] font-medium text-slate-500">
-                  +{group.members.length - 4} more
-                </span>
-              )}
-            </div>
           </div>
 
-          <div className="mt-4 flex flex-wrap items-center gap-2">
+          <div className="mt-3 flex flex-wrap items-center gap-2">
             <button
               type="button"
               onClick={() => router.push(`/group/${group.id}`)}
@@ -1400,10 +1426,15 @@ export default function DashboardPage() {
         </div>
 
         <div data-fade className="mb-8 text-center">
-          <h1 className="text-4xl font-bold tracking-tight text-sky-900 sm:text-[3.35rem]">
-            My Secret Santa
+          <div className="mx-auto inline-flex items-center gap-3 rounded-full bg-white/88 px-5 py-2 shadow-[0_18px_50px_rgba(148,163,184,0.15)] backdrop-blur-md">
+            <GiftIcon className="h-5 w-5 text-sky-600" />
+            <span className="text-sm font-semibold uppercase tracking-[0.2em] text-sky-600">
+              Secret Santa
+            </span>
+          </div>
+          <h1 className="mt-5 text-4xl font-bold tracking-tight text-sky-900 sm:text-[3.35rem]">
+            Welcome back, {displayFirstName}
           </h1>
-          <p className="mt-3 text-lg font-medium text-slate-600">Welcome back, {userName}</p>
           <p className="mt-2 text-sm text-slate-500">
             Manage your groups, draws, and chats in one place.
           </p>
