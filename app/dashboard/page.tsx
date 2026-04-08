@@ -126,11 +126,13 @@ type DashboardTheme = "default" | "midnight";
 type GiftProgressStep = "planning" | "purchased" | "wrapped" | "ready_to_give";
 
 type GiftProgressSummary = {
-  currentStep: GiftProgressStep;
-  recipientName: string;
-  groupName: string;
+  focusStep: GiftProgressStep;
+  focusCount: number;
+  countsByStep: Record<GiftProgressStep, number>;
   totalAssignments: number;
   readyToGiveCount: number;
+  recipientName: string | null;
+  groupName: string | null;
 };
 
 type PeerProfileRow = {
@@ -1019,26 +1021,48 @@ export default function DashboardPage() {
         setWishlistItemCount(wishlistSummary.length);
         setWishlistGroupCount(new Set(wishlistSummary.map((row) => row.group_id)).size);
         if (myAssignments.length > 0) {
-          const primaryAssignment = [...myAssignments].sort((a, b) => {
-            const aTime = a.gift_prep_updated_at ? new Date(a.gift_prep_updated_at).getTime() : 0;
-            const bTime = b.gift_prep_updated_at ? new Date(b.gift_prep_updated_at).getTime() : 0;
+          const normalizedAssignments = myAssignments.map((assignment) => ({
+            step: normalizeGiftProgressStep(assignment.gift_prep_status),
+            recipientName:
+              receiverNameByGroupUser.get(
+                createGroupUserKey(assignment.group_id, assignment.receiver_id)
+              ) || "your recipient",
+            groupName: groupNameById.get(assignment.group_id) || "your group",
+            updatedAt: assignment.gift_prep_updated_at
+              ? new Date(assignment.gift_prep_updated_at).getTime()
+              : 0,
+          }));
 
-            return bTime - aTime;
-          })[0];
+          const countsByStep: Record<GiftProgressStep, number> = {
+            planning: 0,
+            purchased: 0,
+            wrapped: 0,
+            ready_to_give: 0,
+          };
 
-          const recipientName =
-            receiverNameByGroupUser.get(
-              createGroupUserKey(primaryAssignment.group_id, primaryAssignment.receiver_id)
-            ) || "your recipient";
+          for (const assignment of normalizedAssignments) {
+            countsByStep[assignment.step] += 1;
+          }
+
+          const focusStep =
+            countsByStep.planning > 0
+              ? "planning"
+              : countsByStep.purchased > 0
+                ? "purchased"
+                : countsByStep.wrapped > 0
+                  ? "wrapped"
+                  : "ready_to_give";
+
+          const primaryAssignment = [...normalizedAssignments].sort((a, b) => b.updatedAt - a.updatedAt)[0];
 
           setGiftProgressSummary({
-            currentStep: normalizeGiftProgressStep(primaryAssignment.gift_prep_status),
-            recipientName,
-            groupName: groupNameById.get(primaryAssignment.group_id) || "your group",
-            totalAssignments: myAssignments.length,
-            readyToGiveCount: myAssignments.filter(
-              (assignment) => normalizeGiftProgressStep(assignment.gift_prep_status) === "ready_to_give"
-            ).length,
+            focusStep,
+            focusCount: countsByStep[focusStep],
+            countsByStep,
+            totalAssignments: normalizedAssignments.length,
+            readyToGiveCount: countsByStep.ready_to_give,
+            recipientName: normalizedAssignments.length === 1 ? primaryAssignment.recipientName : null,
+            groupName: normalizedAssignments.length === 1 ? primaryAssignment.groupName : null,
           });
         } else {
           setGiftProgressSummary(null);
@@ -1557,7 +1581,7 @@ export default function DashboardPage() {
     },
   ];
   const currentGiftProgressIndex = giftProgressSummary
-    ? getGiftProgressStepIndex(giftProgressSummary.currentStep)
+    ? getGiftProgressStepIndex(giftProgressSummary.focusStep)
     : -1;
 
   const GroupCard = ({
@@ -2124,7 +2148,11 @@ export default function DashboardPage() {
             <h3 className={`mt-2.5 text-[1.35rem] font-bold ${dashboardPanelHeadingClass}`}>Track your gift progress</h3>
             <p className={`mt-1.5 text-sm leading-5 ${dashboardPanelTextClass}`}>
               {giftProgressSummary
-                ? `Stay on top of ${giftProgressSummary.recipientName} in ${giftProgressSummary.groupName}.`
+                ? giftProgressSummary.totalAssignments === 1 &&
+                  giftProgressSummary.recipientName &&
+                  giftProgressSummary.groupName
+                  ? `Stay on top of ${giftProgressSummary.recipientName} in ${giftProgressSummary.groupName}.`
+                  : `${giftProgressSummary.focusCount} of ${giftProgressSummary.totalAssignments} gifts are currently in ${giftProgressSteps[currentGiftProgressIndex]?.label.toLowerCase()}.`
                 : "Once your draw is ready, your gift planning steps will show up here."}
             </p>
 
@@ -2134,8 +2162,8 @@ export default function DashboardPage() {
                   <div className="grid grid-cols-4">
                     {giftProgressSteps.map((step, index) => {
                       const isCurrent = index === currentGiftProgressIndex;
-                      const isCompleted = index < currentGiftProgressIndex;
-                      const isActive = isCurrent || isCompleted;
+                      const count = giftProgressSummary.countsByStep[step.key];
+                      const isActive = count > 0;
 
                       return (
                         <div
@@ -2148,7 +2176,7 @@ export default function DashboardPage() {
                                 : "border-white/60 bg-[#6fa0cf] text-white/90"
                           }`}
                         >
-                          {isCurrent ? step.label : ""}
+                          {isCurrent ? step.label : count > 0 ? `${count}` : ""}
                         </div>
                       );
                     })}
@@ -2158,7 +2186,8 @@ export default function DashboardPage() {
                 <div className="mt-4 space-y-3">
                   {giftProgressSteps.map((step, index) => {
                     const isCurrent = index === currentGiftProgressIndex;
-                    const isCompleted = index < currentGiftProgressIndex;
+                    const count = giftProgressSummary.countsByStep[step.key];
+                    const hasAny = count > 0;
 
                     return (
                       <div
@@ -2176,14 +2205,14 @@ export default function DashboardPage() {
                         <div className="flex min-w-0 items-center gap-3">
                           <div
                             className={`inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl text-lg font-bold ${
-                              isCompleted || isCurrent
+                              hasAny || isCurrent
                                 ? step.rowTone
                                 : isDarkTheme
                                   ? "bg-slate-800 text-slate-400"
                                   : "bg-slate-100 text-slate-400"
                             }`}
                           >
-                            {isCompleted ? "✓" : step.icon}
+                            {count > 0 && !isCurrent ? "✓" : step.icon}
                           </div>
                           <span className={`text-[15px] font-semibold ${dashboardPanelHeadingClass}`}>{step.label}</span>
                         </div>
@@ -2193,7 +2222,7 @@ export default function DashboardPage() {
                               ? isDarkTheme
                                 ? "bg-emerald-500/18 text-emerald-100"
                                 : "bg-emerald-500 text-white"
-                              : isCompleted
+                              : hasAny
                                 ? isDarkTheme
                                   ? "bg-slate-800 text-slate-200"
                                   : "bg-lime-100 text-lime-700"
@@ -2202,7 +2231,11 @@ export default function DashboardPage() {
                                   : "bg-slate-100 text-slate-400"
                           }`}
                         >
-                          {isCurrent ? "Current" : isCompleted ? "Done" : "Next"}
+                          {isCurrent
+                            ? `${count} gift${count === 1 ? "" : "s"}`
+                            : hasAny
+                              ? `${count} gift${count === 1 ? "" : "s"}`
+                              : "Next"}
                         </span>
                       </div>
                     );
