@@ -110,6 +110,14 @@ type DashboardActivityItem = {
   tone: "amber" | "blue" | "emerald" | "rose" | "violet";
 };
 
+type DashboardNotificationPreviewItem = {
+  id: string;
+  title: string;
+  href: string | null;
+  icon: string;
+  tone: DashboardActivityItem["tone"];
+};
+
 function createGroupUserKey(groupId: string, userId: string): string {
   return `${groupId}:${userId}`;
 }
@@ -240,6 +248,23 @@ function getActivityToneClasses(tone: DashboardActivityItem["tone"]): string {
       return "bg-violet-500/90 text-white";
     default:
       return "bg-slate-400/90 text-white";
+  }
+}
+
+function getNotificationPreviewTitle(type: string, title: string): string {
+  switch (type) {
+    case "gift_received":
+      return "Gift update";
+    case "chat":
+      return "Chat ping";
+    case "draw":
+      return "Draw ready";
+    case "reveal":
+      return "Reveal time";
+    case "invite":
+      return "Invite";
+    default:
+      return title;
   }
 }
 
@@ -419,6 +444,9 @@ export default function DashboardPage() {
   const [wishlistItemCount, setWishlistItemCount] = useState(0);
   const [wishlistGroupCount, setWishlistGroupCount] = useState(0);
   const [activityFeedItems, setActivityFeedItems] = useState<DashboardActivityItem[]>([]);
+  const [notificationPreviewItems, setNotificationPreviewItems] = useState<
+    DashboardNotificationPreviewItem[]
+  >([]);
   const [loading, setLoading] = useState(true);
   const [showProfileSetup, setShowProfileSetup] = useState(false);
   const [actionMessage, setActionMessage] = useState<ActionMessage>(null);
@@ -471,6 +499,7 @@ export default function DashboardPage() {
           setWishlistItemCount(0);
           setWishlistGroupCount(0);
           setActivityFeedItems([]);
+          setNotificationPreviewItems([]);
           setLoading(false);
           return;
         }
@@ -670,6 +699,18 @@ export default function DashboardPage() {
           .slice(0, 5);
 
         setActivityFeedItems(feedItems);
+        setNotificationPreviewItems(
+          recentNotifications.slice(0, 3).map((notification) => {
+            const visual = getActivityFeedVisual(notification.type);
+
+            return {
+              id: notification.id,
+              title: getNotificationPreviewTitle(notification.type, notification.title),
+              href: notification.link_path,
+              ...visual,
+            };
+          })
+        );
 
         setPendingInvites(
           pendingGroups.map((group) => ({
@@ -1494,7 +1535,7 @@ export default function DashboardPage() {
           />
         </section>
 
-        <section data-fade className="mb-10 grid gap-4 xl:grid-cols-[minmax(0,1.1fr)_minmax(0,0.9fr)_minmax(0,0.8fr)]">
+        <section data-fade className="mb-10 grid gap-4 xl:grid-cols-[minmax(0,1.2fr)_minmax(0,0.8fr)]">
           <div className="overflow-hidden rounded-[26px] border border-white/70 bg-white/92 p-5 shadow-[0_24px_60px_rgba(148,163,184,0.14)] backdrop-blur-md">
             <div className="flex items-start justify-between gap-4">
               <div>
@@ -1534,47 +1575,6 @@ export default function DashboardPage() {
                 className="inline-flex items-center gap-2 rounded-full bg-[linear-gradient(135deg,#e25d67,#b9384c)] px-5 py-2.5 text-sm font-semibold text-white shadow-[0_14px_35px_rgba(185,56,76,0.24)] transition hover:-translate-y-0.5"
               >
                 <span>Open My Wishlist</span>
-                <ArrowRightIcon />
-              </button>
-            </div>
-          </div>
-
-          <div className="overflow-hidden rounded-[26px] border border-white/70 bg-white/92 p-5 shadow-[0_24px_60px_rgba(148,163,184,0.14)] backdrop-blur-md">
-            <div className="flex items-start justify-between gap-4">
-              <div>
-                <div className="inline-flex items-center gap-2 rounded-full bg-blue-100 px-3 py-1 text-xs font-semibold text-blue-700">
-                  <BellIcon className="h-4 w-4" />
-                  Notifications
-                </div>
-                <h3 className="mt-3 text-2xl font-bold text-slate-900">Stay on top of updates</h3>
-                <p className="mt-2 text-sm leading-6 text-slate-600">
-                  Keep an eye on unread updates, pending invites, and reminder activity from one place.
-                </p>
-              </div>
-            </div>
-            <div className="mt-4 space-y-3">
-              <div className="rounded-2xl border border-blue-100 bg-white px-4 py-4">
-                <div className="text-[11px] font-extrabold uppercase tracking-[0.14em] text-slate-400">
-                  Unread notifications
-                </div>
-                <div className="mt-2 text-[34px] font-black text-slate-900">{unreadNotificationCount}</div>
-                <div className="mt-1 text-xs text-slate-500">Current unread updates in your inbox.</div>
-              </div>
-              <div className="rounded-2xl border border-blue-100 bg-white px-4 py-4">
-                <div className="text-[11px] font-extrabold uppercase tracking-[0.14em] text-slate-400">
-                  Pending invites
-                </div>
-                <div className="mt-2 text-[34px] font-black text-slate-900">{pendingInvites.length}</div>
-                <div className="mt-1 text-xs text-slate-500">Invitations still waiting for your response.</div>
-              </div>
-            </div>
-            <div className="mt-4">
-              <button
-                type="button"
-                onClick={() => router.push("/notifications")}
-                className="inline-flex items-center gap-2 rounded-full bg-[linear-gradient(135deg,#2f80ff,#1f66e5)] px-5 py-2.5 text-sm font-semibold text-white shadow-[0_14px_35px_rgba(37,99,235,0.22)] transition hover:-translate-y-0.5"
-              >
-                <span>Open notifications</span>
                 <ArrowRightIcon />
               </button>
             </div>
@@ -1624,7 +1624,7 @@ export default function DashboardPage() {
           </div>
         </section>
 
-        <section data-fade className="mb-10">
+        <section data-fade className="mb-10 grid gap-4 xl:grid-cols-[minmax(0,1.4fr)_360px]">
           <div className="overflow-hidden rounded-[26px] border border-white/70 bg-white/92 p-5 shadow-[0_24px_60px_rgba(148,163,184,0.14)] backdrop-blur-md">
             <div className="flex flex-wrap items-start justify-between gap-4">
               <div>
@@ -1690,6 +1690,99 @@ export default function DashboardPage() {
                   );
                 })
               )}
+            </div>
+          </div>
+
+          <div className="overflow-hidden rounded-[26px] border border-white/70 bg-white/92 p-5 shadow-[0_24px_60px_rgba(148,163,184,0.14)] backdrop-blur-md">
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <div className="inline-flex items-center gap-2 rounded-full bg-blue-100 px-3 py-1 text-xs font-semibold text-blue-700">
+                  <BellIcon className="h-4 w-4" />
+                  Notifications
+                </div>
+                <h3 className="mt-3 text-2xl font-bold text-slate-900">Quick updates</h3>
+                <p className="mt-2 text-sm leading-6 text-slate-600">
+                  A compact preview of the latest alerts, right beside your activity feed.
+                </p>
+              </div>
+            </div>
+
+            <div className="mt-5 grid grid-cols-3 gap-3">
+              {notificationPreviewItems.length > 0 ? (
+                notificationPreviewItems.map((item) => (
+                  <button
+                    key={item.id}
+                    type="button"
+                    onClick={() => {
+                      if (item.href) {
+                        router.push(item.href);
+                        return;
+                      }
+
+                      router.push("/notifications");
+                    }}
+                    className="overflow-hidden rounded-[22px] border border-slate-200/80 bg-white text-left shadow-[0_16px_36px_rgba(148,163,184,0.16)] transition hover:-translate-y-0.5"
+                  >
+                    <div
+                      className={`flex h-24 items-center justify-center ${getActivityToneClasses(item.tone)}`}
+                    >
+                      <span className="text-3xl" aria-hidden="true">
+                        {item.icon}
+                      </span>
+                    </div>
+                    <div className="px-3 py-3 text-center text-sm font-bold text-slate-800">
+                      {item.title}
+                    </div>
+                  </button>
+                ))
+              ) : (
+                <>
+                  <div className="rounded-[22px] border border-slate-200/80 bg-white shadow-[0_16px_36px_rgba(148,163,184,0.16)]">
+                    <div className="flex h-24 items-center justify-center bg-blue-500/90 text-3xl text-white">
+                      🔔
+                    </div>
+                    <div className="px-3 py-3 text-center text-sm font-bold text-slate-800">
+                      Inbox
+                    </div>
+                  </div>
+                  <div className="rounded-[22px] border border-slate-200/80 bg-white shadow-[0_16px_36px_rgba(148,163,184,0.16)]">
+                    <div className="flex h-24 items-center justify-center bg-emerald-500/90 text-3xl text-white">
+                      ✨
+                    </div>
+                    <div className="px-3 py-3 text-center text-sm font-bold text-slate-800">
+                      Updates
+                    </div>
+                  </div>
+                  <div className="rounded-[22px] border border-slate-200/80 bg-white shadow-[0_16px_36px_rgba(148,163,184,0.16)]">
+                    <div className="flex h-24 items-center justify-center bg-violet-500/90 text-3xl text-white">
+                      🎁
+                    </div>
+                    <div className="px-3 py-3 text-center text-sm font-bold text-slate-800">
+                      Alerts
+                    </div>
+                  </div>
+                </>
+              )}
+            </div>
+
+            <div className="mt-4 flex items-center justify-between gap-3 rounded-2xl bg-slate-50 px-4 py-3">
+              <div>
+                <div className="text-[11px] font-extrabold uppercase tracking-[0.14em] text-slate-400">
+                  Inbox status
+                </div>
+                <div className="mt-1 text-sm font-semibold text-slate-700">
+                  {unreadNotificationCount} unread • {pendingInvites.length} pending invite
+                  {pendingInvites.length === 1 ? "" : "s"}
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => router.push("/notifications")}
+                className="inline-flex items-center gap-2 rounded-full bg-[linear-gradient(135deg,#2f80ff,#1f66e5)] px-4 py-2.5 text-sm font-semibold text-white shadow-[0_14px_35px_rgba(37,99,235,0.22)] transition hover:-translate-y-0.5"
+              >
+                <span>Open</span>
+                <ArrowRightIcon />
+              </button>
             </div>
           </div>
         </section>
