@@ -2096,7 +2096,7 @@ export default function DashboardPage() {
           />
         </section>
 
-        <section data-fade className="mb-3 grid gap-3 xl:grid-cols-[minmax(0,1.02fr)_400px]">
+        <section data-fade className="mb-1 grid gap-2 xl:grid-cols-[minmax(0,1.02fr)_400px]">
           <div className="space-y-2">
             <div className={`${dashboardCardShellClass} self-start`}>
             <div className={dashboardInnerPanelClass}>
@@ -2488,8 +2488,8 @@ export default function DashboardPage() {
           </div>
         </section>
 
-        <section data-fade className="mb-8">
-          <div className="mb-3">
+        <section data-fade className="-mt-2 mb-8">
+          <div className="mb-2">
             <p className={`text-sm font-semibold uppercase tracking-[0.18em] ${isDarkTheme ? "text-sky-300" : "text-sky-600"}`}>
               Groups
             </p>
