@@ -2096,8 +2096,8 @@ export default function DashboardPage() {
           />
         </section>
 
-        <section data-fade className="mb-5 grid gap-3 xl:grid-cols-[minmax(0,1.02fr)_400px]">
-          <div className="space-y-3">
+        <section data-fade className="mb-3 grid gap-3 xl:grid-cols-[minmax(0,1.02fr)_400px]">
+          <div className="space-y-2">
             <div className={`${dashboardCardShellClass} self-start`}>
             <div className={dashboardInnerPanelClass}>
               <div className="flex items-start justify-between gap-4">
@@ -2236,7 +2236,7 @@ export default function DashboardPage() {
             </div>
           </div>
 
-          <div className="space-y-3">
+          <div className="space-y-2">
 
             <div className={dashboardCardShellClass}>
             <div className="inline-flex items-center gap-2 rounded-full bg-emerald-100 px-3 py-1 text-xs font-semibold text-emerald-700">
