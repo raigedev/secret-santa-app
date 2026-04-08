@@ -119,6 +119,7 @@ type DashboardNotificationPreviewItem = {
   href: string | null;
   icon: string;
   tone: DashboardActivityItem["tone"];
+  createdAt: string;
 };
 
 type DashboardTheme = "default" | "midnight";
@@ -987,6 +988,7 @@ export default function DashboardPage() {
               id: notification.id,
               title: getNotificationPreviewTitle(notification.type, notification.title),
               href: notification.link_path,
+              createdAt: notification.created_at,
               ...visual,
             };
           })
@@ -1958,21 +1960,21 @@ export default function DashboardPage() {
                   </div>
                   <h3 className={`mt-2.5 text-[1.35rem] font-bold ${dashboardPanelHeadingClass}`}>Recent moments that matter</h3>
                   <p className={`mt-1.5 max-w-xl text-sm leading-5 ${dashboardPanelTextClass}`}>
-                    Your live pulse for gift prep, chat updates, draw milestones, and confirmations across the app.
+                    Your live pulse for gift prep, chat updates, and draw milestones.
                   </p>
                 </div>
-                <div className="flex flex-wrap gap-2">
-                  <div className={dashboardStatChipClass}>
-                    <div className={`text-[10px] font-extrabold uppercase tracking-[0.16em] ${dashboardStatLabelClass}`}>
-                      Recent updates
-                    </div>
-                    <div className={`mt-0.5 text-sm font-bold ${dashboardStatValueClass}`}>{activityFeedItems.length}</div>
+                <div className="flex flex-wrap items-center gap-2">
+                  <div className={`${dashboardStatChipClass} inline-flex items-center gap-2 px-3 py-2`}>
+                    <span className={`text-lg font-black leading-none ${dashboardStatValueClass}`}>{activityFeedItems.length}</span>
+                    <span className={`text-[11px] font-extrabold uppercase tracking-[0.16em] ${dashboardStatLabelClass}`}>
+                      updates
+                    </span>
                   </div>
-                  <div className={dashboardStatChipClass}>
-                    <div className={`text-[10px] font-extrabold uppercase tracking-[0.16em] ${dashboardStatLabelClass}`}>
-                      Inbox
-                    </div>
-                    <div className={`mt-0.5 text-sm font-bold ${dashboardStatValueClass}`}>{unreadNotificationCount} unread</div>
+                  <div className={`${dashboardStatChipClass} inline-flex items-center gap-2 px-3 py-2`}>
+                    <span className={`text-lg font-black leading-none ${dashboardStatValueClass}`}>{unreadNotificationCount}</span>
+                    <span className={`text-[11px] font-extrabold uppercase tracking-[0.16em] ${dashboardStatLabelClass}`}>
+                      unread
+                    </span>
                   </div>
                 </div>
               </div>
@@ -2050,7 +2052,7 @@ export default function DashboardPage() {
                   </div>
                   <h3 className={`mt-2.5 text-[1.35rem] font-bold ${dashboardPanelHeadingClass}`}>Inbox highlights</h3>
                   <p className={`mt-1.5 text-sm leading-5 ${dashboardPanelTextClass}`}>
-                    Your newest alerts, surfaced as a quick visual stack instead of another generic list.
+                    Your newest alerts, distilled into the fastest things to open next.
                   </p>
                 </div>
                 <div className={dashboardStatChipClass}>
@@ -2086,9 +2088,9 @@ export default function DashboardPage() {
                             <div className={`inline-flex rounded-full px-2.5 py-1 text-[11px] font-bold ${theme.chip}`}>
                               Latest alert
                             </div>
-                            <div className={`mt-3 text-base font-bold leading-6 ${isDarkTheme ? "text-white" : "text-slate-900"}`}>{item.title}</div>
-                            <div className={`mt-1.5 text-sm leading-5 ${isDarkTheme ? "text-slate-300" : "text-slate-600"}`}>
-                              Open your inbox to read the full update and take action if needed.
+                            <div className={`mt-2 text-base font-bold leading-6 ${isDarkTheme ? "text-white" : "text-slate-900"}`}>{item.title}</div>
+                            <div className={`mt-1.5 text-sm font-medium ${isDarkTheme ? "text-slate-300" : "text-slate-600"}`}>
+                              Inbox alert • {formatRelativeTime(item.createdAt)}
                             </div>
                           </div>
                           <div className={`inline-flex h-12 w-12 shrink-0 items-center justify-center rounded-[18px] text-[24px] ${theme.iconShell}`}>
@@ -2123,7 +2125,9 @@ export default function DashboardPage() {
                               <span aria-hidden="true">{item.icon}</span>
                             </div>
                             <div className={`mt-3 text-sm font-bold leading-5 ${isDarkTheme ? "text-white" : "text-slate-900"}`}>{item.title}</div>
-                            <div className={`mt-1 text-xs font-medium ${isDarkTheme ? "text-slate-400" : "text-slate-500"}`}>Tap to open</div>
+                            <div className={`mt-1 text-xs font-medium ${isDarkTheme ? "text-slate-400" : "text-slate-500"}`}>
+                              {formatRelativeTime(item.createdAt)}
+                            </div>
                           </div>
                         </button>
                       );
