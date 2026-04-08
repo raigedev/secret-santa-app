@@ -123,6 +123,15 @@ type DashboardNotificationPreviewItem = {
 };
 
 type DashboardTheme = "default" | "midnight";
+type GiftProgressStep = "planning" | "purchased" | "wrapped" | "ready_to_give";
+
+type GiftProgressSummary = {
+  currentStep: GiftProgressStep;
+  recipientName: string;
+  groupName: string;
+  totalAssignments: number;
+  readyToGiveCount: number;
+};
 
 type PeerProfileRow = {
   user_id: string | null;
@@ -225,6 +234,35 @@ function formatGiftPrepStatusLabel(status: string | null): string {
       return "ready to give";
     default:
       return "updated";
+  }
+}
+
+function normalizeGiftProgressStep(status: string | null): GiftProgressStep {
+  switch (status) {
+    case "purchased":
+      return "purchased";
+    case "wrapped":
+      return "wrapped";
+    case "ready_to_give":
+      return "ready_to_give";
+    case "planning":
+    default:
+      return "planning";
+  }
+}
+
+function getGiftProgressStepIndex(step: GiftProgressStep): number {
+  switch (step) {
+    case "planning":
+      return 0;
+    case "purchased":
+      return 1;
+    case "wrapped":
+      return 2;
+    case "ready_to_give":
+      return 3;
+    default:
+      return 0;
   }
 }
 
@@ -670,6 +708,7 @@ export default function DashboardPage() {
   const [unreadNotificationCount, setUnreadNotificationCount] = useState(0);
   const [wishlistItemCount, setWishlistItemCount] = useState(0);
   const [wishlistGroupCount, setWishlistGroupCount] = useState(0);
+  const [giftProgressSummary, setGiftProgressSummary] = useState<GiftProgressSummary | null>(null);
   const [activityFeedItems, setActivityFeedItems] = useState<DashboardActivityItem[]>([]);
   const [notificationPreviewItems, setNotificationPreviewItems] = useState<
     DashboardNotificationPreviewItem[]
@@ -768,6 +807,7 @@ export default function DashboardPage() {
           setRecipientNames([]);
           setWishlistItemCount(0);
           setWishlistGroupCount(0);
+          setGiftProgressSummary(null);
           setActivityFeedItems([]);
           setNotificationPreviewItems([]);
           setLoading(false);
@@ -978,6 +1018,31 @@ export default function DashboardPage() {
 
         setWishlistItemCount(wishlistSummary.length);
         setWishlistGroupCount(new Set(wishlistSummary.map((row) => row.group_id)).size);
+        if (myAssignments.length > 0) {
+          const primaryAssignment = [...myAssignments].sort((a, b) => {
+            const aTime = a.gift_prep_updated_at ? new Date(a.gift_prep_updated_at).getTime() : 0;
+            const bTime = b.gift_prep_updated_at ? new Date(b.gift_prep_updated_at).getTime() : 0;
+
+            return bTime - aTime;
+          })[0];
+
+          const recipientName =
+            receiverNameByGroupUser.get(
+              createGroupUserKey(primaryAssignment.group_id, primaryAssignment.receiver_id)
+            ) || "your recipient";
+
+          setGiftProgressSummary({
+            currentStep: normalizeGiftProgressStep(primaryAssignment.gift_prep_status),
+            recipientName,
+            groupName: groupNameById.get(primaryAssignment.group_id) || "your group",
+            totalAssignments: myAssignments.length,
+            readyToGiveCount: myAssignments.filter(
+              (assignment) => normalizeGiftProgressStep(assignment.gift_prep_status) === "ready_to_give"
+            ).length,
+          });
+        } else {
+          setGiftProgressSummary(null);
+        }
 
         // The dashboard feed combines "what changed around me" notifications
         // with the user's own gift-progress actions so the home page feels alive
@@ -1455,6 +1520,45 @@ export default function DashboardPage() {
   const dashboardSubtleSurfaceClass = isDarkTheme
     ? "border-slate-700/70 bg-slate-950/50"
     : "border-slate-200/80 bg-white/90";
+  const giftProgressSteps: Array<{
+    key: GiftProgressStep;
+    label: string;
+    icon: string;
+    accent: string;
+    rowTone: string;
+  }> = [
+    {
+      key: "planning",
+      label: "Planning",
+      icon: "↗",
+      accent: "bg-[#7ccd4c]",
+      rowTone: isDarkTheme ? "bg-emerald-500/10 text-emerald-200" : "bg-emerald-50 text-emerald-700",
+    },
+    {
+      key: "purchased",
+      label: "Purchased",
+      icon: "✓",
+      accent: "bg-[#8fd644]",
+      rowTone: isDarkTheme ? "bg-lime-500/10 text-lime-200" : "bg-lime-50 text-lime-700",
+    },
+    {
+      key: "wrapped",
+      label: "Wrapped",
+      icon: "◫",
+      accent: "bg-[#f2b24b]",
+      rowTone: isDarkTheme ? "bg-amber-500/10 text-amber-200" : "bg-amber-50 text-amber-700",
+    },
+    {
+      key: "ready_to_give",
+      label: "Gift Sent",
+      icon: "🎁",
+      accent: "bg-[#b8a0e8]",
+      rowTone: isDarkTheme ? "bg-violet-500/10 text-violet-200" : "bg-violet-50 text-violet-700",
+    },
+  ];
+  const currentGiftProgressIndex = giftProgressSummary
+    ? getGiftProgressStepIndex(giftProgressSummary.currentStep)
+    : -1;
 
   const GroupCard = ({
     group,
@@ -1968,7 +2072,7 @@ export default function DashboardPage() {
           />
         </section>
 
-        <section data-fade className="mb-8 max-w-4xl">
+        <section data-fade className="mb-8 grid gap-3 xl:grid-cols-[minmax(0,1.1fr)_400px]">
           <div className={dashboardCardShellClass}>
             <div className="flex items-start justify-between gap-4">
               <div>
@@ -2011,6 +2115,125 @@ export default function DashboardPage() {
                 <ArrowRightIcon />
               </button>
             </div>
+          </div>
+
+          <div className={dashboardCardShellClass}>
+            <div className="inline-flex items-center gap-2 rounded-full bg-emerald-100 px-3 py-1 text-xs font-semibold text-emerald-700">
+              Gift planning
+            </div>
+            <h3 className={`mt-2.5 text-[1.35rem] font-bold ${dashboardPanelHeadingClass}`}>Track your gift progress</h3>
+            <p className={`mt-1.5 text-sm leading-5 ${dashboardPanelTextClass}`}>
+              {giftProgressSummary
+                ? `Stay on top of ${giftProgressSummary.recipientName} in ${giftProgressSummary.groupName}.`
+                : "Once your draw is ready, your gift planning steps will show up here."}
+            </p>
+
+            {giftProgressSummary ? (
+              <>
+                <div className={`mt-4 overflow-hidden rounded-[20px] border ${isDarkTheme ? "border-slate-700/70 bg-slate-950/50" : "border-slate-200/80 bg-slate-100/95"}`}>
+                  <div className="grid grid-cols-4">
+                    {giftProgressSteps.map((step, index) => {
+                      const isCurrent = index === currentGiftProgressIndex;
+                      const isCompleted = index < currentGiftProgressIndex;
+                      const isActive = isCurrent || isCompleted;
+
+                      return (
+                        <div
+                          key={step.key}
+                          className={`flex min-h-[52px] items-center justify-center border-r px-2 text-center text-sm font-semibold last:border-r-0 ${
+                            isActive
+                              ? `${step.accent} text-white`
+                              : isDarkTheme
+                                ? "border-slate-700/70 bg-slate-800/85 text-slate-400"
+                                : "border-white/60 bg-[#6fa0cf] text-white/90"
+                          }`}
+                        >
+                          {isCurrent ? step.label : ""}
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                <div className="mt-4 space-y-3">
+                  {giftProgressSteps.map((step, index) => {
+                    const isCurrent = index === currentGiftProgressIndex;
+                    const isCompleted = index < currentGiftProgressIndex;
+
+                    return (
+                      <div
+                        key={step.key}
+                        className={`flex items-center justify-between gap-3 rounded-[20px] border px-4 py-3 ${
+                          isCurrent
+                            ? isDarkTheme
+                              ? "border-emerald-500/35 bg-emerald-500/8"
+                              : "border-emerald-200 bg-emerald-50/80"
+                            : isDarkTheme
+                              ? "border-slate-700/70 bg-slate-950/45"
+                              : "border-slate-200/80 bg-white/92"
+                        }`}
+                      >
+                        <div className="flex min-w-0 items-center gap-3">
+                          <div
+                            className={`inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl text-lg font-bold ${
+                              isCompleted || isCurrent
+                                ? step.rowTone
+                                : isDarkTheme
+                                  ? "bg-slate-800 text-slate-400"
+                                  : "bg-slate-100 text-slate-400"
+                            }`}
+                          >
+                            {isCompleted ? "✓" : step.icon}
+                          </div>
+                          <span className={`text-[15px] font-semibold ${dashboardPanelHeadingClass}`}>{step.label}</span>
+                        </div>
+                        <span
+                          className={`shrink-0 rounded-full px-3 py-1 text-[11px] font-bold uppercase tracking-[0.14em] ${
+                            isCurrent
+                              ? isDarkTheme
+                                ? "bg-emerald-500/18 text-emerald-100"
+                                : "bg-emerald-500 text-white"
+                              : isCompleted
+                                ? isDarkTheme
+                                  ? "bg-slate-800 text-slate-200"
+                                  : "bg-lime-100 text-lime-700"
+                                : isDarkTheme
+                                  ? "bg-slate-800 text-slate-400"
+                                  : "bg-slate-100 text-slate-400"
+                          }`}
+                        >
+                          {isCurrent ? "Current" : isCompleted ? "Done" : "Next"}
+                        </span>
+                      </div>
+                    );
+                  })}
+                </div>
+
+                <div className={`mt-4 flex items-center justify-between gap-3 rounded-[20px] border px-4 py-3.5 ${dashboardSubtleSurfaceClass} ${isDarkTheme ? "shadow-[0_10px_24px_rgba(2,8,23,0.18)]" : "shadow-[0_10px_24px_rgba(148,163,184,0.08)]"}`}>
+                  <div>
+                    <div className={`text-[11px] font-extrabold uppercase tracking-[0.14em] ${dashboardStatLabelClass}`}>
+                      Progress snapshot
+                    </div>
+                    <div className={`mt-1 text-sm font-semibold ${isDarkTheme ? "text-slate-200" : "text-slate-700"}`}>
+                      {giftProgressSummary.totalAssignments} recipient
+                      {giftProgressSummary.totalAssignments === 1 ? "" : "s"} • {giftProgressSummary.readyToGiveCount} ready to give
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => router.push("/secret-santa")}
+                    className="inline-flex items-center gap-2 rounded-full bg-[linear-gradient(135deg,#2f80ff,#1f66e5)] px-4 py-2.5 text-sm font-semibold text-white shadow-[0_14px_35px_rgba(37,99,235,0.22)] transition hover:-translate-y-0.5"
+                  >
+                    <span>Open gift planning</span>
+                    <ArrowRightIcon />
+                  </button>
+                </div>
+              </>
+            ) : (
+              <div className={`mt-4 rounded-[22px] border border-dashed px-5 py-8 text-sm ${isDarkTheme ? "border-slate-700/70 bg-slate-950/45 text-slate-400" : "border-slate-200 bg-white/90 text-slate-500"}`}>
+                You&apos;ll see your planning steps here after the organizer runs the draw and your assignment is ready.
+              </div>
+            )}
           </div>
         </section>
 
