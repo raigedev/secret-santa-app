@@ -3,15 +3,9 @@
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
-import {
-  addWishlistItem,
-  deleteWishlistItem,
-  editWishlistItem,
-} from "@/app/dashboard/wishlist-actions";
 import { confirmGiftReceived, updateGiftPrepStatus } from "./actions";
 import { SecretSantaSkeleton } from "@/app/components/PageSkeleton";
 import { isLazadaProductPageUrl } from "@/lib/affiliate/lazada-url";
-import { WISHLIST_CATEGORIES } from "@/lib/wishlist/options";
 import { formatPriceRange } from "@/lib/wishlist/pricing";
 import {
   buildNearbyStoreQueries,
@@ -151,10 +145,7 @@ type GiftPrepStatus =
   | "wrapped"
   | "ready_to_give";
 
-const ITEM_NAME_MAX_LENGTH = 100;
-const ITEM_NOTE_MAX_LENGTH = 200;
 const ITEM_LINK_MAX_LENGTH = 500;
-const ITEM_IMAGE_URL_MAX_LENGTH = 500;
 const MAX_GROUP_ROUTE_PREFETCH = 8;
 const PAGE_BACKGROUND =
   "radial-gradient(circle at top, rgba(255,255,255,.28), transparent 32%), linear-gradient(180deg,#dfe7e4 0%,#d2dbd8 42%,#c9d4d4 100%)";
@@ -176,12 +167,6 @@ const HOLIDAY_RED = "#9f4e42";
 const HOLIDAY_GREEN = "#2f6b56";
 const HOLIDAY_GOLD = "#a9873d";
 const HOLIDAY_BLUE = "#58748e";
-const WISHLIST_PRIORITY_OPTIONS: Array<{ value: WishlistPriorityLevel; label: string }> = [
-  { value: 2, label: "Want most" },
-  { value: 1, label: "Nice to have" },
-  { value: 0, label: "Just an idea" },
-];
-
 const GIFT_PREP_OPTIONS: Array<{
   value: GiftPrepStatus;
   label: string;
@@ -477,27 +462,6 @@ function buildReceivedGiftData(
     });
 }
 
-// Group the user's own wishlist items cleanly so related entries stay together.
-function buildMyWishlistItems(rows: WishlistRow[], groups: GroupOption[]): WishlistItem[] {
-  const groupNamesById = new Map(groups.map((group) => [group.id, group.name]));
-
-  return rows.map(toWishlistItem).sort((left, right) => {
-    const groupCompare = (groupNamesById.get(left.group_id) || "Unknown Group").localeCompare(
-      groupNamesById.get(right.group_id) || "Unknown Group"
-    );
-
-    if (groupCompare !== 0) {
-      return groupCompare;
-    }
-
-    if (right.priority !== left.priority) {
-      return right.priority - left.priority;
-    }
-
-    return left.item_name.localeCompare(right.item_name);
-  });
-}
-
 // Format all dates defensively so empty or invalid values never surface as "Invalid Date".
 function formatDisplayDate(value: string | null): string {
   if (!value) {
@@ -767,30 +731,7 @@ export default function SecretSantaPage() {
   const [availableGroups, setAvailableGroups] = useState<GroupOption[]>([]);
   const [assignments, setAssignments] = useState<RecipientData[]>([]);
   const [receivedGifts, setReceivedGifts] = useState<ReceivedGiftData[]>([]);
-  const [myItems, setMyItems] = useState<WishlistItem[]>([]);
   const [loading, setLoading] = useState(true);
-
-  // Add form state.
-  const [showAdd, setShowAdd] = useState(false);
-  const [addGroupId, setAddGroupId] = useState("");
-  const [addName, setAddName] = useState("");
-  const [addCategory, setAddCategory] = useState("");
-  const [addImageUrl, setAddImageUrl] = useState("");
-  const [addLink, setAddLink] = useState("");
-  const [addNote, setAddNote] = useState("");
-  const [addPriority, setAddPriority] = useState(0);
-  const [addLoading, setAddLoading] = useState(false);
-
-  // Edit form state.
-  const [editingId, setEditingId] = useState<string | null>(null);
-  const [editName, setEditName] = useState("");
-  const [editCategory, setEditCategory] = useState("");
-  const [editImageUrl, setEditImageUrl] = useState("");
-  const [editLink, setEditLink] = useState("");
-  const [editNote, setEditNote] = useState("");
-  const [editPriority, setEditPriority] = useState(0);
-  const [editLoadingId, setEditLoadingId] = useState<string | null>(null);
-  const [deleteLoadingId, setDeleteLoadingId] = useState<string | null>(null);
 
   // Page-level feedback and action state.
   const [message, setMessage] = useState<ActionMessage>(null);
@@ -821,6 +762,11 @@ export default function SecretSantaPage() {
     if (!prefetchedRoutesRef.current.has("/dashboard")) {
       prefetchedRoutesRef.current.add("/dashboard");
       router.prefetch("/dashboard");
+    }
+
+    if (!prefetchedRoutesRef.current.has("/wishlist")) {
+      prefetchedRoutesRef.current.add("/wishlist");
+      router.prefetch("/wishlist");
     }
   }, [router]);
 
@@ -1124,8 +1070,6 @@ export default function SecretSantaPage() {
           setAvailableGroups([]);
           setAssignments([]);
           setReceivedGifts([]);
-          setMyItems([]);
-          setAddGroupId("");
           setLoading(false);
           return;
         }
@@ -1134,7 +1078,6 @@ export default function SecretSantaPage() {
           { data: groupsData, error: groupsError },
           { data: myAssignments, error: myAssignmentsError },
           { data: receivedAssignments, error: receivedAssignmentsError },
-          { data: myWishlistData, error: myWishlistError },
         ] = await Promise.all([
           supabase
             .from("groups")
@@ -1152,17 +1095,9 @@ export default function SecretSantaPage() {
             .select("group_id, gift_received, gift_received_at")
             .eq("receiver_id", user.id)
             .in("group_id", groupIds),
-          supabase
-            .from("wishlists")
-            .select(
-              "id, group_id, user_id, item_name, item_category, item_image_url, item_link, item_note, preferred_price_min, preferred_price_max, priority"
-            )
-            .eq("user_id", user.id)
-            .in("group_id", groupIds),
         ]);
 
-        const primaryError =
-          groupsError || myAssignmentsError || receivedAssignmentsError || myWishlistError;
+        const primaryError = groupsError || myAssignmentsError || receivedAssignmentsError;
         if (primaryError) {
           throw primaryError;
         }
@@ -1217,16 +1152,6 @@ export default function SecretSantaPage() {
         setAvailableGroups(groupOptions);
         setAssignments(recipientData);
         setReceivedGifts(receivedGiftData);
-        setMyItems(buildMyWishlistItems((myWishlistData || []) as WishlistRow[], groupOptions));
-        setAddGroupId((currentGroupId) => {
-          const validGroupIds = new Set(groupOptions.map((group) => group.id));
-
-          if (currentGroupId && validGroupIds.has(currentGroupId)) {
-            return currentGroupId;
-          }
-
-          return groupOptions[0]?.id || "";
-        });
       } catch {
         if (!isMounted) {
           return;
@@ -1235,8 +1160,6 @@ export default function SecretSantaPage() {
         setAvailableGroups([]);
         setAssignments([]);
         setReceivedGifts([]);
-        setMyItems([]);
-        setAddGroupId("");
         setMessage({
           type: "error",
           text: "Failed to load your Secret Santa data. Please refresh and try again.",
@@ -1295,119 +1218,6 @@ export default function SecretSantaPage() {
       void supabase.removeChannel(channel);
     };
   }, [supabase, router]);
-
-  const handleAdd = async () => {
-    const cleanName = normalizeTextInput(addName, ITEM_NAME_MAX_LENGTH);
-    const cleanLink = normalizeOptionalUrl(addLink);
-    const cleanImageUrl = normalizeOptionalUrl(addImageUrl);
-    const cleanNote = normalizeTextInput(addNote, ITEM_NOTE_MAX_LENGTH);
-    const validGroupIds = new Set(availableGroups.map((group) => group.id));
-
-    if (!cleanName) {
-      setMessage({ type: "error", text: "Item name is required." });
-      return;
-    }
-
-    if (!addGroupId || !validGroupIds.has(addGroupId)) {
-      setMessage({ type: "error", text: "Select a valid group first." });
-      return;
-    }
-
-    setAddLoading(true);
-    setMessage(null);
-
-    try {
-      const result = await addWishlistItem(
-        addGroupId,
-        cleanName,
-        cleanLink,
-        cleanNote,
-        normalizeWishlistPriorityLevel(addPriority),
-        addCategory,
-        cleanImageUrl,
-      );
-
-      setMessage(createActionMessage(result));
-
-      if (result.success) {
-        setAddName("");
-        setAddCategory("");
-        setAddImageUrl("");
-        setAddLink("");
-        setAddNote("");
-        setAddPriority(0);
-        setShowAdd(false);
-      }
-    } catch {
-      setMessage({
-        type: "error",
-        text: "Failed to save the wishlist item. Please try again.",
-      });
-    } finally {
-      setAddLoading(false);
-    }
-  };
-
-  const handleEdit = async (itemId: string) => {
-    const cleanName = normalizeTextInput(editName, ITEM_NAME_MAX_LENGTH);
-    const cleanLink = normalizeOptionalUrl(editLink);
-    const cleanImageUrl = normalizeOptionalUrl(editImageUrl);
-    const cleanNote = normalizeTextInput(editNote, ITEM_NOTE_MAX_LENGTH);
-
-    if (!cleanName) {
-      setMessage({ type: "error", text: "Item name is required." });
-      return;
-    }
-
-    setEditLoadingId(itemId);
-    setMessage(null);
-
-    try {
-      const result = await editWishlistItem(
-        itemId,
-        cleanName,
-        cleanLink,
-        cleanNote,
-        normalizeWishlistPriorityLevel(editPriority),
-        editCategory,
-        cleanImageUrl,
-      );
-
-      setMessage(createActionMessage(result));
-
-      if (result.success) {
-        setEditingId(null);
-      }
-    } catch {
-      setMessage({
-        type: "error",
-        text: "Failed to update the wishlist item. Please try again.",
-      });
-    } finally {
-      setEditLoadingId(null);
-    }
-  };
-
-  const handleDelete = async (itemId: string) => {
-    if (!confirm("Delete this wishlist item?")) {
-      return;
-    }
-
-    setDeleteLoadingId(itemId);
-    setMessage(null);
-
-    try {
-      const result = await deleteWishlistItem(itemId);
-      setMessage(createActionMessage(result));
-    } catch {
-      setMessage({
-        type: "error",
-        text: "Failed to delete the wishlist item. Please try again.",
-      });
-    } finally {
-      setDeleteLoadingId(null);
-    }
-  };
 
   const handleUpdateGiftPrep = async (
     groupId: string,
@@ -1480,21 +1290,6 @@ export default function SecretSantaPage() {
     } finally {
       setConfirmingGroup(null);
     }
-  };
-
-  const startEdit = (item: WishlistItem) => {
-    setEditingId(item.id);
-    setEditName(item.item_name);
-    setEditCategory(item.item_category);
-    setEditImageUrl(item.item_image_url);
-    setEditLink(item.item_link);
-    setEditNote(item.item_note);
-    setEditPriority(item.priority);
-    setMessage(null);
-  };
-
-  const getGroupName = (groupId: string) => {
-    return availableGroups.find((group) => group.id === groupId)?.name || "Unknown Group";
   };
 
   // The giver decides when they want help with a wishlist item.
@@ -1729,7 +1524,7 @@ export default function SecretSantaPage() {
             className="text-[14px] font-semibold"
             style={{ color: TEXT_MUTED }}
           >
-            Your mystery recipients from all events
+            Plan gifts for your recipients across every event
           </p>
           {assignments.length > 0 && (
             <div
@@ -1914,6 +1709,47 @@ export default function SecretSantaPage() {
               {nearbyLocationMessage.text}
             </div>
           )}
+        </div>
+
+        <div
+          className="rounded-[18px] p-4 mb-4"
+          style={{
+            background: "rgba(248,250,248,.74)",
+            border: "1px solid rgba(96,117,122,.12)",
+            boxShadow: "0 10px 24px rgba(34,55,59,.05)",
+          }}
+        >
+          <div className="flex items-start justify-between gap-3 flex-wrap">
+            <div>
+              <div
+                className="text-[14px] font-extrabold"
+                style={{ color: HOLIDAY_RED }}
+              >
+                Your own wishlist moved out of this page
+              </div>
+              <div
+                className="text-[11px] mt-1 leading-relaxed"
+                style={{ color: TEXT_MUTED }}
+              >
+                This page now stays focused on shopping for your assigned recipients.
+                Update the items your own Secret Santa sees from the dedicated wishlist page.
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={() => router.push("/wishlist")}
+              className="px-4 py-2 rounded-xl text-[11px] font-extrabold transition"
+              style={{
+                background: "rgba(47,107,86,.1)",
+                color: HOLIDAY_GREEN,
+                border: "1px solid rgba(47,107,86,.16)",
+                fontFamily: "inherit",
+                cursor: "pointer",
+              }}
+            >
+              Open My Wishlist
+            </button>
+          </div>
         </div>
 
         {/* Recipient cards show assigned recipients, their wishlist items, and gift confirmation state. */}
@@ -3596,522 +3432,6 @@ export default function SecretSantaPage() {
           </div>
         )}
 
-        {/* The user's own wishlist is managed independently from recipient assignments. */}
-        <div
-          className="rounded-[18px] overflow-hidden"
-          style={{
-            background: SURFACE_BACKGROUND,
-            border: SURFACE_BORDER,
-            boxShadow: SURFACE_SHADOW,
-            backdropFilter: "blur(8px)",
-          }}
-        >
-          <div
-            className="flex items-center justify-between p-4"
-            style={{
-              background: SURFACE_HEADER_BACKGROUND,
-              borderBottom: SURFACE_HEADER_BORDER,
-            }}
-          >
-            <div className="flex items-center gap-3">
-              <div
-                className="w-9.5 h-9.5 rounded-lg flex items-center justify-center text-[18px]"
-                style={{ background: "rgba(185,56,47,.12)" }}
-              >
-                📝
-              </div>
-              <div>
-                <div
-                  className="text-[16px] font-extrabold"
-                  style={{ color: HOLIDAY_RED }}
-                >
-                  My Wishlist
-                </div>
-                <div
-                  className="text-[11px]"
-                  style={{ color: TEXT_MUTED }}
-                >
-                  Your Secret Santa sees these items
-                </div>
-              </div>
-            </div>
-            <button
-              type="button"
-              onClick={() => setShowAdd((current) => !current)}
-              disabled={availableGroups.length === 0}
-              className="px-4 py-2 rounded-lg text-[12px] font-bold text-white transition"
-              style={{
-                background: "linear-gradient(135deg,#b96a5d,#9f4e42)",
-                boxShadow: "0 2px 12px rgba(159,78,66,.18)",
-                border: "none",
-                cursor: availableGroups.length === 0 ? "not-allowed" : "pointer",
-                fontFamily: "inherit",
-                opacity: availableGroups.length === 0 ? 0.6 : 1,
-              }}
-            >
-              + Add Item
-            </button>
-          </div>
-
-          <div className="p-4">
-            {/* The add form keeps client-side input well shaped before calling server actions. */}
-            {showAdd && (
-              <div
-                className="rounded-xl p-4 mb-4"
-                style={{
-                  background: INSET_BACKGROUND,
-                  border: INSET_BORDER,
-                }}
-              >
-                {availableGroups.length > 1 && (
-                  <div className="mb-3">
-                    <p
-                      className="text-[10px] font-bold mb-1.5"
-                      style={{ color: TEXT_MUTED }}
-                    >
-                      Add to which group?
-                    </p>
-                    <div className="flex gap-1.5 flex-wrap">
-                      {availableGroups.map((group) => (
-                        <button
-                          key={group.id}
-                          type="button"
-                          onClick={() => setAddGroupId(group.id)}
-                          className="text-[11px] font-bold px-3.5 py-1.5 rounded-lg transition"
-                          style={{
-                            background:
-                              addGroupId === group.id
-                                ? "rgba(185,56,47,.12)"
-                                : "rgba(255,255,255,.72)",
-                            color:
-                              addGroupId === group.id
-                                ? HOLIDAY_RED
-                                : TEXT_MUTED,
-                            border: `1px solid ${
-                              addGroupId === group.id
-                                ? "rgba(185,56,47,.18)"
-                                : "rgba(163,127,90,.16)"
-                            }`,
-                            cursor: "pointer",
-                            fontFamily: "inherit",
-                          }}
-                        >
-                          {group.name}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                <input
-                  value={addName}
-                  onChange={(event) => setAddName(event.target.value)}
-                  maxLength={ITEM_NAME_MAX_LENGTH}
-                  placeholder="Item name (e.g. Nintendo Switch)..."
-                  className="w-full mb-2 px-3 py-2.5 rounded-lg text-[13px] outline-none"
-                  style={{
-                    background: INPUT_BACKGROUND,
-                    border: INPUT_BORDER,
-                    color: INPUT_TEXT,
-                    fontFamily: "inherit",
-                  }}
-                />
-
-                <div className="flex gap-2 mb-2 flex-col sm:flex-row">
-                  <select
-                    value={addCategory}
-                    onChange={(event) => setAddCategory(event.target.value)}
-                    className="flex-1 px-3 py-2.5 rounded-lg text-[13px] outline-none"
-                    style={{
-                      background: INPUT_BACKGROUND,
-                      border: INPUT_BORDER,
-                      color: INPUT_TEXT,
-                      fontFamily: "inherit",
-                    }}
-                  >
-                    <option value="">Category (optional)</option>
-                    {WISHLIST_CATEGORIES.map((category) => (
-                      <option key={category} value={category}>
-                        {category}
-                      </option>
-                    ))}
-                  </select>
-                  <input
-                    type="url"
-                    inputMode="url"
-                    value={addImageUrl}
-                    onChange={(event) => setAddImageUrl(event.target.value)}
-                    maxLength={ITEM_IMAGE_URL_MAX_LENGTH}
-                    placeholder="Image URL (optional)..."
-                    className="flex-1 px-3 py-2.5 rounded-lg text-[13px] outline-none"
-                    style={{
-                      background: INPUT_BACKGROUND,
-                      border: INPUT_BORDER,
-                      color: INPUT_TEXT,
-                      fontFamily: "inherit",
-                    }}
-                  />
-                </div>
-
-                <div className="flex gap-2 mb-2 flex-col sm:flex-row">
-                  <input
-                    type="url"
-                    inputMode="url"
-                    value={addLink}
-                    onChange={(event) => setAddLink(event.target.value)}
-                    maxLength={ITEM_LINK_MAX_LENGTH}
-                    placeholder="Link (optional)..."
-                    className="flex-1 px-3 py-2.5 rounded-lg text-[13px] outline-none"
-                    style={{
-                      background: INPUT_BACKGROUND,
-                      border: INPUT_BORDER,
-                      color: INPUT_TEXT,
-                      fontFamily: "inherit",
-                    }}
-                  />
-                  <input
-                    value={addNote}
-                    onChange={(event) => setAddNote(event.target.value)}
-                    maxLength={ITEM_NOTE_MAX_LENGTH}
-                    placeholder="Note (optional)..."
-                    className="flex-1 px-3 py-2.5 rounded-lg text-[13px] outline-none"
-                    style={{
-                      background: INPUT_BACKGROUND,
-                      border: INPUT_BORDER,
-                      color: INPUT_TEXT,
-                      fontFamily: "inherit",
-                    }}
-                  />
-                </div>
-
-                <div className="flex gap-2 mb-2 flex-col sm:flex-row">
-                  <select
-                    value={addPriority}
-                    onChange={(event) => setAddPriority(Number(event.target.value))}
-                    className="flex-1 px-3 py-2.5 rounded-lg text-[13px] outline-none"
-                    style={{
-                      background: INPUT_BACKGROUND,
-                      border: INPUT_BORDER,
-                      color: INPUT_TEXT,
-                      fontFamily: "inherit",
-                    }}
-                  >
-                    {WISHLIST_PRIORITY_OPTIONS.map((option) => (
-                      <option key={option.value} value={option.value}>
-                        {option.label}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                <div className="flex justify-end gap-2">
-                  <button
-                    type="button"
-                    onClick={() => setShowAdd(false)}
-                    className="px-4 py-2 rounded-lg text-[11px] font-bold"
-                    style={{
-                      background: "rgba(255,255,255,.78)",
-                      color: TEXT_MUTED,
-                      border: "1px solid rgba(163,127,90,.14)",
-                      fontFamily: "inherit",
-                      cursor: "pointer",
-                    }}
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    type="button"
-                    onClick={handleAdd}
-                    disabled={addLoading}
-                    className="px-4 py-2 rounded-lg text-[11px] font-bold text-white"
-                    style={{
-                      background: HOLIDAY_GREEN,
-                      border: "none",
-                      fontFamily: "inherit",
-                      cursor: addLoading ? "wait" : "pointer",
-                      opacity: addLoading ? 0.75 : 1,
-                    }}
-                  >
-                    {addLoading ? "Saving..." : "✅ Save"}
-                  </button>
-                </div>
-              </div>
-            )}
-
-            {myItems.length === 0 ? (
-              <div
-                className="text-center py-6 rounded-xl"
-                style={{
-                  color: TEXT_SOFT,
-                  background: "rgba(255,250,244,.8)",
-                  border: "1px dashed rgba(163,127,90,.2)",
-                }}
-              >
-                No items yet — add your first gift idea!
-              </div>
-            ) : (
-              myItems.map((item) => {
-                const myPriorityMeta = getWishlistPriorityMeta(item.priority);
-
-                return (
-                  <div key={item.id}>
-                    {editingId === item.id ? (
-                      <div
-                        className="rounded-xl p-3.5 mb-2"
-                        style={{
-                          background: INSET_BACKGROUND,
-                          border: "1px solid rgba(63,111,178,.18)",
-                        }}
-                      >
-                        <input
-                          value={editName}
-                          onChange={(event) => setEditName(event.target.value)}
-                          maxLength={ITEM_NAME_MAX_LENGTH}
-                          className="w-full mb-2 px-3 py-2 rounded-lg text-[13px] outline-none"
-                          style={{
-                            background: INPUT_BACKGROUND,
-                            border: INPUT_BORDER,
-                            color: INPUT_TEXT,
-                            fontFamily: "inherit",
-                          }}
-                        />
-                        <div className="flex gap-2 mb-2 flex-col sm:flex-row">
-                          <select
-                            value={editCategory}
-                            onChange={(event) => setEditCategory(event.target.value)}
-                            className="flex-1 px-3 py-2 rounded-lg text-[13px] outline-none"
-                            style={{
-                              background: INPUT_BACKGROUND,
-                              border: INPUT_BORDER,
-                              color: INPUT_TEXT,
-                              fontFamily: "inherit",
-                            }}
-                          >
-                            <option value="">Category (optional)</option>
-                            {WISHLIST_CATEGORIES.map((category) => (
-                              <option key={category} value={category}>
-                                {category}
-                              </option>
-                            ))}
-                          </select>
-                          <input
-                            type="url"
-                            inputMode="url"
-                            value={editImageUrl}
-                            onChange={(event) => setEditImageUrl(event.target.value)}
-                            maxLength={ITEM_IMAGE_URL_MAX_LENGTH}
-                            placeholder="Image URL..."
-                            className="flex-1 px-3 py-2 rounded-lg text-[13px] outline-none"
-                            style={{
-                              background: INPUT_BACKGROUND,
-                              border: INPUT_BORDER,
-                              color: INPUT_TEXT,
-                              fontFamily: "inherit",
-                            }}
-                          />
-                        </div>
-                        <div className="flex gap-2 mb-2 flex-col sm:flex-row">
-                          <input
-                            type="url"
-                            inputMode="url"
-                            value={editLink}
-                            onChange={(event) => setEditLink(event.target.value)}
-                            maxLength={ITEM_LINK_MAX_LENGTH}
-                            placeholder="Link..."
-                            className="flex-1 px-3 py-2 rounded-lg text-[13px] outline-none"
-                            style={{
-                              background: INPUT_BACKGROUND,
-                              border: INPUT_BORDER,
-                              color: INPUT_TEXT,
-                              fontFamily: "inherit",
-                            }}
-                          />
-                          <input
-                            value={editNote}
-                            onChange={(event) => setEditNote(event.target.value)}
-                            maxLength={ITEM_NOTE_MAX_LENGTH}
-                            placeholder="Note..."
-                            className="flex-1 px-3 py-2 rounded-lg text-[13px] outline-none"
-                            style={{
-                              background: INPUT_BACKGROUND,
-                              border: INPUT_BORDER,
-                              color: INPUT_TEXT,
-                              fontFamily: "inherit",
-                            }}
-                          />
-                        </div>
-                        <div className="flex gap-2 mb-2 flex-col sm:flex-row">
-                          <select
-                            value={editPriority}
-                            onChange={(event) => setEditPriority(Number(event.target.value))}
-                            className="flex-1 px-3 py-2 rounded-lg text-[13px] outline-none"
-                            style={{
-                              background: INPUT_BACKGROUND,
-                              border: INPUT_BORDER,
-                              color: INPUT_TEXT,
-                              fontFamily: "inherit",
-                            }}
-                          >
-                            {WISHLIST_PRIORITY_OPTIONS.map((option) => (
-                              <option key={option.value} value={option.value}>
-                                {option.label}
-                              </option>
-                            ))}
-                          </select>
-                        </div>
-                        <div className="flex justify-end gap-2">
-                          <button
-                            type="button"
-                            onClick={() => setEditingId(null)}
-                            className="px-3 py-1.5 rounded-lg text-[10px] font-bold"
-                            style={{
-                              background: "rgba(255,255,255,.78)",
-                              color: TEXT_MUTED,
-                              border: "1px solid rgba(163,127,90,.14)",
-                              fontFamily: "inherit",
-                              cursor: "pointer",
-                            }}
-                          >
-                            Cancel
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => handleEdit(item.id)}
-                            disabled={editLoadingId === item.id}
-                            className="px-4 py-1.5 rounded-lg text-[10px] font-bold text-white"
-                            style={{
-                              background: HOLIDAY_GREEN,
-                              border: "none",
-                              fontFamily: "inherit",
-                              cursor: editLoadingId === item.id ? "wait" : "pointer",
-                              opacity: editLoadingId === item.id ? 0.75 : 1,
-                            }}
-                          >
-                            {editLoadingId === item.id ? "Saving..." : "✅ Save"}
-                          </button>
-                        </div>
-                      </div>
-                    ) : (
-                      <div
-                        className="flex items-start justify-between gap-3 p-3 rounded-xl mb-2 transition"
-                        style={{
-                          background: INSET_BACKGROUND,
-                          border: INSET_BORDER,
-                        }}
-                      >
-                        <div className="flex items-start gap-3 flex-1 min-w-0">
-                          <div
-                            className="w-14 h-14 rounded-xl flex items-center justify-center text-[18px] shrink-0"
-                            style={{
-                              background: "rgba(255,255,255,.78)",
-                              border: "1px solid rgba(96,117,122,.12)",
-                            }}
-                          >
-                            {normalizeOptionalUrl(item.item_image_url) ? "IMG" : myPriorityMeta.icon}
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-center gap-2 flex-wrap mb-1">
-                              <span
-                                className="text-[10px] font-extrabold px-2 py-1 rounded-lg"
-                                style={{
-                                  background: myPriorityMeta.badgeBackground,
-                                  color: myPriorityMeta.badgeColor,
-                                }}
-                              >
-                                {myPriorityMeta.icon} {myPriorityMeta.label}
-                              </span>
-                              {item.item_category && (
-                                <span
-                                  className="text-[10px] font-extrabold px-2 py-1 rounded-lg"
-                                  style={getWishlistCategoryStyle(item.item_category)}
-                                >
-                                  {item.item_category}
-                                </span>
-                              )}
-                            </div>
-                            <div className="text-[13px] font-bold" style={{ color: PAGE_TEXT_COLOR }}>
-                              {item.item_name}
-                            </div>
-                            {item.item_note && (
-                              <div className="text-[11px] mt-0.5" style={{ color: TEXT_MUTED }}>
-                                {item.item_note}
-                              </div>
-                            )}
-                            <div
-                              className="text-[9px] font-bold mt-1 inline-block px-2 py-0.5 rounded"
-                              style={{
-                                color: TEXT_MUTED,
-                                background: "rgba(255,255,255,.72)",
-                              }}
-                            >
-                              {getGroupName(item.group_id)}
-                            </div>
-                            {normalizeOptionalUrl(item.item_image_url) && (
-                              <a
-                                href={normalizeOptionalUrl(item.item_image_url)}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                title={item.item_image_url}
-                                className="text-[11px] font-semibold mt-1 inline-block"
-                                style={{ color: HOLIDAY_BLUE }}
-                              >
-                                Open image {"->"}
-                              </a>
-                            )}
-                            {normalizeOptionalUrl(item.item_link) && (
-                              <a
-                                href={normalizeOptionalUrl(item.item_link)}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                title={item.item_link}
-                                className="text-[11px] font-semibold mt-1 inline-block"
-                                style={{ color: HOLIDAY_GOLD }}
-                              >
-                                Open link {"->"}
-                              </a>
-                            )}
-                          </div>
-                        </div>
-                        <div className="flex gap-1.5">
-                          <button
-                            type="button"
-                            onClick={() => startEdit(item)}
-                            className="px-2.5 py-1.5 rounded-lg text-[11px] font-bold transition"
-                            style={{
-                              background: "rgba(59,130,246,.12)",
-                              color: "#93c5fd",
-                              border: "none",
-                              cursor: "pointer",
-                              fontFamily: "inherit",
-                            }}
-                          >
-                            ✏️
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => handleDelete(item.id)}
-                            disabled={deleteLoadingId === item.id}
-                            className="px-2.5 py-1.5 rounded-lg text-[11px] font-bold transition"
-                            style={{
-                              background: "rgba(220,38,38,.12)",
-                              color: "#fca5a5",
-                              border: "none",
-                              cursor: deleteLoadingId === item.id ? "wait" : "pointer",
-                              fontFamily: "inherit",
-                              opacity: deleteLoadingId === item.id ? 0.75 : 1,
-                            }}
-                          >
-                            {deleteLoadingId === item.id ? "..." : "🗑️"}
-                          </button>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                );
-              })
-            )}
-          </div>
-        </div>
       </div>
 
       <SnowEffect />
