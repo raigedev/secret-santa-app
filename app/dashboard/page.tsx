@@ -76,6 +76,8 @@ type AssignmentRow = {
 type MyAssignmentRow = {
   group_id: string;
   receiver_id: string;
+  gift_prep_status: string | null;
+  gift_prep_updated_at: string | null;
 };
 
 type PendingGroupRow = {
@@ -87,6 +89,25 @@ type PendingGroupRow = {
 
 type WishlistSummaryRow = {
   group_id: string;
+};
+
+type NotificationFeedRow = {
+  id: string;
+  type: string;
+  title: string;
+  body: string | null;
+  link_path: string | null;
+  created_at: string;
+};
+
+type DashboardActivityItem = {
+  id: string;
+  title: string;
+  subtitle: string;
+  createdAt: string;
+  href: string | null;
+  icon: string;
+  tone: "amber" | "blue" | "emerald" | "rose" | "violet";
 };
 
 function createGroupUserKey(groupId: string, userId: string): string {
@@ -137,6 +158,89 @@ function formatDashboardBudget(budget: number | null, currency: string | null): 
   }
 
   return `${symbol} ${formatter.format(budget)}`;
+}
+
+function formatRelativeTime(value: string): string {
+  const timestamp = new Date(value).getTime();
+
+  if (Number.isNaN(timestamp)) {
+    return "Recently";
+  }
+
+  const diffMs = Date.now() - timestamp;
+  const diffMinutes = Math.max(1, Math.floor(diffMs / (1000 * 60)));
+
+  if (diffMinutes < 60) {
+    return `${diffMinutes}m ago`;
+  }
+
+  const diffHours = Math.floor(diffMinutes / 60);
+
+  if (diffHours < 24) {
+    return `${diffHours}h ago`;
+  }
+
+  const diffDays = Math.floor(diffHours / 24);
+
+  if (diffDays < 7) {
+    return `${diffDays}d ago`;
+  }
+
+  return new Date(value).toLocaleDateString(undefined, {
+    day: "numeric",
+    month: "short",
+  });
+}
+
+function formatGiftPrepStatusLabel(status: string | null): string {
+  switch (status) {
+    case "planning":
+      return "planning";
+    case "purchased":
+      return "purchased";
+    case "wrapped":
+      return "wrapped";
+    case "ready_to_give":
+      return "ready to give";
+    default:
+      return "updated";
+  }
+}
+
+function getActivityFeedVisual(type: string): Pick<DashboardActivityItem, "icon" | "tone"> {
+  switch (type) {
+    case "gift_progress":
+      return { icon: "✓", tone: "amber" };
+    case "gift_received":
+      return { icon: "🎁", tone: "emerald" };
+    case "chat":
+      return { icon: "💬", tone: "blue" };
+    case "draw":
+      return { icon: "🎲", tone: "violet" };
+    case "reveal":
+      return { icon: "🎉", tone: "rose" };
+    case "invite":
+      return { icon: "✉️", tone: "amber" };
+    default:
+      return { icon: "•", tone: "blue" };
+  }
+}
+
+function getActivityToneClasses(tone: DashboardActivityItem["tone"]): string {
+  switch (tone) {
+    case "amber":
+      return "bg-amber-400/90 text-white";
+    case "blue":
+      return "bg-blue-500/90 text-white";
+    case "emerald":
+      return "bg-emerald-500/90 text-white";
+    case "rose":
+      return "bg-rose-500/90 text-white";
+    case "violet":
+      return "bg-violet-500/90 text-white";
+    default:
+      return "bg-slate-400/90 text-white";
+  }
 }
 
 function ArrowRightIcon({ className = "h-4 w-4" }: { className?: string }) {
@@ -314,6 +418,7 @@ export default function DashboardPage() {
   const [unreadNotificationCount, setUnreadNotificationCount] = useState(0);
   const [wishlistItemCount, setWishlistItemCount] = useState(0);
   const [wishlistGroupCount, setWishlistGroupCount] = useState(0);
+  const [activityFeedItems, setActivityFeedItems] = useState<DashboardActivityItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [showProfileSetup, setShowProfileSetup] = useState(false);
   const [actionMessage, setActionMessage] = useState<ActionMessage>(null);
@@ -365,6 +470,7 @@ export default function DashboardPage() {
           setRecipientNames([]);
           setWishlistItemCount(0);
           setWishlistGroupCount(0);
+          setActivityFeedItems([]);
           setLoading(false);
           return;
         }
@@ -379,7 +485,15 @@ export default function DashboardPage() {
           roleMap[row.group_id] = row.role;
         }
 
-        const [groupsRes, membersRes, assignmentsRes, myAssignRes, pendingRes, wishlistSummaryRes] =
+        const [
+          groupsRes,
+          membersRes,
+          assignmentsRes,
+          myAssignRes,
+          pendingRes,
+          wishlistSummaryRes,
+          activityNotificationsRes,
+        ] =
           await Promise.all([
             acceptedGroupIds.length > 0
               ? supabase
@@ -400,7 +514,9 @@ export default function DashboardPage() {
             acceptedGroupIds.length > 0
               ? supabase
                   .from("assignments")
-                  .select("group_id, receiver_id")
+                  .select(
+                    "group_id, receiver_id, gift_prep_status, gift_prep_updated_at"
+                  )
                   .eq("giver_id", user.id)
                   .in("group_id", acceptedGroupIds)
               : createEmptyQueryResult<MyAssignmentRow>(),
@@ -417,6 +533,13 @@ export default function DashboardPage() {
                   .eq("user_id", user.id)
                   .in("group_id", acceptedGroupIds)
               : createEmptyQueryResult<WishlistSummaryRow>(),
+            supabase
+              .from("notifications")
+              .select("id, type, title, body, link_path, created_at")
+              .eq("user_id", user.id)
+              .in("type", ["invite", "chat", "draw", "reveal", "gift_received"])
+              .order("created_at", { ascending: false })
+              .limit(8),
           ]);
 
         if (groupsRes.error) {
@@ -443,12 +566,18 @@ export default function DashboardPage() {
           throw wishlistSummaryRes.error;
         }
 
+        if (activityNotificationsRes.error) {
+          throw activityNotificationsRes.error;
+        }
+
         const groupsData = groupsRes.data || [];
         const allMembers = membersRes.data || [];
         const allAssignments = assignmentsRes.data || [];
         const myAssignments = myAssignRes.data || [];
         const pendingGroups = pendingRes.data || [];
         const wishlistSummary = (wishlistSummaryRes.data || []) as WishlistSummaryRow[];
+        const recentNotifications =
+          (activityNotificationsRes.data || []) as NotificationFeedRow[];
         const drawnGroupIds = new Set(allAssignments.map((assignment) => assignment.group_id));
 
         const groupsWithMembers: Group[] = groupsData.map((group) => ({
@@ -472,6 +601,7 @@ export default function DashboardPage() {
         setInvitedGroups(groupsWithMembers.filter((group) => !group.isOwner));
 
         const receiverNameByGroupUser = new Map<string, string>();
+        const groupNameById = new Map(groupsData.map((group) => [group.id, group.name]));
 
         for (const member of allMembers) {
           if (!member.user_id) {
@@ -496,6 +626,50 @@ export default function DashboardPage() {
 
         setWishlistItemCount(wishlistSummary.length);
         setWishlistGroupCount(new Set(wishlistSummary.map((row) => row.group_id)).size);
+
+        // The dashboard feed combines "what changed around me" notifications
+        // with the user's own gift-progress actions so the home page feels alive
+        // without inventing a separate activity table.
+        const feedItems: DashboardActivityItem[] = [
+          ...myAssignments
+            .filter(
+              (assignment) => assignment.gift_prep_status && assignment.gift_prep_updated_at
+            )
+            .map((assignment) => {
+              const receiverName =
+                receiverNameByGroupUser.get(
+                  createGroupUserKey(assignment.group_id, assignment.receiver_id)
+                ) || "your recipient";
+              const groupName = groupNameById.get(assignment.group_id) || "your group";
+              const statusLabel = formatGiftPrepStatusLabel(assignment.gift_prep_status);
+              const visual = getActivityFeedVisual("gift_progress");
+
+              return {
+                id: `gift-progress-${assignment.group_id}`,
+                title: `You marked your gift as ${statusLabel}`,
+                subtitle: `For ${receiverName} in ${groupName}`,
+                createdAt: assignment.gift_prep_updated_at as string,
+                href: "/secret-santa",
+                ...visual,
+              };
+            }),
+          ...recentNotifications.map((notification) => {
+            const visual = getActivityFeedVisual(notification.type);
+
+            return {
+              id: notification.id,
+              title: notification.title,
+              subtitle: notification.body || "Open the notification center for details.",
+              createdAt: notification.created_at,
+              href: notification.link_path,
+              ...visual,
+            };
+          }),
+        ]
+          .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+          .slice(0, 5);
+
+        setActivityFeedItems(feedItems);
 
         setPendingInvites(
           pendingGroups.map((group) => ({
@@ -770,6 +944,7 @@ export default function DashboardPage() {
 
           if (sessionUser && changedUserId === sessionUser.id) {
             scheduleNotificationsReload();
+            scheduleDashboardReload();
           }
         }
       )
@@ -824,7 +999,13 @@ export default function DashboardPage() {
     for (const group of [...ownedGroups, ...invitedGroups].slice(0, 8)) {
       prefetchOnce(`/group/${group.id}`);
     }
-  }, [router, ownedGroups, invitedGroups, canViewAffiliateReport]);
+
+    for (const item of activityFeedItems) {
+      if (item.href) {
+        prefetchOnce(item.href);
+      }
+    }
+  }, [router, ownedGroups, invitedGroups, canViewAffiliateReport, activityFeedItems]);
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
@@ -1439,6 +1620,76 @@ export default function DashboardPage() {
                 <span>Logout</span>
                 <ArrowRightIcon />
               </button>
+            </div>
+          </div>
+        </section>
+
+        <section data-fade className="mb-10">
+          <div className="overflow-hidden rounded-[26px] border border-white/70 bg-white/92 p-5 shadow-[0_24px_60px_rgba(148,163,184,0.14)] backdrop-blur-md">
+            <div className="flex flex-wrap items-start justify-between gap-4">
+              <div>
+                <div className="inline-flex items-center gap-2 rounded-full bg-blue-100 px-3 py-1 text-xs font-semibold text-blue-700">
+                  Activity feed
+                </div>
+                <h3 className="mt-3 text-2xl font-bold text-slate-900">Recent moments that matter</h3>
+                <p className="mt-2 text-sm leading-6 text-slate-600">
+                  See your latest gift progress, delivery confirmations, draw updates, and group activity in one place.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => router.push("/notifications")}
+                className="inline-flex items-center gap-2 rounded-full bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 shadow-[0_12px_30px_rgba(148,163,184,0.16)] transition hover:-translate-y-0.5"
+              >
+                <span>Open notifications</span>
+                <ArrowRightIcon />
+              </button>
+            </div>
+
+            <div className="mt-5 overflow-hidden rounded-[24px] border border-slate-200/80 bg-white">
+              {activityFeedItems.length === 0 ? (
+                <div className="px-5 py-8 text-sm text-slate-500">
+                  Once gift progress or group updates start happening, your recent activity will show up here.
+                </div>
+              ) : (
+                activityFeedItems.map((item, index) => {
+                  const row = (
+                    <div
+                      className={`flex items-start gap-4 px-5 py-4 text-left transition ${
+                        item.href ? "hover:bg-slate-50/90" : ""
+                      } ${index !== activityFeedItems.length - 1 ? "border-b border-slate-200/80" : ""}`}
+                    >
+                      <div
+                        className={`mt-0.5 inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-lg text-sm font-bold ${getActivityToneClasses(item.tone)}`}
+                      >
+                        <span aria-hidden="true">{item.icon}</span>
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <div className="text-base font-semibold text-slate-800">{item.title}</div>
+                        <div className="mt-1 truncate text-sm text-slate-500">{item.subtitle}</div>
+                      </div>
+                      <div className="shrink-0 pl-2 text-sm font-medium text-slate-400">
+                        {formatRelativeTime(item.createdAt)}
+                      </div>
+                    </div>
+                  );
+
+                  if (!item.href) {
+                    return <div key={item.id}>{row}</div>;
+                  }
+
+                  return (
+                    <button
+                      key={item.id}
+                      type="button"
+                      onClick={() => router.push(item.href as string)}
+                      className="block w-full"
+                    >
+                      {row}
+                    </button>
+                  );
+                })
+              )}
             </div>
           </div>
         </section>
