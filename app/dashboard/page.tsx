@@ -412,6 +412,27 @@ function SantaMarkIcon({ size = 22 }: { size?: number }) {
   );
 }
 
+function SantaBrandLockup() {
+  return (
+    <div className="inline-flex items-center gap-3">
+      <span className="inline-flex h-11 w-11 items-center justify-center overflow-hidden rounded-full bg-white/85 shadow-[0_12px_28px_rgba(148,163,184,0.18)] ring-1 ring-white/70">
+        <SantaMarkIcon size={28} />
+      </span>
+      <span className="flex flex-col items-start leading-[0.94]">
+        <span className="text-[13px] font-extrabold tracking-[-0.01em] text-[#c0392b]">
+          My Secret
+        </span>
+        <span className="mt-0.5 text-[26px] font-black tracking-[-0.045em] text-slate-950">
+          Santa
+        </span>
+        <span className="mt-1 text-[10px] font-semibold italic tracking-[-0.01em] text-[#c0392b]/85">
+          shhh... it&apos;s a secret!
+        </span>
+      </span>
+    </div>
+  );
+}
+
 function WishlistIcon({ className = "h-5 w-5" }: { className?: string }) {
   return (
     <svg viewBox="0 0 24 24" fill="none" className={className} aria-hidden="true">
@@ -1520,12 +1541,7 @@ export default function DashboardPage() {
 
         <div data-fade className="mb-6 flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
           <div className="text-center lg:text-left">
-            <div className="inline-flex items-center gap-3 rounded-full border border-white/80 bg-white/95 px-4 py-2.5 text-[13px] font-semibold uppercase tracking-[0.16em] text-sky-600 shadow-[0_18px_50px_rgba(148,163,184,0.14)] backdrop-blur-md">
-              <span className="inline-flex h-7 w-7 items-center justify-center overflow-hidden rounded-full bg-white shadow-[0_6px_16px_rgba(14,116,219,0.18)]">
-                <SantaMarkIcon size={20} />
-              </span>
-              <span>Secret Santa Home</span>
-            </div>
+            <SantaBrandLockup />
           </div>
 
           <div className="flex flex-wrap justify-center gap-3 lg:justify-end">
