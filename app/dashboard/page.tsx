@@ -2488,7 +2488,7 @@ export default function DashboardPage() {
           </div>
         </section>
 
-        <section data-fade className="mt-0 mb-8">
+        <section data-fade className="-mt-6 mb-8">
           <div className="mb-1">
             <p className={`text-sm font-semibold uppercase tracking-[0.18em] ${isDarkTheme ? "text-sky-300" : "text-sky-600"}`}>
               Groups
