@@ -97,6 +97,12 @@ type FamilyQualityInsight = {
   promotion_link_clicks: number;
 };
 
+type OptimizationRecommendation = {
+  description: string;
+  label: string;
+  title: string;
+};
+
 type WindowFilter = "7d" | "30d" | "90d" | "all";
 type RouteFilter = "all" | "direct" | "search";
 
@@ -608,7 +614,7 @@ function buildFamilyQualityInsights(rows: AffiliateClickRow[]): FamilyQualityIns
     grouped.set(key, existing);
   }
 
-  return Array.from(grouped.values())
+  const insights = Array.from(grouped.values())
     .map((item) => ({
       click_count: item.click_count,
       coverage: item.click_count > 0 ? (item.promotion_link_clicks / item.click_count) * 100 : 0,
@@ -623,7 +629,60 @@ function buildFamilyQualityInsights(rows: AffiliateClickRow[]): FamilyQualityIns
 
       return right.click_count - left.click_count;
     })
-    .slice(0, 6);
+  const meaningfulInsights = insights.filter((item) => item.click_count >= 2);
+  return (meaningfulInsights.length > 0 ? meaningfulInsights : insights).slice(0, 6);
+}
+
+function buildOptimizationRecommendations(input: {
+  familyQualityInsights: FamilyQualityInsight[];
+  legacyPromotionLinkClicks: number;
+  legacyRouteClicks: number;
+  routeQualityInsights: RouteQualityInsight[];
+}): OptimizationRecommendation[] {
+  const recommendations: OptimizationRecommendation[] = [];
+
+  const strongestRoute = input.routeQualityInsights
+    .filter((insight) => insight.total_clicks > 0)
+    .sort((left, right) => right.coverage - left.coverage)[0];
+
+  if (strongestRoute) {
+    recommendations.push({
+      description: `${strongestRoute.promotion_link_clicks} of ${strongestRoute.total_clicks} clicks in this route family are resolving to promotion links.`,
+      label: "Strongest route",
+      title: strongestRoute.label,
+    });
+  }
+
+  const weakestFamily = input.familyQualityInsights
+    .filter((insight) => insight.click_count >= 2)
+    .sort((left, right) => {
+      if (left.coverage !== right.coverage) {
+        return left.coverage - right.coverage;
+      }
+
+      return right.click_count - left.click_count;
+    })[0];
+
+  if (weakestFamily) {
+    recommendations.push({
+      description: `${weakestFamily.fallback_clicks} of ${weakestFamily.click_count} clicks in this family still miss the strongest affiliate-ready path.`,
+      label: "Weakest family",
+      title: weakestFamily.family,
+    });
+  }
+
+  if (input.legacyRouteClicks > 0) {
+    recommendations.push({
+      description:
+        input.legacyPromotionLinkClicks > 0
+          ? `${input.legacyRouteClicks} older clicks predate the current route labels, and ${input.legacyPromotionLinkClicks} of them still resolved to promotion links.`
+          : `${input.legacyRouteClicks} older clicks predate the current route labels, so route-specific coverage is best judged with newer clicks or route filters.`,
+      label: "Legacy click bucket",
+      title: `${input.legacyRouteClicks} legacy clicks`,
+    });
+  }
+
+  return recommendations.slice(0, 3);
 }
 
 async function loadAffiliateClickRows(input: {
@@ -891,7 +950,7 @@ function InsightCard({ insight }: { insight: TopItemInsight }) {
         </div>
       </div>
       <p className="mt-4 text-sm leading-6 text-slate-600">
-        Dominant route: <span className="font-semibold text-slate-800">{insight.dominant_route}</span>
+        Dominant route: <span className={`font-semibold ${DominantLabelTone(insight.dominant_route)}`}>{insight.dominant_route}</span>
       </p>
     </section>
   );
@@ -971,6 +1030,79 @@ function FamilyQualityCard({ insight }: { insight: FamilyQualityInsight }) {
           <p className="mt-1 text-lg font-semibold text-slate-900">{insight.click_count}</p>
         </div>
       </div>
+      {insight.click_count < 3 && (
+        <p className="mt-4 text-xs font-medium text-slate-500">Low sample. Treat this as directional, not final.</p>
+      )}
+    </section>
+  );
+}
+
+function RecommendationCard({ insight }: { insight: OptimizationRecommendation }) {
+  return (
+    <section className="rounded-3xl border border-white/70 bg-white/88 p-4 shadow-[0_18px_50px_rgba(148,163,184,0.12)] backdrop-blur-md">
+      <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">{insight.label}</p>
+      <h3 className="mt-2 text-lg font-bold text-slate-900">{insight.title}</h3>
+      <p className="mt-4 text-sm leading-6 text-slate-600">{insight.description}</p>
+    </section>
+  );
+}
+
+function ResolutionDetailLabel(row: AffiliatePerformanceRow): string {
+  if (row.resolution_mode === "promotion-link") {
+    return "Affiliate-ready";
+  }
+
+  return normalizeFallbackReasonLabel(row.resolution_mode || "pending");
+}
+
+function ResolutionDetailTone(row: AffiliatePerformanceRow): string {
+  if (row.resolution_mode === "promotion-link") {
+    return "text-emerald-700";
+  }
+
+  return "text-amber-700";
+}
+
+function ResolutionDetailSubcopy(row: AffiliatePerformanceRow): string {
+  if (row.resolution_mode === "promotion-link") {
+    return "Strongest monetized path";
+  }
+
+  return "Needs matcher tuning";
+}
+
+function DominantLabelTone(value: string): string {
+  return value.toLowerCase().includes("legacy") ? "text-amber-700" : "text-slate-800";
+}
+
+function LegacySupportTone(value: number): string {
+  return value > 0 ? "text-amber-700" : "text-slate-500";
+}
+
+function LegacySupportCopy(value: number): string {
+  return value > 0
+    ? `${value} older clicks still sit outside the current direct/search route split.`
+    : "All clicks in this view are already inside the current route split.";
+}
+
+function LegacySupportCard({
+  legacyPromotionLinkClicks,
+  legacyRouteClicks,
+}: {
+  legacyPromotionLinkClicks: number;
+  legacyRouteClicks: number;
+}) {
+  return (
+    <section className="rounded-3xl border border-white/70 bg-white/88 p-4 shadow-[0_18px_50px_rgba(148,163,184,0.12)] backdrop-blur-md">
+      <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">Legacy route support</p>
+      <h3 className="mt-2 text-lg font-bold text-slate-900">{legacyRouteClicks} legacy clicks</h3>
+      <p className={`mt-4 text-sm leading-6 ${LegacySupportTone(legacyRouteClicks)}`}>
+        {LegacySupportCopy(legacyRouteClicks)}
+      </p>
+      <p className="mt-2 text-sm text-slate-600">
+        Promotion-link legacy clicks:{" "}
+        <span className="font-semibold text-slate-900">{legacyPromotionLinkClicks}</span>
+      </p>
     </section>
   );
 }
@@ -1090,6 +1222,13 @@ export default async function AffiliateReportPage({
   const totalPayout = realConversionRows.reduce((sum, row) => sum + parseNumericValue(row.payout), 0);
   const promotionLinkCoverage =
     totalClicks > 0 ? (totalPromotionLinkClicks / totalClicks) * 100 : 0;
+  const legacyRouteClicks = Math.max(0, totalClicks - totalDirectClicks - totalSearchClicks);
+  const legacyPromotionLinkClicks = Math.max(
+    0,
+    totalPromotionLinkClicks -
+      (totalDirectPromotionLinkClicksCount || 0) -
+      (totalSearchPromotionLinkClicksCount || 0)
+  );
   const hiddenTestSales = hiddenTestConversions.reduce(
     (sum, row) => sum + parseNumericValue(row.amount),
     0
@@ -1109,6 +1248,12 @@ export default async function AffiliateReportPage({
         );
   const routeScopedLabel =
     routeFilter === "all" ? "selected route view" : describeRouteFilter(routeFilter).toLowerCase();
+  const optimizationRecommendations = buildOptimizationRecommendations({
+    familyQualityInsights,
+    legacyPromotionLinkClicks,
+    legacyRouteClicks,
+    routeQualityInsights: visibleRouteQualityInsights,
+  });
 
   return (
     <main className="min-h-screen bg-[linear-gradient(180deg,#edf6ff_0%,#f8fbff_45%,#eef5ff_100%)] px-4 py-8 text-slate-900 sm:px-6 lg:px-8">
@@ -1292,6 +1437,26 @@ export default async function AffiliateReportPage({
             <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
               <div>
                 <p className="text-sm font-semibold uppercase tracking-[0.18em] text-slate-500">
+                  Recommended next moves
+                </p>
+                <h3 className="mt-1 text-xl font-bold text-slate-900">What to tune next</h3>
+              </div>
+              <p className="text-sm text-slate-500">
+                A compact read of the strongest path, the weakest family, and how much legacy data is still mixed in.
+              </p>
+            </div>
+
+            <div className="grid gap-4 xl:grid-cols-3">
+              {optimizationRecommendations.map((insight) => (
+                <RecommendationCard key={`${insight.label}-${insight.title}`} insight={insight} />
+              ))}
+            </div>
+          </div>
+
+          <div className="mb-6">
+            <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+              <div>
+                <p className="text-sm font-semibold uppercase tracking-[0.18em] text-slate-500">
                   Link quality
                 </p>
                 <h3 className="mt-1 text-xl font-bold text-slate-900">Route coverage by type</h3>
@@ -1301,10 +1466,16 @@ export default async function AffiliateReportPage({
               </p>
             </div>
 
-            <div className="grid gap-4 xl:grid-cols-2">
+            <div className={`grid gap-4 ${routeFilter === "all" ? "xl:grid-cols-3" : "xl:grid-cols-2"}`}>
               {visibleRouteQualityInsights.map((insight) => (
                 <RouteQualityCard key={insight.label} insight={insight} />
               ))}
+              {routeFilter === "all" && (
+                <LegacySupportCard
+                  legacyPromotionLinkClicks={legacyPromotionLinkClicks}
+                  legacyRouteClicks={legacyRouteClicks}
+                />
+              )}
             </div>
           </div>
 
@@ -1449,11 +1620,11 @@ export default async function AffiliateReportPage({
                         </div>
                       </td>
                       <td className="px-3 py-3 align-top">
-                        <div className="font-semibold text-slate-800">
-                          {row.resolution_mode || "pending"}
+                        <div className={`font-semibold ${ResolutionDetailTone(row)}`}>
+                          {ResolutionDetailLabel(row)}
                         </div>
                         <div className="mt-1 text-xs text-slate-500">
-                          {row.merchant.toUpperCase()}
+                          {ResolutionDetailSubcopy(row)}
                         </div>
                       </td>
                       <td className="px-3 py-3 align-top">
