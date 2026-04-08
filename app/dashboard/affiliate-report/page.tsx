@@ -122,6 +122,17 @@ function formatPesoAmount(value: number): string {
   }).format(value)}`;
 }
 
+function formatPercentValue(value: number): string {
+  if (!Number.isFinite(value)) {
+    return "0%";
+  }
+
+  return `${new Intl.NumberFormat("en-PH", {
+    maximumFractionDigits: 1,
+    minimumFractionDigits: value % 1 === 0 ? 0 : 1,
+  }).format(value)}%`;
+}
+
 function formatDateTime(value: string | null): string {
   if (!value) {
     return "Not converted yet";
@@ -412,6 +423,7 @@ async function loadAffiliateClickRows(input: {
   clicks: AffiliateClickRow[];
   totalClicksCount: number;
   totalDirectClicksCount: number;
+  totalPromotionLinkClicksCount: number;
   totalSearchClicksCount: number;
 }> {
   let totalClicksQuery = supabaseAdmin
@@ -431,6 +443,12 @@ async function loadAffiliateClickRows(input: {
     .eq("merchant", "lazada")
     .eq("catalog_source", "search-backed");
 
+  let totalPromotionLinkClicksQuery = supabaseAdmin
+    .from("affiliate_clicks")
+    .select("id", { count: "exact", head: true })
+    .eq("merchant", "lazada")
+    .eq("resolution_mode", "promotion-link");
+
   let clicksQuery = supabaseAdmin
     .from("affiliate_clicks")
     .select(
@@ -444,14 +462,26 @@ async function loadAffiliateClickRows(input: {
     totalClicksQuery = totalClicksQuery.gte("created_at", input.windowStartIso);
     totalDirectClicksQuery = totalDirectClicksQuery.gte("created_at", input.windowStartIso);
     totalSearchClicksQuery = totalSearchClicksQuery.gte("created_at", input.windowStartIso);
+    totalPromotionLinkClicksQuery = totalPromotionLinkClicksQuery.gte(
+      "created_at",
+      input.windowStartIso
+    );
     clicksQuery = clicksQuery.gte("created_at", input.windowStartIso);
   }
 
   if (input.routeFilter === "direct") {
     totalClicksQuery = totalClicksQuery.in("catalog_source", DIRECT_CATALOG_SOURCES);
+    totalPromotionLinkClicksQuery = totalPromotionLinkClicksQuery.in(
+      "catalog_source",
+      DIRECT_CATALOG_SOURCES
+    );
     clicksQuery = clicksQuery.in("catalog_source", DIRECT_CATALOG_SOURCES);
   } else if (input.routeFilter === "search") {
     totalClicksQuery = totalClicksQuery.eq("catalog_source", "search-backed");
+    totalPromotionLinkClicksQuery = totalPromotionLinkClicksQuery.eq(
+      "catalog_source",
+      "search-backed"
+    );
     clicksQuery = clicksQuery.eq("catalog_source", "search-backed");
   }
 
@@ -459,15 +489,25 @@ async function loadAffiliateClickRows(input: {
     { count: totalClicksCount, error: totalClicksError },
     { count: totalDirectClicksCount, error: totalDirectClicksError },
     { count: totalSearchClicksCount, error: totalSearchClicksError },
+    {
+      count: totalPromotionLinkClicksCount,
+      error: totalPromotionLinkClicksError,
+    },
     clickResult,
   ] = await Promise.all([
     totalClicksQuery,
     totalDirectClicksQuery,
     totalSearchClicksQuery,
+    totalPromotionLinkClicksQuery,
     clicksQuery,
   ]);
 
-  if (totalClicksError || totalDirectClicksError || totalSearchClicksError) {
+  if (
+    totalClicksError ||
+    totalDirectClicksError ||
+    totalSearchClicksError ||
+    totalPromotionLinkClicksError
+  ) {
     throw new Error("Failed to load affiliate report activity.");
   }
 
@@ -477,6 +517,7 @@ async function loadAffiliateClickRows(input: {
       clicks: (clickResult.data || []) as AffiliateClickRow[],
       totalClicksCount: totalClicksCount || 0,
       totalDirectClicksCount: totalDirectClicksCount || 0,
+      totalPromotionLinkClicksCount: totalPromotionLinkClicksCount || 0,
       totalSearchClicksCount: totalSearchClicksCount || 0,
     };
   }
@@ -526,6 +567,7 @@ async function loadAffiliateClickRows(input: {
     clicks: normalizedFallbackClicks,
     totalClicksCount: totalClicksCount || 0,
     totalDirectClicksCount: totalDirectClicksCount || 0,
+    totalPromotionLinkClicksCount: totalPromotionLinkClicksCount || 0,
     totalSearchClicksCount: totalSearchClicksCount || 0,
   };
 }
@@ -651,6 +693,7 @@ export default async function AffiliateReportPage({
     clicks: clickRows,
     totalClicksCount,
     totalDirectClicksCount,
+    totalPromotionLinkClicksCount,
     totalSearchClicksCount,
   } = await loadAffiliateClickRows({
     routeFilter,
@@ -710,10 +753,13 @@ export default async function AffiliateReportPage({
 
   const totalClicks = totalClicksCount || 0;
   const totalDirectClicks = totalDirectClicksCount || 0;
+  const totalPromotionLinkClicks = totalPromotionLinkClicksCount || 0;
   const totalSearchClicks = totalSearchClicksCount || 0;
   const totalConversions = realConversionRows.length;
   const totalSales = realConversionRows.reduce((sum, row) => sum + parseNumericValue(row.amount), 0);
   const totalPayout = realConversionRows.reduce((sum, row) => sum + parseNumericValue(row.payout), 0);
+  const promotionLinkCoverage =
+    totalClicks > 0 ? (totalPromotionLinkClicks / totalClicks) * 100 : 0;
   const hiddenTestSales = hiddenTestConversions.reduce(
     (sum, row) => sum + parseNumericValue(row.amount),
     0
@@ -833,7 +879,7 @@ export default async function AffiliateReportPage({
           )}
         </section>
 
-        <section className="mt-8 grid gap-4 md:grid-cols-2 xl:grid-cols-5">
+        <section className="mt-8 grid gap-4 md:grid-cols-2 xl:grid-cols-6">
           <SummaryCard
             label="Total clicks"
             value={String(totalClicks)}
@@ -848,6 +894,11 @@ export default async function AffiliateReportPage({
             label="Search clicks"
             value={String(totalSearchClicks)}
             helper={`Search-backed Lazada clicks in ${describeWindowFilter(windowFilter).toLowerCase()} across the app.`}
+          />
+          <SummaryCard
+            label="Promotion-link coverage"
+            value={formatPercentValue(promotionLinkCoverage)}
+            helper={`${totalPromotionLinkClicks} of ${totalClicks} Lazada clicks resolved to affiliate-ready promotion links.`}
           />
           <SummaryCard
             label="Mapped conversions"
