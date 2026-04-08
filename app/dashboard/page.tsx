@@ -1373,14 +1373,6 @@ export default function DashboardPage() {
           )}
           <button
             type="button"
-            onClick={() => router.push("/wishlist")}
-            className="inline-flex items-center gap-2 rounded-full border border-white/70 bg-white/90 px-4 py-2.5 text-sm font-semibold text-slate-700 shadow-[0_18px_50px_rgba(148,163,184,0.14)] backdrop-blur-md transition hover:-translate-y-0.5"
-          >
-            <WishlistIcon className="h-4 w-4 text-rose-600" />
-            <span>My Wishlist</span>
-          </button>
-          <button
-            type="button"
             onClick={() => router.push("/notifications")}
             className="relative inline-flex items-center gap-2 rounded-full border border-white/70 bg-white/90 px-4 py-2.5 text-sm font-semibold text-slate-700 shadow-[0_18px_50px_rgba(148,163,184,0.14)] backdrop-blur-md transition hover:-translate-y-0.5"
           >
@@ -1610,7 +1602,7 @@ export default function DashboardPage() {
 
         <section data-fade className="mb-8 grid gap-3 xl:grid-cols-[minmax(0,1.4fr)_340px]">
           <div className="overflow-hidden rounded-[22px] border border-white/70 bg-white/92 p-4 shadow-[0_18px_40px_rgba(148,163,184,0.12)] backdrop-blur-md">
-            <div className="flex flex-wrap items-start justify-between gap-4">
+            <div>
               <div>
                 <div className="inline-flex items-center gap-2 rounded-full bg-blue-100 px-3 py-1 text-xs font-semibold text-blue-700">
                   Activity feed
@@ -1620,14 +1612,6 @@ export default function DashboardPage() {
                   See your latest gift progress, delivery confirmations, draw updates, and group activity in one place.
                 </p>
               </div>
-              <button
-                type="button"
-                onClick={() => router.push("/notifications")}
-                className="inline-flex items-center gap-2 rounded-full bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 shadow-[0_12px_30px_rgba(148,163,184,0.16)] transition hover:-translate-y-0.5"
-              >
-                <span>Open notifications</span>
-                <ArrowRightIcon />
-              </button>
             </div>
 
             <div className="mt-4 overflow-hidden rounded-[20px] border border-slate-200/80 bg-white">
