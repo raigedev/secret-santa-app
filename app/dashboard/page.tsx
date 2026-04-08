@@ -86,6 +86,10 @@ type PendingGroupRow = {
   event_date: string;
 };
 
+type WishlistSummaryRow = {
+  group_id: string;
+};
+
 function createGroupUserKey(groupId: string, userId: string): string {
   return `${groupId}:${userId}`;
 }
@@ -182,6 +186,15 @@ function GiftIcon({ className = "h-5 w-5" }: { className?: string }) {
         strokeWidth="1.8"
         strokeLinejoin="round"
       />
+    </svg>
+  );
+}
+
+function WishlistIcon({ className = "h-5 w-5" }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" className={className} aria-hidden="true">
+      <rect x="5" y="4" width="14" height="16" rx="2" stroke="currentColor" strokeWidth="1.8" />
+      <path d="M9 8h6M9 12h6M9 16h4" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
     </svg>
   );
 }
@@ -302,6 +315,8 @@ export default function DashboardPage() {
   const [pendingInvites, setPendingInvites] = useState<PendingInvite[]>([]);
   const [recipientNames, setRecipientNames] = useState<string[]>([]);
   const [unreadNotificationCount, setUnreadNotificationCount] = useState(0);
+  const [wishlistItemCount, setWishlistItemCount] = useState(0);
+  const [wishlistGroupCount, setWishlistGroupCount] = useState(0);
   const [loading, setLoading] = useState(true);
   const [showProfileSetup, setShowProfileSetup] = useState(false);
   const [actionMessage, setActionMessage] = useState<ActionMessage>(null);
@@ -351,6 +366,8 @@ export default function DashboardPage() {
           setInvitedGroups([]);
           setPendingInvites([]);
           setRecipientNames([]);
+          setWishlistItemCount(0);
+          setWishlistGroupCount(0);
           setLoading(false);
           return;
         }
@@ -365,7 +382,7 @@ export default function DashboardPage() {
           roleMap[row.group_id] = row.role;
         }
 
-        const [groupsRes, membersRes, assignmentsRes, myAssignRes, pendingRes] =
+        const [groupsRes, membersRes, assignmentsRes, myAssignRes, pendingRes, wishlistSummaryRes] =
           await Promise.all([
             acceptedGroupIds.length > 0
               ? supabase
@@ -396,6 +413,13 @@ export default function DashboardPage() {
                   .select("id, name, description, event_date")
                   .in("id", pendingGroupIds)
               : createEmptyQueryResult<PendingGroupRow>(),
+            acceptedGroupIds.length > 0
+              ? supabase
+                  .from("wishlists")
+                  .select("group_id")
+                  .eq("user_id", user.id)
+                  .in("group_id", acceptedGroupIds)
+              : createEmptyQueryResult<WishlistSummaryRow>(),
           ]);
 
         if (groupsRes.error) {
@@ -418,11 +442,16 @@ export default function DashboardPage() {
           throw pendingRes.error;
         }
 
+        if (wishlistSummaryRes.error) {
+          throw wishlistSummaryRes.error;
+        }
+
         const groupsData = groupsRes.data || [];
         const allMembers = membersRes.data || [];
         const allAssignments = assignmentsRes.data || [];
         const myAssignments = myAssignRes.data || [];
         const pendingGroups = pendingRes.data || [];
+        const wishlistSummary = (wishlistSummaryRes.data || []) as WishlistSummaryRow[];
         const drawnGroupIds = new Set(allAssignments.map((assignment) => assignment.group_id));
 
         const groupsWithMembers: Group[] = groupsData.map((group) => ({
@@ -467,6 +496,9 @@ export default function DashboardPage() {
             );
           })
         );
+
+        setWishlistItemCount(wishlistSummary.length);
+        setWishlistGroupCount(new Set(wishlistSummary.map((row) => row.group_id)).size);
 
         setPendingInvites(
           pendingGroups.map((group) => ({
@@ -785,6 +817,7 @@ export default function DashboardPage() {
     prefetchOnce("/notifications");
     prefetchOnce("/secret-santa");
     prefetchOnce("/secret-santa-chat");
+    prefetchOnce("/wishlist");
     prefetchOnce("/create-group");
     prefetchOnce("/profile");
     if (canViewAffiliateReport) {
@@ -1195,6 +1228,14 @@ export default function DashboardPage() {
           )}
           <button
             type="button"
+            onClick={() => router.push("/wishlist")}
+            className="inline-flex items-center gap-2 rounded-full border border-white/70 bg-white/90 px-4 py-2.5 text-sm font-semibold text-slate-700 shadow-[0_18px_50px_rgba(148,163,184,0.14)] backdrop-blur-md transition hover:-translate-y-0.5"
+          >
+            <WishlistIcon className="h-4 w-4 text-rose-600" />
+            <span>My Wishlist</span>
+          </button>
+          <button
+            type="button"
             onClick={() => router.push("/notifications")}
             className="relative inline-flex items-center gap-2 rounded-full border border-white/70 bg-white/90 px-4 py-2.5 text-sm font-semibold text-slate-700 shadow-[0_18px_50px_rgba(148,163,184,0.14)] backdrop-blur-md transition hover:-translate-y-0.5"
           >
@@ -1331,6 +1372,79 @@ export default function DashboardPage() {
               </>
             }
           />
+        </section>
+
+        <section data-fade className="mb-10">
+          <div className="mb-5">
+            <p className="text-sm font-semibold uppercase tracking-[0.18em] text-rose-600">
+              My Wishlist
+            </p>
+            <h2 className="mt-1 text-3xl font-bold text-slate-900">Keep your own gift ideas ready</h2>
+          </div>
+
+          <div className="relative overflow-hidden rounded-[30px] border border-white/70 bg-white/90 p-6 shadow-[0_24px_70px_rgba(148,163,184,0.16)] backdrop-blur-md">
+            <div className="absolute inset-y-0 right-0 w-40 bg-[radial-gradient(circle_at_center,rgba(252,165,165,0.2),transparent_66%)]" />
+            <div className="relative z-10 grid gap-5 lg:grid-cols-[minmax(0,1.1fr)_minmax(0,0.9fr)]">
+              <div>
+                <div className="inline-flex items-center gap-2 rounded-full bg-rose-100 px-3 py-1 text-xs font-semibold text-rose-700">
+                  <WishlistIcon className="h-4 w-4" />
+                  Personal wishlist
+                </div>
+                <h3 className="mt-3 text-2xl font-bold text-slate-900">This is what others shop from for you</h3>
+                <p className="mt-3 max-w-2xl text-sm leading-6 text-slate-600">
+                  We moved your personal wishlist out of <strong>Secret Santa</strong> so that page can stay focused on shopping for your assigned recipient. Use this area to keep your own wanted items, notes, and links organized.
+                </p>
+                <div className="mt-5 flex flex-wrap gap-3">
+                  <button
+                    type="button"
+                    onClick={() => router.push("/wishlist")}
+                    className="inline-flex items-center gap-2 rounded-full bg-[linear-gradient(135deg,#e25d67,#b9384c)] px-5 py-2.5 text-sm font-semibold text-white shadow-[0_14px_35px_rgba(185,56,76,0.24)] transition hover:-translate-y-0.5"
+                  >
+                    <span>Open My Wishlist</span>
+                    <ArrowRightIcon />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => router.push("/secret-santa")}
+                    className="inline-flex items-center gap-2 rounded-full bg-slate-100 px-5 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-200"
+                  >
+                    <span>Back to Gift Planning</span>
+                  </button>
+                </div>
+              </div>
+
+              <div className="rounded-[26px] border border-slate-200 bg-[linear-gradient(180deg,#fff8f8,#fffefe)] p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.9)]">
+                <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-rose-500">
+                  Wishlist snapshot
+                </div>
+                <div className="mt-4 grid gap-3 sm:grid-cols-2">
+                  <div className="rounded-2xl border border-rose-100 bg-white px-4 py-4">
+                    <div className="text-[11px] font-extrabold uppercase tracking-[0.14em] text-slate-400">
+                      Total items
+                    </div>
+                    <div className="mt-2 text-[34px] font-black text-slate-900">{wishlistItemCount}</div>
+                    <div className="mt-1 text-xs text-slate-500">
+                      Ideas currently visible to your Secret Santa.
+                    </div>
+                  </div>
+                  <div className="rounded-2xl border border-rose-100 bg-white px-4 py-4">
+                    <div className="text-[11px] font-extrabold uppercase tracking-[0.14em] text-slate-400">
+                      Active groups
+                    </div>
+                    <div className="mt-2 text-[34px] font-black text-slate-900">{wishlistGroupCount}</div>
+                    <div className="mt-1 text-xs text-slate-500">
+                      Groups where you already added wishlist items.
+                    </div>
+                  </div>
+                </div>
+                <div className="mt-4 rounded-2xl bg-rose-50 px-4 py-3 text-sm text-rose-700">
+                  {wishlistItemCount > 0
+                    ? "Your wishlist is ready to review and refine."
+                    : "You have not added any wishlist items yet. Add a few so your Secret Santa has something to work from."}
+                </div>
+              </div>
+            </div>
+          </div>
         </section>
 
         <section data-fade className="mb-10">
