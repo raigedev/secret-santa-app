@@ -214,6 +214,9 @@ function buildSelectedAngleLabel(
     | Pick<AffiliateClickRow, "fit_label" | "search_query" | "selected_query" | "tracking_label">
     | Pick<AffiliatePerformanceRow, "fit_label" | "search_query" | "selected_query" | "tracking_label">
 ): string {
+  // Newer clicks store the exact Step 1 angle, but older rows only have
+  // fit/tracking labels. Falling back through those fields keeps the report
+  // readable while older data gradually ages out.
   return normalizeInsightLabel(
     row.selected_query,
     row.fit_label || row.tracking_label || summarizeSearchQuery(row.search_query) || "Legacy click"
@@ -221,6 +224,9 @@ function buildSelectedAngleLabel(
 }
 
 function inferItemFamily(value: string): string {
+  // This is intentionally heuristic. The goal is not perfect taxonomy; it is
+  // to group related Lazada clicks into a few practical families we can tune
+  // separately on the owner report.
   const normalized = value.trim().toLowerCase();
 
   if (normalized.length === 0) {
@@ -639,6 +645,9 @@ function buildOptimizationRecommendations(input: {
   legacyRouteClicks: number;
   routeQualityInsights: RouteQualityInsight[];
 }): OptimizationRecommendation[] {
+  // Keep this summary compact and action-oriented so the owner can glance at
+  // the report and immediately know which Lazada path is strongest and where
+  // the weakest family still needs matcher work.
   const recommendations: OptimizationRecommendation[] = [];
 
   const strongestRoute = input.routeQualityInsights
@@ -763,6 +772,9 @@ async function loadAffiliateClickRows(input: {
   }
 
   if (input.routeFilter === "direct") {
+    // Apply the same route filter to the route-specific counters so the
+    // summary row matches the selected view instead of mixing in cross-app
+    // counts from other route families.
     totalClicksQuery = totalClicksQuery.in("catalog_source", DIRECT_CATALOG_SOURCES);
     totalDirectClicksQuery = totalDirectClicksQuery.in("catalog_source", DIRECT_CATALOG_SOURCES);
     totalSearchClicksQuery = totalSearchClicksQuery.in("catalog_source", DIRECT_CATALOG_SOURCES);
@@ -1092,6 +1104,9 @@ function LegacySupportCard({
   legacyPromotionLinkClicks: number;
   legacyRouteClicks: number;
 }) {
+  // Older Lazada clicks predate the current direct/search route split. Calling
+  // that bucket out explicitly explains why total clicks can be larger than the
+  // visible direct + search counts in all-time views.
   return (
     <section className="rounded-3xl border border-white/70 bg-white/88 p-4 shadow-[0_18px_50px_rgba(148,163,184,0.12)] backdrop-blur-md">
       <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">Legacy route support</p>
