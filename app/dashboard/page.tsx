@@ -15,6 +15,8 @@ type GroupMember = {
   nickname: string | null;
   email: string | null;
   role: string;
+  displayName: string | null;
+  avatarEmoji: string | null;
 };
 
 type Group = {
@@ -116,6 +118,12 @@ type DashboardNotificationPreviewItem = {
   href: string | null;
   icon: string;
   tone: DashboardActivityItem["tone"];
+};
+
+type PeerProfileRow = {
+  user_id: string | null;
+  display_name: string | null;
+  avatar_emoji: string | null;
 };
 
 function createGroupUserKey(groupId: string, userId: string): string {
@@ -548,6 +556,7 @@ export default function DashboardPage() {
           pendingRes,
           wishlistSummaryRes,
           activityNotificationsRes,
+          peerProfilesByGroup,
         ] =
           await Promise.all([
             acceptedGroupIds.length > 0
@@ -595,6 +604,24 @@ export default function DashboardPage() {
               .in("type", ["invite", "chat", "draw", "reveal", "gift_received"])
               .order("created_at", { ascending: false })
               .limit(8),
+            acceptedGroupIds.length > 0
+              ? Promise.all(
+                  acceptedGroupIds.map(async (groupId) => {
+                    const result = await supabase.rpc("list_group_peer_profiles", {
+                      p_group_id: groupId,
+                    });
+
+                    if (result.error) {
+                      throw result.error;
+                    }
+
+                    return {
+                      groupId,
+                      profiles: (result.data || []) as PeerProfileRow[],
+                    };
+                  })
+                )
+              : Promise.resolve([] as { groupId: string; profiles: PeerProfileRow[] }[]),
           ]);
 
         if (groupsRes.error) {
@@ -635,18 +662,51 @@ export default function DashboardPage() {
           (activityNotificationsRes.data || []) as NotificationFeedRow[];
         const drawnGroupIds = new Set(allAssignments.map((assignment) => assignment.group_id));
 
-        const groupsWithMembers: Group[] = groupsData.map((group) => ({
-          ...group,
-          isOwner: roleMap[group.id] === "owner",
-          hasDrawn: drawnGroupIds.has(group.id),
-          members: allMembers
-            .filter((member) => member.group_id === group.id)
-            .map((member) => ({
-              nickname: member.nickname,
-              email: member.email,
-              role: member.role,
-            })),
-        }));
+        const profileMapByGroup = new Map<
+          string,
+          Map<string, { avatarEmoji: string | null; displayName: string | null }>
+        >();
+
+        for (const entry of peerProfilesByGroup) {
+          const profileMap = new Map<
+            string,
+            { avatarEmoji: string | null; displayName: string | null }
+          >();
+
+          for (const profile of entry.profiles) {
+            if (profile.user_id) {
+              profileMap.set(profile.user_id, {
+                avatarEmoji: profile.avatar_emoji || null,
+                displayName: profile.display_name || null,
+              });
+            }
+          }
+
+          profileMapByGroup.set(entry.groupId, profileMap);
+        }
+
+        const groupsWithMembers: Group[] = groupsData.map((group) => {
+          const groupProfileMap = profileMapByGroup.get(group.id) || new Map();
+
+          return {
+            ...group,
+            isOwner: roleMap[group.id] === "owner",
+            hasDrawn: drawnGroupIds.has(group.id),
+            members: allMembers
+              .filter((member) => member.group_id === group.id)
+              .map((member) => {
+                const profile = member.user_id ? groupProfileMap.get(member.user_id) : null;
+
+                return {
+                  nickname: member.nickname,
+                  email: member.email,
+                  role: member.role,
+                  displayName: profile?.displayName || null,
+                  avatarEmoji: profile?.avatarEmoji || null,
+                };
+              }),
+          };
+        });
 
         if (!isMounted) {
           return;
@@ -1161,8 +1221,10 @@ export default function DashboardPage() {
             drawPillPending: "bg-amber-100 text-amber-700",
             primaryButton:
               "bg-[linear-gradient(135deg,#c26d18,#8b4513)] shadow-[0_14px_35px_rgba(120,53,15,0.24)]",
-            secondaryButton: "bg-amber-50 text-amber-700 hover:bg-amber-100",
-          };
+          secondaryButton: "bg-amber-50 text-amber-700 hover:bg-amber-100",
+        };
+
+    const topMembers = group.members.slice(0, 3);
 
     return (
       <article
@@ -1172,61 +1234,59 @@ export default function DashboardPage() {
         <div className="relative z-10">
           <div className="flex items-start justify-between gap-3">
             <div className="min-w-0">
-              <div className="flex flex-wrap items-center gap-2">
-                <span className={`inline-flex rounded-full px-2.5 py-1 text-[11px] font-semibold ${theme.eyebrow}`}>
-                  {type === "owned" ? "My group" : "Invited group"}
-                </span>
-              </div>
-
-              <h3 className="mt-3 text-[1.35rem] font-extrabold leading-tight text-slate-900">
+              <h3 className="text-[1.35rem] font-extrabold leading-tight text-slate-900">
                 {group.name}
               </h3>
-              {group.description ? (
-                <p className={`mt-1 text-sm leading-5 ${theme.bodyText} line-clamp-1`}>
-                  {group.description}
-                </p>
-              ) : null}
             </div>
-            <div className="shrink-0 rounded-full bg-slate-100 px-2.5 py-1 text-[11px] font-semibold text-slate-600">
-              {group.members.length} members
+            <div className="shrink-0 rounded-full bg-slate-200 px-3 py-1 text-[11px] font-semibold text-slate-600">
+              {type === "owned" ? "Hosted by you" : "Shared group"}
             </div>
           </div>
 
           <div className="mt-3 flex items-center justify-between gap-3">
-            <span
-              className={`inline-flex rounded-full px-2.5 py-1 text-[11px] font-semibold ${
-                group.hasDrawn ? theme.drawPillDone : theme.drawPillPending
-              }`}
-            >
-              {group.hasDrawn ? "Draw completed" : "Awaiting draw"}
-            </span>
+            <div className="flex flex-wrap items-center gap-2">
+              <span className={`inline-flex rounded-full px-3 py-1 text-[11px] font-semibold ${theme.eyebrow}`}>
+                {type === "owned" ? "My group" : "Invited group"}
+              </span>
+              <span
+                className={`inline-flex rounded-full px-3 py-1 text-[11px] font-semibold ${
+                  group.hasDrawn ? theme.drawPillDone : theme.drawPillPending
+                }`}
+              >
+                {group.hasDrawn ? "Draw completed" : "Awaiting draw"}
+              </span>
+            </div>
+
             <div className="flex -space-x-2">
-              {group.members.slice(0, 3).map((member, index) => (
+              {topMembers.map((member, index) => (
                 <span
                   key={`${group.id}-${member.email || member.nickname || index}-avatar`}
-                  className="inline-flex h-8 w-8 items-center justify-center rounded-full border-2 border-white bg-slate-200 text-xs font-bold text-slate-700 shadow-sm"
-                  title={member.nickname || member.email || "Participant"}
+                  className="inline-flex h-9 w-9 items-center justify-center rounded-full border-2 border-white bg-slate-100 text-base shadow-sm"
+                  title={member.displayName || member.nickname || member.email || "Participant"}
                 >
-                  {getAvatarLabel(member.nickname || member.email)}
+                  {member.avatarEmoji || getAvatarLabel(member.displayName || member.nickname || member.email)}
                 </span>
               ))}
               {group.members.length > 3 && (
-                <span className="inline-flex h-8 w-8 items-center justify-center rounded-full border-2 border-white bg-slate-100 text-[11px] font-bold text-slate-500 shadow-sm">
+                <span className="inline-flex h-9 w-9 items-center justify-center rounded-full border-2 border-white bg-slate-200 text-[11px] font-bold text-slate-600 shadow-sm">
                   +{group.members.length - 3}
                 </span>
               )}
             </div>
           </div>
 
-          <div className="mt-3 rounded-[18px] border border-slate-200/80 bg-slate-50/90 p-3">
-            <div className="flex flex-wrap items-center gap-2">
+          <div className="mt-3 rounded-[18px] border border-slate-200/80 bg-slate-50/90 px-3 py-3">
+            <div className="flex flex-wrap items-center gap-2 text-sm text-slate-700">
               <EventCountdownBadge eventDate={group.event_date} />
               {budgetLabel && (
-                <span className="inline-flex items-center gap-2 rounded-full bg-emerald-50 px-2.5 py-1 text-xs font-semibold text-emerald-700">
-                  <span className="h-2 w-2 rounded-full bg-emerald-500" />
+                <span className="inline-flex items-center gap-2 font-semibold text-slate-700">
+                  <span className="h-2.5 w-2.5 rounded-full bg-emerald-500" />
                   Budget: {budgetLabel}
                 </span>
               )}
+              <span className="ml-auto text-slate-400">
+                <ArrowRightIcon />
+              </span>
             </div>
           </div>
 
@@ -1236,7 +1296,7 @@ export default function DashboardPage() {
               onClick={() => router.push(`/group/${group.id}`)}
               className={`inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm font-semibold text-white transition hover:-translate-y-0.5 ${theme.primaryButton}`}
             >
-              <span>View group</span>
+              <span>{type === "owned" ? "View Group" : "Open Group"}</span>
               <ArrowRightIcon />
             </button>
             {type === "owned" && (
