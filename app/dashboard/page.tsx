@@ -2519,7 +2519,7 @@ export default function DashboardPage() {
               </section>
             </div>
           ) : (
-            <div className="grid gap-3 lg:grid-cols-2">
+            <div className="grid gap-2 lg:grid-cols-2">
               {dashboardGroups.map(({ group, type }) => (
                 <GroupCard key={`${type}-${group.id}`} group={group} type={type} />
               ))}
