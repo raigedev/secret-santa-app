@@ -401,7 +401,7 @@ function EventCountdownBadge({ eventDate }: { eventDate: string }) {
 
   if (Number.isNaN(eventTime)) {
     return (
-      <span className="inline-flex items-center gap-2 rounded-full bg-slate-50 px-2.5 py-1 text-xs font-semibold text-slate-600">
+      <span className="inline-flex items-center gap-1.5 rounded-full bg-slate-50 px-2.5 py-1 text-[11px] font-semibold text-slate-600">
         <span className="h-2 w-2 rounded-full bg-blue-500" />
         Event date: {formatDashboardDate(eventDate)}
       </span>
@@ -412,7 +412,7 @@ function EventCountdownBadge({ eventDate }: { eventDate: string }) {
 
   if (remaining === 0) {
     return (
-      <span className="inline-flex items-center gap-2 rounded-full bg-amber-50 px-2.5 py-1 text-xs font-semibold text-amber-700">
+      <span className="inline-flex items-center gap-1.5 rounded-full bg-amber-50 px-2.5 py-1 text-[11px] font-semibold text-amber-700">
         <span className="h-2 w-2 rounded-full bg-amber-500" />
         Event in progress!
       </span>
@@ -439,18 +439,18 @@ function EventCountdownBadge({ eventDate }: { eventDate: string }) {
 
   return (
     <span
-      className={`inline-flex items-center gap-1.5 rounded-full border px-2 py-1 text-xs font-semibold shadow-[0_6px_18px_rgba(15,23,42,0.06)] ${containerStyle}`}
+      className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[11px] font-semibold shadow-[0_6px_18px_rgba(15,23,42,0.06)] ${containerStyle}`}
       title={`Event date: ${formatDashboardDate(eventDate)}`}
     >
       <span className={`h-2 w-2 rounded-full animate-pulse ${dotStyle}`} />
       <span className="text-[9px] font-extrabold uppercase tracking-[0.12em] opacity-80">Starts in</span>
-      <span className={`inline-flex items-center rounded-md px-1.5 py-0.5 font-bold tabular-nums ${unitStyle}`}>
+      <span className={`inline-flex items-center rounded-md px-1.5 py-0.5 text-[11px] font-bold tabular-nums ${unitStyle}`}>
         {days}d
       </span>
-      <span className={`inline-flex items-center rounded-md px-1.5 py-0.5 font-bold tabular-nums ${unitStyle}`}>
+      <span className={`inline-flex items-center rounded-md px-1.5 py-0.5 text-[11px] font-bold tabular-nums ${unitStyle}`}>
         {hours}h
       </span>
-      <span className={`inline-flex items-center rounded-md px-1.5 py-0.5 font-bold tabular-nums ${unitStyle}`}>
+      <span className={`inline-flex items-center rounded-md px-1.5 py-0.5 text-[11px] font-bold tabular-nums ${unitStyle}`}>
         {minutes}m
       </span>
     </span>
@@ -1200,55 +1200,57 @@ export default function DashboardPage() {
       type === "owned"
         ? {
             accent: "from-blue-400 via-sky-400 to-blue-600",
-            surface: "bg-white/94",
-            shadow: "shadow-[0_18px_40px_rgba(148,163,184,0.16)]",
+            surface: "bg-white/96",
+            shadow: "shadow-[0_18px_40px_rgba(148,163,184,0.14)]",
             eyebrow: "bg-blue-100 text-blue-700",
-            bodyText: "text-slate-600",
             drawPillDone: "bg-emerald-100 text-emerald-700",
             drawPillPending: "bg-sky-100 text-sky-700",
             primaryButton:
-              "bg-[linear-gradient(135deg,#2f80ff,#1f66e5)] shadow-[0_14px_35px_rgba(37,99,235,0.24)]",
+              "bg-[linear-gradient(135deg,#2f80ff,#1f66e5)] shadow-[0_14px_35px_rgba(37,99,235,0.20)]",
             secondaryButton: "bg-blue-50 text-blue-700 hover:bg-blue-100",
+            avatarShell: "bg-[linear-gradient(145deg,#f8fbff,#e8f1ff)] text-slate-700",
+            stripArrow: "bg-blue-50 text-blue-400",
           }
         : {
             accent: "from-amber-300 via-orange-300 to-amber-500",
-            surface: "bg-white/94",
-            shadow: "shadow-[0_18px_40px_rgba(148,163,184,0.16)]",
+            surface: "bg-white/96",
+            shadow: "shadow-[0_18px_40px_rgba(148,163,184,0.14)]",
             eyebrow: "bg-amber-100 text-amber-700",
-            bodyText: "text-slate-600",
             drawPillDone: "bg-emerald-100 text-emerald-700",
             drawPillPending: "bg-amber-100 text-amber-700",
             primaryButton:
-              "bg-[linear-gradient(135deg,#c26d18,#8b4513)] shadow-[0_14px_35px_rgba(120,53,15,0.24)]",
-          secondaryButton: "bg-amber-50 text-amber-700 hover:bg-amber-100",
+              "bg-[linear-gradient(135deg,#c26d18,#8b4513)] shadow-[0_14px_35px_rgba(120,53,15,0.20)]",
+            secondaryButton: "bg-amber-50 text-amber-700 hover:bg-amber-100",
+            avatarShell: "bg-[linear-gradient(145deg,#fffaf2,#fff1d6)] text-slate-700",
+            stripArrow: "bg-amber-50 text-amber-400",
         };
 
     const topMembers = group.members.slice(0, 3);
 
     return (
       <article
-        className={`relative overflow-hidden rounded-[20px] border border-white/70 p-4 ${theme.surface} ${theme.shadow}`}
+        className={`relative overflow-hidden rounded-[24px] border border-white/75 px-4 py-3.5 ${theme.surface} ${theme.shadow}`}
       >
         <div className={`absolute inset-x-0 top-0 h-1.5 bg-gradient-to-r ${theme.accent}`} />
         <div className="relative z-10">
           <div className="flex items-start justify-between gap-3">
             <div className="min-w-0">
-              <h3 className="text-[1.35rem] font-extrabold leading-tight text-slate-900">
+              <h3 className="text-[1.05rem] font-extrabold leading-tight text-slate-900 sm:text-[1.15rem]">
                 {group.name}
               </h3>
             </div>
-            <div className="shrink-0 rounded-full bg-slate-200 px-3 py-1 text-[11px] font-semibold text-slate-600">
+            <div className="shrink-0 rounded-full bg-slate-200 px-3 py-1 text-[10px] font-semibold text-slate-600">
               {type === "owned" ? "Hosted by you" : "Shared group"}
             </div>
           </div>
 
-          <div className="mt-3 flex items-center justify-between gap-3">
-            <div className="flex flex-wrap items-center gap-2">
-              <span className={`inline-flex rounded-full px-3 py-1 text-[11px] font-semibold ${theme.eyebrow}`}>
+          <div className="mt-2.5 flex items-center justify-between gap-3">
+            <div className="flex flex-wrap items-center gap-1.5">
+              <span className={`inline-flex rounded-full px-3 py-1 text-[10px] font-semibold ${theme.eyebrow}`}>
                 {type === "owned" ? "My group" : "Invited group"}
               </span>
               <span
-                className={`inline-flex rounded-full px-3 py-1 text-[11px] font-semibold ${
+                className={`inline-flex rounded-full px-3 py-1 text-[10px] font-semibold ${
                   group.hasDrawn ? theme.drawPillDone : theme.drawPillPending
                 }`}
               >
@@ -1256,62 +1258,72 @@ export default function DashboardPage() {
               </span>
             </div>
 
-            <div className="flex -space-x-2">
+            <div className="flex shrink-0 -space-x-2.5 pl-2">
               {topMembers.map((member, index) => (
                 <span
                   key={`${group.id}-${member.email || member.nickname || index}-avatar`}
-                  className="inline-flex h-9 w-9 items-center justify-center rounded-full border-2 border-white bg-slate-100 text-base shadow-sm"
+                  className={`inline-flex h-9 w-9 items-center justify-center rounded-full border-2 border-white text-sm font-semibold shadow-[0_8px_18px_rgba(15,23,42,0.10)] ${theme.avatarShell}`}
                   title={member.displayName || member.nickname || member.email || "Participant"}
                 >
                   {member.avatarEmoji || getAvatarLabel(member.displayName || member.nickname || member.email)}
                 </span>
               ))}
               {group.members.length > 3 && (
-                <span className="inline-flex h-9 w-9 items-center justify-center rounded-full border-2 border-white bg-slate-200 text-[11px] font-bold text-slate-600 shadow-sm">
+                <span className="inline-flex h-9 w-9 items-center justify-center rounded-full border-2 border-white bg-slate-200 text-[10px] font-bold text-slate-600 shadow-[0_8px_18px_rgba(15,23,42,0.10)]">
                   +{group.members.length - 3}
                 </span>
               )}
             </div>
           </div>
 
-          <div className="mt-3 rounded-[18px] border border-slate-200/80 bg-slate-50/90 px-3 py-3">
+          <div className="mt-3 rounded-[20px] border border-slate-200/80 bg-slate-50/95 px-3 py-2.5">
             <div className="flex flex-wrap items-center gap-2 text-sm text-slate-700">
               <EventCountdownBadge eventDate={group.event_date} />
               {budgetLabel && (
-                <span className="inline-flex items-center gap-2 font-semibold text-slate-700">
+                <span className="inline-flex items-center gap-2 text-[13px] font-semibold text-slate-700">
                   <span className="h-2.5 w-2.5 rounded-full bg-emerald-500" />
                   Budget: {budgetLabel}
                 </span>
               )}
-              <span className="ml-auto text-slate-400">
-                <ArrowRightIcon />
+              <span className={`ml-auto inline-flex h-7 w-7 items-center justify-center rounded-full ${theme.stripArrow}`}>
+                <ArrowRightIcon className="h-4 w-4" />
               </span>
             </div>
           </div>
 
-          <div className="mt-3 flex flex-wrap items-center gap-2">
+          <div className="mt-3 flex items-center justify-between gap-3 border-t border-slate-200/80 pt-3">
+            <div className="flex flex-wrap items-center gap-2">
+              <button
+                type="button"
+                onClick={() => router.push(`/group/${group.id}`)}
+                className={`inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm font-semibold text-white transition hover:-translate-y-0.5 ${theme.primaryButton}`}
+              >
+                <span>{type === "owned" ? "View Group" : "Open Group"}</span>
+                <ArrowRightIcon />
+              </button>
+              {type === "owned" && (
+                <button
+                  type="button"
+                  onClick={() => void handleDeleteGroup(group.id, group.name)}
+                  disabled={deletingGroupId === group.id}
+                  className={`inline-flex items-center gap-2 rounded-full px-3 py-2 text-sm font-semibold transition ${
+                    deletingGroupId === group.id
+                      ? "cursor-wait bg-rose-100 text-rose-500"
+                      : theme.secondaryButton
+                  }`}
+                >
+                  {deletingGroupId === group.id ? "Deleting..." : "Delete"}
+                </button>
+              )}
+            </div>
             <button
               type="button"
               onClick={() => router.push(`/group/${group.id}`)}
-              className={`inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm font-semibold text-white transition hover:-translate-y-0.5 ${theme.primaryButton}`}
+              className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-400 transition hover:border-slate-300 hover:text-slate-600"
+              aria-label={`Open ${group.name}`}
             >
-              <span>{type === "owned" ? "View Group" : "Open Group"}</span>
               <ArrowRightIcon />
             </button>
-            {type === "owned" && (
-              <button
-                type="button"
-                onClick={() => void handleDeleteGroup(group.id, group.name)}
-                disabled={deletingGroupId === group.id}
-                className={`inline-flex items-center gap-2 rounded-full px-3.5 py-2 text-sm font-semibold transition ${
-                  deletingGroupId === group.id
-                    ? "cursor-wait bg-rose-100 text-rose-500"
-                    : theme.secondaryButton
-                }`}
-              >
-                {deletingGroupId === group.id ? "Deleting..." : "Delete"}
-              </button>
-            )}
           </div>
         </div>
       </article>
