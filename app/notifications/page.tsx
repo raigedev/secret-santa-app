@@ -404,7 +404,7 @@ export default function NotificationsPage() {
                   <p className="mt-2 max-w-[680px] text-sm leading-6 text-slate-600">
                     Choose which reminder types we should send, and whether they arrive immediately
                     or as one daily digest. Daily digest groups reminders into one in-app update
-                    around 9:00 AM Manila.
+                    during the scheduled reminder run.
                   </p>
                 </div>
                 <button
@@ -479,12 +479,12 @@ export default function NotificationsPage() {
                   <div className="mt-3 grid gap-3">
                     {[
                       {
-                        description: "Send reminders as soon as they become due during the hourly reminder run.",
+                        description: "Send each reminder as its own notification during the next scheduled reminder processing run.",
                         label: "Immediate",
                         value: "immediate" as const,
                       },
                       {
-                        description: "Bundle due reminders into one daily in-app digest around 9:00 AM Manila.",
+                        description: "Bundle due reminders into one daily in-app digest during the scheduled reminder processing run.",
                         label: "Daily digest",
                         value: "daily_digest" as const,
                       },
