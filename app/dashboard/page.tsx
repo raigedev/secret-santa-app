@@ -381,6 +381,37 @@ function UserOutlineIcon({ className = "h-4 w-4" }: { className?: string }) {
   );
 }
 
+function SantaMarkIcon({ size = 22 }: { size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="10 5 140 145" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+      <defs>
+        <linearGradient id={`dashboard-santa-hat-${size}`} x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stopColor="#e74c3c" />
+          <stop offset="100%" stopColor="#c0392b" />
+        </linearGradient>
+      </defs>
+      <circle cx="80" cy="82" r="50" fill="#fde8e8" />
+      <ellipse cx="80" cy="108" rx="38" ry="24" fill="#fff" />
+      <ellipse cx="80" cy="102" rx="32" ry="16" fill="#fff" />
+      <ellipse cx="66" cy="86" rx="12" ry="6" fill="#fff" />
+      <ellipse cx="94" cy="86" rx="12" ry="6" fill="#fff" />
+      <circle cx="80" cy="76" r="5" fill="#e8a8a8" />
+      <ellipse cx="64" cy="66" rx="5" ry="6" fill="#fff" />
+      <ellipse cx="64" cy="67" rx="4" ry="5" fill="#2c1810" />
+      <circle cx="62" cy="65" r="1.8" fill="#fff" />
+      <path d="M90 66 Q96 60 102 66" fill="none" stroke="#2c1810" strokeWidth="3.5" strokeLinecap="round" />
+      <path d="M54 58 Q64 51 74 58" fill="none" stroke="#c4a090" strokeWidth="2.5" strokeLinecap="round" />
+      <path d="M86 58 Q96 51 106 58" fill="none" stroke="#c4a090" strokeWidth="2.5" strokeLinecap="round" />
+      <ellipse cx="52" cy="78" rx="7" ry="5" fill="#f0a0a0" opacity=".3" />
+      <ellipse cx="108" cy="78" rx="7" ry="5" fill="#f0a0a0" opacity=".3" />
+      <rect x="76" y="84" width="9" height="26" rx="4.5" fill="#f8d0d0" stroke="#e8b8b8" strokeWidth=".8" />
+      <path d="M32 58 C32 58 50 14 82 10 C114 6 128 58 128 58" fill={`url(#dashboard-santa-hat-${size})`} />
+      <rect x="26" y="54" width="108" height="10" rx="5" fill="#fff" />
+      <circle cx="86" cy="10" r="8" fill="#fff" />
+    </svg>
+  );
+}
+
 function WishlistIcon({ className = "h-5 w-5" }: { className?: string }) {
   return (
     <svg viewBox="0 0 24 24" fill="none" className={className} aria-hidden="true">
@@ -1490,8 +1521,8 @@ export default function DashboardPage() {
         <div data-fade className="mb-6 flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
           <div className="text-center lg:text-left">
             <div className="inline-flex items-center gap-3 rounded-full border border-white/80 bg-white/95 px-4 py-2.5 text-[13px] font-semibold uppercase tracking-[0.16em] text-sky-600 shadow-[0_18px_50px_rgba(148,163,184,0.14)] backdrop-blur-md">
-              <span className="inline-flex h-6 w-6 items-center justify-center rounded-full bg-sky-600 text-white">
-                <GiftIcon className="h-3.5 w-3.5" />
+              <span className="inline-flex h-7 w-7 items-center justify-center overflow-hidden rounded-full bg-white shadow-[0_6px_16px_rgba(14,116,219,0.18)]">
+                <SantaMarkIcon size={20} />
               </span>
               <span>Secret Santa Home</span>
             </div>
