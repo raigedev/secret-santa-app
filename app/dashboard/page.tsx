@@ -1264,18 +1264,18 @@ export default function DashboardPage() {
                 {group.name}
               </h3>
             </div>
-            <div className="shrink-0 rounded-full bg-slate-200 px-3 py-1 text-[10px] font-semibold text-slate-600">
+            <div className="shrink-0 rounded-full bg-slate-200 px-3 py-1 text-[11px] font-semibold text-slate-600">
               {type === "owned" ? "Hosted by you" : "Shared group"}
             </div>
           </div>
 
           <div className="mt-2 flex items-center justify-between gap-2.5">
             <div className="flex flex-wrap items-center gap-1.5">
-              <span className={`inline-flex rounded-full px-3 py-1 text-[10px] font-semibold ${theme.eyebrow}`}>
+              <span className={`inline-flex rounded-full px-3 py-1 text-[11px] font-semibold ${theme.eyebrow}`}>
                 {type === "owned" ? "My group" : "Invited group"}
               </span>
               <span
-                className={`inline-flex rounded-full px-3 py-1 text-[10px] font-semibold ${
+                className={`inline-flex rounded-full px-3 py-1 text-[11px] font-semibold ${
                   group.hasDrawn ? theme.drawPillDone : theme.drawPillPending
                 }`}
               >
@@ -1299,7 +1299,7 @@ export default function DashboardPage() {
                 </span>
               ))}
               {group.members.length > 3 && (
-                <span className="inline-flex h-10 w-10 items-center justify-center rounded-full border-2 border-white bg-slate-200 text-[10px] font-bold text-slate-600 shadow-[0_8px_18px_rgba(15,23,42,0.10)]">
+                <span className="inline-flex h-10 w-10 items-center justify-center rounded-full border-2 border-white bg-slate-200 text-[11px] font-bold text-slate-600 shadow-[0_8px_18px_rgba(15,23,42,0.10)]">
                   +{group.members.length - 3}
                 </span>
               )}
@@ -1310,7 +1310,7 @@ export default function DashboardPage() {
             <div className="flex flex-wrap items-center gap-2 text-sm text-slate-700">
               <EventCountdownBadge eventDate={group.event_date} />
               {budgetLabel && (
-                <span className="inline-flex items-center gap-1.5 text-[13px] font-semibold text-slate-700">
+                <span className="inline-flex items-center gap-1.5 text-[14px] font-semibold text-slate-700">
                   <span className="h-2.5 w-2.5 rounded-full bg-emerald-500" />
                   Budget: {budgetLabel}
                 </span>
@@ -1336,7 +1336,7 @@ export default function DashboardPage() {
                   type="button"
                   onClick={() => void handleDeleteGroup(group.id, group.name)}
                   disabled={deletingGroupId === group.id}
-                  className={`inline-flex items-center gap-2 rounded-full px-3 py-2 text-[14px] font-semibold transition ${
+                className={`inline-flex items-center gap-2 rounded-full px-3 py-2 text-[14px] font-semibold transition ${
                     deletingGroupId === group.id
                       ? "cursor-wait bg-rose-100 text-rose-500"
                       : theme.secondaryButton
@@ -1491,10 +1491,10 @@ export default function DashboardPage() {
           <button
             type="button"
             onClick={() => router.push("/secret-santa")}
-            className="inline-flex items-center gap-3 rounded-full border border-white/80 bg-white/95 px-5 py-3 text-sm font-semibold uppercase tracking-[0.24em] text-sky-600 shadow-[0_18px_50px_rgba(148,163,184,0.14)] backdrop-blur-md transition hover:-translate-y-0.5"
+            className="inline-flex items-center gap-3 rounded-full border border-white/80 bg-white/95 px-5 py-3 text-[14px] font-semibold uppercase tracking-[0.18em] text-sky-600 shadow-[0_18px_50px_rgba(148,163,184,0.14)] backdrop-blur-md transition hover:-translate-y-0.5"
           >
-            <span className="inline-flex h-6 w-6 items-center justify-center rounded-full bg-sky-600 text-white">
-              <GiftIcon className="h-3.5 w-3.5" />
+            <span className="inline-flex h-7 w-7 items-center justify-center rounded-full bg-sky-600 text-white">
+              <GiftIcon className="h-4 w-4" />
             </span>
             <span>Secret Santa</span>
           </button>
@@ -1502,21 +1502,21 @@ export default function DashboardPage() {
             <button
               type="button"
               onClick={() => router.push("/dashboard/affiliate-report")}
-              className="inline-flex items-center gap-2 rounded-full border border-white/80 bg-white/95 px-4 py-3 text-sm font-semibold text-slate-700 shadow-[0_18px_50px_rgba(148,163,184,0.14)] backdrop-blur-md transition hover:-translate-y-0.5"
+              className="inline-flex items-center gap-2.5 rounded-full border border-white/80 bg-white/95 px-4 py-3 text-[15px] font-semibold text-slate-700 shadow-[0_18px_50px_rgba(148,163,184,0.14)] backdrop-blur-md transition hover:-translate-y-0.5"
             >
-              <ReportIcon className="h-4 w-4 text-slate-500" />
+              <ReportIcon className="h-[18px] w-[18px] text-slate-500" />
               <span>Affiliate report</span>
             </button>
           )}
           <button
             type="button"
             onClick={() => router.push("/notifications")}
-            className="relative inline-flex items-center gap-2 rounded-full border border-white/80 bg-white/95 px-4 py-3 text-sm font-semibold text-slate-700 shadow-[0_18px_50px_rgba(148,163,184,0.14)] backdrop-blur-md transition hover:-translate-y-0.5"
+            className="relative inline-flex items-center gap-2.5 rounded-full border border-white/80 bg-white/95 px-4 py-3 text-[15px] font-semibold text-slate-700 shadow-[0_18px_50px_rgba(148,163,184,0.14)] backdrop-blur-md transition hover:-translate-y-0.5"
           >
-            <BellIcon className="h-4 w-4 text-slate-500" />
+            <BellIcon className="h-[18px] w-[18px] text-slate-500" />
             <span>Notifications</span>
             {unreadNotificationCount > 0 && (
-              <span className="absolute -right-1 -top-1 inline-flex min-h-5 min-w-5 items-center justify-center rounded-full bg-rose-500 px-1 text-[10px] font-bold text-white shadow-[0_8px_18px_rgba(244,63,94,0.28)]">
+              <span className="absolute -right-1 -top-1 inline-flex min-h-6 min-w-6 items-center justify-center rounded-full bg-rose-500 px-1 text-[11px] font-bold text-white shadow-[0_8px_18px_rgba(244,63,94,0.28)]">
                 {unreadNotificationCount > 99 ? "99+" : unreadNotificationCount}
               </span>
             )}
@@ -1524,9 +1524,9 @@ export default function DashboardPage() {
           <button
             type="button"
             onClick={() => router.push("/profile")}
-            className="inline-flex items-center gap-2 rounded-full border border-white/80 bg-white/95 px-4 py-3 text-sm font-semibold text-slate-700 shadow-[0_18px_50px_rgba(148,163,184,0.14)] backdrop-blur-md transition hover:-translate-y-0.5"
+            className="inline-flex items-center gap-2.5 rounded-full border border-white/80 bg-white/95 px-4 py-3 text-[15px] font-semibold text-slate-700 shadow-[0_18px_50px_rgba(148,163,184,0.14)] backdrop-blur-md transition hover:-translate-y-0.5"
           >
-            <UserOutlineIcon className="h-4 w-4 text-slate-500" />
+            <UserOutlineIcon className="h-[18px] w-[18px] text-slate-500" />
             <span>Profile</span>
           </button>
         </div>
@@ -1535,7 +1535,7 @@ export default function DashboardPage() {
           <h1 className="text-4xl font-bold tracking-tight text-sky-900 sm:text-[3.35rem]">
             Welcome back, {displayFirstName}
           </h1>
-          <p className="mt-2 text-sm text-slate-500">
+          <p className="mt-2 text-[15px] text-slate-600">
             Manage your groups, draws, and chats in one place.
           </p>
         </div>
