@@ -354,6 +354,33 @@ function GiftIcon({ className = "h-5 w-5" }: { className?: string }) {
   );
 }
 
+function ReportIcon({ className = "h-4 w-4" }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 20 20" fill="none" className={className} aria-hidden="true">
+      <path
+        d="M6 4.5h8A1.5 1.5 0 0 1 15.5 6v8A1.5 1.5 0 0 1 14 15.5H6A1.5 1.5 0 0 1 4.5 14V6A1.5 1.5 0 0 1 6 4.5Z"
+        stroke="currentColor"
+        strokeWidth="1.6"
+      />
+      <path d="M7.5 8h5M7.5 10.5h5M7.5 13h3" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+    </svg>
+  );
+}
+
+function UserOutlineIcon({ className = "h-4 w-4" }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 20 20" fill="none" className={className} aria-hidden="true">
+      <path
+        d="M10 10a2.75 2.75 0 1 0 0-5.5A2.75 2.75 0 0 0 10 10ZM5.5 15.5c.7-2.1 2.45-3.25 4.5-3.25s3.8 1.15 4.5 3.25"
+        stroke="currentColor"
+        strokeWidth="1.6"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
+
 function WishlistIcon({ className = "h-5 w-5" }: { className?: string }) {
   return (
     <svg viewBox="0 0 24 24" fill="none" className={className} aria-hidden="true">
@@ -468,12 +495,6 @@ export default function DashboardPage() {
   );
   const [userName, setUserName] = useState(
     () => (typeof sessionStorage !== "undefined" ? (sessionStorage.getItem("ss_un") ?? "") : "")
-  );
-  const [userAvatarUrl, setUserAvatarUrl] = useState(
-    () => (typeof sessionStorage !== "undefined" ? (sessionStorage.getItem("ss_uau") ?? "") : "")
-  );
-  const [userEmoji, setUserEmoji] = useState(
-    () => (typeof sessionStorage !== "undefined" ? (sessionStorage.getItem("ss_ue") ?? "\u{1F385}") : "\u{1F385}")
   );
   const [ownedGroups, setOwnedGroups] = useState<Group[]>([]);
   const [invitedGroups, setInvitedGroups] = useState<Group[]>([]);
@@ -875,20 +896,10 @@ export default function DashboardPage() {
 
       if (profileData) {
         const resolvedName = profileData.display_name || defaultName;
-        const resolvedEmoji = profileData.avatar_emoji || "\u{1F385}";
-        const resolvedAvatarUrl = profileData.avatar_url || "";
         setShowProfileSetup(!profileData.profile_setup_complete);
         setUserName(resolvedName);
-        setUserEmoji(resolvedEmoji);
-        setUserAvatarUrl(resolvedAvatarUrl);
         if (typeof sessionStorage !== "undefined") {
           sessionStorage.setItem("ss_un", resolvedName);
-          sessionStorage.setItem("ss_ue", resolvedEmoji);
-          if (resolvedAvatarUrl) {
-            sessionStorage.setItem("ss_uau", resolvedAvatarUrl);
-          } else {
-            sessionStorage.removeItem("ss_uau");
-          }
         }
       }
     };
@@ -1477,25 +1488,35 @@ export default function DashboardPage() {
         )}
 
         <div data-fade className="mb-6 flex flex-wrap justify-center gap-3">
+          <button
+            type="button"
+            onClick={() => router.push("/secret-santa")}
+            className="inline-flex items-center gap-3 rounded-full border border-white/80 bg-white/95 px-5 py-3 text-sm font-semibold uppercase tracking-[0.24em] text-sky-600 shadow-[0_18px_50px_rgba(148,163,184,0.14)] backdrop-blur-md transition hover:-translate-y-0.5"
+          >
+            <span className="inline-flex h-6 w-6 items-center justify-center rounded-full bg-sky-600 text-white">
+              <GiftIcon className="h-3.5 w-3.5" />
+            </span>
+            <span>Secret Santa</span>
+          </button>
           {canViewAffiliateReport && (
             <button
               type="button"
               onClick={() => router.push("/dashboard/affiliate-report")}
-              className="inline-flex items-center gap-2 rounded-full border border-white/70 bg-white/90 px-4 py-2.5 text-sm font-semibold text-slate-700 shadow-[0_18px_50px_rgba(148,163,184,0.14)] backdrop-blur-md transition hover:-translate-y-0.5"
+              className="inline-flex items-center gap-2 rounded-full border border-white/80 bg-white/95 px-4 py-3 text-sm font-semibold text-slate-700 shadow-[0_18px_50px_rgba(148,163,184,0.14)] backdrop-blur-md transition hover:-translate-y-0.5"
             >
-              <GiftIcon className="h-4 w-4 text-sky-600" />
+              <ReportIcon className="h-4 w-4 text-slate-500" />
               <span>Affiliate report</span>
             </button>
           )}
           <button
             type="button"
             onClick={() => router.push("/notifications")}
-            className="relative inline-flex items-center gap-2 rounded-full border border-white/70 bg-white/90 px-4 py-2.5 text-sm font-semibold text-slate-700 shadow-[0_18px_50px_rgba(148,163,184,0.14)] backdrop-blur-md transition hover:-translate-y-0.5"
+            className="relative inline-flex items-center gap-2 rounded-full border border-white/80 bg-white/95 px-4 py-3 text-sm font-semibold text-slate-700 shadow-[0_18px_50px_rgba(148,163,184,0.14)] backdrop-blur-md transition hover:-translate-y-0.5"
           >
-            <BellIcon />
+            <BellIcon className="h-4 w-4 text-slate-500" />
             <span>Notifications</span>
             {unreadNotificationCount > 0 && (
-              <span className="absolute -right-1 -top-1 inline-flex min-h-5 min-w-5 items-center justify-center rounded-full bg-rose-500 px-1 text-[10px] font-bold text-white">
+              <span className="absolute -right-1 -top-1 inline-flex min-h-5 min-w-5 items-center justify-center rounded-full bg-rose-500 px-1 text-[10px] font-bold text-white shadow-[0_8px_18px_rgba(244,63,94,0.28)]">
                 {unreadNotificationCount > 99 ? "99+" : unreadNotificationCount}
               </span>
             )}
@@ -1503,31 +1524,15 @@ export default function DashboardPage() {
           <button
             type="button"
             onClick={() => router.push("/profile")}
-            className="inline-flex items-center gap-2 rounded-full border border-white/70 bg-white/90 px-4 py-2.5 text-sm font-semibold text-slate-700 shadow-[0_18px_50px_rgba(148,163,184,0.14)] backdrop-blur-md transition hover:-translate-y-0.5"
+            className="inline-flex items-center gap-2 rounded-full border border-white/80 bg-white/95 px-4 py-3 text-sm font-semibold text-slate-700 shadow-[0_18px_50px_rgba(148,163,184,0.14)] backdrop-blur-md transition hover:-translate-y-0.5"
           >
-            <span
-              aria-hidden="true"
-              className="inline-flex h-8 w-8 items-center justify-center overflow-hidden rounded-full bg-[linear-gradient(145deg,#eff6ff,#dbeafe)] text-base"
-            >
-              {userAvatarUrl ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img src={userAvatarUrl} alt="" className="h-full w-full object-cover" />
-              ) : (
-                userEmoji
-              )}
-            </span>
+            <UserOutlineIcon className="h-4 w-4 text-slate-500" />
             <span>Profile</span>
           </button>
         </div>
 
         <div data-fade className="mb-8 text-center">
-          <div className="mx-auto inline-flex items-center gap-3 rounded-full bg-white/88 px-5 py-2 shadow-[0_18px_50px_rgba(148,163,184,0.15)] backdrop-blur-md">
-            <GiftIcon className="h-5 w-5 text-sky-600" />
-            <span className="text-sm font-semibold uppercase tracking-[0.2em] text-sky-600">
-              Secret Santa
-            </span>
-          </div>
-          <h1 className="mt-5 text-4xl font-bold tracking-tight text-sky-900 sm:text-[3.35rem]">
+          <h1 className="text-4xl font-bold tracking-tight text-sky-900 sm:text-[3.35rem]">
             Welcome back, {displayFirstName}
           </h1>
           <p className="mt-2 text-sm text-slate-500">
