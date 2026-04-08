@@ -1400,13 +1400,7 @@ export default function DashboardPage() {
         </div>
 
         <div data-fade className="mb-8 text-center">
-          <div className="mx-auto inline-flex items-center gap-3 rounded-full bg-white/85 px-5 py-2 shadow-[0_18px_50px_rgba(148,163,184,0.15)] backdrop-blur-md">
-            <GiftIcon className="h-6 w-6 text-sky-600" />
-            <span className="text-sm font-semibold uppercase tracking-[0.2em] text-sky-600">
-              Secret Santa
-            </span>
-          </div>
-          <h1 className="mt-4 text-4xl font-bold tracking-tight text-sky-900 sm:text-[3.35rem]">
+          <h1 className="text-4xl font-bold tracking-tight text-sky-900 sm:text-[3.35rem]">
             My Secret Santa
           </h1>
           <p className="mt-3 text-lg font-medium text-slate-600">Welcome back, {userName}</p>
