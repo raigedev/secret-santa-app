@@ -18,6 +18,7 @@ type AffiliateClickRow = {
   fit_label: string | null;
   merchant: string;
   resolution_mode: string | null;
+  resolution_reason: string | null;
   search_query: string;
   selected_query: string | null;
   suggestion_title: string;
@@ -74,6 +75,18 @@ type TopAngleInsight = {
   conversion_count: number;
   label: string;
   payout_total: number;
+};
+
+type RouteQualityInsight = {
+  coverage: number;
+  label: string;
+  promotion_link_clicks: number;
+  total_clicks: number;
+};
+
+type FallbackReasonInsight = {
+  click_count: number;
+  label: string;
 };
 
 type WindowFilter = "7d" | "30d" | "90d" | "all";
@@ -166,6 +179,19 @@ function normalizeInsightLabel(value: string | null | undefined, fallback: strin
   }
 
   return normalized.length > 70 ? `${normalized.slice(0, 67)}...` : normalized;
+}
+
+function normalizeFallbackReasonLabel(value: string | null | undefined): string {
+  const normalized = (value || "").trim();
+
+  if (normalized.length === 0) {
+    return "Unknown fallback";
+  }
+
+  return normalized
+    .split("-")
+    .map((part) => (part.length > 0 ? `${part[0]!.toUpperCase()}${part.slice(1)}` : part))
+    .join(" ");
 }
 
 function isLikelyTestConversion(row: AffiliateConversionRow): boolean {
@@ -416,6 +442,55 @@ function buildTopAngleInsights(rows: AffiliatePerformanceRow[]): TopAngleInsight
     .slice(0, 5);
 }
 
+function buildRouteQualityInsights(input: {
+  totalDirectClicks: number;
+  totalDirectPromotionLinkClicks: number;
+  totalSearchClicks: number;
+  totalSearchPromotionLinkClicks: number;
+}): RouteQualityInsight[] {
+  const directCoverage =
+    input.totalDirectClicks > 0
+      ? (input.totalDirectPromotionLinkClicks / input.totalDirectClicks) * 100
+      : 0;
+  const searchCoverage =
+    input.totalSearchClicks > 0
+      ? (input.totalSearchPromotionLinkClicks / input.totalSearchClicks) * 100
+      : 0;
+
+  return [
+    {
+      coverage: directCoverage,
+      label: "Direct product routes",
+      promotion_link_clicks: input.totalDirectPromotionLinkClicks,
+      total_clicks: input.totalDirectClicks,
+    },
+    {
+      coverage: searchCoverage,
+      label: "Search-backed routes",
+      promotion_link_clicks: input.totalSearchPromotionLinkClicks,
+      total_clicks: input.totalSearchClicks,
+    },
+  ];
+}
+
+function buildFallbackReasonInsights(rows: AffiliateClickRow[]): FallbackReasonInsight[] {
+  const grouped = new Map<string, number>();
+
+  for (const row of rows) {
+    if (row.resolution_mode === "promotion-link") {
+      continue;
+    }
+
+    const label = normalizeFallbackReasonLabel(row.resolution_mode || row.resolution_reason);
+    grouped.set(label, (grouped.get(label) || 0) + 1);
+  }
+
+  return Array.from(grouped.entries())
+    .map(([label, click_count]) => ({ label, click_count }))
+    .sort((left, right) => right.click_count - left.click_count)
+    .slice(0, 5);
+}
+
 async function loadAffiliateClickRows(input: {
   routeFilter: RouteFilter;
   windowStartIso: string | null;
@@ -423,7 +498,9 @@ async function loadAffiliateClickRows(input: {
   clicks: AffiliateClickRow[];
   totalClicksCount: number;
   totalDirectClicksCount: number;
+  totalDirectPromotionLinkClicksCount: number;
   totalPromotionLinkClicksCount: number;
+  totalSearchPromotionLinkClicksCount: number;
   totalSearchClicksCount: number;
 }> {
   let totalClicksQuery = supabaseAdmin
@@ -449,10 +526,24 @@ async function loadAffiliateClickRows(input: {
     .eq("merchant", "lazada")
     .eq("resolution_mode", "promotion-link");
 
+  let totalDirectPromotionLinkClicksQuery = supabaseAdmin
+    .from("affiliate_clicks")
+    .select("id", { count: "exact", head: true })
+    .eq("merchant", "lazada")
+    .eq("resolution_mode", "promotion-link")
+    .in("catalog_source", DIRECT_CATALOG_SOURCES);
+
+  let totalSearchPromotionLinkClicksQuery = supabaseAdmin
+    .from("affiliate_clicks")
+    .select("id", { count: "exact", head: true })
+    .eq("merchant", "lazada")
+    .eq("resolution_mode", "promotion-link")
+    .eq("catalog_source", "search-backed");
+
   let clicksQuery = supabaseAdmin
     .from("affiliate_clicks")
     .select(
-      "id, catalog_source, created_at, fit_label, merchant, resolution_mode, search_query, selected_query, suggestion_title, tracking_label, user_id"
+      "id, catalog_source, created_at, fit_label, merchant, resolution_mode, resolution_reason, search_query, selected_query, suggestion_title, tracking_label, user_id"
     )
     .eq("merchant", "lazada")
     .order("created_at", { ascending: false })
@@ -463,6 +554,14 @@ async function loadAffiliateClickRows(input: {
     totalDirectClicksQuery = totalDirectClicksQuery.gte("created_at", input.windowStartIso);
     totalSearchClicksQuery = totalSearchClicksQuery.gte("created_at", input.windowStartIso);
     totalPromotionLinkClicksQuery = totalPromotionLinkClicksQuery.gte(
+      "created_at",
+      input.windowStartIso
+    );
+    totalDirectPromotionLinkClicksQuery = totalDirectPromotionLinkClicksQuery.gte(
+      "created_at",
+      input.windowStartIso
+    );
+    totalSearchPromotionLinkClicksQuery = totalSearchPromotionLinkClicksQuery.gte(
       "created_at",
       input.windowStartIso
     );
@@ -490,15 +589,25 @@ async function loadAffiliateClickRows(input: {
     { count: totalDirectClicksCount, error: totalDirectClicksError },
     { count: totalSearchClicksCount, error: totalSearchClicksError },
     {
+      count: totalDirectPromotionLinkClicksCount,
+      error: totalDirectPromotionLinkClicksError,
+    },
+    {
       count: totalPromotionLinkClicksCount,
       error: totalPromotionLinkClicksError,
+    },
+    {
+      count: totalSearchPromotionLinkClicksCount,
+      error: totalSearchPromotionLinkClicksError,
     },
     clickResult,
   ] = await Promise.all([
     totalClicksQuery,
     totalDirectClicksQuery,
     totalSearchClicksQuery,
+    totalDirectPromotionLinkClicksQuery,
     totalPromotionLinkClicksQuery,
+    totalSearchPromotionLinkClicksQuery,
     clicksQuery,
   ]);
 
@@ -506,7 +615,9 @@ async function loadAffiliateClickRows(input: {
     totalClicksError ||
     totalDirectClicksError ||
     totalSearchClicksError ||
+    totalDirectPromotionLinkClicksError ||
     totalPromotionLinkClicksError
+    || totalSearchPromotionLinkClicksError
   ) {
     throw new Error("Failed to load affiliate report activity.");
   }
@@ -517,7 +628,9 @@ async function loadAffiliateClickRows(input: {
       clicks: (clickResult.data || []) as AffiliateClickRow[],
       totalClicksCount: totalClicksCount || 0,
       totalDirectClicksCount: totalDirectClicksCount || 0,
+      totalDirectPromotionLinkClicksCount: totalDirectPromotionLinkClicksCount || 0,
       totalPromotionLinkClicksCount: totalPromotionLinkClicksCount || 0,
+      totalSearchPromotionLinkClicksCount: totalSearchPromotionLinkClicksCount || 0,
       totalSearchClicksCount: totalSearchClicksCount || 0,
     };
   }
@@ -533,7 +646,7 @@ async function loadAffiliateClickRows(input: {
   let fallbackClicksQuery = supabaseAdmin
     .from("affiliate_clicks")
     .select(
-      "id, catalog_source, created_at, fit_label, merchant, resolution_mode, search_query, suggestion_title, tracking_label, user_id"
+      "id, catalog_source, created_at, fit_label, merchant, resolution_mode, resolution_reason, search_query, suggestion_title, tracking_label, user_id"
     )
     .eq("merchant", "lazada")
     .order("created_at", { ascending: false })
@@ -567,7 +680,9 @@ async function loadAffiliateClickRows(input: {
     clicks: normalizedFallbackClicks,
     totalClicksCount: totalClicksCount || 0,
     totalDirectClicksCount: totalDirectClicksCount || 0,
+    totalDirectPromotionLinkClicksCount: totalDirectPromotionLinkClicksCount || 0,
     totalPromotionLinkClicksCount: totalPromotionLinkClicksCount || 0,
+    totalSearchPromotionLinkClicksCount: totalSearchPromotionLinkClicksCount || 0,
     totalSearchClicksCount: totalSearchClicksCount || 0,
   };
 }
@@ -655,6 +770,31 @@ function AngleInsightCard({ insight }: { insight: TopAngleInsight }) {
   );
 }
 
+function RouteQualityCard({ insight }: { insight: RouteQualityInsight }) {
+  return (
+    <section className="rounded-3xl border border-white/70 bg-white/88 p-4 shadow-[0_18px_50px_rgba(148,163,184,0.12)] backdrop-blur-md">
+      <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">Route quality</p>
+      <h3 className="mt-2 text-lg font-bold text-slate-900">{insight.label}</h3>
+      <div className="mt-4 grid gap-3 text-sm text-slate-600 sm:grid-cols-3">
+        <div>
+          <p className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-500">Coverage</p>
+          <p className="mt-1 text-lg font-semibold text-slate-900">
+            {formatPercentValue(insight.coverage)}
+          </p>
+        </div>
+        <div>
+          <p className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-500">Promotion links</p>
+          <p className="mt-1 text-lg font-semibold text-slate-900">{insight.promotion_link_clicks}</p>
+        </div>
+        <div>
+          <p className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-500">Total clicks</p>
+          <p className="mt-1 text-lg font-semibold text-slate-900">{insight.total_clicks}</p>
+        </div>
+      </div>
+    </section>
+  );
+}
+
 export default async function AffiliateReportPage({
   searchParams,
 }: AffiliateReportPageProps) {
@@ -693,7 +833,9 @@ export default async function AffiliateReportPage({
     clicks: clickRows,
     totalClicksCount,
     totalDirectClicksCount,
+    totalDirectPromotionLinkClicksCount,
     totalPromotionLinkClicksCount,
+    totalSearchPromotionLinkClicksCount,
     totalSearchClicksCount,
   } = await loadAffiliateClickRows({
     routeFilter,
@@ -750,6 +892,13 @@ export default async function AffiliateReportPage({
   const reportRows = allReportRows.slice(0, REPORT_TABLE_LIMIT);
   const topItemInsights = buildTopItemInsights(allReportRows);
   const topAngleInsights = buildTopAngleInsights(allReportRows);
+  const routeQualityInsights = buildRouteQualityInsights({
+    totalDirectClicks: totalDirectClicksCount || 0,
+    totalDirectPromotionLinkClicks: totalDirectPromotionLinkClicksCount || 0,
+    totalSearchClicks: totalSearchClicksCount || 0,
+    totalSearchPromotionLinkClicks: totalSearchPromotionLinkClicksCount || 0,
+  });
+  const fallbackReasonInsights = buildFallbackReasonInsights(clickRows);
 
   const totalClicks = totalClicksCount || 0;
   const totalDirectClicks = totalDirectClicksCount || 0;
@@ -946,6 +1095,63 @@ export default async function AffiliateReportPage({
               <div className="grid gap-4 xl:grid-cols-2">
                 {topAngleInsights.map((insight) => (
                   <AngleInsightCard key={insight.label} insight={insight} />
+                ))}
+              </div>
+            )}
+          </div>
+
+          <div className="mb-6">
+            <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+              <div>
+                <p className="text-sm font-semibold uppercase tracking-[0.18em] text-slate-500">
+                  Link quality
+                </p>
+                <h3 className="mt-1 text-xl font-bold text-slate-900">Route coverage by type</h3>
+              </div>
+              <p className="text-sm text-slate-500">
+                These percentages show how often each route family becomes an affiliate-ready promotion link.
+              </p>
+            </div>
+
+            <div className="grid gap-4 xl:grid-cols-2">
+              {routeQualityInsights.map((insight) => (
+                <RouteQualityCard key={insight.label} insight={insight} />
+              ))}
+            </div>
+          </div>
+
+          <div className="mb-6">
+            <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+              <div>
+                <p className="text-sm font-semibold uppercase tracking-[0.18em] text-slate-500">
+                  Weak-path signals
+                </p>
+                <h3 className="mt-1 text-xl font-bold text-slate-900">Fallback reasons</h3>
+              </div>
+              <p className="text-sm text-slate-500">
+                These are the most common non-promotion outcomes in the current filtered sample.
+              </p>
+            </div>
+
+            {fallbackReasonInsights.length === 0 ? (
+              <div className="rounded-3xl border border-dashed border-slate-300 bg-slate-50/70 px-6 py-8 text-center text-sm font-medium text-slate-500">
+                No fallback reasons in this sample. The current filtered clicks all resolved to promotion links.
+              </div>
+            ) : (
+              <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+                {fallbackReasonInsights.map((insight) => (
+                  <section
+                    key={insight.label}
+                    className="rounded-3xl border border-white/70 bg-white/88 p-4 shadow-[0_18px_50px_rgba(148,163,184,0.12)] backdrop-blur-md"
+                  >
+                    <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">
+                      Resolution reason
+                    </p>
+                    <h3 className="mt-2 text-lg font-bold text-slate-900">{insight.label}</h3>
+                    <p className="mt-4 text-sm text-slate-600">
+                      Clicks in sample: <span className="font-semibold text-slate-900">{insight.click_count}</span>
+                    </p>
+                  </section>
                 ))}
               </div>
             )}
