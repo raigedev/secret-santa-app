@@ -444,6 +444,20 @@ function UserOutlineIcon({ className = "h-4 w-4" }: { className?: string }) {
   );
 }
 
+function ChevronDownIcon({ className = "h-4 w-4" }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 20 20" fill="none" className={className} aria-hidden="true">
+      <path
+        d="m5.5 7.75 4.5 4.5 4.5-4.5"
+        stroke="currentColor"
+        strokeWidth="1.8"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
+
 function ThemeIcon({
   className = "h-4 w-4",
   dark = false,
@@ -671,11 +685,13 @@ export default function DashboardPage() {
   const [showProfileSetup, setShowProfileSetup] = useState(false);
   const [actionMessage, setActionMessage] = useState<ActionMessage>(null);
   const [deletingGroupId, setDeletingGroupId] = useState<string | null>(null);
+  const [profileMenuOpen, setProfileMenuOpen] = useState(false);
   const loadDashboardDataRef = useRef<
     ((user: { id: string; email?: string | null }) => Promise<void>) | null
   >(null);
   const loadProfileDataRef = useRef<(() => Promise<void>) | null>(null);
   const loadNotificationCountRef = useRef<((userId: string) => Promise<void>) | null>(null);
+  const profileMenuRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
     if (typeof window === "undefined") {
@@ -684,6 +700,32 @@ export default function DashboardPage() {
 
     localStorage.setItem("ss_dashboard_theme", dashboardTheme);
   }, [dashboardTheme]);
+
+  useEffect(() => {
+    if (!profileMenuOpen) {
+      return;
+    }
+
+    const handlePointerDown = (event: MouseEvent) => {
+      if (!profileMenuRef.current?.contains(event.target as Node)) {
+        setProfileMenuOpen(false);
+      }
+    };
+
+    const handleEscape = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        setProfileMenuOpen(false);
+      }
+    };
+
+    document.addEventListener("mousedown", handlePointerDown);
+    document.addEventListener("keydown", handleEscape);
+
+    return () => {
+      document.removeEventListener("mousedown", handlePointerDown);
+      document.removeEventListener("keydown", handleEscape);
+    };
+  }, [profileMenuOpen]);
 
   useEffect(() => {
     let isMounted = true;
@@ -1745,14 +1787,79 @@ export default function DashboardPage() {
                 </span>
               )}
             </button>
-            <button
-              type="button"
-              onClick={() => router.push("/profile")}
-              className={utilityPillClass}
-            >
-              <UserOutlineIcon className={`h-[18px] w-[18px] ${utilityIconClass}`} />
-              <span>Profile</span>
-            </button>
+            <div ref={profileMenuRef} className="relative">
+              <button
+                type="button"
+                onClick={() => setProfileMenuOpen((current) => !current)}
+                className={utilityPillClass}
+                aria-haspopup="menu"
+                aria-expanded={profileMenuOpen}
+              >
+                <UserOutlineIcon className={`h-[18px] w-[18px] ${utilityIconClass}`} />
+                <span>Profile</span>
+                <ChevronDownIcon
+                  className={`h-[16px] w-[16px] transition ${utilityIconClass} ${
+                    profileMenuOpen ? "rotate-180" : ""
+                  }`}
+                />
+              </button>
+
+              {profileMenuOpen && (
+                <div
+                  role="menu"
+                  aria-label="Profile options"
+                  className={`absolute right-0 top-full z-30 mt-3 w-56 overflow-hidden rounded-[22px] border p-2 shadow-[0_22px_44px_rgba(15,23,42,0.20)] backdrop-blur-md ${
+                    isDarkTheme
+                      ? "border-slate-700/80 bg-slate-900/94"
+                      : "border-white/80 bg-white/96"
+                  }`}
+                >
+                  <button
+                    type="button"
+                    role="menuitem"
+                    onClick={() => {
+                      setProfileMenuOpen(false);
+                      router.push("/profile");
+                    }}
+                    className={`flex w-full items-center justify-between rounded-2xl px-4 py-3 text-left transition ${
+                      isDarkTheme
+                        ? "text-slate-100 hover:bg-slate-800/80"
+                        : "text-slate-700 hover:bg-slate-50"
+                    }`}
+                  >
+                    <div>
+                      <div className="text-sm font-semibold">Edit profile</div>
+                      <div className={`mt-0.5 text-xs ${isDarkTheme ? "text-slate-400" : "text-slate-500"}`}>
+                        Update your festive avatar and account details.
+                      </div>
+                    </div>
+                    <ArrowRightIcon className={`h-4 w-4 shrink-0 ${utilityIconClass}`} />
+                  </button>
+
+                  <button
+                    type="button"
+                    role="menuitem"
+                    onClick={() => {
+                      setProfileMenuOpen(false);
+                      void handleLogout();
+                    }}
+                    className={`mt-2 flex w-full items-center justify-between rounded-2xl px-4 py-3 text-left transition ${
+                      isDarkTheme
+                        ? "text-rose-200 hover:bg-rose-500/10"
+                        : "text-rose-600 hover:bg-rose-50"
+                    }`}
+                  >
+                    <div>
+                      <div className="text-sm font-semibold">Logout</div>
+                      <div className={`mt-0.5 text-xs ${isDarkTheme ? "text-slate-400" : "text-slate-500"}`}>
+                        Sign out and return to the login screen.
+                      </div>
+                    </div>
+                    <ArrowRightIcon className="h-4 w-4 shrink-0" />
+                  </button>
+                </div>
+              )}
+            </div>
           </div>
         </div>
 
@@ -1861,7 +1968,7 @@ export default function DashboardPage() {
           />
         </section>
 
-        <section data-fade className="mb-8 grid gap-3 xl:grid-cols-[minmax(0,1.15fr)_minmax(0,0.85fr)]">
+        <section data-fade className="mb-8 max-w-4xl">
           <div className={dashboardCardShellClass}>
             <div className="flex items-start justify-between gap-4">
               <div>
@@ -1901,49 +2008,6 @@ export default function DashboardPage() {
                 className="inline-flex items-center gap-2 rounded-full bg-[linear-gradient(135deg,#e25d67,#b9384c)] px-5 py-2.5 text-sm font-semibold text-white shadow-[0_14px_35px_rgba(185,56,76,0.24)] transition hover:-translate-y-0.5"
               >
                 <span>Open My Wishlist</span>
-                <ArrowRightIcon />
-              </button>
-            </div>
-          </div>
-
-          <div className={dashboardCardShellClass}>
-            <div className="inline-flex items-center gap-2 rounded-full bg-emerald-100 px-3 py-1 text-xs font-semibold text-emerald-700">
-              Home status
-            </div>
-            <h3 className={`mt-2.5 text-[1.35rem] font-bold ${dashboardPanelHeadingClass}`}>Quick dashboard pulse</h3>
-            <div className="mt-3 space-y-3">
-              <div className={`rounded-2xl px-4 py-3 ${isDarkTheme ? "bg-slate-950/45" : "bg-slate-50"}`}>
-                <div className={`text-[11px] font-extrabold uppercase tracking-[0.14em] ${dashboardStatLabelClass}`}>
-                  Total groups
-                </div>
-                <div className={`mt-1 text-[24px] font-black ${dashboardStatValueClass}`}>
-                  {ownedGroups.length + invitedGroups.length}
-                </div>
-              </div>
-              <div className={`rounded-2xl px-4 py-3 ${isDarkTheme ? "bg-slate-950/45" : "bg-slate-50"}`}>
-                <div className={`text-[11px] font-extrabold uppercase tracking-[0.14em] ${dashboardStatLabelClass}`}>
-                  Draw-ready groups
-                </div>
-                <div className={`mt-1 text-[24px] font-black ${dashboardStatValueClass}`}>
-                  {[...ownedGroups, ...invitedGroups].filter((group) => group.hasDrawn).length}
-                </div>
-              </div>
-            </div>
-            <div className="mt-3 flex flex-wrap gap-3">
-              <button
-                type="button"
-                onClick={() => router.push("/profile")}
-                className={`inline-flex items-center gap-2 rounded-full px-4 py-2.5 text-sm font-semibold transition hover:-translate-y-0.5 ${isDarkTheme ? "bg-slate-900 text-slate-100 shadow-[0_12px_30px_rgba(2,8,23,0.24)]" : "bg-white text-slate-700 shadow-[0_12px_30px_rgba(148,163,184,0.16)]"}`}
-              >
-                <span>Edit profile</span>
-                <ArrowRightIcon />
-              </button>
-              <button
-                type="button"
-                onClick={handleLogout}
-                className="inline-flex items-center gap-2 rounded-full bg-[linear-gradient(135deg,#f59e0b,#f97316)] px-4 py-2.5 text-sm font-semibold text-white shadow-[0_14px_35px_rgba(249,115,22,0.22)] transition hover:-translate-y-0.5"
-              >
-                <span>Logout</span>
                 <ArrowRightIcon />
               </button>
             </div>
