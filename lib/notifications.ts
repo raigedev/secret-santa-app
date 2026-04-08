@@ -490,7 +490,7 @@ async function enqueueEventTomorrowReminderJobs(now: Date): Promise<number> {
     );
 
     const inserted = await insertReminderJob({
-      body: `Your Secret Santa event for ${group.name} is tomorrow. Make sure your gift plan and last-minute prep are ready.`,
+      body: `Your Secret Santa exchange for ${group.name} is tomorrow. Double-check your gift, wrapping, and meetup plan today.`,
       candidate_due_at: candidateDueAt.toISOString(),
       dedupe_key: `event_tomorrow:${group.id}:${userId}:${group.event_date}`,
       delivery_mode_snapshot: preferences.reminder_delivery_mode,
@@ -504,7 +504,7 @@ async function enqueueEventTomorrowReminderJobs(now: Date): Promise<number> {
       },
       next_attempt_at: scheduledDueAt.toISOString(),
       reminder_type: "event_tomorrow",
-      title: `${group.name} is tomorrow`,
+      title: `Exchange day is tomorrow for ${group.name}`,
       user_id: userId,
     });
 
@@ -603,7 +603,7 @@ async function enqueueWishlistIncompleteReminderJobs(now: Date): Promise<number>
     );
 
     const inserted = await insertReminderJob({
-      body: `Your event for ${group.name} is coming up soon. Add at least one wishlist item so your Secret Santa has something to work with.`,
+      body: `Add at least one wishlist item for ${group.name} so your Secret Santa has clear gift ideas before the exchange.`,
       candidate_due_at: candidateDueAt.toISOString(),
       dedupe_key: `wishlist_incomplete:${group.id}:${userId}:${today}`,
       delivery_mode_snapshot: preferences.reminder_delivery_mode,
@@ -617,7 +617,7 @@ async function enqueueWishlistIncompleteReminderJobs(now: Date): Promise<number>
       },
       next_attempt_at: scheduledDueAt.toISOString(),
       reminder_type: "wishlist_incomplete",
-      title: `Add a wishlist for ${group.name}`,
+      title: `Add wishlist ideas for ${group.name}`,
       user_id: userId,
     });
 
@@ -742,7 +742,7 @@ async function enqueuePostDrawReminderJobs(now: Date): Promise<number> {
     );
 
     const inserted = await insertReminderJob({
-      body: `Your draw for ${group.name} is ready. Open Secret Santa to review the wishlist or send an anonymous message and start planning.`,
+      body: `Your draw for ${group.name} is ready. Review the wishlist or send an anonymous message so you can start planning with more confidence.`,
       candidate_due_at: candidateDueAt.toISOString(),
       dedupe_key: `post_draw:${assignment.group_id}:${assignment.giver_id}:${cycleMarker}`,
       delivery_mode_snapshot: preferences.reminder_delivery_mode,
@@ -757,7 +757,7 @@ async function enqueuePostDrawReminderJobs(now: Date): Promise<number> {
       },
       next_attempt_at: scheduledDueAt.toISOString(),
       reminder_type: "post_draw",
-      title: `Start planning for ${group.name}`,
+      title: `Plan your gift for ${group.name}`,
       user_id: assignment.giver_id,
     });
 
@@ -820,7 +820,7 @@ function buildDailyDigestNotificationInput(jobs: ReminderJobRow[]): Notification
       : `You have ${jobs.length} Secret Santa reminders`;
   const bodyBase =
     summaryParts.length > 0
-      ? `${summaryParts.join(", ")} ready for review.`
+      ? `${summaryParts.join(", ")} are ready for review.`
       : "You have new Secret Santa reminders ready for review.";
   const body =
     groupPreview.length > 0

@@ -64,6 +64,93 @@ function getNotificationIcon(type: string): string {
   }
 }
 
+function getNotificationLabel(type: string): string {
+  switch (type) {
+    case "invite":
+      return "Group invite";
+    case "chat":
+      return "Anonymous chat";
+    case "draw":
+      return "Draw update";
+    case "reveal":
+      return "Reveal moment";
+    case "gift_received":
+      return "Gift progress";
+    case "reminder_wishlist_incomplete":
+      return "Reminder: wishlist";
+    case "reminder_event_tomorrow":
+      return "Reminder: event";
+    case "reminder_post_draw":
+      return "Reminder: planning";
+    case "reminder_digest":
+      return "Reminder digest";
+    default:
+      return "Notification";
+  }
+}
+
+function getNotificationLabelStyles(type: string): {
+  background: string;
+  border: string;
+  color: string;
+} {
+  switch (type) {
+    case "reminder_wishlist_incomplete":
+      return {
+        background: "rgba(59,130,246,.09)",
+        border: "1px solid rgba(59,130,246,.18)",
+        color: "#1d4ed8",
+      };
+    case "reminder_event_tomorrow":
+      return {
+        background: "rgba(249,115,22,.08)",
+        border: "1px solid rgba(249,115,22,.18)",
+        color: "#c2410c",
+      };
+    case "reminder_post_draw":
+      return {
+        background: "rgba(16,185,129,.08)",
+        border: "1px solid rgba(16,185,129,.18)",
+        color: "#047857",
+      };
+    case "reminder_digest":
+      return {
+        background: "rgba(139,92,246,.08)",
+        border: "1px solid rgba(139,92,246,.18)",
+        color: "#6d28d9",
+      };
+    default:
+      return {
+        background: "rgba(148,163,184,.08)",
+        border: "1px solid rgba(148,163,184,.16)",
+        color: "#475569",
+      };
+  }
+}
+
+function getNotificationActionLabel(notification: NotificationItem): string {
+  if (!notification.link_path) {
+    return "Open";
+  }
+
+  switch (notification.type) {
+    case "reminder_wishlist_incomplete":
+      return "Add wishlist";
+    case "reminder_event_tomorrow":
+      return "Review group";
+    case "reminder_post_draw":
+      return "Start planning";
+    case "reminder_digest":
+      return "Open digest";
+    case "chat":
+      return "Open chat";
+    case "invite":
+      return "View invite";
+    default:
+      return "Open";
+  }
+}
+
 function ReminderToggle({
   checked,
   description,
@@ -581,8 +668,18 @@ export default function NotificationsPage() {
 
                       <div className="min-w-0 flex-1">
                         <div className="flex flex-wrap items-center justify-between gap-3">
-                          <div className="text-[15px] font-extrabold text-slate-900">
-                            {notification.title}
+                          <div className="min-w-0">
+                            <div className="mb-2 flex flex-wrap items-center gap-2">
+                              <span
+                                className="rounded-full px-2.5 py-1 text-[10px] font-extrabold uppercase tracking-[0.14em]"
+                                style={getNotificationLabelStyles(notification.type)}
+                              >
+                                {getNotificationLabel(notification.type)}
+                              </span>
+                            </div>
+                            <div className="text-[15px] font-extrabold text-slate-900">
+                              {notification.title}
+                            </div>
                           </div>
                           <div className="flex items-center gap-2">
                             {!notification.read_at && (
@@ -609,7 +706,9 @@ export default function NotificationsPage() {
                           </span>
 
                           {notification.link_path && (
-                            <span className="text-[12px] font-bold text-blue-700">Open</span>
+                            <span className="text-[12px] font-bold text-blue-700">
+                              {getNotificationActionLabel(notification)}
+                            </span>
                           )}
                         </div>
                       </div>
