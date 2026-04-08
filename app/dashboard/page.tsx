@@ -611,13 +611,12 @@ export default function DashboardPage() {
                       p_group_id: groupId,
                     });
 
-                    if (result.error) {
-                      throw result.error;
-                    }
-
                     return {
                       groupId,
-                      profiles: (result.data || []) as PeerProfileRow[],
+                      // Avatar strips are a visual enhancement. If the profile helper
+                      // fails for one group, keep the dashboard working and fall back
+                      // to initials instead of failing the whole page.
+                      profiles: result.error ? [] : ((result.data || []) as PeerProfileRow[]),
                     };
                   })
                 )
