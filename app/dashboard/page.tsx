@@ -367,7 +367,7 @@ function EventCountdownBadge({ eventDate }: { eventDate: string }) {
 
   if (Number.isNaN(eventTime)) {
     return (
-      <span className="inline-flex items-center gap-2 rounded-full bg-slate-50 px-3 py-1.5 font-medium text-sm text-slate-600">
+      <span className="inline-flex items-center gap-2 rounded-full bg-slate-50 px-2.5 py-1 text-xs font-semibold text-slate-600">
         <span className="h-2 w-2 rounded-full bg-blue-500" />
         Event date: {formatDashboardDate(eventDate)}
       </span>
@@ -378,7 +378,7 @@ function EventCountdownBadge({ eventDate }: { eventDate: string }) {
 
   if (remaining === 0) {
     return (
-      <span className="inline-flex items-center gap-2 rounded-full bg-amber-50 px-3 py-1.5 font-medium text-sm text-amber-700">
+      <span className="inline-flex items-center gap-2 rounded-full bg-amber-50 px-2.5 py-1 text-xs font-semibold text-amber-700">
         <span className="h-2 w-2 rounded-full bg-amber-500" />
         Event in progress!
       </span>
@@ -405,18 +405,18 @@ function EventCountdownBadge({ eventDate }: { eventDate: string }) {
 
   return (
     <span
-      className={`inline-flex items-center gap-2 rounded-xl border px-2.5 py-1.5 text-sm font-semibold shadow-[0_6px_18px_rgba(15,23,42,0.06)] ${containerStyle}`}
+      className={`inline-flex items-center gap-1.5 rounded-full border px-2 py-1 text-xs font-semibold shadow-[0_6px_18px_rgba(15,23,42,0.06)] ${containerStyle}`}
       title={`Event date: ${formatDashboardDate(eventDate)}`}
     >
       <span className={`h-2 w-2 rounded-full animate-pulse ${dotStyle}`} />
-      <span className="text-[10px] font-extrabold uppercase tracking-[0.12em] opacity-80">Starts in</span>
-      <span className={`inline-flex items-center rounded-md px-2 py-0.5 font-bold tabular-nums ${unitStyle}`}>
+      <span className="text-[9px] font-extrabold uppercase tracking-[0.12em] opacity-80">Starts in</span>
+      <span className={`inline-flex items-center rounded-md px-1.5 py-0.5 font-bold tabular-nums ${unitStyle}`}>
         {days}d
       </span>
-      <span className={`inline-flex items-center rounded-md px-2 py-0.5 font-bold tabular-nums ${unitStyle}`}>
+      <span className={`inline-flex items-center rounded-md px-1.5 py-0.5 font-bold tabular-nums ${unitStyle}`}>
         {hours}h
       </span>
-      <span className={`inline-flex items-center rounded-md px-2 py-0.5 font-bold tabular-nums ${unitStyle}`}>
+      <span className={`inline-flex items-center rounded-md px-1.5 py-0.5 font-bold tabular-nums ${unitStyle}`}>
         {minutes}m
       </span>
     </span>
@@ -1097,6 +1097,10 @@ export default function DashboardPage() {
   }
 
   const hasAssignments = recipientNames.length > 0;
+  const dashboardGroups = [
+    ...ownedGroups.map((group) => ({ group, type: "owned" as const })),
+    ...invitedGroups.map((group) => ({ group, type: "invited" as const })),
+  ];
 
   const GroupCard = ({
     group,
@@ -1109,11 +1113,11 @@ export default function DashboardPage() {
     const theme =
       type === "owned"
         ? {
-            borderGrad: "bg-[linear-gradient(135deg,#bfdbfe,#60a5fa,#2563eb,#93c5fd,#1d4ed8)]",
-            cardBg: "bg-[linear-gradient(145deg,#60a5fa_0%,#3b82f6_38%,#1e3a8a_100%)]",
-            shadow: "shadow-[0_30px_90px_rgba(30,64,175,0.30)]",
-            eyebrow: "bg-white/92 text-blue-700",
-            bodyText: "text-blue-50/95",
+            accent: "from-blue-400 via-sky-400 to-blue-600",
+            surface: "bg-white/94",
+            shadow: "shadow-[0_18px_40px_rgba(148,163,184,0.16)]",
+            eyebrow: "bg-blue-100 text-blue-700",
+            bodyText: "text-slate-600",
             panelAccent: "bg-blue-500",
             participantPill: "bg-blue-50 text-blue-700",
             drawPillDone: "bg-emerald-100 text-emerald-700",
@@ -1121,13 +1125,14 @@ export default function DashboardPage() {
             memberPill: "bg-blue-50 text-blue-700 border-blue-100",
             primaryButton:
               "bg-[linear-gradient(135deg,#2f80ff,#1f66e5)] shadow-[0_14px_35px_rgba(37,99,235,0.24)]",
+            secondaryButton: "bg-blue-50 text-blue-700 hover:bg-blue-100",
           }
         : {
-            borderGrad: "bg-[linear-gradient(135deg,#fde68a,#fbbf24,#d97706,#fcd34d,#b45309)]",
-            cardBg: "bg-[linear-gradient(145deg,#fbbf24_0%,#d97706_38%,#78350f_100%)]",
-            shadow: "shadow-[0_30px_90px_rgba(146,64,14,0.30)]",
-            eyebrow: "bg-white/92 text-amber-700",
-            bodyText: "text-amber-50/95",
+            accent: "from-amber-300 via-orange-300 to-amber-500",
+            surface: "bg-white/94",
+            shadow: "shadow-[0_18px_40px_rgba(148,163,184,0.16)]",
+            eyebrow: "bg-amber-100 text-amber-700",
+            bodyText: "text-slate-600",
             panelAccent: "bg-amber-500",
             participantPill: "bg-amber-50 text-amber-700",
             drawPillDone: "bg-emerald-100 text-emerald-700",
@@ -1135,117 +1140,96 @@ export default function DashboardPage() {
             memberPill: "bg-amber-50 text-amber-700 border-amber-100",
             primaryButton:
               "bg-[linear-gradient(135deg,#c26d18,#8b4513)] shadow-[0_14px_35px_rgba(120,53,15,0.24)]",
+            secondaryButton: "bg-amber-50 text-amber-700 hover:bg-amber-100",
           };
 
     return (
-      <div className={`rounded-[34px] p-[3px] ${theme.borderGrad} ${theme.shadow}`}>
-        <article className={`relative overflow-hidden rounded-[32px] p-6 text-white ${theme.cardBg}`}>
-          <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(255,255,255,0.32),transparent_36%),radial-gradient(circle_at_bottom_right,rgba(255,225,170,0.18),transparent_40%)]" />
-          <div
-            className="pointer-events-none absolute inset-0 opacity-[0.05]"
-            style={{
-              backgroundImage:
-                "repeating-linear-gradient(45deg, rgba(255,255,255,1) 0, rgba(255,255,255,1) 1px, transparent 1px, transparent 14px), repeating-linear-gradient(-45deg, rgba(255,255,255,1) 0, rgba(255,255,255,1) 1px, transparent 1px, transparent 14px)",
-            }}
-          />
-          <div className="pointer-events-none absolute left-0 right-0 top-[40%] h-[3px] bg-white/18" />
-          <div className="pointer-events-none absolute left-1/2 top-0 h-[40%] w-[3px] -translate-x-1/2 bg-white/18" />
-          <div className="pointer-events-none absolute right-0 top-0 z-20 h-10 w-10 overflow-hidden">
-            <div className="absolute -right-5 -top-5 h-10 w-10 rotate-45 bg-white/25 shadow-[inset_-1px_1px_3px_rgba(255,255,255,0.2)]" />
-          </div>
-          <span className="pointer-events-none absolute left-5 top-4 select-none text-base leading-none text-white/22">✦</span>
-          <span className="pointer-events-none absolute right-20 top-8 select-none text-xs leading-none text-white/14">✦</span>
+      <article
+        className={`relative overflow-hidden rounded-[24px] border border-white/70 p-4 ${theme.surface} ${theme.shadow}`}
+      >
+        <div className={`absolute inset-x-0 top-0 h-1.5 bg-gradient-to-r ${theme.accent}`} />
+        <div className="relative z-10">
+          <div className="flex items-start justify-between gap-3">
+            <div className="min-w-0">
+              <div className="flex flex-wrap items-center gap-2">
+                <span className={`inline-flex rounded-full px-2.5 py-1 text-[11px] font-semibold ${theme.eyebrow}`}>
+                  {type === "owned" ? "My group" : "Invited group"}
+                </span>
+                <span
+                  className={`inline-flex rounded-full px-2.5 py-1 text-[11px] font-semibold ${
+                    group.hasDrawn ? theme.drawPillDone : theme.drawPillPending
+                  }`}
+                >
+                  {group.hasDrawn ? "Draw completed" : "Awaiting draw"}
+                </span>
+              </div>
 
-          <div className="relative z-10">
+              <h3 className="mt-3 text-[1.35rem] font-extrabold leading-tight text-slate-900">
+                {group.name}
+              </h3>
+              <p className={`mt-1.5 text-sm leading-5 ${theme.bodyText}`}>
+                {group.description || "Ready for planning, matching, and gifting."}
+              </p>
+            </div>
+            <div className={`shrink-0 rounded-full px-2.5 py-1 text-[11px] font-semibold ${theme.participantPill}`}>
+              {group.members.length} members
+            </div>
+          </div>
+
+          <div className="mt-4 rounded-[20px] border border-slate-200/80 bg-slate-50/90 p-3">
             <div className="flex flex-wrap items-center gap-2">
-              <span className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold ${theme.eyebrow}`}>
-                {type === "owned" ? "My group" : "Invited group"}
-              </span>
-              <span className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold ${theme.participantPill}`}>
-                {group.members.length} participants
-              </span>
-              <span
-                className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold ${
-                  group.hasDrawn ? theme.drawPillDone : theme.drawPillPending
+              <EventCountdownBadge eventDate={group.event_date} />
+              {budgetLabel && (
+                <span className="inline-flex items-center gap-2 rounded-full bg-emerald-50 px-2.5 py-1 text-xs font-semibold text-emerald-700">
+                  <span className="h-2 w-2 rounded-full bg-emerald-500" />
+                  Budget: {budgetLabel}
+                </span>
+              )}
+            </div>
+
+            <div className="mt-3 flex flex-wrap gap-2">
+              {group.members.slice(0, 4).map((member, index) => (
+                <span
+                  key={`${group.id}-${member.email || member.nickname || index}`}
+                  className={`inline-flex rounded-full border px-2.5 py-1 text-[11px] font-medium ${theme.memberPill}`}
+                >
+                  {member.nickname || member.email || "Participant"}
+                </span>
+              ))}
+              {group.members.length > 4 && (
+                <span className="inline-flex rounded-full border border-slate-200 bg-slate-100 px-2.5 py-1 text-[11px] font-medium text-slate-500">
+                  +{group.members.length - 4} more
+                </span>
+              )}
+            </div>
+          </div>
+
+          <div className="mt-4 flex flex-wrap items-center gap-2">
+            <button
+              type="button"
+              onClick={() => router.push(`/group/${group.id}`)}
+              className={`inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm font-semibold text-white transition hover:-translate-y-0.5 ${theme.primaryButton}`}
+            >
+              <span>View group</span>
+              <ArrowRightIcon />
+            </button>
+            {type === "owned" && (
+              <button
+                type="button"
+                onClick={() => void handleDeleteGroup(group.id, group.name)}
+                disabled={deletingGroupId === group.id}
+                className={`inline-flex items-center gap-2 rounded-full px-3.5 py-2 text-sm font-semibold transition ${
+                  deletingGroupId === group.id
+                    ? "cursor-wait bg-rose-100 text-rose-500"
+                    : theme.secondaryButton
                 }`}
               >
-                {group.hasDrawn ? "Draw completed" : "Draw pending"}
-              </span>
-            </div>
-
-            <h3 className="mt-4 text-[2rem] font-extrabold leading-tight text-white">{group.name}</h3>
-            <p className={`mt-2 max-w-2xl text-sm leading-6 ${theme.bodyText}`}>
-              {group.description || "A shared Secret Santa group ready for planning, matching, and gifting."}
-            </p>
-
-            <div className="relative mt-5 overflow-hidden rounded-[26px] border border-white/60 bg-white/94 p-4 text-slate-800 shadow-[0_4px_18px_rgba(0,0,0,0.10),inset_0_1px_0_rgba(255,255,255,0.9)]">
-              <div className={`absolute bottom-0 left-0 top-0 w-1 rounded-l-[26px] ${theme.panelAccent}`} />
-              <div className="pointer-events-none absolute inset-0 opacity-40 [background-image:radial-gradient(circle_at_1px_1px,rgba(148,163,184,0.18)_1px,transparent_0)] [background-size:16px_16px]" />
-              <div className="relative z-10 pl-3">
-                <div className="flex items-center justify-between gap-3">
-                  <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-600">
-                    Group overview
-                  </p>
-                  <span className="inline-flex rounded-full bg-slate-100 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.12em] text-slate-600">
-                    Active
-                  </span>
-                </div>
-
-                <div className="mt-3 flex flex-wrap items-center gap-3 text-sm text-slate-600">
-                  <EventCountdownBadge eventDate={group.event_date} />
-                  {budgetLabel && (
-                    <span className="inline-flex items-center gap-2 rounded-full bg-emerald-50 px-3 py-1.5 font-semibold text-emerald-700">
-                      <span className="h-2 w-2 rounded-full bg-emerald-500" />
-                      Budget: {budgetLabel}
-                    </span>
-                  )}
-                </div>
-
-                <div className="mt-4 flex flex-wrap gap-2">
-                  {group.members.slice(0, 4).map((member, index) => (
-                    <span
-                      key={`${group.id}-${member.email || member.nickname || index}`}
-                      className={`inline-flex rounded-full border px-3 py-1 text-xs font-medium ${theme.memberPill}`}
-                    >
-                      {member.nickname || member.email || "Participant"}
-                    </span>
-                  ))}
-                  {group.members.length > 4 && (
-                    <span className="inline-flex rounded-full border border-slate-200 bg-slate-100 px-3 py-1 text-xs font-medium text-slate-500">
-                      +{group.members.length - 4} more
-                    </span>
-                  )}
-                </div>
-
-                <div className="mt-5 flex flex-wrap items-center gap-3 border-t border-slate-200 pt-4">
-                  <button
-                    type="button"
-                    onClick={() => router.push(`/group/${group.id}`)}
-                    className={`inline-flex items-center gap-2 rounded-full px-5 py-2.5 text-sm font-semibold text-white transition hover:-translate-y-0.5 ${theme.primaryButton}`}
-                  >
-                    <span>View Group</span>
-                    <ArrowRightIcon />
-                  </button>
-                  {type === "owned" && (
-                    <button
-                      type="button"
-                      onClick={() => void handleDeleteGroup(group.id, group.name)}
-                      disabled={deletingGroupId === group.id}
-                      className={`inline-flex items-center gap-2 rounded-full px-4 py-2.5 text-sm font-semibold transition ${
-                        deletingGroupId === group.id
-                          ? "cursor-wait bg-rose-100 text-rose-500"
-                          : "bg-rose-50 text-rose-600 hover:bg-rose-100"
-                      }`}
-                    >
-                      {deletingGroupId === group.id ? "Deleting..." : "Delete Group"}
-                    </button>
-                  )}
-                </div>
-              </div>
-            </div>
+                {deletingGroupId === group.id ? "Deleting..." : "Delete"}
+              </button>
+            )}
           </div>
-        </article>
-      </div>
+        </div>
+      </article>
     );
   };
 
@@ -1298,30 +1282,30 @@ export default function DashboardPage() {
 
     return (
       <article
-        className={`relative overflow-hidden rounded-[26px] border p-5 shadow-[0_24px_60px_rgba(148,163,184,0.14)] transition hover:-translate-y-0.5 ${theme.border} ${theme.surface}`}
+        className={`relative overflow-hidden rounded-[22px] border p-4 shadow-[0_18px_40px_rgba(148,163,184,0.12)] transition hover:-translate-y-0.5 ${theme.border} ${theme.surface}`}
       >
-        <div className="absolute inset-y-0 right-0 w-24 bg-[radial-gradient(circle_at_center,rgba(191,219,254,0.25),transparent_68%)]" />
+        <div className="absolute inset-y-0 right-0 w-16 bg-[radial-gradient(circle_at_center,rgba(191,219,254,0.25),transparent_68%)]" />
         <div className="relative z-10 flex h-full flex-col">
-          <div className="flex items-start justify-between gap-4">
-            <div>
-              <div className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold ${theme.badge}`}>
+          <div className="flex items-start justify-between gap-3">
+            <div className="min-w-0">
+              <div className={`inline-flex rounded-full px-2.5 py-1 text-[11px] font-semibold ${theme.badge}`}>
                 {subtitle}
               </div>
-              <h2 className="mt-3 text-[1.45rem] font-extrabold leading-tight text-slate-900">{title}</h2>
-              <p className="mt-2 text-sm leading-6 text-slate-600">{description}</p>
+              <h2 className="mt-2.5 text-[1.2rem] font-extrabold leading-tight text-slate-900">{title}</h2>
+              <p className="mt-1.5 text-sm leading-5 text-slate-600">{description}</p>
             </div>
-            <div className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl ${theme.iconShell}`}>
+            <div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ${theme.iconShell}`}>
               {icon}
             </div>
           </div>
 
-          {meta ? <div className="mt-4">{meta}</div> : null}
+          {meta ? <div className="mt-3">{meta}</div> : null}
 
-          <div className="mt-5 border-t border-slate-200 pt-4">
+          <div className="mt-4 border-t border-slate-200 pt-3">
             <button
               type="button"
               onClick={onClick}
-              className={`inline-flex items-center gap-2 rounded-full px-4 py-2.5 text-sm font-semibold transition hover:-translate-y-0.5 ${theme.button}`}
+              className={`inline-flex items-center gap-2 rounded-full px-3.5 py-2 text-sm font-semibold transition hover:-translate-y-0.5 ${theme.button}`}
             >
               <span>{buttonLabel}</span>
               <ArrowRightIcon />
@@ -1360,7 +1344,7 @@ export default function DashboardPage() {
         ))}
       </div>
 
-      <FadeIn className="relative z-10 mx-auto w-full max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
+      <FadeIn className="relative z-10 mx-auto w-full max-w-7xl px-4 py-7 sm:px-6 lg:px-8">
         {actionMessage && (
           <div
             data-fade
@@ -1376,7 +1360,7 @@ export default function DashboardPage() {
           </div>
         )}
 
-        <div data-fade className="mb-8 flex flex-wrap justify-center gap-3">
+        <div data-fade className="mb-6 flex flex-wrap justify-center gap-3">
           {canViewAffiliateReport && (
             <button
               type="button"
@@ -1423,7 +1407,7 @@ export default function DashboardPage() {
           </button>
         </div>
 
-        <div data-fade className="mb-10 text-center">
+        <div data-fade className="mb-8 text-center">
           <div className="mx-auto inline-flex items-center gap-3 rounded-full bg-white/85 px-5 py-2 shadow-[0_18px_50px_rgba(148,163,184,0.15)] backdrop-blur-md">
             <GiftIcon className="h-6 w-6 text-sky-600" />
             <span className="text-sm font-semibold uppercase tracking-[0.2em] text-sky-600">
@@ -1466,7 +1450,7 @@ export default function DashboardPage() {
           </section>
         )}
 
-        <section data-fade className="mb-10 grid gap-4 xl:grid-cols-3">
+        <section data-fade className="mb-8 grid gap-3 xl:grid-cols-3">
           <ActionCard
             accent="rose"
             subtitle={hasAssignments ? "Your draw is ready" : "Waiting for draw"}
@@ -1535,40 +1519,40 @@ export default function DashboardPage() {
           />
         </section>
 
-        <section data-fade className="mb-10 grid gap-4 xl:grid-cols-[minmax(0,1.2fr)_minmax(0,0.8fr)]">
-          <div className="overflow-hidden rounded-[26px] border border-white/70 bg-white/92 p-5 shadow-[0_24px_60px_rgba(148,163,184,0.14)] backdrop-blur-md">
+        <section data-fade className="mb-8 grid gap-3 xl:grid-cols-[minmax(0,1.15fr)_minmax(0,0.85fr)]">
+          <div className="overflow-hidden rounded-[22px] border border-white/70 bg-white/92 p-4 shadow-[0_18px_40px_rgba(148,163,184,0.12)] backdrop-blur-md">
             <div className="flex items-start justify-between gap-4">
               <div>
                 <div className="inline-flex items-center gap-2 rounded-full bg-rose-100 px-3 py-1 text-xs font-semibold text-rose-700">
                   <WishlistIcon className="h-4 w-4" />
                   My Wishlist
                 </div>
-                <h3 className="mt-3 text-2xl font-bold text-slate-900">Keep your gift ideas ready</h3>
-                <p className="mt-2 text-sm leading-6 text-slate-600">
+                <h3 className="mt-2.5 text-[1.35rem] font-bold text-slate-900">Keep your gift ideas ready</h3>
+                <p className="mt-1.5 text-sm leading-5 text-slate-600">
                   Your wishlist lives on its own page now, so gift planning stays separate from what you want others to buy for you.
                 </p>
               </div>
-              <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-rose-100 text-rose-600">
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-rose-100 text-rose-600">
                 <WishlistIcon className="h-6 w-6" />
               </div>
             </div>
-            <div className="mt-4 grid gap-3 sm:grid-cols-2">
-              <div className="rounded-2xl border border-rose-100 bg-white px-4 py-4">
+            <div className="mt-3 grid gap-3 sm:grid-cols-2">
+              <div className="rounded-2xl border border-rose-100 bg-white px-4 py-3.5">
                 <div className="text-[11px] font-extrabold uppercase tracking-[0.14em] text-slate-400">
                   Total items
                 </div>
-                <div className="mt-2 text-[34px] font-black text-slate-900">{wishlistItemCount}</div>
+                <div className="mt-1.5 text-[28px] font-black text-slate-900">{wishlistItemCount}</div>
                 <div className="mt-1 text-xs text-slate-500">Ideas currently visible to your Secret Santa.</div>
               </div>
-              <div className="rounded-2xl border border-rose-100 bg-white px-4 py-4">
+              <div className="rounded-2xl border border-rose-100 bg-white px-4 py-3.5">
                 <div className="text-[11px] font-extrabold uppercase tracking-[0.14em] text-slate-400">
                   Active groups
                 </div>
-                <div className="mt-2 text-[34px] font-black text-slate-900">{wishlistGroupCount}</div>
+                <div className="mt-1.5 text-[28px] font-black text-slate-900">{wishlistGroupCount}</div>
                 <div className="mt-1 text-xs text-slate-500">Groups where you already added wishlist items.</div>
               </div>
             </div>
-            <div className="mt-4 flex flex-wrap gap-3">
+            <div className="mt-3 flex flex-wrap gap-3">
               <button
                 type="button"
                 onClick={() => router.push("/wishlist")}
@@ -1580,17 +1564,17 @@ export default function DashboardPage() {
             </div>
           </div>
 
-          <div className="overflow-hidden rounded-[26px] border border-white/70 bg-white/92 p-5 shadow-[0_24px_60px_rgba(148,163,184,0.14)] backdrop-blur-md">
+          <div className="overflow-hidden rounded-[22px] border border-white/70 bg-white/92 p-4 shadow-[0_18px_40px_rgba(148,163,184,0.12)] backdrop-blur-md">
             <div className="inline-flex items-center gap-2 rounded-full bg-emerald-100 px-3 py-1 text-xs font-semibold text-emerald-700">
               Home status
             </div>
-            <h3 className="mt-3 text-2xl font-bold text-slate-900">Quick dashboard pulse</h3>
-            <div className="mt-4 space-y-3">
+            <h3 className="mt-2.5 text-[1.35rem] font-bold text-slate-900">Quick dashboard pulse</h3>
+            <div className="mt-3 space-y-3">
               <div className="rounded-2xl bg-slate-50 px-4 py-3">
                 <div className="text-[11px] font-extrabold uppercase tracking-[0.14em] text-slate-400">
                   Total groups
                 </div>
-                <div className="mt-1 text-[28px] font-black text-slate-900">
+                <div className="mt-1 text-[24px] font-black text-slate-900">
                   {ownedGroups.length + invitedGroups.length}
                 </div>
               </div>
@@ -1598,12 +1582,12 @@ export default function DashboardPage() {
                 <div className="text-[11px] font-extrabold uppercase tracking-[0.14em] text-slate-400">
                   Draw-ready groups
                 </div>
-                <div className="mt-1 text-[28px] font-black text-slate-900">
+                <div className="mt-1 text-[24px] font-black text-slate-900">
                   {[...ownedGroups, ...invitedGroups].filter((group) => group.hasDrawn).length}
                 </div>
               </div>
             </div>
-            <div className="mt-4 flex flex-wrap gap-3">
+            <div className="mt-3 flex flex-wrap gap-3">
               <button
                 type="button"
                 onClick={() => router.push("/profile")}
@@ -1624,15 +1608,15 @@ export default function DashboardPage() {
           </div>
         </section>
 
-        <section data-fade className="mb-10 grid gap-4 xl:grid-cols-[minmax(0,1.4fr)_360px]">
-          <div className="overflow-hidden rounded-[26px] border border-white/70 bg-white/92 p-5 shadow-[0_24px_60px_rgba(148,163,184,0.14)] backdrop-blur-md">
+        <section data-fade className="mb-8 grid gap-3 xl:grid-cols-[minmax(0,1.4fr)_340px]">
+          <div className="overflow-hidden rounded-[22px] border border-white/70 bg-white/92 p-4 shadow-[0_18px_40px_rgba(148,163,184,0.12)] backdrop-blur-md">
             <div className="flex flex-wrap items-start justify-between gap-4">
               <div>
                 <div className="inline-flex items-center gap-2 rounded-full bg-blue-100 px-3 py-1 text-xs font-semibold text-blue-700">
                   Activity feed
                 </div>
-                <h3 className="mt-3 text-2xl font-bold text-slate-900">Recent moments that matter</h3>
-                <p className="mt-2 text-sm leading-6 text-slate-600">
+                <h3 className="mt-2.5 text-[1.35rem] font-bold text-slate-900">Recent moments that matter</h3>
+                <p className="mt-1.5 text-sm leading-5 text-slate-600">
                   See your latest gift progress, delivery confirmations, draw updates, and group activity in one place.
                 </p>
               </div>
@@ -1646,7 +1630,7 @@ export default function DashboardPage() {
               </button>
             </div>
 
-            <div className="mt-5 overflow-hidden rounded-[24px] border border-slate-200/80 bg-white">
+            <div className="mt-4 overflow-hidden rounded-[20px] border border-slate-200/80 bg-white">
               {activityFeedItems.length === 0 ? (
                 <div className="px-5 py-8 text-sm text-slate-500">
                   Once gift progress or group updates start happening, your recent activity will show up here.
@@ -1665,7 +1649,7 @@ export default function DashboardPage() {
                         <span aria-hidden="true">{item.icon}</span>
                       </div>
                       <div className="min-w-0 flex-1">
-                        <div className="text-base font-semibold text-slate-800">{item.title}</div>
+                        <div className="text-sm font-semibold text-slate-800">{item.title}</div>
                         <div className="mt-1 truncate text-sm text-slate-500">{item.subtitle}</div>
                       </div>
                       <div className="shrink-0 pl-2 text-sm font-medium text-slate-400">
@@ -1693,21 +1677,21 @@ export default function DashboardPage() {
             </div>
           </div>
 
-          <div className="overflow-hidden rounded-[26px] border border-white/70 bg-white/92 p-5 shadow-[0_24px_60px_rgba(148,163,184,0.14)] backdrop-blur-md">
+          <div className="overflow-hidden rounded-[22px] border border-white/70 bg-white/92 p-4 shadow-[0_18px_40px_rgba(148,163,184,0.12)] backdrop-blur-md">
             <div className="flex items-start justify-between gap-4">
               <div>
                 <div className="inline-flex items-center gap-2 rounded-full bg-blue-100 px-3 py-1 text-xs font-semibold text-blue-700">
                   <BellIcon className="h-4 w-4" />
                   Notifications
                 </div>
-                <h3 className="mt-3 text-2xl font-bold text-slate-900">Quick updates</h3>
-                <p className="mt-2 text-sm leading-6 text-slate-600">
+                <h3 className="mt-2.5 text-[1.35rem] font-bold text-slate-900">Quick updates</h3>
+                <p className="mt-1.5 text-sm leading-5 text-slate-600">
                   A compact preview of the latest alerts, right beside your activity feed.
                 </p>
               </div>
             </div>
 
-            <div className="mt-5 grid grid-cols-3 gap-3">
+            <div className="mt-4 grid grid-cols-3 gap-2.5">
               {notificationPreviewItems.length > 0 ? (
                 notificationPreviewItems.map((item) => (
                   <button
@@ -1721,43 +1705,43 @@ export default function DashboardPage() {
 
                       router.push("/notifications");
                     }}
-                    className="overflow-hidden rounded-[22px] border border-slate-200/80 bg-white text-left shadow-[0_16px_36px_rgba(148,163,184,0.16)] transition hover:-translate-y-0.5"
+                    className="overflow-hidden rounded-[18px] border border-slate-200/80 bg-white text-left shadow-[0_14px_30px_rgba(148,163,184,0.14)] transition hover:-translate-y-0.5"
                   >
                     <div
-                      className={`flex h-24 items-center justify-center ${getActivityToneClasses(item.tone)}`}
+                      className={`flex h-20 items-center justify-center ${getActivityToneClasses(item.tone)}`}
                     >
                       <span className="text-3xl" aria-hidden="true">
                         {item.icon}
                       </span>
                     </div>
-                    <div className="px-3 py-3 text-center text-sm font-bold text-slate-800">
+                    <div className="px-2.5 py-2.5 text-center text-xs font-bold text-slate-800">
                       {item.title}
                     </div>
                   </button>
                 ))
               ) : (
                 <>
-                  <div className="rounded-[22px] border border-slate-200/80 bg-white shadow-[0_16px_36px_rgba(148,163,184,0.16)]">
-                    <div className="flex h-24 items-center justify-center bg-blue-500/90 text-3xl text-white">
+                  <div className="rounded-[18px] border border-slate-200/80 bg-white shadow-[0_14px_30px_rgba(148,163,184,0.14)]">
+                    <div className="flex h-20 items-center justify-center bg-blue-500/90 text-3xl text-white">
                       🔔
                     </div>
-                    <div className="px-3 py-3 text-center text-sm font-bold text-slate-800">
+                    <div className="px-2.5 py-2.5 text-center text-xs font-bold text-slate-800">
                       Inbox
                     </div>
                   </div>
-                  <div className="rounded-[22px] border border-slate-200/80 bg-white shadow-[0_16px_36px_rgba(148,163,184,0.16)]">
-                    <div className="flex h-24 items-center justify-center bg-emerald-500/90 text-3xl text-white">
+                  <div className="rounded-[18px] border border-slate-200/80 bg-white shadow-[0_14px_30px_rgba(148,163,184,0.14)]">
+                    <div className="flex h-20 items-center justify-center bg-emerald-500/90 text-3xl text-white">
                       ✨
                     </div>
-                    <div className="px-3 py-3 text-center text-sm font-bold text-slate-800">
+                    <div className="px-2.5 py-2.5 text-center text-xs font-bold text-slate-800">
                       Updates
                     </div>
                   </div>
-                  <div className="rounded-[22px] border border-slate-200/80 bg-white shadow-[0_16px_36px_rgba(148,163,184,0.16)]">
-                    <div className="flex h-24 items-center justify-center bg-violet-500/90 text-3xl text-white">
+                  <div className="rounded-[18px] border border-slate-200/80 bg-white shadow-[0_14px_30px_rgba(148,163,184,0.14)]">
+                    <div className="flex h-20 items-center justify-center bg-violet-500/90 text-3xl text-white">
                       🎁
                     </div>
-                    <div className="px-3 py-3 text-center text-sm font-bold text-slate-800">
+                    <div className="px-2.5 py-2.5 text-center text-xs font-bold text-slate-800">
                       Alerts
                     </div>
                   </div>
@@ -1765,7 +1749,7 @@ export default function DashboardPage() {
               )}
             </div>
 
-            <div className="mt-4 flex items-center justify-between gap-3 rounded-2xl bg-slate-50 px-4 py-3">
+            <div className="mt-3 flex items-center justify-between gap-3 rounded-2xl bg-slate-50 px-4 py-3">
               <div>
                 <div className="text-[11px] font-extrabold uppercase tracking-[0.14em] text-slate-400">
                   Inbox status
@@ -1787,16 +1771,16 @@ export default function DashboardPage() {
           </div>
         </section>
 
-        <section data-fade className="mb-10">
+        <section data-fade className="mb-8">
           <div className="mb-5">
             <p className="text-sm font-semibold uppercase tracking-[0.18em] text-sky-600">
               Groups
             </p>
             <h2 className="mt-1 text-3xl font-bold text-slate-900">Your groups</h2>
           </div>
-          {ownedGroups.length === 0 ? (
+          {dashboardGroups.length === 0 ? (
             <div className="grid gap-5">
-              <section className="relative overflow-hidden rounded-[30px] border border-white/70 bg-white/90 p-6 shadow-[0_24px_70px_rgba(148,163,184,0.16)] backdrop-blur-md">
+              <section className="relative overflow-hidden rounded-[24px] border border-white/70 bg-white/90 p-5 shadow-[0_18px_40px_rgba(148,163,184,0.12)] backdrop-blur-md">
                 <div className="absolute bottom-4 right-5 h-24 w-24 rounded-full bg-[radial-gradient(circle_at_center,#dbeafe,transparent_70%)]" />
                 <p className="text-sm font-semibold uppercase tracking-[0.16em] text-slate-500">
                   Start here
@@ -1818,29 +1802,9 @@ export default function DashboardPage() {
               </section>
             </div>
           ) : (
-            <div className="grid gap-5">
-              {ownedGroups.map((group) => (
-                <GroupCard key={group.id} group={group} type="owned" />
-              ))}
-            </div>
-          )}
-        </section>
-
-        <section data-fade className="mb-10">
-          <div className="mb-5">
-            <p className="text-sm font-semibold uppercase tracking-[0.18em] text-emerald-600">
-              Shared with you
-            </p>
-            <h2 className="mt-1 text-3xl font-bold text-slate-900">Invited groups</h2>
-          </div>
-          {invitedGroups.length === 0 ? (
-            <div className="rounded-[28px] border border-dashed border-slate-300 bg-white/70 px-6 py-10 text-center text-sm font-medium text-slate-500">
-              Accepted invitations will appear here once you join them.
-            </div>
-          ) : (
-            <div className="grid gap-5">
-              {invitedGroups.map((group) => (
-                <GroupCard key={group.id} group={group} type="invited" />
+            <div className="grid gap-4 lg:grid-cols-2">
+              {dashboardGroups.map(({ group, type }) => (
+                <GroupCard key={`${type}-${group.id}`} group={group} type={type} />
               ))}
             </div>
           )}
