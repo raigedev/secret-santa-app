@@ -2096,48 +2096,64 @@ export default function DashboardPage() {
           />
         </section>
 
-        <section data-fade className="mb-8 grid gap-3 xl:grid-cols-[minmax(0,1.1fr)_400px]">
-          <div className={dashboardCardShellClass}>
-            <div className="flex items-start justify-between gap-4">
-              <div>
-                <div className="inline-flex items-center gap-2 rounded-full bg-rose-100 px-3 py-1 text-xs font-semibold text-rose-700">
-                  <WishlistIcon className="h-4 w-4" />
-                  My Wishlist
+        <section data-fade className="mb-8 grid items-start gap-3 xl:grid-cols-[minmax(0,1.02fr)_400px]">
+          <div className={`${dashboardCardShellClass} self-start`}>
+            <div className={dashboardInnerPanelClass}>
+              <div className="flex items-start justify-between gap-4">
+                <div>
+                  <div className="inline-flex items-center gap-2 rounded-full bg-rose-100 px-3 py-1 text-xs font-semibold text-rose-700">
+                    <WishlistIcon className="h-4 w-4" />
+                    My Wishlist
+                  </div>
+                  <h3 className={`mt-2.5 text-[1.18rem] font-bold ${dashboardPanelHeadingClass}`}>Your own gift ideas</h3>
+                  <p className={`mt-1.5 max-w-xl text-sm leading-5 ${dashboardPanelTextClass}`}>
+                    Keep this separate from gift planning so your Secret Santa can always see what you want.
+                  </p>
                 </div>
-                <h3 className={`mt-2.5 text-[1.35rem] font-bold ${dashboardPanelHeadingClass}`}>Keep your gift ideas ready</h3>
-                <p className={`mt-1.5 text-sm leading-5 ${dashboardPanelTextClass}`}>
-                  Your wishlist lives on its own page now, so gift planning stays separate from what you want others to buy for you.
+                <div className={dashboardStatChipClass}>
+                  <div className={`text-[10px] font-extrabold uppercase tracking-[0.16em] ${dashboardStatLabelClass}`}>
+                    Ready now
+                  </div>
+                  <div className={`mt-0.5 text-sm font-bold ${dashboardStatValueClass}`}>
+                    {wishlistItemCount} item{wishlistItemCount === 1 ? "" : "s"}
+                  </div>
+                </div>
+              </div>
+
+              <div className="mt-4 grid gap-2.5 sm:grid-cols-2">
+                <div className={`rounded-[18px] border px-4 py-3 ${isDarkTheme ? "border-rose-500/20 bg-slate-950/45" : "border-rose-100 bg-white/92"}`}>
+                  <div className={`text-[11px] font-extrabold uppercase tracking-[0.14em] ${dashboardStatLabelClass}`}>
+                    Total items
+                  </div>
+                  <div className={`mt-1 text-[24px] font-black ${dashboardStatValueClass}`}>{wishlistItemCount}</div>
+                  <div className={`mt-1 text-xs ${isDarkTheme ? "text-slate-400" : "text-slate-500"}`}>
+                    Visible to your Secret Santa.
+                  </div>
+                </div>
+                <div className={`rounded-[18px] border px-4 py-3 ${isDarkTheme ? "border-rose-500/20 bg-slate-950/45" : "border-rose-100 bg-white/92"}`}>
+                  <div className={`text-[11px] font-extrabold uppercase tracking-[0.14em] ${dashboardStatLabelClass}`}>
+                    Active groups
+                  </div>
+                  <div className={`mt-1 text-[24px] font-black ${dashboardStatValueClass}`}>{wishlistGroupCount}</div>
+                  <div className={`mt-1 text-xs ${isDarkTheme ? "text-slate-400" : "text-slate-500"}`}>
+                    Groups with wishlist ideas.
+                  </div>
+                </div>
+              </div>
+
+              <div className={`mt-4 flex flex-col gap-3 border-t pt-3 ${isDarkTheme ? "border-slate-700/70" : "border-slate-200/80"} sm:flex-row sm:items-center sm:justify-between`}>
+                <p className={`text-xs font-medium ${isDarkTheme ? "text-slate-400" : "text-slate-500"}`}>
+                  Manage the full list from your dedicated wishlist page.
                 </p>
+                <button
+                  type="button"
+                  onClick={() => router.push("/wishlist")}
+                  className="inline-flex items-center gap-2 rounded-full bg-[linear-gradient(135deg,#e25d67,#b9384c)] px-4 py-2.5 text-sm font-semibold text-white shadow-[0_14px_35px_rgba(185,56,76,0.24)] transition hover:-translate-y-0.5"
+                >
+                  <span>Open My Wishlist</span>
+                  <ArrowRightIcon />
+                </button>
               </div>
-              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-rose-100 text-rose-600">
-                <WishlistIcon className="h-6 w-6" />
-              </div>
-            </div>
-            <div className="mt-3 grid gap-3 sm:grid-cols-2">
-              <div className={`rounded-2xl border px-4 py-3.5 ${isDarkTheme ? "border-rose-500/20 bg-slate-950/45" : "border-rose-100 bg-white"}`}>
-                <div className={`text-[11px] font-extrabold uppercase tracking-[0.14em] ${dashboardStatLabelClass}`}>
-                  Total items
-                </div>
-                <div className={`mt-1.5 text-[28px] font-black ${dashboardStatValueClass}`}>{wishlistItemCount}</div>
-                <div className={`mt-1 text-xs ${isDarkTheme ? "text-slate-400" : "text-slate-500"}`}>Ideas currently visible to your Secret Santa.</div>
-              </div>
-              <div className={`rounded-2xl border px-4 py-3.5 ${isDarkTheme ? "border-rose-500/20 bg-slate-950/45" : "border-rose-100 bg-white"}`}>
-                <div className={`text-[11px] font-extrabold uppercase tracking-[0.14em] ${dashboardStatLabelClass}`}>
-                  Active groups
-                </div>
-                <div className={`mt-1.5 text-[28px] font-black ${dashboardStatValueClass}`}>{wishlistGroupCount}</div>
-                <div className={`mt-1 text-xs ${isDarkTheme ? "text-slate-400" : "text-slate-500"}`}>Groups where you already added wishlist items.</div>
-              </div>
-            </div>
-            <div className="mt-3 flex flex-wrap gap-3">
-              <button
-                type="button"
-                onClick={() => router.push("/wishlist")}
-                className="inline-flex items-center gap-2 rounded-full bg-[linear-gradient(135deg,#e25d67,#b9384c)] px-5 py-2.5 text-sm font-semibold text-white shadow-[0_14px_35px_rgba(185,56,76,0.24)] transition hover:-translate-y-0.5"
-              >
-                <span>Open My Wishlist</span>
-                <ArrowRightIcon />
-              </button>
             </div>
           </div>
 
