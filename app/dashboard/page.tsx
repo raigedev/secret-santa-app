@@ -4,7 +4,6 @@ import { useEffect, useRef, useState, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import InviteCard from "./InviteCard";
-import SecretSantaCard from "./SecretSantaCard";
 import ProfileSetupModal from "./ProfileSetupModal";
 import { getProfile } from "@/app/profile/actions";
 import { claimInvitedMemberships } from "./actions";
@@ -199,26 +198,24 @@ function WishlistIcon({ className = "h-5 w-5" }: { className?: string }) {
   );
 }
 
-function MiniStatusDot({ className }: { className: string }) {
-  return <span aria-hidden="true" className={`h-2.5 w-2.5 rounded-full ${className}`} />;
+function ChatIcon({ className = "h-5 w-5" }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" className={className} aria-hidden="true">
+      <path
+        d="M7 18.5 4.5 20V7a2.5 2.5 0 0 1 2.5-2.5h10A2.5 2.5 0 0 1 19.5 7v7a2.5 2.5 0 0 1-2.5 2.5H7Z"
+        stroke="currentColor"
+        strokeWidth="1.8"
+        strokeLinejoin="round"
+      />
+      <path d="M8 9h8M8 13h5" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+    </svg>
+  );
 }
 
-function DecorativeGiftBox({ className = "h-16 w-16" }: { className?: string }) {
+function PlusIcon({ className = "h-5 w-5" }: { className?: string }) {
   return (
-    <svg viewBox="0 0 120 120" className={className} aria-hidden="true">
-      <ellipse cx="60" cy="102" rx="32" ry="8" fill="rgba(15,23,42,0.18)" />
-      <rect x="27" y="56" width="66" height="42" rx="9" fill="#A95AA8" />
-      <rect x="27" y="56" width="66" height="9" rx="4.5" fill="#8C3E8A" />
-      <rect x="23" y="46" width="74" height="16" rx="6" fill="#B96AB8" />
-      <rect x="55" y="46" width="10" height="52" fill="#F6C343" />
-      <rect x="23" y="53" width="74" height="8" fill="#F6C343" />
-      <path d="M60 30c-6 0-12 3-12 9 0 4 4 7 9 7h3V30Z" fill="#FFD76A" />
-      <path d="M60 30c6 0 12 3 12 9 0 4-4 7-9 7h-3V30Z" fill="#FFC94D" />
-      <circle cx="60" cy="45" r="5" fill="#F6C343" />
-      <circle cx="26" cy="36" r="2.8" fill="#FFD76A" />
-      <circle cx="92" cy="32" r="2.5" fill="#F8A7C8" />
-      <circle cx="96" cy="43" r="1.9" fill="#7DD3FC" />
-      <circle cx="20" cy="48" r="2" fill="#A7F3D0" />
+    <svg viewBox="0 0 24 24" fill="none" className={className} aria-hidden="true">
+      <path d="M12 5v14M5 12h14" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
     </svg>
   );
 }
@@ -877,6 +874,8 @@ export default function DashboardPage() {
     return <DashboardSkeleton />;
   }
 
+  const hasAssignments = recipientNames.length > 0;
+
   const GroupCard = ({
     group,
     type,
@@ -1035,139 +1034,79 @@ export default function DashboardPage() {
     description,
     buttonLabel,
     onClick,
-    scene,
-    panelMeta,
+    icon,
+    meta,
   }: {
-    accent: "green" | "blue";
+    accent: "rose" | "green" | "amber";
     subtitle: string;
     title: string;
     description: string;
     buttonLabel: string;
     onClick: () => void;
-    scene: ReactNode;
-    panelMeta?: ReactNode;
+    icon: ReactNode;
+    meta?: ReactNode;
   }) => {
     const theme =
-      accent === "green"
+      accent === "rose"
         ? {
-            card: "bg-[linear-gradient(145deg,#4ade80_0%,#16a34a_40%,#14532d_100%)]",
-            borderGrad: "bg-[linear-gradient(135deg,#bbf7d0,#4ade80,#15803d,#86efac,#14532d)]",
-            shadow: "shadow-[0_32px_80px_rgba(20,83,45,0.38)]",
-            eyebrow: "bg-white/92 text-emerald-700 shadow-[0_8px_20px_rgba(15,23,42,0.10)]",
-            subtitleText: "text-emerald-50/90",
-            panel: "border-white/60 bg-white/94",
-            panelAccent: "bg-emerald-500",
-            panelCaption: "text-emerald-700",
-            panelBadge: "bg-emerald-100 text-emerald-700",
-            button: "bg-[linear-gradient(135deg,#15803d,#14532d)] shadow-[0_14px_35px_rgba(20,83,45,0.30)]",
-            ribbonColor: "bg-white/14",
-            bowColor: "bg-emerald-50/90",
-            corner: "bg-white/28",
+            border: "border-rose-200/80",
+            surface: "bg-[linear-gradient(180deg,#ffffff,#fff5f7)]",
+            iconShell: "bg-rose-100 text-rose-600",
+            subtitle: "text-rose-600",
+            button: "bg-[linear-gradient(135deg,#e25d67,#b9384c)] text-white shadow-[0_14px_35px_rgba(185,56,76,0.20)]",
+            badge: "bg-rose-100 text-rose-700",
+          }
+        : accent === "green"
+        ? {
+            border: "border-emerald-200/80",
+            surface: "bg-[linear-gradient(180deg,#ffffff,#f3fff7)]",
+            iconShell: "bg-emerald-100 text-emerald-600",
+            subtitle: "text-emerald-600",
+            button: "bg-[linear-gradient(135deg,#5aa57c,#2f6b56)] text-white shadow-[0_14px_35px_rgba(47,107,86,0.20)]",
+            badge: "bg-emerald-100 text-emerald-700",
           }
         : {
-            card: "bg-[linear-gradient(145deg,#fbbf24_0%,#d97706_40%,#78350f_100%)]",
-            borderGrad: "bg-[linear-gradient(135deg,#fef08a,#fbbf24,#b45309,#fde68a,#78350f)]",
-            shadow: "shadow-[0_32px_80px_rgba(120,53,15,0.38)]",
-            eyebrow: "bg-white/92 text-amber-700 shadow-[0_8px_20px_rgba(15,23,42,0.10)]",
-            subtitleText: "text-amber-50/90",
-            panel: "border-white/60 bg-white/94",
-            panelAccent: "bg-amber-500",
-            panelCaption: "text-amber-700",
-            panelBadge: "bg-amber-100 text-amber-700",
-            button: "bg-[linear-gradient(135deg,#b45309,#78350f)] shadow-[0_14px_35px_rgba(120,53,15,0.30)]",
-            ribbonColor: "bg-white/14",
-            bowColor: "bg-amber-100/90",
-            corner: "bg-amber-100/28",
+            border: "border-amber-200/80",
+            surface: "bg-[linear-gradient(180deg,#ffffff,#fff9f0)]",
+            iconShell: "bg-amber-100 text-amber-600",
+            subtitle: "text-amber-600",
+            button: "bg-[linear-gradient(135deg,#f3b548,#d68619)] text-white shadow-[0_14px_35px_rgba(214,134,25,0.20)]",
+            badge: "bg-amber-100 text-amber-700",
           };
 
     return (
-      <div
-        className={`group rounded-[34px] p-[3px] transition duration-300 hover:-translate-y-0.5 ${theme.borderGrad} ${theme.shadow}`}
+      <article
+        className={`relative overflow-hidden rounded-[26px] border p-5 shadow-[0_24px_60px_rgba(148,163,184,0.14)] transition hover:-translate-y-0.5 ${theme.border} ${theme.surface}`}
       >
-        <section className={`relative overflow-hidden rounded-[32px] p-5 text-white ${theme.card}`}>
-          {/* Radial gloss */}
-          <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(255,255,255,0.32),transparent_38%),radial-gradient(circle_at_bottom_right,rgba(255,225,170,0.18),transparent_40%)]" />
-          {/* Wrapping paper cross-hatch texture */}
-          <div
-            className="pointer-events-none absolute inset-0 opacity-[0.055]"
-            style={{backgroundImage: "repeating-linear-gradient(45deg, rgba(255,255,255,1) 0, rgba(255,255,255,1) 1px, transparent 1px, transparent 14px), repeating-linear-gradient(-45deg, rgba(255,255,255,1) 0, rgba(255,255,255,1) 1px, transparent 1px, transparent 14px)"}}
-          />
-          {/* Foil shimmer streak */}
-          <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(108deg,transparent_10%,rgba(255,255,255,0.07)_22%,rgba(255,255,255,0.17)_32%,rgba(255,255,255,0.05)_40%,transparent_50%)]" />
-          {/* Ribbon cross — horizontal */}
-          <div className="pointer-events-none absolute left-0 right-0 top-[40%] h-[3px] bg-white/18" />
-          {/* Ribbon cross — vertical (top zone only) */}
-          <div className="pointer-events-none absolute left-1/2 top-0 h-[40%] w-[3px] -translate-x-1/2 bg-white/18" />
-          {/* Wrapping paper fold — top-right corner */}
-          <div className="pointer-events-none absolute right-0 top-0 z-20 h-10 w-10 overflow-hidden">
-            <div className={`absolute -right-5 -top-5 h-10 w-10 rotate-45 ${theme.corner} shadow-[inset_-1px_1px_3px_rgba(255,255,255,0.2)]`} />
-          </div>
-          {/* Ribbon/bow — bottom-left */}
-          <div className={`pointer-events-none absolute bottom-0 left-10 h-20 w-2 rounded-t-full ${theme.ribbonColor}`} />
-          <div className={`pointer-events-none absolute bottom-14 left-0 h-2 w-24 ${theme.ribbonColor}`} />
-          <div
-            className={`pointer-events-none absolute bottom-11 left-7 z-0 flex h-6 w-6 items-center justify-center rounded-full border border-white/35 ${theme.bowColor} shadow-[0_6px_16px_rgba(15,23,42,0.12)]`}
-          >
-            <span className="absolute -left-2.5 h-3.5 w-3.5 rotate-12 rounded-full border border-white/35 bg-white/16" />
-            <span className="absolute -right-2.5 h-3.5 w-3.5 -rotate-12 rounded-full border border-white/35 bg-white/16" />
-            <span className="h-2.5 w-2.5 rounded-full bg-amber-100/95" />
-          </div>
-          {/* Gift box illustration — top right */}
-          <div className="pointer-events-none absolute right-3 top-1 opacity-90">
-            <DecorativeGiftBox className="h-[76px] w-[76px]" />
-          </div>
-          {/* Sparkles */}
-          <span className="pointer-events-none absolute left-5 top-4 select-none text-base leading-none text-white/22">✦</span>
-          <span className="pointer-events-none absolute bottom-[28%] right-5 select-none text-sm leading-none text-white/18">✦</span>
-          <span className="pointer-events-none absolute left-[40%] top-[12%] select-none text-xs leading-none text-white/15">✦</span>
-          <span className="pointer-events-none absolute right-[28%] bottom-[46%] select-none text-[10px] leading-none text-white/12">✦</span>
-          {/* Header */}
-          <div className="relative z-10 flex items-start justify-between gap-4">
+        <div className="absolute inset-y-0 right-0 w-24 bg-[radial-gradient(circle_at_center,rgba(191,219,254,0.25),transparent_68%)]" />
+        <div className="relative z-10 flex h-full flex-col">
+          <div className="flex items-start justify-between gap-4">
             <div>
-              <div className={`mb-2 inline-flex rounded-full px-3 py-1 text-sm font-semibold ${theme.eyebrow}`}>
+              <div className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold ${theme.badge}`}>
                 {subtitle}
               </div>
-              <h2 className="text-[1.6rem] font-extrabold leading-tight text-white">{title}</h2>
-              <p className={`mt-1.5 text-sm ${theme.subtitleText}`}>{description}</p>
+              <h2 className="mt-3 text-[1.45rem] font-extrabold leading-tight text-slate-900">{title}</h2>
+              <p className="mt-2 text-sm leading-6 text-slate-600">{description}</p>
+            </div>
+            <div className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl ${theme.iconShell}`}>
+              {icon}
             </div>
           </div>
-          {/* Inner white panel */}
-          <div
-            className={`relative z-10 mt-5 overflow-hidden rounded-[26px] border p-4 text-slate-800 shadow-[0_4px_18px_rgba(0,0,0,0.10),inset_0_1px_0_rgba(255,255,255,0.9)] ${theme.panel}`}
-          >
-            {/* Left accent bar */}
-            <div className={`absolute bottom-0 left-0 top-0 w-1 rounded-l-[26px] ${theme.panelAccent}`} />
-            {/* Soft paper texture inside panel */}
-            <div className="pointer-events-none absolute inset-0 opacity-40 [background-image:radial-gradient(circle_at_1px_1px,rgba(148,163,184,0.18)_1px,transparent_0)] [background-size:16px_16px]" />
-            <div className="pl-3">
-              <div className="relative z-10 flex items-center justify-between gap-3">
-                <p className={`text-[11px] font-semibold uppercase tracking-[0.18em] ${theme.panelCaption}`}>
-                  Inside this gift
-                </p>
-                <span className={`inline-flex rounded-full px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.12em] ${theme.panelBadge}`}>
-                  Ready now
-                </span>
-              </div>
-              <div className="relative z-10 mt-3">{scene}</div>
-              {panelMeta ? (
-                <div className="relative z-10 mt-3 grid grid-cols-2 gap-2">
-                  {panelMeta}
-                </div>
-              ) : null}
-              <div className="mt-4 flex flex-wrap items-center gap-3 border-t border-slate-200 pt-4">
-                <button
-                  type="button"
-                  onClick={onClick}
-                  className={`inline-flex items-center gap-2 rounded-full px-5 py-2.5 text-sm font-semibold text-white transition hover:-translate-y-0.5 group-hover:shadow-lg ${theme.button}`}
-                >
-                  <span>{buttonLabel}</span>
-                  <ArrowRightIcon />
-                </button>
-              </div>
-            </div>
+
+          {meta ? <div className="mt-4">{meta}</div> : null}
+
+          <div className="mt-5 border-t border-slate-200 pt-4">
+            <button
+              type="button"
+              onClick={onClick}
+              className={`inline-flex items-center gap-2 rounded-full px-4 py-2.5 text-sm font-semibold transition hover:-translate-y-0.5 ${theme.button}`}
+            >
+              <span>{buttonLabel}</span>
+              <ArrowRightIcon />
+            </button>
           </div>
-        </section>
-      </div>
+        </div>
+      </article>
     );
   };
 
@@ -1215,7 +1154,7 @@ export default function DashboardPage() {
           </div>
         )}
 
-        <div data-fade className="mb-8 flex justify-end gap-3">
+        <div data-fade className="mb-8 flex flex-wrap justify-center gap-3">
           {canViewAffiliateReport && (
             <button
               type="button"
@@ -1269,12 +1208,12 @@ export default function DashboardPage() {
               Secret Santa
             </span>
           </div>
-          <h1 className="mt-4 text-4xl font-bold tracking-tight text-sky-900 sm:text-5xl">
+          <h1 className="mt-4 text-4xl font-bold tracking-tight text-sky-900 sm:text-[3.35rem]">
             My Secret Santa
           </h1>
           <p className="mt-3 text-lg font-medium text-slate-600">Welcome back, {userName}</p>
           <p className="mt-2 text-sm text-slate-500">
-            Keep your groups, draws, and chats in one festive workspace.
+            Manage your groups, draws, and chats in one place.
           </p>
         </div>
 
@@ -1305,144 +1244,201 @@ export default function DashboardPage() {
           </section>
         )}
 
-        <section data-fade className="mb-10 grid gap-5 xl:grid-cols-[minmax(0,1.1fr)_minmax(0,0.95fr)_minmax(0,0.95fr)]">
-          <SecretSantaCard recipientNames={recipientNames} />
+        <section data-fade className="mb-10 grid gap-4 xl:grid-cols-3">
           <ActionCard
-            accent="green"
-            subtitle="Secret Santa Chat"
-            title="Secret Santa chat"
-            description="Chat with your groupmates anonymously, send hints, and keep the guessing game going without spoiling the surprise."
-            buttonLabel="Open chat"
-            onClick={() => router.push("/secret-santa-chat")}
-            scene={
-              <div className="flex items-center gap-3">
-                <span className="inline-flex rounded-full bg-emerald-50 px-3 py-1 text-xs font-semibold uppercase tracking-[0.14em] text-emerald-700">
-                  Hints
+            accent="rose"
+            subtitle={hasAssignments ? "Your draw is ready" : "Waiting for draw"}
+            title={hasAssignments ? "Open your assignment" : "No recipient yet"}
+            description={
+              hasAssignments
+                ? `You currently have ${recipientNames.length} recipient${recipientNames.length === 1 ? "" : "s"} ready for gift planning.`
+                : "Once your organizer finishes the draw, your Secret Santa recipient will show up here."
+            }
+            buttonLabel={hasAssignments ? "View assignment" : "Open Secret Santa"}
+            onClick={() => router.push("/secret-santa")}
+            icon={<GiftIcon className="h-6 w-6" />}
+            meta={
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="inline-flex rounded-full bg-rose-100 px-3 py-1 text-xs font-semibold text-rose-700">
+                  {hasAssignments
+                    ? `${recipientNames.length} recipient${recipientNames.length === 1 ? "" : "s"}`
+                    : "Waiting for organizer"}
                 </span>
-                <span className="inline-flex rounded-full bg-emerald-50 px-3 py-1 text-xs font-semibold uppercase tracking-[0.14em] text-emerald-700">
-                  Notes
-                </span>
-                <span className="inline-flex rounded-full bg-emerald-50 px-3 py-1 text-xs font-semibold uppercase tracking-[0.14em] text-emerald-700">
-                  Chat
+                <span className="inline-flex rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-600">
+                  {hasAssignments ? "Gift planning" : "Draw pending"}
                 </span>
               </div>
             }
-            panelMeta={
-              <>
-                <div className="rounded-xl border border-emerald-100 bg-white/80 px-3 py-2 text-xs font-semibold text-emerald-700">
-                  Anonymous mode
-                </div>
-                <div className="rounded-xl border border-emerald-100 bg-white/80 px-3 py-2 text-xs font-semibold text-emerald-700">
-                  Live hints
-                </div>
-              </>
+          />
+          <ActionCard
+            accent="green"
+            subtitle="Secret Santa chat"
+            title="Chat with your group"
+            description="Send anonymous hints, keep the mystery fun, and plan without spoiling the surprise."
+            buttonLabel="Open chat"
+            onClick={() => router.push("/secret-santa-chat")}
+            icon={<ChatIcon className="h-6 w-6" />}
+            meta={
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="inline-flex rounded-full bg-emerald-100 px-3 py-1 text-xs font-semibold text-emerald-700">
+                  Anonymous chat
+                </span>
+                <span className="inline-flex rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-600">
+                  Hint-friendly
+                </span>
+              </div>
             }
           />
           <ActionCard
-            accent="blue"
-            subtitle="Create Group"
-            title="Create group"
-            description="Start a new Secret Santa event, invite your friends, and keep the whole draw organized from one shared place."
+            accent="amber"
+            subtitle="Create group"
+            title="Start a new event"
+            description="Create a new Secret Santa event, invite your friends, and get the draw ready fast."
             buttonLabel="New group"
             onClick={() => router.push("/create-group")}
-            scene={
-              <div className="flex items-center gap-3">
-                <span className="inline-flex items-center gap-2 rounded-full bg-amber-50 px-3 py-1 text-xs font-semibold uppercase tracking-[0.14em] text-amber-700">
-                  <MiniStatusDot className="bg-amber-400" />
+            icon={<PlusIcon className="h-6 w-6" />}
+            meta={
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="inline-flex rounded-full bg-amber-100 px-3 py-1 text-xs font-semibold text-amber-700">
                   Plan
                 </span>
-                <span className="inline-flex items-center gap-2 rounded-full bg-amber-50 px-3 py-1 text-xs font-semibold uppercase tracking-[0.14em] text-amber-700">
-                  <MiniStatusDot className="bg-amber-400" />
+                <span className="inline-flex rounded-full bg-amber-100 px-3 py-1 text-xs font-semibold text-amber-700">
                   Invite
                 </span>
-                <span className="inline-flex items-center gap-2 rounded-full bg-amber-50 px-3 py-1 text-xs font-semibold uppercase tracking-[0.14em] text-amber-700">
-                  <MiniStatusDot className="bg-amber-400" />
+                <span className="inline-flex rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-600">
                   Draw
                 </span>
               </div>
             }
-            panelMeta={
-              <>
-                <div className="rounded-xl border border-amber-100 bg-white/80 px-3 py-2 text-xs font-semibold text-amber-700">
-                  Quick setup
-                </div>
-                <div className="rounded-xl border border-amber-100 bg-white/80 px-3 py-2 text-xs font-semibold text-amber-700">
-                  Smart invites
-                </div>
-              </>
-            }
           />
         </section>
 
-        <section data-fade className="mb-10">
-          <div className="mb-5">
-            <p className="text-sm font-semibold uppercase tracking-[0.18em] text-rose-600">
-              My Wishlist
-            </p>
-            <h2 className="mt-1 text-3xl font-bold text-slate-900">Keep your own gift ideas ready</h2>
-          </div>
-
-          <div className="relative overflow-hidden rounded-[30px] border border-white/70 bg-white/90 p-6 shadow-[0_24px_70px_rgba(148,163,184,0.16)] backdrop-blur-md">
-            <div className="absolute inset-y-0 right-0 w-40 bg-[radial-gradient(circle_at_center,rgba(252,165,165,0.2),transparent_66%)]" />
-            <div className="relative z-10 grid gap-5 lg:grid-cols-[minmax(0,1.1fr)_minmax(0,0.9fr)]">
+        <section data-fade className="mb-10 grid gap-4 xl:grid-cols-[minmax(0,1.1fr)_minmax(0,0.9fr)_minmax(0,0.8fr)]">
+          <div className="overflow-hidden rounded-[26px] border border-white/70 bg-white/92 p-5 shadow-[0_24px_60px_rgba(148,163,184,0.14)] backdrop-blur-md">
+            <div className="flex items-start justify-between gap-4">
               <div>
                 <div className="inline-flex items-center gap-2 rounded-full bg-rose-100 px-3 py-1 text-xs font-semibold text-rose-700">
                   <WishlistIcon className="h-4 w-4" />
-                  Personal wishlist
+                  My Wishlist
                 </div>
-                <h3 className="mt-3 text-2xl font-bold text-slate-900">This is what others shop from for you</h3>
-                <p className="mt-3 max-w-2xl text-sm leading-6 text-slate-600">
-                  We moved your personal wishlist out of <strong>Secret Santa</strong> so that page can stay focused on shopping for your assigned recipient. Use this area to keep your own wanted items, notes, and links organized.
+                <h3 className="mt-3 text-2xl font-bold text-slate-900">Keep your gift ideas ready</h3>
+                <p className="mt-2 text-sm leading-6 text-slate-600">
+                  Your wishlist lives on its own page now, so gift planning stays separate from what you want others to buy for you.
                 </p>
-                <div className="mt-5 flex flex-wrap gap-3">
-                  <button
-                    type="button"
-                    onClick={() => router.push("/wishlist")}
-                    className="inline-flex items-center gap-2 rounded-full bg-[linear-gradient(135deg,#e25d67,#b9384c)] px-5 py-2.5 text-sm font-semibold text-white shadow-[0_14px_35px_rgba(185,56,76,0.24)] transition hover:-translate-y-0.5"
-                  >
-                    <span>Open My Wishlist</span>
-                    <ArrowRightIcon />
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => router.push("/secret-santa")}
-                    className="inline-flex items-center gap-2 rounded-full bg-slate-100 px-5 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-200"
-                  >
-                    <span>Back to Gift Planning</span>
-                  </button>
-                </div>
               </div>
+              <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-rose-100 text-rose-600">
+                <WishlistIcon className="h-6 w-6" />
+              </div>
+            </div>
+            <div className="mt-4 grid gap-3 sm:grid-cols-2">
+              <div className="rounded-2xl border border-rose-100 bg-white px-4 py-4">
+                <div className="text-[11px] font-extrabold uppercase tracking-[0.14em] text-slate-400">
+                  Total items
+                </div>
+                <div className="mt-2 text-[34px] font-black text-slate-900">{wishlistItemCount}</div>
+                <div className="mt-1 text-xs text-slate-500">Ideas currently visible to your Secret Santa.</div>
+              </div>
+              <div className="rounded-2xl border border-rose-100 bg-white px-4 py-4">
+                <div className="text-[11px] font-extrabold uppercase tracking-[0.14em] text-slate-400">
+                  Active groups
+                </div>
+                <div className="mt-2 text-[34px] font-black text-slate-900">{wishlistGroupCount}</div>
+                <div className="mt-1 text-xs text-slate-500">Groups where you already added wishlist items.</div>
+              </div>
+            </div>
+            <div className="mt-4 flex flex-wrap gap-3">
+              <button
+                type="button"
+                onClick={() => router.push("/wishlist")}
+                className="inline-flex items-center gap-2 rounded-full bg-[linear-gradient(135deg,#e25d67,#b9384c)] px-5 py-2.5 text-sm font-semibold text-white shadow-[0_14px_35px_rgba(185,56,76,0.24)] transition hover:-translate-y-0.5"
+              >
+                <span>Open My Wishlist</span>
+                <ArrowRightIcon />
+              </button>
+            </div>
+          </div>
 
-              <div className="rounded-[26px] border border-slate-200 bg-[linear-gradient(180deg,#fff8f8,#fffefe)] p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.9)]">
-                <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-rose-500">
-                  Wishlist snapshot
+          <div className="overflow-hidden rounded-[26px] border border-white/70 bg-white/92 p-5 shadow-[0_24px_60px_rgba(148,163,184,0.14)] backdrop-blur-md">
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <div className="inline-flex items-center gap-2 rounded-full bg-blue-100 px-3 py-1 text-xs font-semibold text-blue-700">
+                  <BellIcon className="h-4 w-4" />
+                  Notifications
                 </div>
-                <div className="mt-4 grid gap-3 sm:grid-cols-2">
-                  <div className="rounded-2xl border border-rose-100 bg-white px-4 py-4">
-                    <div className="text-[11px] font-extrabold uppercase tracking-[0.14em] text-slate-400">
-                      Total items
-                    </div>
-                    <div className="mt-2 text-[34px] font-black text-slate-900">{wishlistItemCount}</div>
-                    <div className="mt-1 text-xs text-slate-500">
-                      Ideas currently visible to your Secret Santa.
-                    </div>
-                  </div>
-                  <div className="rounded-2xl border border-rose-100 bg-white px-4 py-4">
-                    <div className="text-[11px] font-extrabold uppercase tracking-[0.14em] text-slate-400">
-                      Active groups
-                    </div>
-                    <div className="mt-2 text-[34px] font-black text-slate-900">{wishlistGroupCount}</div>
-                    <div className="mt-1 text-xs text-slate-500">
-                      Groups where you already added wishlist items.
-                    </div>
-                  </div>
+                <h3 className="mt-3 text-2xl font-bold text-slate-900">Stay on top of updates</h3>
+                <p className="mt-2 text-sm leading-6 text-slate-600">
+                  Keep an eye on unread updates, pending invites, and reminder activity from one place.
+                </p>
+              </div>
+            </div>
+            <div className="mt-4 space-y-3">
+              <div className="rounded-2xl border border-blue-100 bg-white px-4 py-4">
+                <div className="text-[11px] font-extrabold uppercase tracking-[0.14em] text-slate-400">
+                  Unread notifications
                 </div>
-                <div className="mt-4 rounded-2xl bg-rose-50 px-4 py-3 text-sm text-rose-700">
-                  {wishlistItemCount > 0
-                    ? "Your wishlist is ready to review and refine."
-                    : "You have not added any wishlist items yet. Add a few so your Secret Santa has something to work from."}
+                <div className="mt-2 text-[34px] font-black text-slate-900">{unreadNotificationCount}</div>
+                <div className="mt-1 text-xs text-slate-500">Current unread updates in your inbox.</div>
+              </div>
+              <div className="rounded-2xl border border-blue-100 bg-white px-4 py-4">
+                <div className="text-[11px] font-extrabold uppercase tracking-[0.14em] text-slate-400">
+                  Pending invites
+                </div>
+                <div className="mt-2 text-[34px] font-black text-slate-900">{pendingInvites.length}</div>
+                <div className="mt-1 text-xs text-slate-500">Invitations still waiting for your response.</div>
+              </div>
+            </div>
+            <div className="mt-4">
+              <button
+                type="button"
+                onClick={() => router.push("/notifications")}
+                className="inline-flex items-center gap-2 rounded-full bg-[linear-gradient(135deg,#2f80ff,#1f66e5)] px-5 py-2.5 text-sm font-semibold text-white shadow-[0_14px_35px_rgba(37,99,235,0.22)] transition hover:-translate-y-0.5"
+              >
+                <span>Open notifications</span>
+                <ArrowRightIcon />
+              </button>
+            </div>
+          </div>
+
+          <div className="overflow-hidden rounded-[26px] border border-white/70 bg-white/92 p-5 shadow-[0_24px_60px_rgba(148,163,184,0.14)] backdrop-blur-md">
+            <div className="inline-flex items-center gap-2 rounded-full bg-emerald-100 px-3 py-1 text-xs font-semibold text-emerald-700">
+              Home status
+            </div>
+            <h3 className="mt-3 text-2xl font-bold text-slate-900">Quick dashboard pulse</h3>
+            <div className="mt-4 space-y-3">
+              <div className="rounded-2xl bg-slate-50 px-4 py-3">
+                <div className="text-[11px] font-extrabold uppercase tracking-[0.14em] text-slate-400">
+                  Total groups
+                </div>
+                <div className="mt-1 text-[28px] font-black text-slate-900">
+                  {ownedGroups.length + invitedGroups.length}
                 </div>
               </div>
+              <div className="rounded-2xl bg-slate-50 px-4 py-3">
+                <div className="text-[11px] font-extrabold uppercase tracking-[0.14em] text-slate-400">
+                  Draw-ready groups
+                </div>
+                <div className="mt-1 text-[28px] font-black text-slate-900">
+                  {[...ownedGroups, ...invitedGroups].filter((group) => group.hasDrawn).length}
+                </div>
+              </div>
+            </div>
+            <div className="mt-4 flex flex-wrap gap-3">
+              <button
+                type="button"
+                onClick={() => router.push("/profile")}
+                className="inline-flex items-center gap-2 rounded-full bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 shadow-[0_12px_30px_rgba(148,163,184,0.16)] transition hover:-translate-y-0.5"
+              >
+                <span>Edit profile</span>
+                <ArrowRightIcon />
+              </button>
+              <button
+                type="button"
+                onClick={handleLogout}
+                className="inline-flex items-center gap-2 rounded-full bg-[linear-gradient(135deg,#f59e0b,#f97316)] px-4 py-2.5 text-sm font-semibold text-white shadow-[0_14px_35px_rgba(249,115,22,0.22)] transition hover:-translate-y-0.5"
+              >
+                <span>Logout</span>
+                <ArrowRightIcon />
+              </button>
             </div>
           </div>
         </section>
@@ -1504,25 +1500,6 @@ export default function DashboardPage() {
               ))}
             </div>
           )}
-        </section>
-
-        <section data-fade className="flex flex-wrap items-center justify-center gap-3 rounded-[30px] border border-white/70 bg-white/80 px-6 py-5 shadow-[0_24px_70px_rgba(148,163,184,0.12)] backdrop-blur-md">
-          <button
-            type="button"
-            onClick={() => router.push("/profile")}
-            className="inline-flex items-center gap-2 rounded-full bg-white px-5 py-2.5 text-sm font-semibold text-slate-700 shadow-[0_12px_30px_rgba(148,163,184,0.16)] transition hover:-translate-y-0.5"
-          >
-            <span>Edit profile</span>
-            <ArrowRightIcon />
-          </button>
-          <button
-            type="button"
-            onClick={handleLogout}
-            className="inline-flex items-center gap-2 rounded-full bg-[linear-gradient(135deg,#f59e0b,#f97316)] px-5 py-2.5 text-sm font-semibold text-white shadow-[0_14px_35px_rgba(249,115,22,0.22)] transition hover:-translate-y-0.5"
-          >
-            <span>Logout</span>
-            <ArrowRightIcon />
-          </button>
         </section>
 
       </FadeIn>
