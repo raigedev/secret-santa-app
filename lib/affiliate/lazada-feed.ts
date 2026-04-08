@@ -1177,6 +1177,11 @@ function scoreFeedMatch(input: {
     reasons.push(matchedFamilyRule.id);
   }
 
+  if (input.product.promoShortLink || input.product.promoLink || input.product.promoDeepLink) {
+    score += 0.04;
+    reasons.push("affiliate-ready");
+  }
+
   const targetPrice = getTargetPrice(
     input.preferredPriceMin ?? null,
     input.preferredPriceMax ?? null,

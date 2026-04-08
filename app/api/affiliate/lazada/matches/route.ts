@@ -163,17 +163,62 @@ function filterMatchesByMaximumPrice<
 }
 
 function sortMatchesByPriceAscending<
-  T extends { product: { discountedPrice: number | null; salePrice: number | null } },
+  T extends {
+    product: {
+      discountedPrice: number | null;
+      promoDeepLink?: string | null;
+      promoLink?: string | null;
+      promoShortLink?: string | null;
+      salePrice: number | null;
+    };
+    score?: number;
+  },
 >(matches: T[]): T[] {
   return [...matches].sort((left, right) => {
     const leftPrice = getLazadaFeedProductPrice(left.product) ?? Number.POSITIVE_INFINITY;
     const rightPrice = getLazadaFeedProductPrice(right.product) ?? Number.POSITIVE_INFINITY;
+    const priceGap = Math.abs(leftPrice - rightPrice);
+    const lowerPrice = Math.min(leftPrice, rightPrice);
+    const pricesAreClose =
+      Number.isFinite(leftPrice) &&
+      Number.isFinite(rightPrice) &&
+      priceGap <= Math.max(120, lowerPrice * 0.2);
+    const leftAffiliateReady = Boolean(
+      left.product.promoShortLink || left.product.promoLink || left.product.promoDeepLink
+    );
+    const rightAffiliateReady = Boolean(
+      right.product.promoShortLink || right.product.promoLink || right.product.promoDeepLink
+    );
 
-    return leftPrice - rightPrice;
+    if (pricesAreClose && leftAffiliateReady !== rightAffiliateReady) {
+      return leftAffiliateReady ? -1 : 1;
+    }
+
+    if (leftPrice !== rightPrice) {
+      return leftPrice - rightPrice;
+    }
+
+    if (leftAffiliateReady !== rightAffiliateReady) {
+      return leftAffiliateReady ? -1 : 1;
+    }
+
+    return (right.score ?? 0) - (left.score ?? 0);
   });
 }
 
-function buildRoleOrderedMatches<T extends { product: { itemId: string; discountedPrice: number | null; salePrice: number | null } }>(
+function buildRoleOrderedMatches<
+  T extends {
+    product: {
+      itemId: string;
+      discountedPrice: number | null;
+      promoDeepLink?: string | null;
+      promoLink?: string | null;
+      promoShortLink?: string | null;
+      salePrice: number | null;
+    };
+    score?: number;
+  },
+>(
   primaryMatches: T[],
   premiumCandidates?: T[],
   groupBudget?: number | null
@@ -217,8 +262,32 @@ function buildRoleOrderedMatches<T extends { product: { itemId: string; discount
       [...stepUpPool].sort((left, right) => {
         const leftPrice = getLazadaFeedProductPrice(left.product) ?? Number.POSITIVE_INFINITY;
         const rightPrice = getLazadaFeedProductPrice(right.product) ?? Number.POSITIVE_INFINITY;
+        const priceGap = Math.abs(leftPrice - rightPrice);
+        const lowerPrice = Math.min(leftPrice, rightPrice);
+        const pricesAreClose =
+          Number.isFinite(leftPrice) &&
+          Number.isFinite(rightPrice) &&
+          priceGap <= Math.max(120, lowerPrice * 0.2);
+        const leftAffiliateReady = Boolean(
+          left.product.promoShortLink || left.product.promoLink || left.product.promoDeepLink
+        );
+        const rightAffiliateReady = Boolean(
+          right.product.promoShortLink || right.product.promoLink || right.product.promoDeepLink
+        );
 
-        return leftPrice - rightPrice;
+        if (pricesAreClose && leftAffiliateReady !== rightAffiliateReady) {
+          return leftAffiliateReady ? -1 : 1;
+        }
+
+        if (leftPrice !== rightPrice) {
+          return leftPrice - rightPrice;
+        }
+
+        if (leftAffiliateReady !== rightAffiliateReady) {
+          return leftAffiliateReady ? -1 : 1;
+        }
+
+        return (right.score ?? 0) - (left.score ?? 0);
       })[0] || null;
   }
 
@@ -233,12 +302,32 @@ function buildRoleOrderedMatches<T extends { product: { itemId: string; discount
       [...premiumPool].sort((left, right) => {
         const leftPrice = getLazadaFeedProductPrice(left.product) ?? Number.NEGATIVE_INFINITY;
         const rightPrice = getLazadaFeedProductPrice(right.product) ?? Number.NEGATIVE_INFINITY;
+        const priceGap = Math.abs(leftPrice - rightPrice);
+        const lowerPrice = Math.min(leftPrice, rightPrice);
+        const pricesAreClose =
+          Number.isFinite(leftPrice) &&
+          Number.isFinite(rightPrice) &&
+          priceGap <= Math.max(180, lowerPrice * 0.2);
+        const leftAffiliateReady = Boolean(
+          left.product.promoShortLink || left.product.promoLink || left.product.promoDeepLink
+        );
+        const rightAffiliateReady = Boolean(
+          right.product.promoShortLink || right.product.promoLink || right.product.promoDeepLink
+        );
+
+        if (pricesAreClose && leftAffiliateReady !== rightAffiliateReady) {
+          return rightAffiliateReady ? 1 : -1;
+        }
 
         if (rightPrice !== leftPrice) {
           return rightPrice - leftPrice;
         }
 
-        return 0;
+        if (leftAffiliateReady !== rightAffiliateReady) {
+          return rightAffiliateReady ? 1 : -1;
+        }
+
+        return (right.score ?? 0) - (left.score ?? 0);
       })[0] || null;
   }
 
