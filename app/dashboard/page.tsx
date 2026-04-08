@@ -17,6 +17,7 @@ type GroupMember = {
   role: string;
   displayName: string | null;
   avatarEmoji: string | null;
+  avatarUrl: string | null;
 };
 
 type Group = {
@@ -124,6 +125,7 @@ type PeerProfileRow = {
   user_id: string | null;
   display_name: string | null;
   avatar_emoji: string | null;
+  avatar_url: string | null;
 };
 
 function createGroupUserKey(groupId: string, userId: string): string {
@@ -467,6 +469,9 @@ export default function DashboardPage() {
   const [userName, setUserName] = useState(
     () => (typeof sessionStorage !== "undefined" ? (sessionStorage.getItem("ss_un") ?? "") : "")
   );
+  const [userAvatarUrl, setUserAvatarUrl] = useState(
+    () => (typeof sessionStorage !== "undefined" ? (sessionStorage.getItem("ss_uau") ?? "") : "")
+  );
   const [userEmoji, setUserEmoji] = useState(
     () => (typeof sessionStorage !== "undefined" ? (sessionStorage.getItem("ss_ue") ?? "\u{1F385}") : "\u{1F385}")
   );
@@ -663,13 +668,13 @@ export default function DashboardPage() {
 
         const profileMapByGroup = new Map<
           string,
-          Map<string, { avatarEmoji: string | null; displayName: string | null }>
+          Map<string, { avatarEmoji: string | null; displayName: string | null; avatarUrl: string | null }>
         >();
 
         for (const entry of peerProfilesByGroup) {
           const profileMap = new Map<
             string,
-            { avatarEmoji: string | null; displayName: string | null }
+            { avatarEmoji: string | null; displayName: string | null; avatarUrl: string | null }
           >();
 
           for (const profile of entry.profiles) {
@@ -677,6 +682,7 @@ export default function DashboardPage() {
               profileMap.set(profile.user_id, {
                 avatarEmoji: profile.avatar_emoji || null,
                 displayName: profile.display_name || null,
+                avatarUrl: profile.avatar_url || null,
               });
             }
           }
@@ -702,6 +708,7 @@ export default function DashboardPage() {
                   role: member.role,
                   displayName: profile?.displayName || null,
                   avatarEmoji: profile?.avatarEmoji || null,
+                  avatarUrl: profile?.avatarUrl || null,
                 };
               }),
           };
@@ -869,12 +876,19 @@ export default function DashboardPage() {
       if (profileData) {
         const resolvedName = profileData.display_name || defaultName;
         const resolvedEmoji = profileData.avatar_emoji || "\u{1F385}";
+        const resolvedAvatarUrl = profileData.avatar_url || "";
         setShowProfileSetup(!profileData.profile_setup_complete);
         setUserName(resolvedName);
         setUserEmoji(resolvedEmoji);
+        setUserAvatarUrl(resolvedAvatarUrl);
         if (typeof sessionStorage !== "undefined") {
           sessionStorage.setItem("ss_un", resolvedName);
           sessionStorage.setItem("ss_ue", resolvedEmoji);
+          if (resolvedAvatarUrl) {
+            sessionStorage.setItem("ss_uau", resolvedAvatarUrl);
+          } else {
+            sessionStorage.removeItem("ss_uau");
+          }
         }
       }
     };
@@ -1229,13 +1243,13 @@ export default function DashboardPage() {
 
     return (
       <article
-        className={`relative overflow-hidden rounded-[24px] border border-white/75 px-4 py-3.5 ${theme.surface} ${theme.shadow}`}
+        className={`relative overflow-hidden rounded-[22px] border border-white/75 px-3.5 py-3 ${theme.surface} ${theme.shadow}`}
       >
         <div className={`absolute inset-x-0 top-0 h-1.5 bg-gradient-to-r ${theme.accent}`} />
         <div className="relative z-10">
-          <div className="flex items-start justify-between gap-3">
+          <div className="flex items-start justify-between gap-2.5">
             <div className="min-w-0">
-              <h3 className="text-[1.05rem] font-extrabold leading-tight text-slate-900 sm:text-[1.15rem]">
+              <h3 className="text-[1rem] font-extrabold leading-tight text-slate-900 sm:text-[1.08rem]">
                 {group.name}
               </h3>
             </div>
@@ -1244,7 +1258,7 @@ export default function DashboardPage() {
             </div>
           </div>
 
-          <div className="mt-2.5 flex items-center justify-between gap-3">
+          <div className="mt-2 flex items-center justify-between gap-2.5">
             <div className="flex flex-wrap items-center gap-1.5">
               <span className={`inline-flex rounded-full px-3 py-1 text-[10px] font-semibold ${theme.eyebrow}`}>
                 {type === "owned" ? "My group" : "Invited group"}
@@ -1258,29 +1272,34 @@ export default function DashboardPage() {
               </span>
             </div>
 
-            <div className="flex shrink-0 -space-x-2.5 pl-2">
+            <div className="flex shrink-0 -space-x-2 pl-2">
               {topMembers.map((member, index) => (
                 <span
                   key={`${group.id}-${member.email || member.nickname || index}-avatar`}
-                  className={`inline-flex h-9 w-9 items-center justify-center rounded-full border-2 border-white text-sm font-semibold shadow-[0_8px_18px_rgba(15,23,42,0.10)] ${theme.avatarShell}`}
+                  className={`inline-flex h-10 w-10 items-center justify-center overflow-hidden rounded-full border-2 border-white text-[18px] font-semibold shadow-[0_8px_18px_rgba(15,23,42,0.10)] ${theme.avatarShell}`}
                   title={member.displayName || member.nickname || member.email || "Participant"}
                 >
-                  {member.avatarEmoji || getAvatarLabel(member.displayName || member.nickname || member.email)}
+                  {member.avatarUrl ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img src={member.avatarUrl} alt="" className="h-full w-full object-cover" />
+                  ) : (
+                    member.avatarEmoji || getAvatarLabel(member.displayName || member.nickname || member.email)
+                  )}
                 </span>
               ))}
               {group.members.length > 3 && (
-                <span className="inline-flex h-9 w-9 items-center justify-center rounded-full border-2 border-white bg-slate-200 text-[10px] font-bold text-slate-600 shadow-[0_8px_18px_rgba(15,23,42,0.10)]">
+                <span className="inline-flex h-10 w-10 items-center justify-center rounded-full border-2 border-white bg-slate-200 text-[10px] font-bold text-slate-600 shadow-[0_8px_18px_rgba(15,23,42,0.10)]">
                   +{group.members.length - 3}
                 </span>
               )}
             </div>
           </div>
 
-          <div className="mt-3 rounded-[20px] border border-slate-200/80 bg-slate-50/95 px-3 py-2.5">
+          <div className="mt-2.5 rounded-[18px] border border-slate-200/80 bg-slate-50/95 px-2.5 py-2">
             <div className="flex flex-wrap items-center gap-2 text-sm text-slate-700">
               <EventCountdownBadge eventDate={group.event_date} />
               {budgetLabel && (
-                <span className="inline-flex items-center gap-2 text-[13px] font-semibold text-slate-700">
+                <span className="inline-flex items-center gap-1.5 text-[13px] font-semibold text-slate-700">
                   <span className="h-2.5 w-2.5 rounded-full bg-emerald-500" />
                   Budget: {budgetLabel}
                 </span>
@@ -1291,12 +1310,12 @@ export default function DashboardPage() {
             </div>
           </div>
 
-          <div className="mt-3 flex items-center justify-between gap-3 border-t border-slate-200/80 pt-3">
+          <div className="mt-2.5 flex items-center justify-between gap-2.5 border-t border-slate-200/80 pt-2.5">
             <div className="flex flex-wrap items-center gap-2">
               <button
                 type="button"
                 onClick={() => router.push(`/group/${group.id}`)}
-                className={`inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm font-semibold text-white transition hover:-translate-y-0.5 ${theme.primaryButton}`}
+                className={`inline-flex items-center gap-2 rounded-full px-4 py-2 text-[15px] font-semibold text-white transition hover:-translate-y-0.5 ${theme.primaryButton}`}
               >
                 <span>{type === "owned" ? "View Group" : "Open Group"}</span>
                 <ArrowRightIcon />
@@ -1306,7 +1325,7 @@ export default function DashboardPage() {
                   type="button"
                   onClick={() => void handleDeleteGroup(group.id, group.name)}
                   disabled={deletingGroupId === group.id}
-                  className={`inline-flex items-center gap-2 rounded-full px-3 py-2 text-sm font-semibold transition ${
+                  className={`inline-flex items-center gap-2 rounded-full px-3 py-2 text-[14px] font-semibold transition ${
                     deletingGroupId === group.id
                       ? "cursor-wait bg-rose-100 text-rose-500"
                       : theme.secondaryButton
@@ -1319,7 +1338,7 @@ export default function DashboardPage() {
             <button
               type="button"
               onClick={() => router.push(`/group/${group.id}`)}
-              className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-400 transition hover:border-slate-300 hover:text-slate-600"
+              className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-400 transition hover:border-slate-300 hover:text-slate-600"
               aria-label={`Open ${group.name}`}
             >
               <ArrowRightIcon />
@@ -1488,9 +1507,14 @@ export default function DashboardPage() {
           >
             <span
               aria-hidden="true"
-              className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-[linear-gradient(145deg,#eff6ff,#dbeafe)] text-base"
+              className="inline-flex h-8 w-8 items-center justify-center overflow-hidden rounded-full bg-[linear-gradient(145deg,#eff6ff,#dbeafe)] text-base"
             >
-              {userEmoji}
+              {userAvatarUrl ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={userAvatarUrl} alt="" className="h-full w-full object-cover" />
+              ) : (
+                userEmoji
+              )}
             </span>
             <span>Profile</span>
           </button>
@@ -1882,7 +1906,7 @@ export default function DashboardPage() {
               </section>
             </div>
           ) : (
-            <div className="grid gap-4 lg:grid-cols-2">
+            <div className="grid gap-3 lg:grid-cols-2">
               {dashboardGroups.map(({ group, type }) => (
                 <GroupCard key={`${type}-${group.id}`} group={group} type={type} />
               ))}
