@@ -190,6 +190,9 @@ function sortMatchesByPriceAscending<
       right.product.promoShortLink || right.product.promoLink || right.product.promoDeepLink
     );
 
+    // When two products land in roughly the same price lane, prefer the one
+    // that is already affiliate-ready so we improve monetization without
+    // sacrificing relevance.
     if (pricesAreClose && leftAffiliateReady !== rightAffiliateReady) {
       return leftAffiliateReady ? -1 : 1;
     }
@@ -275,6 +278,9 @@ function buildRoleOrderedMatches<
           right.product.promoShortLink || right.product.promoLink || right.product.promoDeepLink
         );
 
+        // Step-up picks should still feel like the next sensible option, so we
+        // only use affiliate-readiness as a tie-breaker when the prices are
+        // already close.
         if (pricesAreClose && leftAffiliateReady !== rightAffiliateReady) {
           return leftAffiliateReady ? -1 : 1;
         }
@@ -315,6 +321,9 @@ function buildRoleOrderedMatches<
           right.product.promoShortLink || right.product.promoLink || right.product.promoDeepLink
         );
 
+        // Premium cards intentionally sort high-to-low on price, but when two
+        // upgrade candidates are near each other we still lean toward the one
+        // that can resolve into the stronger Lazada affiliate path.
         if (pricesAreClose && leftAffiliateReady !== rightAffiliateReady) {
           return rightAffiliateReady ? 1 : -1;
         }

@@ -1089,6 +1089,9 @@ function scoreFeedMatch(input: {
   const overlappingCoreIntentTokens = coreIntentTokens.filter((token) => productTokens.has(token));
   const matchedFamilyRule = getMatchedLazadaSearchFamilyRule(input);
 
+  // The score blends "what the wishlist asked for" with "what the chosen angle
+  // is trying to do". Search-query overlap gets the biggest weight because it
+  // reflects the Step 1 direction the user actually picked.
   if (itemNameTokens.length > 0) {
     score += Math.min(overlappingItemTokens.length / itemNameTokens.length, 1) * 0.32;
   }
@@ -1177,6 +1180,9 @@ function scoreFeedMatch(input: {
     reasons.push(matchedFamilyRule.id);
   }
 
+  // This is only a small nudge. Relevance still dominates the score, but when
+  // two products are otherwise similar we prefer the one that already has a
+  // Lazada promo link behind it.
   if (input.product.promoShortLink || input.product.promoLink || input.product.promoDeepLink) {
     score += 0.04;
     reasons.push("affiliate-ready");
