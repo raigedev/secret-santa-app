@@ -2096,8 +2096,9 @@ export default function DashboardPage() {
           />
         </section>
 
-        <section data-fade className="mb-8 grid items-start gap-3 xl:grid-cols-[minmax(0,1.02fr)_400px]">
-          <div className={`${dashboardCardShellClass} self-start`}>
+        <section data-fade className="mb-8 grid gap-3 xl:grid-cols-[minmax(0,1.02fr)_400px]">
+          <div className="space-y-3">
+            <div className={`${dashboardCardShellClass} self-start`}>
             <div className={dashboardInnerPanelClass}>
               <div className="flex items-start justify-between gap-4">
                 <div>
@@ -2155,9 +2156,89 @@ export default function DashboardPage() {
                 </button>
               </div>
             </div>
+            </div>
+
+            <div className={dashboardCardShellClass}>
+              <div className={`flex flex-col gap-4 ${dashboardInnerPanelClass}`}>
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                  <div>
+                    <div className="inline-flex items-center gap-2 rounded-full bg-blue-100 px-4 py-1.5 text-[13px] font-bold text-blue-700 shadow-[0_10px_22px_rgba(59,130,246,0.14)]">
+                      Activity feed
+                    </div>
+                    <h3 className={`mt-2.5 text-[1.35rem] font-bold ${dashboardPanelHeadingClass}`}>Recent moments that matter</h3>
+                    <p className={`mt-1.5 max-w-xl text-sm leading-5 ${dashboardPanelTextClass}`}>
+                      Your live pulse for gift prep, chat updates, and draw milestones.
+                    </p>
+                  </div>
+                </div>
+
+                <div className="space-y-3">
+                  {activityFeedItems.length === 0 ? (
+                    <div className={`rounded-[22px] border border-dashed px-5 py-8 text-sm ${isDarkTheme ? "border-slate-700/70 bg-slate-950/45 text-slate-400" : "border-slate-200 bg-white/90 text-slate-500"}`}>
+                      Once gift progress or group updates start happening, your recent activity will show up here.
+                    </div>
+                  ) : (
+                    activityFeedItems.map((item) => {
+                      const theme = getDashboardToneTheme(item.tone, isDarkTheme);
+
+                      const row = (
+                        <div
+                          className={`group relative overflow-hidden rounded-[22px] border px-4 py-4 text-left shadow-[0_12px_30px_rgba(148,163,184,0.08)] transition ${
+                            item.href ? "hover:-translate-y-0.5" : ""
+                          } ${theme.rowSurface}`}
+                        >
+                          <div className={`pointer-events-none absolute inset-x-0 top-0 h-16 bg-gradient-to-r ${theme.glow}`} />
+                          <div className="relative flex items-start gap-4">
+                            <div
+                              className={`mt-0.5 inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl text-[18px] ${theme.iconShell}`}
+                            >
+                              <span aria-hidden="true">{item.icon}</span>
+                            </div>
+                            <div className="min-w-0 flex-1">
+                              <div className="flex flex-wrap items-center gap-2">
+                                <span className={`inline-flex rounded-full px-2.5 py-1 text-[11px] font-bold ${theme.chip}`}>
+                                  {item.href ? "Open update" : "Latest update"}
+                                </span>
+                                <span className="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-400">
+                                  {formatRelativeTime(item.createdAt)}
+                                </span>
+                              </div>
+                              <div className={`mt-2 text-[15px] font-bold leading-5 ${isDarkTheme ? "text-white" : "text-slate-900"}`}>{item.title}</div>
+                              <div className={`mt-1.5 text-sm leading-5 ${isDarkTheme ? "text-slate-300" : "text-slate-600"}`}>{item.subtitle}</div>
+                            </div>
+                            {item.href ? (
+                              <div className={`mt-1 inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full transition group-hover:text-sky-400 ${isDarkTheme ? "bg-slate-900/85 text-slate-300 shadow-[0_8px_20px_rgba(2,8,23,0.24)] ring-1 ring-slate-700/70" : "bg-white/90 text-slate-500 shadow-[0_8px_20px_rgba(148,163,184,0.14)] ring-1 ring-white/80 group-hover:text-sky-600"}`}>
+                                <ArrowRightIcon className="h-4 w-4" />
+                              </div>
+                            ) : null}
+                          </div>
+                        </div>
+                      );
+
+                      if (!item.href) {
+                        return <div key={item.id}>{row}</div>;
+                      }
+
+                      return (
+                        <button
+                          key={item.id}
+                          type="button"
+                          onClick={() => router.push(item.href as string)}
+                          className="block w-full"
+                        >
+                          {row}
+                        </button>
+                      );
+                    })
+                  )}
+                </div>
+              </div>
+            </div>
           </div>
 
-          <div className={dashboardCardShellClass}>
+          <div className="space-y-3">
+
+            <div className={dashboardCardShellClass}>
             <div className="inline-flex items-center gap-2 rounded-full bg-emerald-100 px-3 py-1 text-xs font-semibold text-emerald-700">
               Gift planning
             </div>
@@ -2284,86 +2365,7 @@ export default function DashboardPage() {
               </div>
             )}
           </div>
-        </section>
-
-        <section data-fade className="mb-8 grid gap-3 xl:grid-cols-[minmax(0,1.42fr)_360px]">
-          <div className={dashboardCardShellClass}>
-            <div className={`flex flex-col gap-4 ${dashboardInnerPanelClass}`}>
-              <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-                <div>
-                  <div className="inline-flex items-center gap-2 rounded-full bg-blue-100 px-4 py-1.5 text-[13px] font-bold text-blue-700 shadow-[0_10px_22px_rgba(59,130,246,0.14)]">
-                    Activity feed
-                  </div>
-                  <h3 className={`mt-2.5 text-[1.35rem] font-bold ${dashboardPanelHeadingClass}`}>Recent moments that matter</h3>
-                  <p className={`mt-1.5 max-w-xl text-sm leading-5 ${dashboardPanelTextClass}`}>
-                    Your live pulse for gift prep, chat updates, and draw milestones.
-                  </p>
-                </div>
-              </div>
-
-              <div className="space-y-3">
-                {activityFeedItems.length === 0 ? (
-                  <div className={`rounded-[22px] border border-dashed px-5 py-8 text-sm ${isDarkTheme ? "border-slate-700/70 bg-slate-950/45 text-slate-400" : "border-slate-200 bg-white/90 text-slate-500"}`}>
-                    Once gift progress or group updates start happening, your recent activity will show up here.
-                  </div>
-                ) : (
-                  activityFeedItems.map((item) => {
-                    const theme = getDashboardToneTheme(item.tone, isDarkTheme);
-
-                    const row = (
-                      <div
-                        className={`group relative overflow-hidden rounded-[22px] border px-4 py-4 text-left shadow-[0_12px_30px_rgba(148,163,184,0.08)] transition ${
-                          item.href ? "hover:-translate-y-0.5" : ""
-                        } ${theme.rowSurface}`}
-                      >
-                        <div className={`pointer-events-none absolute inset-x-0 top-0 h-16 bg-gradient-to-r ${theme.glow}`} />
-                        <div className="relative flex items-start gap-4">
-                          <div
-                            className={`mt-0.5 inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl text-[18px] ${theme.iconShell}`}
-                          >
-                            <span aria-hidden="true">{item.icon}</span>
-                          </div>
-                          <div className="min-w-0 flex-1">
-                            <div className="flex flex-wrap items-center gap-2">
-                              <span className={`inline-flex rounded-full px-2.5 py-1 text-[11px] font-bold ${theme.chip}`}>
-                                {item.href ? "Open update" : "Latest update"}
-                              </span>
-                              <span className="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-400">
-                                {formatRelativeTime(item.createdAt)}
-                              </span>
-                            </div>
-                            <div className={`mt-2 text-[15px] font-bold leading-5 ${isDarkTheme ? "text-white" : "text-slate-900"}`}>{item.title}</div>
-                            <div className={`mt-1.5 text-sm leading-5 ${isDarkTheme ? "text-slate-300" : "text-slate-600"}`}>{item.subtitle}</div>
-                          </div>
-                          {item.href ? (
-                            <div className={`mt-1 inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full transition group-hover:text-sky-400 ${isDarkTheme ? "bg-slate-900/85 text-slate-300 shadow-[0_8px_20px_rgba(2,8,23,0.24)] ring-1 ring-slate-700/70" : "bg-white/90 text-slate-500 shadow-[0_8px_20px_rgba(148,163,184,0.14)] ring-1 ring-white/80 group-hover:text-sky-600"}`}>
-                              <ArrowRightIcon className="h-4 w-4" />
-                            </div>
-                          ) : null}
-                        </div>
-                      </div>
-                    );
-
-                    if (!item.href) {
-                      return <div key={item.id}>{row}</div>;
-                    }
-
-                    return (
-                      <button
-                        key={item.id}
-                        type="button"
-                        onClick={() => router.push(item.href as string)}
-                        className="block w-full"
-                      >
-                        {row}
-                      </button>
-                    );
-                  })
-                )}
-              </div>
-            </div>
-          </div>
-
+          
           <div className={dashboardCardShellClass}>
             <div className={dashboardInnerPanelClass}>
               <div className="flex items-start justify-between gap-4">
@@ -2481,6 +2483,7 @@ export default function DashboardPage() {
                   <ArrowRightIcon />
                 </button>
               </div>
+            </div>
             </div>
           </div>
         </section>
