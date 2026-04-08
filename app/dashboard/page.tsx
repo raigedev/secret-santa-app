@@ -1487,51 +1487,52 @@ export default function DashboardPage() {
           </div>
         )}
 
-        <div data-fade className="mb-6 flex flex-wrap justify-center gap-3">
-          <button
-            type="button"
-            onClick={() => router.push("/secret-santa")}
-            className="inline-flex items-center gap-3 rounded-full border border-white/80 bg-white/95 px-5 py-3 text-[14px] font-semibold uppercase tracking-[0.18em] text-sky-600 shadow-[0_18px_50px_rgba(148,163,184,0.14)] backdrop-blur-md transition hover:-translate-y-0.5"
-          >
-            <span className="inline-flex h-7 w-7 items-center justify-center rounded-full bg-sky-600 text-white">
-              <GiftIcon className="h-4 w-4" />
-            </span>
-            <span>Secret Santa</span>
-          </button>
-          {canViewAffiliateReport && (
+        <div data-fade className="mb-6 flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
+          <div className="text-center lg:text-left">
+            <div className="inline-flex items-center gap-3 rounded-full border border-white/80 bg-white/95 px-4 py-2.5 text-[13px] font-semibold uppercase tracking-[0.16em] text-sky-600 shadow-[0_18px_50px_rgba(148,163,184,0.14)] backdrop-blur-md">
+              <span className="inline-flex h-6 w-6 items-center justify-center rounded-full bg-sky-600 text-white">
+                <GiftIcon className="h-3.5 w-3.5" />
+              </span>
+              <span>Secret Santa Home</span>
+            </div>
+          </div>
+
+          <div className="flex flex-wrap justify-center gap-3 lg:justify-end">
+            {canViewAffiliateReport && (
+              <button
+                type="button"
+                onClick={() => router.push("/dashboard/affiliate-report")}
+                className="inline-flex items-center gap-2.5 rounded-full border border-white/80 bg-white/95 px-4 py-3 text-[15px] font-semibold text-slate-700 shadow-[0_18px_50px_rgba(148,163,184,0.14)] backdrop-blur-md transition hover:-translate-y-0.5"
+              >
+                <ReportIcon className="h-[18px] w-[18px] text-slate-500" />
+                <span>Affiliate report</span>
+              </button>
+            )}
             <button
               type="button"
-              onClick={() => router.push("/dashboard/affiliate-report")}
+              onClick={() => router.push("/notifications")}
+              className="relative inline-flex items-center gap-2.5 rounded-full border border-white/80 bg-white/95 px-4 py-3 text-[15px] font-semibold text-slate-700 shadow-[0_18px_50px_rgba(148,163,184,0.14)] backdrop-blur-md transition hover:-translate-y-0.5"
+            >
+              <BellIcon className="h-[18px] w-[18px] text-slate-500" />
+              <span>Notifications</span>
+              {unreadNotificationCount > 0 && (
+                <span className="absolute -right-1 -top-1 inline-flex min-h-6 min-w-6 items-center justify-center rounded-full bg-rose-500 px-1 text-[11px] font-bold text-white shadow-[0_8px_18px_rgba(244,63,94,0.28)]">
+                  {unreadNotificationCount > 99 ? "99+" : unreadNotificationCount}
+                </span>
+              )}
+            </button>
+            <button
+              type="button"
+              onClick={() => router.push("/profile")}
               className="inline-flex items-center gap-2.5 rounded-full border border-white/80 bg-white/95 px-4 py-3 text-[15px] font-semibold text-slate-700 shadow-[0_18px_50px_rgba(148,163,184,0.14)] backdrop-blur-md transition hover:-translate-y-0.5"
             >
-              <ReportIcon className="h-[18px] w-[18px] text-slate-500" />
-              <span>Affiliate report</span>
+              <UserOutlineIcon className="h-[18px] w-[18px] text-slate-500" />
+              <span>Profile</span>
             </button>
-          )}
-          <button
-            type="button"
-            onClick={() => router.push("/notifications")}
-            className="relative inline-flex items-center gap-2.5 rounded-full border border-white/80 bg-white/95 px-4 py-3 text-[15px] font-semibold text-slate-700 shadow-[0_18px_50px_rgba(148,163,184,0.14)] backdrop-blur-md transition hover:-translate-y-0.5"
-          >
-            <BellIcon className="h-[18px] w-[18px] text-slate-500" />
-            <span>Notifications</span>
-            {unreadNotificationCount > 0 && (
-              <span className="absolute -right-1 -top-1 inline-flex min-h-6 min-w-6 items-center justify-center rounded-full bg-rose-500 px-1 text-[11px] font-bold text-white shadow-[0_8px_18px_rgba(244,63,94,0.28)]">
-                {unreadNotificationCount > 99 ? "99+" : unreadNotificationCount}
-              </span>
-            )}
-          </button>
-          <button
-            type="button"
-            onClick={() => router.push("/profile")}
-            className="inline-flex items-center gap-2.5 rounded-full border border-white/80 bg-white/95 px-4 py-3 text-[15px] font-semibold text-slate-700 shadow-[0_18px_50px_rgba(148,163,184,0.14)] backdrop-blur-md transition hover:-translate-y-0.5"
-          >
-            <UserOutlineIcon className="h-[18px] w-[18px] text-slate-500" />
-            <span>Profile</span>
-          </button>
+          </div>
         </div>
 
-        <div data-fade className="mb-8 text-center">
+        <div data-fade className="mb-8 text-center lg:text-left">
           <h1 className="text-4xl font-bold tracking-tight text-sky-900 sm:text-[3.35rem]">
             Welcome back, {displayFirstName}
           </h1>
