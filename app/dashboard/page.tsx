@@ -1587,8 +1587,8 @@ export default function DashboardPage() {
     ...invitedGroups.map((group) => ({ group, type: "invited" as const })),
   ];
   const utilityPillClass = isDarkTheme
-    ? "inline-flex items-center gap-2 rounded-full border border-slate-700/80 bg-slate-900/72 px-3.5 py-2.5 text-[15px] font-semibold text-slate-100 shadow-[0_18px_50px_rgba(2,8,23,0.34)] backdrop-blur-md transition hover:-translate-y-0.5"
-    : "inline-flex items-center gap-2 rounded-full border border-white/80 bg-white/95 px-3.5 py-2.5 text-[15px] font-semibold text-slate-700 shadow-[0_18px_50px_rgba(148,163,184,0.14)] backdrop-blur-md transition hover:-translate-y-0.5";
+    ? "inline-flex items-center gap-1.5 rounded-full border border-slate-700/80 bg-slate-900/72 px-3 py-2 text-[14px] font-semibold text-slate-100 shadow-[0_18px_50px_rgba(2,8,23,0.34)] backdrop-blur-md transition hover:-translate-y-0.5"
+    : "inline-flex items-center gap-1.5 rounded-full border border-white/80 bg-white/95 px-3 py-2 text-[14px] font-semibold text-slate-700 shadow-[0_18px_50px_rgba(148,163,184,0.14)] backdrop-blur-md transition hover:-translate-y-0.5";
   const utilityIconClass = isDarkTheme ? "text-slate-300" : "text-slate-500";
   const dashboardShellClass = isDarkTheme
     ? "relative min-h-screen overflow-hidden bg-[linear-gradient(180deg,#08111f_0%,#0f172a_38%,#111827_100%)] text-slate-100"
@@ -2018,12 +2018,12 @@ export default function DashboardPage() {
           </div>
         )}
 
-        <div data-fade className="mb-6 flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
-          <div className="text-center lg:text-left">
+        <div data-fade className="mb-6 flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+          <div className="text-left">
             <SantaBrandLockup dark={isDarkTheme} />
           </div>
 
-          <div className="flex flex-wrap justify-center gap-3 lg:justify-end">
+          <div className="ml-auto flex max-w-full flex-wrap justify-end gap-2 self-end">
             <button
               type="button"
               onClick={() => setDashboardTheme((current) => (current === "midnight" ? "default" : "midnight"))}
@@ -2031,7 +2031,7 @@ export default function DashboardPage() {
               aria-pressed={isDarkTheme}
               title={isDarkTheme ? "Switch to default dashboard theme" : "Switch to midnight dashboard theme"}
             >
-              <ThemeIcon dark={isDarkTheme} className={`h-4 w-4 ${utilityIconClass}`} />
+              <ThemeIcon dark={isDarkTheme} className={`h-3.5 w-3.5 ${utilityIconClass}`} />
               <span>{isDarkTheme ? "Default theme" : "Midnight theme"}</span>
             </button>
             {canViewAffiliateReport && (
@@ -2040,7 +2040,7 @@ export default function DashboardPage() {
                 onClick={() => router.push("/dashboard/affiliate-report")}
                 className={utilityPillClass}
               >
-                <ReportIcon className={`h-4 w-4 ${utilityIconClass}`} />
+                <ReportIcon className={`h-3.5 w-3.5 ${utilityIconClass}`} />
                 <span>Affiliate report</span>
               </button>
             )}
@@ -2049,10 +2049,10 @@ export default function DashboardPage() {
               onClick={() => router.push("/notifications")}
               className={`relative ${utilityPillClass}`}
             >
-              <BellIcon className={`h-4 w-4 ${utilityIconClass}`} />
+              <BellIcon className={`h-3.5 w-3.5 ${utilityIconClass}`} />
               <span>Notifications</span>
               {unreadNotificationCount > 0 && (
-                <span className="absolute -right-1 -top-1 inline-flex min-h-6 min-w-6 items-center justify-center rounded-full bg-rose-500 px-1 text-[11px] font-bold text-white shadow-[0_8px_18px_rgba(244,63,94,0.28)]">
+                <span className="absolute -right-1 -top-1 inline-flex min-h-5 min-w-5 items-center justify-center rounded-full bg-rose-500 px-1 text-[10px] font-bold text-white shadow-[0_8px_18px_rgba(244,63,94,0.28)]">
                   {unreadNotificationCount > 99 ? "99+" : unreadNotificationCount}
                 </span>
               )}
@@ -2065,10 +2065,10 @@ export default function DashboardPage() {
                 aria-haspopup="menu"
                 aria-expanded={profileMenuOpen}
               >
-                <UserOutlineIcon className={`h-4 w-4 ${utilityIconClass}`} />
+                <UserOutlineIcon className={`h-3.5 w-3.5 ${utilityIconClass}`} />
                 <span>Profile</span>
                 <ChevronDownIcon
-                  className={`h-[14px] w-[14px] transition ${utilityIconClass} ${
+                  className={`h-[13px] w-[13px] transition ${utilityIconClass} ${
                     profileMenuOpen ? "rotate-180" : ""
                   }`}
                 />
