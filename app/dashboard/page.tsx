@@ -1584,11 +1584,11 @@ export default function DashboardPage() {
   const isDarkTheme = dashboardTheme === "midnight";
   const totalDashboardGroupCount = ownedGroups.length + invitedGroups.length;
   const utilityButtonClass = isDarkTheme
-    ? "relative inline-flex h-10 w-10 items-center justify-center rounded-full border border-slate-700/80 bg-slate-900/78 text-slate-100 shadow-[0_16px_40px_rgba(2,8,23,0.30)] backdrop-blur-md transition hover:-translate-y-0.5"
-    : "relative inline-flex h-10 w-10 items-center justify-center rounded-full border border-white/80 bg-white/95 text-slate-700 shadow-[0_14px_32px_rgba(148,163,184,0.14)] backdrop-blur-md transition hover:-translate-y-0.5";
+    ? "relative inline-flex h-10 items-center justify-center gap-1.5 rounded-full border border-slate-700/80 bg-slate-900/78 px-3 text-[12px] font-semibold text-slate-100 shadow-[0_16px_40px_rgba(2,8,23,0.30)] backdrop-blur-md transition hover:-translate-y-0.5"
+    : "relative inline-flex h-10 items-center justify-center gap-1.5 rounded-full border border-white/80 bg-white/95 px-3 text-[12px] font-semibold text-slate-700 shadow-[0_14px_32px_rgba(148,163,184,0.14)] backdrop-blur-md transition hover:-translate-y-0.5";
   const profileUtilityButtonClass = isDarkTheme
-    ? "relative inline-flex h-10 items-center justify-center gap-1 rounded-full border border-slate-700/80 bg-slate-900/78 px-3 text-slate-100 shadow-[0_16px_40px_rgba(2,8,23,0.30)] backdrop-blur-md transition hover:-translate-y-0.5"
-    : "relative inline-flex h-10 items-center justify-center gap-1 rounded-full border border-white/80 bg-white/95 px-3 text-slate-700 shadow-[0_14px_32px_rgba(148,163,184,0.14)] backdrop-blur-md transition hover:-translate-y-0.5";
+    ? "relative inline-flex h-10 items-center justify-center gap-1.5 rounded-full border border-slate-700/80 bg-slate-900/78 px-3 text-[12px] font-semibold text-slate-100 shadow-[0_16px_40px_rgba(2,8,23,0.30)] backdrop-blur-md transition hover:-translate-y-0.5"
+    : "relative inline-flex h-10 items-center justify-center gap-1.5 rounded-full border border-white/80 bg-white/95 px-3 text-[12px] font-semibold text-slate-700 shadow-[0_14px_32px_rgba(148,163,184,0.14)] backdrop-blur-md transition hover:-translate-y-0.5";
   const utilityIconClass = isDarkTheme ? "text-slate-300" : "text-slate-500";
   const dashboardShellClass = isDarkTheme
     ? "relative min-h-screen overflow-hidden bg-[linear-gradient(180deg,#08111f_0%,#0f172a_38%,#111827_100%)] text-slate-100"
@@ -2087,7 +2087,7 @@ export default function DashboardPage() {
             <SantaBrandLockup dark={isDarkTheme} />
           </div>
 
-          <div className="ml-auto flex shrink-0 items-center justify-end gap-2 self-start">
+          <div className="ml-auto flex shrink-0 items-center justify-end gap-1.5 self-start">
             <button
               type="button"
               onClick={() => setDashboardTheme((current) => (current === "midnight" ? "default" : "midnight"))}
@@ -2097,7 +2097,7 @@ export default function DashboardPage() {
               title={isDarkTheme ? "Switch to default dashboard theme" : "Switch to midnight dashboard theme"}
             >
               <ThemeIcon dark={isDarkTheme} className={`h-4 w-4 ${utilityIconClass}`} />
-              <span className="sr-only">{isDarkTheme ? "Default theme" : "Midnight theme"}</span>
+              <span>Theme</span>
             </button>
             {canViewAffiliateReport && (
               <button
@@ -2108,7 +2108,7 @@ export default function DashboardPage() {
                 title="Open affiliate report"
               >
                 <ReportIcon className={`h-4 w-4 ${utilityIconClass}`} />
-                <span className="sr-only">Affiliate report</span>
+                <span>Report</span>
               </button>
             )}
             <button
@@ -2119,7 +2119,7 @@ export default function DashboardPage() {
               title="Open notifications"
             >
               <BellIcon className={`h-4 w-4 ${utilityIconClass}`} />
-              <span className="sr-only">Notifications</span>
+              <span>Alerts</span>
               {unreadNotificationCount > 0 && (
                 <span className="absolute -right-1 -top-1 inline-flex min-h-[18px] min-w-[18px] items-center justify-center rounded-full bg-rose-500 px-1 text-[9px] font-bold text-white shadow-[0_8px_18px_rgba(244,63,94,0.28)]">
                   {unreadNotificationCount > 99 ? "99+" : unreadNotificationCount}
@@ -2137,7 +2137,7 @@ export default function DashboardPage() {
                 title="Open profile menu"
               >
                 <UserOutlineIcon className={`h-4 w-4 ${utilityIconClass}`} />
-                <span className="sr-only">Profile</span>
+                <span>Profile</span>
                 <ChevronDownIcon
                   className={`h-3 w-3 transition ${utilityIconClass} ${
                     profileMenuOpen ? "rotate-180" : ""
