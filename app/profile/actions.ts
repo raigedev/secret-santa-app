@@ -61,6 +61,7 @@ export async function getProfile() {
 export async function updateProfile(
   displayName: string,
   avatarEmoji: string,
+  avatarUrl: string | null,
   bio: string,
   defaultBudget: number,
   currency: string,
@@ -96,6 +97,7 @@ export async function updateProfile(
   const cleanBio = sanitize(bio, 200);
   const cleanEmoji = sanitize(avatarEmoji, 10);
   const cleanCurrency = sanitize(currency, 5);
+  const cleanAvatarUrl = avatarUrl ? sanitize(avatarUrl, 1000) : null;
   const cleanBudget = Math.min(Math.max(Math.floor(defaultBudget || 0), 0), 10000);
 
   if (cleanName.length === 0) {
@@ -111,6 +113,7 @@ export async function updateProfile(
     .update({
       display_name: cleanName,
       avatar_emoji: cleanEmoji,
+      avatar_url: cleanAvatarUrl,
       bio: cleanBio,
       default_budget: cleanBudget,
       currency: cleanCurrency,
