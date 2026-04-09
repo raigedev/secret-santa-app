@@ -1587,8 +1587,8 @@ export default function DashboardPage() {
     ...invitedGroups.map((group) => ({ group, type: "invited" as const })),
   ];
   const utilityPillClass = isDarkTheme
-    ? "inline-flex items-center gap-2.5 rounded-full border border-slate-700/80 bg-slate-900/72 px-4 py-3 text-[16px] font-semibold text-slate-100 shadow-[0_18px_50px_rgba(2,8,23,0.34)] backdrop-blur-md transition hover:-translate-y-0.5"
-    : "inline-flex items-center gap-2.5 rounded-full border border-white/80 bg-white/95 px-4 py-3 text-[16px] font-semibold text-slate-700 shadow-[0_18px_50px_rgba(148,163,184,0.14)] backdrop-blur-md transition hover:-translate-y-0.5";
+    ? "inline-flex items-center gap-2 rounded-full border border-slate-700/80 bg-slate-900/72 px-3.5 py-2.5 text-[15px] font-semibold text-slate-100 shadow-[0_18px_50px_rgba(2,8,23,0.34)] backdrop-blur-md transition hover:-translate-y-0.5"
+    : "inline-flex items-center gap-2 rounded-full border border-white/80 bg-white/95 px-3.5 py-2.5 text-[15px] font-semibold text-slate-700 shadow-[0_18px_50px_rgba(148,163,184,0.14)] backdrop-blur-md transition hover:-translate-y-0.5";
   const utilityIconClass = isDarkTheme ? "text-slate-300" : "text-slate-500";
   const dashboardShellClass = isDarkTheme
     ? "relative min-h-screen overflow-hidden bg-[linear-gradient(180deg,#08111f_0%,#0f172a_38%,#111827_100%)] text-slate-100"
@@ -2031,7 +2031,7 @@ export default function DashboardPage() {
               aria-pressed={isDarkTheme}
               title={isDarkTheme ? "Switch to default dashboard theme" : "Switch to midnight dashboard theme"}
             >
-              <ThemeIcon dark={isDarkTheme} className={`h-[18px] w-[18px] ${utilityIconClass}`} />
+              <ThemeIcon dark={isDarkTheme} className={`h-4 w-4 ${utilityIconClass}`} />
               <span>{isDarkTheme ? "Default theme" : "Midnight theme"}</span>
             </button>
             {canViewAffiliateReport && (
@@ -2040,7 +2040,7 @@ export default function DashboardPage() {
                 onClick={() => router.push("/dashboard/affiliate-report")}
                 className={utilityPillClass}
               >
-                <ReportIcon className={`h-[18px] w-[18px] ${utilityIconClass}`} />
+                <ReportIcon className={`h-4 w-4 ${utilityIconClass}`} />
                 <span>Affiliate report</span>
               </button>
             )}
@@ -2049,7 +2049,7 @@ export default function DashboardPage() {
               onClick={() => router.push("/notifications")}
               className={`relative ${utilityPillClass}`}
             >
-              <BellIcon className={`h-[18px] w-[18px] ${utilityIconClass}`} />
+              <BellIcon className={`h-4 w-4 ${utilityIconClass}`} />
               <span>Notifications</span>
               {unreadNotificationCount > 0 && (
                 <span className="absolute -right-1 -top-1 inline-flex min-h-6 min-w-6 items-center justify-center rounded-full bg-rose-500 px-1 text-[11px] font-bold text-white shadow-[0_8px_18px_rgba(244,63,94,0.28)]">
@@ -2065,10 +2065,10 @@ export default function DashboardPage() {
                 aria-haspopup="menu"
                 aria-expanded={profileMenuOpen}
               >
-                <UserOutlineIcon className={`h-[18px] w-[18px] ${utilityIconClass}`} />
+                <UserOutlineIcon className={`h-4 w-4 ${utilityIconClass}`} />
                 <span>Profile</span>
                 <ChevronDownIcon
-                  className={`h-[16px] w-[16px] transition ${utilityIconClass} ${
+                  className={`h-[14px] w-[14px] transition ${utilityIconClass} ${
                     profileMenuOpen ? "rotate-180" : ""
                   }`}
                 />
