@@ -1583,9 +1583,12 @@ export default function DashboardPage() {
   const displayFirstName = getDisplayFirstName(userName);
   const isDarkTheme = dashboardTheme === "midnight";
   const totalDashboardGroupCount = ownedGroups.length + invitedGroups.length;
-  const utilityPillClass = isDarkTheme
-    ? "inline-flex items-center gap-1.5 rounded-full border border-slate-700/80 bg-slate-900/72 px-3 py-2 text-[14px] font-semibold text-slate-100 shadow-[0_18px_50px_rgba(2,8,23,0.34)] backdrop-blur-md transition hover:-translate-y-0.5"
-    : "inline-flex items-center gap-1.5 rounded-full border border-white/80 bg-white/95 px-3 py-2 text-[14px] font-semibold text-slate-700 shadow-[0_18px_50px_rgba(148,163,184,0.14)] backdrop-blur-md transition hover:-translate-y-0.5";
+  const utilityButtonClass = isDarkTheme
+    ? "relative inline-flex h-10 w-10 items-center justify-center rounded-full border border-slate-700/80 bg-slate-900/78 text-slate-100 shadow-[0_16px_40px_rgba(2,8,23,0.30)] backdrop-blur-md transition hover:-translate-y-0.5"
+    : "relative inline-flex h-10 w-10 items-center justify-center rounded-full border border-white/80 bg-white/95 text-slate-700 shadow-[0_14px_32px_rgba(148,163,184,0.14)] backdrop-blur-md transition hover:-translate-y-0.5";
+  const profileUtilityButtonClass = isDarkTheme
+    ? "relative inline-flex h-10 items-center justify-center gap-1 rounded-full border border-slate-700/80 bg-slate-900/78 px-3 text-slate-100 shadow-[0_16px_40px_rgba(2,8,23,0.30)] backdrop-blur-md transition hover:-translate-y-0.5"
+    : "relative inline-flex h-10 items-center justify-center gap-1 rounded-full border border-white/80 bg-white/95 px-3 text-slate-700 shadow-[0_14px_32px_rgba(148,163,184,0.14)] backdrop-blur-md transition hover:-translate-y-0.5";
   const utilityIconClass = isDarkTheme ? "text-slate-300" : "text-slate-500";
   const dashboardShellClass = isDarkTheme
     ? "relative min-h-screen overflow-hidden bg-[linear-gradient(180deg,#08111f_0%,#0f172a_38%,#111827_100%)] text-slate-100"
@@ -2084,36 +2087,41 @@ export default function DashboardPage() {
             <SantaBrandLockup dark={isDarkTheme} />
           </div>
 
-          <div className="ml-auto flex max-w-full flex-wrap justify-end gap-2 self-end">
+          <div className="ml-auto flex shrink-0 items-center justify-end gap-2 self-start">
             <button
               type="button"
               onClick={() => setDashboardTheme((current) => (current === "midnight" ? "default" : "midnight"))}
-              className={utilityPillClass}
+              className={utilityButtonClass}
               aria-pressed={isDarkTheme}
+              aria-label={isDarkTheme ? "Switch to default dashboard theme" : "Switch to midnight dashboard theme"}
               title={isDarkTheme ? "Switch to default dashboard theme" : "Switch to midnight dashboard theme"}
             >
-              <ThemeIcon dark={isDarkTheme} className={`h-3.5 w-3.5 ${utilityIconClass}`} />
-              <span>{isDarkTheme ? "Default theme" : "Midnight theme"}</span>
+              <ThemeIcon dark={isDarkTheme} className={`h-4 w-4 ${utilityIconClass}`} />
+              <span className="sr-only">{isDarkTheme ? "Default theme" : "Midnight theme"}</span>
             </button>
             {canViewAffiliateReport && (
               <button
                 type="button"
                 onClick={() => router.push("/dashboard/affiliate-report")}
-                className={utilityPillClass}
+                className={utilityButtonClass}
+                aria-label="Open affiliate report"
+                title="Open affiliate report"
               >
-                <ReportIcon className={`h-3.5 w-3.5 ${utilityIconClass}`} />
-                <span>Affiliate report</span>
+                <ReportIcon className={`h-4 w-4 ${utilityIconClass}`} />
+                <span className="sr-only">Affiliate report</span>
               </button>
             )}
             <button
               type="button"
               onClick={() => router.push("/notifications")}
-              className={`relative ${utilityPillClass}`}
+              className={utilityButtonClass}
+              aria-label={unreadNotificationCount > 0 ? `Open notifications, ${unreadNotificationCount} unread` : "Open notifications"}
+              title="Open notifications"
             >
-              <BellIcon className={`h-3.5 w-3.5 ${utilityIconClass}`} />
-              <span>Notifications</span>
+              <BellIcon className={`h-4 w-4 ${utilityIconClass}`} />
+              <span className="sr-only">Notifications</span>
               {unreadNotificationCount > 0 && (
-                <span className="absolute -right-1 -top-1 inline-flex min-h-5 min-w-5 items-center justify-center rounded-full bg-rose-500 px-1 text-[10px] font-bold text-white shadow-[0_8px_18px_rgba(244,63,94,0.28)]">
+                <span className="absolute -right-1 -top-1 inline-flex min-h-[18px] min-w-[18px] items-center justify-center rounded-full bg-rose-500 px-1 text-[9px] font-bold text-white shadow-[0_8px_18px_rgba(244,63,94,0.28)]">
                   {unreadNotificationCount > 99 ? "99+" : unreadNotificationCount}
                 </span>
               )}
@@ -2122,14 +2130,16 @@ export default function DashboardPage() {
               <button
                 type="button"
                 onClick={() => setProfileMenuOpen((current) => !current)}
-                className={utilityPillClass}
+                className={profileUtilityButtonClass}
                 aria-haspopup="menu"
                 aria-expanded={profileMenuOpen}
+                aria-label="Open profile menu"
+                title="Open profile menu"
               >
-                <UserOutlineIcon className={`h-3.5 w-3.5 ${utilityIconClass}`} />
-                <span>Profile</span>
+                <UserOutlineIcon className={`h-4 w-4 ${utilityIconClass}`} />
+                <span className="sr-only">Profile</span>
                 <ChevronDownIcon
-                  className={`h-[13px] w-[13px] transition ${utilityIconClass} ${
+                  className={`h-3 w-3 transition ${utilityIconClass} ${
                     profileMenuOpen ? "rotate-180" : ""
                   }`}
                 />
