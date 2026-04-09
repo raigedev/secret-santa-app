@@ -1915,34 +1915,54 @@ export default function DashboardPage() {
     groups: Group[];
     type: "owned" | "invited";
   }) => {
+    const bucketTheme =
+      type === "owned"
+        ? {
+            shell: isDarkTheme
+              ? "border-slate-700/70 bg-slate-900/55"
+              : "border-white/75 bg-white/82",
+            shadow: isDarkTheme
+              ? "shadow-[0_18px_36px_rgba(2,8,23,0.22)]"
+              : "shadow-[0_18px_36px_rgba(148,163,184,0.10)]",
+            badge: isDarkTheme ? "bg-blue-500/15 text-blue-200" : "bg-blue-100 text-blue-700",
+            countChip: isDarkTheme ? "bg-slate-900/75 text-slate-200 ring-slate-700/70" : "bg-white/92 text-slate-600 ring-slate-200/80",
+          }
+        : {
+            shell: isDarkTheme
+              ? "border-slate-700/70 bg-slate-900/55"
+              : "border-white/75 bg-white/82",
+            shadow: isDarkTheme
+              ? "shadow-[0_18px_36px_rgba(2,8,23,0.22)]"
+              : "shadow-[0_18px_36px_rgba(148,163,184,0.10)]",
+            badge: isDarkTheme ? "bg-amber-500/15 text-amber-200" : "bg-amber-100 text-amber-700",
+            countChip: isDarkTheme ? "bg-slate-900/75 text-slate-200 ring-slate-700/70" : "bg-white/92 text-slate-600 ring-slate-200/80",
+          };
+
     return (
-      <div className="space-y-3">
-        <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+      <section
+        className={`rounded-[24px] border p-4 backdrop-blur-md ${bucketTheme.shell} ${bucketTheme.shadow}`}
+      >
+        <div className="flex flex-col gap-3">
           <div>
-            <h3 className={`text-[1.18rem] font-bold ${dashboardPanelHeadingClass}`}>{title}</h3>
+            <div className="flex flex-wrap items-center gap-2">
+              <span className={`inline-flex items-center rounded-full px-3 py-1 text-[12px] font-semibold ${bucketTheme.badge}`}>
+                {type === "owned" ? "Hosted groups" : "Joined groups"}
+              </span>
+              <span className={`inline-flex items-center rounded-full px-3 py-1 text-[12px] font-semibold ring-1 ${bucketTheme.countChip}`}>
+                {count} group{count === 1 ? "" : "s"}
+              </span>
+            </div>
+            <h3 className={`mt-2.5 text-[1.24rem] font-bold ${dashboardPanelHeadingClass}`}>{title}</h3>
             <p className={`mt-1 text-[15px] leading-6 ${dashboardPanelTextClass}`}>{subtitle}</p>
-          </div>
-          <div
-            className={`inline-flex items-center rounded-full px-3 py-1 text-[12px] font-semibold ${
-              type === "owned"
-                ? isDarkTheme
-                  ? "bg-blue-500/15 text-blue-200"
-                  : "bg-blue-100 text-blue-700"
-                : isDarkTheme
-                  ? "bg-amber-500/15 text-amber-200"
-                  : "bg-amber-100 text-amber-700"
-            }`}
-          >
-            {count} group{count === 1 ? "" : "s"}
           </div>
         </div>
 
-        <div className="grid gap-2 lg:grid-cols-2">
+        <div className={`mt-4 grid gap-3 ${count > 1 ? "lg:grid-cols-2" : "grid-cols-1"}`}>
           {groups.map((group) => (
             <GroupCard key={`${type}-${group.id}`} group={group} type={type} />
           ))}
         </div>
-      </div>
+      </section>
     );
   };
 
@@ -2647,11 +2667,11 @@ export default function DashboardPage() {
               </section>
             </div>
           ) : (
-            <div className="space-y-6">
+            <div className="space-y-4">
               {ownedGroups.length > 0 && (
                 <GroupBucket
                   title="Hosted by you"
-                  subtitle="Groups you created and control as the organizer."
+                  subtitle="Groups you created and manage as the organizer."
                   count={ownedGroups.length}
                   groups={ownedGroups}
                   type="owned"
