@@ -1,6 +1,7 @@
 ﻿"use client";
 
-import { useEffect, useRef, useState, type ReactNode } from "react";
+import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from "react";
+import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import InviteCard from "./InviteCard";
@@ -44,6 +45,12 @@ type PendingInvite = {
 type ActionMessage = {
   type: "success" | "error";
   text: string;
+} | null;
+
+type ProfileMenuPosition = {
+  top: number;
+  left: number;
+  width: number;
 } | null;
 
 type GroupRow = {
@@ -719,12 +726,14 @@ export default function DashboardPage() {
   const [actionMessage, setActionMessage] = useState<ActionMessage>(null);
   const [deletingGroupId, setDeletingGroupId] = useState<string | null>(null);
   const [profileMenuOpen, setProfileMenuOpen] = useState(false);
+  const [profileMenuPosition, setProfileMenuPosition] = useState<ProfileMenuPosition>(null);
   const loadDashboardDataRef = useRef<
     ((user: { id: string; email?: string | null }) => Promise<void>) | null
   >(null);
   const loadProfileDataRef = useRef<(() => Promise<void>) | null>(null);
   const loadNotificationCountRef = useRef<((userId: string) => Promise<void>) | null>(null);
   const profileMenuRef = useRef<HTMLDivElement | null>(null);
+  const profileMenuPanelRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
     if (typeof window === "undefined") {
@@ -740,7 +749,11 @@ export default function DashboardPage() {
     }
 
     const handlePointerDown = (event: MouseEvent) => {
-      if (!profileMenuRef.current?.contains(event.target as Node)) {
+      const target = event.target as Node;
+      if (
+        !profileMenuRef.current?.contains(target) &&
+        !profileMenuPanelRef.current?.contains(target)
+      ) {
         setProfileMenuOpen(false);
       }
     };
@@ -757,6 +770,42 @@ export default function DashboardPage() {
     return () => {
       document.removeEventListener("mousedown", handlePointerDown);
       document.removeEventListener("keydown", handleEscape);
+    };
+  }, [profileMenuOpen]);
+
+  useEffect(() => {
+    if (!profileMenuOpen) {
+      setProfileMenuPosition(null);
+      return;
+    }
+
+    const updateProfileMenuPosition = () => {
+      const trigger = profileMenuRef.current;
+      if (!trigger || typeof window === "undefined") {
+        return;
+      }
+
+      const rect = trigger.getBoundingClientRect();
+      const width = Math.min(256, Math.max(224, window.innerWidth - 32));
+      const left = Math.min(
+        Math.max(16, rect.right - width),
+        Math.max(16, window.innerWidth - width - 16)
+      );
+
+      setProfileMenuPosition({
+        top: rect.bottom + 12,
+        left,
+        width,
+      });
+    };
+
+    updateProfileMenuPosition();
+    window.addEventListener("resize", updateProfileMenuPosition);
+    window.addEventListener("scroll", updateProfileMenuPosition, true);
+
+    return () => {
+      window.removeEventListener("resize", updateProfileMenuPosition);
+      window.removeEventListener("scroll", updateProfileMenuPosition, true);
     };
   }, [profileMenuOpen]);
 
@@ -1854,6 +1903,15 @@ export default function DashboardPage() {
     );
   };
 
+  const profileMenuStyle: CSSProperties | undefined = profileMenuPosition
+    ? {
+        position: "fixed",
+        top: profileMenuPosition.top,
+        left: profileMenuPosition.left,
+        width: profileMenuPosition.width,
+      }
+    : undefined;
+
   return (
     <main className={dashboardShellClass}>
       {showProfileSetup && (
@@ -1881,6 +1939,66 @@ export default function DashboardPage() {
           />
         ))}
       </div>
+      {profileMenuOpen && profileMenuPosition && typeof document !== "undefined"
+        ? createPortal(
+            <div
+              ref={profileMenuPanelRef}
+              role="menu"
+              aria-label="Profile options"
+              style={profileMenuStyle}
+              className={`z-[200] overflow-hidden rounded-[22px] border p-2 shadow-[0_22px_44px_rgba(15,23,42,0.20)] backdrop-blur-md ${
+                isDarkTheme
+                  ? "border-slate-700/80 bg-slate-900/94"
+                  : "border-white/80 bg-white/96"
+              }`}
+            >
+              <button
+                type="button"
+                role="menuitem"
+                onClick={() => {
+                  setProfileMenuOpen(false);
+                  router.push("/profile");
+                }}
+                className={`flex w-full items-center justify-between rounded-2xl px-4 py-3 text-left transition ${
+                  isDarkTheme
+                    ? "text-slate-100 hover:bg-slate-800/80"
+                    : "text-slate-700 hover:bg-slate-50"
+                }`}
+              >
+                <div>
+                  <div className="text-sm font-semibold">Edit profile</div>
+                  <div className={`mt-0.5 text-xs ${isDarkTheme ? "text-slate-400" : "text-slate-500"}`}>
+                    Update your festive avatar and account details.
+                  </div>
+                </div>
+                <ArrowRightIcon className={`h-4 w-4 shrink-0 ${utilityIconClass}`} />
+              </button>
+
+              <button
+                type="button"
+                role="menuitem"
+                onClick={() => {
+                  setProfileMenuOpen(false);
+                  void handleLogout();
+                }}
+                className={`mt-2 flex w-full items-center justify-between rounded-2xl px-4 py-3 text-left transition ${
+                  isDarkTheme
+                    ? "text-rose-200 hover:bg-rose-500/10"
+                    : "text-rose-600 hover:bg-rose-50"
+                }`}
+              >
+                <div>
+                  <div className="text-sm font-semibold">Logout</div>
+                  <div className={`mt-0.5 text-xs ${isDarkTheme ? "text-slate-400" : "text-slate-500"}`}>
+                    Sign out and return to the login screen.
+                  </div>
+                </div>
+                <ArrowRightIcon className="h-4 w-4 shrink-0" />
+              </button>
+            </div>,
+            document.body
+          )
+        : null}
 
       <FadeIn className="relative z-10 mx-auto w-full max-w-7xl px-4 py-7 sm:px-6 lg:px-8">
         {actionMessage && (
@@ -1898,12 +2016,7 @@ export default function DashboardPage() {
           </div>
         )}
 
-        <div
-          data-fade
-          className={`mb-6 flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between ${
-            profileMenuOpen ? "pb-44 sm:pb-36 lg:pb-0" : ""
-          }`}
-        >
+        <div data-fade className="mb-6 flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
           <div className="text-center lg:text-left">
             <SantaBrandLockup dark={isDarkTheme} />
           </div>
@@ -1959,61 +2072,6 @@ export default function DashboardPage() {
                 />
               </button>
 
-              {profileMenuOpen && (
-                <div
-                  role="menu"
-                  aria-label="Profile options"
-                  className={`absolute right-0 top-full z-[80] mt-3 w-64 max-w-[min(20rem,calc(100vw-2rem))] overflow-hidden rounded-[22px] border p-2 shadow-[0_22px_44px_rgba(15,23,42,0.20)] backdrop-blur-md ${
-                    isDarkTheme
-                      ? "border-slate-700/80 bg-slate-900/94"
-                      : "border-white/80 bg-white/96"
-                  }`}
-                >
-                  <button
-                    type="button"
-                    role="menuitem"
-                    onClick={() => {
-                      setProfileMenuOpen(false);
-                      router.push("/profile");
-                    }}
-                    className={`flex w-full items-center justify-between rounded-2xl px-4 py-3 text-left transition ${
-                      isDarkTheme
-                        ? "text-slate-100 hover:bg-slate-800/80"
-                        : "text-slate-700 hover:bg-slate-50"
-                    }`}
-                  >
-                    <div>
-                      <div className="text-sm font-semibold">Edit profile</div>
-                      <div className={`mt-0.5 text-xs ${isDarkTheme ? "text-slate-400" : "text-slate-500"}`}>
-                        Update your festive avatar and account details.
-                      </div>
-                    </div>
-                    <ArrowRightIcon className={`h-4 w-4 shrink-0 ${utilityIconClass}`} />
-                  </button>
-
-                  <button
-                    type="button"
-                    role="menuitem"
-                    onClick={() => {
-                      setProfileMenuOpen(false);
-                      void handleLogout();
-                    }}
-                    className={`mt-2 flex w-full items-center justify-between rounded-2xl px-4 py-3 text-left transition ${
-                      isDarkTheme
-                        ? "text-rose-200 hover:bg-rose-500/10"
-                        : "text-rose-600 hover:bg-rose-50"
-                    }`}
-                  >
-                    <div>
-                      <div className="text-sm font-semibold">Logout</div>
-                      <div className={`mt-0.5 text-xs ${isDarkTheme ? "text-slate-400" : "text-slate-500"}`}>
-                        Sign out and return to the login screen.
-                      </div>
-                    </div>
-                    <ArrowRightIcon className="h-4 w-4 shrink-0" />
-                  </button>
-                </div>
-              )}
             </div>
           </div>
         </div>
