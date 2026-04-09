@@ -1,4 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
+import { enforceRateLimit } from "@/lib/security/rate-limit";
+import { createClient } from "@/lib/supabase/server";
 
 type NearbyStoresRequest = {
   area?: string;
@@ -784,6 +786,34 @@ function scorePlaceResult(
 // Geoapify's free plan is enough for this early-stage feature, and we still keep Maps links
 // as the final handoff so the giver can navigate to the shop they choose.
 export async function POST(request: NextRequest) {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    return NextResponse.json(
+      { error: "You must be logged in to search nearby stores.", stores: [] },
+      { status: 401 }
+    );
+  }
+
+  const rateLimit = await enforceRateLimit({
+    action: "nearby_stores.search",
+    actorUserId: user.id,
+    maxAttempts: 20,
+    resourceType: "nearby_store_search",
+    subject: user.id,
+    windowSeconds: 300,
+  });
+
+  if (!rateLimit.allowed) {
+    return NextResponse.json(
+      { error: rateLimit.message, stores: [] },
+      { status: 429 }
+    );
+  }
+
   let body: unknown;
 
   try {

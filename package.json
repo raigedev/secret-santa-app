@@ -6,7 +6,10 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint",
+    "lint": "eslint .",
+    "lint:security": "eslint . --max-warnings=0",
+    "typecheck": "tsc --noEmit",
+    "prepare": "node ./scripts/prepare-husky.mjs",
     "import:lazada-feed": "powershell -ExecutionPolicy Bypass -File ./scripts/import-lazada-feed.ps1"
   },
   "dependencies": {
@@ -24,6 +27,8 @@
     "@types/react-dom": "^19",
     "eslint": "^9",
     "eslint-config-next": "16.1.6",
+    "eslint-plugin-no-secrets": "^2.3.3",
+    "eslint-plugin-security": "^4.0.0",
     "supabase": "^2.84.4",
     "tailwindcss": "^4",
     "typescript": "^5"

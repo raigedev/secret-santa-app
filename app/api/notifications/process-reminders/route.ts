@@ -2,26 +2,38 @@ import { NextRequest, NextResponse } from "next/server";
 
 import { syncAndProcessReminderJobs } from "@/lib/notifications";
 import { recordServerFailure } from "@/lib/security/audit";
+import { extractBearerToken, safeEqualSecret } from "@/lib/security/web";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
 function isAuthorizedRequest(request: NextRequest): boolean {
+  const authorizationToken = extractBearerToken(request.headers.get("authorization"));
+  const cronSecret = process.env.CRON_SECRET?.trim();
+  const processorSecret = process.env.REMINDER_PROCESSOR_SECRET?.trim();
+  const headerSecret = request.headers.get("x-reminder-processor-secret")?.trim();
+
+  if (cronSecret && safeEqualSecret(cronSecret, authorizationToken)) {
+    return true;
+  }
+
+  if (processorSecret) {
+    return (
+      safeEqualSecret(processorSecret, headerSecret) ||
+      safeEqualSecret(processorSecret, authorizationToken)
+    );
+  }
+
   if (request.headers.has("x-vercel-cron")) {
     return true;
   }
 
-  const configuredSecret = process.env.REMINDER_PROCESSOR_SECRET?.trim();
-  const providedSecret =
-    request.nextUrl.searchParams.get("token")?.trim() ||
-    request.headers.get("x-reminder-processor-secret")?.trim() ||
-    request.headers.get("authorization")?.replace(/^Bearer\s+/i, "").trim();
-
-  if (configuredSecret) {
-    return Boolean(providedSecret) && providedSecret === configuredSecret;
+  if (process.env.NODE_ENV !== "production") {
+    const queryToken = request.nextUrl.searchParams.get("token")?.trim();
+    return processorSecret ? safeEqualSecret(processorSecret, queryToken) : true;
   }
 
-  return process.env.NODE_ENV !== "production";
+  return false;
 }
 
 async function handleRequest(request: NextRequest) {

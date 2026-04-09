@@ -13,6 +13,32 @@ function sanitize(input: string, max: number): string {
   return input.replace(/<[^>]*>/g, "").replace(/[<>]/g, "").trim().slice(0, max);
 }
 
+function normalizeAvatarUrl(userId: string, avatarUrl: string | null): string | null {
+  if (!avatarUrl) {
+    return null;
+  }
+
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+
+  if (!supabaseUrl) {
+    return null;
+  }
+
+  try {
+    const candidate = new URL(avatarUrl);
+    const allowedOrigin = new URL(supabaseUrl).origin;
+    const allowedPathPrefix = `/storage/v1/object/public/profile-avatars/${userId}/`;
+
+    if (candidate.origin !== allowedOrigin || !candidate.pathname.startsWith(allowedPathPrefix)) {
+      return null;
+    }
+
+    return `${candidate.origin}${candidate.pathname}${candidate.search}`;
+  } catch {
+    return null;
+  }
+}
+
 // Lazily create the profile row so older or partially-created accounts can still recover.
 export async function getProfile() {
   const supabase = await createClient();
@@ -97,7 +123,7 @@ export async function updateProfile(
   const cleanBio = sanitize(bio, 200);
   const cleanEmoji = sanitize(avatarEmoji, 10);
   const cleanCurrency = sanitize(currency, 5);
-  const cleanAvatarUrl = avatarUrl ? sanitize(avatarUrl, 1000) : null;
+  const cleanAvatarUrl = normalizeAvatarUrl(user.id, avatarUrl ? sanitize(avatarUrl, 1000) : null);
   const cleanBudget = Math.min(Math.max(Math.floor(defaultBudget || 0), 0), 10000);
 
   if (cleanName.length === 0) {

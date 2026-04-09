@@ -2,6 +2,7 @@ import { createHash } from "crypto";
 import { NextRequest, NextResponse } from "next/server";
 
 import { supabaseAdmin } from "@/lib/supabase/admin";
+import { safeEqualSecret } from "@/lib/security/web";
 
 export const dynamic = "force-dynamic";
 
@@ -135,7 +136,7 @@ function isAuthorizedPostback(request: NextRequest, payload: PostbackPayload): b
     request.headers.get("x-lazada-postback-secret") ||
     request.headers.get("x-postback-secret");
 
-  return providedSecret === configuredSecret;
+  return safeEqualSecret(configuredSecret, providedSecret?.trim() || null);
 }
 
 async function handlePostback(request: NextRequest) {
