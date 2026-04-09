@@ -1898,7 +1898,12 @@ export default function DashboardPage() {
           </div>
         )}
 
-        <div data-fade className="mb-6 flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
+        <div
+          data-fade
+          className={`mb-6 flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between ${
+            profileMenuOpen ? "pb-44 sm:pb-36 lg:pb-0" : ""
+          }`}
+        >
           <div className="text-center lg:text-left">
             <SantaBrandLockup dark={isDarkTheme} />
           </div>
@@ -1937,7 +1942,7 @@ export default function DashboardPage() {
                 </span>
               )}
             </button>
-            <div ref={profileMenuRef} className="relative">
+            <div ref={profileMenuRef} className="relative z-[70]">
               <button
                 type="button"
                 onClick={() => setProfileMenuOpen((current) => !current)}
@@ -1958,7 +1963,7 @@ export default function DashboardPage() {
                 <div
                   role="menu"
                   aria-label="Profile options"
-                  className={`absolute right-0 top-full z-30 mt-3 w-56 overflow-hidden rounded-[22px] border p-2 shadow-[0_22px_44px_rgba(15,23,42,0.20)] backdrop-blur-md ${
+                  className={`absolute right-0 top-full z-[80] mt-3 w-64 max-w-[min(20rem,calc(100vw-2rem))] overflow-hidden rounded-[22px] border p-2 shadow-[0_22px_44px_rgba(15,23,42,0.20)] backdrop-blur-md ${
                     isDarkTheme
                       ? "border-slate-700/80 bg-slate-900/94"
                       : "border-white/80 bg-white/96"
