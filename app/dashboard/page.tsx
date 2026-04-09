@@ -619,19 +619,10 @@ function PlusIcon({ className = "h-5 w-5" }: { className?: string }) {
   );
 }
 
-function EventCountdownBadge({ eventDate }: { eventDate: string }) {
-  const [now, setNow] = useState(() => Date.now());
+function EventCountdownBadge({ eventDate, now }: { eventDate: string; now: number }) {
   const DAY_MS = 1000 * 60 * 60 * 24;
   const HOUR_MS = 1000 * 60 * 60;
   const MINUTE_MS = 1000 * 60;
-
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setNow(Date.now());
-    }, 1000);
-
-    return () => clearInterval(interval);
-  }, []);
 
   const eventTime = new Date(eventDate).getTime();
 
@@ -697,6 +688,7 @@ export default function DashboardPage() {
   const router = useRouter();
   const [supabase] = useState(() => createClient());
   const prefetchedRoutesRef = useRef<Set<string>>(new Set());
+  const [countdownNow, setCountdownNow] = useState(() => Date.now());
   const [canViewAffiliateReport, setCanViewAffiliateReport] = useState(
     () => typeof sessionStorage !== "undefined" && sessionStorage.getItem("ss_ara") === "1"
   );
@@ -767,6 +759,26 @@ export default function DashboardPage() {
       document.removeEventListener("keydown", handleEscape);
     };
   }, [profileMenuOpen]);
+
+  useEffect(() => {
+    let intervalId: ReturnType<typeof setInterval> | null = null;
+
+    const syncCountdownClock = () => {
+      setCountdownNow(Date.now());
+    };
+
+    const timeoutId = setTimeout(() => {
+      syncCountdownClock();
+      intervalId = setInterval(syncCountdownClock, 60_000);
+    }, Math.max(1_000, 60_000 - (Date.now() % 60_000)));
+
+    return () => {
+      clearTimeout(timeoutId);
+      if (intervalId) {
+        clearInterval(intervalId);
+      }
+    };
+  }, []);
 
   useEffect(() => {
     let isMounted = true;
@@ -1314,15 +1326,14 @@ export default function DashboardPage() {
               }
             });
 
-        // All five loads run in parallel — group cards start loading immediately
-        // instead of waiting for the profile/affiliate/notification round-trips.
-        await Promise.all([
-          loadProfileData(),
-          claimAction,
-          loadAffiliateReportAccess(),
-          loadNotificationCount(session.user.id),
-          loadDashboardData(session.user),
-        ]);
+        // The main dashboard content should not wait on secondary polish like
+        // the affiliate-report pill or the unread bell count. Kick those off in
+        // the background so the cards can render as soon as the core data is ready.
+        void loadProfileData();
+        void loadAffiliateReportAccess();
+        void loadNotificationCount(session.user.id);
+
+        await Promise.all([claimAction, loadDashboardData(session.user)]);
 
         if (!isMounted) {
           return;
@@ -1336,7 +1347,7 @@ export default function DashboardPage() {
         // bell accurate if the browser misses a websocket event or resumes from sleep.
         notificationPollInterval = setInterval(() => {
           refreshNotificationsIfVisible();
-        }, 8000);
+        }, 30000);
       } catch {
         if (!isMounted) {
           return;
@@ -1437,26 +1448,37 @@ export default function DashboardPage() {
       router.prefetch(route);
     };
 
-    prefetchOnce("/notifications");
-    prefetchOnce("/secret-santa");
-    prefetchOnce("/secret-santa-chat");
-    prefetchOnce("/wishlist");
-    prefetchOnce("/create-group");
-    prefetchOnce("/profile");
+    const routesToPrefetch = ["/secret-santa", "/wishlist", "/notifications"];
     if (canViewAffiliateReport) {
-      prefetchOnce("/dashboard/affiliate-report");
+      routesToPrefetch.push("/dashboard/affiliate-report");
     }
 
-    for (const group of [...ownedGroups, ...invitedGroups].slice(0, 8)) {
-      prefetchOnce(`/group/${group.id}`);
-    }
+    let timeoutId: ReturnType<typeof setTimeout> | null = null;
+    let idleId: number | null = null;
 
-    for (const item of activityFeedItems) {
-      if (item.href) {
-        prefetchOnce(item.href);
+    const prefetchCoreRoutes = () => {
+      for (const route of routesToPrefetch) {
+        prefetchOnce(route);
       }
+    };
+
+    if (typeof window !== "undefined" && "requestIdleCallback" in window) {
+      idleId = window.requestIdleCallback(prefetchCoreRoutes, { timeout: 1500 });
+    } else if (typeof window !== "undefined") {
+      timeoutId = setTimeout(prefetchCoreRoutes, 1200);
+    } else {
+      prefetchCoreRoutes();
     }
-  }, [router, ownedGroups, invitedGroups, canViewAffiliateReport, activityFeedItems]);
+
+    return () => {
+      if (typeof window !== "undefined" && idleId !== null && "cancelIdleCallback" in window) {
+        window.cancelIdleCallback(idleId);
+      }
+      if (timeoutId !== null) {
+        clearTimeout(timeoutId);
+      }
+    };
+  }, [router, canViewAffiliateReport]);
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
@@ -1691,7 +1713,7 @@ export default function DashboardPage() {
 
           <div className={`mt-2.5 rounded-[18px] border px-2.5 py-2 ${isDarkTheme ? "border-slate-700/70 bg-slate-950/55" : "border-slate-200/80 bg-slate-50/95"}`}>
             <div className={`flex flex-wrap items-center gap-2 text-sm ${isDarkTheme ? "text-slate-200" : "text-slate-700"}`}>
-              <EventCountdownBadge eventDate={group.event_date} />
+              <EventCountdownBadge eventDate={group.event_date} now={countdownNow} />
               {budgetLabel && (
                 <span className={`inline-flex items-center gap-1.5 text-[14px] font-semibold ${isDarkTheme ? "text-slate-100" : "text-slate-700"}`}>
                   <span className="h-2.5 w-2.5 rounded-full bg-emerald-500" />
