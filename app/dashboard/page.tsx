@@ -1587,8 +1587,8 @@ export default function DashboardPage() {
     ...invitedGroups.map((group) => ({ group, type: "invited" as const })),
   ];
   const utilityPillClass = isDarkTheme
-    ? "inline-flex items-center gap-2.5 rounded-full border border-slate-700/80 bg-slate-900/72 px-4 py-3 text-[15px] font-semibold text-slate-100 shadow-[0_18px_50px_rgba(2,8,23,0.34)] backdrop-blur-md transition hover:-translate-y-0.5"
-    : "inline-flex items-center gap-2.5 rounded-full border border-white/80 bg-white/95 px-4 py-3 text-[15px] font-semibold text-slate-700 shadow-[0_18px_50px_rgba(148,163,184,0.14)] backdrop-blur-md transition hover:-translate-y-0.5";
+    ? "inline-flex items-center gap-2.5 rounded-full border border-slate-700/80 bg-slate-900/72 px-4 py-3 text-[16px] font-semibold text-slate-100 shadow-[0_18px_50px_rgba(2,8,23,0.34)] backdrop-blur-md transition hover:-translate-y-0.5"
+    : "inline-flex items-center gap-2.5 rounded-full border border-white/80 bg-white/95 px-4 py-3 text-[16px] font-semibold text-slate-700 shadow-[0_18px_50px_rgba(148,163,184,0.14)] backdrop-blur-md transition hover:-translate-y-0.5";
   const utilityIconClass = isDarkTheme ? "text-slate-300" : "text-slate-500";
   const dashboardShellClass = isDarkTheme
     ? "relative min-h-screen overflow-hidden bg-[linear-gradient(180deg,#08111f_0%,#0f172a_38%,#111827_100%)] text-slate-100"
@@ -1716,22 +1716,22 @@ export default function DashboardPage() {
         <div className="relative z-10">
           <div className="flex items-start justify-between gap-2.5">
             <div className="min-w-0">
-              <h3 className={`text-[1rem] font-extrabold leading-tight sm:text-[1.08rem] ${isDarkTheme ? "text-white" : "text-slate-900"}`}>
+              <h3 className={`text-[1.15rem] font-extrabold leading-tight sm:text-[1.22rem] ${isDarkTheme ? "text-white" : "text-slate-900"}`}>
                 {group.name}
               </h3>
             </div>
-            <div className={`shrink-0 rounded-full px-3 py-1 text-[11px] font-semibold ${isDarkTheme ? "bg-slate-800 text-slate-300" : "bg-slate-200 text-slate-600"}`}>
+            <div className={`shrink-0 rounded-full px-3 py-1 text-[12px] font-semibold ${isDarkTheme ? "bg-slate-800 text-slate-300" : "bg-slate-200 text-slate-600"}`}>
               {type === "owned" ? "Hosted by you" : "Shared group"}
             </div>
           </div>
 
           <div className="mt-2 flex items-center justify-between gap-2.5">
             <div className="flex flex-wrap items-center gap-1.5">
-              <span className={`inline-flex rounded-full px-3 py-1 text-[11px] font-semibold ${theme.eyebrow}`}>
+              <span className={`inline-flex rounded-full px-3 py-1 text-[12px] font-semibold ${theme.eyebrow}`}>
                 {type === "owned" ? "My group" : "Invited group"}
               </span>
               <span
-                className={`inline-flex rounded-full px-3 py-1 text-[11px] font-semibold ${
+                className={`inline-flex rounded-full px-3 py-1 text-[12px] font-semibold ${
                   group.hasDrawn ? theme.drawPillDone : theme.drawPillPending
                 }`}
               >
@@ -1755,7 +1755,7 @@ export default function DashboardPage() {
                 </span>
               ))}
               {group.members.length > 3 && (
-                <span className={`inline-flex h-10 w-10 items-center justify-center rounded-full border-2 border-white text-[11px] font-bold shadow-[0_8px_18px_rgba(15,23,42,0.10)] ${isDarkTheme ? "bg-slate-800 text-slate-200" : "bg-slate-200 text-slate-600"}`}>
+                <span className={`inline-flex h-10 w-10 items-center justify-center rounded-full border-2 border-white text-[12px] font-bold shadow-[0_8px_18px_rgba(15,23,42,0.10)] ${isDarkTheme ? "bg-slate-800 text-slate-200" : "bg-slate-200 text-slate-600"}`}>
                   +{group.members.length - 3}
                 </span>
               )}
@@ -1766,7 +1766,7 @@ export default function DashboardPage() {
             <div className={`flex flex-wrap items-center gap-2 text-sm ${isDarkTheme ? "text-slate-200" : "text-slate-700"}`}>
               <EventCountdownBadge eventDate={group.event_date} now={countdownNow} />
               {budgetLabel && (
-                <span className={`inline-flex items-center gap-1.5 text-[14px] font-semibold ${isDarkTheme ? "text-slate-100" : "text-slate-700"}`}>
+                <span className={`inline-flex items-center gap-1.5 text-[15px] font-semibold ${isDarkTheme ? "text-slate-100" : "text-slate-700"}`}>
                   <span className="h-2.5 w-2.5 rounded-full bg-emerald-500" />
                   Budget: {budgetLabel}
                 </span>
@@ -1782,7 +1782,7 @@ export default function DashboardPage() {
               <button
                 type="button"
                 onClick={() => router.push(`/group/${group.id}`)}
-                className={`inline-flex items-center gap-2 rounded-full px-4 py-2 text-[15px] font-semibold text-white transition hover:-translate-y-0.5 ${theme.primaryButton}`}
+                className={`inline-flex items-center gap-2 rounded-full px-4 py-2 text-[16px] font-semibold text-white transition hover:-translate-y-0.5 ${theme.primaryButton}`}
               >
                 <span>{type === "owned" ? "View Group" : "Open Group"}</span>
                 <ArrowRightIcon />
@@ -1792,7 +1792,7 @@ export default function DashboardPage() {
                   type="button"
                   onClick={() => void handleDeleteGroup(group.id, group.name)}
                   disabled={deletingGroupId === group.id}
-                className={`inline-flex items-center gap-2 rounded-full px-3 py-2 text-[14px] font-semibold transition ${
+                  className={`inline-flex items-center gap-2 rounded-full px-3 py-2 text-[15px] font-semibold transition ${
                     deletingGroupId === group.id
                       ? "cursor-wait bg-rose-100 text-rose-500"
                       : theme.secondaryButton
@@ -1877,11 +1877,11 @@ export default function DashboardPage() {
         <div className="relative z-10 flex h-full flex-col">
           <div className="flex items-start justify-between gap-3">
             <div className="min-w-0">
-              <div className={`inline-flex rounded-full px-2.5 py-1 text-[11px] font-semibold ${theme.badge}`}>
+              <div className={`inline-flex rounded-full px-2.5 py-1 text-[12px] font-semibold ${theme.badge}`}>
                 {subtitle}
               </div>
-              <h2 className={`mt-2.5 text-[1.2rem] font-extrabold leading-tight ${isDarkTheme ? "text-white" : "text-slate-900"}`}>{title}</h2>
-              <p className={`mt-1.5 text-sm leading-5 ${isDarkTheme ? "text-slate-300" : "text-slate-600"}`}>{description}</p>
+              <h2 className={`mt-2.5 text-[1.3rem] font-extrabold leading-tight ${isDarkTheme ? "text-white" : "text-slate-900"}`}>{title}</h2>
+              <p className={`mt-1.5 text-[15px] leading-6 ${isDarkTheme ? "text-slate-300" : "text-slate-600"}`}>{description}</p>
             </div>
             <div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ${theme.iconShell}`}>
               {icon}
@@ -1894,7 +1894,7 @@ export default function DashboardPage() {
             <button
               type="button"
               onClick={onClick}
-              className={`inline-flex items-center gap-2 rounded-full px-3.5 py-2 text-sm font-semibold transition hover:-translate-y-0.5 ${theme.button}`}
+              className={`inline-flex items-center gap-2 rounded-full px-3.5 py-2 text-[15px] font-semibold transition hover:-translate-y-0.5 ${theme.button}`}
             >
               <span>{buttonLabel}</span>
               <ArrowRightIcon />
@@ -2082,7 +2082,7 @@ export default function DashboardPage() {
           <h1 className={`text-4xl font-bold tracking-tight sm:text-[3.35rem] ${heroTitleClass}`}>
             Welcome back, {displayFirstName}
           </h1>
-          <p className={`mt-2 text-[15px] ${heroSubtitleClass}`}>
+          <p className={`mt-2 text-[17px] ${heroSubtitleClass}`}>
             Manage your groups, draws, and chats in one place.
           </p>
         </div>
@@ -2189,20 +2189,20 @@ export default function DashboardPage() {
             <div className={dashboardInnerPanelClass}>
               <div className="flex items-start justify-between gap-4">
                 <div>
-                  <div className="inline-flex items-center gap-2 rounded-full bg-rose-100 px-3 py-1 text-xs font-semibold text-rose-700">
+                  <div className="inline-flex items-center gap-2 rounded-full bg-rose-100 px-3 py-1 text-[13px] font-semibold text-rose-700">
                     <WishlistIcon className="h-4 w-4" />
                     My Wishlist
                   </div>
-                  <h3 className={`mt-2.5 text-[1.18rem] font-bold ${dashboardPanelHeadingClass}`}>Your own gift ideas</h3>
-                  <p className={`mt-1.5 max-w-xl text-sm leading-5 ${dashboardPanelTextClass}`}>
+                  <h3 className={`mt-2.5 text-[1.3rem] font-bold ${dashboardPanelHeadingClass}`}>Your own gift ideas</h3>
+                  <p className={`mt-1.5 max-w-xl text-[15px] leading-6 ${dashboardPanelTextClass}`}>
                     Keep this separate from gift planning so your Secret Santa can always see what you want.
                   </p>
                 </div>
                 <div className={dashboardStatChipClass}>
-                  <div className={`text-[10px] font-extrabold uppercase tracking-[0.16em] ${dashboardStatLabelClass}`}>
+                  <div className={`text-[11px] font-extrabold uppercase tracking-[0.16em] ${dashboardStatLabelClass}`}>
                     Ready now
                   </div>
-                  <div className={`mt-0.5 text-sm font-bold ${dashboardStatValueClass}`}>
+                  <div className={`mt-0.5 text-[16px] font-bold ${dashboardStatValueClass}`}>
                     {wishlistItemCount} item{wishlistItemCount === 1 ? "" : "s"}
                   </div>
                 </div>
@@ -2210,33 +2210,33 @@ export default function DashboardPage() {
 
               <div className="mt-4 grid gap-2.5 sm:grid-cols-2">
                 <div className={`rounded-[18px] border px-4 py-3 ${isDarkTheme ? "border-rose-500/20 bg-slate-950/45" : "border-rose-100 bg-white/92"}`}>
-                  <div className={`text-[11px] font-extrabold uppercase tracking-[0.14em] ${dashboardStatLabelClass}`}>
+                  <div className={`text-[12px] font-extrabold uppercase tracking-[0.14em] ${dashboardStatLabelClass}`}>
                     Total items
                   </div>
                   <div className={`mt-1 text-[24px] font-black ${dashboardStatValueClass}`}>{wishlistItemCount}</div>
-                  <div className={`mt-1 text-xs ${isDarkTheme ? "text-slate-400" : "text-slate-500"}`}>
+                  <div className={`mt-1 text-sm ${isDarkTheme ? "text-slate-400" : "text-slate-500"}`}>
                     Visible to your Secret Santa.
                   </div>
                 </div>
                 <div className={`rounded-[18px] border px-4 py-3 ${isDarkTheme ? "border-rose-500/20 bg-slate-950/45" : "border-rose-100 bg-white/92"}`}>
-                  <div className={`text-[11px] font-extrabold uppercase tracking-[0.14em] ${dashboardStatLabelClass}`}>
+                  <div className={`text-[12px] font-extrabold uppercase tracking-[0.14em] ${dashboardStatLabelClass}`}>
                     Active groups
                   </div>
                   <div className={`mt-1 text-[24px] font-black ${dashboardStatValueClass}`}>{wishlistGroupCount}</div>
-                  <div className={`mt-1 text-xs ${isDarkTheme ? "text-slate-400" : "text-slate-500"}`}>
+                  <div className={`mt-1 text-sm ${isDarkTheme ? "text-slate-400" : "text-slate-500"}`}>
                     Groups with wishlist ideas.
                   </div>
                 </div>
               </div>
 
               <div className={`mt-4 flex flex-col gap-3 border-t pt-3 ${isDarkTheme ? "border-slate-700/70" : "border-slate-200/80"} sm:flex-row sm:items-center sm:justify-between`}>
-                <p className={`text-xs font-medium ${isDarkTheme ? "text-slate-400" : "text-slate-500"}`}>
+                <p className={`text-sm font-medium ${isDarkTheme ? "text-slate-400" : "text-slate-500"}`}>
                   Manage the full list from your dedicated wishlist page.
                 </p>
                 <button
                   type="button"
                   onClick={() => router.push("/wishlist")}
-                  className="inline-flex items-center gap-2 rounded-full bg-[linear-gradient(135deg,#e25d67,#b9384c)] px-4 py-2.5 text-sm font-semibold text-white shadow-[0_14px_35px_rgba(185,56,76,0.24)] transition hover:-translate-y-0.5"
+                  className="inline-flex items-center gap-2 rounded-full bg-[linear-gradient(135deg,#e25d67,#b9384c)] px-4 py-2.5 text-[15px] font-semibold text-white shadow-[0_14px_35px_rgba(185,56,76,0.24)] transition hover:-translate-y-0.5"
                 >
                   <span>Open My Wishlist</span>
                   <ArrowRightIcon />
@@ -2249,11 +2249,11 @@ export default function DashboardPage() {
               <div className={`flex flex-col gap-4 ${dashboardInnerPanelClass}`}>
                 <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                   <div>
-                    <div className="inline-flex items-center gap-2 rounded-full bg-blue-100 px-4 py-1.5 text-[13px] font-bold text-blue-700 shadow-[0_10px_22px_rgba(59,130,246,0.14)]">
+                    <div className="inline-flex items-center gap-2 rounded-full bg-blue-100 px-4 py-1.5 text-[14px] font-bold text-blue-700 shadow-[0_10px_22px_rgba(59,130,246,0.14)]">
                       Activity feed
                     </div>
-                    <h3 className={`mt-2.5 text-[1.35rem] font-bold ${dashboardPanelHeadingClass}`}>Recent moments that matter</h3>
-                    <p className={`mt-1.5 max-w-xl text-sm leading-5 ${dashboardPanelTextClass}`}>
+                    <h3 className={`mt-2.5 text-[1.42rem] font-bold ${dashboardPanelHeadingClass}`}>Recent moments that matter</h3>
+                    <p className={`mt-1.5 max-w-xl text-[15px] leading-6 ${dashboardPanelTextClass}`}>
                       Your live pulse for gift prep, chat updates, and draw milestones.
                     </p>
                   </div>
@@ -2283,15 +2283,15 @@ export default function DashboardPage() {
                             </div>
                             <div className="min-w-0 flex-1">
                               <div className="flex flex-wrap items-center gap-2">
-                                <span className={`inline-flex rounded-full px-2.5 py-1 text-[11px] font-bold ${theme.chip}`}>
+                                <span className={`inline-flex rounded-full px-2.5 py-1 text-[12px] font-bold ${theme.chip}`}>
                                   {item.href ? "Open update" : "Latest update"}
                                 </span>
-                                <span className="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-400">
+                                <span className="text-[12px] font-semibold uppercase tracking-[0.16em] text-slate-400">
                                   {formatRelativeTime(item.createdAt)}
                                 </span>
                               </div>
-                              <div className={`mt-2 text-[15px] font-bold leading-5 ${isDarkTheme ? "text-white" : "text-slate-900"}`}>{item.title}</div>
-                              <div className={`mt-1.5 text-sm leading-5 ${isDarkTheme ? "text-slate-300" : "text-slate-600"}`}>{item.subtitle}</div>
+                              <div className={`mt-2 text-[16px] font-bold leading-6 ${isDarkTheme ? "text-white" : "text-slate-900"}`}>{item.title}</div>
+                              <div className={`mt-1.5 text-[15px] leading-6 ${isDarkTheme ? "text-slate-300" : "text-slate-600"}`}>{item.subtitle}</div>
                             </div>
                             {item.href ? (
                               <div className={`mt-1 inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full transition group-hover:text-sky-400 ${isDarkTheme ? "bg-slate-900/85 text-slate-300 shadow-[0_8px_20px_rgba(2,8,23,0.24)] ring-1 ring-slate-700/70" : "bg-white/90 text-slate-500 shadow-[0_8px_20px_rgba(148,163,184,0.14)] ring-1 ring-white/80 group-hover:text-sky-600"}`}>
@@ -2326,11 +2326,11 @@ export default function DashboardPage() {
           <div className="space-y-2">
 
             <div className={dashboardCardShellClass}>
-            <div className="inline-flex items-center gap-2 rounded-full bg-emerald-100 px-3 py-1 text-xs font-semibold text-emerald-700">
+            <div className="inline-flex items-center gap-2 rounded-full bg-emerald-100 px-3 py-1 text-[13px] font-semibold text-emerald-700">
               Gift planning
             </div>
-            <h3 className={`mt-2.5 text-[1.35rem] font-bold ${dashboardPanelHeadingClass}`}>Track your gift progress</h3>
-            <p className={`mt-1.5 text-sm leading-5 ${dashboardPanelTextClass}`}>
+            <h3 className={`mt-2.5 text-[1.42rem] font-bold ${dashboardPanelHeadingClass}`}>Track your gift progress</h3>
+            <p className={`mt-1.5 text-[15px] leading-6 ${dashboardPanelTextClass}`}>
               {giftProgressSummary
                 ? giftProgressSummary.totalAssignments === 1 &&
                   giftProgressSummary.recipientName &&
@@ -2398,10 +2398,10 @@ export default function DashboardPage() {
                           >
                             {count > 0 && !isCurrent ? "✓" : step.icon}
                           </div>
-                          <span className={`text-[15px] font-semibold ${dashboardPanelHeadingClass}`}>{step.label}</span>
+                          <span className={`text-[16px] font-semibold ${dashboardPanelHeadingClass}`}>{step.label}</span>
                         </div>
                         <span
-                          className={`shrink-0 rounded-full px-3 py-1 text-[11px] font-bold uppercase tracking-[0.14em] ${
+                          className={`shrink-0 rounded-full px-3 py-1 text-[12px] font-bold uppercase tracking-[0.14em] ${
                             isCurrent
                               ? isDarkTheme
                                 ? "bg-emerald-500/18 text-emerald-100"
@@ -2428,10 +2428,10 @@ export default function DashboardPage() {
 
                 <div className={`mt-4 flex items-center justify-between gap-3 rounded-[20px] border px-4 py-3.5 ${dashboardSubtleSurfaceClass} ${isDarkTheme ? "shadow-[0_10px_24px_rgba(2,8,23,0.18)]" : "shadow-[0_10px_24px_rgba(148,163,184,0.08)]"}`}>
                   <div>
-                    <div className={`text-[11px] font-extrabold uppercase tracking-[0.14em] ${dashboardStatLabelClass}`}>
+                    <div className={`text-[12px] font-extrabold uppercase tracking-[0.14em] ${dashboardStatLabelClass}`}>
                       Progress snapshot
                     </div>
-                    <div className={`mt-1 text-sm font-semibold ${isDarkTheme ? "text-slate-200" : "text-slate-700"}`}>
+                    <div className={`mt-1 text-[15px] font-semibold ${isDarkTheme ? "text-slate-200" : "text-slate-700"}`}>
                       {giftProgressSummary.totalAssignments} recipient
                       {giftProgressSummary.totalAssignments === 1 ? "" : "s"} • {giftProgressSummary.readyToGiveCount} ready to give
                     </div>
@@ -2439,7 +2439,7 @@ export default function DashboardPage() {
                   <button
                     type="button"
                     onClick={() => router.push("/secret-santa")}
-                    className="inline-flex items-center gap-2 rounded-full bg-[linear-gradient(135deg,#2f80ff,#1f66e5)] px-4 py-2.5 text-sm font-semibold text-white shadow-[0_14px_35px_rgba(37,99,235,0.22)] transition hover:-translate-y-0.5"
+                    className="inline-flex items-center gap-2 rounded-full bg-[linear-gradient(135deg,#2f80ff,#1f66e5)] px-4 py-2.5 text-[15px] font-semibold text-white shadow-[0_14px_35px_rgba(37,99,235,0.22)] transition hover:-translate-y-0.5"
                   >
                     <span>Open gift planning</span>
                     <ArrowRightIcon />
@@ -2457,20 +2457,20 @@ export default function DashboardPage() {
             <div className={dashboardInnerPanelClass}>
               <div className="flex items-start justify-between gap-4">
                 <div>
-                  <div className="inline-flex items-center gap-2 rounded-full bg-blue-100 px-3 py-1 text-xs font-semibold text-blue-700">
+                  <div className="inline-flex items-center gap-2 rounded-full bg-blue-100 px-3 py-1 text-[13px] font-semibold text-blue-700">
                     <BellIcon className="h-4 w-4" />
                     Notifications
                   </div>
-                  <h3 className={`mt-2.5 text-[1.35rem] font-bold ${dashboardPanelHeadingClass}`}>Inbox highlights</h3>
-                  <p className={`mt-1.5 text-sm leading-5 ${dashboardPanelTextClass}`}>
+                  <h3 className={`mt-2.5 text-[1.42rem] font-bold ${dashboardPanelHeadingClass}`}>Inbox highlights</h3>
+                  <p className={`mt-1.5 text-[15px] leading-6 ${dashboardPanelTextClass}`}>
                     Your newest alerts, distilled into the fastest things to open next.
                   </p>
                 </div>
                 <div className={dashboardStatChipClass}>
-                  <div className={`text-[10px] font-extrabold uppercase tracking-[0.16em] ${dashboardStatLabelClass}`}>
+                  <div className={`text-[11px] font-extrabold uppercase tracking-[0.16em] ${dashboardStatLabelClass}`}>
                     Unread
                   </div>
-                  <div className={`mt-0.5 text-sm font-bold ${dashboardStatValueClass}`}>{unreadNotificationCount}</div>
+                  <div className={`mt-0.5 text-[16px] font-bold ${dashboardStatValueClass}`}>{unreadNotificationCount}</div>
                 </div>
               </div>
 
@@ -2496,11 +2496,11 @@ export default function DashboardPage() {
                         <div className={`pointer-events-none absolute inset-x-0 top-0 h-24 bg-gradient-to-r ${theme.glow}`} />
                         <div className="relative flex items-start justify-between gap-3">
                           <div>
-                            <div className={`inline-flex rounded-full px-2.5 py-1 text-[11px] font-bold ${theme.chip}`}>
+                            <div className={`inline-flex rounded-full px-2.5 py-1 text-[12px] font-bold ${theme.chip}`}>
                               Latest alert
                             </div>
                             <div className={`mt-2 text-base font-bold leading-6 ${isDarkTheme ? "text-white" : "text-slate-900"}`}>{item.title}</div>
-                            <div className={`mt-1.5 text-sm font-medium ${isDarkTheme ? "text-slate-300" : "text-slate-600"}`}>
+                            <div className={`mt-1.5 text-[15px] font-medium ${isDarkTheme ? "text-slate-300" : "text-slate-600"}`}>
                               Inbox alert • {formatRelativeTime(item.createdAt)}
                             </div>
                           </div>
@@ -2535,8 +2535,8 @@ export default function DashboardPage() {
                             <div className={`inline-flex h-10 w-10 items-center justify-center rounded-2xl text-[20px] ${theme.iconShell}`}>
                               <span aria-hidden="true">{item.icon}</span>
                             </div>
-                            <div className={`mt-3 text-sm font-bold leading-5 ${isDarkTheme ? "text-white" : "text-slate-900"}`}>{item.title}</div>
-                            <div className={`mt-1 text-xs font-medium ${isDarkTheme ? "text-slate-400" : "text-slate-500"}`}>
+                            <div className={`mt-3 text-[15px] font-bold leading-6 ${isDarkTheme ? "text-white" : "text-slate-900"}`}>{item.title}</div>
+                            <div className={`mt-1 text-sm font-medium ${isDarkTheme ? "text-slate-400" : "text-slate-500"}`}>
                               {formatRelativeTime(item.createdAt)}
                             </div>
                           </div>
@@ -2553,10 +2553,10 @@ export default function DashboardPage() {
 
               <div className={`mt-4 flex items-center justify-between gap-3 rounded-[20px] border px-4 py-3.5 ${dashboardSubtleSurfaceClass} ${isDarkTheme ? "shadow-[0_10px_24px_rgba(2,8,23,0.18)]" : "shadow-[0_10px_24px_rgba(148,163,184,0.08)]"}`}>
                 <div>
-                  <div className={`text-[11px] font-extrabold uppercase tracking-[0.14em] ${dashboardStatLabelClass}`}>
+                  <div className={`text-[12px] font-extrabold uppercase tracking-[0.14em] ${dashboardStatLabelClass}`}>
                     Inbox status
                   </div>
-                  <div className={`mt-1 text-sm font-semibold ${isDarkTheme ? "text-slate-200" : "text-slate-700"}`}>
+                  <div className={`mt-1 text-[15px] font-semibold ${isDarkTheme ? "text-slate-200" : "text-slate-700"}`}>
                     {unreadNotificationCount} unread • {pendingInvites.length} pending invite
                     {pendingInvites.length === 1 ? "" : "s"}
                   </div>
@@ -2564,7 +2564,7 @@ export default function DashboardPage() {
                 <button
                   type="button"
                   onClick={() => router.push("/notifications")}
-                  className="inline-flex items-center gap-2 rounded-full bg-[linear-gradient(135deg,#2f80ff,#1f66e5)] px-4 py-2.5 text-sm font-semibold text-white shadow-[0_14px_35px_rgba(37,99,235,0.22)] transition hover:-translate-y-0.5"
+                  className="inline-flex items-center gap-2 rounded-full bg-[linear-gradient(135deg,#2f80ff,#1f66e5)] px-4 py-2.5 text-[15px] font-semibold text-white shadow-[0_14px_35px_rgba(37,99,235,0.22)] transition hover:-translate-y-0.5"
                 >
                   <span>Open</span>
                   <ArrowRightIcon />
