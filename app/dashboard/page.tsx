@@ -1582,10 +1582,7 @@ export default function DashboardPage() {
   const hasAssignments = recipientNames.length > 0;
   const displayFirstName = getDisplayFirstName(userName);
   const isDarkTheme = dashboardTheme === "midnight";
-  const dashboardGroups = [
-    ...ownedGroups.map((group) => ({ group, type: "owned" as const })),
-    ...invitedGroups.map((group) => ({ group, type: "invited" as const })),
-  ];
+  const totalDashboardGroupCount = ownedGroups.length + invitedGroups.length;
   const utilityPillClass = isDarkTheme
     ? "inline-flex items-center gap-1.5 rounded-full border border-slate-700/80 bg-slate-900/72 px-3 py-2 text-[14px] font-semibold text-slate-100 shadow-[0_18px_50px_rgba(2,8,23,0.34)] backdrop-blur-md transition hover:-translate-y-0.5"
     : "inline-flex items-center gap-1.5 rounded-full border border-white/80 bg-white/95 px-3 py-2 text-[14px] font-semibold text-slate-700 shadow-[0_18px_50px_rgba(148,163,184,0.14)] backdrop-blur-md transition hover:-translate-y-0.5";
@@ -1902,6 +1899,50 @@ export default function DashboardPage() {
           </div>
         </div>
       </article>
+    );
+  };
+
+  const GroupBucket = ({
+    title,
+    subtitle,
+    count,
+    groups,
+    type,
+  }: {
+    title: string;
+    subtitle: string;
+    count: number;
+    groups: Group[];
+    type: "owned" | "invited";
+  }) => {
+    return (
+      <div className="space-y-3">
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+          <div>
+            <h3 className={`text-[1.18rem] font-bold ${dashboardPanelHeadingClass}`}>{title}</h3>
+            <p className={`mt-1 text-[15px] leading-6 ${dashboardPanelTextClass}`}>{subtitle}</p>
+          </div>
+          <div
+            className={`inline-flex items-center rounded-full px-3 py-1 text-[12px] font-semibold ${
+              type === "owned"
+                ? isDarkTheme
+                  ? "bg-blue-500/15 text-blue-200"
+                  : "bg-blue-100 text-blue-700"
+                : isDarkTheme
+                  ? "bg-amber-500/15 text-amber-200"
+                  : "bg-amber-100 text-amber-700"
+            }`}
+          >
+            {count} group{count === 1 ? "" : "s"}
+          </div>
+        </div>
+
+        <div className="grid gap-2 lg:grid-cols-2">
+          {groups.map((group) => (
+            <GroupCard key={`${type}-${group.id}`} group={group} type={type} />
+          ))}
+        </div>
+      </div>
     );
   };
 
@@ -2582,7 +2623,7 @@ export default function DashboardPage() {
             </p>
             <h2 className={`mt-1 text-3xl font-bold ${dashboardPanelHeadingClass}`}>Your groups</h2>
           </div>
-          {dashboardGroups.length === 0 ? (
+          {totalDashboardGroupCount === 0 ? (
             <div className="grid gap-5">
               <section className={`relative overflow-hidden rounded-[24px] border p-5 backdrop-blur-md ${isDarkTheme ? "border-slate-700/70 bg-slate-900/70 shadow-[0_18px_40px_rgba(2,8,23,0.24)]" : "border-white/70 bg-white/90 shadow-[0_18px_40px_rgba(148,163,184,0.12)]"}`}>
                 <div className="absolute bottom-4 right-5 h-24 w-24 rounded-full bg-[radial-gradient(circle_at_center,#dbeafe,transparent_70%)]" />
@@ -2606,10 +2647,25 @@ export default function DashboardPage() {
               </section>
             </div>
           ) : (
-            <div className="grid gap-2 lg:grid-cols-2">
-              {dashboardGroups.map(({ group, type }) => (
-                <GroupCard key={`${type}-${group.id}`} group={group} type={type} />
-              ))}
+            <div className="space-y-6">
+              {ownedGroups.length > 0 && (
+                <GroupBucket
+                  title="Hosted by you"
+                  subtitle="Groups you created and control as the organizer."
+                  count={ownedGroups.length}
+                  groups={ownedGroups}
+                  type="owned"
+                />
+              )}
+              {invitedGroups.length > 0 && (
+                <GroupBucket
+                  title="Joined as participant"
+                  subtitle="Groups where someone else is hosting and you joined the exchange."
+                  count={invitedGroups.length}
+                  groups={invitedGroups}
+                  type="invited"
+                />
+              )}
             </div>
           )}
         </section>
