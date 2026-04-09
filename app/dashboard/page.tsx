@@ -786,14 +786,16 @@ export default function DashboardPage() {
       }
 
       const rect = trigger.getBoundingClientRect();
-      const width = Math.min(256, Math.max(224, window.innerWidth - 32));
+      const width = window.innerWidth < 640
+        ? Math.min(220, Math.max(188, window.innerWidth - 28))
+        : Math.min(248, Math.max(224, window.innerWidth - 32));
       const left = Math.min(
         Math.max(16, rect.right - width),
         Math.max(16, window.innerWidth - width - 16)
       );
 
       setProfileMenuPosition({
-        top: rect.bottom + 12,
+        top: rect.bottom + 8,
         left,
         width,
       });
@@ -1946,7 +1948,7 @@ export default function DashboardPage() {
               role="menu"
               aria-label="Profile options"
               style={profileMenuStyle}
-              className={`z-[200] overflow-hidden rounded-[22px] border p-2 shadow-[0_22px_44px_rgba(15,23,42,0.20)] backdrop-blur-md ${
+              className={`z-[200] overflow-hidden rounded-[20px] border p-1.5 shadow-[0_22px_44px_rgba(15,23,42,0.20)] backdrop-blur-md ${
                 isDarkTheme
                   ? "border-slate-700/80 bg-slate-900/94"
                   : "border-white/80 bg-white/96"
@@ -1959,7 +1961,7 @@ export default function DashboardPage() {
                   setProfileMenuOpen(false);
                   router.push("/profile");
                 }}
-                className={`flex w-full items-center justify-between rounded-2xl px-4 py-3 text-left transition ${
+                className={`flex w-full items-center justify-between rounded-[18px] px-3 py-2.5 text-left transition ${
                   isDarkTheme
                     ? "text-slate-100 hover:bg-slate-800/80"
                     : "text-slate-700 hover:bg-slate-50"
@@ -1967,7 +1969,7 @@ export default function DashboardPage() {
               >
                 <div>
                   <div className="text-sm font-semibold">Edit profile</div>
-                  <div className={`mt-0.5 text-xs ${isDarkTheme ? "text-slate-400" : "text-slate-500"}`}>
+                  <div className={`mt-0.5 hidden text-[11px] leading-4 sm:block ${isDarkTheme ? "text-slate-400" : "text-slate-500"}`}>
                     Update your festive avatar and account details.
                   </div>
                 </div>
@@ -1981,7 +1983,7 @@ export default function DashboardPage() {
                   setProfileMenuOpen(false);
                   void handleLogout();
                 }}
-                className={`mt-2 flex w-full items-center justify-between rounded-2xl px-4 py-3 text-left transition ${
+                className={`mt-1.5 flex w-full items-center justify-between rounded-[18px] px-3 py-2.5 text-left transition ${
                   isDarkTheme
                     ? "text-rose-200 hover:bg-rose-500/10"
                     : "text-rose-600 hover:bg-rose-50"
@@ -1989,7 +1991,7 @@ export default function DashboardPage() {
               >
                 <div>
                   <div className="text-sm font-semibold">Logout</div>
-                  <div className={`mt-0.5 text-xs ${isDarkTheme ? "text-slate-400" : "text-slate-500"}`}>
+                  <div className={`mt-0.5 hidden text-[11px] leading-4 sm:block ${isDarkTheme ? "text-slate-400" : "text-slate-500"}`}>
                     Sign out and return to the login screen.
                   </div>
                 </div>
