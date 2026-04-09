@@ -30,11 +30,11 @@ export default function ForgotPasswordPage() {
   };
 
   return (
-    <main className="min-h-screen flex flex-col items-center justify-center bg-gray-100 px-4">
-      <div className="bg-white shadow-lg rounded-lg p-6 w-full max-w-md text-center">
+    <main className="flex min-h-screen flex-col items-center justify-center bg-gray-100 px-4 py-12 sm:px-6">
+      <div className="w-full max-w-md rounded-lg bg-white p-5 text-center shadow-lg sm:p-6">
         {/* Title */}
-        <h1 className="text-2xl font-bold mb-4 text-blue-700">Forgot Password</h1>
-        <p className="text-gray-600 mb-4">
+        <h1 className="mb-4 text-2xl font-bold text-blue-700 sm:text-[28px]">Forgot Password</h1>
+        <p className="mb-4 text-sm text-gray-600 sm:text-base">
           Enter your <span className="font-semibold">registered email</span> to receive a reset link.
         </p>
 
@@ -42,8 +42,7 @@ export default function ForgotPasswordPage() {
         <input
           type="email"
           placeholder="Enter your registered email"
-          className="border border-gray-400 bg-white text-black p-3 rounded w-full mb-4 
-                     focus:outline-none focus:ring-2 focus:ring-blue-500"
+          className="mb-4 w-full rounded border border-gray-400 bg-white p-3 text-black focus:outline-none focus:ring-2 focus:ring-blue-500"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
         />
@@ -51,7 +50,7 @@ export default function ForgotPasswordPage() {
         {/* Send reset link button */}
         <button
           onClick={handleReset}
-          className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 transition w-full"
+          className="w-full rounded bg-blue-600 px-4 py-2 text-white transition hover:bg-blue-700"
         >
           Send Reset Link
         </button>

@@ -1058,11 +1058,11 @@ export default function SecretSantaChatPage() {
     const isGiver = activeThread.role === "giver";
     return (
       <main className="min-h-screen relative" style={{ background: "linear-gradient(180deg,#0a1628 0%,#0f1f3d 20%,#162d50 50%,#0f1f3d 80%,#0a1628 100%)", fontFamily: "'Nunito', sans-serif", color: "#fff" }}>
-        <div className="relative z-10 max-w-[720px] mx-auto px-4 py-6">
+        <div className="relative z-10 mx-auto max-w-[720px] px-4 py-5 sm:px-6 sm:py-6">
           <div className="relative pt-12">
             <FestiveTrim tone={isGiver ? "gold" : "green"} withBells />
             <div className="rounded-[18px] overflow-hidden" style={{ background: "rgba(255,255,255,.04)", border: `1px solid ${isGiver ? "rgba(251,191,36,.15)" : "rgba(34,197,94,.15)"}` }}>
-            <div className="flex items-center justify-between p-4" style={{ background: "rgba(255,255,255,.04)", borderBottom: `1px solid ${isGiver ? "rgba(251,191,36,.1)" : "rgba(34,197,94,.1)"}` }}>
+            <div className="flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between" style={{ background: "rgba(255,255,255,.04)", borderBottom: `1px solid ${isGiver ? "rgba(251,191,36,.1)" : "rgba(34,197,94,.1)"}` }}>
               <div className="flex items-center gap-3">
                 <div className="w-[42px] h-[42px] rounded-xl flex items-center justify-center text-[18px]"
                   style={{ background: isGiver ? "linear-gradient(135deg,#fbbf24,#f59e0b)" : "linear-gradient(135deg,#22c55e,#16a34a)" }}>
@@ -1148,14 +1148,14 @@ export default function SecretSantaChatPage() {
               <div ref={messagesEndRef} />
             </div>
 
-            <div className="flex gap-2 p-4" style={{ background: "rgba(255,255,255,.03)", borderTop: `1px solid ${isGiver ? "rgba(251,191,36,.08)" : "rgba(34,197,94,.08)"}` }}>
+            <div className="flex flex-col gap-2 p-4 sm:flex-row" style={{ background: "rgba(255,255,255,.03)", borderTop: `1px solid ${isGiver ? "rgba(251,191,36,.08)" : "rgba(34,197,94,.08)"}` }}>
               <input value={msgInput} onChange={(e) => setMsgInput(e.target.value)} onKeyDown={handleKeyDown}
                 placeholder={isGiver ? `Message ${activeThread.other_name} as 🎅 Secret Santa...` : "Reply to your Secret Santa..."}
                 maxLength={500}
-                className="flex-1 px-4 py-3 rounded-xl text-[14px] outline-none"
+                className="w-full rounded-xl px-4 py-3 text-[14px] outline-none sm:flex-1"
                 style={{ background: "rgba(255,255,255,.06)", border: `1px solid ${isGiver ? "rgba(251,191,36,.16)" : "rgba(34,197,94,.16)"}`, color: "#fff", fontFamily: "inherit" }} />
               <button onClick={handleSend} disabled={!msgInput.trim()}
-                className="px-5 py-3 rounded-xl text-[13px] font-bold text-white transition"
+                className="w-full rounded-xl px-5 py-3 text-[13px] font-bold text-white transition sm:w-auto"
                 style={{
                   background: msgInput.trim() ? (isGiver ? "linear-gradient(135deg,#b45309,#d97706)" : "linear-gradient(135deg,#2563eb,#3b82f6)") : "rgba(255,255,255,.08)",
                   color: msgInput.trim() ? "#fff" : "rgba(255,255,255,.3)",
@@ -1188,9 +1188,9 @@ export default function SecretSantaChatPage() {
         @keyframes fall{0%{transform:translateY(-10px) translateX(0);opacity:.5;}50%{transform:translateY(50vh) translateX(12px);}100%{transform:translateY(105vh) translateX(-6px);opacity:.1;}}
       `}</style>
 
-      <div className="relative z-10 max-w-[720px] mx-auto px-4 py-6">
+        <div className="relative z-10 mx-auto max-w-[720px] px-4 py-5 sm:px-6 sm:py-6">
         <button onClick={() => router.push("/dashboard")}
-          className="inline-flex items-center gap-1.5 text-sm font-bold mb-5 px-4 py-2 rounded-lg transition"
+          className="mb-5 inline-flex w-full items-center justify-center gap-1.5 rounded-lg px-4 py-2 text-sm font-bold transition sm:w-auto"
           style={{ color: "rgba(255,255,255,.6)", background: "rgba(255,255,255,.06)", border: "1px solid rgba(255,255,255,.1)", fontFamily: "inherit" }}>
           ← Back to Dashboard
         </button>
@@ -1214,7 +1214,7 @@ export default function SecretSantaChatPage() {
         )}
 
         <div
-          className="relative flex items-stretch gap-4 mb-6 px-4 pb-4 pt-12 rounded-[24px] overflow-visible"
+          className="relative mb-6 flex flex-col gap-4 overflow-visible rounded-[24px] px-4 pb-4 pt-12 md:flex-row md:items-stretch"
           style={{
             background: "rgba(255,255,255,.045)",
             border: "1px solid rgba(255,255,255,.08)",
@@ -1249,7 +1249,7 @@ export default function SecretSantaChatPage() {
               </div>
             </div>
           </div>
-          <div className="flex flex-col items-center justify-center gap-2 min-w-[108px]">
+          <div className="flex min-w-0 flex-row items-center justify-center gap-2 md:min-w-[108px] md:flex-col">
             <div
               className="w-px h-5"
               style={{ background: "linear-gradient(180deg,transparent,rgba(255,255,255,.16),transparent)" }}
@@ -1327,7 +1327,7 @@ export default function SecretSantaChatPage() {
                     <div key={`g-${i}`} className="relative pt-8">
                       <FestiveTrim tone="gold" compact withBells />
                       <div onClick={() => openThread(t)}
-                        className="cursor-pointer flex items-center justify-between p-4 rounded-[16px] transition hover:translate-x-1"
+                        className="cursor-pointer flex flex-col gap-3 rounded-[16px] p-4 transition hover:translate-x-1 sm:flex-row sm:items-center sm:justify-between"
                         style={{ background: "linear-gradient(135deg,rgba(251,191,36,.07),rgba(245,158,11,.04))", border: "1px solid rgba(251,191,36,.15)", borderLeft: "4px solid #fbbf24", boxShadow: "0 6px 20px rgba(0,0,0,.08)" }}>
                         <div className="flex items-center gap-3 flex-1 min-w-0">
                           <div className="w-[48px] h-[48px] rounded-[14px] flex items-center justify-center text-[20px] flex-shrink-0"
@@ -1341,7 +1341,7 @@ export default function SecretSantaChatPage() {
                             </div>
                           </div>
                         </div>
-                        <div className="flex flex-col items-end gap-1 flex-shrink-0 ml-3">
+                        <div className="ml-0 flex flex-row flex-wrap items-center gap-2 sm:ml-3 sm:flex-col sm:items-end sm:gap-1">
                           {t.last_time && <span className="text-[11px] font-semibold px-2 py-1 rounded-md" style={{ color: "#f3e3c2", background: "rgba(92,58,15,.28)" }}>{t.last_time}</span>}
                           {t.unread > 0 && (
                             <div className="w-[22px] h-[22px] rounded-full flex items-center justify-center text-[10px] font-extrabold text-white"
@@ -1374,7 +1374,7 @@ export default function SecretSantaChatPage() {
                     <div key={`r-${i}`} className="relative pt-8">
                       <FestiveTrim tone="green" compact withBells />
                       <div onClick={() => openThread(t)}
-                        className="cursor-pointer flex items-center justify-between p-4 rounded-[16px] transition hover:translate-x-1"
+                        className="cursor-pointer flex flex-col gap-3 rounded-[16px] p-4 transition hover:translate-x-1 sm:flex-row sm:items-center sm:justify-between"
                         style={{ background: "linear-gradient(135deg,rgba(34,197,94,.07),rgba(22,163,74,.04))", border: "1px solid rgba(34,197,94,.15)", borderLeft: "4px solid #22c55e", boxShadow: "0 6px 20px rgba(0,0,0,.08)" }}>
                         <div className="flex items-center gap-3 flex-1 min-w-0">
                           <div className="w-[48px] h-[48px] rounded-[14px] flex items-center justify-center text-[20px] flex-shrink-0"
@@ -1388,7 +1388,7 @@ export default function SecretSantaChatPage() {
                             </div>
                           </div>
                         </div>
-                        <div className="flex flex-col items-end gap-1 flex-shrink-0 ml-3">
+                        <div className="ml-0 flex flex-row flex-wrap items-center gap-2 sm:ml-3 sm:flex-col sm:items-end sm:gap-1">
                           {t.last_time && <span className="text-[11px] font-semibold px-2 py-1 rounded-md" style={{ color: "#dff5df", background: "rgba(18,84,41,.28)" }}>{t.last_time}</span>}
                           {t.unread > 0 && (
                             <div className="w-[22px] h-[22px] rounded-full flex items-center justify-center text-[10px] font-extrabold text-white"

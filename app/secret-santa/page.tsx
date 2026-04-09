@@ -1491,12 +1491,12 @@ export default function SecretSantaPage() {
         @keyframes fall{0%{transform:translateY(-10px) translateX(0);opacity:.6;}50%{transform:translateY(50vh) translateX(12px);}100%{transform:translateY(105vh) translateX(-6px);opacity:.1;}}
       `}</style>
 
-      <div className="relative z-10 max-w-180 mx-auto px-4 py-6">
+      <div className="relative z-10 mx-auto w-full max-w-7xl px-4 py-5 sm:px-6 sm:py-6">
         {/* Primary navigation back to the dashboard. */}
         <button
           type="button"
           onClick={() => router.push("/dashboard")}
-          className="inline-flex items-center gap-1.5 text-sm font-bold mb-5 px-4 py-2 rounded-lg transition"
+          className="mb-5 inline-flex w-full items-center justify-center gap-1.5 rounded-lg px-4 py-2 text-sm font-bold transition sm:w-auto"
           style={{
             color: TEXT_MUTED,
             background: "rgba(255,255,255,.72)",
@@ -1562,7 +1562,7 @@ export default function SecretSantaPage() {
             boxShadow: "0 10px 24px rgba(34,55,59,.05)",
           }}
         >
-          <div className="flex items-start justify-between gap-3 flex-wrap">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
             <div>
               <div
                 className="text-[14px] font-extrabold"
@@ -1590,7 +1590,7 @@ export default function SecretSantaPage() {
             </span>
           </div>
 
-          <div className="grid gap-3 md:grid-cols-[minmax(0,220px)_minmax(0,1fr)] mt-4">
+          <div className="mt-4 grid gap-3 lg:grid-cols-[minmax(0,220px)_minmax(0,1fr)]">
             <label className="block">
               <div
                 className="text-[11px] font-bold mb-1"
@@ -1719,7 +1719,7 @@ export default function SecretSantaPage() {
             boxShadow: "0 10px 24px rgba(34,55,59,.05)",
           }}
         >
-          <div className="flex items-start justify-between gap-3 flex-wrap">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
             <div>
               <div
                 className="text-[14px] font-extrabold"
@@ -1793,7 +1793,7 @@ export default function SecretSantaPage() {
                 }}
               >
                 <div
-                  className="flex items-center justify-between p-4"
+                  className="flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between"
                   style={{
                     background: SURFACE_HEADER_BACKGROUND,
                     borderBottom: SURFACE_HEADER_BORDER,
@@ -2028,7 +2028,7 @@ export default function SecretSantaPage() {
                               {safeItemImageUrl ? "IMG" : priorityMeta.icon}
                             </div>
                             <div className="flex-1 min-w-0">
-                              <div className="flex items-start justify-between gap-3 flex-wrap">
+                              <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                                 <div className="min-w-0">
                                   <div
                                     className="text-[15px] font-extrabold leading-tight"
@@ -2585,7 +2585,7 @@ export default function SecretSantaPage() {
                                                   }}
                                                 >
                                                   <div style={{ pointerEvents: "none" }}>
-                                                  <div className="flex items-start justify-between gap-3 flex-wrap">
+                                                  <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                                                     <div className="flex items-center gap-2 flex-wrap">
                                                       <span
                                                         className="text-[10px] font-extrabold px-2.5 py-1 rounded-full"
@@ -2992,7 +2992,7 @@ export default function SecretSantaPage() {
                                                     "0 8px 18px rgba(34,55,59,.05)",
                                                 }}
                                               >
-                                                <div className="flex items-start justify-between gap-3 flex-wrap">
+                                                <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                                                   <div>
                                                     <div
                                                       className="text-[13px] font-extrabold"
@@ -3325,7 +3325,7 @@ export default function SecretSantaPage() {
                   }}
                 >
                   <div
-                    className="flex items-center justify-between p-4"
+                    className="flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between"
                     style={{
                       background: SURFACE_HEADER_BACKGROUND,
                       borderBottom: SURFACE_HEADER_BORDER,

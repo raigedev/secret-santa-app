@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, type ChangeEvent } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { deleteAccount, getProfile, updateProfile } from "./actions";
@@ -27,6 +27,7 @@ const CURRENCIES = [
 type Profile = {
   display_name: string;
   avatar_emoji: string;
+  avatar_url: string | null;
   bio: string;
   default_budget: number;
   currency: string;
@@ -45,6 +46,7 @@ export default function ProfilePage() {
   const [email, setEmail] = useState("");
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [uploadingAvatar, setUploadingAvatar] = useState(false);
   const [deletingAccount, setDeletingAccount] = useState(false);
   const [message, setMessage] = useState("");
   const [customBudget, setCustomBudget] = useState(false);
@@ -52,6 +54,7 @@ export default function ProfilePage() {
   const [profile, setProfile] = useState<Profile>({
     display_name: "",
     avatar_emoji: "🎅",
+    avatar_url: null,
     bio: "",
     default_budget: 25,
     currency: "USD",
@@ -85,6 +88,7 @@ export default function ProfilePage() {
         setProfile({
           display_name: data.display_name || "",
           avatar_emoji: data.avatar_emoji || "🎅",
+          avatar_url: data.avatar_url || null,
           bio: data.bio || "",
           default_budget: data.default_budget || 25,
           currency: data.currency || "USD",
@@ -138,6 +142,7 @@ export default function ProfilePage() {
               setProfile({
                 display_name: data.display_name || "",
                 avatar_emoji: data.avatar_emoji || "🎅",
+                avatar_url: data.avatar_url || null,
                 bio: data.bio || "",
                 default_budget: data.default_budget || 25,
                 currency: data.currency || "USD",
@@ -167,7 +172,7 @@ export default function ProfilePage() {
     setSaving(true);
     setMessage("");
     const result = await updateProfile(
-      profile.display_name, profile.avatar_emoji, profile.bio,
+      profile.display_name, profile.avatar_emoji, profile.avatar_url, profile.bio,
       profile.default_budget, profile.currency,
       profile.notify_invites, profile.notify_draws, profile.notify_chat,
       profile.notify_wishlist, profile.notify_marketing, true
@@ -179,6 +184,58 @@ export default function ProfilePage() {
 
   const update = (key: keyof Profile, value: Profile[keyof Profile]) => {
     setProfile((prev) => ({ ...prev, [key]: value }));
+  };
+
+  const handleAvatarUpload = async (event: ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+
+    if (!file || !userId) {
+      return;
+    }
+
+    if (!["image/jpeg", "image/png", "image/webp"].includes(file.type)) {
+      setMessage("Please upload a JPG, PNG, or WebP image.");
+      event.target.value = "";
+      return;
+    }
+
+    if (file.size > 5 * 1024 * 1024) {
+      setMessage("Please keep your profile photo under 5 MB.");
+      event.target.value = "";
+      return;
+    }
+
+    setUploadingAvatar(true);
+    setMessage("");
+
+    try {
+      const extension = file.name.split(".").pop()?.toLowerCase() || "jpg";
+      const path = `${userId}/avatar.${extension}`;
+      const uploadResult = await supabase.storage
+        .from("profile-avatars")
+        .upload(path, file, {
+          cacheControl: "3600",
+          contentType: file.type,
+          upsert: true,
+        });
+
+      if (uploadResult.error) {
+        setMessage("Failed to upload your photo. Please try again.");
+        return;
+      }
+
+      const { data } = supabase.storage.from("profile-avatars").getPublicUrl(path);
+      update("avatar_url", `${data.publicUrl}?v=${Date.now()}`);
+      setMessage("Photo uploaded. Save changes to use it across the app.");
+    } finally {
+      setUploadingAvatar(false);
+      event.target.value = "";
+    }
+  };
+
+  const handleRemovePhoto = () => {
+    update("avatar_url", null);
+    setMessage("Photo removed. Save changes to use your festive avatar again.");
   };
 
   const handleDeleteAccount = async () => {
@@ -214,34 +271,82 @@ export default function ProfilePage() {
 
   return (
     <main className="min-h-screen" style={{ background: "linear-gradient(180deg,#eef4fb,#dce8f5,#e8dce0)", fontFamily: "'Nunito', sans-serif" }}>
-      <FadeIn className="max-w-[640px] mx-auto px-4 py-6">
+      <FadeIn className="mx-auto max-w-[640px] px-4 py-5 sm:px-6 sm:py-8">
 
         {/* Back */}
         <button data-fade onClick={() => router.push("/dashboard")}
-          className="inline-flex items-center gap-1.5 text-sm font-bold mb-5 px-4 py-2 rounded-lg transition"
+          className="mb-5 inline-flex w-full items-center justify-center gap-1.5 rounded-lg px-4 py-2 text-sm font-bold transition sm:w-auto"
           style={{ color: "#4a6fa5", background: "rgba(255,255,255,.6)", border: "1px solid rgba(74,111,165,.15)", fontFamily: "inherit" }}>
           ← Back to Dashboard
         </button>
 
         {/* Header */}
         <div data-fade className="text-center mb-8">
-          <h1 className="text-[28px] font-bold mb-1" style={{ fontFamily: "'Fredoka', sans-serif", color: "#1a1a1a" }}>🎅 My Profile</h1>
+          <h1 className="mb-1 text-[24px] font-bold sm:text-[28px]" style={{ fontFamily: "'Fredoka', sans-serif", color: "#1a1a1a" }}>🎅 My Profile</h1>
           <p className="text-[14px]" style={{ color: "#6b7280" }}>Manage your account and preferences</p>
         </div>
 
         {/* ═══ AVATAR SECTION ═══ */}
-        <div data-fade className="rounded-[20px] p-7 mb-4 text-center" style={{ background: "#fff", boxShadow: "0 4px 20px rgba(0,0,0,.04)", border: "1px solid rgba(0,0,0,.04)" }}>
+        <div data-fade className="mb-4 rounded-[20px] p-5 text-center sm:p-7" style={{ background: "#fff", boxShadow: "0 4px 20px rgba(0,0,0,.04)", border: "1px solid rgba(0,0,0,.04)" }}>
           <div className="relative inline-block mb-3">
-            <div className="w-[120px] h-[120px] rounded-full flex items-center justify-center text-[56px]"
+            <div className="flex h-[96px] w-[96px] items-center justify-center rounded-full text-[44px] sm:h-[120px] sm:w-[120px] sm:text-[56px]"
               style={{ background: "linear-gradient(135deg,#fef2f2,#fee2e2)", border: "4px solid #fff", boxShadow: "0 4px 16px rgba(192,57,43,.15)" }}>
-              {profile.avatar_emoji}
+              {profile.avatar_url ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  src={profile.avatar_url}
+                  alt="Profile avatar"
+                  className="h-full w-full rounded-full object-cover"
+                />
+              ) : (
+                profile.avatar_emoji
+              )}
             </div>
           </div>
           <div className="text-[13px] font-bold" style={{ color: "#1f2937" }}>{profile.display_name || "Set your name"}</div>
           <div className="text-[11px] font-semibold" style={{ color: "#9ca3af" }}>{email}</div>
 
+          <div className="mt-4 flex flex-wrap items-center justify-center gap-2">
+            <label
+              className="w-full cursor-pointer rounded-[10px] px-4 py-2 text-[13px] font-bold transition sm:w-auto"
+              style={{
+                background: "rgba(59,130,246,.08)",
+                color: "#2563eb",
+                border: "1px solid rgba(37,99,235,.15)",
+                fontFamily: "inherit",
+              }}
+            >
+              {uploadingAvatar ? "Uploading..." : "Upload photo"}
+              <input
+                type="file"
+                accept="image/png,image/jpeg,image/webp"
+                onChange={handleAvatarUpload}
+                disabled={uploadingAvatar}
+                className="hidden"
+              />
+            </label>
+            {profile.avatar_url && (
+              <button
+                type="button"
+                onClick={handleRemovePhoto}
+                className="w-full rounded-[10px] px-4 py-2 text-[13px] font-bold transition sm:w-auto"
+                style={{
+                  background: "rgba(0,0,0,.03)",
+                  color: "#6b7280",
+                  border: "1px solid rgba(0,0,0,.06)",
+                  fontFamily: "inherit",
+                }}
+              >
+                Use festive avatar
+              </button>
+            )}
+          </div>
+          <p className="mt-2 text-[11px]" style={{ color: "#9ca3af" }}>
+            Profile photos show on group cards when available. Festive avatars stay as your fallback.
+          </p>
+
           <p className="text-[13px] font-extrabold mt-5 mb-3 text-left" style={{ color: "#374151" }}>Choose a festive avatar</p>
-          <div className="grid grid-cols-8 gap-2.5">
+          <div className="grid grid-cols-4 gap-2 sm:grid-cols-6 md:grid-cols-8 md:gap-2.5">
             {PRESET_AVATARS.map((emoji) => (
               <button key={emoji} onClick={() => update("avatar_emoji", emoji)}
                 className="aspect-square rounded-full flex items-center justify-center text-[26px] transition"
@@ -260,7 +365,7 @@ export default function ProfilePage() {
         </div>
 
         {/* ═══ PERSONAL INFO ═══ */}
-        <div data-fade className="rounded-[20px] p-7 mb-4" style={{ background: "#fff", boxShadow: "0 4px 20px rgba(0,0,0,.04)", border: "1px solid rgba(0,0,0,.04)" }}>
+        <div data-fade className="mb-4 rounded-[20px] p-5 sm:p-7" style={{ background: "#fff", boxShadow: "0 4px 20px rgba(0,0,0,.04)", border: "1px solid rgba(0,0,0,.04)" }}>
           <h2 className="text-[18px] font-bold mb-5 flex items-center gap-2" style={{ fontFamily: "'Fredoka', sans-serif", color: "#1a1a1a" }}>👤 Personal Info</h2>
 
           <div className="mb-4">
@@ -293,7 +398,7 @@ export default function ProfilePage() {
         </div>
 
         {/* ═══ PREFERENCES ═══ */}
-        <div data-fade className="rounded-[20px] p-7 mb-4" style={{ background: "#fff", boxShadow: "0 4px 20px rgba(0,0,0,.04)", border: "1px solid rgba(0,0,0,.04)" }}>
+        <div data-fade className="mb-4 rounded-[20px] p-5 sm:p-7" style={{ background: "#fff", boxShadow: "0 4px 20px rgba(0,0,0,.04)", border: "1px solid rgba(0,0,0,.04)" }}>
           <h2 className="text-[18px] font-bold mb-5 flex items-center gap-2" style={{ fontFamily: "'Fredoka', sans-serif", color: "#1a1a1a" }}>⚙️ Preferences</h2>
 
           <div className="mb-5">
@@ -325,7 +430,7 @@ export default function ProfilePage() {
             {customBudget && (
               <input type="number" value={profile.default_budget} onChange={(e) => update("default_budget", parseInt(e.target.value) || 0)}
                 placeholder="Enter amount..."
-                className="mt-2 w-32 px-3 py-2 rounded-lg text-[14px] outline-none"
+                className="mt-2 w-full rounded-lg px-3 py-2 text-[14px] outline-none sm:w-32"
                 style={{ border: "2px solid #c0392b", fontFamily: "inherit", color: "#1f2937" }} />
             )}
             <p className="text-[11px] mt-1.5" style={{ color: "#9ca3af" }}>Pre-fills when you create a new group</p>
@@ -344,7 +449,7 @@ export default function ProfilePage() {
         </div>
 
         {/* ═══ NOTIFICATIONS ═══ */}
-        <div data-fade className="rounded-[20px] p-7 mb-4" style={{ background: "#fff", boxShadow: "0 4px 20px rgba(0,0,0,.04)", border: "1px solid rgba(0,0,0,.04)" }}>
+        <div data-fade className="mb-4 rounded-[20px] p-5 sm:p-7" style={{ background: "#fff", boxShadow: "0 4px 20px rgba(0,0,0,.04)", border: "1px solid rgba(0,0,0,.04)" }}>
           <h2 className="text-[18px] font-bold mb-5 flex items-center gap-2" style={{ fontFamily: "'Fredoka', sans-serif", color: "#1a1a1a" }}>🔔 Notifications</h2>
 
           {[
@@ -354,7 +459,7 @@ export default function ProfilePage() {
             { key: "notify_wishlist" as const, label: "Wishlist Updates", desc: "Get notified when your recipient updates their wishlist" },
             { key: "notify_marketing" as const, label: "Marketing Emails", desc: "Tips, new features, and seasonal reminders" },
           ].map((item, i, arr) => (
-            <div key={item.key} className="flex items-center justify-between py-3"
+            <div key={item.key} className="flex items-center justify-between gap-3 py-3"
               style={{ borderBottom: i < arr.length - 1 ? "1px solid #f3f4f6" : "none" }}>
               <div className="flex-1">
                 <div className="text-[14px] font-bold" style={{ color: "#1f2937" }}>{item.label}</div>
@@ -387,7 +492,7 @@ export default function ProfilePage() {
             </p>
           )}
           <button onClick={handleSave} disabled={saving}
-            className="px-12 py-3.5 rounded-[14px] text-[16px] font-extrabold text-white transition"
+            className="w-full rounded-[14px] px-8 py-3.5 text-[16px] font-extrabold text-white transition sm:w-auto sm:px-12"
             style={{
               background: saving ? "#9ca3af" : "linear-gradient(135deg,#c0392b,#e74c3c)",
               border: "none", cursor: saving ? "not-allowed" : "pointer",
@@ -400,17 +505,17 @@ export default function ProfilePage() {
         </div>
 
         {/* ═══ DANGER ZONE ═══ */}
-        <div data-fade className="rounded-[20px] p-7" style={{ background: "#fff", border: "1px solid rgba(220,38,38,.1)", boxShadow: "0 4px 20px rgba(0,0,0,.04)" }}>
+        <div data-fade className="rounded-[20px] p-5 sm:p-7" style={{ background: "#fff", border: "1px solid rgba(220,38,38,.1)", boxShadow: "0 4px 20px rgba(0,0,0,.04)" }}>
           <h2 className="text-[18px] font-bold mb-3" style={{ fontFamily: "'Fredoka', sans-serif", color: "#dc2626" }}>⚠️ Danger Zone</h2>
-          <div className="flex gap-2 flex-wrap">
+          <div className="flex flex-wrap gap-2">
             <button onClick={() => router.push("/reset-password")}
-              className="px-5 py-2.5 rounded-[10px] text-[13px] font-bold transition"
+              className="w-full rounded-[10px] px-5 py-2.5 text-[13px] font-bold transition sm:w-auto"
               style={{ background: "rgba(220,38,38,.06)", color: "#dc2626", border: "1px solid rgba(220,38,38,.15)", cursor: "pointer", fontFamily: "inherit" }}>
               🔑 Change Password
             </button>
             <button onClick={() => void handleDeleteAccount()}
               disabled={deletingAccount}
-              className="px-5 py-2.5 rounded-[10px] text-[13px] font-bold transition"
+              className="w-full rounded-[10px] px-5 py-2.5 text-[13px] font-bold transition sm:w-auto"
               style={{ background: "rgba(220,38,38,.06)", color: "#dc2626", border: "1px solid rgba(220,38,38,.15)", cursor: deletingAccount ? "not-allowed" : "pointer", fontFamily: "inherit", opacity: deletingAccount ? 0.7 : 1 }}>
               🗑️ Delete Account
             </button>

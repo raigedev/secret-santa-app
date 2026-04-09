@@ -92,7 +92,7 @@ function LoginPageInner() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-[url('/snowflakes.png')] bg-cover bg-center relative">
+    <div className="relative flex min-h-screen items-center justify-center bg-[url('/snowflakes.png')] bg-cover bg-center px-4 py-16 sm:px-6">
       {redirecting && (
         <div className="absolute inset-0 bg-white/90 flex flex-col items-center justify-center z-50">
           <div className="animate-spin rounded-full h-12 w-12 border-t-4 border-blue-600 mb-4" />
@@ -100,19 +100,19 @@ function LoginPageInner() {
         </div>
       )}
 
-      <div className="bg-gradient-to-br from-white via-blue-100 to-gray-200 rounded-lg shadow-xl border-4 border-white p-8 max-w-md w-full relative ring-4 ring-blue-200">
+      <div className="relative w-full max-w-md rounded-lg border-4 border-white bg-gradient-to-br from-white via-blue-100 to-gray-200 p-5 shadow-xl ring-4 ring-blue-200 sm:p-8">
         <Image
           src="/bells-holly.png"
           alt="Bells Holly"
           width={128}
           height={128}
-          className="absolute -top-12 left-1/2 transform -translate-x-1/2 w-24 animate-bounce"
+          className="absolute -top-10 left-1/2 w-20 -translate-x-1/2 transform animate-bounce sm:-top-12 sm:w-24"
         />
 
-        <h1 className="text-3xl font-bold text-center mb-2 text-blue-900 drop-shadow-lg">
+        <h1 className="mb-2 text-center text-2xl font-bold text-blue-900 drop-shadow-lg sm:text-3xl">
           GiftDraw
         </h1>
-        <p className="text-center text-gray-700 mb-6">Welcome to Secret Santa!</p>
+        <p className="mb-6 text-center text-sm text-gray-700 sm:text-base">Welcome to Secret Santa!</p>
 
         <input
           type="text"
@@ -169,11 +169,11 @@ function LoginPageInner() {
           </span>
         </button>
 
-        <div className="flex justify-between mt-6">
+        <div className="mt-6 flex flex-col gap-3 sm:flex-row">
           <button
             onClick={() => router.push(`/create-account?next=${encodeURIComponent(nextPath)}`)}
             disabled={loading || redirecting}
-            className={`w-[48%] text-center py-2 rounded-md transition font-medium shadow ${
+            className={`w-full flex-1 rounded-md py-2 text-center font-medium shadow transition ${
               loading || redirecting
                 ? "bg-gray-300 text-gray-500 cursor-not-allowed"
                 : "bg-blue-500 text-white hover:bg-blue-600"
@@ -184,7 +184,7 @@ function LoginPageInner() {
           <button
             onClick={() => router.push("/forgot-password")}
             disabled={loading || redirecting}
-            className={`w-[48%] text-center py-2 rounded-md transition font-medium shadow ${
+            className={`w-full flex-1 rounded-md py-2 text-center font-medium shadow transition ${
               loading || redirecting
                 ? "bg-gray-300 text-gray-500 cursor-not-allowed"
                 : "bg-red-500 text-white hover:bg-red-600"
@@ -199,14 +199,14 @@ function LoginPageInner() {
           alt="Gift Box"
           width={128}
           height={128}
-          className="absolute -bottom-12 left-6 w-28 animate-pulse"
+          className="absolute -bottom-10 left-4 hidden w-20 animate-pulse md:-bottom-12 md:left-6 md:block md:w-28"
         />
         <Image
           src="/santa-hat.png"
           alt="Santa Hat"
           width={128}
           height={128}
-          className="absolute -bottom-12 right-6 w-28 animate-wiggle"
+          className="absolute -bottom-10 right-4 hidden w-20 animate-wiggle md:-bottom-12 md:right-6 md:block md:w-28"
         />
       </div>
     </div>
@@ -215,9 +215,9 @@ function LoginPageInner() {
 
 function LoginFallback() {
   return (
-    <div className="min-h-screen flex items-center justify-center bg-[url('/snowflakes.png')] bg-cover bg-center relative">
-      <div className="bg-gradient-to-br from-white via-blue-100 to-gray-200 rounded-lg shadow-xl border-4 border-white p-8 max-w-md w-full relative ring-4 ring-blue-200">
-        <h1 className="text-3xl font-bold text-center mb-2 text-blue-900 drop-shadow-lg">
+    <div className="relative flex min-h-screen items-center justify-center bg-[url('/snowflakes.png')] bg-cover bg-center px-4 py-16 sm:px-6">
+      <div className="relative w-full max-w-md rounded-lg border-4 border-white bg-gradient-to-br from-white via-blue-100 to-gray-200 p-6 shadow-xl ring-4 ring-blue-200 sm:p-8">
+        <h1 className="mb-2 text-center text-2xl font-bold text-blue-900 drop-shadow-lg sm:text-3xl">
           GiftDraw
         </h1>
         <p className="text-center text-gray-700">Loading login...</p>

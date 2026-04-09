@@ -454,7 +454,7 @@ export default async function InviteLinkPage({
         }}
       >
         <div
-          className="px-6 py-5 text-white"
+          className="px-5 py-5 text-white sm:px-6"
           style={{ background: "linear-gradient(135deg,#14532d,#166534)" }}
         >
           <div className="text-[30px] font-bold" style={{ fontFamily: "'Fredoka', sans-serif" }}>
@@ -465,7 +465,7 @@ export default async function InviteLinkPage({
           </p>
         </div>
 
-        <div className="p-6">
+        <div className="p-5 sm:p-6">
           <div
             className="rounded-[20px] p-5 mb-4"
             style={{ background: "rgba(255,255,255,.78)", border: "1px solid rgba(22,101,52,.08)" }}
@@ -486,7 +486,7 @@ export default async function InviteLinkPage({
             )}
 
             {preview.isValid && (
-              <div className="grid grid-cols-2 gap-3 mt-4">
+              <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2">
                 <div
                   className="rounded-xl px-4 py-3"
                   style={{ background: "rgba(22,163,74,.06)", border: "1px solid rgba(22,163,74,.12)" }}
@@ -530,10 +530,10 @@ export default async function InviteLinkPage({
           )}
 
           {!preview.isValid ? (
-            <div className="flex flex-wrap gap-3">
+            <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap">
               <Link
                 href="/dashboard"
-                className="px-5 py-3 rounded-xl text-sm font-bold text-white"
+                className="w-full rounded-xl px-5 py-3 text-center text-sm font-bold text-white sm:w-auto"
                 style={{ background: "linear-gradient(135deg,#2563eb,#3b82f6)" }}
               >
                 Go to Dashboard
@@ -545,12 +545,12 @@ export default async function InviteLinkPage({
                 You&apos;re signed in as <strong>{user?.email || "your account"}</strong>, but
                 you still need to confirm your email before joining this group.
               </p>
-              <div className="flex flex-wrap gap-3">
+              <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap">
                 <Link
                   href={`/login?next=${authNext}&error=confirm_email&message=${encodeURIComponent(
                     getEmailVerificationMessage()
                   )}`}
-                  className="px-5 py-3 rounded-xl text-sm font-bold text-white"
+                  className="w-full rounded-xl px-5 py-3 text-center text-sm font-bold text-white sm:w-auto"
                   style={{ background: "linear-gradient(135deg,#2563eb,#3b82f6)" }}
                 >
                   Confirm Email First
@@ -558,17 +558,17 @@ export default async function InviteLinkPage({
               </div>
             </div>
           ) : preview.membershipStatus === "accepted" ? (
-            <div className="flex flex-wrap gap-3">
+            <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap">
               <Link
                 href={`/group/${preview.groupId}`}
-                className="px-5 py-3 rounded-xl text-sm font-bold text-white"
+                className="w-full rounded-xl px-5 py-3 text-center text-sm font-bold text-white sm:w-auto"
                 style={{ background: "linear-gradient(135deg,#16a34a,#22c55e)" }}
               >
                 Open Group
               </Link>
               <Link
                 href="/dashboard"
-                className="px-5 py-3 rounded-xl text-sm font-bold"
+                className="w-full rounded-xl px-5 py-3 text-center text-sm font-bold sm:w-auto"
                 style={{
                   background: "rgba(59,130,246,.08)",
                   color: "#1d4ed8",
@@ -579,10 +579,10 @@ export default async function InviteLinkPage({
               </Link>
             </div>
           ) : preview.isClosed ? (
-            <div className="flex flex-wrap gap-3">
+            <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap">
               <Link
                 href="/dashboard"
-                className="px-5 py-3 rounded-xl text-sm font-bold text-white"
+                className="w-full rounded-xl px-5 py-3 text-center text-sm font-bold text-white sm:w-auto"
                 style={{ background: "linear-gradient(135deg,#2563eb,#3b82f6)" }}
               >
                 Go to Dashboard
@@ -594,17 +594,17 @@ export default async function InviteLinkPage({
                 Log in or create an account first, then we&apos;ll bring you right back here
                 to join <strong>{preview.name}</strong>.
               </p>
-              <div className="flex flex-wrap gap-3">
+              <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap">
                 <Link
                   href={`/login?next=${authNext}`}
-                  className="px-5 py-3 rounded-xl text-sm font-bold text-white"
+                  className="w-full rounded-xl px-5 py-3 text-center text-sm font-bold text-white sm:w-auto"
                   style={{ background: "linear-gradient(135deg,#2563eb,#3b82f6)" }}
                 >
                   Log In to Join
                 </Link>
                 <Link
                   href={`/create-account?next=${authNext}`}
-                  className="px-5 py-3 rounded-xl text-sm font-bold"
+                  className="w-full rounded-xl px-5 py-3 text-center text-sm font-bold sm:w-auto"
                   style={{
                     background: "rgba(34,197,94,.08)",
                     color: "#166534",
@@ -623,7 +623,7 @@ export default async function InviteLinkPage({
               </p>
               <button
                 type="submit"
-                className="px-5 py-3 rounded-xl text-sm font-bold text-white"
+                className="w-full rounded-xl px-5 py-3 text-center text-sm font-bold text-white sm:w-auto"
                 style={{ background: "linear-gradient(135deg,#16a34a,#22c55e)" }}
               >
                 {preview.membershipStatus === "declined" ? "Join Again" : "Join Group"}

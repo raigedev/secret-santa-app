@@ -100,7 +100,7 @@ export default function CreateGroupPage() {
 
   return (
     <main
-      className="min-h-screen flex items-center justify-center relative"
+      className="relative flex min-h-screen items-center justify-center px-4 py-12 sm:px-6"
       style={{
         background: "linear-gradient(180deg,#eef4fb,#dce8f5,#e8dce0)",
         fontFamily: "'Nunito', sans-serif",
@@ -109,7 +109,7 @@ export default function CreateGroupPage() {
       <div className="absolute inset-0 bg-[url('/snowflakes.png')] opacity-20 z-0" />
 
       <div
-        className="relative z-10 w-full max-w-lg p-8 rounded-[20px] shadow-xl"
+        className="relative z-10 w-full max-w-lg rounded-[20px] p-6 shadow-xl sm:p-8"
         style={{
           background: "rgba(255,255,255,.75)",
           backdropFilter: "blur(16px)",
@@ -118,7 +118,7 @@ export default function CreateGroupPage() {
       >
         <button
           onClick={() => router.push("/dashboard")}
-          className="inline-flex items-center gap-1.5 text-sm font-bold mb-4 px-3 py-1.5 rounded-lg transition"
+          className="mb-4 inline-flex w-full items-center justify-center gap-1.5 rounded-lg px-3 py-2 text-sm font-bold transition sm:w-auto"
           style={{
             color: "#4a6fa5",
             background: "rgba(255,255,255,.6)",
@@ -130,7 +130,7 @@ export default function CreateGroupPage() {
         </button>
 
         <h1
-          className="text-[26px] font-bold text-center mb-6"
+          className="mb-6 text-center text-[22px] font-bold leading-tight sm:text-[26px]"
           style={{ fontFamily: "'Fredoka', sans-serif", color: "#1a6b2a" }}
         >
           Create Your Secret Santa Group
@@ -261,7 +261,7 @@ export default function CreateGroupPage() {
               </button>
             </div>
             {customBudget && (
-              <div className="flex items-center gap-2 mt-2">
+              <div className="mt-2 flex flex-col gap-2 sm:flex-row sm:items-center">
                 <span className="text-[14px] font-bold" style={{ color: "#c0392b" }}>
                   {currencySymbol}
                 </span>
@@ -272,7 +272,7 @@ export default function CreateGroupPage() {
                   min={0}
                   max={100000}
                   placeholder="Enter amount..."
-                  className="w-32 px-3 py-2 rounded-lg text-[14px] outline-none"
+                  className="w-full rounded-lg px-3 py-2 text-[14px] outline-none sm:w-32"
                   style={{
                     border: "2px solid #c0392b",
                     fontFamily: "inherit",

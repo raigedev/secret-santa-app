@@ -57,11 +57,11 @@ function CreateAccountPageInner() {
   };
 
   return (
-    <main className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-b from-sky-100 via-white to-sky-200 relative">
+    <main className="relative flex min-h-screen flex-col items-center justify-center bg-gradient-to-b from-sky-100 via-white to-sky-200 px-4 py-12 sm:px-6">
       <div className="absolute inset-0 bg-[url('/snowflakes.png')] opacity-20 z-0" />
 
-      <div className="relative z-10 max-w-md w-full p-8 rounded-xl shadow-xl bg-white/70 backdrop-blur-md">
-        <h1 className="text-3xl font-bold mb-6 text-center text-yellow-700">
+      <div className="relative z-10 w-full max-w-md rounded-xl bg-white/70 p-5 shadow-xl backdrop-blur-md sm:p-8">
+        <h1 className="mb-6 text-center text-2xl font-bold text-yellow-700 sm:text-3xl">
           🎄 Create Your Account 🎁
         </h1>
 
@@ -99,7 +99,7 @@ function CreateAccountPageInner() {
 
             <button
               onClick={handleSignup}
-              className="w-full py-3 rounded-lg text-white font-bold bg-gradient-to-r from-yellow-400 to-yellow-600 shadow-lg hover:scale-105 transition"
+              className="w-full rounded-lg bg-gradient-to-r from-yellow-400 to-yellow-600 py-3 font-bold text-white shadow-lg transition hover:scale-105"
             >
               🎉 Sign Up
             </button>
@@ -115,7 +115,7 @@ function CreateAccountPageInner() {
             </p>
           </div>
         ) : (
-          <div className="text-center space-y-4">
+          <div className="space-y-4 text-center">
             <p className="text-green-700 font-semibold">✅ Account created successfully!</p>
             <p className="text-gray-700">
               Please check your email inbox for a confirmation link to activate your account.
@@ -135,10 +135,10 @@ function CreateAccountPageInner() {
 
 function CreateAccountFallback() {
   return (
-    <main className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-b from-sky-100 via-white to-sky-200 relative">
+    <main className="relative flex min-h-screen flex-col items-center justify-center bg-gradient-to-b from-sky-100 via-white to-sky-200 px-4 py-12 sm:px-6">
       <div className="absolute inset-0 bg-[url('/snowflakes.png')] opacity-20 z-0" />
-      <div className="relative z-10 max-w-md w-full p-8 rounded-xl shadow-xl bg-white/70 backdrop-blur-md">
-        <h1 className="text-3xl font-bold mb-6 text-center text-yellow-700">
+      <div className="relative z-10 w-full max-w-md rounded-xl bg-white/70 p-6 shadow-xl backdrop-blur-md sm:p-8">
+        <h1 className="mb-6 text-center text-2xl font-bold text-yellow-700 sm:text-3xl">
           🎄 Create Your Account 🎁
         </h1>
         <p className="text-center text-gray-700">Loading sign up...</p>

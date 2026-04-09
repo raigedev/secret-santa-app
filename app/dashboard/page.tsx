@@ -2027,7 +2027,7 @@ export default function DashboardPage() {
           </section>
         )}
 
-        <section data-fade className="mb-8 grid gap-3 xl:grid-cols-3">
+        <section data-fade className="mb-8 grid gap-3 lg:grid-cols-3">
           <ActionCard
             accent="rose"
             subtitle={hasAssignments ? "Your draw is ready" : "Waiting for draw"}
@@ -2096,7 +2096,7 @@ export default function DashboardPage() {
           />
         </section>
 
-        <section data-fade className="mb-0 grid gap-2 xl:grid-cols-[minmax(0,1.02fr)_400px]">
+        <section data-fade className="mb-0 grid gap-2 lg:grid-cols-[minmax(0,1fr)_minmax(300px,360px)]">
           <div className="space-y-2">
             <div className={`${dashboardCardShellClass} self-start`}>
             <div className={dashboardInnerPanelClass}>
@@ -2425,7 +2425,7 @@ export default function DashboardPage() {
                     );
                   })}
 
-                  <div className="grid grid-cols-2 gap-3">
+                  <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                     {notificationPreviewItems.slice(1, 3).map((item) => {
                       const theme = getDashboardToneTheme(item.tone, isDarkTheme);
 

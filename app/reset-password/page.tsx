@@ -36,16 +36,16 @@ export default function ResetPasswordPage() {
   };
 
   return (
-    <main className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-br from-blue-100 to-white px-4">
-      <div className="bg-white shadow-lg rounded-lg p-6 w-full max-w-md text-center">
-        <h1 className="text-2xl font-bold mb-4 text-red-600 flex items-center justify-center">
+    <main className="flex min-h-screen flex-col items-center justify-center bg-gradient-to-br from-blue-100 to-white px-4 py-12 sm:px-6">
+      <div className="w-full max-w-md rounded-lg bg-white p-5 text-center shadow-lg sm:p-6">
+        <h1 className="mb-4 flex items-center justify-center text-2xl font-bold text-red-600 sm:text-[28px]">
           Reset Password
         </h1>
 
         <input
           type="password"
           placeholder="Enter new password"
-          className="border-2 border-red-600 bg-white text-black p-3 rounded w-full mb-3 focus:outline-none focus:ring-2 focus:ring-red-500 shadow-sm"
+          className="mb-3 w-full rounded border-2 border-red-600 bg-white p-3 text-black shadow-sm focus:outline-none focus:ring-2 focus:ring-red-500"
           value={newPassword}
           onChange={(event) => setNewPassword(event.target.value)}
         />
@@ -56,7 +56,7 @@ export default function ResetPasswordPage() {
 
         <button
           onClick={handleUpdatePassword}
-          className="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600 transition w-full"
+          className="w-full rounded bg-red-500 px-4 py-2 text-white transition hover:bg-red-600"
         >
           Update Password
         </button>

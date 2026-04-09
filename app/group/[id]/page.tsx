@@ -1270,10 +1270,10 @@ export default function GroupDetailsPage() {
         </Modal>
       )}
 
-      <FadeIn className="relative z-10 max-w-[760px] mx-auto px-4 py-6">
+      <FadeIn className="relative z-10 mx-auto max-w-[760px] px-4 py-5 sm:px-6 sm:py-6">
         <button
           onClick={() => router.push("/dashboard")}
-          className="inline-flex items-center gap-1.5 text-sm font-bold mb-5 px-4 py-2 rounded-lg transition"
+          className="mb-5 inline-flex w-full items-center justify-center gap-1.5 rounded-lg px-4 py-2 text-sm font-bold transition sm:w-auto"
           style={{
             color: "#4a6fa5",
             background: "rgba(255,255,255,.72)",
@@ -1344,7 +1344,7 @@ export default function GroupDetailsPage() {
               </div>
             )}
 
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-5">
+            <div className="mb-5 grid grid-cols-1 gap-3 sm:grid-cols-2 md:grid-cols-4">
               {[
                 { icon: "📅", value: groupData.event_date, label: "Event Date" },
                 {
@@ -1435,7 +1435,7 @@ export default function GroupDetailsPage() {
               </div>
             )}
 
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-5">
+            <div className="mb-5 grid grid-cols-1 gap-3 sm:grid-cols-2 md:grid-cols-4">
               {[
                 { n: acceptedMembers.length, l: "Accepted", c: "#15803d", b: "#22c55e" },
                 { n: pendingMembers.length, l: "Pending", c: "#b45309", b: "#f59e0b" },

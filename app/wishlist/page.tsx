@@ -368,14 +368,14 @@ export default function WishlistPage() {
           <button
             type="button"
             onClick={() => router.push("/dashboard")}
-            className="rounded-[14px] border border-slate-300/70 bg-white/85 px-5 py-3 text-[13px] font-extrabold text-slate-600 shadow-[0_10px_20px_rgba(34,55,59,0.06)] transition"
+            className="w-full rounded-[14px] border border-slate-300/70 bg-white/85 px-5 py-3 text-[13px] font-extrabold text-slate-600 shadow-[0_10px_20px_rgba(34,55,59,0.06)] transition sm:w-auto"
           >
             ← Back to Dashboard
           </button>
           <button
             type="button"
             onClick={() => router.push("/secret-santa")}
-            className="rounded-[14px] bg-[linear-gradient(135deg,#5e9479,#2f6b56)] px-5 py-3 text-[13px] font-extrabold text-white shadow-[0_10px_22px_rgba(47,107,86,0.16)] transition"
+            className="w-full rounded-[14px] bg-[linear-gradient(135deg,#5e9479,#2f6b56)] px-5 py-3 text-[13px] font-extrabold text-white shadow-[0_10px_22px_rgba(47,107,86,0.16)] transition sm:w-auto"
           >
             Open Gift Planning
           </button>
@@ -383,8 +383,8 @@ export default function WishlistPage() {
 
         <div className="mb-6 text-center">
           <div className="text-[42px]">📝</div>
-          <h1 className="text-[42px] font-black tracking-[-0.03em] text-[#9f4e42]">My Wishlist</h1>
-          <p className="mx-auto mt-3 max-w-2xl text-[16px] leading-7 text-slate-600">
+          <h1 className="text-[34px] font-black tracking-[-0.03em] text-[#9f4e42] sm:text-[42px]">My Wishlist</h1>
+          <p className="mx-auto mt-3 max-w-2xl text-[15px] leading-7 text-slate-600 sm:text-[16px]">
             This page is for <strong>your own wishlist</strong>. It helps your Secret Santa know
             what you want, while <strong>/secret-santa</strong> stays focused on shopping for your
             assigned recipient.

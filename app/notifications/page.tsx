@@ -409,10 +409,10 @@ export default function NotificationsPage() {
         fontFamily: "'Nunito', sans-serif",
       }}
     >
-      <FadeIn className="mx-auto max-w-[1040px] px-4 py-6">
+      <FadeIn className="mx-auto max-w-[1040px] px-4 py-5 sm:px-6 sm:py-6">
         <button
           onClick={() => router.push("/dashboard")}
-          className="mb-5 inline-flex items-center gap-1.5 rounded-lg px-4 py-2 text-sm font-bold transition"
+          className="mb-5 inline-flex w-full items-center justify-center gap-1.5 rounded-lg px-4 py-2 text-sm font-bold transition sm:w-auto"
           style={{
             color: "#4a6fa5",
             background: "rgba(255,255,255,.68)",
@@ -498,7 +498,7 @@ export default function NotificationsPage() {
                   type="button"
                   onClick={handleSavePreferences}
                   disabled={savingPreferences}
-                  className="rounded-full bg-[linear-gradient(135deg,#2563eb,#1d4ed8)] px-5 py-2.5 text-sm font-bold text-white shadow-[0_14px_35px_rgba(37,99,235,0.22)] transition"
+                  className="w-full rounded-full bg-[linear-gradient(135deg,#2563eb,#1d4ed8)] px-5 py-2.5 text-sm font-bold text-white shadow-[0_14px_35px_rgba(37,99,235,0.22)] transition sm:w-auto"
                   style={{ cursor: savingPreferences ? "not-allowed" : "pointer", opacity: savingPreferences ? 0.7 : 1 }}
                 >
                   {savingPreferences ? "Saving..." : "Save reminder settings"}
