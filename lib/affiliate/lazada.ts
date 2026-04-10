@@ -113,7 +113,10 @@ export type LazadaAffiliateAttributionContext = {
   catalogSource?: string | null;
   fitLabel?: string | null;
   groupId?: string | null;
+  productId?: string | null;
   searchQuery: string;
+  selectedQuery?: string | null;
+  skuId?: string | null;
   trackingLabel?: string | null;
   wishlistItemId?: string | null;
 };
@@ -259,7 +262,10 @@ export function buildLazadaClickToken(context: LazadaAffiliateAttributionContext
         catalogSource: context.catalogSource || "",
         fitLabel: context.fitLabel || "",
         groupId: context.groupId || "",
+        productId: context.productId || "",
         searchQuery: context.searchQuery,
+        selectedQuery: context.selectedQuery || "",
+        skuId: context.skuId || "",
         trackingLabel: context.trackingLabel || "",
         wishlistItemId: context.wishlistItemId || "",
       })

@@ -38,6 +38,7 @@ export async function GET(request: NextRequest) {
     fitLabel: "Wishlist item",
     groupId,
     searchQuery: itemName,
+    selectedQuery: itemName,
     trackingLabel: "Partner link",
     wishlistItemId,
   });
