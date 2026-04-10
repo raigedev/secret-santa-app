@@ -35,6 +35,7 @@ export type WishlistSuggestionOption = {
   fitLabel: string;
   priceLabel: string | null;
   disclosure: string;
+  source: "ai" | "base";
 };
 
 export type WishlistMerchantLink = {
@@ -89,7 +90,7 @@ type SuggestionTemplate = {
   typicalMax: number | null;
 };
 
-type SuggestionInput = {
+export type SuggestionInput = {
   groupId: string;
   wishlistItemId: string;
   itemName: string;
@@ -99,6 +100,12 @@ type SuggestionInput = {
   preferredPriceMax: number | null;
   groupBudget: number | null;
   currency: string | null;
+};
+
+export type AiWishlistSuggestionDraft = {
+  title: string;
+  subtitle: string;
+  searchQuery: string;
 };
 
 const MERCHANT_LABELS: Record<SuggestionMerchant, string> = {
@@ -334,6 +341,42 @@ function slugify(value: string): string {
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/^-+|-+$/g, "");
+}
+
+function normalizeSuggestionQuery(value: string): string {
+  return value.trim().toLowerCase().replace(/\s+/g, " ");
+}
+
+function createSuggestionOption(
+  input: SuggestionInput,
+  template: SuggestionTemplate,
+  source: "ai" | "base",
+  idPrefix = ""
+): WishlistSuggestionOption {
+  return {
+    id: slugify(`${idPrefix}${template.searchQuery}`),
+    title: template.title,
+    subtitle: template.subtitle,
+    searchQuery: template.searchQuery,
+    fitLabel: getBudgetFitLabel(
+      template,
+      input.preferredPriceMin,
+      input.preferredPriceMax,
+      input.groupBudget
+    ),
+    priceLabel: getSuggestionPriceLabel(
+      template,
+      input.preferredPriceMin,
+      input.preferredPriceMax,
+      input.groupBudget,
+      input.currency
+    ),
+    disclosure:
+      source === "ai"
+        ? "AI-assisted shopping angle • Partner link"
+        : AFFILIATE_DISCLOSURE,
+    source,
+  };
 }
 
 function getMerchantSearchUrl(
@@ -940,26 +983,61 @@ export function buildWishlistSuggestionOptions(
     ].filter((template) => template.searchQuery.trim().length > 0)
   ).slice(0, 4);
 
-  return templates.map((template) => ({
-    id: slugify(template.searchQuery),
-    title: template.title,
-    subtitle: template.subtitle,
-    searchQuery: template.searchQuery,
-    fitLabel: getBudgetFitLabel(
-      template,
-      input.preferredPriceMin,
-      input.preferredPriceMax,
-      input.groupBudget
-    ),
-    priceLabel: getSuggestionPriceLabel(
-      template,
-      input.preferredPriceMin,
-      input.preferredPriceMax,
-      input.groupBudget,
-      input.currency
-    ),
-    disclosure: AFFILIATE_DISCLOSURE,
-  }));
+  return templates.map((template) => createSuggestionOption(input, template, "base"));
+}
+
+export function buildAiWishlistSuggestionOptions(
+  input: SuggestionInput,
+  drafts: AiWishlistSuggestionDraft[]
+): WishlistSuggestionOption[] {
+  return dedupeTemplates(
+    drafts
+      .map((draft) => ({
+        title: draft.title.trim(),
+        subtitle: draft.subtitle.trim(),
+        searchQuery: draft.searchQuery.trim(),
+        typicalMin: null,
+        typicalMax: null,
+      }))
+      .filter(
+        (draft) =>
+          draft.title.length > 0 &&
+          draft.subtitle.length > 0 &&
+          draft.searchQuery.length > 0
+      )
+  )
+    .slice(0, 3)
+    .map((template) => createSuggestionOption(input, template, "ai", "ai-"));
+}
+
+export function mergeWishlistSuggestionOptions(
+  baseOptions: WishlistSuggestionOption[],
+  aiOptions: WishlistSuggestionOption[],
+  selectedSuggestionId = ""
+): WishlistSuggestionOption[] {
+  const exactBaseOption = baseOptions[0] || null;
+  const selectedOption =
+    [...baseOptions, ...aiOptions].find((option) => option.id === selectedSuggestionId) || null;
+  const orderedOptions = [
+    exactBaseOption,
+    selectedOption && selectedOption.id !== exactBaseOption?.id ? selectedOption : null,
+    ...aiOptions,
+    ...baseOptions,
+  ].filter((option): option is WishlistSuggestionOption => Boolean(option));
+  const seenQueries = new Set<string>();
+  const seenIds = new Set<string>();
+
+  return orderedOptions.filter((option) => {
+    const normalizedQuery = normalizeSuggestionQuery(option.searchQuery);
+
+    if (seenIds.has(option.id) || seenQueries.has(normalizedQuery)) {
+      return false;
+    }
+
+    seenIds.add(option.id);
+    seenQueries.add(normalizedQuery);
+    return true;
+  }).slice(0, 4);
 }
 
 export function buildWishlistMerchantLinks(

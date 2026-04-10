@@ -8,16 +8,19 @@ import { SecretSantaSkeleton } from "@/app/components/PageSkeleton";
 import { isLazadaProductPageUrl } from "@/lib/affiliate/lazada-url";
 import { formatPriceRange } from "@/lib/wishlist/pricing";
 import {
+  type SuggestionInput,
   buildNearbyStoreQueries,
   buildNearbyStoreLinks,
   buildWishlistFeaturedLazadaProducts,
   buildWishlistMerchantLinks,
   buildWishlistSuggestionOptions,
+  mergeWishlistSuggestionOptions,
   detectShoppingRegionFromLocale,
   SHOPPING_REGION_OPTIONS,
   type NearbyStoreQuery,
   type ShoppingRegion,
   type WishlistFeaturedProductCard,
+  type WishlistSuggestionOption,
 } from "@/lib/wishlist/suggestions";
 
 type WishlistItem = {
@@ -91,6 +94,13 @@ type NearbyStoreState = {
 type LazadaFeaturedProductsState = {
   loading: boolean;
   products: WishlistFeaturedProductCard[];
+};
+
+type AiSuggestionState = {
+  loaded: boolean;
+  loading: boolean;
+  options: WishlistSuggestionOption[];
+  usedAi: boolean;
 };
 
 type NearbyCoordinates = {
@@ -228,6 +238,23 @@ function createLazadaMatchRequestKey(
   region: ShoppingRegion
 ): string {
   return `${itemId}:${suggestionId}:${region}`;
+}
+
+function buildRecipientSuggestionInput(
+  assignment: RecipientData,
+  item: WishlistItem
+): SuggestionInput {
+  return {
+    groupId: assignment.group_id,
+    wishlistItemId: item.id,
+    itemName: item.item_name,
+    itemCategory: item.item_category,
+    itemNote: item.item_note,
+    preferredPriceMin: null,
+    preferredPriceMax: null,
+    groupBudget: assignment.group_budget,
+    currency: assignment.group_currency,
+  };
 }
 
 // Normalize text before it is submitted so the UI and server action receive cleaner input.
@@ -741,6 +768,9 @@ export default function SecretSantaPage() {
   const [selectedRecipientSuggestionByItem, setSelectedRecipientSuggestionByItem] = useState<
     Record<string, string>
   >({});
+  const [aiSuggestionStateByItem, setAiSuggestionStateByItem] = useState<
+    Record<string, AiSuggestionState>
+  >({});
   const [matchedLazadaProductsByKey, setMatchedLazadaProductsByKey] = useState<
     Record<string, LazadaFeaturedProductsState>
   >({});
@@ -883,6 +913,107 @@ export default function SecretSantaPage() {
   }, [assignments]);
 
   useEffect(() => {
+    if (shoppingRegion !== "PH" || !expandedRecipientItemId) {
+      return;
+    }
+
+    let targetAssignment: RecipientData | null = null;
+    let targetItem: WishlistItem | null = null;
+
+    for (const assignment of assignments) {
+      const matchingItem =
+        assignment.receiver_wishlist.find((wishlistItem) => wishlistItem.id === expandedRecipientItemId) ||
+        null;
+
+      if (matchingItem) {
+        targetAssignment = assignment;
+        targetItem = matchingItem;
+        break;
+      }
+    }
+
+    if (!targetAssignment || !targetItem) {
+      return;
+    }
+
+    const existingState = aiSuggestionStateByItem[targetItem.id];
+
+    if (existingState?.loading || existingState?.loaded) {
+      return;
+    }
+
+    let cancelled = false;
+
+    setAiSuggestionStateByItem((current) => ({
+      ...current,
+      [targetItem.id]: {
+        loaded: false,
+        loading: true,
+        options: current[targetItem.id]?.options || [],
+        usedAi: false,
+      },
+    }));
+
+    const loadAiSuggestions = async () => {
+      const suggestionInput = buildRecipientSuggestionInput(targetAssignment!, targetItem!);
+
+      try {
+        const response = await fetch("/api/ai/wishlist-suggestions", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            ...suggestionInput,
+            region: shoppingRegion,
+          }),
+        });
+
+        const payload = response.ok
+          ? ((await response.json()) as {
+              suggestions?: WishlistSuggestionOption[];
+              usedAi?: boolean;
+            })
+          : { suggestions: [], usedAi: false };
+
+        if (cancelled) {
+          return;
+        }
+
+        setAiSuggestionStateByItem((current) => ({
+          ...current,
+          [targetItem.id]: {
+            loaded: true,
+            loading: false,
+            options: Array.isArray(payload.suggestions) ? payload.suggestions : [],
+            usedAi: Boolean(payload.usedAi),
+          },
+        }));
+      } catch {
+        if (cancelled) {
+          return;
+        }
+
+        setAiSuggestionStateByItem((current) => ({
+          ...current,
+          [targetItem.id]: {
+            loaded: true,
+            loading: false,
+            options: [],
+            usedAi: false,
+          },
+        }));
+      }
+    };
+
+    void loadAiSuggestions();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [aiSuggestionStateByItem, assignments, expandedRecipientItemId, shoppingRegion]);
+
+  useEffect(() => {
     if (shoppingRegion !== "PH") {
       return;
     }
@@ -900,17 +1031,12 @@ export default function SecretSantaPage() {
           continue;
         }
 
-        const suggestionOptions = buildWishlistSuggestionOptions({
-          groupId: assignment.group_id,
-          wishlistItemId: item.id,
-          itemName: item.item_name,
-          itemCategory: item.item_category,
-          itemNote: item.item_note,
-          preferredPriceMin: null,
-          preferredPriceMax: null,
-          groupBudget: assignment.group_budget,
-          currency: assignment.group_currency,
-        });
+        const suggestionInput = buildRecipientSuggestionInput(assignment, item);
+        const suggestionOptions = mergeWishlistSuggestionOptions(
+          buildWishlistSuggestionOptions(suggestionInput),
+          aiSuggestionStateByItem[item.id]?.options || [],
+          selectedSuggestionId
+        );
         const selectedSuggestion =
           suggestionOptions.find((suggestion) => suggestion.id === selectedSuggestionId) || null;
 
@@ -1024,7 +1150,7 @@ export default function SecretSantaPage() {
     return () => {
       cancelled = true;
     };
-  }, [assignments, selectedRecipientSuggestionByItem, shoppingRegion]);
+  }, [aiSuggestionStateByItem, assignments, selectedRecipientSuggestionByItem, shoppingRegion]);
 
   useEffect(() => {
     let isMounted = true;
@@ -1879,22 +2005,18 @@ export default function SecretSantaPage() {
                         ? getWishlistCategoryStyle(item.item_category)
                         : null;
                       const priorityMeta = getWishlistPriorityMeta(item.priority);
-                      const suggestionOptions = buildWishlistSuggestionOptions({
-                        groupId: assignment.group_id,
-                        wishlistItemId: item.id,
-                        itemName: item.item_name,
-                        itemCategory: item.item_category,
-                        itemNote: item.item_note,
-                        preferredPriceMin: null,
-                        preferredPriceMax: null,
-                        groupBudget: assignment.group_budget,
-                        currency: assignment.group_currency,
-                      });
+                      const selectedSuggestionId =
+                        selectedRecipientSuggestionByItem[item.id] || "";
+                      const suggestionInput = buildRecipientSuggestionInput(assignment, item);
+                      const aiSuggestionState = aiSuggestionStateByItem[item.id] || null;
+                      const suggestionOptions = mergeWishlistSuggestionOptions(
+                        buildWishlistSuggestionOptions(suggestionInput),
+                        aiSuggestionState?.options || [],
+                        selectedSuggestionId
+                      );
                       // Keep the merchant step hidden until the giver explicitly
                       // picks a direction for this wishlist item. That makes the
                       // flow feel more guided for broad asks like "tablet".
-                      const selectedSuggestionId =
-                        selectedRecipientSuggestionByItem[item.id] || "";
                       const selectedSuggestion =
                         suggestionOptions.find(
                           (suggestion) => suggestion.id === selectedSuggestionId
@@ -2126,30 +2248,56 @@ export default function SecretSantaPage() {
                             >
                               <div className="flex items-start justify-between gap-3 mb-3 flex-wrap">
                                 <div>
-                                  <div
-                                    className="text-[12px] font-extrabold"
-                                    style={{ color: HOLIDAY_GREEN }}
+                                      <div
+                                        className="text-[12px] font-extrabold"
+                                        style={{ color: HOLIDAY_GREEN }}
+                                      >
+                                        Pick an angle first
+                                      </div>
+                                      <div
+                                        className="text-[11px] mt-0.5"
+                                        style={{ color: TEXT_MUTED }}
+                                      >
+                                        Choose the version of this gift you want to explore, then
+                                        we&apos;ll show the best online and nearby shopping paths
+                                        for that option.
+                                      </div>
+                                    </div>
+                                <div className="flex items-center gap-2 flex-wrap">
+                                  {shoppingRegion === "PH" && aiSuggestionState?.loading && (
+                                    <span
+                                      className="text-[10px] font-extrabold px-2 py-1 rounded-lg"
+                                      style={{
+                                        background: "rgba(88,116,142,.1)",
+                                        color: HOLIDAY_BLUE,
+                                      }}
+                                    >
+                                      Gemini is shaping ideas...
+                                    </span>
+                                  )}
+                                  {shoppingRegion === "PH" &&
+                                    !aiSuggestionState?.loading &&
+                                    aiSuggestionState?.usedAi && (
+                                      <span
+                                        className="text-[10px] font-extrabold px-2 py-1 rounded-lg"
+                                        style={{
+                                          background: "rgba(169,135,61,.12)",
+                                          color: HOLIDAY_GOLD,
+                                        }}
+                                      >
+                                        Gemini-assisted
+                                      </span>
+                                    )}
+                                  <span
+                                    className="text-[10px] font-extrabold px-2 py-1 rounded-lg"
+                                    style={{
+                                      background: "rgba(255,255,255,.78)",
+                                      color: HOLIDAY_GREEN,
+                                    }}
                                   >
-                                    Pick an angle first
-                                  </div>
-                                  <div
-                                    className="text-[11px] mt-0.5"
-                                    style={{ color: TEXT_MUTED }}
-                                  >
-                                    Choose the version of this gift you want to explore, then
-                                    we&apos;ll show the best online and nearby shopping paths
-                                    for that option.
-                                  </div>
+                                    Step 1 of 2
+                                  </span>
                                 </div>
-                                <span
-                                  className="text-[10px] font-extrabold px-2 py-1 rounded-lg"
-                                  style={{
-                                    background: "rgba(255,255,255,.78)",
-                                    color: HOLIDAY_GREEN,
-                                  }}
-                                >
-                                  Step 1 of 2
-                                </span>
                               </div>
 
                               <div className="grid gap-2 sm:grid-cols-2">
@@ -2188,13 +2336,23 @@ export default function SecretSantaPage() {
                                       <span
                                         className="text-[10px] font-extrabold px-2 py-1 rounded-full"
                                         style={{
-                                          color: isSelected ? HOLIDAY_GREEN : TEXT_MUTED,
+                                          color: isSelected
+                                            ? HOLIDAY_GREEN
+                                            : suggestion.source === "ai"
+                                              ? HOLIDAY_BLUE
+                                              : TEXT_MUTED,
                                           background: isSelected
                                             ? "rgba(47,107,86,.12)"
-                                            : "rgba(96,117,122,.08)",
+                                            : suggestion.source === "ai"
+                                              ? "rgba(88,116,142,.08)"
+                                              : "rgba(96,117,122,.08)",
                                         }}
                                       >
-                                        {isSelected ? "Selected" : suggestion.fitLabel}
+                                        {isSelected
+                                          ? "Selected"
+                                          : suggestion.source === "ai"
+                                            ? "AI pick"
+                                            : suggestion.fitLabel}
                                       </span>
                                       </div>
                                       <div
