@@ -10,7 +10,7 @@ import { createClient } from "@/lib/supabase/server";
 const ALLOWED_CURRENCIES = new Set(["USD", "EUR", "GBP", "PHP", "JPY", "AUD", "CAD"]);
 
 function sanitize(input: string, max: number): string {
-  return input.replace(/<[^>]*>/g, "").replace(/[<>]/g, "").trim().slice(0, max);
+  return input.replace(/[<>]/g, "").trim().slice(0, max);
 }
 
 function normalizeAvatarUrl(userId: string, avatarUrl: string | null): string | null {
