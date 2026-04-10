@@ -1524,47 +1524,6 @@ export default function SecretSantaPage() {
           </div>
         </div>
 
-        <div
-          className="rounded-[18px] p-4 mb-4"
-          style={{
-            background: "rgba(248,250,248,.74)",
-            border: "1px solid rgba(96,117,122,.12)",
-            boxShadow: "0 10px 24px rgba(34,55,59,.05)",
-          }}
-        >
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-            <div>
-              <div
-                className="text-[14px] font-extrabold"
-                style={{ color: HOLIDAY_RED }}
-              >
-                Your own wishlist moved out of this page
-              </div>
-              <div
-                className="text-[11px] mt-1 leading-relaxed"
-                style={{ color: TEXT_MUTED }}
-              >
-                This page now stays focused on shopping for your assigned recipients.
-                Update the items your own Secret Santa sees from the dedicated wishlist page.
-              </div>
-            </div>
-            <button
-              type="button"
-              onClick={() => router.push("/wishlist")}
-              className="px-4 py-2 rounded-xl text-[11px] font-extrabold transition"
-              style={{
-                background: "rgba(47,107,86,.1)",
-                color: HOLIDAY_GREEN,
-                border: "1px solid rgba(47,107,86,.16)",
-                fontFamily: "inherit",
-                cursor: "pointer",
-              }}
-            >
-              Open My Wishlist
-            </button>
-          </div>
-        </div>
-
         {/* Recipient cards show assigned recipients, their wishlist items, and gift confirmation state. */}
         {assignments.length === 0 ? (
           <div
