@@ -68,20 +68,6 @@ export type WishlistFeaturedProductCard = {
   trackingLabel: string;
 };
 
-export type NearbyStoreLink = {
-  id: string;
-  title: string;
-  subtitle: string;
-  href: string;
-};
-
-export type NearbyStoreQuery = {
-  id: string;
-  title: string;
-  subtitle: string;
-  query: string;
-};
-
 type SuggestionTemplate = {
   title: string;
   subtitle: string;
@@ -866,98 +852,6 @@ function getSuggestionPriceLabel(
   return typicalLabel ? `Typical spend: ${typicalLabel}` : null;
 }
 
-function getNearbySearchBase(itemName: string, itemCategory: string, searchQuery: string): string[] {
-  const haystack = `${itemName} ${itemCategory} ${searchQuery}`.toLowerCase();
-
-  if (/(tablet|ipad|android tab|\btab\b|galaxy tab|redmi pad|xiaomi pad|mi pad|matepad|lenovo tab|laptop|gadget|tech|phone|mobile|earbuds|headphone|camera)/.test(haystack)) {
-    return ["electronics store", "computer shop", "gadget store"];
-  }
-
-  if (/(earbuds|headset|headphones|speaker|microphone|audio|soundbar)/.test(haystack)) {
-    return ["audio store", "electronics store", "gadget store"];
-  }
-
-  if (/(camera|drone|tripod|lens|gimbal|action cam)/.test(haystack)) {
-    return ["camera store", "electronics store", "photography shop"];
-  }
-
-  if (/(keyboard|mouse|monitor|ssd|laptop|printer|router|webcam|storage|desktop|computer)/.test(haystack)) {
-    return ["computer shop", "electronics store", "office tech store"];
-  }
-
-  if (/(tool|hardware|diy|drill|wrench|screwdriver|hammer|repair kit)/.test(haystack)) {
-    return ["hardware store", "tool shop", "home improvement store"];
-  }
-
-  if (/(book|novel|manga|comic|journal|planner|stationery|art supplies)/.test(haystack)) {
-    return ["bookstore", "school and office supplies", "mall bookstore"];
-  }
-
-  if (/(baby|newborn|infant|toddler|feeding|stroller|diaper|nursery)/.test(haystack)) {
-    return ["baby store", "department store", "mother and baby shop"];
-  }
-
-  if (/(pet|dog|cat|feline|canine|litter|leash|scratch|kennel|aquarium)/.test(haystack)) {
-    return ["pet store", "veterinary supply store", "mall pet shop"];
-  }
-
-  if (/(bag|handbag|purse|wallet|luggage|backpack)/.test(haystack)) {
-    return ["bag store", "fashion accessories shop", "department store"];
-  }
-
-  if (/(shirt|hoodie|dress|clothes|clothing|jacket|shoes|fashion|sandals|slippers|accessories|jewelry)/.test(haystack)) {
-    return ["clothing store", "department store", "mall fashion shop"];
-  }
-
-  if (/(beauty|makeup|skincare|perfume)/.test(haystack)) {
-    return ["beauty store", "cosmetics shop", "department store"];
-  }
-
-  if (/(game|gaming|console|board game|toy|lego|card game)/.test(haystack)) {
-    return ["gaming store", "toy store", "hobby shop"];
-  }
-
-  if (/(collectible|figure|anime|merch|funko|plush|trading card|model kit|hobby)/.test(haystack)) {
-    return ["collectibles store", "hobby shop", "toy store"];
-  }
-
-  if (/(home|decor|kitchen|cookware|bedding|blanket|pillow|lamp|organizer|mug|candle)/.test(haystack)) {
-    return ["home store", "kitchenware shop", "department store"];
-  }
-
-  if (/(fan|blender|vacuum|rice cooker|air fryer|kettle|appliance|microwave)/.test(haystack)) {
-    return ["appliance store", "home store", "department store"];
-  }
-
-  if (/(car|motorcycle|helmet|dash cam|seat cover|automotive)/.test(haystack)) {
-    return ["automotive store", "motorcycle shop", "car accessories shop"];
-  }
-
-  if (/(food|snack|coffee|tea|treat|chocolate|pastry|cake|cookie|hamper|bakery|pasalubong)/.test(haystack)) {
-    return ["specialty food store", "bakery", "pasalubong shop"];
-  }
-
-  if (/(experience|voucher|spa|massage|cinema|activity|class|workshop)/.test(haystack)) {
-    return ["spa and wellness center", "cinema", "activity center"];
-  }
-
-  if (/(voucher|gift card|subscription|top up|topup|load|software|license|digital|service)/.test(haystack)) {
-    return ["mall gift shop", "gaming store", "electronics store"];
-  }
-
-  return ["gift shop", "department store", "mall store"];
-}
-
-function buildMapsSearchUrl(query: string): string {
-  return `https://www.google.com/maps/search/${encodeURIComponent(query)}`;
-}
-
-function toDisplayArea(areaHint: string): string {
-  const trimmed = areaHint.trim();
-
-  return trimmed.length > 0 ? trimmed : "near me";
-}
-
 export function buildWishlistSuggestionOptions(
   input: SuggestionInput
 ): WishlistSuggestionOption[] {
@@ -1229,43 +1123,4 @@ export function detectShoppingRegionFromLocale(
     default:
       return "GLOBAL";
   }
-}
-
-export function buildNearbyStoreLinks(
-  option: WishlistSuggestionOption,
-  itemName: string,
-  itemCategory: string,
-  areaHint: string
-): NearbyStoreLink[] {
-  return buildNearbyStoreQueries(option, itemName, itemCategory, areaHint).map(
-    (query) => ({
-      id: query.id,
-      title: query.title,
-      subtitle: query.subtitle,
-      href: buildMapsSearchUrl(query.query),
-    })
-  );
-}
-
-export function buildNearbyStoreQueries(
-  option: WishlistSuggestionOption,
-  itemName: string,
-  itemCategory: string,
-  areaHint: string
-): NearbyStoreQuery[] {
-  // We intentionally build store-category searches instead of promising
-  // exact branch inventory. That keeps the nearby-store experience useful
-  // without overstating what the app can verify.
-  const displayArea = toDisplayArea(areaHint);
-  const storeSearches = getNearbySearchBase(itemName, itemCategory, option.searchQuery);
-
-  return storeSearches.map((storeSearch) => ({
-    id: `${slugify(storeSearch)}-${slugify(displayArea)}`,
-    title: `${storeSearch} ${displayArea === "near me" ? "near me" : `near ${displayArea}`}`,
-    subtitle:
-      displayArea === "near me"
-        ? "Open Maps and compare nearby physical shops."
-        : `Open Maps and compare shops around ${displayArea}.`,
-    query: `${storeSearch} ${displayArea}`,
-  }));
 }

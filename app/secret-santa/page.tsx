@@ -9,15 +9,12 @@ import { isLazadaProductPageUrl } from "@/lib/affiliate/lazada-url";
 import { formatPriceRange } from "@/lib/wishlist/pricing";
 import {
   type SuggestionInput,
-  buildNearbyStoreQueries,
-  buildNearbyStoreLinks,
   buildWishlistFeaturedLazadaProducts,
   buildWishlistMerchantLinks,
   buildWishlistSuggestionOptions,
   mergeWishlistSuggestionOptions,
   detectShoppingRegionFromLocale,
   SHOPPING_REGION_OPTIONS,
-  type NearbyStoreQuery,
   type ShoppingRegion,
   type WishlistFeaturedProductCard,
   type WishlistSuggestionOption,
@@ -70,27 +67,6 @@ type ActionMessage = {
   text: string;
 } | null;
 
-type NearbyStoreResult = {
-  id: string;
-  name: string;
-  address: string;
-  mapsUrl: string;
-  rating: number | null;
-  userRatingCount: number | null;
-  openNow: boolean | null;
-  primaryType: string | null;
-  availabilityBadge: string;
-  availabilityHint: string;
-};
-
-type NearbyStoreState = {
-  hasSearched: boolean;
-  loading: boolean;
-  error: string | null;
-  requestKey: string;
-  stores: NearbyStoreResult[];
-};
-
 type LazadaFeaturedProductsState = {
   loading: boolean;
   products: WishlistFeaturedProductCard[];
@@ -101,11 +77,6 @@ type AiSuggestionState = {
   loading: boolean;
   options: WishlistSuggestionOption[];
   usedAi: boolean;
-};
-
-type NearbyCoordinates = {
-  latitude: number;
-  longitude: number;
 };
 
 type GroupRow = {
@@ -256,12 +227,6 @@ function buildRecipientSuggestionInput(
     groupBudget: assignment.group_budget,
     currency: assignment.group_currency,
   };
-}
-
-// Normalize text before it is submitted so the UI and server action receive cleaner input.
-// The server action is still the real security boundary.
-function normalizeTextInput(value: string, maxLength: number): string {
-  return value.replace(/\s+/g, " ").trim().slice(0, maxLength);
 }
 
 // Only allow standard web links to be submitted or rendered from this page.
@@ -524,33 +489,6 @@ function createActionMessage(result: {
   };
 }
 
-// Nearby-store badges are a soft guidance layer.
-// They help the giver compare store fit quickly without implying live inventory.
-function getNearbyAvailabilityBadgeStyle(label: string) {
-  switch (label) {
-    case "Best option":
-      return {
-        background: "rgba(47,107,86,.12)",
-        color: HOLIDAY_GREEN,
-      };
-    case "Good option":
-      return {
-        background: "rgba(169,135,61,.12)",
-        color: HOLIDAY_GOLD,
-      };
-    case "Broad option":
-      return {
-        background: "rgba(88,116,142,.12)",
-        color: HOLIDAY_BLUE,
-      };
-    default:
-      return {
-        background: "rgba(148,163,184,.18)",
-        color: TEXT_MUTED,
-      };
-  }
-}
-
 function summarizeCardCopy(value: string, maxLength: number): string {
   const normalized = value.replace(/\s+/g, " ").trim();
 
@@ -778,13 +716,6 @@ export default function SecretSantaPage() {
   // These shopping preferences are page-level on purpose so the giver can set
   // them once and reuse them across every giftee item on the screen.
   const [shoppingRegion, setShoppingRegion] = useState<ShoppingRegion>("GLOBAL");
-  const [nearbyArea, setNearbyArea] = useState("");
-  const [nearbyCoordinates, setNearbyCoordinates] = useState<NearbyCoordinates | null>(null);
-  const [locatingNearbyArea, setLocatingNearbyArea] = useState(false);
-  const [nearbyLocationMessage, setNearbyLocationMessage] = useState<ActionMessage>(null);
-  const [nearbyStoreStateByItem, setNearbyStoreStateByItem] = useState<
-    Record<string, NearbyStoreState>
-  >({});
   const prefetchedRoutesRef = useRef<Set<string>>(new Set());
   const lazadaPrimedKeysRef = useRef<Set<string>>(new Set());
   const matchedLazadaProductsByKeyRef = useRef(matchedLazadaProductsByKey);
@@ -833,7 +764,6 @@ export default function SecretSantaPage() {
 
   useEffect(() => {
     const savedRegion = window.localStorage.getItem("secret-santa-shopping-region");
-    const savedArea = window.localStorage.getItem("secret-santa-nearby-area");
 
     if (savedRegion && SHOPPING_REGION_OPTIONS.some((option) => option.value === savedRegion)) {
       setShoppingRegion(savedRegion as ShoppingRegion);
@@ -842,19 +772,11 @@ export default function SecretSantaPage() {
         detectShoppingRegionFromLocale(navigator.language, availableGroups[0]?.currency || null)
       );
     }
-
-    if (savedArea) {
-      setNearbyArea(savedArea);
-    }
   }, [availableGroups]);
 
   useEffect(() => {
     window.localStorage.setItem("secret-santa-shopping-region", shoppingRegion);
   }, [shoppingRegion]);
-
-  useEffect(() => {
-    window.localStorage.setItem("secret-santa-nearby-area", nearbyArea);
-  }, [nearbyArea]);
 
   useEffect(() => {
     matchedLazadaProductsByKeyRef.current = matchedLazadaProductsByKey;
@@ -1442,166 +1364,6 @@ export default function SecretSantaPage() {
     }));
   };
 
-  const buildNearbyStoreRequestKey = (
-    itemId: string,
-    area: string,
-    queries: NearbyStoreQuery[],
-    coordinates: NearbyCoordinates | null
-  ) => {
-    const locationKey = coordinates
-      ? `${coordinates.latitude.toFixed(4)},${coordinates.longitude.toFixed(4)}`
-      : area.trim().toLowerCase();
-
-    return `${itemId}:${locationKey}:${queries.map((query) => query.id).join("|")}`;
-  };
-
-  const loadNearbyStores = async (
-    itemId: string,
-    queries: NearbyStoreQuery[]
-  ) => {
-    const trimmedArea = normalizeTextInput(nearbyArea, 120);
-
-    if (!trimmedArea && !nearbyCoordinates) {
-      setNearbyStoreStateByItem((current) => ({
-        ...current,
-        [itemId]: {
-          hasSearched: false,
-          loading: false,
-          error: "Add an area or city above, or use your current location first.",
-          requestKey: "",
-          stores: [],
-        },
-      }));
-      return;
-    }
-
-    const requestKey = buildNearbyStoreRequestKey(
-      itemId,
-      trimmedArea,
-      queries,
-      nearbyCoordinates
-    );
-    const existingState = nearbyStoreStateByItem[itemId];
-
-    if (existingState?.loading && existingState.requestKey === requestKey) {
-      return;
-    }
-
-    if (
-      existingState &&
-      existingState.requestKey === requestKey &&
-      existingState.hasSearched
-    ) {
-      return;
-    }
-
-    setNearbyStoreStateByItem((current) => ({
-      ...current,
-      [itemId]: {
-        hasSearched: true,
-        loading: true,
-        error: null,
-        requestKey,
-        stores: [],
-      },
-    }));
-
-    try {
-      const response = await fetch("/api/nearby-stores", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          area: trimmedArea,
-          latitude: nearbyCoordinates?.latitude,
-          longitude: nearbyCoordinates?.longitude,
-          queries: queries.map((query) => query.query),
-        }),
-      });
-
-      const payload = (await response.json()) as {
-        error?: string;
-        stores?: NearbyStoreResult[];
-      };
-
-      setNearbyStoreStateByItem((current) => ({
-        ...current,
-        [itemId]: {
-          hasSearched: true,
-          loading: false,
-          error: payload.error || null,
-          requestKey,
-          stores: payload.stores || [],
-        },
-      }));
-    } catch {
-      setNearbyStoreStateByItem((current) => ({
-        ...current,
-        [itemId]: {
-          hasSearched: true,
-          loading: false,
-          error:
-            "We couldn't load nearby stores right now. You can still use the Maps links below.",
-          requestKey,
-          stores: [],
-        },
-      }));
-    }
-  };
-
-  const handleUseCurrentLocation = () => {
-    if (!navigator.geolocation) {
-      setNearbyLocationMessage({
-        type: "error",
-        text: "This browser doesn't support location access. You can still type an area or city.",
-      });
-      return;
-    }
-
-    setLocatingNearbyArea(true);
-    setNearbyLocationMessage(null);
-
-    navigator.geolocation.getCurrentPosition(
-      (position) => {
-        setNearbyCoordinates({
-          latitude: position.coords.latitude,
-          longitude: position.coords.longitude,
-        });
-        setNearbyLocationMessage({
-          type: "success",
-          text: "Using your current location for nearby store searches on this page.",
-        });
-        setLocatingNearbyArea(false);
-      },
-      (error) => {
-        let text =
-          "We couldn't use your current location. You can still type an area or city.";
-
-        if (error.code === error.PERMISSION_DENIED) {
-          text =
-            "Location permission was denied. You can still type an area or city instead.";
-        }
-
-        setNearbyLocationMessage({
-          type: "error",
-          text,
-        });
-        setLocatingNearbyArea(false);
-      },
-      {
-        enableHighAccuracy: false,
-        timeout: 10000,
-        maximumAge: 300000,
-      }
-    );
-  };
-
-  const clearCurrentLocation = () => {
-    setNearbyCoordinates(null);
-    setNearbyLocationMessage(null);
-  };
-
   if (loading) {
     return <SecretSantaSkeleton />;
   }
@@ -1709,9 +1471,8 @@ export default function SecretSantaPage() {
                 className="text-[11px] mt-1 leading-relaxed"
                 style={{ color: TEXT_MUTED }}
               >
-                We&apos;ll use this region for online shop suggestions and either
-                your typed area or your current location for nearby in-person
-                store searches.
+                We&apos;ll use this region for online shop suggestions and affiliate-ready
+                shopping paths across the page.
               </div>
             </div>
             <span
@@ -1725,7 +1486,7 @@ export default function SecretSantaPage() {
             </span>
           </div>
 
-          <div className="mt-4 grid gap-3 lg:grid-cols-[minmax(0,220px)_minmax(0,1fr)]">
+          <div className="mt-4 max-w-[320px]">
             <label className="block">
               <div
                 className="text-[11px] font-bold mb-1"
@@ -1760,90 +1521,7 @@ export default function SecretSantaPage() {
                 }
               </div>
             </label>
-
-            <label className="block">
-              <div
-                className="text-[11px] font-bold mb-1"
-                style={{ color: PAGE_TEXT_COLOR }}
-              >
-                Nearby area or city
-              </div>
-              <input
-                type="text"
-                value={nearbyArea}
-                onChange={(event) => {
-                  setNearbyArea(event.target.value);
-                  if (nearbyCoordinates) {
-                    setNearbyCoordinates(null);
-                    setNearbyLocationMessage(null);
-                  }
-                }}
-                placeholder="Example: Makati, Quezon City, BGC, London, Toronto"
-                className="w-full rounded-xl px-3 py-2 text-[12px] font-semibold"
-                style={{
-                  background: INPUT_BACKGROUND,
-                  border: INPUT_BORDER,
-                  color: INPUT_TEXT,
-                  fontFamily: "inherit",
-                }}
-              />
-              <div className="text-[10px] mt-1" style={{ color: TEXT_SOFT }}>
-                Type an area manually, or use the location button below for this
-                page only.
-              </div>
-            </label>
           </div>
-
-          <div className="flex items-center gap-2 flex-wrap mt-3">
-            <button
-              type="button"
-              onClick={handleUseCurrentLocation}
-              disabled={locatingNearbyArea}
-              className="px-3 py-2 rounded-xl text-[11px] font-extrabold transition"
-              style={{
-                background: locatingNearbyArea
-                  ? "rgba(148,163,184,.18)"
-                  : "rgba(88,116,142,.12)",
-                color: locatingNearbyArea ? TEXT_MUTED : HOLIDAY_BLUE,
-                border: "1px solid rgba(88,116,142,.18)",
-                fontFamily: "inherit",
-                cursor: locatingNearbyArea ? "wait" : "pointer",
-              }}
-            >
-              {locatingNearbyArea ? "Getting your location..." : "Use my location"}
-            </button>
-
-            {nearbyCoordinates && (
-              <button
-                type="button"
-                onClick={clearCurrentLocation}
-                className="px-3 py-2 rounded-xl text-[11px] font-extrabold transition"
-                style={{
-                  background: "rgba(159,78,66,.08)",
-                  color: HOLIDAY_RED,
-                  border: "1px solid rgba(159,78,66,.14)",
-                  fontFamily: "inherit",
-                  cursor: "pointer",
-                }}
-              >
-                Use typed area instead
-              </button>
-            )}
-          </div>
-
-          {nearbyLocationMessage && (
-            <div
-              className="text-[10px] font-bold mt-2"
-              style={{
-                color:
-                  nearbyLocationMessage.type === "success"
-                    ? HOLIDAY_GREEN
-                    : HOLIDAY_RED,
-              }}
-            >
-              {nearbyLocationMessage.text}
-            </div>
-          )}
         </div>
 
         <div
@@ -2107,35 +1785,6 @@ export default function SecretSantaPage() {
                         featuredLazadaProducts.some(
                           (product) => product.catalogSource !== "catalog-product"
                         );
-                      const nearbyStoreQueries = selectedSuggestion
-                        ? buildNearbyStoreQueries(
-                            selectedSuggestion,
-                            item.item_name,
-                            item.item_category,
-                            nearbyArea
-                          )
-                        : [];
-                      const nearbyStoreLinks = selectedSuggestion
-                        ? buildNearbyStoreLinks(
-                            selectedSuggestion,
-                            item.item_name,
-                            item.item_category,
-                            nearbyArea
-                          )
-                        : [];
-                      const nearbyStoreRequestKey = selectedSuggestion
-                        ? buildNearbyStoreRequestKey(
-                            item.id,
-                            nearbyArea,
-                            nearbyStoreQueries,
-                            nearbyCoordinates
-                          )
-                        : "";
-                      const nearbyStoreState = nearbyStoreStateByItem[item.id];
-                      const visibleNearbyStoreState =
-                        nearbyStoreState?.requestKey === nearbyStoreRequestKey
-                          ? nearbyStoreState
-                          : null;
                       const isIdeaPanelOpen = expandedRecipientItemId === item.id;
 
                       return (
@@ -2268,8 +1917,8 @@ export default function SecretSantaPage() {
                                         style={{ color: TEXT_MUTED }}
                                       >
                                         Choose the version of this gift you want to explore, then
-                                        we&apos;ll show the best online and nearby shopping paths
-                                        for that option.
+                                        we&apos;ll show the best affiliate-ready online shopping
+                                        paths for that option.
                                       </div>
                                     </div>
                                 <div className="flex items-center gap-2 flex-wrap">
@@ -3015,283 +2664,11 @@ export default function SecretSantaPage() {
                                         {selectedSuggestion.disclosure}
                                       </div>
                                     </div>
-
-                                    <div
-                                      className="rounded-2xl p-3"
-                                      style={{
-                                        background: "rgba(255,255,255,.62)",
-                                        border: "1px solid rgba(96,117,122,.12)",
-                                      }}
-                                    >
-                                      <div className="flex items-start justify-between gap-3 mb-3 flex-wrap">
-                                        <div>
-                                          <div
-                                            className="text-[12px] font-extrabold"
-                                            style={{ color: HOLIDAY_GREEN }}
-                                          >
-                                            Step 3: Try nearby stores
-                                          </div>
-                                          <div
-                                            className="text-[11px] mt-0.5"
-                                            style={{ color: TEXT_MUTED }}
-                                          >
-                                            Load nearby physical store results here, then open
-                                            the store you want in Maps.
-                                          </div>
-                                        </div>
-                                        <span
-                                          className="text-[10px] font-extrabold px-2 py-1 rounded-lg"
-                                          style={{
-                                            background: "rgba(255,255,255,.78)",
-                                            color: HOLIDAY_GREEN,
-                                          }}
-                                        >
-                                          {nearbyCoordinates
-                                            ? "Current location"
-                                            : nearbyArea.trim()
-                                              ? nearbyArea.trim()
-                                              : "Near me"}
-                                        </span>
-                                      </div>
-
-                                      <button
-                                        type="button"
-                                        onClick={() =>
-                                          loadNearbyStores(item.id, nearbyStoreQueries)
-                                        }
-                                        disabled={
-                                          (!nearbyArea.trim() && !nearbyCoordinates) ||
-                                          visibleNearbyStoreState?.loading === true
-                                        }
-                                        className="w-full rounded-xl px-3 py-2 text-[11px] font-extrabold transition"
-                                        style={{
-                                          background:
-                                            (!nearbyArea.trim() && !nearbyCoordinates) ||
-                                            visibleNearbyStoreState?.loading
-                                              ? "rgba(148,163,184,.18)"
-                                              : "rgba(47,107,86,.12)",
-                                          color:
-                                            (!nearbyArea.trim() && !nearbyCoordinates) ||
-                                            visibleNearbyStoreState?.loading
-                                              ? TEXT_MUTED
-                                              : HOLIDAY_GREEN,
-                                          border: "1px solid rgba(96,117,122,.16)",
-                                          fontFamily: "inherit",
-                                          cursor:
-                                            (!nearbyArea.trim() && !nearbyCoordinates) ||
-                                            visibleNearbyStoreState?.loading
-                                              ? "not-allowed"
-                                              : "pointer",
-                                        }}
-                                      >
-                                        {visibleNearbyStoreState?.loading
-                                          ? "Finding nearby stores..."
-                                          : "Load nearby stores here"}
-                                      </button>
-
-                                      {!nearbyArea.trim() && !nearbyCoordinates && (
-                                        <div
-                                          className="text-[10px] mt-2"
-                                          style={{ color: TEXT_SOFT }}
-                                        >
-                                          Add an area or city above first so we can search for
-                                          nearby shops here, or use your current location.
-                                        </div>
-                                      )}
-
-                                      {visibleNearbyStoreState?.error && (
-                                        <div
-                                          className="rounded-xl p-3 mt-3"
-                                          style={{
-                                            background: "rgba(159,78,66,.08)",
-                                            border: "1px solid rgba(159,78,66,.12)",
-                                            color: HOLIDAY_RED,
-                                          }}
-                                        >
-                                          <div className="text-[11px] font-bold">
-                                            {visibleNearbyStoreState.error}
-                                          </div>
-                                        </div>
-                                      )}
-
-                                      {visibleNearbyStoreState &&
-                                        visibleNearbyStoreState.hasSearched &&
-                                        !visibleNearbyStoreState.loading &&
-                                        !visibleNearbyStoreState.error &&
-                                        visibleNearbyStoreState.stores.length === 0 && (
-                                          <div
-                                            className="rounded-xl p-3 mt-3"
-                                            style={{
-                                              background: "rgba(88,116,142,.08)",
-                                              border: "1px solid rgba(88,116,142,.12)",
-                                              color: HOLIDAY_BLUE,
-                                            }}
-                                          >
-                                            <div className="text-[11px] font-bold">
-                                              No strong nearby matches showed up for this item yet.
-                                            </div>
-                                            <div
-                                              className="text-[10px] mt-1 leading-relaxed"
-                                              style={{ color: TEXT_MUTED }}
-                                            >
-                                              Try a broader area, switch to a different item
-                                              direction, or use the backup Maps searches below.
-                                            </div>
-                                          </div>
-                                        )}
-
-                                      {visibleNearbyStoreState &&
-                                        visibleNearbyStoreState.stores.length > 0 && (
-                                          <div className="grid gap-2 mt-3">
-                                            {visibleNearbyStoreState.stores.map((store) => (
-                                              <a
-                                                key={store.id}
-                                                href={store.mapsUrl}
-                                                target="_blank"
-                                                rel="noopener noreferrer"
-                                                className="rounded-2xl p-3 transition"
-                                                style={{
-                                                  background: "rgba(255,255,255,.88)",
-                                                  border: "1px solid rgba(96,117,122,.12)",
-                                                  color: PAGE_TEXT_COLOR,
-                                                  textDecoration: "none",
-                                                  boxShadow:
-                                                    "0 8px 18px rgba(34,55,59,.05)",
-                                                }}
-                                              >
-                                                <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-                                                  <div>
-                                                    <div
-                                                      className="text-[13px] font-extrabold"
-                                                      style={{ color: PAGE_TEXT_COLOR }}
-                                                    >
-                                                      {store.name}
-                                                    </div>
-                                                    {store.primaryType && (
-                                                      <div
-                                                        className="text-[10px] font-semibold mt-1"
-                                                        style={{ color: HOLIDAY_GREEN }}
-                                                      >
-                                                        {store.primaryType}
-                                                      </div>
-                                                    )}
-                                                  </div>
-                                                  <div className="flex items-center gap-2 flex-wrap justify-end">
-                                                    <span
-                                                      className="text-[9px] font-extrabold px-2 py-1 rounded-lg"
-                                                      style={getNearbyAvailabilityBadgeStyle(
-                                                        store.availabilityBadge
-                                                      )}
-                                                    >
-                                                      {store.availabilityBadge}
-                                                    </span>
-                                                    {store.openNow !== null && (
-                                                      <span
-                                                        className="text-[9px] font-extrabold px-2 py-1 rounded-lg"
-                                                        style={{
-                                                          background: store.openNow
-                                                            ? "rgba(47,107,86,.12)"
-                                                            : "rgba(159,78,66,.1)",
-                                                          color: store.openNow
-                                                            ? HOLIDAY_GREEN
-                                                            : HOLIDAY_RED,
-                                                        }}
-                                                      >
-                                                        {store.openNow ? "Open now" : "Closed now"}
-                                                      </span>
-                                                    )}
-                                                  </div>
-                                                </div>
-                                                <div
-                                                  className="text-[11px] mt-2 leading-relaxed"
-                                                  style={{ color: TEXT_MUTED }}
-                                                >
-                                                  {store.address}
-                                                </div>
-                                                <div
-                                                  className="text-[10px] font-semibold mt-2"
-                                                  style={{ color: TEXT_SOFT }}
-                                                >
-                                                  {store.availabilityHint}
-                                                </div>
-                                                {(store.rating !== null ||
-                                                  store.userRatingCount !== null) && (
-                                                  <div
-                                                    className="text-[10px] font-semibold mt-2"
-                                                    style={{ color: HOLIDAY_GOLD }}
-                                                  >
-                                                    Rating {store.rating?.toFixed(1) || "N/A"}
-                                                    {store.userRatingCount
-                                                      ? ` · ${store.userRatingCount} review${
-                                                          store.userRatingCount === 1 ? "" : "s"
-                                                        }`
-                                                      : ""}
-                                                  </div>
-                                                )}
-                                                <div
-                                                  className="text-[11px] font-semibold mt-3"
-                                                  style={{ color: HOLIDAY_BLUE }}
-                                                >
-                                                  Open in Maps {"->"}
-                                                </div>
-                                              </a>
-                                            ))}
-                                          </div>
-                                        )}
-
-                                      {visibleNearbyStoreState &&
-                                        visibleNearbyStoreState.stores.length > 0 && (
-                                          <div
-                                            className="text-[10px] mt-3 leading-relaxed"
-                                            style={{ color: TEXT_SOFT }}
-                                          >
-                                            Nearby badges show how well the store type matches the
-                                            item, not live inventory at that exact branch.
-                                          </div>
-                                        )}
-
-                                      <div className="grid gap-2 mt-3">
-                                        {nearbyStoreLinks.map((nearbyLink) => (
-                                          <a
-                                            key={nearbyLink.id}
-                                            href={nearbyLink.href}
-                                            target="_blank"
-                                            rel="noopener noreferrer"
-                                            className="rounded-2xl p-3 transition"
-                                            style={{
-                                              background: "rgba(255,255,255,.72)",
-                                              border: "1px dashed rgba(96,117,122,.18)",
-                                              color: PAGE_TEXT_COLOR,
-                                              textDecoration: "none",
-                                            }}
-                                          >
-                                            <div
-                                              className="text-[12px] font-extrabold"
-                                              style={{ color: PAGE_TEXT_COLOR }}
-                                            >
-                                              {nearbyLink.title}
-                                            </div>
-                                            <div
-                                              className="text-[10px] mt-1"
-                                              style={{ color: TEXT_MUTED }}
-                                            >
-                                              Backup Maps search
-                                            </div>
-                                            <div
-                                              className="text-[11px] font-semibold mt-2"
-                                              style={{ color: HOLIDAY_BLUE }}
-                                            >
-                                              Open Maps search {"->"}
-                                            </div>
-                                          </a>
-                                        ))}
-                                      </div>
                                     </div>
                                   </div>
-                                </div>
-                              )}
-                            </div>
-                          )}
+                                )}
+                              </div>
+                            )}
                         </div>
                       );
                     })
@@ -3643,6 +3020,7 @@ function SnowEffect() {
 
   return null;
 }
+
 
 
 
