@@ -31,6 +31,10 @@
     "eslint-plugin-security": "^4.0.0",
     "supabase": "^2.84.4",
     "tailwindcss": "^4.2.2",
+<<<<<<< copilot/review-open-prs
+    "typescript": "^6"
+=======
     "typescript": "^5"
+>>>>>>> main
   }
 }
