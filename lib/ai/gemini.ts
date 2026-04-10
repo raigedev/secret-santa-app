@@ -19,6 +19,7 @@ type GeminiGenerateContentResponse = {
 
 const GEMINI_API_BASE_URL = "https://generativelanguage.googleapis.com/v1beta/models";
 const DEFAULT_GEMINI_WISHLIST_MODEL = "gemini-2.5-flash-lite";
+const GEMINI_REQUEST_TIMEOUT_MS = 9000;
 
 function sanitizeDraftValue(value: unknown, maxLength: number): string {
   return typeof value === "string" ? value.replace(/\s+/g, " ").trim().slice(0, maxLength) : "";
@@ -82,51 +83,62 @@ export async function generateGeminiWishlistSuggestionDrafts(input: {
   }
 
   const model = process.env.GEMINI_WISHLIST_MODEL || DEFAULT_GEMINI_WISHLIST_MODEL;
-  const response = await fetch(
-    `${GEMINI_API_BASE_URL}/${encodeURIComponent(model)}:generateContent`,
-    {
-      method: "POST",
-      cache: "no-store",
-      headers: {
-        "Content-Type": "application/json",
-        "x-goog-api-key": apiKey,
-      },
-      body: JSON.stringify({
-        contents: [
-          {
-            role: "user",
-            parts: [
-              {
-                text: buildPrompt(input.suggestionInput, input.baseOptions),
-              },
-            ],
-          },
-        ],
-        generationConfig: {
-          temperature: 0.45,
-          responseMimeType: "application/json",
-          responseSchema: {
-            type: "OBJECT",
-            properties: {
-              suggestions: {
-                type: "ARRAY",
-                items: {
-                  type: "OBJECT",
-                  properties: {
-                    title: { type: "STRING" },
-                    subtitle: { type: "STRING" },
-                    searchQuery: { type: "STRING" },
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), GEMINI_REQUEST_TIMEOUT_MS);
+  let response: Response;
+
+  try {
+    response = await fetch(
+      `${GEMINI_API_BASE_URL}/${encodeURIComponent(model)}:generateContent`,
+      {
+        method: "POST",
+        cache: "no-store",
+        signal: controller.signal,
+        headers: {
+          "Content-Type": "application/json",
+          "x-goog-api-key": apiKey,
+        },
+        body: JSON.stringify({
+          contents: [
+            {
+              role: "user",
+              parts: [
+                {
+                  text: buildPrompt(input.suggestionInput, input.baseOptions),
+                },
+              ],
+            },
+          ],
+          generationConfig: {
+            temperature: 0.45,
+            responseMimeType: "application/json",
+            responseSchema: {
+              type: "OBJECT",
+              properties: {
+                suggestions: {
+                  type: "ARRAY",
+                  items: {
+                    type: "OBJECT",
+                    properties: {
+                      title: { type: "STRING" },
+                      subtitle: { type: "STRING" },
+                      searchQuery: { type: "STRING" },
+                    },
+                    required: ["title", "subtitle", "searchQuery"],
                   },
-                  required: ["title", "subtitle", "searchQuery"],
                 },
               },
+              required: ["suggestions"],
             },
-            required: ["suggestions"],
           },
-        },
-      }),
-    }
-  );
+        }),
+      }
+    );
+  } catch {
+    return [];
+  } finally {
+    clearTimeout(timeoutId);
+  }
 
   if (!response.ok) {
     return [];

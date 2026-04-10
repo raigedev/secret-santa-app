@@ -157,6 +157,7 @@ type GiftPrepStatus =
 
 const ITEM_LINK_MAX_LENGTH = 500;
 const MAX_GROUP_ROUTE_PREFETCH = 8;
+const AI_SUGGESTION_REQUEST_TIMEOUT_MS = 10000;
 const PAGE_BACKGROUND =
   "radial-gradient(circle at top, rgba(255,255,255,.28), transparent 32%), linear-gradient(180deg,#dfe7e4 0%,#d2dbd8 42%,#c9d4d4 100%)";
 const PAGE_TEXT_COLOR = "#25363a";
@@ -943,6 +944,7 @@ export default function SecretSantaPage() {
     }
 
     let cancelled = false;
+    let activeController: AbortController | null = null;
 
     setAiSuggestionStateByItem((current) => ({
       ...current,
@@ -956,6 +958,9 @@ export default function SecretSantaPage() {
 
     const loadAiSuggestions = async () => {
       const suggestionInput = buildRecipientSuggestionInput(targetAssignment!, targetItem!);
+      const controller = new AbortController();
+      activeController = controller;
+      const timeoutId = window.setTimeout(() => controller.abort(), AI_SUGGESTION_REQUEST_TIMEOUT_MS);
 
       try {
         const response = await fetch("/api/ai/wishlist-suggestions", {
@@ -963,6 +968,7 @@ export default function SecretSantaPage() {
           headers: {
             "Content-Type": "application/json",
           },
+          signal: controller.signal,
           body: JSON.stringify({
             ...suggestionInput,
             region: shoppingRegion,
@@ -1003,6 +1009,8 @@ export default function SecretSantaPage() {
             usedAi: false,
           },
         }));
+      } finally {
+        window.clearTimeout(timeoutId);
       }
     };
 
@@ -1010,6 +1018,7 @@ export default function SecretSantaPage() {
 
     return () => {
       cancelled = true;
+      activeController?.abort();
     };
   }, [aiSuggestionStateByItem, assignments, expandedRecipientItemId, shoppingRegion]);
 
