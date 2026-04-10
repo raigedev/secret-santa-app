@@ -710,6 +710,7 @@ export default function SecretSantaPage() {
   const [aiSuggestionStateByItem, setAiSuggestionStateByItem] = useState<
     Record<string, AiSuggestionState>
   >({});
+  const aiSuggestionStartedItemsRef = useRef<Set<string>>(new Set());
   const [matchedLazadaProductsByKey, setMatchedLazadaProductsByKey] = useState<
     Record<string, LazadaFeaturedProductsState>
   >({});
@@ -859,11 +860,11 @@ export default function SecretSantaPage() {
       return;
     }
 
-    const existingState = aiSuggestionStateByItem[targetItem.id];
-
-    if (existingState?.loading || existingState?.loaded) {
+    if (aiSuggestionStartedItemsRef.current.has(targetItem.id)) {
       return;
     }
+
+    aiSuggestionStartedItemsRef.current.add(targetItem.id);
 
     let cancelled = false;
     let activeController: AbortController | null = null;
@@ -942,7 +943,7 @@ export default function SecretSantaPage() {
       cancelled = true;
       activeController?.abort();
     };
-  }, [aiSuggestionStateByItem, assignments, expandedRecipientItemId, shoppingRegion]);
+  }, [assignments, expandedRecipientItemId, shoppingRegion]);
 
   useEffect(() => {
     if (shoppingRegion !== "PH") {
