@@ -26,11 +26,15 @@
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "eslint": "^9",
-    "eslint-config-next": "16.1.6",
+    "eslint-config-next": "16.2.3",
     "eslint-plugin-no-secrets": "^2.3.3",
     "eslint-plugin-security": "^4.0.0",
     "supabase": "^2.84.4",
     "tailwindcss": "^4.2.2",
+<<<<<<< copilot/review-open-prs
     "typescript": "^6"
+=======
+    "typescript": "^5"
+>>>>>>> main
   }
 }
