@@ -73,7 +73,10 @@ export async function GET(request: NextRequest) {
           catalogSource,
           fitLabel,
           groupId,
+          productId,
           searchQuery,
+          selectedQuery,
+          skuId,
           trackingLabel,
           wishlistItemId,
         })

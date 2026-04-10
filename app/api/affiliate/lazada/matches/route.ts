@@ -8,6 +8,7 @@ import {
 } from "@/lib/affiliate/lazada-feed";
 import { primeLazadaPromotionLinks } from "@/lib/affiliate/lazada";
 import { getLazadaStarterProducts } from "@/lib/affiliate/lazada-catalog";
+import { enforceRateLimit } from "@/lib/security/rate-limit";
 import { createClient } from "@/lib/supabase/server";
 import { formatPriceRange } from "@/lib/wishlist/pricing";
 import {
@@ -626,6 +627,19 @@ export async function POST(request: NextRequest) {
 
   if (!user) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  const rateLimit = await enforceRateLimit({
+    action: "affiliate.lazada.matches",
+    actorUserId: user.id,
+    maxAttempts: 120,
+    resourceType: "affiliate_match",
+    subject: user.id,
+    windowSeconds: 300,
+  });
+
+  if (!rateLimit.allowed) {
+    return NextResponse.json({ error: rateLimit.message, products: [] }, { status: 429 });
   }
 
   let payload: MatchProductsBody;
