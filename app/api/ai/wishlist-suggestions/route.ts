@@ -119,10 +119,13 @@ export async function POST(request: NextRequest) {
     suggestionInput,
     baseOptions,
   });
-  const suggestions = buildAiWishlistSuggestionOptions(suggestionInput, aiDrafts);
+  const aiSuggestions = buildAiWishlistSuggestionOptions(suggestionInput, aiDrafts);
+  
+  // If AI times out or fails, always show base suggestions so UI doesn't get stuck
+  const suggestions = aiSuggestions.length > 0 ? aiSuggestions : baseOptions;
 
   return NextResponse.json({
     suggestions,
-    usedAi: suggestions.length > 0,
+    usedAi: aiSuggestions.length > 0,
   });
 }

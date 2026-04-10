@@ -19,7 +19,7 @@ type GeminiGenerateContentResponse = {
 
 const GEMINI_API_BASE_URL = "https://generativelanguage.googleapis.com/v1beta/models";
 const DEFAULT_GEMINI_WISHLIST_MODEL = "gemini-2.5-flash-lite";
-const GEMINI_REQUEST_TIMEOUT_MS = 9000;
+const GEMINI_REQUEST_TIMEOUT_MS = 15000;
 
 function sanitizeDraftValue(value: unknown, maxLength: number): string {
   return typeof value === "string" ? value.replace(/\s+/g, " ").trim().slice(0, maxLength) : "";
