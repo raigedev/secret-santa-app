@@ -1940,11 +1940,6 @@ export default function DashboardPage() {
               badge: isDarkTheme ? "bg-amber-500/15 text-amber-200" : "bg-amber-100 text-amber-700",
               countChip: isDarkTheme ? "bg-slate-900/75 text-slate-200 ring-slate-700/70" : "bg-white/92 text-slate-600 ring-slate-200/80",
             };
-      const showHostedCompanion = type === "owned" && count === 1 && groups.length === 1;
-      const hostedGroup = showHostedCompanion ? groups[0] : null;
-      const hostedCompanionSurface = isDarkTheme
-        ? "border-slate-700/70 bg-[linear-gradient(180deg,rgba(15,23,42,0.94),rgba(9,15,30,0.98))] shadow-[0_18px_36px_rgba(2,8,23,0.22)]"
-        : "border-white/75 bg-[linear-gradient(180deg,rgba(255,255,255,0.98),rgba(241,245,249,0.98))] shadow-[0_18px_36px_rgba(148,163,184,0.10)]";
 
       return (
         <section className="space-y-3">
@@ -1960,7 +1955,7 @@ export default function DashboardPage() {
             <h3 className={`mt-2.5 text-[1.24rem] font-bold ${dashboardPanelHeadingClass}`}>{title}</h3>
             <p className={`mt-1 text-[15px] leading-6 ${dashboardPanelTextClass}`}>{subtitle}</p>
           </div>
-          <div className={showHostedCompanion ? "grid gap-3 xl:grid-cols-[minmax(0,1fr)_320px]" : count > 1 ? "grid gap-3 lg:grid-cols-2" : "grid gap-3"}>
+          <div className={count > 1 ? "grid gap-3 lg:grid-cols-2" : "grid gap-3"}>
             {count > 1 ? (
               groups.map((group) => (
                 <GroupCard key={`${type}-${group.id}`} group={group} type={type} />
@@ -1968,62 +1963,6 @@ export default function DashboardPage() {
             ) : (
               <GroupCard key={`${type}-${groups[0]?.id ?? "single"}`} group={groups[0]} type={type} />
             )}
-            {hostedGroup ? (
-              <aside className={`rounded-[22px] border p-4 ${hostedCompanionSurface}`}>
-                <div className="flex h-full flex-col">
-                  <div className={`inline-flex w-fit rounded-full px-2.5 py-1 text-[12px] font-semibold ${bucketTheme.badge}`}>
-                    Organizer view
-                  </div>
-                  <h4 className={`mt-3 text-[1.15rem] font-bold ${dashboardPanelHeadingClass}`}>Keep this exchange moving</h4>
-                  <p className={`mt-2 text-[15px] leading-6 ${dashboardPanelTextClass}`}>
-                    Your hosted group is live. Use this space to start another exchange or jump straight back into planning.
-                  </p>
-
-                  <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-1">
-                    <div className={`rounded-[18px] border px-4 py-3 ${isDarkTheme ? "border-slate-700/70 bg-slate-950/45" : "border-slate-200/80 bg-white/90"}`}>
-                      <div className={`text-[11px] font-extrabold uppercase tracking-[0.14em] ${dashboardStatLabelClass}`}>Members</div>
-                      <div className={`mt-2 text-[1.15rem] font-bold ${dashboardPanelHeadingClass}`}>{hostedGroup.members.length}</div>
-                      <div className={`mt-1 text-sm ${dashboardPanelTextClass}`}>People currently in this exchange.</div>
-                    </div>
-                    <div className={`rounded-[18px] border px-4 py-3 ${isDarkTheme ? "border-slate-700/70 bg-slate-950/45" : "border-slate-200/80 bg-white/90"}`}>
-                      <div className={`text-[11px] font-extrabold uppercase tracking-[0.14em] ${dashboardStatLabelClass}`}>Status</div>
-                      <div className={`mt-2 text-[1.05rem] font-bold ${hostedGroup.hasDrawn ? "text-emerald-400" : isDarkTheme ? "text-sky-300" : "text-sky-700"}`}>
-                        {hostedGroup.hasDrawn ? "Draw completed" : "Awaiting draw"}
-                      </div>
-                      <div className={`mt-1 text-sm ${dashboardPanelTextClass}`}>
-                        {hostedGroup.hasDrawn ? "Your recipients are ready for planning." : "Keep invites and setup moving toward draw day."}
-                      </div>
-                    </div>
-                  </div>
-
-                  <div
-                    className={`mt-4 flex flex-wrap items-center gap-2 border-t pt-4 ${
-                      isDarkTheme ? "border-slate-700/70" : "border-slate-200/80"
-                    }`}
-                  >
-                    <button
-                      type="button"
-                      onClick={() => router.push("/create-group")}
-                      className="inline-flex items-center gap-2 rounded-full bg-[linear-gradient(135deg,#2f80ff,#1f66e5)] px-4 py-2.5 text-[15px] font-semibold text-white shadow-[0_14px_35px_rgba(37,99,235,0.22)] transition hover:-translate-y-0.5"
-                    >
-                      <span>Create another group</span>
-                      <ArrowRightIcon />
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => router.push("/secret-santa")}
-                      className={`inline-flex items-center gap-2 rounded-full px-4 py-2.5 text-[15px] font-semibold transition ${
-                        isDarkTheme
-                          ? "bg-slate-800 text-slate-100 hover:bg-slate-700"
-                          : "bg-slate-100 text-slate-700 hover:bg-slate-200"
-                      }`}
-                    >
-                      <span>Open planning</span>
-                    </button>
-                  </div>
-                </div>
-              </aside>
-            ) : null}
           </div>
         </section>
       );
