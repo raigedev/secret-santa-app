@@ -1763,12 +1763,12 @@ export default function DashboardPage() {
           </div>
 
           <div className={`mt-2.5 rounded-[18px] border px-2.5 py-2 ${isDarkTheme ? "border-slate-700/70 bg-slate-950/55" : "border-slate-200/80 bg-slate-50/95"}`}>
-            <div className={`flex flex-col gap-2 text-sm sm:flex-row sm:items-center ${isDarkTheme ? "text-slate-200" : "text-slate-700"}`}>
-              <div className="flex min-w-0 flex-wrap items-center gap-2">
+            <div className={`flex flex-col gap-2 text-sm sm:flex-row sm:items-center sm:justify-between sm:gap-4 ${isDarkTheme ? "text-slate-200" : "text-slate-700"}`}>
+              <div className="flex min-w-0 flex-wrap items-center gap-2 sm:flex-1">
                 <EventCountdownBadge eventDate={group.event_date} now={countdownNow} />
               </div>
               {budgetLabel && (
-                <div className="flex items-center sm:ml-auto sm:justify-end">
+                <div className="flex items-center sm:shrink-0 sm:justify-end">
                   <span className={`inline-flex items-center gap-1.5 text-[15px] font-semibold ${isDarkTheme ? "text-slate-100" : "text-slate-700"}`}>
                     <span className="h-2.5 w-2.5 rounded-full bg-emerald-500" />
                     Budget: {budgetLabel}
