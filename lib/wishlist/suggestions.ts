@@ -137,12 +137,12 @@ export const SHOPPING_REGION_OPTIONS: ShoppingRegionOption[] = [
   {
     value: "CA",
     label: "Canada",
-    helper: "Use Canada-friendly stores and search routes.",
+    helper: "Use Canada-friendly stores and searches.",
   },
   {
     value: "AU",
     label: "Australia",
-    helper: "Use Australia-friendly stores and search routes.",
+    helper: "Use Australia-friendly stores and searches.",
   },
   {
     value: "JP",
@@ -234,7 +234,7 @@ const CATEGORY_TEMPLATES: Record<string, SuggestionTemplate[]> = {
   Food: [
     {
       title: "Snack boxes and treats",
-      subtitle: "A safe route when they want something consumable.",
+      subtitle: "A safe option when they want something consumable.",
       searchQuery: "gift snack box",
       typicalMin: 250,
       typicalMax: 1200,
@@ -359,7 +359,7 @@ function createSuggestionOption(
     ),
     disclosure:
       source === "ai"
-        ? "AI-assisted shopping angle • Partner link"
+        ? "AI-assisted shopping option - Partner link"
         : AFFILIATE_DISCLOSURE,
     source,
   };
@@ -506,7 +506,7 @@ function getFeaturedLazadaTrackingLabel(template: {
 }): string {
   return template.productId && template.source === "catalog-product"
     ? "Matched product"
-    : "Search route";
+    : "Search results";
 }
 
 function getKeywordTemplates(itemName: string, itemNote: string): SuggestionTemplate[] {
@@ -516,7 +516,7 @@ function getKeywordTemplates(itemName: string, itemNote: string): SuggestionTemp
     return [
       {
         title: "Stationery gift picks",
-        subtitle: "A tidy route for practical desk, school, or craft gifts.",
+        subtitle: "A tidy option for practical desk, school, or craft gifts.",
         searchQuery: "stationery gift set",
         typicalMin: 250,
         typicalMax: 1000,
@@ -554,7 +554,7 @@ function getKeywordTemplates(itemName: string, itemNote: string): SuggestionTemp
     return [
       {
         title: "Audio accessory picks",
-        subtitle: "A practical route when the giftee wants music or listening gear.",
+        subtitle: "A practical option when the giftee wants music or listening gear.",
         searchQuery: "audio accessories gift",
         typicalMin: 500,
         typicalMax: 2200,
@@ -573,7 +573,7 @@ function getKeywordTemplates(itemName: string, itemNote: string): SuggestionTemp
     return [
       {
         title: "Camera accessory picks",
-        subtitle: "A safer photography route when the full device is too open.",
+        subtitle: "A safer photography option when the full device is too open.",
         searchQuery: "camera accessory gift",
         typicalMin: 600,
         typicalMax: 2200,
@@ -592,7 +592,7 @@ function getKeywordTemplates(itemName: string, itemNote: string): SuggestionTemp
     return [
       {
         title: "Computer accessory picks",
-        subtitle: "A broad route for work, gaming, or desk setup upgrades.",
+        subtitle: "A broad option for work, gaming, or desk setup upgrades.",
         searchQuery: "computer accessories gift",
         typicalMin: 600,
         typicalMax: 2500,
@@ -656,7 +656,7 @@ function getKeywordTemplates(itemName: string, itemNote: string): SuggestionTemp
     return [
       {
         title: "Pet gift picks",
-        subtitle: "A broad route for useful or fun pet-related gifts.",
+        subtitle: "A broad option for useful or fun pet-related gifts.",
         searchQuery: "pet gift essentials",
         typicalMin: 350,
         typicalMax: 1400,
@@ -694,7 +694,7 @@ function getKeywordTemplates(itemName: string, itemNote: string): SuggestionTemp
     return [
       {
         title: "Useful home appliances",
-        subtitle: "A practical route for kitchen or home upgrades.",
+        subtitle: "A practical option for kitchen or home upgrades.",
         searchQuery: "useful home appliance",
         typicalMin: 900,
         typicalMax: 3500,
@@ -713,7 +713,7 @@ function getKeywordTemplates(itemName: string, itemNote: string): SuggestionTemp
     return [
       {
         title: "Car accessory picks",
-        subtitle: "A broad route for useful automotive gifts.",
+        subtitle: "A broad option for useful automotive gifts.",
         searchQuery: "car accessories gift",
         typicalMin: 500,
         typicalMax: 1800,
@@ -732,7 +732,7 @@ function getKeywordTemplates(itemName: string, itemNote: string): SuggestionTemp
     return [
       {
         title: "Digital gift picks",
-        subtitle: "A flexible route for vouchers, subscriptions, and credits.",
+        subtitle: "A flexible option for vouchers, subscriptions, and credits.",
         searchQuery: "digital gift voucher",
         typicalMin: 300,
         typicalMax: 1800,
