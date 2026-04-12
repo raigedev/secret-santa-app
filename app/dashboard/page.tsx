@@ -1665,6 +1665,7 @@ export default function DashboardPage() {
     type: "owned" | "invited";
   }) => {
     const budgetLabel = formatDashboardBudget(group.budget, group.currency);
+    const memberCountLabel = `${group.members.length} member${group.members.length === 1 ? "" : "s"}`;
     const theme =
       type === "owned"
         ? {
@@ -1767,23 +1768,25 @@ export default function DashboardPage() {
               <div className="flex min-w-0 flex-wrap items-center gap-2">
                 <EventCountdownBadge eventDate={group.event_date} now={countdownNow} />
               </div>
+              <div className="hidden sm:flex sm:min-w-0 sm:flex-1 sm:items-center sm:justify-center">
+                <span
+                  className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-[12px] font-semibold ${
+                    isDarkTheme
+                      ? "bg-slate-800/90 text-slate-300 ring-1 ring-slate-700/80"
+                      : "bg-white text-slate-600 ring-1 ring-slate-200"
+                  }`}
+                >
+                  <UserOutlineIcon className="h-3.5 w-3.5" />
+                  {memberCountLabel}
+                </span>
+              </div>
               {budgetLabel && (
-                <>
-                  <div
-                    aria-hidden="true"
-                    className={`hidden sm:block sm:h-px sm:min-w-6 sm:flex-1 sm:rounded-full ${
-                      isDarkTheme
-                        ? "bg-gradient-to-r from-slate-700/0 via-slate-500/60 to-slate-700/0"
-                        : "bg-gradient-to-r from-slate-200/0 via-slate-300/90 to-slate-200/0"
-                    }`}
-                  />
-                  <div className="flex items-center sm:shrink-0">
-                    <span className={`inline-flex items-center gap-1.5 text-[15px] font-semibold ${isDarkTheme ? "text-slate-100" : "text-slate-700"}`}>
-                      <span className="h-2.5 w-2.5 rounded-full bg-emerald-500" />
-                      Budget: {budgetLabel}
-                    </span>
-                  </div>
-                </>
+                <div className="flex items-center sm:shrink-0">
+                  <span className={`inline-flex items-center gap-1.5 text-[15px] font-semibold ${isDarkTheme ? "text-slate-100" : "text-slate-700"}`}>
+                    <span className="h-2.5 w-2.5 rounded-full bg-emerald-500" />
+                    Budget: {budgetLabel}
+                  </span>
+                </div>
               )}
             </div>
           </div>
