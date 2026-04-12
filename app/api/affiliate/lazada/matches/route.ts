@@ -47,6 +47,26 @@ function sanitizeOptionalNumber(value: unknown): number | null {
   return null;
 }
 
+function normalizePriceBounds(input: {
+  preferredPriceMin: number | null;
+  preferredPriceMax: number | null;
+}): { preferredPriceMin: number | null; preferredPriceMax: number | null } {
+  const { preferredPriceMin, preferredPriceMax } = input;
+
+  if (
+    preferredPriceMin !== null &&
+    preferredPriceMax !== null &&
+    preferredPriceMin > preferredPriceMax
+  ) {
+    return {
+      preferredPriceMin: preferredPriceMax,
+      preferredPriceMax: preferredPriceMin,
+    };
+  }
+
+  return { preferredPriceMin, preferredPriceMax };
+}
+
 function isShoppingRegion(value: string): value is ShoppingRegion {
   return ["AU", "CA", "GLOBAL", "JP", "PH", "UK", "US"].includes(value);
 }
@@ -669,8 +689,11 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ products: [] satisfies WishlistFeaturedProductCard[] });
   }
 
-  const preferredPriceMin = sanitizeOptionalNumber(payload.preferredPriceMin);
-  const preferredPriceMax = sanitizeOptionalNumber(payload.preferredPriceMax);
+  const normalizedPriceBounds = normalizePriceBounds({
+    preferredPriceMin: sanitizeOptionalNumber(payload.preferredPriceMin),
+    preferredPriceMax: sanitizeOptionalNumber(payload.preferredPriceMax),
+  });
+  const { preferredPriceMin, preferredPriceMax } = normalizedPriceBounds;
   const groupBudget = sanitizeOptionalNumber(payload.groupBudget);
   const normalizedSearchQuery = normalizeAngleQuery(searchQuery);
   const normalizedItemName = normalizeAngleQuery(itemName);

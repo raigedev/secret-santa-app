@@ -1,0 +1,149 @@
+SECRET SANTA APP SECURITY CHECKLIST
+Last updated: 2026-04-05
+
+IMPLEMENTED NOW
+
+[ ] Authentication guard exists in middleware
+    Status: DONE
+    Notes:
+    - Private routes redirect unauthenticated users to /login
+    - OAuth callback is normalized through /auth/callback
+    - Verified in: middleware.ts
+
+[ ] Email verification gate exists
+    Status: DONE
+    Notes:
+    - Logged-in but unverified users are blocked from protected routes
+    - Verified in: middleware.ts
+
+[ ] Database security baseline is applied
+    Status: DONE
+    Notes:
+    - pgcrypto enabled
+    - Security helper functions created
+    - Security audit and rate-limit tables created
+    - Verified in: supabase/migrations/202603300001_security_baseline.sql
+
+[ ] Legacy permissive policies were removed
+    Status: DONE
+    Notes:
+    - Old overlapping RLS policies dropped
+    - Table/function grants tightened
+    - Default privileges revoked for future objects
+    - Verified in: supabase/migrations/202603300002_harden_live_rbac.sql
+
+[ ] Sensitive access checks use server/database helpers
+    Status: DONE
+    Notes:
+    - is_group_owner
+    - is_group_member
+    - is_group_member_or_invited
+    - can_view_wishlist
+
+[ ] Group invite tokens are hashed
+    Status: DONE
+    Notes:
+    - token_hash added
+    - plaintext token cleared out
+    - unique index + hash length check added
+    - Verified in: supabase/migrations/202604010010_secure_group_invite_tokens.sql
+
+[ ] Rate limiting exists
+    Status: DONE
+    Notes:
+    - DB-backed consume_rate_limit RPC
+    - App helper exists in lib/security/rate-limit.ts
+
+[ ] Security audit logging exists
+    Status: DONE
+    Notes:
+    - DB-backed audit logs
+    - App helper exists in lib/security/audit.ts
+
+[ ] Affiliate clicks are logged through app-controlled routes
+    Status: DONE
+    Notes:
+    - Suggestion clicks route through /go/suggestion
+    - Wishlist links route through /go/wishlist-link
+    - Users do not directly write affiliate logs
+
+[ ] Lazada postback endpoint is protected
+    Status: DONE
+    Notes:
+    - Uses LAZADA_POSTBACK_SECRET
+    - Unauthorized calls return 401
+    - Verified in: app/api/affiliate/lazada/postback/route.ts
+
+[ ] Lazada conversions are deduplicated
+    Status: DONE
+    Notes:
+    - payload_hash unique index
+    - Upsert on payload_hash prevents duplicate conversion rows
+
+[ ] Click-to-conversion mapping exists
+    Status: DONE
+    Notes:
+    - click_token stored on affiliate_clicks
+    - Lazada postback sub_id6 maps back to affiliate_click_id
+
+[ ] Affiliate report is owner-only
+    Status: DONE
+    Notes:
+    - Access controlled by AFFILIATE_REPORT_OWNER_EMAIL / AFFILIATE_REPORT_ALLOWED_EMAILS
+    - Button only shown to allowed owner
+    - Direct route access is also guarded
+
+[ ] Regular users cannot see the affiliate report
+    Status: DONE
+    Notes:
+    - Owner-only check happens server-side
+    - Regular users are redirected to /dashboard
+
+[ ] Affiliate report can monitor all users internally
+    Status: DONE
+    Notes:
+    - Owner can see app-wide affiliate activity
+    - This is internal only, not public
+
+
+CHECK REGULARLY
+
+[ ] Confirm AFFILIATE_REPORT_OWNER_EMAIL is correct
+[ ] Confirm LAZADA_POSTBACK_SECRET is set in Vercel
+[ ] Confirm Lazada Postback URL is still active in Lazada dashboard
+[ ] Confirm Supabase migrations are fully applied
+[ ] Confirm no new tables were added without RLS/policies
+[ ] Confirm owner-only pages are still hidden from regular users
+[ ] Confirm privacy notice matches real affiliate tracking behavior
+
+
+STILL WORTH ADDING LATER
+
+[ ] Short privacy-notice line for affiliate click/conversion monitoring
+[ ] Optional pseudonymous labels in owner report instead of display names
+[ ] More admin-only reporting filters
+[ ] Security review doc for new features before Amazon affiliate rollout
+[ ] Optional alerting for repeated postback failures
+[ ] Optional stronger admin-role system beyond owner email allowlist
+
+
+CURRENT HIGH-LEVEL RISK LEVEL
+
+- Public access risk to affiliate report: LOW
+- Cross-user data leak risk in normal app flows: LOWER than before, but should still be rechecked after major schema changes
+- Affiliate postback spoofing risk: REDUCED because of LAZADA_POSTBACK_SECRET
+- Invite-link raw token exposure risk: REDUCED because invite tokens are hashed
+
+
+MAIN FILES TO REVIEW
+
+- middleware.ts
+- lib/security/audit.ts
+- lib/security/rate-limit.ts
+- app/api/affiliate/lazada/postback/route.ts
+- app/api/affiliate/report-access/route.ts
+- app/dashboard/affiliate-report/page.tsx
+- supabase/migrations/202603300001_security_baseline.sql
+- supabase/migrations/202603300002_harden_live_rbac.sql
+- supabase/migrations/202604010010_secure_group_invite_tokens.sql
+- supabase/migrations/202604050012_lazada_postback_and_affiliate_conversions.sql
