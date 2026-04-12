@@ -1685,7 +1685,6 @@ export default function DashboardPage() {
             avatarShell: isDarkTheme
               ? "bg-[linear-gradient(145deg,#1e293b,#0f172a)] text-slate-100"
               : "bg-[linear-gradient(145deg,#f8fbff,#e8f1ff)] text-slate-700",
-            stripArrow: isDarkTheme ? "bg-blue-500/15 text-blue-200" : "bg-blue-50 text-blue-400",
           }
         : {
             accent: "from-amber-300 via-orange-300 to-amber-500",
@@ -1704,7 +1703,6 @@ export default function DashboardPage() {
             avatarShell: isDarkTheme
               ? "bg-[linear-gradient(145deg,#3b2a18,#1f2937)] text-slate-100"
               : "bg-[linear-gradient(145deg,#fffaf2,#fff1d6)] text-slate-700",
-            stripArrow: isDarkTheme ? "bg-amber-500/15 text-amber-200" : "bg-amber-50 text-amber-400",
         };
 
     const topMembers = group.members.slice(0, 3);
@@ -1740,26 +1738,38 @@ export default function DashboardPage() {
               </span>
             </div>
 
-            <div className="flex shrink-0 -space-x-2 pl-2">
-              {topMembers.map((member, index) => (
-                <span
-                  key={`${group.id}-${member.email || member.nickname || index}-avatar`}
-                  className={`inline-flex h-10 w-10 items-center justify-center overflow-hidden rounded-full border-2 border-white text-[18px] font-semibold shadow-[0_8px_18px_rgba(15,23,42,0.10)] ${theme.avatarShell}`}
-                  title={member.displayName || member.nickname || member.email || "Participant"}
-                >
-                  {member.avatarUrl ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img src={member.avatarUrl} alt="" className="h-full w-full object-cover" />
-                  ) : (
-                    member.avatarEmoji || getAvatarLabel(member.displayName || member.nickname || member.email)
-                  )}
-                </span>
-              ))}
-              {group.members.length > 3 && (
-                <span className={`inline-flex h-10 w-10 items-center justify-center rounded-full border-2 border-white text-[12px] font-bold shadow-[0_8px_18px_rgba(15,23,42,0.10)] ${isDarkTheme ? "bg-slate-800 text-slate-200" : "bg-slate-200 text-slate-600"}`}>
-                  +{group.members.length - 3}
-                </span>
-              )}
+            <div className="flex shrink-0 items-center gap-2 pl-2">
+              <span
+                className={`hidden sm:inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-[12px] font-semibold ${
+                  isDarkTheme
+                    ? "bg-slate-800/90 text-slate-300 ring-1 ring-slate-700/80"
+                    : "bg-white text-slate-600 ring-1 ring-slate-200"
+                }`}
+              >
+                <UserOutlineIcon className="h-3.5 w-3.5" />
+                {memberCountLabel}
+              </span>
+              <div className="flex -space-x-2">
+                {topMembers.map((member, index) => (
+                  <span
+                    key={`${group.id}-${member.email || member.nickname || index}-avatar`}
+                    className={`inline-flex h-10 w-10 items-center justify-center overflow-hidden rounded-full border-2 border-white text-[18px] font-semibold shadow-[0_8px_18px_rgba(15,23,42,0.10)] ${theme.avatarShell}`}
+                    title={member.displayName || member.nickname || member.email || "Participant"}
+                  >
+                    {member.avatarUrl ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img src={member.avatarUrl} alt="" className="h-full w-full object-cover" />
+                    ) : (
+                      member.avatarEmoji || getAvatarLabel(member.displayName || member.nickname || member.email)
+                    )}
+                  </span>
+                ))}
+                {group.members.length > 3 && (
+                  <span className={`inline-flex h-10 w-10 items-center justify-center rounded-full border-2 border-white text-[12px] font-bold shadow-[0_8px_18px_rgba(15,23,42,0.10)] ${isDarkTheme ? "bg-slate-800 text-slate-200" : "bg-slate-200 text-slate-600"}`}>
+                    +{group.members.length - 3}
+                  </span>
+                )}
+              </div>
             </div>
           </div>
 
@@ -1768,18 +1778,14 @@ export default function DashboardPage() {
               <div className="flex min-w-0 flex-wrap items-center gap-2">
                 <EventCountdownBadge eventDate={group.event_date} now={countdownNow} />
               </div>
-              <div className="hidden sm:flex sm:min-w-0 sm:flex-1 sm:items-center sm:justify-center">
-                <span
-                  className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-[12px] font-semibold ${
-                    isDarkTheme
-                      ? "bg-slate-800/90 text-slate-300 ring-1 ring-slate-700/80"
-                      : "bg-white text-slate-600 ring-1 ring-slate-200"
-                  }`}
-                >
-                  <UserOutlineIcon className="h-3.5 w-3.5" />
-                  {memberCountLabel}
-                </span>
-              </div>
+              <div
+                aria-hidden="true"
+                className={`hidden sm:block sm:h-px sm:min-w-6 sm:flex-1 sm:rounded-full ${
+                  isDarkTheme
+                    ? "bg-gradient-to-r from-slate-700/0 via-slate-500/60 to-slate-700/0"
+                    : "bg-gradient-to-r from-slate-200/0 via-slate-300/90 to-slate-200/0"
+                }`}
+              />
               {budgetLabel && (
                 <div className="flex items-center sm:shrink-0">
                   <span className={`inline-flex items-center gap-1.5 text-[15px] font-semibold ${isDarkTheme ? "text-slate-100" : "text-slate-700"}`}>
@@ -1917,41 +1923,26 @@ export default function DashboardPage() {
     count,
     groups,
     type,
-  }: {
-    title: string;
-    subtitle: string;
-    count: number;
-    groups: Group[];
-    type: "owned" | "invited";
-  }) => {
-    const bucketTheme =
-      type === "owned"
-        ? {
-            shell: isDarkTheme
-              ? "border-slate-700/70 bg-slate-900/55"
-              : "border-white/75 bg-white/82",
-            shadow: isDarkTheme
-              ? "shadow-[0_18px_36px_rgba(2,8,23,0.22)]"
-              : "shadow-[0_18px_36px_rgba(148,163,184,0.10)]",
-            badge: isDarkTheme ? "bg-blue-500/15 text-blue-200" : "bg-blue-100 text-blue-700",
-            countChip: isDarkTheme ? "bg-slate-900/75 text-slate-200 ring-slate-700/70" : "bg-white/92 text-slate-600 ring-slate-200/80",
-          }
-        : {
-            shell: isDarkTheme
-              ? "border-slate-700/70 bg-slate-900/55"
-              : "border-white/75 bg-white/82",
-            shadow: isDarkTheme
-              ? "shadow-[0_18px_36px_rgba(2,8,23,0.22)]"
-              : "shadow-[0_18px_36px_rgba(148,163,184,0.10)]",
-            badge: isDarkTheme ? "bg-amber-500/15 text-amber-200" : "bg-amber-100 text-amber-700",
-            countChip: isDarkTheme ? "bg-slate-900/75 text-slate-200 ring-slate-700/70" : "bg-white/92 text-slate-600 ring-slate-200/80",
-          };
+    }: {
+      title: string;
+      subtitle: string;
+      count: number;
+      groups: Group[];
+      type: "owned" | "invited";
+    }) => {
+      const bucketTheme =
+        type === "owned"
+          ? {
+              badge: isDarkTheme ? "bg-blue-500/15 text-blue-200" : "bg-blue-100 text-blue-700",
+              countChip: isDarkTheme ? "bg-slate-900/75 text-slate-200 ring-slate-700/70" : "bg-white/92 text-slate-600 ring-slate-200/80",
+            }
+          : {
+              badge: isDarkTheme ? "bg-amber-500/15 text-amber-200" : "bg-amber-100 text-amber-700",
+              countChip: isDarkTheme ? "bg-slate-900/75 text-slate-200 ring-slate-700/70" : "bg-white/92 text-slate-600 ring-slate-200/80",
+            };
 
-    return (
-      <section
-        className={`rounded-[24px] border p-4 backdrop-blur-md ${bucketTheme.shell} ${bucketTheme.shadow}`}
-      >
-        <div className="flex flex-col gap-3">
+      return (
+        <section className="space-y-3">
           <div>
             <div className="flex flex-wrap items-center gap-2">
               <span className={`inline-flex items-center rounded-full px-3 py-1 text-[12px] font-semibold ${bucketTheme.badge}`}>
@@ -1964,15 +1955,17 @@ export default function DashboardPage() {
             <h3 className={`mt-2.5 text-[1.24rem] font-bold ${dashboardPanelHeadingClass}`}>{title}</h3>
             <p className={`mt-1 text-[15px] leading-6 ${dashboardPanelTextClass}`}>{subtitle}</p>
           </div>
-        </div>
-
-        <div className={`mt-4 grid gap-3 ${count > 1 ? "lg:grid-cols-2" : "grid-cols-1"}`}>
-          {groups.map((group) => (
-            <GroupCard key={`${type}-${group.id}`} group={group} type={type} />
-          ))}
-        </div>
-      </section>
-    );
+          <div className={count > 1 ? "grid gap-3 lg:grid-cols-2" : "max-w-[760px]"}>
+            {count > 1 ? (
+              groups.map((group) => (
+                <GroupCard key={`${type}-${group.id}`} group={group} type={type} />
+              ))
+            ) : (
+              <GroupCard key={`${type}-${groups[0]?.id ?? "single"}`} group={groups[0]} type={type} />
+            )}
+          </div>
+        </section>
+      );
   };
 
   const profileMenuStyle: CSSProperties | undefined = profileMenuPosition
