@@ -229,6 +229,36 @@ function buildRecipientSuggestionInput(
   };
 }
 
+function mergeSuggestionDisplayOrder(
+  currentOrder: string[],
+  nextOrder: string[]
+): string[] {
+  const nextOrderSet = new Set(nextOrder);
+  const preservedIds = currentOrder.filter((id) => nextOrderSet.has(id));
+  const additionalIds = nextOrder.filter((id) => !preservedIds.includes(id));
+
+  return [...preservedIds, ...additionalIds];
+}
+
+function applySuggestionDisplayOrder(
+  options: WishlistSuggestionOption[],
+  orderedIds: string[]
+): WishlistSuggestionOption[] {
+  if (orderedIds.length === 0) {
+    return options;
+  }
+
+  const optionsById = new Map(options.map((option) => [option.id, option]));
+  const orderedOptions = orderedIds
+    .map((id) => optionsById.get(id) || null)
+    .filter((option): option is WishlistSuggestionOption => Boolean(option));
+  const unorderedOptions = options.filter(
+    (option) => !orderedIds.includes(option.id)
+  );
+
+  return [...orderedOptions, ...unorderedOptions];
+}
+
 // Only allow standard web links to be submitted or rendered from this page.
 // That gives the UI one more guardrail against unsupported protocols.
 function normalizeOptionalUrl(value: string): string {
@@ -710,6 +740,9 @@ export default function SecretSantaPage() {
   const [aiSuggestionStateByItem, setAiSuggestionStateByItem] = useState<
     Record<string, AiSuggestionState>
   >({});
+  const [suggestionDisplayOrderByItem, setSuggestionDisplayOrderByItem] = useState<
+    Record<string, string[]>
+  >({});
   const aiSuggestionStartedItemsRef = useRef<Set<string>>(new Set());
   const [matchedLazadaProductsByKey, setMatchedLazadaProductsByKey] = useState<
     Record<string, LazadaFeaturedProductsState>
@@ -946,6 +979,56 @@ export default function SecretSantaPage() {
   }, [assignments, expandedRecipientItemId, shoppingRegion]);
 
   useEffect(() => {
+    setSuggestionDisplayOrderByItem((current) => {
+      let changed = false;
+      const nextState = { ...current };
+      const activeItemIds = new Set<string>();
+
+      for (const assignment of assignments) {
+        for (const item of assignment.receiver_wishlist) {
+          activeItemIds.add(item.id);
+
+          const aiSuggestionState = aiSuggestionStateByItem[item.id] || null;
+
+          if (shoppingRegion === "PH" && aiSuggestionState?.loading) {
+            continue;
+          }
+
+          const suggestionInput = buildRecipientSuggestionInput(assignment, item);
+          const nextOrder = mergeWishlistSuggestionOptions(
+            buildWishlistSuggestionOptions(suggestionInput),
+            aiSuggestionState?.options || []
+          ).map((suggestion) => suggestion.id);
+
+          if (nextOrder.length === 0) {
+            continue;
+          }
+
+          const currentOrder = current[item.id] || [];
+          const mergedOrder = mergeSuggestionDisplayOrder(currentOrder, nextOrder);
+
+          if (
+            currentOrder.length !== mergedOrder.length ||
+            currentOrder.some((id, index) => id !== mergedOrder[index])
+          ) {
+            nextState[item.id] = mergedOrder;
+            changed = true;
+          }
+        }
+      }
+
+      for (const itemId of Object.keys(nextState)) {
+        if (!activeItemIds.has(itemId)) {
+          delete nextState[itemId];
+          changed = true;
+        }
+      }
+
+      return changed ? nextState : current;
+    });
+  }, [aiSuggestionStateByItem, assignments, shoppingRegion]);
+
+  useEffect(() => {
     if (shoppingRegion !== "PH") {
       return;
     }
@@ -964,10 +1047,13 @@ export default function SecretSantaPage() {
         }
 
         const suggestionInput = buildRecipientSuggestionInput(assignment, item);
-        const suggestionOptions = mergeWishlistSuggestionOptions(
-          buildWishlistSuggestionOptions(suggestionInput),
-          aiSuggestionStateByItem[item.id]?.options || [],
-          selectedSuggestionId
+        const suggestionOptions = applySuggestionDisplayOrder(
+          mergeWishlistSuggestionOptions(
+            buildWishlistSuggestionOptions(suggestionInput),
+            aiSuggestionStateByItem[item.id]?.options || [],
+            selectedSuggestionId
+          ),
+          suggestionDisplayOrderByItem[item.id] || []
         );
         const selectedSuggestion =
           suggestionOptions.find((suggestion) => suggestion.id === selectedSuggestionId) || null;
@@ -1082,7 +1168,13 @@ export default function SecretSantaPage() {
     return () => {
       cancelled = true;
     };
-  }, [aiSuggestionStateByItem, assignments, selectedRecipientSuggestionByItem, shoppingRegion]);
+  }, [
+    aiSuggestionStateByItem,
+    assignments,
+    selectedRecipientSuggestionByItem,
+    shoppingRegion,
+    suggestionDisplayOrderByItem,
+  ]);
 
   useEffect(() => {
     let isMounted = true;
@@ -1656,10 +1748,13 @@ export default function SecretSantaPage() {
                         selectedRecipientSuggestionByItem[item.id] || "";
                       const suggestionInput = buildRecipientSuggestionInput(assignment, item);
                       const aiSuggestionState = aiSuggestionStateByItem[item.id] || null;
-                      const suggestionOptions = mergeWishlistSuggestionOptions(
-                        buildWishlistSuggestionOptions(suggestionInput),
-                        aiSuggestionState?.options || [],
-                        selectedSuggestionId
+                      const suggestionOptions = applySuggestionDisplayOrder(
+                        mergeWishlistSuggestionOptions(
+                          buildWishlistSuggestionOptions(suggestionInput),
+                          aiSuggestionState?.options || [],
+                          selectedSuggestionId
+                        ),
+                        suggestionDisplayOrderByItem[item.id] || []
                       );
                       // Keep the merchant step hidden until the giver explicitly
                       // picks a direction for this wishlist item. That makes the
