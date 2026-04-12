@@ -1771,13 +1771,10 @@ export default function DashboardPage() {
                   Budget: {budgetLabel}
                 </span>
               )}
-              <span className={`ml-auto inline-flex h-7 w-7 items-center justify-center rounded-full ${theme.stripArrow}`}>
-                <ArrowRightIcon className="h-4 w-4" />
-              </span>
             </div>
           </div>
 
-          <div className={`mt-2.5 flex items-center justify-between gap-2.5 border-t pt-2.5 ${isDarkTheme ? "border-slate-700/70" : "border-slate-200/80"}`}>
+          <div className={`mt-2.5 border-t pt-2.5 ${isDarkTheme ? "border-slate-700/70" : "border-slate-200/80"}`}>
             <div className="flex flex-wrap items-center gap-2">
               <button
                 type="button"
@@ -1802,14 +1799,6 @@ export default function DashboardPage() {
                 </button>
               )}
             </div>
-            <button
-              type="button"
-              onClick={() => router.push(`/group/${group.id}`)}
-              className={`inline-flex h-8 w-8 items-center justify-center rounded-full border transition ${isDarkTheme ? "border-slate-700 bg-slate-900 text-slate-300 hover:border-slate-600 hover:text-white" : "border-slate-200 bg-white text-slate-400 hover:border-slate-300 hover:text-slate-600"}`}
-              aria-label={`Open ${group.name}`}
-            >
-              <ArrowRightIcon />
-            </button>
           </div>
         </div>
       </article>
