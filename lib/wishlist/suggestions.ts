@@ -914,14 +914,12 @@ export function mergeWishlistSuggestionOptions(
     [...baseOptions, ...aiOptions].find((option) => option.id === selectedSuggestionId) || null;
   const orderedOptions = [
     exactBaseOption,
-    selectedOption && selectedOption.id !== exactBaseOption?.id ? selectedOption : null,
     ...aiOptions,
-    ...baseOptions,
+    ...baseOptions.filter((option) => option.id !== exactBaseOption?.id),
   ].filter((option): option is WishlistSuggestionOption => Boolean(option));
   const seenQueries = new Set<string>();
   const seenIds = new Set<string>();
-
-  return orderedOptions.filter((option) => {
+  const uniqueOptions = orderedOptions.filter((option) => {
     const normalizedQuery = normalizeSuggestionQuery(option.searchQuery);
 
     if (seenIds.has(option.id) || seenQueries.has(normalizedQuery)) {
@@ -931,7 +929,14 @@ export function mergeWishlistSuggestionOptions(
     seenIds.add(option.id);
     seenQueries.add(normalizedQuery);
     return true;
-  }).slice(0, 4);
+  });
+  const visibleOptions = uniqueOptions.slice(0, 4);
+
+  if (!selectedOption || visibleOptions.some((option) => option.id === selectedOption.id)) {
+    return visibleOptions;
+  }
+
+  return [...visibleOptions.slice(0, 3), selectedOption];
 }
 
 export function buildWishlistMerchantLinks(
