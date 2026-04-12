@@ -1763,17 +1763,27 @@ export default function DashboardPage() {
           </div>
 
           <div className={`mt-2.5 rounded-[18px] border px-2.5 py-2 ${isDarkTheme ? "border-slate-700/70 bg-slate-950/55" : "border-slate-200/80 bg-slate-50/95"}`}>
-            <div className={`grid gap-2 text-sm sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center sm:gap-4 ${isDarkTheme ? "text-slate-200" : "text-slate-700"}`}>
+            <div className={`flex flex-col gap-2 text-sm sm:flex-row sm:items-center sm:gap-4 ${isDarkTheme ? "text-slate-200" : "text-slate-700"}`}>
               <div className="flex min-w-0 flex-wrap items-center gap-2">
                 <EventCountdownBadge eventDate={group.event_date} now={countdownNow} />
               </div>
               {budgetLabel && (
-                <div className="flex items-center sm:justify-self-end">
-                  <span className={`inline-flex items-center gap-1.5 text-[15px] font-semibold ${isDarkTheme ? "text-slate-100" : "text-slate-700"}`}>
-                    <span className="h-2.5 w-2.5 rounded-full bg-emerald-500" />
-                    Budget: {budgetLabel}
-                  </span>
-                </div>
+                <>
+                  <div
+                    aria-hidden="true"
+                    className={`hidden sm:block sm:h-px sm:min-w-6 sm:flex-1 sm:rounded-full ${
+                      isDarkTheme
+                        ? "bg-gradient-to-r from-slate-700/0 via-slate-500/60 to-slate-700/0"
+                        : "bg-gradient-to-r from-slate-200/0 via-slate-300/90 to-slate-200/0"
+                    }`}
+                  />
+                  <div className="flex items-center sm:shrink-0">
+                    <span className={`inline-flex items-center gap-1.5 text-[15px] font-semibold ${isDarkTheme ? "text-slate-100" : "text-slate-700"}`}>
+                      <span className="h-2.5 w-2.5 rounded-full bg-emerald-500" />
+                      Budget: {budgetLabel}
+                    </span>
+                  </div>
+                </>
               )}
             </div>
           </div>
