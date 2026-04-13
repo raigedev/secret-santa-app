@@ -861,23 +861,32 @@ export default function DashboardPage() {
       try {
         const email = (user.email || "guest@example.com").toLowerCase();
 
-        // One query covers linked memberships (user_id) and pending email invites.
-        const membershipRes = await supabase
-          .from("group_members")
-          .select("id, group_id, status, role")
-          .or(`user_id.eq.${user.id},email.eq.${email}`);
+        // Group membership rows drive most of the dashboard, but owned groups
+        // should still show up even if a legacy membership row is missing.
+        const [membershipRes, ownedGroupLookupRes] = await Promise.all([
+          supabase
+            .from("group_members")
+            .select("id, group_id, status, role")
+            .or(`user_id.eq.${user.id},email.eq.${email}`),
+          supabase.from("groups").select("id").eq("owner_id", user.id),
+        ]);
 
         if (membershipRes.error) {
           throw membershipRes.error;
         }
 
+        if (ownedGroupLookupRes.error) {
+          throw ownedGroupLookupRes.error;
+        }
+
         const memberRows = (membershipRes.data || []) as MembershipRow[];
+        const ownedGroupIds = [...new Set((ownedGroupLookupRes.data || []).map((group) => group.id))];
 
         if (!isMounted) {
           return;
         }
 
-        if (!memberRows || memberRows.length === 0) {
+        if ((!memberRows || memberRows.length === 0) && ownedGroupIds.length === 0) {
           setOwnedGroups([]);
           setInvitedGroups([]);
           setPendingInvites([]);
@@ -893,9 +902,13 @@ export default function DashboardPage() {
 
         const acceptedRows = memberRows.filter((row) => row.status === "accepted");
         const pendingRows = memberRows.filter((row) => row.status === "pending");
-        const acceptedGroupIds = [...new Set(acceptedRows.map((row) => row.group_id))];
+        const acceptedGroupIds = [...new Set([...acceptedRows.map((row) => row.group_id), ...ownedGroupIds])];
         const pendingGroupIds = [...new Set(pendingRows.map((row) => row.group_id))];
         const roleMap: Record<string, string> = {};
+
+        for (const ownedGroupId of ownedGroupIds) {
+          roleMap[ownedGroupId] = "owner";
+        }
 
         for (const row of acceptedRows) {
           roleMap[row.group_id] = row.role;
