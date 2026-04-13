@@ -30,6 +30,7 @@ type Group = {
   currency: string | null;
   owner_id: string;
   created_at: string;
+  require_anonymous_nickname: boolean;
   members: GroupMember[];
   isOwner: boolean;
   hasDrawn: boolean;
@@ -40,6 +41,7 @@ type PendingInvite = {
   group_name: string;
   group_description: string;
   group_event_date: string;
+  require_anonymous_nickname: boolean;
 };
 
 type ActionMessage = {
@@ -62,6 +64,7 @@ type GroupRow = {
   currency: string | null;
   owner_id: string;
   created_at: string;
+  require_anonymous_nickname: boolean;
 };
 
 type GroupMemberRow = {
@@ -95,6 +98,7 @@ type PendingGroupRow = {
   name: string;
   description: string;
   event_date: string;
+  require_anonymous_nickname: boolean;
 };
 
 type WishlistSummaryRow = {
@@ -197,6 +201,14 @@ function formatDashboardBudget(budget: number | null, currency: string | null): 
   }
 
   return `${symbol} ${formatter.format(budget)}`;
+}
+
+function getDashboardMemberLabel(member: GroupMember, requireAnonymousNickname: boolean): string {
+  if (requireAnonymousNickname) {
+    return member.nickname || "Participant";
+  }
+
+  return member.displayName || member.nickname || member.email || "Participant";
 }
 
 function formatRelativeTime(value: string): string {
@@ -903,7 +915,7 @@ export default function DashboardPage() {
             acceptedGroupIds.length > 0
               ? supabase
                   .from("groups")
-                  .select("id, name, description, event_date, budget, currency, owner_id, created_at")
+                  .select("id, name, description, event_date, budget, currency, owner_id, created_at, require_anonymous_nickname")
                   .in("id", acceptedGroupIds)
               : createEmptyQueryResult<GroupRow>(),
             acceptedGroupIds.length > 0
@@ -928,7 +940,7 @@ export default function DashboardPage() {
             pendingGroupIds.length > 0
               ? supabase
                   .from("groups")
-                  .select("id, name, description, event_date")
+                  .select("id, name, description, event_date, require_anonymous_nickname")
                   .in("id", pendingGroupIds)
               : createEmptyQueryResult<PendingGroupRow>(),
             acceptedGroupIds.length > 0
@@ -1042,9 +1054,9 @@ export default function DashboardPage() {
                   nickname: member.nickname,
                   email: member.email,
                   role: member.role,
-                  displayName: profile?.displayName || null,
+                  displayName: group.require_anonymous_nickname ? null : profile?.displayName || null,
                   avatarEmoji: profile?.avatarEmoji || null,
-                  avatarUrl: profile?.avatarUrl || null,
+                  avatarUrl: group.require_anonymous_nickname ? null : profile?.avatarUrl || null,
                 };
               }),
           };
@@ -1194,6 +1206,7 @@ export default function DashboardPage() {
             group_name: group.name,
             group_description: group.description || "",
             group_event_date: group.event_date,
+            require_anonymous_nickname: Boolean(group.require_anonymous_nickname),
           }))
         );
       } catch {
@@ -1754,13 +1767,16 @@ export default function DashboardPage() {
                   <span
                     key={`${group.id}-${member.email || member.nickname || index}-avatar`}
                     className={`inline-flex h-10 w-10 items-center justify-center overflow-hidden rounded-full border-2 border-white text-[18px] font-semibold shadow-[0_8px_18px_rgba(15,23,42,0.10)] ${theme.avatarShell}`}
-                    title={member.displayName || member.nickname || member.email || "Participant"}
+                    title={getDashboardMemberLabel(member, group.require_anonymous_nickname)}
                   >
                     {member.avatarUrl ? (
                       // eslint-disable-next-line @next/next/no-img-element
                       <img src={member.avatarUrl} alt="" className="h-full w-full object-cover" />
                     ) : (
-                      member.avatarEmoji || getAvatarLabel(member.displayName || member.nickname || member.email)
+                      member.avatarEmoji ||
+                      getAvatarLabel(
+                        getDashboardMemberLabel(member, group.require_anonymous_nickname)
+                      )
                     )}
                   </span>
                 ))}
@@ -2178,6 +2194,7 @@ export default function DashboardPage() {
                   groupName={invite.group_name}
                   eventDate={invite.group_event_date}
                   description={invite.group_description}
+                  requiresAnonymousNickname={invite.require_anonymous_nickname}
                 />
               ))}
             </div>

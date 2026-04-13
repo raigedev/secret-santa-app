@@ -33,6 +33,7 @@ export default function CreateGroupPage() {
   const [budget, setBudget] = useState(25);
   const [currency, setCurrency] = useState("USD");
   const [customBudget, setCustomBudget] = useState(false);
+  const [requireAnonymousNickname, setRequireAnonymousNickname] = useState(false);
 
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState("");
@@ -80,6 +81,7 @@ export default function CreateGroupPage() {
       inviteEmails: emailList,
       budget: cleanBudget,
       currency,
+      requireAnonymousNickname,
     });
 
     if (!result.success) {
@@ -338,6 +340,67 @@ export default function CreateGroupPage() {
             <p className="text-[11px] mt-1" style={{ color: "#9ca3af" }}>
               Separate multiple emails with commas
             </p>
+          </div>
+
+          <div
+            className="rounded-xl p-4"
+            style={{
+              background: requireAnonymousNickname
+                ? "rgba(37,99,235,.08)"
+                : "rgba(15,23,42,.03)",
+              border: requireAnonymousNickname
+                ? "1px solid rgba(37,99,235,.18)"
+                : "1px solid rgba(148,163,184,.16)",
+            }}
+          >
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <label
+                  className="text-[13px] font-extrabold block"
+                  style={{ color: "#1f2937" }}
+                >
+                  Anonymous nicknames
+                </label>
+                <p className="mt-1 text-[12px] leading-5" style={{ color: "#64748b" }}>
+                  Invited members must choose an event alias before they can join, so the
+                  exchange does not show their real name or email.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setRequireAnonymousNickname((current) => !current)}
+                aria-pressed={requireAnonymousNickname}
+                className="inline-flex shrink-0 items-center rounded-full p-1 transition"
+                style={{
+                  background: requireAnonymousNickname ? "#2563eb" : "#cbd5e1",
+                  width: "52px",
+                }}
+              >
+                <span
+                  className="block h-5 w-5 rounded-full bg-white shadow-sm transition"
+                  style={{
+                    transform: requireAnonymousNickname ? "translateX(24px)" : "translateX(0)",
+                  }}
+                />
+              </button>
+            </div>
+            <div className="mt-3 flex flex-wrap gap-2">
+              <span
+                className="inline-flex rounded-full px-3 py-1 text-[11px] font-bold"
+                style={{
+                  background: requireAnonymousNickname ? "#dbeafe" : "#e2e8f0",
+                  color: requireAnonymousNickname ? "#1d4ed8" : "#475569",
+                }}
+              >
+                {requireAnonymousNickname ? "Alias required on join" : "Standard invite flow"}
+              </span>
+              <span
+                className="inline-flex rounded-full px-3 py-1 text-[11px] font-bold"
+                style={{ background: "#ffffff", color: "#64748b", border: "1px solid rgba(148,163,184,.16)" }}
+              >
+                Members can still change it later
+              </span>
+            </div>
           </div>
 
           {errorMsg && (

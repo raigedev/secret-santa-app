@@ -21,6 +21,7 @@ type CreateGroupInput = {
   eventDate: string;
   inviteEmails: string[];
   name: string;
+  requireAnonymousNickname: boolean;
 };
 
 type CreateGroupResult = {
@@ -125,6 +126,7 @@ export async function createGroupWithInvites(
   const cleanCurrency = sanitizeText(input.currency, GROUP_CURRENCY_MAX_LENGTH).toUpperCase();
   const cleanBudget = Math.min(Math.max(Math.floor(input.budget || 0), 0), 100000);
   const inviteEmails = normalizeInviteEmails(input.inviteEmails || [], user.email);
+  const requireAnonymousNickname = Boolean(input.requireAnonymousNickname);
 
   if (!cleanName) {
     return { success: false, message: "Group name is required." };
@@ -150,6 +152,7 @@ export async function createGroupWithInvites(
       owner_id: user.id,
       budget: cleanBudget,
       currency: cleanCurrency,
+      require_anonymous_nickname: requireAnonymousNickname,
     })
     .select("id")
     .single();
@@ -171,7 +174,7 @@ export async function createGroupWithInvites(
   }
 
   const ownerEmail = (user.email || "").toLowerCase();
-  const ownerNickname = ownerEmail.split("@")[0] || "owner";
+  const ownerNickname = requireAnonymousNickname ? "Organizer" : ownerEmail.split("@")[0] || "owner";
 
   const memberRows = [
     {
@@ -186,7 +189,7 @@ export async function createGroupWithInvites(
       group_id: newGroup.id,
       user_id: null,
       email,
-      nickname: email.split("@")[0],
+      nickname: requireAnonymousNickname ? null : email.split("@")[0],
       role: "member",
       status: "pending",
     })),

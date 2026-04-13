@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { sanitizeGroupNickname, validateAnonymousGroupNickname } from "@/lib/groups/nickname";
 import { acceptInvite, declineInvite } from "./actions";
 
 type Props = {
@@ -8,6 +9,7 @@ type Props = {
   groupName: string;
   eventDate: string;
   description?: string;
+  requiresAnonymousNickname?: boolean;
 };
 
 function EnvelopeIcon({ className = "h-7 w-7" }: { className?: string }) {
@@ -30,14 +32,33 @@ export default function InviteCard({
   groupName,
   eventDate,
   description,
+  requiresAnonymousNickname = false,
 }: Props) {
   const [status, setStatus] = useState<"idle" | "loading" | "accepted" | "declined">(
     "idle"
   );
+  const [nickname, setNickname] = useState("");
+  const [message, setMessage] = useState("");
 
   const handleAccept = async () => {
+    setMessage("");
+
+    if (requiresAnonymousNickname) {
+      const nicknameMessage = validateAnonymousGroupNickname({
+        nickname,
+      });
+
+      if (nicknameMessage) {
+        setMessage(nicknameMessage);
+        return;
+      }
+    }
+
     setStatus("loading");
-    const result = await acceptInvite(groupId);
+    const result = await acceptInvite(
+      groupId,
+      requiresAnonymousNickname ? sanitizeGroupNickname(nickname) : undefined
+    );
 
     if (result.success) {
       setStatus("accepted");
@@ -45,10 +66,11 @@ export default function InviteCard({
     }
 
     setStatus("idle");
-    alert(result.message);
+    setMessage(result.message);
   };
 
   const handleDecline = async () => {
+    setMessage("");
     setStatus("loading");
     const result = await declineInvite(groupId);
 
@@ -69,7 +91,9 @@ export default function InviteCard({
         </div>
         <h3 className="mt-3 text-xl font-bold text-slate-900">{groupName}</h3>
         <p className="mt-2 text-sm leading-6 text-slate-600">
-          You are in. This group now appears in your dashboard so you can jump in whenever you are ready.
+          {requiresAnonymousNickname
+            ? `You are in. This group will show you as ${sanitizeGroupNickname(nickname)} inside the exchange.`
+            : "You are in. This group now appears in your dashboard so you can jump in whenever you are ready."}
         </p>
       </div>
     );
@@ -116,6 +140,34 @@ export default function InviteCard({
         </p>
       )}
 
+      {requiresAnonymousNickname && (
+        <div className="relative z-10 mt-4 rounded-[22px] border border-sky-100 bg-sky-50/80 p-4">
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="inline-flex rounded-full bg-sky-100 px-3 py-1 text-xs font-semibold text-sky-700">
+              Alias required
+            </span>
+            <span className="text-xs font-semibold uppercase tracking-[0.12em] text-slate-500">
+              Anonymous event mode
+            </span>
+          </div>
+          <p className="mt-2 text-sm leading-6 text-slate-600">
+            This group asks members to join with an event nickname instead of using their real
+            name or email.
+          </p>
+          <input
+            type="text"
+            value={nickname}
+            onChange={(event) => setNickname(event.target.value)}
+            maxLength={30}
+            placeholder="Pick your event alias, like GiftFox"
+            className="mt-3 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-900 outline-none transition focus:border-sky-300 focus:ring-2 focus:ring-sky-100"
+          />
+          <p className="mt-2 text-xs font-medium text-slate-500">
+            Keep it playful and anonymous. You can change it again later inside the group.
+          </p>
+        </div>
+      )}
+
       <div className="relative z-10 mt-5 flex flex-wrap gap-3">
         <button
           type="button"
@@ -127,7 +179,11 @@ export default function InviteCard({
               : "bg-[linear-gradient(135deg,#2f80ff,#1f66e5)] text-white shadow-[0_14px_35px_rgba(37,99,235,0.22)] hover:-translate-y-0.5"
           }`}
         >
-          {status === "loading" ? "Processing..." : "Accept invite"}
+          {status === "loading"
+            ? "Processing..."
+            : requiresAnonymousNickname
+              ? "Accept with alias"
+              : "Accept invite"}
         </button>
         <button
           type="button"
@@ -142,6 +198,10 @@ export default function InviteCard({
           Decline
         </button>
       </div>
+
+      {message && (
+        <p className="relative z-10 mt-3 text-sm font-semibold text-rose-600">{message}</p>
+      )}
     </article>
   );
 }

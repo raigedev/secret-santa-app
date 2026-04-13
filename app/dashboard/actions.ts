@@ -1,6 +1,7 @@
 "use server";
 
 import { recordServerFailure } from "@/lib/security/audit";
+import { sanitizeGroupNickname, validateAnonymousGroupNickname } from "@/lib/groups/nickname";
 import { createNotification } from "@/lib/notifications";
 import { enforceRateLimit } from "@/lib/security/rate-limit";
 import { supabaseAdmin } from "@/lib/supabase/admin";
@@ -140,7 +141,10 @@ export async function claimInvitedMemberships(): Promise<{
   return { success: true, linkedCount };
 }
 
-export async function acceptInvite(groupId: string): Promise<MembershipActionResult> {
+export async function acceptInvite(
+  groupId: string,
+  nickname?: string
+): Promise<MembershipActionResult> {
   if (!groupId || !UUID_PATTERN.test(groupId)) {
     return { success: false, message: "Invalid group ID." };
   }
@@ -169,12 +173,26 @@ export async function acceptInvite(groupId: string): Promise<MembershipActionRes
   }
 
   const normalizedEmail = (user.email || "").toLowerCase();
-  const { data: memberships, error: membershipError } = await supabase
-    .from("group_members")
-    .select("id, user_id, email")
-    .eq("group_id", groupId)
-    .eq("status", "pending")
-    .limit(20);
+  const [membershipsResult, groupResult, profileResult] = await Promise.all([
+    supabase
+      .from("group_members")
+      .select("id, user_id, email, nickname")
+      .eq("group_id", groupId)
+      .eq("status", "pending")
+      .limit(20),
+    supabase
+      .from("groups")
+      .select("id, require_anonymous_nickname")
+      .eq("id", groupId)
+      .maybeSingle(),
+    supabase
+      .from("profiles")
+      .select("display_name")
+      .eq("id", user.id)
+      .maybeSingle(),
+  ]);
+
+  const { data: memberships, error: membershipError } = membershipsResult;
 
   if (membershipError) {
     await recordServerFailure({
@@ -196,9 +214,39 @@ export async function acceptInvite(groupId: string): Promise<MembershipActionRes
     return { success: false, message: "Invitation not found." };
   }
 
+  const requiresAnonymousNickname = Boolean(groupResult.data?.require_anonymous_nickname);
+  const cleanNickname = sanitizeGroupNickname(nickname || "");
+
+  if (requiresAnonymousNickname) {
+    const nicknameMessage = validateAnonymousGroupNickname({
+      nickname: cleanNickname,
+      displayName: profileResult.data?.display_name || null,
+      email: normalizedEmail,
+    });
+
+    if (nicknameMessage) {
+      return { success: false, message: nicknameMessage };
+    }
+  }
+
+  const membershipUpdate: {
+    nickname?: string;
+    status: "accepted";
+    user_id: string;
+  } = {
+    status: "accepted",
+    user_id: user.id,
+  };
+
+  if (requiresAnonymousNickname) {
+    membershipUpdate.nickname = cleanNickname;
+  } else if (!membership.nickname) {
+    membershipUpdate.nickname = normalizedEmail.split("@")[0] || "member";
+  }
+
   const { error } = await supabaseAdmin
     .from("group_members")
-    .update({ status: "accepted", user_id: user.id })
+    .update(membershipUpdate)
     .eq("id", membership.id);
 
   if (error) {

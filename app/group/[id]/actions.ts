@@ -6,6 +6,7 @@ import {
   getGroupCapacityMessage,
   MAX_GROUP_MEMBERS,
 } from "@/lib/groups/capacity";
+import { sanitizeGroupNickname, validateAnonymousGroupNickname } from "@/lib/groups/nickname";
 import { recordAuditEvent, recordServerFailure } from "@/lib/security/audit";
 import { createNotification, createNotifications } from "@/lib/notifications";
 import { enforceRateLimit } from "@/lib/security/rate-limit";
@@ -187,7 +188,7 @@ export async function inviteUser(
 
   const { data: group } = await supabase
     .from("groups")
-    .select("name")
+    .select("name, require_anonymous_nickname")
     .eq("id", groupId)
     .maybeSingle();
 
@@ -273,7 +274,7 @@ export async function inviteUser(
       group_id: groupId,
       user_id: existingUserId,
       email: cleanEmail,
-      nickname: cleanEmail.split("@")[0],
+      nickname: group.require_anonymous_nickname ? null : cleanEmail.split("@")[0],
       role: "member",
       status: "pending",
     },
@@ -314,16 +315,12 @@ export async function updateNickname(
   groupId: string,
   nickname: string
 ): Promise<{ success: boolean; message: string }> {
-  const cleanNick = sanitize(nickname, 30);
+  const cleanNick = sanitizeGroupNickname(nickname);
 
   if (cleanNick.length === 0) {
     return { success: false, message: "Nickname cannot be empty." };
   }
-if (!groupId || !UUID_PATTERN.test(groupId)) {
-    return { success: false, message: "Invalid group ID." };
-  }
 
-  
   if (!groupId || !UUID_PATTERN.test(groupId)) {
     return { success: false, message: "Invalid group ID." };
   }
@@ -351,12 +348,26 @@ if (!groupId || !UUID_PATTERN.test(groupId)) {
     return { success: false, message: rateLimit.message };
   }
 
-  const { data: membership, error: membershipError } = await supabase
-    .from("group_members")
-    .select("id")
-    .eq("group_id", groupId)
-    .eq("user_id", user.id)
-    .maybeSingle();
+  const [membershipResult, groupResult, profileResult] = await Promise.all([
+    supabase
+      .from("group_members")
+      .select("id")
+      .eq("group_id", groupId)
+      .eq("user_id", user.id)
+      .maybeSingle(),
+    supabase
+      .from("groups")
+      .select("require_anonymous_nickname")
+      .eq("id", groupId)
+      .maybeSingle(),
+    supabase
+      .from("profiles")
+      .select("display_name")
+      .eq("id", user.id)
+      .maybeSingle(),
+  ]);
+
+  const { data: membership, error: membershipError } = membershipResult;
 
   if (membershipError) {
     await recordServerFailure({
@@ -368,6 +379,18 @@ if (!groupId || !UUID_PATTERN.test(groupId)) {
     });
 
     return { success: false, message: "Failed to update nickname." };
+  }
+
+  if (groupResult.data?.require_anonymous_nickname) {
+    const nicknameMessage = validateAnonymousGroupNickname({
+      nickname: cleanNick,
+      displayName: profileResult.data?.display_name || null,
+      email: user.email || null,
+    });
+
+    if (nicknameMessage) {
+      return { success: false, message: nicknameMessage };
+    }
   }
 
   if (!membership) {

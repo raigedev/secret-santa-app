@@ -2,6 +2,7 @@ import Link from "next/link";
 import { createHash } from "crypto";
 import { redirect } from "next/navigation";
 import { getEmailVerificationMessage, isUserEmailVerified } from "@/lib/auth/user-status";
+import { sanitizeGroupNickname, validateAnonymousGroupNickname } from "@/lib/groups/nickname";
 import {
   countActiveGroupSlots,
   getGroupCapacityMessage,
@@ -24,6 +25,7 @@ type InvitePreview = {
   description: string | null;
   eventDate: string;
   memberCount: number;
+  requireAnonymousNickname: boolean;
   isValid: boolean;
   isClosed: boolean;
   membershipStatus: "accepted" | "pending" | "declined" | null;
@@ -67,6 +69,7 @@ async function loadInvitePreview(
       description: null,
       eventDate: "",
       memberCount: 0,
+      requireAnonymousNickname: false,
       isValid: false,
       isClosed: true,
       membershipStatus: null,
@@ -81,6 +84,7 @@ async function loadInvitePreview(
       description: null,
       eventDate: "",
       memberCount: 0,
+      requireAnonymousNickname: false,
       isValid: false,
       isClosed: true,
       membershipStatus: null,
@@ -92,7 +96,7 @@ async function loadInvitePreview(
     await Promise.all([
       supabaseAdmin
         .from("groups")
-        .select("id, name, description, event_date, owner_id")
+        .select("id, name, description, event_date, owner_id, require_anonymous_nickname")
         .eq("id", link.group_id)
         .maybeSingle(),
       supabaseAdmin
@@ -118,6 +122,7 @@ async function loadInvitePreview(
       description: null,
       eventDate: "",
       memberCount: memberCount || 0,
+      requireAnonymousNickname: false,
       isValid: false,
       isClosed: true,
       membershipStatus: null,
@@ -155,6 +160,7 @@ async function loadInvitePreview(
       description: group.description,
       eventDate: group.event_date,
       memberCount: memberCount || 0,
+      requireAnonymousNickname: Boolean(group.require_anonymous_nickname),
       isValid: true,
       isClosed: true,
       membershipStatus: matchingMembership?.status || null,
@@ -173,6 +179,7 @@ async function loadInvitePreview(
       description: group.description,
       eventDate: group.event_date,
       memberCount: memberCount || 0,
+      requireAnonymousNickname: Boolean(group.require_anonymous_nickname),
       isValid: true,
       isClosed: true,
       membershipStatus: matchingMembership?.status || null,
@@ -186,6 +193,7 @@ async function loadInvitePreview(
     description: group.description,
     eventDate: group.event_date,
     memberCount: memberCount || 0,
+    requireAnonymousNickname: Boolean(group.require_anonymous_nickname),
     isValid: true,
     isClosed: false,
     membershipStatus: matchingMembership?.status || null,
@@ -194,7 +202,8 @@ async function loadInvitePreview(
 }
 
 async function joinGroupViaInviteToken(
-  token: string
+  token: string,
+  nickname?: string
 ): Promise<{ success: boolean; message: string; groupId?: string }> {
   const normalizedToken = normalizeToken(token);
   const tokenHash = hashInviteToken(normalizedToken);
@@ -253,6 +262,37 @@ async function joinGroupViaInviteToken(
   }
 
   const normalizedEmail = user.email.toLowerCase();
+  const { data: groupSettings } = await supabaseAdmin
+    .from("groups")
+    .select("name, owner_id, require_anonymous_nickname")
+    .eq("id", link.group_id)
+    .maybeSingle();
+
+  if (!groupSettings) {
+    return { success: false, message: "This group could not be loaded." };
+  }
+
+  const requiresAnonymousNickname = Boolean(groupSettings.require_anonymous_nickname);
+  const cleanNickname = sanitizeGroupNickname(nickname || "");
+
+  if (requiresAnonymousNickname) {
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("display_name")
+      .eq("id", user.id)
+      .maybeSingle();
+
+    const nicknameMessage = validateAnonymousGroupNickname({
+      nickname: cleanNickname,
+      displayName: profile?.display_name || null,
+      email: normalizedEmail,
+    });
+
+    if (nicknameMessage) {
+      return { success: false, message: nicknameMessage };
+    }
+  }
+
   const defaultNickname = normalizedEmail.split("@")[0] || "member";
 
   const { data: memberships, error: membershipsError } = await supabaseAdmin
@@ -322,7 +362,9 @@ async function joinGroupViaInviteToken(
       .update({
         user_id: user.id,
         email: normalizedEmail,
-        nickname: reusableMembership.nickname || defaultNickname,
+        nickname: requiresAnonymousNickname
+          ? cleanNickname
+          : reusableMembership.nickname || defaultNickname,
         status: "accepted",
       })
       .eq("id", reusableMembership.id);
@@ -351,7 +393,7 @@ async function joinGroupViaInviteToken(
       group_id: link.group_id,
       user_id: user.id,
       email: normalizedEmail,
-      nickname: defaultNickname,
+      nickname: requiresAnonymousNickname ? cleanNickname : defaultNickname,
       role: "member",
       status: "accepted",
     });
@@ -378,18 +420,12 @@ async function joinGroupViaInviteToken(
     resourceType: "group",
   });
 
-  const { data: group } = await supabaseAdmin
-    .from("groups")
-    .select("name, owner_id")
-    .eq("id", link.group_id)
-    .maybeSingle();
-
-  if (group && group.owner_id !== user.id) {
+  if (groupSettings.owner_id !== user.id) {
     await createNotification({
-      userId: group.owner_id,
+      userId: groupSettings.owner_id,
       type: "invite",
       title: "Someone joined through your invite link",
-      body: `A new member joined ${group.name} using the shared invite link.`,
+      body: `A new member joined ${groupSettings.name} using the shared invite link.`,
       linkPath: `/group/${link.group_id}`,
       metadata: {
         groupId: link.group_id,
@@ -425,10 +461,11 @@ export default async function InviteLinkPage({
     ? decodeURIComponent(resolvedSearchParams.error)
     : null;
 
-  async function handleJoinInvite() {
+  async function handleJoinInvite(formData: FormData) {
     "use server";
 
-    const result = await joinGroupViaInviteToken(token);
+    const nickname = (formData.get("nickname") as string | null) || "";
+    const result = await joinGroupViaInviteToken(token, nickname);
 
     if (result.success && result.groupId) {
       redirect(`/group/${result.groupId}`);
@@ -621,12 +658,40 @@ export default async function InviteLinkPage({
                 You&apos;re signed in as <strong>{user.email}</strong>. Join this group to
                 start participating right away.
               </p>
+              {preview.requireAnonymousNickname && (
+                <div
+                  className="rounded-xl border px-4 py-3"
+                  style={{
+                    background: "rgba(239,246,255,.9)",
+                    borderColor: "rgba(59,130,246,.16)",
+                  }}
+                >
+                  <div className="text-[11px] font-extrabold uppercase tracking-[0.12em] text-sky-700">
+                    Anonymous nickname required
+                  </div>
+                  <p className="mt-2 text-[13px] leading-6 text-slate-600">
+                    This host wants members to join with an event alias instead of using a real
+                    name or email.
+                  </p>
+                  <input
+                    type="text"
+                    name="nickname"
+                    maxLength={30}
+                    placeholder="Choose your event alias"
+                    className="mt-3 w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-900 outline-none"
+                  />
+                </div>
+              )}
               <button
                 type="submit"
                 className="w-full rounded-xl px-5 py-3 text-center text-sm font-bold text-white sm:w-auto"
                 style={{ background: "linear-gradient(135deg,#16a34a,#22c55e)" }}
               >
-                {preview.membershipStatus === "declined" ? "Join Again" : "Join Group"}
+                {preview.membershipStatus === "declined"
+                  ? "Join Again"
+                  : preview.requireAnonymousNickname
+                    ? "Join with Alias"
+                    : "Join Group"}
               </button>
             </form>
           )}
