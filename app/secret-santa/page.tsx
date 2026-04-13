@@ -229,6 +229,17 @@ function buildRecipientSuggestionInput(
   };
 }
 
+function getActiveRecipientWishlistItemId(
+  assignment: RecipientData,
+  activeRecipientItemByAssignment: Record<string, string>
+): string {
+  return (
+    activeRecipientItemByAssignment[assignment.group_id] ||
+    assignment.receiver_wishlist[0]?.id ||
+    ""
+  );
+}
+
 function mergeSuggestionDisplayOrder(
   currentOrder: string[],
   nextOrder: string[]
@@ -733,7 +744,9 @@ export default function SecretSantaPage() {
   const [message, setMessage] = useState<ActionMessage>(null);
   const [updatingPrepGroup, setUpdatingPrepGroup] = useState<string | null>(null);
   const [confirmingGroup, setConfirmingGroup] = useState<string | null>(null);
-  const [expandedRecipientItemId, setExpandedRecipientItemId] = useState<string | null>(null);
+  const [activeRecipientItemByAssignment, setActiveRecipientItemByAssignment] = useState<
+    Record<string, string>
+  >({});
   const [selectedRecipientSuggestionByItem, setSelectedRecipientSuggestionByItem] = useState<
     Record<string, string>
   >({});
@@ -870,52 +883,71 @@ export default function SecretSantaPage() {
   }, [assignments]);
 
   useEffect(() => {
-    if (shoppingRegion !== "PH" || !expandedRecipientItemId) {
+    if (shoppingRegion !== "PH") {
       return;
     }
 
-    let targetAssignment: RecipientData | null = null;
-    let targetItem: WishlistItem | null = null;
+    const pendingTargets: Array<{
+      assignment: RecipientData;
+      item: WishlistItem;
+    }> = [];
 
     for (const assignment of assignments) {
-      const matchingItem =
-        assignment.receiver_wishlist.find((wishlistItem) => wishlistItem.id === expandedRecipientItemId) ||
-        null;
+      const activeItemId = getActiveRecipientWishlistItemId(
+        assignment,
+        activeRecipientItemByAssignment
+      );
 
-      if (matchingItem) {
-        targetAssignment = assignment;
-        targetItem = matchingItem;
-        break;
+      if (!activeItemId) {
+        continue;
       }
+
+      const matchingItem =
+        assignment.receiver_wishlist.find(
+          (wishlistItem) => wishlistItem.id === activeItemId
+        ) || null;
+
+      if (!matchingItem || aiSuggestionStartedItemsRef.current.has(matchingItem.id)) {
+        continue;
+      }
+
+      pendingTargets.push({
+        assignment,
+        item: matchingItem,
+      });
     }
 
-    if (!targetAssignment || !targetItem) {
+    if (pendingTargets.length === 0) {
       return;
     }
 
-    if (aiSuggestionStartedItemsRef.current.has(targetItem.id)) {
-      return;
+    for (const pendingTarget of pendingTargets) {
+      aiSuggestionStartedItemsRef.current.add(pendingTarget.item.id);
     }
-
-    aiSuggestionStartedItemsRef.current.add(targetItem.id);
 
     let cancelled = false;
-    let activeController: AbortController | null = null;
 
-    setAiSuggestionStateByItem((current) => ({
-      ...current,
-      [targetItem.id]: {
-        loaded: false,
-        loading: true,
-        options: current[targetItem.id]?.options || [],
-        usedAi: false,
-      },
-    }));
+    setAiSuggestionStateByItem((current) => {
+      const nextState = { ...current };
 
-    const loadAiSuggestions = async () => {
-      const suggestionInput = buildRecipientSuggestionInput(targetAssignment!, targetItem!);
+      for (const pendingTarget of pendingTargets) {
+        nextState[pendingTarget.item.id] = {
+          loaded: false,
+          loading: true,
+          options: current[pendingTarget.item.id]?.options || [],
+          usedAi: false,
+        };
+      }
+
+      return nextState;
+    });
+
+    const loadAiSuggestions = async (
+      targetAssignment: RecipientData,
+      targetItem: WishlistItem
+    ) => {
+      const suggestionInput = buildRecipientSuggestionInput(targetAssignment, targetItem);
       const controller = new AbortController();
-      activeController = controller;
       const timeoutId = window.setTimeout(() => controller.abort(), AI_SUGGESTION_REQUEST_TIMEOUT_MS);
 
       try {
@@ -970,13 +1002,16 @@ export default function SecretSantaPage() {
       }
     };
 
-    void loadAiSuggestions();
+    void Promise.all(
+      pendingTargets.map(({ assignment, item }) =>
+        loadAiSuggestions(assignment, item)
+      )
+    );
 
     return () => {
       cancelled = true;
-      activeController?.abort();
     };
-  }, [assignments, expandedRecipientItemId, shoppingRegion]);
+  }, [activeRecipientItemByAssignment, assignments, shoppingRegion]);
 
   useEffect(() => {
     setSuggestionDisplayOrderByItem((current) => {
@@ -1442,13 +1477,16 @@ export default function SecretSantaPage() {
     }
   };
 
-  // The giver decides when they want help with a wishlist item.
-  // Expanding the card reveals the more specific suggestion angles for that item.
-  const toggleRecipientItemIdeas = (itemId: string) => {
-    setExpandedRecipientItemId((current) => (current === itemId ? null : itemId));
+  // Each recipient card keeps one active wishlist item in view.
+  // That lets the item list stay visible while the shopping panel updates beside it.
+  const selectRecipientWishlistItem = (groupId: string, itemId: string) => {
+    setActiveRecipientItemByAssignment((current) => ({
+      ...current,
+      [groupId]: itemId,
+    }));
   };
 
-  // We keep the selected angle per item so switching between wishlist cards
+  // We keep the selected option per item so switching between wishlist cards
   // does not throw away what the giver was comparing.
   const selectRecipientSuggestion = (itemId: string, suggestionId: string) => {
     setSelectedRecipientSuggestionByItem((current) => ({
@@ -1728,7 +1766,23 @@ export default function SecretSantaPage() {
                       </span>
                     </div>
                   ) : (
-                    assignment.receiver_wishlist.map((item) => {
+                    (() => {
+                      const activeItemId = getActiveRecipientWishlistItemId(
+                        assignment,
+                        activeRecipientItemByAssignment
+                      );
+                      const activeItem =
+                        assignment.receiver_wishlist.find(
+                          (wishlistItem) => wishlistItem.id === activeItemId
+                        ) ||
+                        assignment.receiver_wishlist[0] ||
+                        null;
+
+                      if (!activeItem) {
+                        return null;
+                      }
+
+                      const item = activeItem;
                       const safeItemLink = normalizeOptionalUrl(item.item_link);
                       const lazadaWishlistProductHref =
                         safeItemLink && isLazadaProductPageUrl(safeItemLink)
@@ -1756,9 +1810,6 @@ export default function SecretSantaPage() {
                         ),
                         suggestionDisplayOrderByItem[item.id] || []
                       );
-                      // Keep the merchant step hidden until the giver explicitly
-                      // picks a direction for this wishlist item. That makes the
-                      // flow feel more guided for broad asks like "tablet".
                       const selectedSuggestion =
                         suggestionOptions.find(
                           (suggestion) => suggestion.id === selectedSuggestionId
@@ -1771,6 +1822,9 @@ export default function SecretSantaPage() {
                             shoppingRegion
                           )
                         : [];
+                      const backupMerchantLinks = merchantLinks.filter(
+                        (merchantLink) => merchantLink.merchant !== "lazada"
+                      );
                       const fallbackFeaturedLazadaProducts = selectedSuggestion
                         ? buildWishlistFeaturedLazadaProducts({
                             option: selectedSuggestion,
@@ -1825,7 +1879,7 @@ export default function SecretSantaPage() {
                               ]
                             : rawMatchedLazadaProducts.length > 0
                               ? rawMatchedLazadaProducts
-                            : fallbackFeaturedLazadaProducts;
+                              : fallbackFeaturedLazadaProducts;
                       const hasDirectFeaturedLazadaProducts = featuredLazadaProducts.some(
                         (product) => product.catalogSource === "catalog-product"
                       );
@@ -1840,139 +1894,204 @@ export default function SecretSantaPage() {
                         featuredLazadaProducts.some(
                           (product) => product.catalogSource !== "catalog-product"
                         );
-                      const isIdeaPanelOpen = expandedRecipientItemId === item.id;
+                      const activeRegionLabel =
+                        SHOPPING_REGION_OPTIONS.find(
+                          (option) => option.value === shoppingRegion
+                        )?.label || shoppingRegion;
 
                       return (
                         <div
-                          key={item.id}
-                          className="rounded-[18px] p-4 mb-3 transition"
-                          style={{
-                            background: INSET_BACKGROUND,
-                            border: INSET_BORDER,
-                          }}
+                          className="grid gap-4 lg:grid-cols-[minmax(0,320px)_minmax(0,1fr)]"
+                          style={{ alignItems: "start" }}
                         >
-                          <div className="flex items-start gap-3">
+                          <div className="space-y-3">
                             <div
-                              className="w-14 h-14 rounded-2xl flex items-center justify-center text-[18px] shrink-0"
+                              className="rounded-[18px] p-3.5"
                               style={{
-                                background: "rgba(255,255,255,.88)",
-                                border: "1px solid rgba(96,117,122,.12)",
-                                boxShadow: "0 8px 18px rgba(34,55,59,.05)",
+                                background: "rgba(255,255,255,.68)",
+                                border: "1px solid rgba(96,117,122,.1)",
                               }}
                             >
-                              {safeItemImageUrl ? "IMG" : priorityMeta.icon}
-                            </div>
-                            <div className="flex-1 min-w-0">
-                              <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-                                <div className="min-w-0">
-                                  <div
-                                    className="text-[15px] font-extrabold leading-tight"
-                                    style={{ color: PAGE_TEXT_COLOR }}
-                                  >
-                                    {item.item_name}
-                                  </div>
-                                  {item.item_note && (
-                                    <div
-                                      className="text-[12px] mt-1 leading-relaxed"
-                                      style={{ color: TEXT_MUTED }}
-                                    >
-                                      {item.item_note}
-                                    </div>
-                                  )}
-                                </div>
-                                <div className="flex items-center gap-2 flex-wrap justify-end">
-                                  <span
-                                    className="text-[10px] font-extrabold px-2 py-1 rounded-lg"
-                                    style={{
-                                      background: priorityMeta.badgeBackground,
-                                      color: priorityMeta.badgeColor,
-                                    }}
-                                  >
-                                    {priorityMeta.icon} {priorityMeta.label}
-                                  </span>
-                                  {item.item_category && categoryStyle && (
-                                    <span
-                                      className="text-[10px] font-extrabold px-2 py-1 rounded-lg"
-                                      style={categoryStyle}
-                                    >
-                                      {item.item_category}
-                                    </span>
-                                  )}
-                                </div>
-                              </div>
-                              {(safeItemImageUrl || safeItemLink) && (
-                                <div className="flex flex-wrap gap-2 mt-3">
-                                  {safeItemImageUrl && (
-                                    <a
-                                      href={safeItemImageUrl}
-                                      target="_blank"
-                                      rel="noopener noreferrer"
-                                      title={safeItemImageUrl}
-                                      className="text-[11px] font-semibold px-2.5 py-1.5 rounded-lg inline-flex items-center"
-                                      style={{
-                                        color: HOLIDAY_BLUE,
-                                        background: "rgba(88,116,142,.08)",
-                                        textDecoration: "none",
-                                      }}
-                                    >
-                                      Open image {"->"}
-                                    </a>
-                                  )}
-                                  {safeItemLink && (
-                                    <a
-                                      href={lazadaWishlistProductHref || safeItemLink}
-                                      target="_blank"
-                                      rel="noopener noreferrer"
-                                      title={safeItemLink}
-                                      className="text-[11px] font-semibold px-2.5 py-1.5 rounded-lg inline-flex items-center"
-                                      style={{
-                                        color: HOLIDAY_GOLD,
-                                        background: "rgba(169,135,61,.08)",
-                                        textDecoration: "none",
-                                      }}
-                                    >
-                                      {lazadaWishlistProductHref ? "Buy on Lazada" : "Reference link"}{" "}
-                                      {"->"}
-                                    </a>
-                                  )}
-                                </div>
-                              )}
-                              <button
-                                type="button"
-                                onClick={() => toggleRecipientItemIdeas(item.id)}
-                                className="mt-3 px-3 py-2 rounded-xl text-[11px] font-extrabold transition"
-                                style={{
-                                  background: "rgba(47,107,86,.1)",
-                                  color: HOLIDAY_GREEN,
-                                  border: "1px solid rgba(47,107,86,.16)",
-                                  fontFamily: "inherit",
-                                  cursor: "pointer",
-                                }}
+                              <div
+                                className="text-[12px] font-extrabold"
+                                style={{ color: HOLIDAY_GREEN }}
                               >
-                                {isIdeaPanelOpen ? "Hide shopping ideas" : "Explore shopping ideas"}
-                              </button>
+                                Wishlist items
+                              </div>
+                              <div
+                                className="text-[11px] mt-1 leading-relaxed"
+                                style={{ color: TEXT_MUTED }}
+                              >
+                                Pick an item here and the shopping panel will update
+                                beside it instead of pushing everything lower.
+                              </div>
                             </div>
+
+                            {assignment.receiver_wishlist.map((wishlistItem) => {
+                              const isActiveItem = wishlistItem.id === item.id;
+                              const wishlistCategoryStyle = wishlistItem.item_category
+                                ? getWishlistCategoryStyle(wishlistItem.item_category)
+                                : null;
+                              const wishlistPriorityMeta =
+                                getWishlistPriorityMeta(wishlistItem.priority);
+                              const wishlistImageUrl = normalizeOptionalUrl(
+                                wishlistItem.item_image_url
+                              );
+                              const wishlistHasLink =
+                                normalizeOptionalUrl(wishlistItem.item_link).length >
+                                0;
+                              const wishlistNote = summarizeCardCopy(
+                                wishlistItem.item_note,
+                                84
+                              );
+
+                              return (
+                                <button
+                                  key={wishlistItem.id}
+                                  type="button"
+                                  onClick={() =>
+                                    selectRecipientWishlistItem(
+                                      assignment.group_id,
+                                      wishlistItem.id
+                                    )
+                                  }
+                                  className="w-full rounded-[18px] p-3.5 text-left transition"
+                                  style={{
+                                    background: isActiveItem
+                                      ? "rgba(47,107,86,.1)"
+                                      : "rgba(255,255,255,.72)",
+                                    border: isActiveItem
+                                      ? "1px solid rgba(47,107,86,.22)"
+                                      : "1px solid rgba(96,117,122,.1)",
+                                    boxShadow: isActiveItem
+                                      ? "0 10px 22px rgba(47,107,86,.08)"
+                                      : "none",
+                                    cursor: "pointer",
+                                    fontFamily: "inherit",
+                                  }}
+                                >
+                                  <div className="flex items-start gap-3">
+                                    <div
+                                      className="w-12 h-12 rounded-2xl flex items-center justify-center text-[17px] shrink-0 overflow-hidden"
+                                      style={{
+                                        background: "rgba(255,255,255,.88)",
+                                        border: "1px solid rgba(96,117,122,.1)",
+                                      }}
+                                    >
+                                      {wishlistImageUrl ? (
+                                        // eslint-disable-next-line @next/next/no-img-element
+                                        <img
+                                          src={wishlistImageUrl}
+                                          alt={wishlistItem.item_name}
+                                          className="h-full w-full object-cover"
+                                        />
+                                      ) : (
+                                        wishlistPriorityMeta.icon
+                                      )}
+                                    </div>
+                                    <div className="min-w-0 flex-1">
+                                      <div className="flex items-start justify-between gap-3">
+                                        <div className="min-w-0">
+                                          <div
+                                            className="text-[14px] font-extrabold leading-tight"
+                                            style={{ color: PAGE_TEXT_COLOR }}
+                                          >
+                                            {wishlistItem.item_name}
+                                          </div>
+                                          {wishlistNote && (
+                                            <div
+                                              className="text-[11px] mt-1 leading-relaxed"
+                                              style={{ color: TEXT_MUTED }}
+                                            >
+                                              {wishlistNote}
+                                            </div>
+                                          )}
+                                        </div>
+                                        {isActiveItem && (
+                                          <span
+                                            className="text-[9px] font-extrabold px-2 py-1 rounded-full"
+                                            style={{
+                                              background: "rgba(47,107,86,.12)",
+                                              color: HOLIDAY_GREEN,
+                                            }}
+                                          >
+                                            Viewing
+                                          </span>
+                                        )}
+                                      </div>
+                                      <div className="mt-3 flex items-center gap-2 flex-wrap">
+                                        <span
+                                          className="text-[9px] font-extrabold px-2 py-1 rounded-lg"
+                                          style={{
+                                            background:
+                                              wishlistPriorityMeta.badgeBackground,
+                                            color: wishlistPriorityMeta.badgeColor,
+                                          }}
+                                        >
+                                          {wishlistPriorityMeta.icon}{" "}
+                                          {wishlistPriorityMeta.label}
+                                        </span>
+                                        {wishlistItem.item_category &&
+                                          wishlistCategoryStyle && (
+                                            <span
+                                              className="text-[9px] font-extrabold px-2 py-1 rounded-lg"
+                                              style={wishlistCategoryStyle}
+                                            >
+                                              {wishlistItem.item_category}
+                                            </span>
+                                          )}
+                                        {wishlistHasLink && (
+                                          <span
+                                            className="text-[9px] font-bold px-2 py-1 rounded-lg"
+                                            style={{
+                                              background: "rgba(88,116,142,.08)",
+                                              color: HOLIDAY_BLUE,
+                                            }}
+                                          >
+                                            Link
+                                          </span>
+                                        )}
+                                        {wishlistImageUrl && (
+                                          <span
+                                            className="text-[9px] font-bold px-2 py-1 rounded-lg"
+                                            style={{
+                                              background: "rgba(169,135,61,.08)",
+                                              color: HOLIDAY_GOLD,
+                                            }}
+                                          >
+                                            Photo
+                                          </span>
+                                        )}
+                                      </div>
+                                    </div>
+                                  </div>
+                                </button>
+                              );
+                            })}
                           </div>
 
-                          {isIdeaPanelOpen && (
+                          <div className="lg:sticky lg:top-5 self-start">
                             <div
-                              className="mt-4 pt-4"
-                              style={{ borderTop: "1px solid rgba(96,117,122,.12)" }}
+                              className="rounded-[18px] p-4"
+                              style={{
+                                background: INSET_BACKGROUND,
+                                border: INSET_BORDER,
+                              }}
                             >
-                              <div className="flex items-start justify-between gap-3 mb-3 flex-wrap">
+                              <div className="flex items-start justify-between gap-3 mb-4 flex-wrap">
                                 <div>
                                   <div
                                     className="text-[12px] font-extrabold"
                                     style={{ color: HOLIDAY_GREEN }}
                                   >
-                                    Pick a shopping option
+                                    Shopping picks for {item.item_name}
                                   </div>
                                   <div
                                     className="text-[11px] mt-0.5"
                                     style={{ color: TEXT_MUTED }}
                                   >
-                                    Choose the version that feels closest to what you want to buy,
-                                    then we&apos;ll show the best Lazada picks for it.
+                                    Keep the wishlist in view on the left while you
+                                    compare the best Lazada-ready options here.
                                   </div>
                                 </div>
                                 <div className="flex items-center gap-2 flex-wrap">
@@ -2000,10 +2119,147 @@ export default function SecretSantaPage() {
                                         AI helped
                                       </span>
                                     )}
+                                  <span
+                                    className="text-[10px] font-extrabold px-2 py-1 rounded-lg"
+                                    style={{
+                                      background: "rgba(255,255,255,.78)",
+                                      color: HOLIDAY_GREEN,
+                                    }}
+                                  >
+                                    {activeRegionLabel}
+                                  </span>
                                 </div>
                               </div>
 
-                              <div className="grid gap-2 sm:grid-cols-2">
+                              <div
+                                className="rounded-[18px] p-3.5"
+                                style={{
+                                  background: "rgba(255,255,255,.72)",
+                                  border: "1px solid rgba(96,117,122,.1)",
+                                }}
+                              >
+                                <div className="flex items-start gap-3">
+                                  <div
+                                    className="w-14 h-14 rounded-2xl flex items-center justify-center text-[18px] shrink-0 overflow-hidden"
+                                    style={{
+                                      background: "rgba(255,255,255,.88)",
+                                      border: "1px solid rgba(96,117,122,.12)",
+                                      boxShadow: "0 8px 18px rgba(34,55,59,.05)",
+                                    }}
+                                  >
+                                    {safeItemImageUrl ? (
+                                      // eslint-disable-next-line @next/next/no-img-element
+                                      <img
+                                        src={safeItemImageUrl}
+                                        alt={item.item_name}
+                                        className="h-full w-full object-cover"
+                                      />
+                                    ) : (
+                                      priorityMeta.icon
+                                    )}
+                                  </div>
+                                  <div className="flex-1 min-w-0">
+                                    <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                                      <div className="min-w-0">
+                                        <div
+                                          className="text-[15px] font-extrabold leading-tight"
+                                          style={{ color: PAGE_TEXT_COLOR }}
+                                        >
+                                          {item.item_name}
+                                        </div>
+                                        {item.item_note && (
+                                          <div
+                                            className="text-[12px] mt-1 leading-relaxed"
+                                            style={{ color: TEXT_MUTED }}
+                                          >
+                                            {item.item_note}
+                                          </div>
+                                        )}
+                                      </div>
+                                      <div className="flex items-center gap-2 flex-wrap justify-end">
+                                        <span
+                                          className="text-[10px] font-extrabold px-2 py-1 rounded-lg"
+                                          style={{
+                                            background: priorityMeta.badgeBackground,
+                                            color: priorityMeta.badgeColor,
+                                          }}
+                                        >
+                                          {priorityMeta.icon} {priorityMeta.label}
+                                        </span>
+                                        {item.item_category && categoryStyle && (
+                                          <span
+                                            className="text-[10px] font-extrabold px-2 py-1 rounded-lg"
+                                            style={categoryStyle}
+                                          >
+                                            {item.item_category}
+                                          </span>
+                                        )}
+                                      </div>
+                                    </div>
+                                    {(safeItemImageUrl || safeItemLink) && (
+                                      <div className="flex flex-wrap gap-2 mt-3">
+                                        {safeItemImageUrl && (
+                                          <a
+                                            href={safeItemImageUrl}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            title={safeItemImageUrl}
+                                            className="text-[11px] font-semibold px-2.5 py-1.5 rounded-lg inline-flex items-center"
+                                            style={{
+                                              color: HOLIDAY_BLUE,
+                                              background: "rgba(88,116,142,.08)",
+                                              textDecoration: "none",
+                                            }}
+                                          >
+                                            Open image {"->"}
+                                          </a>
+                                        )}
+                                        {safeItemLink && (
+                                          <a
+                                            href={lazadaWishlistProductHref || safeItemLink}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            title={safeItemLink}
+                                            className="text-[11px] font-semibold px-2.5 py-1.5 rounded-lg inline-flex items-center"
+                                            style={{
+                                              color: HOLIDAY_GOLD,
+                                              background: "rgba(169,135,61,.08)",
+                                              textDecoration: "none",
+                                            }}
+                                          >
+                                            {lazadaWishlistProductHref
+                                              ? "Buy on Lazada"
+                                              : "Reference link"}{" "}
+                                            {"->"}
+                                          </a>
+                                        )}
+                                      </div>
+                                    )}
+                                  </div>
+                                </div>
+                              </div>
+
+                              <div className="mt-4">
+                                <div className="flex items-center justify-between gap-3 mb-3 flex-wrap">
+                                  <div>
+                                    <div
+                                      className="text-[12px] font-extrabold"
+                                      style={{ color: HOLIDAY_GREEN }}
+                                    >
+                                      Pick a shopping option
+                                    </div>
+                                    <div
+                                      className="text-[11px] mt-0.5"
+                                      style={{ color: TEXT_MUTED }}
+                                    >
+                                      Choose the version that feels closest to what
+                                      you want to buy, then we&apos;ll show the best
+                                      Lazada picks for it.
+                                    </div>
+                                  </div>
+                                </div>
+
+                                <div className="grid gap-2 sm:grid-cols-2">
                                 {suggestionOptions.map((suggestion) => {
                                   const isSelected = suggestion.id === selectedSuggestionId;
 
@@ -2109,9 +2365,9 @@ export default function SecretSantaPage() {
                                     className="text-[11px] mt-1 leading-relaxed"
                                     style={{ color: TEXT_MUTED }}
                                   >
-                                    Pick one option for <strong>{item.item_name}</strong> and
-                                    we&apos;ll load the best Lazada picks plus a few extra store
-                                    links underneath.
+                                    We&apos;ll load the best Lazada picks for{" "}
+                                    <strong>{item.item_name}</strong> here without
+                                    hiding the rest of the wishlist.
                                   </div>
                                 </div>
                               )}
@@ -2618,90 +2874,70 @@ export default function SecretSantaPage() {
                                         </div>
                                       )}
 
-                                      <div
-                                        className="text-[11px] font-extrabold mb-2"
-                                        style={{ color: HOLIDAY_GREEN }}
-                                      >
-                                        More places to shop
-                                      </div>
-                                      <div className="grid gap-2">
-                                        {merchantLinks.map((merchantLink) => (
-                                          <a
-                                            key={merchantLink.id}
-                                            href={merchantLink.href}
-                                            target="_blank"
-                                            rel="noopener noreferrer"
-                                            className="rounded-2xl p-3 transition"
-                                            style={{
-                                              background: "rgba(255,255,255,.88)",
-                                              border: "1px solid rgba(96,117,122,.12)",
-                                              color: PAGE_TEXT_COLOR,
-                                              textDecoration: "none",
-                                              boxShadow: "0 8px 18px rgba(34,55,59,.05)",
-                                            }}
-                                          >
-                                            <div className="flex items-center justify-between gap-3 mb-2 flex-wrap">
-                                              <span
-                                                className="text-[10px] font-extrabold px-2 py-1 rounded-lg"
-                                                style={getMerchantBadgeStyle(
+                                      {backupMerchantLinks.length > 0 && (
+                                        <div>
+                                          <div className="flex items-center justify-between gap-2 mb-2 flex-wrap">
+                                            <div
+                                              className="text-[11px] font-extrabold"
+                                              style={{ color: HOLIDAY_GREEN }}
+                                            >
+                                              Other stores
+                                            </div>
+                                            <span
+                                              className="text-[9px] font-bold"
+                                              style={{ color: TEXT_SOFT }}
+                                            >
+                                              Optional backup links
+                                            </span>
+                                          </div>
+                                          <div className="flex flex-wrap gap-2">
+                                            {backupMerchantLinks.map((merchantLink) => {
+                                              const merchantBadgeStyle =
+                                                getMerchantBadgeStyle(
                                                   merchantLink.merchant,
                                                   merchantLink.isAffiliateReady
-                                                )}
-                                              >
-                                                {merchantLink.merchantLabel}
-                                              </span>
-                                              <span
-                                                className="text-[10px] font-extrabold"
-                                                style={{ color: HOLIDAY_GREEN }}
-                                              >
-                                                {merchantLink.fitLabel}
-                                              </span>
-                                            </div>
-                                            <div
-                                              className="text-[13px] font-extrabold"
-                                              style={{ color: PAGE_TEXT_COLOR }}
-                                            >
-                                              {merchantLink.title}
-                                            </div>
-                                            <div
-                                              className="text-[11px] mt-1"
-                                              style={{ color: TEXT_MUTED }}
-                                            >
-                                              {merchantLink.subtitle}
-                                            </div>
-                                            {merchantLink.priceLabel && (
-                                              <div
-                                                className="text-[10px] font-bold mt-2"
-                                                style={{ color: HOLIDAY_GOLD }}
-                                              >
-                                                {merchantLink.priceLabel}
-                                              </div>
-                                            )}
-                                            <div
-                                              className="flex items-center justify-between gap-2 mt-3 flex-wrap"
-                                            >
-                                              <div
-                                                className="text-[11px] font-semibold"
-                                                style={{ color: HOLIDAY_BLUE }}
-                                              >
-                                                View on {merchantLink.merchantLabel} {"->"}
-                                              </div>
-                                              <span
-                                                className="text-[9px] font-bold"
-                                                style={{
-                                                  color: merchantLink.isAffiliateReady
-                                                    ? HOLIDAY_GOLD
-                                                    : TEXT_SOFT,
-                                                }}
-                                              >
-                                                {merchantLink.isAffiliateReady
-                                                  ? "Partner link"
-                                                  : "Search link"}
-                                              </span>
-                                            </div>
-                                          </a>
-                                        ))}
-                                      </div>
+                                                );
+
+                                              return (
+                                                <a
+                                                  key={merchantLink.id}
+                                                  href={merchantLink.href}
+                                                  target="_blank"
+                                                  rel="noopener noreferrer"
+                                                  className="inline-flex items-center gap-2 rounded-xl px-3 py-2 text-[11px] font-bold"
+                                                  style={{
+                                                    background: "rgba(255,255,255,.88)",
+                                                    border:
+                                                      "1px solid rgba(96,117,122,.12)",
+                                                    color: PAGE_TEXT_COLOR,
+                                                    textDecoration: "none",
+                                                  }}
+                                                >
+                                                  <span
+                                                    className="px-2 py-1 rounded-lg text-[10px] font-extrabold"
+                                                    style={merchantBadgeStyle}
+                                                  >
+                                                    {merchantLink.merchantLabel}
+                                                  </span>
+                                                  <span
+                                                    style={{ color: TEXT_MUTED }}
+                                                  >
+                                                    {merchantLink.isAffiliateReady
+                                                      ? "Partner"
+                                                      : "Search"}
+                                                  </span>
+                                                  <span
+                                                    aria-hidden="true"
+                                                    style={{ color: HOLIDAY_BLUE }}
+                                                  >
+                                                    {"->"}
+                                                  </span>
+                                                </a>
+                                              );
+                                            })}
+                                          </div>
+                                        </div>
+                                      )}
 
                                       <div
                                         className="text-[9px] mt-3"
@@ -2714,10 +2950,11 @@ export default function SecretSantaPage() {
                                   </div>
                                 )}
                               </div>
-                            )}
+                            </div>
+                          </div>
                         </div>
                       );
-                    })
+                    })()
 
                   )}
 
