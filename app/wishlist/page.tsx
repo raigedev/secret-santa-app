@@ -9,7 +9,10 @@ import {
   deleteWishlistItem,
   editWishlistItem,
 } from "@/app/dashboard/wishlist-actions";
-import { WISHLIST_CATEGORIES } from "@/lib/wishlist/options";
+import {
+  WISHLIST_CATEGORIES,
+  WISHLIST_ITEMS_PER_GROUP_LIMIT,
+} from "@/lib/wishlist/options";
 
 type WishlistPriority = 0 | 1 | 2;
 
@@ -225,7 +228,28 @@ export default function WishlistPage() {
 
         setGroups(nextGroups);
         setItems(nextItems);
-        setAddGroupId((current) => (current && nextGroups.some((group) => group.id === current) ? current : nextGroups[0]?.id || ""));
+        setAddGroupId((current) => {
+          if (current && nextGroups.some((group) => group.id === current)) {
+            return current;
+          }
+
+          const itemCountByGroup = new Map<string, number>();
+          for (const item of nextItems) {
+            itemCountByGroup.set(
+              item.group_id,
+              (itemCountByGroup.get(item.group_id) || 0) + 1
+            );
+          }
+
+          const firstGroupWithRoom =
+            nextGroups.find(
+              (group) =>
+                (itemCountByGroup.get(group.id) || 0) <
+                WISHLIST_ITEMS_PER_GROUP_LIMIT
+            ) || null;
+
+          return firstGroupWithRoom?.id || nextGroups[0]?.id || "";
+        });
       } catch {
         if (!active) return;
         setMessage({ type: "error", text: "Failed to load your wishlist. Please refresh and try again." });
@@ -252,6 +276,14 @@ export default function WishlistPage() {
 
     if (!addGroupId || !groups.some((group) => group.id === addGroupId)) {
       setMessage({ type: "error", text: "Pick a valid group first." });
+      return;
+    }
+
+    if (selectedGroupAtLimit) {
+      setMessage({
+        type: "error",
+        text: `You can only keep ${WISHLIST_ITEMS_PER_GROUP_LIMIT} wishlist items per group.`,
+      });
       return;
     }
 
@@ -358,6 +390,13 @@ export default function WishlistPage() {
     () => groups.map((group) => ({ ...group, items: items.filter((item) => item.group_id === group.id) })),
     [groups, items]
   );
+  const selectedGroup = groups.find((group) => group.id === addGroupId) || null;
+  const selectedGroupItemCount = useMemo(
+    () => items.filter((item) => item.group_id === addGroupId).length,
+    [addGroupId, items]
+  );
+  const selectedGroupAtLimit =
+    selectedGroupItemCount >= WISHLIST_ITEMS_PER_GROUP_LIMIT;
 
   if (loading) return <ProfileSkeleton />;
 
@@ -428,7 +467,8 @@ export default function WishlistPage() {
             <div>
               <div className="text-[17px] font-extrabold text-[#2f6b56]">Add a wishlist item</div>
               <div className="mt-1 text-[12px] text-slate-500">
-                Keep your own wishlist here so your Secret Santa has clearer guidance.
+                Keep your own wishlist here so your Secret Santa has clearer guidance. Each group can hold up to{" "}
+                <strong>{WISHLIST_ITEMS_PER_GROUP_LIMIT}</strong> items.
               </div>
             </div>
           </div>
@@ -454,6 +494,23 @@ export default function WishlistPage() {
                     </option>
                   ))}
                 </select>
+
+                <div className="mb-3 flex flex-wrap items-center justify-between gap-2 rounded-xl border border-slate-300/60 bg-white/80 px-3 py-2">
+                  <div className="text-[11px] font-semibold text-slate-500">
+                    {selectedGroup
+                      ? `${selectedGroup.name}: ${selectedGroupItemCount}/${WISHLIST_ITEMS_PER_GROUP_LIMIT} items used`
+                      : "Select a group to add your wishlist item"}
+                  </div>
+                  <div
+                    className={`rounded-full px-2.5 py-1 text-[10px] font-extrabold ${
+                      selectedGroupAtLimit
+                        ? "bg-rose-700/10 text-rose-700"
+                        : "bg-emerald-700/10 text-emerald-700"
+                    }`}
+                  >
+                    {selectedGroupAtLimit ? "Limit reached" : "Room available"}
+                  </div>
+                </div>
 
                 <input
                   value={addName}
@@ -522,10 +579,14 @@ export default function WishlistPage() {
                   <button
                     type="button"
                     onClick={handleAdd}
-                    disabled={adding}
-                    className="rounded-lg bg-[#2f6b56] px-4 py-2 text-[12px] font-extrabold text-white transition"
+                    disabled={adding || selectedGroupAtLimit}
+                    className="rounded-lg bg-[#2f6b56] px-4 py-2 text-[12px] font-extrabold text-white transition disabled:cursor-not-allowed disabled:opacity-50"
                   >
-                    {adding ? "Saving..." : "Save item"}
+                    {adding
+                      ? "Saving..."
+                      : selectedGroupAtLimit
+                        ? "Group full"
+                        : "Save item"}
                   </button>
                 </div>
               </div>
@@ -550,7 +611,7 @@ export default function WishlistPage() {
                   </div>
                 </div>
                 <div className="rounded-full bg-emerald-700/10 px-3 py-1 text-[11px] font-extrabold text-emerald-800">
-                  {group.items.length} item{group.items.length === 1 ? "" : "s"}
+                  {group.items.length}/{WISHLIST_ITEMS_PER_GROUP_LIMIT} items
                 </div>
               </div>
 

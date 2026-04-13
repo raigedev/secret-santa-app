@@ -11,6 +11,8 @@ export const WISHLIST_CATEGORIES = [
   "Other",
 ] as const;
 
+export const WISHLIST_ITEMS_PER_GROUP_LIMIT = 3;
+
 export type WishlistCategory = (typeof WISHLIST_CATEGORIES)[number];
 
 export function isWishlistCategory(value: string | null | undefined): value is WishlistCategory {

@@ -3,7 +3,11 @@
 import { recordServerFailure } from "@/lib/security/audit";
 import { enforceRateLimit } from "@/lib/security/rate-limit";
 import { createClient } from "@/lib/supabase/server";
-import { isWishlistCategory, WishlistCategory } from "@/lib/wishlist/options";
+import {
+  isWishlistCategory,
+  WishlistCategory,
+  WISHLIST_ITEMS_PER_GROUP_LIMIT,
+} from "@/lib/wishlist/options";
 
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -116,6 +120,34 @@ export async function addWishlistItem(
 
   if (!memberClient) {
     return { success: false, message: "You must be a member of this group." };
+  }
+
+  const { count, error: countError } = await memberClient
+    .from("wishlists")
+    .select("id", { count: "exact", head: true })
+    .eq("group_id", groupId)
+    .eq("user_id", user.id);
+
+  if (countError) {
+    await recordServerFailure({
+      actorUserId: user.id,
+      errorMessage: countError.message,
+      eventType: "wishlist.add_item",
+      resourceId: groupId,
+      resourceType: "wishlist",
+    });
+
+    return {
+      success: false,
+      message: "Failed to check your wishlist limit. Please try again.",
+    };
+  }
+
+  if ((count || 0) >= WISHLIST_ITEMS_PER_GROUP_LIMIT) {
+    return {
+      success: false,
+      message: `You can add up to ${WISHLIST_ITEMS_PER_GROUP_LIMIT} wishlist items per group.`,
+    };
   }
 
   const { error } = await memberClient.from("wishlists").insert({
