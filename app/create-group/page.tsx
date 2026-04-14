@@ -1,7 +1,11 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
+import {
+  sanitizeGroupNickname,
+  validateAnonymousGroupNickname,
+} from "@/lib/groups/nickname";
 import { createGroupWithInvites } from "./actions";
 
 const BUDGET_OPTIONS = [10, 15, 25, 50, 100];
@@ -22,10 +26,6 @@ function sanitize(input: string, max: number): string {
 export default function CreateGroupPage() {
   const router = useRouter();
 
-  useEffect(() => {
-    router.prefetch("/dashboard");
-  }, [router]);
-
   const [groupName, setGroupName] = useState("");
   const [description, setDescription] = useState("");
   const [eventDate, setEventDate] = useState("");
@@ -34,6 +34,7 @@ export default function CreateGroupPage() {
   const [currency, setCurrency] = useState("USD");
   const [customBudget, setCustomBudget] = useState(false);
   const [requireAnonymousNickname, setRequireAnonymousNickname] = useState(false);
+  const [ownerCodename, setOwnerCodename] = useState("");
 
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState("");
@@ -50,6 +51,7 @@ export default function CreateGroupPage() {
     const cleanName = sanitize(groupName, 100);
     const cleanDesc = sanitize(description, 300);
     const cleanBudget = Math.min(Math.max(Math.floor(budget || 0), 0), 100000);
+    const cleanOwnerCodename = sanitizeGroupNickname(ownerCodename);
 
     if (!cleanName) {
       setErrorMsg("Group name is required.");
@@ -69,6 +71,18 @@ export default function CreateGroupPage() {
       return;
     }
 
+    if (requireAnonymousNickname) {
+      const codenameMessage = validateAnonymousGroupNickname({
+        nickname: cleanOwnerCodename,
+      });
+
+      if (codenameMessage) {
+        setErrorMsg(codenameMessage);
+        setLoading(false);
+        return;
+      }
+    }
+
     const emailList = inviteEmails
       .split(",")
       .map((email) => sanitize(email, 100).toLowerCase())
@@ -82,6 +96,7 @@ export default function CreateGroupPage() {
       budget: cleanBudget,
       currency,
       requireAnonymousNickname,
+      ownerCodename: cleanOwnerCodename,
     });
 
     if (!result.success) {
@@ -95,7 +110,7 @@ export default function CreateGroupPage() {
       await new Promise((resolve) => setTimeout(resolve, 1500));
     }
 
-    router.push("/dashboard");
+    window.location.assign("/dashboard");
   };
 
   const currencySymbol = CURRENCIES.find((item) => item.code === currency)?.symbol || "$";
@@ -362,8 +377,8 @@ export default function CreateGroupPage() {
                   Anonymous nicknames
                 </label>
                 <p className="mt-1 text-[12px] leading-5" style={{ color: "#64748b" }}>
-                  Invited members must choose an event alias before they can join, so the
-                  exchange does not show their real name or email.
+                  Everyone in the event, including you as the organizer, joins with a
+                  codename so the exchange does not show real names or emails.
                 </p>
               </div>
               <button
@@ -392,7 +407,7 @@ export default function CreateGroupPage() {
                   color: requireAnonymousNickname ? "#1d4ed8" : "#475569",
                 }}
               >
-                {requireAnonymousNickname ? "Alias required on join" : "Standard invite flow"}
+                {requireAnonymousNickname ? "Codenames required" : "Standard invite flow"}
               </span>
               <span
                 className="inline-flex rounded-full px-3 py-1 text-[11px] font-bold"
@@ -401,6 +416,35 @@ export default function CreateGroupPage() {
                 Members can still change it later
               </span>
             </div>
+
+            {requireAnonymousNickname && (
+              <div className="mt-4">
+                <label
+                  className="text-[13px] font-extrabold mb-1.5 block"
+                  style={{ color: "#1f2937" }}
+                >
+                  Your organizer codename *
+                </label>
+                <input
+                  type="text"
+                  placeholder="e.g. Moonlight Fox"
+                  value={ownerCodename}
+                  onChange={(e) => setOwnerCodename(e.target.value)}
+                  maxLength={30}
+                  autoComplete="off"
+                  className="w-full rounded-xl px-4 py-3 text-[14px] outline-none transition"
+                  style={{
+                    border: "2px solid rgba(37,99,235,.16)",
+                    background: "#fff",
+                    fontFamily: "inherit",
+                    color: "#1f2937",
+                  }}
+                />
+                <p className="mt-1 text-[11px]" style={{ color: "#64748b" }}>
+                  This is the codename other members will see for you inside the group.
+                </p>
+              </div>
+            )}
           </div>
 
           {errorMsg && (

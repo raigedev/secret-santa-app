@@ -1,5 +1,9 @@
 "use server";
 
+import {
+  sanitizeGroupNickname,
+  validateAnonymousGroupNickname,
+} from "@/lib/groups/nickname";
 import { recordAuditEvent, recordServerFailure } from "@/lib/security/audit";
 import { MAX_GROUP_CREATION_INVITES } from "@/lib/groups/capacity";
 import { enforceRateLimit } from "@/lib/security/rate-limit";
@@ -21,6 +25,7 @@ type CreateGroupInput = {
   eventDate: string;
   inviteEmails: string[];
   name: string;
+  ownerCodename?: string;
   requireAnonymousNickname: boolean;
 };
 
@@ -127,6 +132,7 @@ export async function createGroupWithInvites(
   const cleanBudget = Math.min(Math.max(Math.floor(input.budget || 0), 0), 100000);
   const inviteEmails = normalizeInviteEmails(input.inviteEmails || [], user.email);
   const requireAnonymousNickname = Boolean(input.requireAnonymousNickname);
+  const cleanOwnerCodename = sanitizeGroupNickname(input.ownerCodename || "");
 
   if (!cleanName) {
     return { success: false, message: "Group name is required." };
@@ -138,6 +144,24 @@ export async function createGroupWithInvites(
 
   if (!ALLOWED_CURRENCIES.has(cleanCurrency)) {
     return { success: false, message: "Choose a valid currency." };
+  }
+
+  if (requireAnonymousNickname) {
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("display_name")
+      .eq("user_id", user.id)
+      .maybeSingle();
+
+    const ownerCodenameMessage = validateAnonymousGroupNickname({
+      nickname: cleanOwnerCodename,
+      displayName: profile?.display_name || null,
+      email: user.email || null,
+    });
+
+    if (ownerCodenameMessage) {
+      return { success: false, message: ownerCodenameMessage };
+    }
   }
 
   // Validate and authenticate with the caller's session first, then use the
@@ -154,7 +178,7 @@ export async function createGroupWithInvites(
       currency: cleanCurrency,
       require_anonymous_nickname: requireAnonymousNickname,
     })
-    .select("id")
+    .select("id, name")
     .single();
 
   if (groupError || !newGroup) {
@@ -174,7 +198,9 @@ export async function createGroupWithInvites(
   }
 
   const ownerEmail = (user.email || "").toLowerCase();
-  const ownerNickname = requireAnonymousNickname ? "Organizer" : ownerEmail.split("@")[0] || "owner";
+  const ownerNickname = requireAnonymousNickname
+    ? cleanOwnerCodename
+    : ownerEmail.split("@")[0] || "owner";
 
   const memberRows = [
     {

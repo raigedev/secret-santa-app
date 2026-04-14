@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
+import { getAnonymousGroupDisplayName } from "@/lib/groups/nickname";
 import { createClient } from "@/lib/supabase/client";
 import InviteCard from "./InviteCard";
 import ProfileSetupModal from "./ProfileSetupModal";
@@ -205,7 +206,7 @@ function formatDashboardBudget(budget: number | null, currency: string | null): 
 
 function getDashboardMemberLabel(member: GroupMember, requireAnonymousNickname: boolean): string {
   if (requireAnonymousNickname) {
-    return member.nickname || "Participant";
+    return getAnonymousGroupDisplayName(member.nickname, "Participant");
   }
 
   return member.displayName || member.nickname || member.email || "Participant";

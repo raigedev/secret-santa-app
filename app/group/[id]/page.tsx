@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
+import { getAnonymousGroupDisplayName } from "@/lib/groups/nickname";
 import { createClient } from "@/lib/supabase/client";
 import InviteForm from "./InviteForm";
 import NicknameForm from "./NicknameForm";
@@ -45,6 +46,7 @@ type GroupData = {
   owner_id: string;
   budget: number | null;
   currency: string | null;
+  require_anonymous_nickname: boolean;
   revealed: boolean;
   revealed_at: string | null;
 };
@@ -120,6 +122,19 @@ const CURRENCIES = [
   { code: "AUD", symbol: "A$", label: "AUD" },
   { code: "CAD", symbol: "C$", label: "CAD" },
 ];
+
+function getVisibleGroupMemberName(
+  member: Member,
+  index: number,
+  requireAnonymousNickname: boolean,
+  fallbackPrefix = "Participant"
+): string {
+  if (requireAnonymousNickname) {
+    return getAnonymousGroupDisplayName(member.nickname, `${fallbackPrefix} ${index + 1}`);
+  }
+
+  return member.nickname || `${fallbackPrefix} ${index + 1}`;
+}
 
 function Modal({
   children,
@@ -298,7 +313,7 @@ export default function GroupDetailsPage() {
       const [groupResult, membersResult] = await Promise.all([
         supabase
           .from("groups")
-          .select("name, description, event_date, owner_id, budget, currency, revealed, revealed_at")
+          .select("name, description, event_date, owner_id, budget, currency, require_anonymous_nickname, revealed, revealed_at")
           .eq("id", id)
           .maybeSingle(),
         supabase
@@ -1782,9 +1797,19 @@ export default function GroupDetailsPage() {
                           className="w-6 h-6 rounded-md flex items-center justify-center text-[10px] font-extrabold text-white"
                           style={{ background: "linear-gradient(135deg,#4ade80,#22c55e)" }}
                         >
-                          {(member.nickname || "P")[0].toUpperCase()}
+                          {getVisibleGroupMemberName(
+                            member,
+                            index,
+                            Boolean(groupData?.require_anonymous_nickname),
+                            "Member"
+                          )[0]?.toUpperCase()}
                         </div>
-                        {member.nickname || `Member ${index + 1}`}
+                        {getVisibleGroupMemberName(
+                          member,
+                          index,
+                          Boolean(groupData?.require_anonymous_nickname),
+                          "Member"
+                        )}
                       </div>
                     ))}
                   </div>
@@ -2661,7 +2686,12 @@ export default function GroupDetailsPage() {
                                 className="w-9 h-9 rounded-[10px] flex items-center justify-center text-sm font-extrabold text-white"
                                 style={{ background: "linear-gradient(135deg,#fbbf24,#f59e0b)" }}
                               >
-                                {(member.nickname || "Y")[0].toUpperCase()}
+                                {getVisibleGroupMemberName(
+                                  member,
+                                  index,
+                                  Boolean(groupData?.require_anonymous_nickname),
+                                  "You"
+                                )[0]?.toUpperCase()}
                               </div>
                               <div className="text-sm font-bold text-gray-800">You</div>
                             </div>
@@ -2685,11 +2715,19 @@ export default function GroupDetailsPage() {
                               className="w-9 h-9 rounded-[10px] flex items-center justify-center text-sm font-extrabold text-white"
                               style={{ background: "linear-gradient(135deg,#4ade80,#22c55e)" }}
                             >
-                              {(member.nickname || "P")[0].toUpperCase()}
+                              {getVisibleGroupMemberName(
+                                member,
+                                index,
+                                Boolean(groupData?.require_anonymous_nickname)
+                              )[0]?.toUpperCase()}
                             </div>
                             <div>
                               <div className="text-sm font-bold text-gray-800">
-                                {member.nickname || `Participant ${index + 1}`}
+                                {getVisibleGroupMemberName(
+                                  member,
+                                  index,
+                                  Boolean(groupData?.require_anonymous_nickname)
+                                )}
                               </div>
                               <div className="text-[11px] text-gray-500 font-semibold">
                                 Joined
@@ -2766,7 +2804,11 @@ export default function GroupDetailsPage() {
                         </div>
                         <div>
                           <div className="text-sm font-bold text-gray-800">
-                            {member.nickname || `Participant ${index + 1}`}
+                            {getVisibleGroupMemberName(
+                              member,
+                              index,
+                              Boolean(groupData?.require_anonymous_nickname)
+                            )}
                           </div>
                           <div className="text-[11px] text-gray-500 font-semibold">
                             Hasn&apos;t responded yet
@@ -2837,7 +2879,11 @@ export default function GroupDetailsPage() {
                         </div>
                         <div>
                           <div className="text-sm font-bold text-gray-800">
-                            {member.nickname || `Participant ${index + 1}`}
+                            {getVisibleGroupMemberName(
+                              member,
+                              index,
+                              Boolean(groupData?.require_anonymous_nickname)
+                            )}
                           </div>
                           <div className="text-[11px] text-gray-500 font-semibold">
                             Declined the invitation

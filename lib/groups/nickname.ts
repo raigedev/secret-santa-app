@@ -1,5 +1,6 @@
 const NICKNAME_MAX_LENGTH = 30;
 const EMAIL_LIKE_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/i;
+const RESERVED_ROLE_LABELS = new Set(["organizer", "owner", "host"]);
 
 function normalizeComparableValue(value: string | null | undefined): string {
   return (value || "").replace(/\s+/g, " ").trim().toLowerCase();
@@ -7,6 +8,23 @@ function normalizeComparableValue(value: string | null | undefined): string {
 
 export function sanitizeGroupNickname(input: string): string {
   return input.replace(/<[^>]*>/g, "").replace(/[<>]/g, "").trim().slice(0, NICKNAME_MAX_LENGTH);
+}
+
+export function getAnonymousGroupDisplayName(
+  nickname: string | null | undefined,
+  fallbackLabel = "Participant"
+): string {
+  const cleanNickname = sanitizeGroupNickname(nickname || "");
+
+  if (!cleanNickname) {
+    return fallbackLabel;
+  }
+
+  if (RESERVED_ROLE_LABELS.has(normalizeComparableValue(cleanNickname))) {
+    return fallbackLabel;
+  }
+
+  return cleanNickname;
 }
 
 export function validateAnonymousGroupNickname(options: {
@@ -17,11 +35,11 @@ export function validateAnonymousGroupNickname(options: {
   const cleanNickname = sanitizeGroupNickname(options.nickname);
 
   if (!cleanNickname) {
-    return "Enter an event alias before joining.";
+    return "Enter an event codename to continue.";
   }
 
   if (cleanNickname.includes("@") || EMAIL_LIKE_PATTERN.test(cleanNickname)) {
-    return "Use an alias, not an email address.";
+    return "Use a codename, not an email address.";
   }
 
   const normalizedNickname = normalizeComparableValue(cleanNickname);
@@ -29,16 +47,20 @@ export function validateAnonymousGroupNickname(options: {
   const normalizedEmailName = normalizeComparableValue(options.email?.split("@")[0]);
   const normalizedDisplayName = normalizeComparableValue(options.displayName);
 
+  if (RESERVED_ROLE_LABELS.has(normalizedNickname)) {
+    return "Choose a codename instead of a role label.";
+  }
+
   if (normalizedNickname && normalizedNickname === normalizedEmail) {
-    return "Use an alias, not your email address.";
+    return "Use a codename, not your email address.";
   }
 
   if (normalizedNickname && normalizedNickname === normalizedEmailName) {
-    return "Choose an alias that is different from your email name.";
+    return "Choose a codename that is different from your email name.";
   }
 
   if (normalizedDisplayName && normalizedNickname === normalizedDisplayName) {
-    return "Choose an alias that is different from your profile name.";
+    return "Choose a codename that is different from your profile name.";
   }
 
   return null;

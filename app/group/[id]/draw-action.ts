@@ -1,6 +1,7 @@
 "use server";
 
 import { randomInt } from "crypto";
+import { validateAnonymousGroupNickname } from "@/lib/groups/nickname";
 import { recordAuditEvent, recordServerFailure } from "@/lib/security/audit";
 import { createNotifications } from "@/lib/notifications";
 import { enforceRateLimit } from "@/lib/security/rate-limit";
@@ -561,7 +562,7 @@ export async function drawSecretSanta(
 
   const { data: group } = await supabase
     .from("groups")
-    .select("owner_id, name")
+    .select("owner_id, name, require_anonymous_nickname")
     .eq("id", groupId)
     .maybeSingle();
 
@@ -606,6 +607,19 @@ export async function drawSecretSanta(
       success: false,
       message: "Need at least 3 accepted members to draw names.",
     };
+  }
+
+  if (group.require_anonymous_nickname) {
+    const hasInvalidCodename = members.some(
+      (member) => Boolean(validateAnonymousGroupNickname({ nickname: member.nickname || "" }))
+    );
+
+    if (hasInvalidCodename) {
+      return {
+        success: false,
+        message: "Every participant, including the organizer, needs a codename before drawing names.",
+      };
+    }
   }
 
   const unlinkedMembers = members.filter((member) => !member.user_id);
