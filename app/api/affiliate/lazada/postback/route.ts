@@ -214,6 +214,11 @@ async function handlePostback(request: NextRequest) {
       .maybeSingle();
 
     if (clickLookupError) {
+      console.error("[lazada-postback] Click lookup failed", {
+        errorCode: clickLookupError.code,
+        errorMessage: clickLookupError.message,
+        hasClickToken: true,
+      });
       return new NextResponse("Click lookup failed", { status: 500 });
     }
 
@@ -242,6 +247,12 @@ async function handlePostback(request: NextRequest) {
   );
 
   if (conversionError) {
+    console.error("[lazada-postback] Conversion write failed", {
+      errorCode: conversionError.code,
+      errorMessage: conversionError.message,
+      hasClickToken: Boolean(clickToken),
+      mappedClick: Boolean(affiliateClickId),
+    });
     return new NextResponse("Conversion write failed", { status: 500 });
   }
 

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 
 import {
   buildLazadaClickToken,
+  createLazadaClickToken,
   resolveLazadaSearchRouteLinkTarget,
   resolveLazadaSuggestionLinkTarget,
 } from "@/lib/affiliate/lazada";
@@ -68,8 +69,10 @@ export async function GET(request: NextRequest) {
         reason: string;
       }
     | null = null;
+  const clickToken = merchant === "lazada" ? createLazadaClickToken() : null;
   const lazadaAttribution: Omit<LazadaAffiliateAttributionContext, "searchQuery"> = {
     catalogSource,
+    clickToken,
     fitLabel,
     groupId,
     productId,
@@ -78,7 +81,7 @@ export async function GET(request: NextRequest) {
     trackingLabel,
     wishlistItemId,
   };
-  const clickToken =
+  const savedClickToken =
     merchant === "lazada"
       ? buildLazadaClickToken({
           searchQuery,
@@ -138,7 +141,7 @@ export async function GET(request: NextRequest) {
       merchant,
       suggestion_title: suggestionTitle.slice(0, 120),
       catalog_source: catalogSource,
-      click_token: clickToken,
+      click_token: savedClickToken,
       fit_label: fitLabel,
       resolution_mode: lazadaResolution?.mode || null,
       resolution_reason: lazadaResolution?.reason || null,

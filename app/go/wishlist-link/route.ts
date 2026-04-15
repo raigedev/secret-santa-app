@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 
 import {
   buildLazadaClickToken,
+  createLazadaClickToken,
   resolveLazadaWishlistItemLinkTarget,
 } from "@/lib/affiliate/lazada";
 import type { LazadaAffiliateAttributionContext } from "@/lib/affiliate/lazada";
@@ -22,8 +23,10 @@ export async function GET(request: NextRequest) {
     return NextResponse.redirect(new URL("/secret-santa", request.url));
   }
 
+  const uniqueClickToken = createLazadaClickToken();
   const lazadaAttribution: Omit<LazadaAffiliateAttributionContext, "searchQuery"> = {
     catalogSource: "wishlist-product",
+    clickToken: uniqueClickToken,
     fitLabel: "Wishlist item",
     groupId,
     selectedQuery: itemName,
@@ -36,7 +39,7 @@ export async function GET(request: NextRequest) {
     itemName,
     itemUrl: normalizedItemUrl,
   });
-  const clickToken = buildLazadaClickToken({
+  const savedClickToken = buildLazadaClickToken({
     searchQuery: itemName,
     ...lazadaAttribution,
   });
@@ -53,7 +56,7 @@ export async function GET(request: NextRequest) {
       wishlist_item_id: wishlistItemId,
       merchant: "lazada",
       catalog_source: "wishlist-product",
-      click_token: clickToken,
+      click_token: savedClickToken,
       fit_label: "Wishlist item",
       resolution_mode: lazadaTarget.mode,
       resolution_reason: lazadaTarget.reason,

@@ -26,6 +26,31 @@ type SupabaseErrorLike = {
   message?: string;
 };
 
+function readTargetHost(value: string): string | null {
+  try {
+    return new URL(value).host;
+  } catch {
+    return null;
+  }
+}
+
+function logAffiliateClickInsertError(
+  error: SupabaseErrorLike,
+  payload: AffiliateClickInsert,
+  phase: "primary" | "legacy-fallback"
+) {
+  console.error("[affiliate-click] Failed to save tracked click", {
+    catalogSource: payload.catalog_source || null,
+    errorCode: error.code || null,
+    errorMessage: error.message || "Unknown Supabase insert error",
+    hasClickToken: Boolean(payload.click_token),
+    merchant: payload.merchant,
+    phase,
+    resolutionMode: payload.resolution_mode || null,
+    targetHost: readTargetHost(payload.target_url),
+  });
+}
+
 function isMissingSelectedQueryColumn(error: SupabaseErrorLike): boolean {
   const errorText = [
     error.code,
@@ -66,8 +91,10 @@ export async function insertAffiliateClick(
       return;
     }
 
+    logAffiliateClickInsertError(legacyError, legacyPayload, "legacy-fallback");
     throw legacyError;
   }
 
+  logAffiliateClickInsertError(error, payload, "primary");
   throw error;
 }

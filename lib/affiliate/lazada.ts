@@ -1,6 +1,6 @@
 import "server-only";
 
-import { createHash, createHmac } from "crypto";
+import { createHash, createHmac, randomBytes } from "crypto";
 import {
   findBestLazadaFeedMatches,
   findLazadaFeedProductByItemId,
@@ -111,6 +111,7 @@ export type LazadaPrimePromotionLinksResult = {
 
 export type LazadaAffiliateAttributionContext = {
   catalogSource?: string | null;
+  clickToken?: string | null;
   fitLabel?: string | null;
   groupId?: string | null;
   productId?: string | null;
@@ -245,6 +246,10 @@ export function buildLazadaWishlistSubIds(searchQuery: string): LazadaSubIds {
   });
 }
 
+export function createLazadaClickToken(): string {
+  return randomBytes(12).toString("hex");
+}
+
 function slugifyLazadaSubIdValue(value: string | null | undefined, fallback: string): string {
   const slug = (value || "")
     .toLowerCase()
@@ -256,6 +261,12 @@ function slugifyLazadaSubIdValue(value: string | null | undefined, fallback: str
 }
 
 export function buildLazadaClickToken(context: LazadaAffiliateAttributionContext): string {
+  const providedClickToken = sanitizeOptionalIdentifier(context.clickToken);
+
+  if (providedClickToken) {
+    return providedClickToken;
+  }
+
   return createHash("sha256")
     .update(
       JSON.stringify({
