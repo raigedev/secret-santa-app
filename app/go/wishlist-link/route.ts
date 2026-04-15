@@ -4,8 +4,8 @@ import {
   buildLazadaClickToken,
   resolveLazadaWishlistItemLinkTarget,
 } from "@/lib/affiliate/lazada";
+import { insertAffiliateClick } from "@/lib/affiliate/click-tracking";
 import { normalizeLazadaProductPageUrl } from "@/lib/affiliate/lazada-url";
-import { supabaseAdmin } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 
 export async function GET(request: NextRequest) {
@@ -49,7 +49,7 @@ export async function GET(request: NextRequest) {
       data: { user },
     } = await supabase.auth.getUser();
 
-    await supabaseAdmin.from("affiliate_clicks").insert({
+    await insertAffiliateClick({
       user_id: user?.id || null,
       group_id: groupId,
       wishlist_item_id: wishlistItemId,
