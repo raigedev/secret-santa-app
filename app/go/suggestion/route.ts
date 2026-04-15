@@ -5,6 +5,7 @@ import {
   resolveLazadaSearchRouteLinkTarget,
   resolveLazadaSuggestionLinkTarget,
 } from "@/lib/affiliate/lazada";
+import type { LazadaAffiliateAttributionContext } from "@/lib/affiliate/lazada";
 import { insertAffiliateClick } from "@/lib/affiliate/click-tracking";
 import { createClient } from "@/lib/supabase/server";
 import {
@@ -67,18 +68,21 @@ export async function GET(request: NextRequest) {
         reason: string;
       }
     | null = null;
+  const lazadaAttribution: Omit<LazadaAffiliateAttributionContext, "searchQuery"> = {
+    catalogSource,
+    fitLabel,
+    groupId,
+    productId,
+    selectedQuery,
+    skuId,
+    trackingLabel,
+    wishlistItemId,
+  };
   const clickToken =
     merchant === "lazada"
       ? buildLazadaClickToken({
-          catalogSource,
-          fitLabel,
-          groupId,
-          productId,
           searchQuery,
-          selectedQuery,
-          skuId,
-          trackingLabel,
-          wishlistItemId,
+          ...lazadaAttribution,
         })
       : null;
 
@@ -97,24 +101,12 @@ export async function GET(request: NextRequest) {
     const lazadaTarget =
       catalogSource === "search-backed"
         ? await resolveLazadaSearchRouteLinkTarget({
-            attribution: {
-              catalogSource,
-              fitLabel,
-              groupId,
-              trackingLabel,
-              wishlistItemId,
-            },
+            attribution: lazadaAttribution,
             fallbackUrl: targetUrl,
             searchQuery,
           })
         : await resolveLazadaSuggestionLinkTarget({
-            attribution: {
-              catalogSource,
-              fitLabel,
-              groupId,
-              trackingLabel,
-              wishlistItemId,
-            },
+            attribution: lazadaAttribution,
             fallbackUrl: targetUrl,
             groupBudget: Number.isFinite(groupBudget) ? groupBudget : null,
             itemCategory,

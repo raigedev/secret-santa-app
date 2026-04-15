@@ -4,6 +4,7 @@ import {
   buildLazadaClickToken,
   resolveLazadaWishlistItemLinkTarget,
 } from "@/lib/affiliate/lazada";
+import type { LazadaAffiliateAttributionContext } from "@/lib/affiliate/lazada";
 import { insertAffiliateClick } from "@/lib/affiliate/click-tracking";
 import { normalizeLazadaProductPageUrl } from "@/lib/affiliate/lazada-url";
 import { createClient } from "@/lib/supabase/server";
@@ -21,26 +22,23 @@ export async function GET(request: NextRequest) {
     return NextResponse.redirect(new URL("/secret-santa", request.url));
   }
 
+  const lazadaAttribution: Omit<LazadaAffiliateAttributionContext, "searchQuery"> = {
+    catalogSource: "wishlist-product",
+    fitLabel: "Wishlist item",
+    groupId,
+    selectedQuery: itemName,
+    trackingLabel: "Partner link",
+    wishlistItemId,
+  };
   const lazadaTarget = await resolveLazadaWishlistItemLinkTarget({
-    attribution: {
-      catalogSource: "wishlist-product",
-      fitLabel: "Wishlist item",
-      groupId,
-      trackingLabel: "Partner link",
-      wishlistItemId,
-    },
+    attribution: lazadaAttribution,
     fallbackUrl: normalizedItemUrl,
     itemName,
     itemUrl: normalizedItemUrl,
   });
   const clickToken = buildLazadaClickToken({
-    catalogSource: "wishlist-product",
-    fitLabel: "Wishlist item",
-    groupId,
     searchQuery: itemName,
-    selectedQuery: itemName,
-    trackingLabel: "Partner link",
-    wishlistItemId,
+    ...lazadaAttribution,
   });
 
   try {
