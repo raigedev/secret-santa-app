@@ -564,7 +564,7 @@ function getFeaturedLazadaRoleLabel(
 }
 
 function getFeaturedLazadaButtonLabel(product: WishlistFeaturedProductCard): string {
-  return product.catalogSource === "catalog-product" ? "Open on Lazada" : "See more on Lazada";
+  return product.catalogSource === "catalog-product" ? "Open Lazada item" : "Browse Lazada";
 }
 
 function getFeaturedLazadaCollectionLabel(params: {
@@ -593,15 +593,15 @@ function getFeaturedLazadaCollectionDescription(params: {
   usingMatchedProducts: boolean;
 }): string {
   if (params.hasMixed) {
-    return "Start with the strongest direct picks here, then open broader Lazada results if you want more variety.";
+    return "Start with direct listings first. Use search cards only when you want more variety.";
   }
 
   if (params.usingMatchedProducts) {
-    return "These cards open direct Lazada listings that best match the option you picked.";
+    return "Direct Lazada listings matched to the option you picked.";
   }
 
   if (params.allSearchBacked) {
-    return "These cards open Lazada result pages so you can browse more matching options.";
+    return "Search pages that keep the query and budget direction ready.";
   }
 
   return "Use these cards to compare the clearest Lazada options for this gift.";
@@ -616,21 +616,21 @@ function getFeaturedLazadaSourceMeta(product: WishlistFeaturedProductCard): {
     return {
       background: "rgba(59,130,246,.1)",
       color: "#1d4ed8",
-      label: "Direct pick",
+      label: "Exact listing",
     };
   }
 
   return {
     background: "rgba(169,135,61,.1)",
     color: HOLIDAY_GOLD,
-    label: "Search results",
+    label: "Search page",
   };
 }
 
 function getFeaturedLazadaPriceCaption(product: WishlistFeaturedProductCard): string {
   if (product.priceLabel) {
     return product.catalogSource === "catalog-product"
-      ? "Current affiliate-feed price"
+      ? "Affiliate-feed price"
       : "Guide price for this option";
   }
 
@@ -639,18 +639,10 @@ function getFeaturedLazadaPriceCaption(product: WishlistFeaturedProductCard): st
     : "More Lazada results";
 }
 
-function getFeaturedLazadaOpenBehaviorCopy(product: WishlistFeaturedProductCard): string {
-  return product.catalogSource === "catalog-product"
-    ? "Opens this item on Lazada."
-    : "Opens Lazada results with more choices.";
-}
-
 function getFeaturedLazadaCardSurfaceStyle(product: WishlistFeaturedProductCard): {
   background: string;
   border: string;
   boxShadow: string;
-  behaviorBackground: string;
-  behaviorColor: string;
 } {
   if (product.catalogSource === "catalog-product") {
     return {
@@ -658,8 +650,6 @@ function getFeaturedLazadaCardSurfaceStyle(product: WishlistFeaturedProductCard)
         "linear-gradient(180deg,rgba(255,255,255,.98),rgba(241,247,252,.95))",
       border: "1px solid rgba(88,116,142,.16)",
       boxShadow: "0 12px 28px rgba(88,116,142,.08)",
-      behaviorBackground: "rgba(88,116,142,.08)",
-      behaviorColor: HOLIDAY_BLUE,
     };
   }
 
@@ -668,8 +658,6 @@ function getFeaturedLazadaCardSurfaceStyle(product: WishlistFeaturedProductCard)
       "linear-gradient(180deg,rgba(255,255,255,.98),rgba(251,248,242,.95))",
     border: "1px solid rgba(169,135,61,.18)",
     boxShadow: "0 12px 28px rgba(169,135,61,.08)",
-    behaviorBackground: "rgba(169,135,61,.1)",
-    behaviorColor: HOLIDAY_GOLD,
   };
 }
 
@@ -1901,7 +1889,7 @@ export default function SecretSantaPage() {
 
                       return (
                         <div
-                          className="grid gap-4 lg:grid-cols-[minmax(0,320px)_minmax(0,1fr)]"
+                          className="grid gap-4 lg:grid-cols-[minmax(260px,300px)_minmax(0,1fr)]"
                           style={{ alignItems: "start" }}
                         >
                           <div className="space-y-3">
@@ -1916,14 +1904,14 @@ export default function SecretSantaPage() {
                                 className="text-[12px] font-extrabold"
                                 style={{ color: HOLIDAY_GREEN }}
                               >
-                                Wishlist items
+                                Gift ideas
                               </div>
                               <div
                                 className="text-[11px] mt-1 leading-relaxed"
                                 style={{ color: TEXT_MUTED }}
                               >
-                                Pick an item here and the shopping panel will update
-                                beside it instead of pushing everything lower.
+                                Pick one idea. The shopping panel stays beside the list
+                                so you can compare without losing your place.
                               </div>
                             </div>
 
@@ -2084,7 +2072,7 @@ export default function SecretSantaPage() {
                                     className="text-[12px] font-extrabold"
                                     style={{ color: HOLIDAY_GREEN }}
                                   >
-                                    Shopping picks for {item.item_name}
+                                    Shopping guide for {item.item_name}
                                   </div>
                                   <div
                                     className="text-[11px] mt-0.5"
@@ -2382,42 +2370,12 @@ export default function SecretSantaPage() {
                                         border: "1px solid rgba(96,117,122,.12)",
                                       }}
                                     >
-                                      <div className="flex items-start justify-between gap-3 mb-3 flex-wrap">
-                                        <div>
-                                          <div
-                                            className="text-[12px] font-extrabold"
-                                            style={{ color: HOLIDAY_GREEN }}
-                                          >
-                                            Shop this option
-                                          </div>
-                                          <div
-                                            className="text-[11px] mt-0.5"
-                                            style={{ color: TEXT_MUTED }}
-                                          >
-                                            Start with Lazada, then open other stores if you want
-                                            more choices.
-                                          </div>
-                                        </div>
-                                        <span
-                                          className="text-[10px] font-extrabold px-2 py-1 rounded-lg"
-                                          style={{
-                                            background: "rgba(255,255,255,.78)",
-                                            color: HOLIDAY_GREEN,
-                                          }}
-                                        >
-                                          {
-                                            SHOPPING_REGION_OPTIONS.find(
-                                              (option) => option.value === shoppingRegion
-                                            )?.label
-                                          }
-                                        </span>
-                                      </div>
-
                                       <div
-                                        className="rounded-2xl p-3 mb-3"
+                                        className="rounded-2xl p-3.5 mb-3"
                                         style={{
-                                          background: "rgba(255,255,255,.76)",
-                                          border: "1px solid rgba(96,117,122,.1)",
+                                          background:
+                                            "linear-gradient(135deg,rgba(47,107,86,.1),rgba(255,255,255,.76))",
+                                          border: "1px solid rgba(47,107,86,.16)",
                                         }}
                                       >
                                         <div className="flex items-start justify-between gap-3 flex-wrap">
@@ -2426,10 +2384,10 @@ export default function SecretSantaPage() {
                                               className="text-[9px] font-extrabold uppercase tracking-[0.08em]"
                                               style={{ color: HOLIDAY_GREEN }}
                                             >
-                                              Picked option
+                                              Shopping plan
                                             </div>
                                             <div
-                                              className="text-[14px] font-extrabold mt-1"
+                                              className="text-[15px] font-extrabold mt-1"
                                               style={{ color: PAGE_TEXT_COLOR }}
                                             >
                                               {selectedSuggestion.title}
@@ -2441,72 +2399,38 @@ export default function SecretSantaPage() {
                                               {selectedSuggestion.subtitle}
                                             </div>
                                           </div>
-                                          <div className="flex items-center gap-2 flex-wrap">
-                                            {selectedSuggestion.priceLabel && (
-                                              <span
-                                                className="text-[10px] font-bold px-2.5 py-1 rounded-full"
-                                                style={{
-                                                  color: HOLIDAY_GOLD,
-                                                  background: "rgba(169,135,61,.08)",
-                                                }}
-                                              >
-                                                {selectedSuggestion.priceLabel}
-                                              </span>
-                                            )}
-                                          </div>
+                                          <span
+                                            className="text-[10px] font-extrabold px-2.5 py-1 rounded-full"
+                                            style={{
+                                              background: "rgba(255,255,255,.82)",
+                                              color: HOLIDAY_GREEN,
+                                            }}
+                                          >
+                                            {activeRegionLabel}
+                                          </span>
                                         </div>
-                                      </div>
 
-                                      <div className="grid gap-2 sm:grid-cols-2 mb-3">
-                                        <div
-                                          className="rounded-2xl px-3 py-2"
-                                          style={{
-                                            background: "rgba(88,116,142,.06)",
-                                            border: "1px solid rgba(88,116,142,.08)",
-                                          }}
-                                        >
-                                          <div
-                                            className="text-[9px] font-extrabold uppercase tracking-[0.08em]"
-                                            style={{ color: HOLIDAY_BLUE }}
+                                        <div className="mt-3 flex items-center gap-2 flex-wrap">
+                                          <span
+                                            className="text-[10px] font-bold px-2.5 py-1 rounded-full"
+                                            style={{
+                                              color: HOLIDAY_BLUE,
+                                              background: "rgba(88,116,142,.08)",
+                                            }}
                                           >
-                                            Lazada query
-                                          </div>
-                                          <div
-                                            className="text-[12px] font-semibold mt-1"
-                                            style={{ color: PAGE_TEXT_COLOR }}
+                                            Search: {selectedSuggestion.searchQuery}
+                                          </span>
+                                          <span
+                                            className="text-[10px] font-bold px-2.5 py-1 rounded-full"
+                                            style={{
+                                              color: HOLIDAY_GOLD,
+                                              background: "rgba(169,135,61,.08)",
+                                            }}
                                           >
-                                            {selectedSuggestion.searchQuery}
-                                          </div>
-                                        </div>
-                                        <div
-                                          className="rounded-2xl px-3 py-2"
-                                          style={{
-                                            background: "rgba(169,135,61,.06)",
-                                            border: "1px solid rgba(169,135,61,.08)",
-                                          }}
-                                        >
-                                          <div
-                                            className="text-[9px] font-extrabold uppercase tracking-[0.08em]"
-                                            style={{ color: HOLIDAY_GOLD }}
-                                          >
-                                            Budget
-                                          </div>
-                                          <div
-                                            className="text-[12px] font-semibold mt-1"
-                                            style={{ color: PAGE_TEXT_COLOR }}
-                                          >
-                                            {selectedSuggestion.priceLabel || "No fixed budget guide"}
-                                          </div>
-                                          <div
-                                            className="text-[10px] mt-1"
-                                            style={{ color: TEXT_MUTED }}
-                                          >
-                                            {
-                                              SHOPPING_REGION_OPTIONS.find(
-                                                (option) => option.value === shoppingRegion
-                                              )?.label
-                                            }
-                                          </div>
+                                            {selectedSuggestion.priceLabel ||
+                                              activeGroupBudgetLabel ||
+                                              "No fixed budget"}
+                                          </span>
                                         </div>
                                       </div>
 
@@ -2551,7 +2475,7 @@ export default function SecretSantaPage() {
                                                   }}
                                                 />
                                                 <div
-                                                  className="mt-3 h-29.5 rounded-[18px]"
+                                                  className="mt-3 h-[104px] rounded-[18px]"
                                                   style={{
                                                     background:
                                                       "linear-gradient(180deg,rgba(239,244,241,.82),rgba(229,236,233,.76))",
@@ -2590,10 +2514,10 @@ export default function SecretSantaPage() {
                                         <div className="mb-3">
                                           <div className="flex items-center justify-between gap-3 mb-2 flex-wrap">
                                             <div
-                                              className="text-[11px] font-extrabold"
+                                              className="text-[12px] font-extrabold"
                                               style={{ color: HOLIDAY_GREEN }}
                                             >
-                                              Best Lazada picks
+                                              Best Lazada picks to open first
                                             </div>
                                             <span
                                               className="text-[10px] font-extrabold px-2.5 py-1 rounded-full"
@@ -2681,8 +2605,6 @@ export default function SecretSantaPage() {
                                                 getFeaturedLazadaSourceMeta(product);
                                               const priceCaption =
                                                 getFeaturedLazadaPriceCaption(product);
-                                              const openBehaviorCopy =
-                                                getFeaturedLazadaOpenBehaviorCopy(product);
                                               const cardSurface =
                                                 getFeaturedLazadaCardSurfaceStyle(product);
                                               const showVisualPreview = Boolean(
@@ -2692,13 +2614,13 @@ export default function SecretSantaPage() {
                                               return (
                                                 <div
                                                   key={product.id}
-                                                  className="rounded-[22px] p-4 transition flex flex-col h-full"
+                                                  className="rounded-[20px] p-3.5 transition flex flex-col h-full"
                                                   style={{
                                                     background: cardSurface.background,
                                                     border: cardSurface.border,
                                                     color: PAGE_TEXT_COLOR,
                                                     boxShadow: cardSurface.boxShadow,
-                                                    minHeight: 360,
+                                                    minHeight: 310,
                                                     cursor: "default",
                                                   }}
                                                 >
@@ -2748,7 +2670,7 @@ export default function SecretSantaPage() {
                                                     <div
                                                       className="mt-3 rounded-[18px] overflow-hidden flex items-center justify-center"
                                                       style={{
-                                                        minHeight: 118,
+                                                        minHeight: 104,
                                                         background:
                                                           "linear-gradient(180deg,rgba(239,244,241,.9),rgba(229,236,233,.86))",
                                                         border: "1px solid rgba(96,117,122,.08)",
@@ -2759,7 +2681,7 @@ export default function SecretSantaPage() {
                                                         <img
                                                           src={safeProductImageUrl}
                                                           alt={product.title}
-                                                          className="w-full h-29.5 object-contain"
+                                                          className="w-full h-[104px] object-contain"
                                                         />
                                                       ) : (
                                                         <div
@@ -2790,16 +2712,6 @@ export default function SecretSantaPage() {
                                                       style={{ color: TEXT_MUTED }}
                                                     >
                                                       {conciseSubtitle}
-                                                    </div>
-
-                                                    <div
-                                                      className="text-[10px] font-semibold mt-3 rounded-2xl px-3 py-2 leading-relaxed"
-                                                      style={{
-                                                        color: cardSurface.behaviorColor,
-                                                        background: cardSurface.behaviorBackground,
-                                                      }}
-                                                    >
-                                                      {openBehaviorCopy}
                                                     </div>
 
                                                   <div className="mt-3 flex-1">
@@ -2857,38 +2769,36 @@ export default function SecretSantaPage() {
                                         </div>
                                       )}
 
-                                      {featuredLazadaProducts.length > 0 && (
-                                        <div
-                                          className="text-[11px] mb-3 leading-relaxed rounded-2xl px-3 py-2"
-                                          style={{
-                                            color: TEXT_SOFT,
-                                            background: "rgba(255,255,255,.72)",
-                                            border: "1px solid rgba(96,117,122,.08)",
-                                          }}
-                                          >
-                                          {hasMixedFeaturedLazadaProducts
-                                            ? "Start with the direct picks, then use the wider Lazada results if you want more variety."
-                                            : usingMatchedLazadaProducts
-                                              ? "These are the strongest direct Lazada listings we currently trust for this option."
-                                              : "These stay as broader Lazada results because we do not yet have direct listings we trust for this option."}
-                                        </div>
-                                      )}
-
                                       {backupMerchantLinks.length > 0 && (
-                                        <div>
-                                          <div className="flex items-center justify-between gap-2 mb-2 flex-wrap">
-                                            <div
+                                        <details
+                                          className="rounded-2xl p-3"
+                                          style={{
+                                            background: "rgba(255,255,255,.66)",
+                                            border: "1px solid rgba(96,117,122,.1)",
+                                          }}
+                                        >
+                                          <summary className="flex cursor-pointer list-none items-center justify-between gap-3">
+                                            <span
                                               className="text-[11px] font-extrabold"
                                               style={{ color: HOLIDAY_GREEN }}
                                             >
-                                              Other stores
-                                            </div>
-                                            <span
-                                              className="text-[9px] font-bold"
-                                              style={{ color: TEXT_SOFT }}
-                                            >
-                                              Optional backup links
+                                              Backup store searches
                                             </span>
+                                            <span
+                                              className="text-[9px] font-bold rounded-full px-2 py-1"
+                                              style={{
+                                                background: "rgba(88,116,142,.08)",
+                                                color: TEXT_SOFT,
+                                              }}
+                                            >
+                                              Optional
+                                            </span>
+                                          </summary>
+                                          <div
+                                            className="text-[10px] mt-2 mb-3 leading-relaxed"
+                                            style={{ color: TEXT_MUTED }}
+                                          >
+                                            Use these only if Lazada does not have the right item.
                                           </div>
                                           <div className="flex flex-wrap gap-2">
                                             {backupMerchantLinks.map((merchantLink) => {
@@ -2936,7 +2846,7 @@ export default function SecretSantaPage() {
                                               );
                                             })}
                                           </div>
-                                        </div>
+                                        </details>
                                       )}
 
                                       <div
