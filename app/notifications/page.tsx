@@ -59,6 +59,8 @@ function getNotificationIcon(type: string): string {
       return "\u{1F6CE}";
     case "reminder_digest":
       return "\u{23F0}";
+    case "affiliate_lazada_health":
+      return "\u{1F4CA}";
     default:
       return "\u{1F514}";
   }
@@ -84,6 +86,8 @@ function getNotificationLabel(type: string): string {
       return "Reminder: planning";
     case "reminder_digest":
       return "Reminder digest";
+    case "affiliate_lazada_health":
+      return "Lazada health";
     default:
       return "Notification";
   }
@@ -119,6 +123,12 @@ function getNotificationLabelStyles(type: string): {
         border: "1px solid rgba(139,92,246,.18)",
         color: "#6d28d9",
       };
+    case "affiliate_lazada_health":
+      return {
+        background: "rgba(245,158,11,.09)",
+        border: "1px solid rgba(245,158,11,.2)",
+        color: "#b45309",
+      };
     default:
       return {
         background: "rgba(148,163,184,.08)",
@@ -146,6 +156,8 @@ function getNotificationActionLabel(notification: NotificationItem): string {
       return "Open chat";
     case "invite":
       return "View invite";
+    case "affiliate_lazada_health":
+      return "Open report";
     default:
       return "Open";
   }

@@ -302,6 +302,8 @@ function getActivityFeedVisual(type: string): Pick<DashboardActivityItem, "icon"
       return { icon: "🎉", tone: "rose" };
     case "invite":
       return { icon: "✉️", tone: "amber" };
+    case "affiliate_lazada_health":
+      return { icon: "📊", tone: "amber" };
     default:
       return { icon: "•", tone: "blue" };
   }
@@ -396,6 +398,8 @@ function getNotificationPreviewTitle(type: string, title: string): string {
       return "Reveal time";
     case "invite":
       return "Invite";
+    case "affiliate_lazada_health":
+      return "Lazada health";
     default:
       return title;
   }

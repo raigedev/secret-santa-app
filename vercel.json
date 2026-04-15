@@ -1,6 +1,10 @@
 {
   "crons": [
     {
+      "path": "/api/affiliate/lazada/health-check",
+      "schedule": "30 1 * * *"
+    },
+    {
       "path": "/api/notifications/process-reminders",
       "schedule": "0 1 * * *"
     }

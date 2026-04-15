@@ -1,10 +1,17 @@
 import Link from "next/link";
+import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 
-import { getLazadaOpenApiStatus } from "@/lib/affiliate/lazada";
+import {
+  isLikelyTestConversion,
+  loadLazadaHealthStatus,
+  type AffiliateConversionRow,
+  type LazadaHealthStatus,
+} from "@/lib/affiliate/lazada-health";
 import { canViewAffiliateReport } from "@/lib/affiliate/report-access";
 import { supabaseAdmin } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
+import { CopyPostbackUrlButton } from "./CopyPostbackUrlButton";
 
 type AffiliateReportPageProps = {
   searchParams: Promise<{
@@ -29,45 +36,9 @@ type AffiliateClickRow = {
   user_id: string | null;
 };
 
-type AffiliateHealthClickRow = {
-  click_token: string | null;
-  created_at: string;
-  id: string;
-  resolution_mode: string | null;
-  target_url: string | null;
-};
-
-type LazadaHealthStatus = {
-  clicksLast24Hours: number;
-  ignoredTestConversions: number;
-  latestClickAt: string | null;
-  missingTokenRecentClicks: number;
-  openApiMissingEnvVars: string[];
-  openApiReady: boolean;
-  postbackSecretConfigured: boolean;
-  promotionLinkRecentClicks: number;
-  sampledRecentClicks: number;
-  status: "healthy" | "watch" | "attention";
-  tokenMatchedRecentClicks: number;
-  tokenMismatchedRecentClicks: number;
-  totalConversions: number;
-  unmappedConversions: number;
-};
-
 type ProfileRow = {
   display_name: string | null;
   user_id: string;
-};
-
-type AffiliateConversionRow = {
-  affiliate_click_id: string | null;
-  id: string;
-  amount: number | string | null;
-  click_token: string | null;
-  conversion_status: string | null;
-  external_order_id: string | null;
-  payout: number | string | null;
-  received_at: string;
 };
 
 type AffiliatePerformanceRow = {
@@ -129,6 +100,12 @@ type OptimizationRecommendation = {
   description: string;
   label: string;
   title: string;
+};
+
+type LazadaHealthAction = {
+  body: string;
+  label: string;
+  tone: "good" | "watch" | "attention";
 };
 
 type WindowFilter = "7d" | "30d" | "90d" | "all";
@@ -320,23 +297,6 @@ function inferItemFamily(value: string): string {
   return "General";
 }
 
-function isLikelyTestConversion(row: AffiliateConversionRow): boolean {
-  const orderId = row.external_order_id?.trim().toLowerCase() || "";
-  const clickToken = row.click_token?.trim().toLowerCase() || "";
-  const status = row.conversion_status?.trim().toLowerCase() || "";
-
-  return (
-    status.startsWith("debug") ||
-    status.startsWith("test") ||
-    orderId.startsWith("test") ||
-    orderId.startsWith("debug") ||
-    clickToken === "test" ||
-    clickToken === "debug" ||
-    clickToken.startsWith("test-") ||
-    clickToken.startsWith("debug-")
-  );
-}
-
 function buildActorLabel(userId: string | null, profilesByUserId: Map<string, ProfileRow>): string {
   if (!userId) {
     return "Unknown user";
@@ -393,96 +353,6 @@ function buildWindowStartIso(windowFilter: WindowFilter): string | null {
   const days = windowFilter === "7d" ? 7 : windowFilter === "30d" ? 30 : 90;
   now.setDate(now.getDate() - days);
   return now.toISOString();
-}
-
-function readUrlHost(value: string | null): string | null {
-  if (!value) {
-    return null;
-  }
-
-  try {
-    return new URL(value).host;
-  } catch {
-    return null;
-  }
-}
-
-function readLazadaClickTokenFromTarget(value: string | null): string | null {
-  if (!value) {
-    return null;
-  }
-
-  try {
-    const parsed = new URL(value);
-    return parsed.searchParams.get("subId6") || parsed.searchParams.get("sub_id6");
-  } catch {
-    return null;
-  }
-}
-
-function buildHealthStatus(input: {
-  clicksLast24Hours: number;
-  ignoredTestConversions: number;
-  latestClicks: AffiliateHealthClickRow[];
-  openApiMissingEnvVars: string[];
-  openApiReady: boolean;
-  postbackSecretConfigured: boolean;
-  totalConversions: number;
-  unmappedConversions: number;
-}): LazadaHealthStatus {
-  let missingTokenRecentClicks = 0;
-  let promotionLinkRecentClicks = 0;
-  let tokenMatchedRecentClicks = 0;
-  let tokenMismatchedRecentClicks = 0;
-
-  for (const click of input.latestClicks) {
-    const targetClickToken = readLazadaClickTokenFromTarget(click.target_url);
-    const targetHost = readUrlHost(click.target_url);
-
-    if (targetHost === "c.lazada.com.ph" && click.resolution_mode === "promotion-link") {
-      promotionLinkRecentClicks += 1;
-    }
-
-    if (!click.click_token || !targetClickToken) {
-      missingTokenRecentClicks += 1;
-      continue;
-    }
-
-    if (click.click_token === targetClickToken) {
-      tokenMatchedRecentClicks += 1;
-    } else {
-      tokenMismatchedRecentClicks += 1;
-    }
-  }
-
-  const status =
-    tokenMismatchedRecentClicks > 0
-      ? "attention"
-      : missingTokenRecentClicks > 0
-        ? "watch"
-        : !input.postbackSecretConfigured ||
-            !input.openApiReady ||
-            input.unmappedConversions > 0 ||
-            input.clicksLast24Hours === 0
-          ? "watch"
-          : "healthy";
-
-  return {
-    clicksLast24Hours: input.clicksLast24Hours,
-    ignoredTestConversions: input.ignoredTestConversions,
-    latestClickAt: input.latestClicks[0]?.created_at || null,
-    missingTokenRecentClicks,
-    openApiMissingEnvVars: input.openApiMissingEnvVars,
-    openApiReady: input.openApiReady,
-    postbackSecretConfigured: input.postbackSecretConfigured,
-    promotionLinkRecentClicks,
-    sampledRecentClicks: input.latestClicks.length,
-    status,
-    tokenMatchedRecentClicks,
-    tokenMismatchedRecentClicks,
-    totalConversions: input.totalConversions,
-    unmappedConversions: input.unmappedConversions,
-  };
 }
 
 function describeCatalogSource(source: string | null): string {
@@ -1046,61 +916,6 @@ async function loadAffiliateClickRows(input: {
   };
 }
 
-async function loadLazadaHealthStatus(): Promise<LazadaHealthStatus> {
-  const openApiStatus = getLazadaOpenApiStatus();
-  const last24Hours = new Date();
-  last24Hours.setHours(last24Hours.getHours() - 24);
-
-  const [
-    { data: latestClicks, error: latestClicksError },
-    { count: clicksLast24Hours, error: clicksLast24HoursError },
-    { data: conversionRows, error: conversionRowsError },
-  ] = await Promise.all([
-    supabaseAdmin
-      .from("affiliate_clicks")
-      .select("id, click_token, created_at, resolution_mode, target_url")
-      .eq("merchant", "lazada")
-      .order("created_at", { ascending: false })
-      .limit(25),
-    supabaseAdmin
-      .from("affiliate_clicks")
-      .select("id", { count: "exact", head: true })
-      .eq("merchant", "lazada")
-      .gte("created_at", last24Hours.toISOString()),
-    supabaseAdmin
-      .from("affiliate_conversions")
-      .select(
-        "id, affiliate_click_id, amount, click_token, conversion_status, external_order_id, payout, received_at"
-      )
-      .eq("merchant", "lazada")
-      .order("received_at", { ascending: false })
-      .limit(500),
-  ]);
-
-  if (
-    latestClicksError ||
-    clicksLast24HoursError ||
-    conversionRowsError
-  ) {
-    throw new Error("Failed to load Lazada health check.");
-  }
-
-  const healthConversionRows = (conversionRows || []) as AffiliateConversionRow[];
-  const testConversionRows = healthConversionRows.filter(isLikelyTestConversion);
-  const realConversionRows = healthConversionRows.filter((row) => !isLikelyTestConversion(row));
-
-  return buildHealthStatus({
-    clicksLast24Hours: clicksLast24Hours || 0,
-    ignoredTestConversions: testConversionRows.length,
-    latestClicks: (latestClicks || []) as AffiliateHealthClickRow[],
-    openApiMissingEnvVars: openApiStatus.missingEnvVars,
-    openApiReady: openApiStatus.ready,
-    postbackSecretConfigured: Boolean(process.env.LAZADA_POSTBACK_SECRET?.trim()),
-    totalConversions: realConversionRows.length,
-    unmappedConversions: realConversionRows.filter((row) => !row.affiliate_click_id).length,
-  });
-}
-
 function SummaryCard({
   label,
   value,
@@ -1204,13 +1019,152 @@ function buildSaleMappingHelper(health: LazadaHealthStatus): string {
   return `Every real Lazada conversion is mapped to a click.${testCopy}`;
 }
 
+function isSafeHostHeader(value: string): boolean {
+  const normalized = value.trim();
+
+  if (normalized.length === 0 || normalized.length > 253) {
+    return false;
+  }
+
+  for (const character of normalized) {
+    const code = character.charCodeAt(0);
+    const isNumber = code >= 48 && code <= 57;
+    const isUpperAlpha = code >= 65 && code <= 90;
+    const isLowerAlpha = code >= 97 && code <= 122;
+    const isAllowedSeparator = character === "." || character === "-" || character === ":";
+
+    if (!isNumber && !isUpperAlpha && !isLowerAlpha && !isAllowedSeparator) {
+      return false;
+    }
+  }
+
+  return !normalized.startsWith(".") && !normalized.startsWith("-") && !normalized.includes("..");
+}
+
+function buildLazadaPostbackUrl(headersList: Awaited<ReturnType<typeof headers>>): string {
+  const configuredOrigin =
+    process.env.NEXT_PUBLIC_APP_URL ||
+    process.env.APP_URL ||
+    process.env.VERCEL_PROJECT_PRODUCTION_URL ||
+    process.env.VERCEL_URL ||
+    "";
+  const originCandidate = configuredOrigin.trim();
+  const headerHost = headersList.get("x-forwarded-host") || headersList.get("host") || "";
+  const safeHeaderHost = isSafeHostHeader(headerHost) ? headerHost.trim() : "";
+  const fallbackOrigin = safeHeaderHost
+    ? `${headersList.get("x-forwarded-proto") === "http" ? "http" : "https"}://${safeHeaderHost}`
+    : "";
+  const tokenPlaceholder = ["YOUR", "LAZADA", "POSTBACK", "SECRET"].join("_");
+  const path = `/api/affiliate/lazada/postback?token=${tokenPlaceholder}`;
+
+  try {
+    const origin = originCandidate
+      ? new URL(originCandidate.startsWith("http") ? originCandidate : `https://${originCandidate}`)
+          .origin
+      : fallbackOrigin;
+
+    return origin ? `${origin}${path}` : path;
+  } catch {
+    return fallbackOrigin ? `${fallbackOrigin}${path}` : path;
+  }
+}
+
+function buildLazadaHealthActions(health: LazadaHealthStatus): LazadaHealthAction[] {
+  const actions: LazadaHealthAction[] = [];
+
+  if (!health.postbackSecretConfigured) {
+    actions.push({
+      body: "Add LAZADA_POSTBACK_SECRET in Vercel before sharing the postback URL with Lazada.",
+      label: "Secure postback",
+      tone: "attention",
+    });
+  }
+
+  if (health.tokenMismatchedRecentClicks > 0) {
+    actions.push({
+      body: "Saved click tokens and URL tokens disagree. Keep the URL token migration applied and test one fresh click.",
+      label: "Fix token mismatch",
+      tone: "attention",
+    });
+  }
+
+  if (health.missingTokenRecentClicks > 0) {
+    actions.push({
+      body: "Recent sample still includes legacy or fallback clicks without complete token data. Fresh Lazada clicks should reduce this.",
+      label: "Watch legacy clicks",
+      tone: "watch",
+    });
+  }
+
+  if (health.clicksLast24Hours === 0) {
+    actions.push({
+      body: "No Lazada click was recorded in the last 24 hours. Click one wishlist suggestion to confirm tracking is alive.",
+      label: "Run a live click",
+      tone: "watch",
+    });
+  }
+
+  if (health.unmappedConversions > 0) {
+    actions.push({
+      body: "Real postback rows arrived without matching a click. Check the Lazada postback sub_id6 value.",
+      label: "Map sales",
+      tone: "watch",
+    });
+  }
+
+  if (
+    health.sampledRecentClicks > 0 &&
+    health.promotionLinkRecentClicks < health.sampledRecentClicks
+  ) {
+    actions.push({
+      body: "Some recent clicks still use weaker fallback paths. Tune the matcher for the families shown below.",
+      label: "Improve link coverage",
+      tone: "watch",
+    });
+  }
+
+  if (!health.openApiReady) {
+    actions.push({
+      body: `Add missing Lazada Open API env vars: ${health.openApiMissingEnvVars.join(", ") || "unknown"}.`,
+      label: "Complete API env",
+      tone: "watch",
+    });
+  }
+
+  return actions.length > 0
+    ? actions
+    : [
+        {
+          body: "Clicks, token matching, sale mapping, postback security, and API credentials all look usable.",
+          label: "No action needed",
+          tone: "good",
+        },
+      ];
+}
+
+function HealthActionTone(tone: LazadaHealthAction["tone"]): string {
+  if (tone === "attention") {
+    return "border-rose-200 bg-rose-50 text-rose-900";
+  }
+
+  if (tone === "watch") {
+    return "border-amber-200 bg-amber-50 text-amber-900";
+  }
+
+  return "border-emerald-200 bg-emerald-50 text-emerald-900";
+}
+
 function LazadaHealthCheckCard({
   health,
+  postbackUrl,
   testPostbackStatus,
 }: {
   health: LazadaHealthStatus;
+  postbackUrl: string;
   testPostbackStatus: string | undefined;
 }) {
+  const healthActions = buildLazadaHealthActions(health);
+
   return (
     <section className="mt-8 rounded-4xl border border-white/70 bg-white/88 p-5 shadow-[0_24px_70px_rgba(148,163,184,0.14)] backdrop-blur-md">
       <div className="flex flex-wrap items-start justify-between gap-4">
@@ -1232,6 +1186,9 @@ function LazadaHealthCheckCard({
             This checks whether recent Lazada clicks use promotion links, whether the saved click
             token matches the URL token Lazada will send back, and whether postback security is
             configured.
+          </p>
+          <p className="mt-2 text-xs font-semibold uppercase tracking-[0.14em] text-slate-400">
+            Checked {formatDateTime(health.checkedAt)}
           </p>
         </div>
 
@@ -1302,6 +1259,49 @@ function LazadaHealthCheckCard({
               : `Missing: ${health.openApiMissingEnvVars.join(", ") || "unknown env vars"}.`}
           </p>
         </div>
+      </div>
+
+      <div className="mt-4 grid gap-4 xl:grid-cols-[1.15fr_0.85fr]">
+        <div className="rounded-[24px] border border-slate-200 bg-white/80 p-4">
+          <div className="flex flex-wrap items-start justify-between gap-3">
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">
+                Lazada postback URL
+              </p>
+              <p className="mt-2 text-sm leading-5 text-slate-600">
+                Use this format in Lazada, then replace the placeholder with the secret saved only
+                in Vercel.
+              </p>
+            </div>
+            <CopyPostbackUrlButton value={postbackUrl} />
+          </div>
+          <code className="mt-3 block break-all rounded-2xl bg-slate-950 px-4 py-3 text-xs font-semibold leading-5 text-slate-100">
+            {postbackUrl}
+          </code>
+        </div>
+
+        <div className="rounded-[24px] border border-slate-200 bg-slate-50/80 p-4">
+          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">
+            How to read this
+          </p>
+          <div className="mt-3 grid gap-2 text-sm leading-5 text-slate-600">
+            <p><span className="font-semibold text-slate-900">Token matching</span> means Lazada can report sales back to the exact click.</p>
+            <p><span className="font-semibold text-slate-900">Promotion links</span> means the click used an affiliate-ready Lazada path.</p>
+            <p><span className="font-semibold text-slate-900">Sale mapping</span> means a real postback row is connected to a tracked click.</p>
+          </div>
+        </div>
+      </div>
+
+      <div className="mt-4 grid gap-3 lg:grid-cols-3">
+        {healthActions.slice(0, 3).map((action) => (
+          <div
+            key={action.label}
+            className={`rounded-[20px] border px-4 py-3 text-sm ${HealthActionTone(action.tone)}`}
+          >
+            <p className="font-bold">{action.label}</p>
+            <p className="mt-1 leading-5">{action.body}</p>
+          </div>
+        ))}
       </div>
     </section>
   );
@@ -1505,6 +1505,8 @@ export default async function AffiliateReportPage({
   const windowFilter = normalizeWindowFilter(resolvedSearchParams.window);
   const routeFilter = normalizeRouteFilter(resolvedSearchParams.route);
   const windowStartIso = buildWindowStartIso(windowFilter);
+  const requestHeaders = await headers();
+  const lazadaPostbackUrl = buildLazadaPostbackUrl(requestHeaders);
 
   const supabase = await createClient();
   const {
@@ -1742,6 +1744,7 @@ export default async function AffiliateReportPage({
 
         <LazadaHealthCheckCard
           health={lazadaHealth}
+          postbackUrl={lazadaPostbackUrl}
           testPostbackStatus={resolvedSearchParams.testPostback}
         />
 
