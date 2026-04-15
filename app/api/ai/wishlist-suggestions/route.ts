@@ -1,6 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 
 import { generateGeminiWishlistSuggestionDrafts, isGeminiWishlistConfigured } from "@/lib/ai/gemini";
+import {
+  generateOpenRouterWishlistSuggestionDrafts,
+  isOpenRouterWishlistConfigured,
+} from "@/lib/ai/openrouter";
 import { enforceRateLimit } from "@/lib/security/rate-limit";
 import { createClient } from "@/lib/supabase/server";
 import {
@@ -22,6 +26,8 @@ type WishlistSuggestionBody = {
   region?: unknown;
   wishlistItemId?: unknown;
 };
+
+type WishlistAiProvider = "gemini" | "openrouter" | null;
 
 function sanitizeString(value: unknown, maxLength: number): string {
   return typeof value === "string" ? value.replace(/\s+/g, " ").trim().slice(0, maxLength) : "";
@@ -69,6 +75,32 @@ function buildSuggestionInput(body: WishlistSuggestionBody): SuggestionInput | n
   };
 }
 
+function isWishlistAiConfigured(): boolean {
+  return isGeminiWishlistConfigured() || isOpenRouterWishlistConfigured();
+}
+
+async function generateWishlistSuggestionDrafts(input: {
+  baseOptions: ReturnType<typeof buildWishlistSuggestionOptions>;
+  suggestionInput: SuggestionInput;
+}): Promise<{
+  drafts: Awaited<ReturnType<typeof generateGeminiWishlistSuggestionDrafts>>;
+  provider: WishlistAiProvider;
+}> {
+  const geminiDrafts = await generateGeminiWishlistSuggestionDrafts(input);
+
+  if (geminiDrafts.length > 0) {
+    return { drafts: geminiDrafts, provider: "gemini" };
+  }
+
+  const openRouterDrafts = await generateOpenRouterWishlistSuggestionDrafts(input);
+
+  if (openRouterDrafts.length > 0) {
+    return { drafts: openRouterDrafts, provider: "openrouter" };
+  }
+
+  return { drafts: [], provider: null };
+}
+
 export async function POST(request: NextRequest) {
   const supabase = await createClient();
   const {
@@ -79,7 +111,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Unauthorized", suggestions: [], usedAi: false }, { status: 401 });
   }
 
-  if (!isGeminiWishlistConfigured()) {
+  if (!isWishlistAiConfigured()) {
     return NextResponse.json({ suggestions: [], usedAi: false });
   }
 
@@ -115,7 +147,7 @@ export async function POST(request: NextRequest) {
   }
 
   const baseOptions = buildWishlistSuggestionOptions(suggestionInput);
-  const aiDrafts = await generateGeminiWishlistSuggestionDrafts({
+  const { drafts: aiDrafts, provider: aiProvider } = await generateWishlistSuggestionDrafts({
     suggestionInput,
     baseOptions,
   });
@@ -125,6 +157,7 @@ export async function POST(request: NextRequest) {
   const suggestions = aiSuggestions.length > 0 ? aiSuggestions : baseOptions;
 
   return NextResponse.json({
+    aiProvider,
     suggestions,
     usedAi: aiSuggestions.length > 0,
   });
