@@ -39,6 +39,7 @@ type AffiliateHealthClickRow = {
 
 type LazadaHealthStatus = {
   clicksLast24Hours: number;
+  ignoredTestConversions: number;
   latestClickAt: string | null;
   missingTokenRecentClicks: number;
   openApiMissingEnvVars: string[];
@@ -322,10 +323,15 @@ function inferItemFamily(value: string): string {
 function isLikelyTestConversion(row: AffiliateConversionRow): boolean {
   const orderId = row.external_order_id?.trim().toLowerCase() || "";
   const clickToken = row.click_token?.trim().toLowerCase() || "";
+  const status = row.conversion_status?.trim().toLowerCase() || "";
 
   return (
+    status.startsWith("debug") ||
+    status.startsWith("test") ||
     orderId.startsWith("test") ||
     orderId.startsWith("debug") ||
+    clickToken === "test" ||
+    clickToken === "debug" ||
     clickToken.startsWith("test-") ||
     clickToken.startsWith("debug-")
   );
@@ -416,6 +422,7 @@ function readLazadaClickTokenFromTarget(value: string | null): string | null {
 
 function buildHealthStatus(input: {
   clicksLast24Hours: number;
+  ignoredTestConversions: number;
   latestClicks: AffiliateHealthClickRow[];
   openApiMissingEnvVars: string[];
   openApiReady: boolean;
@@ -453,15 +460,16 @@ function buildHealthStatus(input: {
       ? "attention"
       : missingTokenRecentClicks > 0
         ? "watch"
-      : !input.postbackSecretConfigured ||
-          !input.openApiReady ||
-          input.unmappedConversions > 0 ||
-          input.clicksLast24Hours === 0
-        ? "watch"
-        : "healthy";
+        : !input.postbackSecretConfigured ||
+            !input.openApiReady ||
+            input.unmappedConversions > 0 ||
+            input.clicksLast24Hours === 0
+          ? "watch"
+          : "healthy";
 
   return {
     clicksLast24Hours: input.clicksLast24Hours,
+    ignoredTestConversions: input.ignoredTestConversions,
     latestClickAt: input.latestClicks[0]?.created_at || null,
     missingTokenRecentClicks,
     openApiMissingEnvVars: input.openApiMissingEnvVars,
@@ -691,7 +699,13 @@ function buildFallbackReasonInsights(rows: AffiliateClickRow[]): FallbackReasonI
       continue;
     }
 
-    const label = normalizeFallbackReasonLabel(row.resolution_mode || row.resolution_reason);
+    const fallbackReason = row.resolution_reason || row.resolution_mode;
+
+    if (!fallbackReason) {
+      continue;
+    }
+
+    const label = normalizeFallbackReasonLabel(fallbackReason);
     grouped.set(label, (grouped.get(label) || 0) + 1);
   }
 
@@ -713,6 +727,10 @@ function buildFamilyQualityInsights(rows: AffiliateClickRow[]): FamilyQualityIns
   >();
 
   for (const row of rows) {
+    if (!row.resolution_mode && !row.resolution_reason) {
+      continue;
+    }
+
     const family = inferItemFamily(
       [row.selected_query, row.search_query, row.suggestion_title].filter(Boolean).join(" ")
     );
@@ -1036,8 +1054,7 @@ async function loadLazadaHealthStatus(): Promise<LazadaHealthStatus> {
   const [
     { data: latestClicks, error: latestClicksError },
     { count: clicksLast24Hours, error: clicksLast24HoursError },
-    { count: totalConversions, error: totalConversionsError },
-    { count: unmappedConversions, error: unmappedConversionsError },
+    { data: conversionRows, error: conversionRowsError },
   ] = await Promise.all([
     supabaseAdmin
       .from("affiliate_clicks")
@@ -1052,32 +1069,35 @@ async function loadLazadaHealthStatus(): Promise<LazadaHealthStatus> {
       .gte("created_at", last24Hours.toISOString()),
     supabaseAdmin
       .from("affiliate_conversions")
-      .select("id", { count: "exact", head: true })
-      .eq("merchant", "lazada"),
-    supabaseAdmin
-      .from("affiliate_conversions")
-      .select("id", { count: "exact", head: true })
+      .select(
+        "id, affiliate_click_id, amount, click_token, conversion_status, external_order_id, payout, received_at"
+      )
       .eq("merchant", "lazada")
-      .is("affiliate_click_id", null),
+      .order("received_at", { ascending: false })
+      .limit(500),
   ]);
 
   if (
     latestClicksError ||
     clicksLast24HoursError ||
-    totalConversionsError ||
-    unmappedConversionsError
+    conversionRowsError
   ) {
     throw new Error("Failed to load Lazada health check.");
   }
 
+  const healthConversionRows = (conversionRows || []) as AffiliateConversionRow[];
+  const testConversionRows = healthConversionRows.filter(isLikelyTestConversion);
+  const realConversionRows = healthConversionRows.filter((row) => !isLikelyTestConversion(row));
+
   return buildHealthStatus({
     clicksLast24Hours: clicksLast24Hours || 0,
+    ignoredTestConversions: testConversionRows.length,
     latestClicks: (latestClicks || []) as AffiliateHealthClickRow[],
     openApiMissingEnvVars: openApiStatus.missingEnvVars,
     openApiReady: openApiStatus.ready,
     postbackSecretConfigured: Boolean(process.env.LAZADA_POSTBACK_SECRET?.trim()),
-    totalConversions: totalConversions || 0,
-    unmappedConversions: unmappedConversions || 0,
+    totalConversions: realConversionRows.length,
+    unmappedConversions: realConversionRows.filter((row) => !row.affiliate_click_id).length,
   });
 }
 
@@ -1167,6 +1187,23 @@ function HealthMetric({
   );
 }
 
+function buildSaleMappingHelper(health: LazadaHealthStatus): string {
+  const testCopy =
+    health.ignoredTestConversions > 0
+      ? ` ${health.ignoredTestConversions} test/debug rows are hidden from this check.`
+      : "";
+
+  if (health.totalConversions === 0) {
+    return `No real Lazada conversion rows yet.${testCopy}`;
+  }
+
+  if (health.unmappedConversions > 0) {
+    return `${health.unmappedConversions} real conversion rows are not mapped to clicks yet.${testCopy}`;
+  }
+
+  return `Every real Lazada conversion is mapped to a click.${testCopy}`;
+}
+
 function LazadaHealthCheckCard({
   health,
   testPostbackStatus,
@@ -1233,11 +1270,7 @@ function LazadaHealthCheckCard({
         <HealthMetric
           label="Sale mapping"
           value={`${health.totalConversions - health.unmappedConversions}/${health.totalConversions}`}
-          helper={
-            health.unmappedConversions > 0
-              ? `${health.unmappedConversions} conversion rows are not mapped to clicks yet.`
-              : "Every stored Lazada conversion is mapped, or there are no conversions yet."
-          }
+          helper={buildSaleMappingHelper(health)}
         />
       </div>
 
