@@ -1874,11 +1874,27 @@ export default function DashboardPage() {
             <button
               type="button"
               onClick={() => router.push("/dashboard")}
-              className={`shrink-0 text-[22px] font-black tracking-tight ${
-                isDarkTheme ? "text-red-400" : "text-red-700"
-              }`}
+              className="inline-flex shrink-0 items-center gap-3 rounded-full text-left transition hover:-translate-y-0.5"
+              aria-label="Go to Secret Santa dashboard"
             >
-              Secret Santa
+              <span
+                className={`inline-flex h-11 w-11 items-center justify-center overflow-hidden rounded-full ring-1 ${
+                  isDarkTheme ? "bg-slate-900/80 ring-white/10" : "bg-white/85 ring-white/80"
+                }`}
+              >
+                <SantaMarkIcon size={32} />
+              </span>
+              <span className="hidden flex-col items-start leading-[0.94] sm:flex">
+                <span className={`text-[13px] font-extrabold tracking-[-0.01em] ${isDarkTheme ? "text-[#ff9b86]" : "text-[#c0392b]"}`}>
+                  My Secret
+                </span>
+                <span className={`mt-0.5 text-[25px] font-black tracking-[-0.045em] ${isDarkTheme ? "text-white" : "text-slate-950"}`}>
+                  Santa
+                </span>
+                <span className={`mt-1 text-[10px] font-semibold italic tracking-[-0.01em] ${isDarkTheme ? "text-[#ffb4a3]/80" : "text-[#c0392b]/85"}`}>
+                  shhh... it&apos;s a secret!
+                </span>
+              </span>
             </button>
             <nav className="hidden items-center gap-6 md:flex">
               <button type="button" className={isDarkTheme ? "text-red-300 text-base font-bold" : "text-red-700 text-base font-bold"}>
