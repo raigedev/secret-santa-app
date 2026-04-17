@@ -130,6 +130,65 @@ function priorityLabel(priority: WishlistPriority) {
   return "Just an idea";
 }
 
+function priorityTone(priority: WishlistPriority) {
+  if (priority === 2) {
+    return {
+      badge: "bg-[#a43c3f]/10 text-[#a43c3f]",
+      accent: "#a43c3f",
+      ribbon: "from-[#a43c3f] to-[#943034]",
+    };
+  }
+
+  if (priority === 1) {
+    return {
+      badge: "bg-[#d9ae56]/20 text-[#7b5902]",
+      accent: "#7b5902",
+      ribbon: "from-[#d9ae56] to-[#7b5902]",
+    };
+  }
+
+  return {
+    badge: "bg-[#48664e]/10 text-[#48664e]",
+    accent: "#48664e",
+    ribbon: "from-[#48664e] to-[#3c5a43]",
+  };
+}
+
+function GiftIcon({ className = "h-6 w-6" }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" className={className} aria-hidden="true">
+      <path d="M4.75 10.25h14.5v8.25a1.75 1.75 0 0 1-1.75 1.75h-11a1.75 1.75 0 0 1-1.75-1.75v-8.25Z" fill="#a43c3f" />
+      <path d="M3.75 7.5c0-.97.78-1.75 1.75-1.75h13c.97 0 1.75.78 1.75 1.75v2.75H3.75V7.5Z" fill="#ffaba9" />
+      <path d="M12 5.75v14.5M4.25 10.25h15.5" stroke="#fff7f6" strokeWidth="1.7" strokeLinecap="round" />
+      <path d="M11.8 5.7C9.6 5.55 7.9 4.45 7.9 3.35c0-.78.58-1.35 1.38-1.35 1.32 0 2.25 1.55 2.52 3.7ZM12.2 5.7c2.2-.15 3.9-1.25 3.9-2.35 0-.78-.58-1.35-1.38-1.35-1.32 0-2.25 1.55-2.52 3.7Z" stroke="#a43c3f" strokeWidth="1.5" strokeLinecap="round" />
+    </svg>
+  );
+}
+
+function SparkleIcon({ className = "h-5 w-5" }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" className={className} aria-hidden="true">
+      <path d="M12 3.5 13.9 9l5.6 2-5.6 2-1.9 5.5L10.1 13l-5.6-2 5.6-2L12 3.5Z" fill="currentColor" />
+    </svg>
+  );
+}
+
+function SnowflakeIcon({ className = "h-5 w-5" }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" className={className} aria-hidden="true">
+      <path d="M12 3v18M5.6 6.2l12.8 11.6M18.4 6.2 5.6 17.8M8 4.8 12 8l4-3.2M8 19.2l4-3.2 4 3.2M4.8 8l3.2 4-3.2 4M19.2 8 16 12l3.2 4" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+function ArrowRightIcon({ className = "h-4 w-4" }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 20 20" fill="none" className={className} aria-hidden="true">
+      <path d="M4 10h11M11 5.5 15.5 10 11 14.5" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
 export default function WishlistPage() {
   const router = useRouter();
   const [supabase] = useState(() => createClient());
@@ -397,156 +456,213 @@ export default function WishlistPage() {
   );
   const selectedGroupAtLimit =
     selectedGroupItemCount >= WISHLIST_ITEMS_PER_GROUP_LIMIT;
+  const topPriorityCount = items.filter((item) => item.priority === 2).length;
+  const selectedGroupProgress = Math.min(
+    100,
+    Math.round((selectedGroupItemCount / WISHLIST_ITEMS_PER_GROUP_LIMIT) * 100)
+  );
 
   if (loading) return <ProfileSkeleton />;
 
   return (
-    <main className="min-h-screen bg-[radial-gradient(circle_at_top,rgba(255,255,255,.28),transparent_32%),linear-gradient(180deg,#dfe7e4_0%,#d2dbd8_42%,#c9d4d4_100%)] px-4 py-6 sm:px-6">
-      <div className="mx-auto max-w-5xl">
-        <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
+    <main
+      className="relative min-h-screen overflow-x-hidden px-4 py-5 sm:px-6 lg:px-8"
+      style={{
+        background:
+          "radial-gradient(circle at 12% 12%,rgba(255,171,169,.55),transparent 24%),radial-gradient(circle at 86% 10%,rgba(215,250,219,.72),transparent 28%),linear-gradient(180deg,#f9faf8 0%,#eef3ef 44%,#dfe7e4 100%)",
+        color: "#2e3432",
+        fontFamily: "'Be Vietnam Pro','Nunito',sans-serif",
+      }}
+    >
+      <div className="pointer-events-none fixed inset-0 opacity-55">
+        <div className="absolute left-[7%] top-[14%] h-2 w-2 rounded-full bg-white" />
+        <div className="absolute left-[24%] top-[5%] h-1.5 w-1.5 rounded-full bg-white" />
+        <div className="absolute right-[16%] top-[18%] h-2.5 w-2.5 rounded-full bg-white" />
+        <div className="absolute bottom-[16%] left-[12%] h-2 w-2 rounded-full bg-white" />
+        <div className="absolute bottom-[25%] right-[9%] h-1.5 w-1.5 rounded-full bg-white" />
+      </div>
+
+      <div className="relative z-10 mx-auto flex w-full max-w-7xl flex-col gap-6">
+        <header className="flex flex-col gap-4 rounded-[32px] bg-white/75 p-3 shadow-[0_24px_70px_rgba(46,52,50,0.07)] backdrop-blur-xl sm:flex-row sm:items-center sm:justify-between">
           <button
             type="button"
             onClick={() => router.push("/dashboard")}
-            className="w-full rounded-[14px] border border-slate-300/70 bg-white/85 px-5 py-3 text-[13px] font-extrabold text-slate-600 shadow-[0_10px_20px_rgba(34,55,59,0.06)] transition sm:w-auto"
+            className="inline-flex w-full items-center justify-center gap-2 rounded-full bg-[#f2f4f2] px-5 py-3 text-sm font-black text-[#48664e] transition hover:-translate-y-0.5 hover:bg-white sm:w-auto"
           >
-            ← Back to Dashboard
+            <span aria-hidden="true">{"<-"}</span>
+            Back to Dashboard
           </button>
           <button
             type="button"
             onClick={() => router.push("/secret-santa")}
-            className="w-full rounded-[14px] bg-[linear-gradient(135deg,#5e9479,#2f6b56)] px-5 py-3 text-[13px] font-extrabold text-white shadow-[0_10px_22px_rgba(47,107,86,0.16)] transition sm:w-auto"
+            className="inline-flex w-full items-center justify-center gap-2 rounded-full bg-[linear-gradient(135deg,#48664e,#3c5a43)] px-5 py-3 text-sm font-black text-white shadow-[0_18px_42px_rgba(72,102,78,0.18)] transition hover:-translate-y-0.5 sm:w-auto"
           >
             Open Gift Planning
+            <ArrowRightIcon />
           </button>
-        </div>
+        </header>
 
-        <div className="mb-6 text-center">
-          <div className="text-[42px]">📝</div>
-          <h1 className="text-[34px] font-black tracking-[-0.03em] text-[#9f4e42] sm:text-[42px]">My Wishlist</h1>
-          <p className="mx-auto mt-3 max-w-2xl text-[15px] leading-7 text-slate-600 sm:text-[16px]">
-            This page is for <strong>your own wishlist</strong>. It helps your Secret Santa know
-            what you want, while <strong>/secret-santa</strong> stays focused on shopping for your
-            assigned recipient.
-          </p>
-        </div>
-
-        <div className="mb-6 grid gap-4 sm:grid-cols-3">
-          <div className="rounded-[20px] border border-slate-300/60 bg-white/80 p-4 shadow-[0_14px_34px_rgba(34,55,59,0.08)]">
-            <div className="text-[11px] font-extrabold tracking-[0.24em] text-slate-400">TOTAL ITEMS</div>
-            <div className="mt-2 text-[32px] font-black text-slate-800">{items.length}</div>
-            <div className="mt-1 text-[12px] text-slate-500">Gift ideas across all your accepted groups.</div>
-          </div>
-          <div className="rounded-[20px] border border-slate-300/60 bg-white/80 p-4 shadow-[0_14px_34px_rgba(34,55,59,0.08)]">
-            <div className="text-[11px] font-extrabold tracking-[0.24em] text-slate-400">ACTIVE GROUPS</div>
-            <div className="mt-2 text-[32px] font-black text-slate-800">{groups.length}</div>
-            <div className="mt-1 text-[12px] text-slate-500">Groups where your wishlist can be seen.</div>
-          </div>
-          <div className="rounded-[20px] border border-slate-300/60 bg-white/80 p-4 shadow-[0_14px_34px_rgba(34,55,59,0.08)]">
-            <div className="text-[11px] font-extrabold tracking-[0.24em] text-slate-400">TOP PRIORITY</div>
-            <div className="mt-2 text-[32px] font-black text-slate-800">
-              {items.filter((item) => item.priority === 2).length}
+        <section className="grid gap-5 lg:grid-cols-[1.05fr_.95fr]">
+          <div className="relative overflow-hidden rounded-[42px] bg-[#ffffff] p-6 shadow-[0_28px_80px_rgba(46,52,50,0.08)] sm:p-8 lg:p-10">
+            <div className="absolute right-[-46px] top-[-42px] h-40 w-40 rounded-full bg-[#ffaba9]/35" />
+            <div className="absolute bottom-[-80px] right-[12%] h-48 w-48 rounded-full bg-[#d7fadb]/70" />
+            <div className="relative">
+              <div className="mb-7 inline-flex items-center gap-2 rounded-full bg-[#fff7f6] px-4 py-2 text-xs font-black uppercase tracking-[0.24em] text-[#a43c3f]">
+                <GiftIcon className="h-5 w-5" />
+                My Wishlist
+              </div>
+              <h1 className="max-w-3xl font-[Plus_Jakarta_Sans] text-4xl font-black tracking-[-0.06em] text-[#2e3432] sm:text-6xl">
+                Keep your gift ideas wrapped and ready.
+              </h1>
+              <p className="mt-5 max-w-2xl text-base leading-8 text-[#5b605e] sm:text-lg">
+                This is your own Christmas wishlist. Your Secret Santa can use it for clues, while gift planning stays focused on shopping for your assigned recipient.
+              </p>
+              <div className="mt-8 grid gap-3 sm:grid-cols-3">
+                {[
+                  { label: "Total items", value: items.length, helper: "Ideas visible to your Santa" },
+                  { label: "Active groups", value: groups.length, helper: "Accepted exchanges" },
+                  { label: "Top priority", value: topPriorityCount, helper: "Marked want most" },
+                ].map((stat) => (
+                  <div key={stat.label} className="rounded-[28px] bg-[#f2f4f2] p-5">
+                    <p className="text-xs font-black uppercase tracking-[0.22em] text-[#777c7a]">{stat.label}</p>
+                    <p className="mt-2 text-4xl font-black text-[#2e3432]">{stat.value}</p>
+                    <p className="mt-2 text-sm font-semibold text-[#5b605e]">{stat.helper}</p>
+                  </div>
+                ))}
+              </div>
             </div>
-            <div className="mt-1 text-[12px] text-slate-500">Items marked as “Want most”.</div>
           </div>
-        </div>
+
+          <aside className="relative overflow-hidden rounded-[42px] bg-[linear-gradient(145deg,#a43c3f,#812227)] p-6 text-white shadow-[0_28px_80px_rgba(164,60,63,0.22)] sm:p-8">
+            <div className="absolute -right-10 -top-10 h-44 w-44 rounded-full bg-white/12" />
+            <div className="absolute bottom-6 right-8 text-white/25">
+              <SnowflakeIcon className="h-24 w-24" />
+            </div>
+            <div className="relative">
+              <p className="text-xs font-black uppercase tracking-[0.28em] text-white/70">Holiday note</p>
+              <h2 className="mt-4 font-[Plus_Jakarta_Sans] text-3xl font-black tracking-[-0.05em]">
+                A clearer wishlist means fewer mystery socks.
+              </h2>
+              <p className="mt-4 text-sm leading-7 text-white/78">
+                Add specific colors, sizes, links, and notes. The better the clue, the easier it is for your Santa to pick something that actually feels like you.
+              </p>
+              <div className="mt-7 rounded-[28px] bg-white/12 p-4 backdrop-blur">
+                <div className="flex items-center justify-between gap-3 text-sm font-black">
+                  <span>{selectedGroup?.name || "Selected group"}</span>
+                  <span>{selectedGroupItemCount}/{WISHLIST_ITEMS_PER_GROUP_LIMIT}</span>
+                </div>
+                <div className="mt-3 h-3 overflow-hidden rounded-full bg-white/16">
+                  <div
+                    className="h-full rounded-full bg-[#fcce72] transition-all"
+                    style={{ width: `${selectedGroupProgress}%` }}
+                  />
+                </div>
+                <p className="mt-3 text-xs font-semibold text-white/70">
+                  {selectedGroupAtLimit ? "This group wishlist is full." : "There is still room for more clues."}
+                </p>
+              </div>
+            </div>
+          </aside>
+        </section>
 
         {message && (
           <div
-            className={`mb-5 rounded-[18px] px-4 py-3 text-[13px] font-semibold ${
+            className={`rounded-[24px] px-5 py-4 text-sm font-bold shadow-[0_16px_38px_rgba(46,52,50,0.06)] ${
               message.type === "success"
-                ? "border border-emerald-700/15 bg-emerald-700/10 text-emerald-800"
-                : "border border-rose-700/15 bg-rose-700/10 text-rose-800"
+                ? "bg-[#d7fadb] text-[#314e38]"
+                : "bg-[#fff7f6] text-[#aa371c]"
             }`}
           >
             {message.text}
           </div>
         )}
 
-        <div className="mb-6 overflow-hidden rounded-[22px] border border-slate-300/60 bg-white/80 shadow-[0_14px_34px_rgba(34,55,59,0.08)]">
-          <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-300/50 bg-[linear-gradient(180deg,rgba(245,248,246,.94),rgba(236,242,239,.96))] p-4">
-            <div>
-              <div className="text-[17px] font-extrabold text-[#2f6b56]">Add a wishlist item</div>
-              <div className="mt-1 text-[12px] text-slate-500">
-                Keep your own wishlist here so your Secret Santa has clearer guidance. Each group can hold up to{" "}
-                <strong>{WISHLIST_ITEMS_PER_GROUP_LIMIT}</strong> items.
+        <section className="grid gap-5 lg:grid-cols-[380px_minmax(0,1fr)]">
+          <aside className="lg:sticky lg:top-5 lg:self-start">
+            <div className="overflow-hidden rounded-[38px] bg-white p-5 shadow-[0_24px_70px_rgba(46,52,50,0.08)] sm:p-6">
+              <div className="mb-5 flex items-start justify-between gap-4">
+                <div>
+                  <p className="text-xs font-black uppercase tracking-[0.22em] text-[#7b5902]">Gift workshop</p>
+                  <h2 className="mt-2 font-[Plus_Jakarta_Sans] text-2xl font-black tracking-[-0.04em] text-[#2e3432]">
+                    Add an idea
+                  </h2>
+                  <p className="mt-2 text-sm leading-6 text-[#5b605e]">
+                    Save up to {WISHLIST_ITEMS_PER_GROUP_LIMIT} clues per group.
+                  </p>
+                </div>
+                <div className="grid h-14 w-14 shrink-0 place-items-center rounded-[22px] bg-[#fff7f6] text-[#a43c3f]">
+                  <GiftIcon className="h-8 w-8" />
+                </div>
               </div>
-            </div>
-          </div>
 
-          <div className="p-4">
-            {groups.length === 0 ? (
-              <div className="rounded-2xl border border-dashed border-amber-300/60 bg-amber-50/70 px-4 py-5 text-[13px] text-slate-600">
-                Join a group first before adding wishlist items.
-              </div>
-            ) : (
-              <div className="rounded-2xl border border-slate-300/60 bg-slate-50/70 p-4">
-                <div className="mb-2 text-[11px] font-bold uppercase tracking-[0.18em] text-slate-500">
-                  Group
+              {groups.length === 0 ? (
+                <div className="rounded-[28px] bg-[#fcce72]/25 px-5 py-6 text-sm leading-6 text-[#5f4500]">
+                  Join a group first before adding wishlist items.
                 </div>
-                <select
-                  value={addGroupId}
-                  onChange={(event) => setAddGroupId(event.target.value)}
-                  className="mb-3 w-full rounded-lg border border-slate-300/70 bg-white px-3 py-2.5 text-[13px] text-slate-700 outline-none"
-                >
-                  {groups.map((group) => (
-                    <option key={group.id} value={group.id}>
-                      {group.name}
-                    </option>
-                  ))}
-                </select>
+              ) : (
+                <div className="space-y-3">
+                  <label className="block">
+                    <span className="mb-2 block text-xs font-black uppercase tracking-[0.18em] text-[#777c7a]">Group</span>
+                    <select
+                      value={addGroupId}
+                      onChange={(event) => setAddGroupId(event.target.value)}
+                      className="w-full rounded-[20px] bg-[#e5e9e6] px-4 py-3 text-sm font-bold text-[#2e3432] outline-none transition focus:bg-white focus:ring-2 focus:ring-[#a43c3f]/20"
+                    >
+                      {groups.map((group) => (
+                        <option key={group.id} value={group.id}>
+                          {group.name}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
 
-                <div className="mb-3 flex flex-wrap items-center justify-between gap-2 rounded-xl border border-slate-300/60 bg-white/80 px-3 py-2">
-                  <div className="text-[11px] font-semibold text-slate-500">
-                    {selectedGroup
-                      ? `${selectedGroup.name}: ${selectedGroupItemCount}/${WISHLIST_ITEMS_PER_GROUP_LIMIT} items used`
-                      : "Select a group to add your wishlist item"}
+                  <div className="rounded-[24px] bg-[#f2f4f2] p-4">
+                    <div className="flex items-center justify-between gap-3 text-xs font-black uppercase tracking-[0.16em] text-[#5b605e]">
+                      <span>Wishlist space</span>
+                      <span>{selectedGroupItemCount}/{WISHLIST_ITEMS_PER_GROUP_LIMIT}</span>
+                    </div>
+                    <div className="mt-3 h-2.5 overflow-hidden rounded-full bg-white">
+                      <div
+                        className={`h-full rounded-full ${selectedGroupAtLimit ? "bg-[#a43c3f]" : "bg-[#48664e]"}`}
+                        style={{ width: `${selectedGroupProgress}%` }}
+                      />
+                    </div>
                   </div>
-                  <div
-                    className={`rounded-full px-2.5 py-1 text-[10px] font-extrabold ${
-                      selectedGroupAtLimit
-                        ? "bg-rose-700/10 text-rose-700"
-                        : "bg-emerald-700/10 text-emerald-700"
-                    }`}
-                  >
-                    {selectedGroupAtLimit ? "Limit reached" : "Room available"}
+
+                  <input
+                    value={addName}
+                    onChange={(event) => setAddName(event.target.value)}
+                    maxLength={ITEM_NAME_MAX}
+                    placeholder="Item name, brand, or model"
+                    className="w-full rounded-[20px] bg-[#e5e9e6] px-4 py-3 text-sm font-bold text-[#2e3432] outline-none placeholder:text-[#777c7a] focus:bg-white focus:ring-2 focus:ring-[#a43c3f]/20"
+                  />
+
+                  <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-1">
+                    <select
+                      value={addCategory}
+                      onChange={(event) => setAddCategory(event.target.value)}
+                      className="w-full rounded-[20px] bg-[#e5e9e6] px-4 py-3 text-sm font-bold text-[#2e3432] outline-none focus:bg-white focus:ring-2 focus:ring-[#a43c3f]/20"
+                    >
+                      <option value="">Category (optional)</option>
+                      {WISHLIST_CATEGORIES.map((category) => (
+                        <option key={category} value={category}>
+                          {category}
+                        </option>
+                      ))}
+                    </select>
+                    <select
+                      value={addPriority}
+                      onChange={(event) => setAddPriority(Number(event.target.value) as WishlistPriority)}
+                      className="w-full rounded-[20px] bg-[#e5e9e6] px-4 py-3 text-sm font-bold text-[#2e3432] outline-none focus:bg-white focus:ring-2 focus:ring-[#a43c3f]/20"
+                    >
+                      {PRIORITY_OPTIONS.map((option) => (
+                        <option key={option.value} value={option.value}>
+                          {option.label}
+                        </option>
+                      ))}
+                    </select>
                   </div>
-                </div>
 
-                <input
-                  value={addName}
-                  onChange={(event) => setAddName(event.target.value)}
-                  maxLength={ITEM_NAME_MAX}
-                  placeholder="Item name (e.g. Nintendo Switch)"
-                  className="mb-2 w-full rounded-lg border border-slate-300/70 bg-white px-3 py-2.5 text-[13px] text-slate-700 outline-none"
-                />
-
-                <div className="mb-2 flex flex-col gap-2 sm:flex-row">
-                  <select
-                    value={addCategory}
-                    onChange={(event) => setAddCategory(event.target.value)}
-                    className="flex-1 rounded-lg border border-slate-300/70 bg-white px-3 py-2.5 text-[13px] text-slate-700 outline-none"
-                  >
-                    <option value="">Category (optional)</option>
-                    {WISHLIST_CATEGORIES.map((category) => (
-                      <option key={category} value={category}>
-                        {category}
-                      </option>
-                    ))}
-                  </select>
-                  <select
-                    value={addPriority}
-                    onChange={(event) => setAddPriority(Number(event.target.value) as WishlistPriority)}
-                    className="flex-1 rounded-lg border border-slate-300/70 bg-white px-3 py-2.5 text-[13px] text-slate-700 outline-none"
-                  >
-                    {PRIORITY_OPTIONS.map((option) => (
-                      <option key={option.value} value={option.value}>
-                        {option.label}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                <div className="mb-2 flex flex-col gap-2 sm:flex-row">
                   <input
                     type="url"
                     inputMode="url"
@@ -554,7 +670,7 @@ export default function WishlistPage() {
                     onChange={(event) => setAddLink(event.target.value)}
                     maxLength={ITEM_URL_MAX}
                     placeholder="Reference link (optional)"
-                    className="flex-1 rounded-lg border border-slate-300/70 bg-white px-3 py-2.5 text-[13px] text-slate-700 outline-none"
+                    className="w-full rounded-[20px] bg-[#e5e9e6] px-4 py-3 text-sm font-bold text-[#2e3432] outline-none placeholder:text-[#777c7a] focus:bg-white focus:ring-2 focus:ring-[#a43c3f]/20"
                   />
                   <input
                     type="url"
@@ -563,219 +679,260 @@ export default function WishlistPage() {
                     onChange={(event) => setAddImageUrl(event.target.value)}
                     maxLength={ITEM_URL_MAX}
                     placeholder="Image URL (optional)"
-                    className="flex-1 rounded-lg border border-slate-300/70 bg-white px-3 py-2.5 text-[13px] text-slate-700 outline-none"
+                    className="w-full rounded-[20px] bg-[#e5e9e6] px-4 py-3 text-sm font-bold text-[#2e3432] outline-none placeholder:text-[#777c7a] focus:bg-white focus:ring-2 focus:ring-[#a43c3f]/20"
                   />
-                </div>
+                  <input
+                    value={addNote}
+                    onChange={(event) => setAddNote(event.target.value)}
+                    maxLength={ITEM_NOTE_MAX}
+                    placeholder="Size, color, or note (optional)"
+                    className="w-full rounded-[20px] bg-[#e5e9e6] px-4 py-3 text-sm font-bold text-[#2e3432] outline-none placeholder:text-[#777c7a] focus:bg-white focus:ring-2 focus:ring-[#a43c3f]/20"
+                  />
 
-                <input
-                  value={addNote}
-                  onChange={(event) => setAddNote(event.target.value)}
-                  maxLength={ITEM_NOTE_MAX}
-                  placeholder="Short note (optional)"
-                  className="mb-3 w-full rounded-lg border border-slate-300/70 bg-white px-3 py-2.5 text-[13px] text-slate-700 outline-none"
-                />
-
-                <div className="flex justify-end">
                   <button
                     type="button"
                     onClick={handleAdd}
                     disabled={adding || selectedGroupAtLimit}
-                    className="rounded-lg bg-[#2f6b56] px-4 py-2 text-[12px] font-extrabold text-white transition disabled:cursor-not-allowed disabled:opacity-50"
+                    className="inline-flex w-full items-center justify-center gap-2 rounded-full bg-[linear-gradient(135deg,#a43c3f,#943034)] px-5 py-3.5 text-sm font-black text-white shadow-[0_18px_42px_rgba(164,60,63,0.2)] transition hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-50"
                   >
                     {adding
                       ? "Saving..."
                       : selectedGroupAtLimit
                         ? "Group full"
-                        : "Save item"}
+                        : "Wrap this idea"}
+                    <ArrowRightIcon />
                   </button>
                 </div>
-              </div>
-            )}
-          </div>
-        </div>
+              )}
+            </div>
+          </aside>
 
-        <div className="space-y-5">
-          {groupedItems.map((group) => (
-            <div
-              key={group.id}
-              className="overflow-hidden rounded-[22px] border border-slate-300/60 bg-white/80 shadow-[0_14px_34px_rgba(34,55,59,0.08)]"
-            >
-              <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-300/50 bg-[linear-gradient(180deg,rgba(245,248,246,.94),rgba(236,242,239,.96))] p-4">
-                <div>
-                  <div className="text-[18px] font-extrabold text-slate-800">{group.name}</div>
-                  <div className="mt-1 text-[12px] text-slate-500">
-                    Event date: {formatDate(group.eventDate)}
-                    {formatBudget(group.budget, group.currency)
-                      ? ` · Budget: ${formatBudget(group.budget, group.currency)}`
-                      : ""}
-                  </div>
-                </div>
-                <div className="rounded-full bg-emerald-700/10 px-3 py-1 text-[11px] font-extrabold text-emerald-800">
-                  {group.items.length}/{WISHLIST_ITEMS_PER_GROUP_LIMIT} items
-                </div>
-              </div>
+          <div className="space-y-5">
+            {groupedItems.map((group) => {
+              const budget = formatBudget(group.budget, group.currency);
+              const progress = Math.min(
+                100,
+                Math.round((group.items.length / WISHLIST_ITEMS_PER_GROUP_LIMIT) * 100)
+              );
 
-              <div className="p-4">
-                {group.items.length === 0 ? (
-                  <div className="rounded-2xl border border-dashed border-amber-300/60 bg-amber-50/70 px-4 py-5 text-[13px] text-slate-600">
-                    No wishlist items in this group yet.
-                  </div>
-                ) : (
-                  <div className="space-y-3">
-                    {group.items.map((item) =>
-                      editingId === item.id ? (
-                        <div key={item.id} className="rounded-2xl border border-blue-300/40 bg-slate-50/80 p-4">
-                          <input
-                            value={editName}
-                            onChange={(event) => setEditName(event.target.value)}
-                            maxLength={ITEM_NAME_MAX}
-                            className="mb-2 w-full rounded-lg border border-slate-300/70 bg-white px-3 py-2 text-[13px] text-slate-700 outline-none"
-                          />
-                          <div className="mb-2 flex flex-col gap-2 sm:flex-row">
-                            <select
-                              value={editCategory}
-                              onChange={(event) => setEditCategory(event.target.value)}
-                              className="flex-1 rounded-lg border border-slate-300/70 bg-white px-3 py-2 text-[13px] text-slate-700 outline-none"
-                            >
-                              <option value="">Category (optional)</option>
-                              {WISHLIST_CATEGORIES.map((category) => (
-                                <option key={category} value={category}>
-                                  {category}
-                                </option>
-                              ))}
-                            </select>
-                            <select
-                              value={editPriority}
-                              onChange={(event) =>
-                                setEditPriority(Number(event.target.value) as WishlistPriority)
-                              }
-                              className="flex-1 rounded-lg border border-slate-300/70 bg-white px-3 py-2 text-[13px] text-slate-700 outline-none"
-                            >
-                              {PRIORITY_OPTIONS.map((option) => (
-                                <option key={option.value} value={option.value}>
-                                  {option.label}
-                                </option>
-                              ))}
-                            </select>
-                          </div>
-                          <div className="mb-2 flex flex-col gap-2 sm:flex-row">
-                            <input
-                              type="url"
-                              inputMode="url"
-                              value={editLink}
-                              onChange={(event) => setEditLink(event.target.value)}
-                              maxLength={ITEM_URL_MAX}
-                              placeholder="Reference link"
-                              className="flex-1 rounded-lg border border-slate-300/70 bg-white px-3 py-2 text-[13px] text-slate-700 outline-none"
-                            />
-                            <input
-                              type="url"
-                              inputMode="url"
-                              value={editImageUrl}
-                              onChange={(event) => setEditImageUrl(event.target.value)}
-                              maxLength={ITEM_URL_MAX}
-                              placeholder="Image URL"
-                              className="flex-1 rounded-lg border border-slate-300/70 bg-white px-3 py-2 text-[13px] text-slate-700 outline-none"
-                            />
-                          </div>
-                          <input
-                            value={editNote}
-                            onChange={(event) => setEditNote(event.target.value)}
-                            maxLength={ITEM_NOTE_MAX}
-                            placeholder="Short note"
-                            className="mb-3 w-full rounded-lg border border-slate-300/70 bg-white px-3 py-2 text-[13px] text-slate-700 outline-none"
-                          />
-                          <div className="flex justify-end gap-2">
-                            <button
-                              type="button"
-                              onClick={() => setEditingId(null)}
-                              className="rounded-lg border border-slate-300/70 bg-white px-4 py-2 text-[11px] font-bold text-slate-500"
-                            >
-                              Cancel
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => handleEdit(item.id)}
-                              disabled={savingEditId === item.id}
-                              className="rounded-lg bg-slate-600 px-4 py-2 text-[11px] font-extrabold text-white"
-                            >
-                              {savingEditId === item.id ? "Saving..." : "Save changes"}
-                            </button>
-                          </div>
+              return (
+                <section
+                  key={group.id}
+                  className="overflow-hidden rounded-[38px] bg-white shadow-[0_24px_70px_rgba(46,52,50,0.08)]"
+                >
+                  <div className="relative overflow-hidden bg-[#f2f4f2] p-5 sm:p-6">
+                    <div className="absolute right-6 top-5 text-[#a43c3f]/12">
+                      <SnowflakeIcon className="h-20 w-20" />
+                    </div>
+                    <div className="relative flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+                      <div>
+                        <p className="text-xs font-black uppercase tracking-[0.22em] text-[#48664e]">Exchange shelf</p>
+                        <h2 className="mt-2 font-[Plus_Jakarta_Sans] text-3xl font-black tracking-[-0.05em] text-[#2e3432]">
+                          {group.name}
+                        </h2>
+                        <div className="mt-3 flex flex-wrap gap-2 text-xs font-bold text-[#5b605e]">
+                          <span className="rounded-full bg-white px-3 py-1.5">
+                            Event: {formatDate(group.eventDate)}
+                          </span>
+                          {budget && (
+                            <span className="rounded-full bg-white px-3 py-1.5">
+                              Budget: {budget}
+                            </span>
+                          )}
                         </div>
-                      ) : (
-                        <div
-                          key={item.id}
-                          className="rounded-2xl border border-slate-300/50 bg-white/85 p-4 shadow-[0_8px_18px_rgba(34,55,59,0.05)]"
-                        >
-                          <div className="flex items-start justify-between gap-3">
-                            <div className="min-w-0">
-                              <div className="flex flex-wrap items-center gap-2">
-                                <div className="text-[16px] font-extrabold text-slate-800">
-                                  {item.item_name}
+                      </div>
+                      <div className="min-w-[160px] rounded-[24px] bg-white p-4">
+                        <div className="flex items-center justify-between text-xs font-black uppercase tracking-[0.16em] text-[#777c7a]">
+                          <span>Filled</span>
+                          <span>{group.items.length}/{WISHLIST_ITEMS_PER_GROUP_LIMIT}</span>
+                        </div>
+                        <div className="mt-3 h-2.5 overflow-hidden rounded-full bg-[#e5e9e6]">
+                          <div className="h-full rounded-full bg-[#a43c3f]" style={{ width: `${progress}%` }} />
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="p-4 sm:p-5">
+                    {group.items.length === 0 ? (
+                      <div className="rounded-[30px] bg-[#fcce72]/22 px-5 py-8 text-center text-sm leading-6 text-[#5f4500]">
+                        <SparkleIcon className="mx-auto mb-3 h-7 w-7" />
+                        No wishlist items in this group yet. Add a few clear clues so your Santa is not guessing in the snow.
+                      </div>
+                    ) : (
+                      <div className="grid gap-4 xl:grid-cols-2">
+                        {group.items.map((item) => {
+                          const tone = priorityTone(item.priority);
+
+                          return editingId === item.id ? (
+                            <div key={item.id} className="rounded-[30px] bg-[#f2f4f2] p-4 sm:p-5">
+                              <div className="mb-4 flex items-center gap-3">
+                                <div className="grid h-11 w-11 place-items-center rounded-[18px] bg-white text-[#a43c3f]">
+                                  <GiftIcon className="h-6 w-6" />
                                 </div>
-                                <span className="rounded-full bg-rose-700/10 px-2.5 py-1 text-[10px] font-extrabold text-rose-700">
-                                  {priorityLabel(item.priority)}
-                                </span>
-                                {item.item_category && (
-                                  <span className="rounded-full bg-slate-200 px-2.5 py-1 text-[10px] font-bold text-slate-600">
-                                    {item.item_category}
-                                  </span>
-                                )}
+                                <div>
+                                  <p className="text-xs font-black uppercase tracking-[0.18em] text-[#777c7a]">Editing gift clue</p>
+                                  <h3 className="text-lg font-black text-[#2e3432]">Update item</h3>
+                                </div>
                               </div>
-                              {item.item_note && (
-                                <div className="mt-2 text-[13px] text-slate-600">{item.item_note}</div>
-                              )}
-                              <div className="mt-3 flex flex-wrap gap-2">
-                                {item.item_link && (
-                                  <a
-                                    href={item.item_link}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    className="rounded-lg bg-slate-100 px-3 py-1.5 text-[11px] font-bold text-slate-600"
+                              <div className="space-y-3">
+                                <input
+                                  value={editName}
+                                  onChange={(event) => setEditName(event.target.value)}
+                                  maxLength={ITEM_NAME_MAX}
+                                  className="w-full rounded-[18px] bg-white px-4 py-3 text-sm font-bold text-[#2e3432] outline-none focus:ring-2 focus:ring-[#a43c3f]/20"
+                                />
+                                <div className="grid gap-3 sm:grid-cols-2">
+                                  <select
+                                    value={editCategory}
+                                    onChange={(event) => setEditCategory(event.target.value)}
+                                    className="rounded-[18px] bg-white px-4 py-3 text-sm font-bold text-[#2e3432] outline-none focus:ring-2 focus:ring-[#a43c3f]/20"
                                   >
-                                    Reference link →
-                                  </a>
-                                )}
-                                {item.item_image_url && (
-                                  <a
-                                    href={item.item_image_url}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    className="rounded-lg bg-emerald-700/10 px-3 py-1.5 text-[11px] font-bold text-emerald-700"
+                                    <option value="">Category (optional)</option>
+                                    {WISHLIST_CATEGORIES.map((category) => (
+                                      <option key={category} value={category}>
+                                        {category}
+                                      </option>
+                                    ))}
+                                  </select>
+                                  <select
+                                    value={editPriority}
+                                    onChange={(event) =>
+                                      setEditPriority(Number(event.target.value) as WishlistPriority)
+                                    }
+                                    className="rounded-[18px] bg-white px-4 py-3 text-sm font-bold text-[#2e3432] outline-none focus:ring-2 focus:ring-[#a43c3f]/20"
                                   >
-                                    Open image →
-                                  </a>
-                                )}
+                                    {PRIORITY_OPTIONS.map((option) => (
+                                      <option key={option.value} value={option.value}>
+                                        {option.label}
+                                      </option>
+                                    ))}
+                                  </select>
+                                </div>
+                                <input
+                                  type="url"
+                                  inputMode="url"
+                                  value={editLink}
+                                  onChange={(event) => setEditLink(event.target.value)}
+                                  maxLength={ITEM_URL_MAX}
+                                  placeholder="Reference link"
+                                  className="w-full rounded-[18px] bg-white px-4 py-3 text-sm font-bold text-[#2e3432] outline-none placeholder:text-[#777c7a] focus:ring-2 focus:ring-[#a43c3f]/20"
+                                />
+                                <input
+                                  type="url"
+                                  inputMode="url"
+                                  value={editImageUrl}
+                                  onChange={(event) => setEditImageUrl(event.target.value)}
+                                  maxLength={ITEM_URL_MAX}
+                                  placeholder="Image URL"
+                                  className="w-full rounded-[18px] bg-white px-4 py-3 text-sm font-bold text-[#2e3432] outline-none placeholder:text-[#777c7a] focus:ring-2 focus:ring-[#a43c3f]/20"
+                                />
+                                <input
+                                  value={editNote}
+                                  onChange={(event) => setEditNote(event.target.value)}
+                                  maxLength={ITEM_NOTE_MAX}
+                                  placeholder="Short note"
+                                  className="w-full rounded-[18px] bg-white px-4 py-3 text-sm font-bold text-[#2e3432] outline-none placeholder:text-[#777c7a] focus:ring-2 focus:ring-[#a43c3f]/20"
+                                />
+                                <div className="flex flex-col gap-2 sm:flex-row sm:justify-end">
+                                  <button
+                                    type="button"
+                                    onClick={() => setEditingId(null)}
+                                    className="rounded-full bg-white px-5 py-2.5 text-sm font-black text-[#5b605e]"
+                                  >
+                                    Cancel
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => handleEdit(item.id)}
+                                    disabled={savingEditId === item.id}
+                                    className="rounded-full bg-[#48664e] px-5 py-2.5 text-sm font-black text-white disabled:opacity-50"
+                                  >
+                                    {savingEditId === item.id ? "Saving..." : "Save changes"}
+                                  </button>
+                                </div>
                               </div>
                             </div>
-                            <div className="flex shrink-0 gap-1.5">
-                              <button
-                                type="button"
-                                onClick={() => startEdit(item)}
-                                className="rounded-lg bg-blue-500/10 px-3 py-1.5 text-[11px] font-bold text-blue-700"
-                              >
-                                Edit
-                              </button>
-                              <button
-                                type="button"
-                                onClick={() => handleDelete(item.id)}
-                                disabled={deletingId === item.id}
-                                className="rounded-lg bg-rose-500/10 px-3 py-1.5 text-[11px] font-bold text-rose-700"
-                              >
-                                {deletingId === item.id ? "Deleting..." : "Delete"}
-                              </button>
-                            </div>
-                          </div>
-                        </div>
-                      )
+                          ) : (
+                            <article key={item.id} className="group relative overflow-hidden rounded-[32px] bg-[#f9faf8] p-5 transition hover:-translate-y-0.5">
+                              <div className={`absolute inset-x-0 top-0 h-2 bg-gradient-to-r ${tone.ribbon}`} />
+                              <div className="flex gap-4">
+                                <div className="grid h-16 w-16 shrink-0 place-items-center rounded-[24px] bg-white text-[#a43c3f] shadow-[0_14px_34px_rgba(46,52,50,0.06)]">
+                                  <GiftIcon className="h-9 w-9" />
+                                </div>
+                                <div className="min-w-0 flex-1">
+                                  <h3 className="break-words font-[Plus_Jakarta_Sans] text-xl font-black tracking-[-0.04em] text-[#2e3432]">
+                                    {item.item_name}
+                                  </h3>
+                                  <div className="mt-3 flex flex-wrap gap-2">
+                                    <span className={`rounded-full px-3 py-1.5 text-xs font-black ${tone.badge}`}>
+                                      {priorityLabel(item.priority)}
+                                    </span>
+                                    {item.item_category && (
+                                      <span className="rounded-full bg-[#ecefec] px-3 py-1.5 text-xs font-bold text-[#5b605e]">
+                                        {item.item_category}
+                                      </span>
+                                    )}
+                                  </div>
+                                  {item.item_note && (
+                                    <p className="mt-4 rounded-[22px] bg-white px-4 py-3 text-sm leading-6 text-[#5b605e]">
+                                      {item.item_note}
+                                    </p>
+                                  )}
+                                  <div className="mt-4 flex flex-wrap gap-2">
+                                    {item.item_link && (
+                                      <a
+                                        href={item.item_link}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="inline-flex items-center gap-2 rounded-full bg-white px-4 py-2 text-xs font-black text-[#48664e]"
+                                      >
+                                        Reference link
+                                        <ArrowRightIcon />
+                                      </a>
+                                    )}
+                                    {item.item_image_url && (
+                                      <a
+                                        href={item.item_image_url}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="inline-flex items-center gap-2 rounded-full bg-[#d7fadb] px-4 py-2 text-xs font-black text-[#314e38]"
+                                      >
+                                        Open image
+                                        <ArrowRightIcon />
+                                      </a>
+                                    )}
+                                  </div>
+                                  <div className="mt-4 flex flex-wrap gap-2">
+                                    <button
+                                      type="button"
+                                      onClick={() => startEdit(item)}
+                                      className="rounded-full bg-[#ecefec] px-4 py-2 text-xs font-black text-[#48664e]"
+                                    >
+                                      Edit
+                                    </button>
+                                    <button
+                                      type="button"
+                                      onClick={() => handleDelete(item.id)}
+                                      disabled={deletingId === item.id}
+                                      className="rounded-full bg-[#fff7f6] px-4 py-2 text-xs font-black text-[#a43c3f] disabled:opacity-50"
+                                    >
+                                      {deletingId === item.id ? "Deleting..." : "Delete"}
+                                    </button>
+                                  </div>
+                                </div>
+                              </div>
+                            </article>
+                          );
+                        })}
+                      </div>
                     )}
                   </div>
-                )}
-              </div>
-            </div>
-          ))}
-        </div>
+                </section>
+              );
+            })}
+          </div>
+        </section>
       </div>
     </main>
   );
