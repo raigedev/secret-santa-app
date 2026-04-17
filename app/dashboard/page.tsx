@@ -2027,8 +2027,8 @@ export default function DashboardPage() {
           />
           <ActionCard
             accent="green"
-            title="Group Chat"
-            description="Drop a hint or coordinate the party."
+            title="Secret Santa Chat"
+            description="Message your giftee or your Santa privately."
             onClick={() => router.push("/secret-santa-chat")}
             icon={<ChatIcon className="h-8 w-8" />}
           />
