@@ -12,6 +12,7 @@ function isAuthorizedRequest(request: NextRequest): boolean {
   const cronSecret = process.env.CRON_SECRET?.trim();
   const processorSecret = process.env.REMINDER_PROCESSOR_SECRET?.trim();
   const headerSecret = request.headers.get("x-reminder-processor-secret")?.trim();
+  const isProduction = process.env.NODE_ENV === "production";
 
   if (cronSecret && safeEqualSecret(cronSecret, authorizationToken)) {
     return true;
@@ -24,11 +25,11 @@ function isAuthorizedRequest(request: NextRequest): boolean {
     );
   }
 
-  if (request.headers.has("x-vercel-cron")) {
+  if (!isProduction && request.headers.has("x-vercel-cron")) {
     return true;
   }
 
-  if (process.env.NODE_ENV !== "production") {
+  if (!isProduction) {
     const queryToken = request.nextUrl.searchParams.get("token")?.trim();
     return processorSecret ? safeEqualSecret(processorSecret, queryToken) : true;
   }

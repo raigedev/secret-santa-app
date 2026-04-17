@@ -128,7 +128,7 @@ function isAuthorizedPostback(request: NextRequest, payload: PostbackPayload): b
   const configuredSecret = process.env.LAZADA_POSTBACK_SECRET?.trim();
 
   if (!configuredSecret) {
-    return true;
+    return process.env.NODE_ENV !== "production";
   }
 
   const providedSecret =

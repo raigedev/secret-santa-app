@@ -186,6 +186,16 @@ function formatDashboardDate(value: string): string {
   });
 }
 
+function getDaysUntilEvent(value: string, now: number): number | null {
+  const eventTime = new Date(value).getTime();
+
+  if (Number.isNaN(eventTime)) {
+    return null;
+  }
+
+  return Math.max(0, Math.ceil((eventTime - now) / 86_400_000));
+}
+
 function formatDashboardBudget(budget: number | null, currency: string | null): string | null {
   if (budget === null) {
     return null;
@@ -481,19 +491,6 @@ function GiftIcon({ className = "h-5 w-5" }: { className?: string }) {
   );
 }
 
-function ReportIcon({ className = "h-4 w-4" }: { className?: string }) {
-  return (
-    <svg viewBox="0 0 20 20" fill="none" className={className} aria-hidden="true">
-      <path
-        d="M6 4.5h8A1.5 1.5 0 0 1 15.5 6v8A1.5 1.5 0 0 1 14 15.5H6A1.5 1.5 0 0 1 4.5 14V6A1.5 1.5 0 0 1 6 4.5Z"
-        stroke="currentColor"
-        strokeWidth="1.6"
-      />
-      <path d="M7.5 8h5M7.5 10.5h5M7.5 13h3" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
-    </svg>
-  );
-}
-
 function UserOutlineIcon({ className = "h-4 w-4" }: { className?: string }) {
   return (
     <svg viewBox="0 0 20 20" fill="none" className={className} aria-hidden="true">
@@ -501,20 +498,6 @@ function UserOutlineIcon({ className = "h-4 w-4" }: { className?: string }) {
         d="M10 10a2.75 2.75 0 1 0 0-5.5A2.75 2.75 0 0 0 10 10ZM5.5 15.5c.7-2.1 2.45-3.25 4.5-3.25s3.8 1.15 4.5 3.25"
         stroke="currentColor"
         strokeWidth="1.6"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </svg>
-  );
-}
-
-function ChevronDownIcon({ className = "h-4 w-4" }: { className?: string }) {
-  return (
-    <svg viewBox="0 0 20 20" fill="none" className={className} aria-hidden="true">
-      <path
-        d="m5.5 7.75 4.5 4.5 4.5-4.5"
-        stroke="currentColor"
-        strokeWidth="1.8"
         strokeLinecap="round"
         strokeLinejoin="round"
       />
@@ -583,35 +566,6 @@ function SantaMarkIcon({ size = 22 }: { size?: number }) {
   );
 }
 
-function SantaBrandLockup({ dark = false }: { dark?: boolean }) {
-  return (
-    <div className="inline-flex items-center gap-3">
-      <span
-        className={`inline-flex h-11 w-11 items-center justify-center overflow-hidden rounded-full shadow-[0_12px_28px_rgba(148,163,184,0.18)] ring-1 ${
-          dark ? "bg-slate-900/70 ring-white/10" : "bg-white/85 ring-white/70"
-        }`}
-      >
-        <SantaMarkIcon size={28} />
-      </span>
-      <span className="flex flex-col items-start leading-[0.94]">
-        <span className={`text-[13px] font-extrabold tracking-[-0.01em] ${dark ? "text-[#ff9b86]" : "text-[#c0392b]"}`}>
-          My Secret
-        </span>
-        <span className={`mt-0.5 text-[26px] font-black tracking-[-0.045em] ${dark ? "text-white" : "text-slate-950"}`}>
-          Santa
-        </span>
-        <span
-          className={`mt-1 text-[10px] font-semibold italic tracking-[-0.01em] ${
-            dark ? "text-[#ffb4a3]/80" : "text-[#c0392b]/85"
-          }`}
-        >
-          shhh... it&apos;s a secret!
-        </span>
-      </span>
-    </div>
-  );
-}
-
 function WishlistIcon({ className = "h-5 w-5" }: { className?: string }) {
   return (
     <svg viewBox="0 0 24 24" fill="none" className={className} aria-hidden="true">
@@ -640,71 +594,6 @@ function PlusIcon({ className = "h-5 w-5" }: { className?: string }) {
     <svg viewBox="0 0 24 24" fill="none" className={className} aria-hidden="true">
       <path d="M12 5v14M5 12h14" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
     </svg>
-  );
-}
-
-function EventCountdownBadge({ eventDate, now }: { eventDate: string; now: number }) {
-  const DAY_MS = 1000 * 60 * 60 * 24;
-  const HOUR_MS = 1000 * 60 * 60;
-  const MINUTE_MS = 1000 * 60;
-
-  const eventTime = new Date(eventDate).getTime();
-
-  if (Number.isNaN(eventTime)) {
-    return (
-      <span className="inline-flex items-center gap-1.5 rounded-full bg-slate-50 px-2.5 py-1 text-[11px] font-semibold text-slate-600">
-        <span className="h-2 w-2 rounded-full bg-blue-500" />
-        Event date: {formatDashboardDate(eventDate)}
-      </span>
-    );
-  }
-
-  const remaining = Math.max(0, eventTime - now);
-
-  if (remaining === 0) {
-    return (
-      <span className="inline-flex items-center gap-1.5 rounded-full bg-amber-50 px-2.5 py-1 text-[11px] font-semibold text-amber-700">
-        <span className="h-2 w-2 rounded-full bg-amber-500" />
-        Event in progress!
-      </span>
-    );
-  }
-
-  const days = Math.floor(remaining / DAY_MS);
-  const hours = Math.floor((remaining % DAY_MS) / HOUR_MS);
-  const minutes = Math.floor((remaining % HOUR_MS) / MINUTE_MS);
-  const isUrgent = remaining <= DAY_MS;
-  const isSoon = remaining <= DAY_MS * 3;
-
-  const containerStyle = isUrgent
-    ? "border-rose-200 bg-rose-50 text-rose-800"
-    : isSoon
-      ? "border-amber-200 bg-amber-50 text-amber-800"
-      : "border-blue-200 bg-blue-50 text-blue-800";
-  const dotStyle = isUrgent ? "bg-rose-500" : isSoon ? "bg-amber-500" : "bg-blue-500";
-  const unitStyle = isUrgent
-    ? "bg-white/90 text-rose-900"
-    : isSoon
-      ? "bg-white/90 text-amber-900"
-      : "bg-white/90 text-blue-900";
-
-  return (
-    <span
-      className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[11px] font-semibold shadow-[0_6px_18px_rgba(15,23,42,0.06)] ${containerStyle}`}
-      title={`Event date: ${formatDashboardDate(eventDate)}`}
-    >
-      <span className={`h-2 w-2 rounded-full animate-pulse ${dotStyle}`} />
-      <span className="text-[9px] font-extrabold uppercase tracking-[0.12em] opacity-80">Starts in</span>
-      <span className={`inline-flex items-center rounded-md px-1.5 py-0.5 text-[11px] font-bold tabular-nums ${unitStyle}`}>
-        {days}d
-      </span>
-      <span className={`inline-flex items-center rounded-md px-1.5 py-0.5 text-[11px] font-bold tabular-nums ${unitStyle}`}>
-        {hours}h
-      </span>
-      <span className={`inline-flex items-center rounded-md px-1.5 py-0.5 text-[11px] font-bold tabular-nums ${unitStyle}`}>
-        {minutes}m
-      </span>
-    </span>
   );
 }
 
@@ -1614,12 +1503,15 @@ export default function DashboardPage() {
   const displayFirstName = getDisplayFirstName(userName);
   const isDarkTheme = dashboardTheme === "midnight";
   const totalDashboardGroupCount = ownedGroups.length + invitedGroups.length;
-  const utilityButtonClass = isDarkTheme
-    ? "relative inline-flex h-10 items-center justify-center gap-1.5 rounded-full border border-slate-700/80 bg-slate-900/78 px-3 text-[12px] font-semibold text-slate-100 shadow-[0_16px_40px_rgba(2,8,23,0.30)] backdrop-blur-md transition hover:-translate-y-0.5"
-    : "relative inline-flex h-10 items-center justify-center gap-1.5 rounded-full border border-white/80 bg-white/95 px-3 text-[12px] font-semibold text-slate-700 shadow-[0_14px_32px_rgba(148,163,184,0.14)] backdrop-blur-md transition hover:-translate-y-0.5";
-  const profileUtilityButtonClass = isDarkTheme
-    ? "relative inline-flex h-10 items-center justify-center gap-1.5 rounded-full border border-slate-700/80 bg-slate-900/78 px-3 text-[12px] font-semibold text-slate-100 shadow-[0_16px_40px_rgba(2,8,23,0.30)] backdrop-blur-md transition hover:-translate-y-0.5"
-    : "relative inline-flex h-10 items-center justify-center gap-1.5 rounded-full border border-white/80 bg-white/95 px-3 text-[12px] font-semibold text-slate-700 shadow-[0_14px_32px_rgba(148,163,184,0.14)] backdrop-blur-md transition hover:-translate-y-0.5";
+  const allDashboardGroups = [...ownedGroups, ...invitedGroups];
+  const nextEventDays = allDashboardGroups
+    .map((group) => getDaysUntilEvent(group.event_date, countdownNow))
+    .filter((days): days is number => days !== null)
+    .sort((a, b) => a - b)[0];
+  const revealMessage =
+    nextEventDays !== undefined
+      ? `There are ${nextEventDays} day${nextEventDays === 1 ? "" : "s"} left until the big reveal.`
+      : "Manage your groups, draws, and chats in one place.";
   const utilityIconClass = isDarkTheme ? "text-slate-300" : "text-slate-500";
   const dashboardShellClass = isDarkTheme
     ? "relative min-h-screen overflow-hidden bg-[linear-gradient(180deg,#08111f_0%,#0f172a_38%,#111827_100%)] text-slate-100"
@@ -1632,22 +1524,9 @@ export default function DashboardPage() {
     : "h-3 w-3 rounded-full bg-white/85 shadow-[0_0_12px_rgba(255,255,255,0.85)]";
   const heroTitleClass = isDarkTheme ? "text-white" : "text-sky-900";
   const heroSubtitleClass = isDarkTheme ? "text-slate-300" : "text-slate-600";
-  const dashboardCardShellClass = isDarkTheme
-    ? "overflow-hidden rounded-[22px] border border-slate-700/70 bg-slate-900/66 p-4 shadow-[0_22px_44px_rgba(2,8,23,0.30)] backdrop-blur-md"
-    : "overflow-hidden rounded-[22px] border border-white/70 bg-white/92 p-4 shadow-[0_18px_40px_rgba(148,163,184,0.12)] backdrop-blur-md";
-  const dashboardInnerPanelClass = isDarkTheme
-    ? "rounded-[22px] border border-slate-700/60 bg-[linear-gradient(135deg,rgba(15,23,42,0.92),rgba(30,41,59,0.82))] p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]"
-    : "rounded-[22px] border border-slate-100/80 bg-[linear-gradient(135deg,rgba(255,255,255,0.96),rgba(241,245,249,0.88))] p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.8)]";
   const dashboardPanelHeadingClass = isDarkTheme ? "text-white" : "text-slate-900";
   const dashboardPanelTextClass = isDarkTheme ? "text-slate-300" : "text-slate-600";
-  const dashboardStatChipClass = isDarkTheme
-    ? "rounded-full bg-slate-900/78 px-3 py-2 shadow-[0_10px_24px_rgba(2,8,23,0.24)] ring-1 ring-slate-700/70"
-    : "rounded-full bg-white/90 px-3 py-2 shadow-[0_10px_24px_rgba(148,163,184,0.12)] ring-1 ring-slate-100";
   const dashboardStatLabelClass = isDarkTheme ? "text-slate-500" : "text-slate-400";
-  const dashboardStatValueClass = isDarkTheme ? "text-slate-100" : "text-slate-900";
-  const dashboardSubtleSurfaceClass = isDarkTheme
-    ? "border-slate-700/70 bg-slate-950/50"
-    : "border-slate-200/80 bg-white/90";
   const giftProgressSteps: Array<{
     key: GiftProgressStep;
     label: string;
@@ -1697,165 +1576,102 @@ export default function DashboardPage() {
   }) => {
     const budgetLabel = formatDashboardBudget(group.budget, group.currency);
     const memberCountLabel = `${group.members.length} member${group.members.length === 1 ? "" : "s"}`;
-    const theme =
-      type === "owned"
-        ? {
-            accent: "from-blue-400 via-sky-400 to-blue-600",
-            surface: isDarkTheme ? "bg-slate-900/80" : "bg-white/96",
-            shadow: isDarkTheme
-              ? "shadow-[0_22px_40px_rgba(2,8,23,0.30)]"
-              : "shadow-[0_18px_40px_rgba(148,163,184,0.14)]",
-            eyebrow: isDarkTheme ? "bg-blue-500/15 text-blue-200" : "bg-blue-100 text-blue-700",
-            drawPillDone: isDarkTheme ? "bg-emerald-500/15 text-emerald-200" : "bg-emerald-100 text-emerald-700",
-            drawPillPending: isDarkTheme ? "bg-sky-500/15 text-sky-200" : "bg-sky-100 text-sky-700",
-            primaryButton:
-              "bg-[linear-gradient(135deg,#2f80ff,#1f66e5)] shadow-[0_14px_35px_rgba(37,99,235,0.20)]",
-            secondaryButton: isDarkTheme
-              ? "bg-blue-500/12 text-blue-200 hover:bg-blue-500/20"
-              : "bg-blue-50 text-blue-700 hover:bg-blue-100",
-            avatarShell: isDarkTheme
-              ? "bg-[linear-gradient(145deg,#1e293b,#0f172a)] text-slate-100"
-              : "bg-[linear-gradient(145deg,#f8fbff,#e8f1ff)] text-slate-700",
-          }
-        : {
-            accent: "from-amber-300 via-orange-300 to-amber-500",
-            surface: isDarkTheme ? "bg-slate-900/80" : "bg-white/96",
-            shadow: isDarkTheme
-              ? "shadow-[0_22px_40px_rgba(2,8,23,0.30)]"
-              : "shadow-[0_18px_40px_rgba(148,163,184,0.14)]",
-            eyebrow: isDarkTheme ? "bg-amber-500/15 text-amber-200" : "bg-amber-100 text-amber-700",
-            drawPillDone: isDarkTheme ? "bg-emerald-500/15 text-emerald-200" : "bg-emerald-100 text-emerald-700",
-            drawPillPending: isDarkTheme ? "bg-amber-500/15 text-amber-200" : "bg-amber-100 text-amber-700",
-            primaryButton:
-              "bg-[linear-gradient(135deg,#c26d18,#8b4513)] shadow-[0_14px_35px_rgba(120,53,15,0.20)]",
-            secondaryButton: isDarkTheme
-              ? "bg-amber-500/12 text-amber-200 hover:bg-amber-500/20"
-              : "bg-amber-50 text-amber-700 hover:bg-amber-100",
-            avatarShell: isDarkTheme
-              ? "bg-[linear-gradient(145deg,#3b2a18,#1f2937)] text-slate-100"
-              : "bg-[linear-gradient(145deg,#fffaf2,#fff1d6)] text-slate-700",
-        };
-
+    const daysUntilEvent = getDaysUntilEvent(group.event_date, countdownNow);
+    const isOwnedGroup = type === "owned";
+    const avatarShell = isDarkTheme
+      ? "bg-slate-800 text-slate-100 ring-slate-900"
+      : "bg-slate-100 text-slate-600 ring-white";
+    const groupIconClass = isOwnedGroup
+      ? isDarkTheme
+        ? "bg-rose-500/15 text-rose-200"
+        : "bg-red-100 text-red-600"
+      : isDarkTheme
+        ? "bg-sky-500/15 text-sky-200"
+        : "bg-blue-100 text-blue-600";
+    const datePillClass = isOwnedGroup
+      ? isDarkTheme
+        ? "bg-rose-500/15 text-rose-100"
+        : "bg-red-50 text-red-700"
+      : isDarkTheme
+        ? "bg-sky-500/15 text-sky-100"
+        : "bg-blue-50 text-blue-700";
     const topMembers = group.members.slice(0, 3);
 
     return (
       <article
-        className={`relative overflow-hidden rounded-[22px] border ${isDarkTheme ? "border-slate-700/70" : "border-white/75"} px-3.5 py-3 ${theme.surface} ${theme.shadow}`}
+        className={`group rounded-[24px] p-5 shadow-[0_8px_22px_rgba(45,51,55,0.03)] transition hover:-translate-y-0.5 hover:shadow-[0_16px_30px_rgba(45,51,55,0.07)] ${
+          isDarkTheme ? "bg-slate-900/82 text-slate-100" : "bg-white text-slate-900"
+        }`}
       >
-        <div className={`absolute inset-x-0 top-0 h-1.5 bg-gradient-to-r ${theme.accent}`} />
-        <div className="relative z-10">
-          <div className="flex items-start justify-between gap-2.5">
-            <div className="min-w-0">
-              <h3 className={`text-[1.15rem] font-extrabold leading-tight sm:text-[1.22rem] ${isDarkTheme ? "text-white" : "text-slate-900"}`}>
+        <div className="grid gap-4 md:grid-cols-[minmax(0,1fr)_auto_auto] md:items-center">
+          <button
+            type="button"
+            onClick={() => router.push(`/group/${group.id}`)}
+            className="flex min-w-0 items-center gap-4 text-left"
+          >
+            <span className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-full ${groupIconClass}`}>
+              {isOwnedGroup ? <GiftIcon className="h-5 w-5" /> : <UserOutlineIcon className="h-5 w-5" />}
+            </span>
+            <span className="min-w-0">
+              <span className="block truncate text-[18px] font-extrabold leading-tight">
                 {group.name}
-              </h3>
-            </div>
-            <div className={`shrink-0 rounded-full px-3 py-1 text-[12px] font-semibold ${isDarkTheme ? "bg-slate-800 text-slate-300" : "bg-slate-200 text-slate-600"}`}>
-              {type === "owned" ? "Hosted by you" : "Shared group"}
-            </div>
-          </div>
+              </span>
+              <span className={`mt-1 block text-sm ${isDarkTheme ? "text-slate-400" : "text-slate-600"}`}>
+                {budgetLabel ? `Budget: ${budgetLabel}` : "No budget set"} • {memberCountLabel}
+              </span>
+            </span>
+          </button>
 
-          <div className="mt-2 flex items-center justify-between gap-2.5">
-            <div className="flex flex-wrap items-center gap-1.5">
-              <span className={`inline-flex rounded-full px-3 py-1 text-[12px] font-semibold ${theme.eyebrow}`}>
-                {type === "owned" ? "My group" : "Invited group"}
-              </span>
+          <div className="flex -space-x-3 md:justify-center">
+            {topMembers.map((member, index) => (
               <span
-                className={`inline-flex rounded-full px-3 py-1 text-[12px] font-semibold ${
-                  group.hasDrawn ? theme.drawPillDone : theme.drawPillPending
-                }`}
+                key={`${group.id}-${member.email || member.nickname || index}-avatar`}
+                className={`inline-flex h-10 w-10 items-center justify-center overflow-hidden rounded-full text-[17px] font-bold ring-4 ${avatarShell}`}
+                title={getDashboardMemberLabel(member, group.require_anonymous_nickname)}
               >
-                {group.hasDrawn ? "Draw completed" : "Awaiting draw"}
-              </span>
-            </div>
-
-            <div className="flex shrink-0 items-center gap-2 pl-2">
-              <span
-                className={`hidden sm:inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-[12px] font-semibold ${
-                  isDarkTheme
-                    ? "bg-slate-800/90 text-slate-300 ring-1 ring-slate-700/80"
-                    : "bg-white text-slate-600 ring-1 ring-slate-200"
-                }`}
-              >
-                <UserOutlineIcon className="h-3.5 w-3.5" />
-                {memberCountLabel}
-              </span>
-              <div className="flex -space-x-2">
-                {topMembers.map((member, index) => (
-                  <span
-                    key={`${group.id}-${member.email || member.nickname || index}-avatar`}
-                    className={`inline-flex h-10 w-10 items-center justify-center overflow-hidden rounded-full border-2 border-white text-[18px] font-semibold shadow-[0_8px_18px_rgba(15,23,42,0.10)] ${theme.avatarShell}`}
-                    title={getDashboardMemberLabel(member, group.require_anonymous_nickname)}
-                  >
-                    {member.avatarUrl ? (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img src={member.avatarUrl} alt="" className="h-full w-full object-cover" />
-                    ) : (
-                      member.avatarEmoji ||
-                      getAvatarLabel(
-                        getDashboardMemberLabel(member, group.require_anonymous_nickname)
-                      )
-                    )}
-                  </span>
-                ))}
-                {group.members.length > 3 && (
-                  <span className={`inline-flex h-10 w-10 items-center justify-center rounded-full border-2 border-white text-[12px] font-bold shadow-[0_8px_18px_rgba(15,23,42,0.10)] ${isDarkTheme ? "bg-slate-800 text-slate-200" : "bg-slate-200 text-slate-600"}`}>
-                    +{group.members.length - 3}
-                  </span>
+                {member.avatarUrl ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={member.avatarUrl} alt="" className="h-full w-full object-cover" />
+                ) : (
+                  member.avatarEmoji ||
+                  getAvatarLabel(
+                    getDashboardMemberLabel(member, group.require_anonymous_nickname)
+                  )
                 )}
-              </div>
-            </div>
+              </span>
+            ))}
+            {group.members.length > 3 && (
+              <span className={`inline-flex h-10 w-10 items-center justify-center rounded-full text-xs font-bold ring-4 ${avatarShell}`}>
+                +{group.members.length - 3}
+              </span>
+            )}
           </div>
 
-          <div className={`mt-2.5 rounded-[18px] border px-2.5 py-2 ${isDarkTheme ? "border-slate-700/70 bg-slate-950/55" : "border-slate-200/80 bg-slate-50/95"}`}>
-            <div className={`flex flex-col gap-2 text-sm sm:mx-auto sm:w-[94%] sm:flex-row sm:items-center sm:gap-4 ${isDarkTheme ? "text-slate-200" : "text-slate-700"}`}>
-              <div className="flex min-w-0 flex-wrap items-center gap-2">
-                <EventCountdownBadge eventDate={group.event_date} now={countdownNow} />
-              </div>
-              <div
-                aria-hidden="true"
-                className={`hidden sm:block sm:h-px sm:min-w-6 sm:flex-1 sm:rounded-full ${
-                  isDarkTheme
-                    ? "bg-gradient-to-r from-slate-700/0 via-slate-500/60 to-slate-700/0"
-                    : "bg-gradient-to-r from-slate-200/0 via-slate-300/90 to-slate-200/0"
-                }`}
-              />
-              {budgetLabel && (
-                <div className="flex items-center sm:shrink-0">
-                  <span className={`inline-flex items-center gap-1.5 text-[15px] font-semibold ${isDarkTheme ? "text-slate-100" : "text-slate-700"}`}>
-                    <span className="h-2.5 w-2.5 rounded-full bg-emerald-500" />
-                    Budget: {budgetLabel}
-                  </span>
-                </div>
-              )}
-            </div>
-          </div>
-
-          <div className={`mt-2.5 border-t pt-2.5 ${isDarkTheme ? "border-slate-700/70" : "border-slate-200/80"}`}>
-            <div className="flex flex-wrap items-center gap-2">
+          <div className="flex items-center gap-2 md:justify-end">
+            <button
+              type="button"
+              onClick={() => router.push(`/group/${group.id}`)}
+              className={`rounded-full px-4 py-2 text-sm font-extrabold ${datePillClass}`}
+              title={`Event date: ${formatDashboardDate(group.event_date)}`}
+            >
+              {daysUntilEvent === null
+                ? "Open"
+                : `${daysUntilEvent} day${daysUntilEvent === 1 ? "" : "s"} left`}
+            </button>
+            {type === "owned" && (
               <button
                 type="button"
-                onClick={() => router.push(`/group/${group.id}`)}
-                className={`inline-flex items-center gap-2 rounded-full px-4 py-2 text-[16px] font-semibold text-white transition hover:-translate-y-0.5 ${theme.primaryButton}`}
+                onClick={() => void handleDeleteGroup(group.id, group.name)}
+                disabled={deletingGroupId === group.id}
+                className={`rounded-full px-3 py-2 text-xs font-bold transition ${
+                  isDarkTheme
+                    ? "bg-slate-800 text-slate-300 hover:bg-rose-500/15 hover:text-rose-200"
+                    : "bg-slate-100 text-slate-500 hover:bg-rose-50 hover:text-rose-600"
+                }`}
               >
-                <span>{type === "owned" ? "View Group" : "Open Group"}</span>
-                <ArrowRightIcon />
+                {deletingGroupId === group.id ? "Deleting" : "Delete"}
               </button>
-              {type === "owned" && (
-                <button
-                  type="button"
-                  onClick={() => void handleDeleteGroup(group.id, group.name)}
-                  disabled={deletingGroupId === group.id}
-                  className={`inline-flex items-center gap-2 rounded-full px-3 py-2 text-[15px] font-semibold transition ${
-                    deletingGroupId === group.id
-                      ? "cursor-wait bg-rose-100 text-rose-500"
-                      : theme.secondaryButton
-                  }`}
-                >
-                  {deletingGroupId === group.id ? "Deleting..." : "Delete"}
-                </button>
-              )}
-            </div>
+            )}
           </div>
         </div>
       </article>
@@ -1864,142 +1680,93 @@ export default function DashboardPage() {
 
   const ActionCard = ({
     accent,
-    subtitle,
     title,
     description,
-    buttonLabel,
     onClick,
     icon,
-    meta,
   }: {
-    accent: "rose" | "green" | "amber";
-    subtitle: string;
+    accent: "rose" | "green" | "blue";
     title: string;
     description: string;
-    buttonLabel: string;
     onClick: () => void;
     icon: ReactNode;
-    meta?: ReactNode;
   }) => {
     const theme =
       accent === "rose"
         ? {
-            border: "border-rose-200/80",
             surface: isDarkTheme
-              ? "bg-[linear-gradient(180deg,#1f1620,#111827)]"
-              : "bg-[linear-gradient(180deg,#ffffff,#fff5f7)]",
-            iconShell: "bg-rose-100 text-rose-600",
-            subtitle: "text-rose-600",
-            button: "bg-[linear-gradient(135deg,#e25d67,#b9384c)] text-white shadow-[0_14px_35px_rgba(185,56,76,0.20)]",
-            badge: isDarkTheme ? "bg-rose-500/15 text-rose-200" : "bg-rose-100 text-rose-700",
+              ? "bg-[linear-gradient(135deg,#451923,#2a1118)] text-rose-50"
+              : "bg-[#ffaaa7] text-[#7f000c]",
+            icon: isDarkTheme ? "text-rose-100" : "text-[#7f000c]",
+            decoration: "gift",
           }
         : accent === "green"
         ? {
-            border: "border-emerald-200/80",
             surface: isDarkTheme
-              ? "bg-[linear-gradient(180deg,#13221d,#111827)]"
-              : "bg-[linear-gradient(180deg,#ffffff,#f3fff7)]",
-            iconShell: "bg-emerald-100 text-emerald-600",
-            subtitle: "text-emerald-600",
-            button: "bg-[linear-gradient(135deg,#5aa57c,#2f6b56)] text-white shadow-[0_14px_35px_rgba(47,107,86,0.20)]",
-            badge: isDarkTheme ? "bg-emerald-500/15 text-emerald-200" : "bg-emerald-100 text-emerald-700",
+              ? "bg-[linear-gradient(135deg,#183f24,#102716)] text-emerald-50"
+              : "bg-[#b3f7a6] text-[#065f18]",
+            icon: isDarkTheme ? "text-emerald-100" : "text-[#065f18]",
+            decoration: "chat",
           }
         : {
-            border: "border-amber-200/80",
             surface: isDarkTheme
-              ? "bg-[linear-gradient(180deg,#271d12,#111827)]"
-              : "bg-[linear-gradient(180deg,#ffffff,#fff9f0)]",
-            iconShell: "bg-amber-100 text-amber-600",
-            subtitle: "text-amber-600",
-            button: "bg-[linear-gradient(135deg,#f3b548,#d68619)] text-white shadow-[0_14px_35px_rgba(214,134,25,0.20)]",
-            badge: isDarkTheme ? "bg-amber-500/15 text-amber-200" : "bg-amber-100 text-amber-700",
+              ? "bg-[linear-gradient(135deg,#164569,#0d2d48)] text-sky-50"
+              : "bg-[#76bfff] text-[#003a5c]",
+            icon: isDarkTheme ? "text-sky-100" : "text-[#003a5c]",
+            decoration: "snow",
           };
 
     return (
-      <article
-        className={`relative overflow-hidden rounded-[22px] border p-4 transition hover:-translate-y-0.5 ${isDarkTheme ? "shadow-[0_20px_42px_rgba(2,8,23,0.28)]" : "shadow-[0_18px_40px_rgba(148,163,184,0.12)]"} ${isDarkTheme ? "border-slate-700/70" : theme.border} ${theme.surface}`}
+      <button
+        type="button"
+        onClick={onClick}
+        className={`group relative min-h-[136px] overflow-hidden rounded-[28px] p-7 text-left shadow-[0_10px_26px_rgba(45,51,55,0.06)] transition hover:-translate-y-1 hover:shadow-[0_18px_34px_rgba(45,51,55,0.10)] active:scale-[0.99] ${theme.surface}`}
       >
-        <div className="absolute inset-y-0 right-0 w-16 bg-[radial-gradient(circle_at_center,rgba(191,219,254,0.25),transparent_68%)]" />
-        <div className="relative z-10 flex h-full flex-col">
-          <div className="flex items-start justify-between gap-3">
-            <div className="min-w-0">
-              <div className={`inline-flex rounded-full px-2.5 py-1 text-[12px] font-semibold ${theme.badge}`}>
-                {subtitle}
-              </div>
-              <h2 className={`mt-2.5 text-[1.3rem] font-extrabold leading-tight ${isDarkTheme ? "text-white" : "text-slate-900"}`}>{title}</h2>
-              <p className={`mt-1.5 text-[15px] leading-6 ${isDarkTheme ? "text-slate-300" : "text-slate-600"}`}>{description}</p>
-            </div>
-            <div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ${theme.iconShell}`}>
-              {icon}
-            </div>
-          </div>
-
-          {meta ? <div className="mt-3">{meta}</div> : null}
-
-          <div className={`mt-4 border-t pt-3 ${isDarkTheme ? "border-slate-700/70" : "border-slate-200"}`}>
-            <button
-              type="button"
-              onClick={onClick}
-              className={`inline-flex items-center gap-2 rounded-full px-3.5 py-2 text-[15px] font-semibold transition hover:-translate-y-0.5 ${theme.button}`}
-            >
-              <span>{buttonLabel}</span>
-              <ArrowRightIcon />
-            </button>
-          </div>
+        <div className="relative z-10">
+          <div className={`mb-5 ${theme.icon}`}>{icon}</div>
+          <h2 className="text-[1.45rem] font-extrabold leading-tight tracking-tight">{title}</h2>
+          <p className="mt-1.5 max-w-[16rem] text-[15px] font-medium leading-6 opacity-80">
+            {description}
+          </p>
         </div>
-      </article>
+        <div
+          aria-hidden="true"
+          className="absolute -bottom-12 -right-8 text-[8.5rem] font-black leading-none opacity-[0.16] transition group-hover:scale-110"
+        >
+          {theme.decoration === "gift" ? "Gift" : theme.decoration === "chat" ? "..." : "*"}
+        </div>
+      </button>
     );
   };
 
   const GroupBucket = ({
-      title,
-      subtitle,
-      count,
+    title,
+    count,
     groups,
     type,
-    }: {
-      title: string;
-      subtitle: string;
-      count: number;
-      groups: Group[];
-      type: "owned" | "invited";
-    }) => {
-      const bucketTheme =
-        type === "owned"
-          ? {
-              badge: isDarkTheme ? "bg-blue-500/15 text-blue-200" : "bg-blue-100 text-blue-700",
-              countChip: isDarkTheme ? "bg-slate-900/75 text-slate-200 ring-slate-700/70" : "bg-white/92 text-slate-600 ring-slate-200/80",
-            }
-          : {
-              badge: isDarkTheme ? "bg-amber-500/15 text-amber-200" : "bg-amber-100 text-amber-700",
-              countChip: isDarkTheme ? "bg-slate-900/75 text-slate-200 ring-slate-700/70" : "bg-white/92 text-slate-600 ring-slate-200/80",
-            };
-
-      return (
-        <section className="space-y-3">
-          <div>
-            <div className="flex flex-wrap items-center gap-2">
-              <span className={`inline-flex items-center rounded-full px-3 py-1 text-[12px] font-semibold ${bucketTheme.badge}`}>
-                {type === "owned" ? "Hosted groups" : "Joined groups"}
-              </span>
-              <span className={`inline-flex items-center rounded-full px-3 py-1 text-[12px] font-semibold ring-1 ${bucketTheme.countChip}`}>
-                {count} group{count === 1 ? "" : "s"}
-              </span>
-            </div>
-            <h3 className={`mt-2.5 text-[1.24rem] font-bold ${dashboardPanelHeadingClass}`}>{title}</h3>
-            <p className={`mt-1 text-[15px] leading-6 ${dashboardPanelTextClass}`}>{subtitle}</p>
-          </div>
-          <div className={count > 1 ? "grid gap-3 lg:grid-cols-2" : "grid gap-3"}>
-            {count > 1 ? (
-              groups.map((group) => (
-                <GroupCard key={`${type}-${group.id}`} group={group} type={type} />
-              ))
-            ) : (
-              <GroupCard key={`${type}-${groups[0]?.id ?? "single"}`} group={groups[0]} type={type} />
-            )}
-          </div>
-        </section>
-      );
+  }: {
+    title: string;
+    count: number;
+    groups: Group[];
+    type: "owned" | "invited";
+  }) => {
+    return (
+      <section className="space-y-4">
+        <div className="flex items-center justify-between gap-3 px-2">
+          <h3 className={`text-xs font-black uppercase tracking-[0.22em] ${isDarkTheme ? "text-slate-500" : "text-slate-400"}`}>
+            {title}
+          </h3>
+          <span className={`rounded-full px-3 py-1 text-xs font-bold ${isDarkTheme ? "bg-slate-800 text-slate-300" : "bg-slate-100 text-slate-500"}`}>
+            {count} group{count === 1 ? "" : "s"}
+          </span>
+        </div>
+        <div className="space-y-4">
+          {groups.map((group) => (
+            <GroupCard key={`${type}-${group.id}`} group={group} type={type} />
+          ))}
+        </div>
+      </section>
+    );
   };
 
   const profileMenuStyle: CSSProperties | undefined = profileMenuPosition
@@ -2099,7 +1866,101 @@ export default function DashboardPage() {
           )
         : null}
 
-      <FadeIn className="relative z-10 mx-auto w-full max-w-7xl px-4 py-7 sm:px-6 lg:px-8">
+      <header className={`sticky top-0 z-[80] w-full backdrop-blur-xl shadow-[0_8px_24px_rgba(45,51,55,0.06)] ${
+        isDarkTheme ? "bg-slate-950/70" : "bg-white/70"
+      }`}>
+        <div className="mx-auto flex w-full max-w-7xl items-center justify-between gap-4 px-4 py-3 sm:px-6 lg:px-8">
+          <div className="flex min-w-0 items-center gap-8">
+            <button
+              type="button"
+              onClick={() => router.push("/dashboard")}
+              className={`shrink-0 text-[22px] font-black tracking-tight ${
+                isDarkTheme ? "text-red-400" : "text-red-700"
+              }`}
+            >
+              Secret Santa
+            </button>
+            <nav className="hidden items-center gap-6 md:flex">
+              <button type="button" className={isDarkTheme ? "text-red-300 text-base font-bold" : "text-red-700 text-base font-bold"}>
+                Home
+              </button>
+              <button
+                type="button"
+                onClick={() => document.getElementById("dashboard-groups")?.scrollIntoView({ behavior: "smooth" })}
+                className={isDarkTheme ? "text-slate-400 text-base font-semibold hover:text-red-300" : "text-slate-500 text-base font-semibold hover:text-red-600"}
+              >
+                Groups
+              </button>
+              <button
+                type="button"
+                onClick={() => router.push("/wishlist")}
+                className={isDarkTheme ? "text-slate-400 text-base font-semibold hover:text-red-300" : "text-slate-500 text-base font-semibold hover:text-red-600"}
+              >
+                Wishlist
+              </button>
+              <button
+                type="button"
+                onClick={() => document.getElementById("dashboard-activity")?.scrollIntoView({ behavior: "smooth" })}
+                className={isDarkTheme ? "text-slate-400 text-base font-semibold hover:text-red-300" : "text-slate-500 text-base font-semibold hover:text-red-600"}
+              >
+                Activity
+              </button>
+              {canViewAffiliateReport && (
+                <button
+                  type="button"
+                  onClick={() => router.push("/dashboard/affiliate-report")}
+                  className={isDarkTheme ? "text-slate-400 text-base font-semibold hover:text-red-300" : "text-slate-500 text-base font-semibold hover:text-red-600"}
+                >
+                  Report
+                </button>
+              )}
+            </nav>
+          </div>
+          <div className="flex shrink-0 items-center gap-2">
+            <button
+              type="button"
+              onClick={() => router.push("/notifications")}
+              className="relative rounded-full p-2 transition hover:bg-red-50/80"
+              aria-label={unreadNotificationCount > 0 ? `Open notifications, ${unreadNotificationCount} unread` : "Open notifications"}
+              title="Open notifications"
+            >
+              <BellIcon className={`h-5 w-5 ${utilityIconClass}`} />
+              {unreadNotificationCount > 0 && (
+                <span className="absolute -right-0.5 -top-0.5 inline-flex min-h-[17px] min-w-[17px] items-center justify-center rounded-full bg-rose-500 px-1 text-[9px] font-bold text-white">
+                  {unreadNotificationCount > 99 ? "99+" : unreadNotificationCount}
+                </span>
+              )}
+            </button>
+            <button
+              type="button"
+              onClick={() => setDashboardTheme((current) => (current === "midnight" ? "default" : "midnight"))}
+              className="rounded-full p-2 transition hover:bg-red-50/80"
+              aria-pressed={isDarkTheme}
+              aria-label={isDarkTheme ? "Switch to default dashboard theme" : "Switch to midnight dashboard theme"}
+              title={isDarkTheme ? "Switch to default dashboard theme" : "Switch to midnight dashboard theme"}
+            >
+              <ThemeIcon dark={isDarkTheme} className={`h-5 w-5 ${utilityIconClass}`} />
+            </button>
+            <div ref={profileMenuRef} className="relative z-[90]">
+              <button
+                type="button"
+                onClick={() => setProfileMenuOpen((current) => !current)}
+                className={`flex h-10 w-10 items-center justify-center overflow-hidden rounded-full ring-2 ${
+                  isDarkTheme ? "bg-slate-800 ring-red-400/40" : "bg-red-50 ring-red-100"
+                }`}
+                aria-haspopup="menu"
+                aria-expanded={profileMenuOpen}
+                aria-label="Open profile menu"
+                title="Open profile menu"
+              >
+                <SantaMarkIcon size={26} />
+              </button>
+            </div>
+          </div>
+        </div>
+      </header>
+
+      <FadeIn className="relative z-10 mx-auto w-full max-w-7xl px-4 pb-24 pt-8 sm:px-6 lg:px-8">
         {actionMessage && (
           <div
             data-fade
@@ -2115,79 +1976,12 @@ export default function DashboardPage() {
           </div>
         )}
 
-        <div data-fade className="mb-6 flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-          <div className="text-left">
-            <SantaBrandLockup dark={isDarkTheme} />
-          </div>
-
-          <div className="ml-auto flex shrink-0 items-center justify-end gap-1.5 self-start">
-            <button
-              type="button"
-              onClick={() => setDashboardTheme((current) => (current === "midnight" ? "default" : "midnight"))}
-              className={utilityButtonClass}
-              aria-pressed={isDarkTheme}
-              aria-label={isDarkTheme ? "Switch to default dashboard theme" : "Switch to midnight dashboard theme"}
-              title={isDarkTheme ? "Switch to default dashboard theme" : "Switch to midnight dashboard theme"}
-            >
-              <ThemeIcon dark={isDarkTheme} className={`h-4 w-4 ${utilityIconClass}`} />
-              <span>Theme</span>
-            </button>
-            {canViewAffiliateReport && (
-              <button
-                type="button"
-                onClick={() => router.push("/dashboard/affiliate-report")}
-                className={utilityButtonClass}
-                aria-label="Open affiliate report"
-                title="Open affiliate report"
-              >
-                <ReportIcon className={`h-4 w-4 ${utilityIconClass}`} />
-                <span>Report</span>
-              </button>
-            )}
-            <button
-              type="button"
-              onClick={() => router.push("/notifications")}
-              className={utilityButtonClass}
-              aria-label={unreadNotificationCount > 0 ? `Open notifications, ${unreadNotificationCount} unread` : "Open notifications"}
-              title="Open notifications"
-            >
-              <BellIcon className={`h-4 w-4 ${utilityIconClass}`} />
-              <span>Alerts</span>
-              {unreadNotificationCount > 0 && (
-                <span className="absolute -right-1 -top-1 inline-flex min-h-[18px] min-w-[18px] items-center justify-center rounded-full bg-rose-500 px-1 text-[9px] font-bold text-white shadow-[0_8px_18px_rgba(244,63,94,0.28)]">
-                  {unreadNotificationCount > 99 ? "99+" : unreadNotificationCount}
-                </span>
-              )}
-            </button>
-            <div ref={profileMenuRef} className="relative z-[70]">
-              <button
-                type="button"
-                onClick={() => setProfileMenuOpen((current) => !current)}
-                className={profileUtilityButtonClass}
-                aria-haspopup="menu"
-                aria-expanded={profileMenuOpen}
-                aria-label="Open profile menu"
-                title="Open profile menu"
-              >
-                <UserOutlineIcon className={`h-4 w-4 ${utilityIconClass}`} />
-                <span>Profile</span>
-                <ChevronDownIcon
-                  className={`h-3 w-3 transition ${utilityIconClass} ${
-                    profileMenuOpen ? "rotate-180" : ""
-                  }`}
-                />
-              </button>
-
-            </div>
-          </div>
-        </div>
-
-        <div data-fade className="mb-8 text-center lg:text-left">
-          <h1 className={`text-4xl font-bold tracking-tight sm:text-[3.35rem] ${heroTitleClass}`}>
+        <div data-fade className="mb-9 text-left">
+          <h1 className={`text-4xl font-extrabold tracking-tight sm:text-[3.35rem] ${heroTitleClass}`}>
             Welcome back, {displayFirstName}
           </h1>
-          <p className={`mt-2 text-[17px] ${heroSubtitleClass}`}>
-            Manage your groups, draws, and chats in one place.
+          <p className={`mt-2 text-[19px] ${heroSubtitleClass}`}>
+            {revealMessage} <span aria-hidden="true">🎄</span>
           </p>
         </div>
 
@@ -2219,519 +2013,278 @@ export default function DashboardPage() {
           </section>
         )}
 
-        <section data-fade className="mb-8 grid gap-3 lg:grid-cols-3">
+        <section data-fade className="mb-12 grid gap-6 md:grid-cols-3">
           <ActionCard
             accent="rose"
-            subtitle={hasAssignments ? "Your draw is ready" : "Waiting for draw"}
-            title={hasAssignments ? "Open your assignment" : "No recipient yet"}
+            title={hasAssignments ? "Open Assignment" : "No Assignment Yet"}
             description={
               hasAssignments
-                ? `You currently have ${recipientNames.length} recipient${recipientNames.length === 1 ? "" : "s"} ready for gift planning.`
-                : "Once your organizer finishes the draw, your Secret Santa recipient will show up here."
+                ? "See who you're surprising this year!"
+                : "Your recipient will appear after the draw."
             }
-            buttonLabel={hasAssignments ? "View assignment" : "Open Secret Santa"}
             onClick={() => router.push("/secret-santa")}
-            icon={<GiftIcon className="h-6 w-6" />}
-            meta={
-              <div className="flex flex-wrap items-center gap-2">
-                <span className="inline-flex rounded-full bg-rose-100 px-3 py-1 text-xs font-semibold text-rose-700">
-                  {hasAssignments
-                    ? `${recipientNames.length} recipient${recipientNames.length === 1 ? "" : "s"}`
-                    : "Waiting for organizer"}
-                </span>
-                <span className="inline-flex rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-600">
-                  {hasAssignments ? "Gift planning" : "Draw pending"}
-                </span>
-              </div>
-            }
+            icon={<GiftIcon className="h-8 w-8" />}
           />
           <ActionCard
             accent="green"
-            subtitle="Secret Santa chat"
-            title="Chat with your group"
-            description="Send anonymous hints, keep the mystery fun, and plan without spoiling the surprise."
-            buttonLabel="Open chat"
+            title="Group Chat"
+            description="Drop a hint or coordinate the party."
             onClick={() => router.push("/secret-santa-chat")}
-            icon={<ChatIcon className="h-6 w-6" />}
-            meta={
-              <div className="flex flex-wrap items-center gap-2">
-                <span className="inline-flex rounded-full bg-emerald-100 px-3 py-1 text-xs font-semibold text-emerald-700">
-                  Anonymous chat
-                </span>
-                <span className="inline-flex rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-600">
-                  Hint-friendly
-                </span>
-              </div>
-            }
+            icon={<ChatIcon className="h-8 w-8" />}
           />
           <ActionCard
-            accent="amber"
-            subtitle="Create group"
-            title="Start a new event"
-            description="Create a new Secret Santa event, invite your friends, and get the draw ready fast."
-            buttonLabel="New group"
+            accent="blue"
+            title="New Group"
+            description="Start a new exchange for friends."
             onClick={() => router.push("/create-group")}
-            icon={<PlusIcon className="h-6 w-6" />}
-            meta={
-              <div className="flex flex-wrap items-center gap-2">
-                <span className="inline-flex rounded-full bg-amber-100 px-3 py-1 text-xs font-semibold text-amber-700">
-                  Plan
-                </span>
-                <span className="inline-flex rounded-full bg-amber-100 px-3 py-1 text-xs font-semibold text-amber-700">
-                  Invite
-                </span>
-                <span className="inline-flex rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-600">
-                  Draw
-                </span>
-              </div>
-            }
+            icon={<PlusIcon className="h-8 w-8" />}
           />
         </section>
 
-        <section data-fade className="mb-0 grid gap-2 lg:grid-cols-[minmax(0,1fr)_minmax(300px,360px)]">
-          <div className="space-y-2">
-            <div className={`${dashboardCardShellClass} self-start`}>
-            <div className={dashboardInnerPanelClass}>
-              <div className="flex items-start justify-between gap-4">
+        <section data-fade className="grid items-start gap-10 lg:grid-cols-[minmax(0,1fr)_360px]">
+          <div className="space-y-12">
+            <section id="dashboard-groups" className="scroll-mt-24">
+              <div className="mb-5 flex items-end justify-between gap-4">
                 <div>
-                  <div className="inline-flex items-center gap-2 rounded-full bg-rose-100 px-3 py-1 text-[13px] font-semibold text-rose-700">
-                    <WishlistIcon className="h-4 w-4" />
-                    My Wishlist
-                  </div>
-                  <h3 className={`mt-2.5 text-[1.3rem] font-bold ${dashboardPanelHeadingClass}`}>Your own gift ideas</h3>
-                  <p className={`mt-1.5 max-w-xl text-[15px] leading-6 ${dashboardPanelTextClass}`}>
-                    Keep this separate from gift planning so your Secret Santa can always see what you want.
+                  <h2 className={`text-[1.85rem] font-black tracking-tight ${dashboardPanelHeadingClass}`}>Your Groups</h2>
+                  <p className={`mt-1 text-[15px] ${dashboardPanelTextClass}`}>
+                    Hosted and joined exchanges in one clean view.
                   </p>
                 </div>
-                <div className={dashboardStatChipClass}>
-                  <div className={`text-[11px] font-extrabold uppercase tracking-[0.16em] ${dashboardStatLabelClass}`}>
-                    Ready now
-                  </div>
-                  <div className={`mt-0.5 text-[16px] font-bold ${dashboardStatValueClass}`}>
-                    {wishlistItemCount} item{wishlistItemCount === 1 ? "" : "s"}
-                  </div>
-                </div>
-              </div>
-
-              <div className="mt-4 grid gap-2.5 sm:grid-cols-2">
-                <div className={`rounded-[18px] border px-4 py-3 ${isDarkTheme ? "border-rose-500/20 bg-slate-950/45" : "border-rose-100 bg-white/92"}`}>
-                  <div className={`text-[12px] font-extrabold uppercase tracking-[0.14em] ${dashboardStatLabelClass}`}>
-                    Total items
-                  </div>
-                  <div className={`mt-1 text-[24px] font-black ${dashboardStatValueClass}`}>{wishlistItemCount}</div>
-                  <div className={`mt-1 text-sm ${isDarkTheme ? "text-slate-400" : "text-slate-500"}`}>
-                    Visible to your Secret Santa.
-                  </div>
-                </div>
-                <div className={`rounded-[18px] border px-4 py-3 ${isDarkTheme ? "border-rose-500/20 bg-slate-950/45" : "border-rose-100 bg-white/92"}`}>
-                  <div className={`text-[12px] font-extrabold uppercase tracking-[0.14em] ${dashboardStatLabelClass}`}>
-                    Active groups
-                  </div>
-                  <div className={`mt-1 text-[24px] font-black ${dashboardStatValueClass}`}>{wishlistGroupCount}</div>
-                  <div className={`mt-1 text-sm ${isDarkTheme ? "text-slate-400" : "text-slate-500"}`}>
-                    Groups with wishlist ideas.
-                  </div>
-                </div>
-              </div>
-
-              <div className={`mt-4 flex flex-col gap-3 border-t pt-3 ${isDarkTheme ? "border-slate-700/70" : "border-slate-200/80"} sm:flex-row sm:items-center sm:justify-between`}>
-                <p className={`text-sm font-medium ${isDarkTheme ? "text-slate-400" : "text-slate-500"}`}>
-                  Manage the full list from your dedicated wishlist page.
-                </p>
                 <button
                   type="button"
-                  onClick={() => router.push("/wishlist")}
-                  className="inline-flex items-center gap-2 rounded-full bg-[linear-gradient(135deg,#e25d67,#b9384c)] px-4 py-2.5 text-[15px] font-semibold text-white shadow-[0_14px_35px_rgba(185,56,76,0.24)] transition hover:-translate-y-0.5"
+                  onClick={() => router.push("/create-group")}
+                  className={`hidden items-center gap-1.5 rounded-full px-3 py-1.5 text-sm font-extrabold transition hover:-translate-y-0.5 sm:inline-flex ${
+                    isDarkTheme ? "bg-red-500/12 text-red-200" : "bg-red-50 text-red-700"
+                  }`}
                 >
-                  <span>Open My Wishlist</span>
-                  <ArrowRightIcon />
+                  New group
+                  <ArrowRightIcon className="h-3.5 w-3.5" />
                 </button>
               </div>
-            </div>
-            </div>
 
-            <div className={dashboardCardShellClass}>
-              <div className={`flex flex-col gap-4 ${dashboardInnerPanelClass}`}>
-                <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-                  <div>
-                    <div className="inline-flex items-center gap-2 rounded-full bg-blue-100 px-4 py-1.5 text-[14px] font-bold text-blue-700 shadow-[0_10px_22px_rgba(59,130,246,0.14)]">
-                      Activity feed
-                    </div>
-                    <h3 className={`mt-2.5 text-[1.42rem] font-bold ${dashboardPanelHeadingClass}`}>Recent moments that matter</h3>
-                    <p className={`mt-1.5 max-w-xl text-[15px] leading-6 ${dashboardPanelTextClass}`}>
-                      Your live pulse for gift prep, chat updates, and draw milestones.
-                    </p>
-                  </div>
+              {totalDashboardGroupCount === 0 ? (
+                <section className={`relative overflow-hidden rounded-[28px] p-7 shadow-[0_12px_30px_rgba(45,51,55,0.04)] ${
+                  isDarkTheme ? "bg-slate-900/82 text-slate-100" : "bg-white text-slate-900"
+                }`}>
+                  <div className="absolute bottom-4 right-6 h-24 w-24 rounded-full bg-[radial-gradient(circle_at_center,#dbeafe,transparent_70%)] opacity-80" />
+                  <p className={`text-[12px] font-black uppercase tracking-[0.18em] ${dashboardStatLabelClass}`}>Start here</p>
+                  <h3 className="mt-4 text-2xl font-black">Don&apos;t have a group yet?</h3>
+                  <p className={`mt-3 max-w-md text-[15px] leading-7 ${dashboardPanelTextClass}`}>
+                    Create a group and start your Secret Santa planning with a budget, date, and invite list already in place.
+                  </p>
+                  <button
+                    type="button"
+                    onClick={() => router.push("/create-group")}
+                    className="mt-7 inline-flex items-center gap-2 rounded-full bg-[#186be8] px-6 py-3 text-[15px] font-extrabold text-white shadow-[0_14px_30px_rgba(24,107,232,0.22)] transition hover:-translate-y-0.5"
+                  >
+                    Start new group
+                    <ArrowRightIcon />
+                  </button>
+                </section>
+              ) : (
+                <div className="space-y-8">
+                  {ownedGroups.length > 0 && (
+                    <GroupBucket
+                      title="Hosted by you"
+                      count={ownedGroups.length}
+                      groups={ownedGroups}
+                      type="owned"
+                    />
+                  )}
+                  {invitedGroups.length > 0 && (
+                    <GroupBucket
+                      title="Joined as participant"
+                      count={invitedGroups.length}
+                      groups={invitedGroups}
+                      type="invited"
+                    />
+                  )}
                 </div>
+              )}
+            </section>
 
-                <div className="space-y-3">
-                  {activityFeedItems.length === 0 ? (
-                    <div className={`rounded-[22px] border border-dashed px-5 py-8 text-sm ${isDarkTheme ? "border-slate-700/70 bg-slate-950/45 text-slate-400" : "border-slate-200 bg-white/90 text-slate-500"}`}>
-                      Once gift progress or group updates start happening, your recent activity will show up here.
-                    </div>
-                  ) : (
-                    activityFeedItems.map((item) => {
+            <section id="dashboard-activity" className="scroll-mt-24">
+              <h2 className={`mb-5 text-[1.85rem] font-black tracking-tight ${dashboardPanelHeadingClass}`}>Activity Feed</h2>
+              <div className={`rounded-[30px] p-3 shadow-[0_12px_30px_rgba(45,51,55,0.04)] ${
+                isDarkTheme ? "bg-slate-900/82" : "bg-white/92"
+              }`}>
+                {activityFeedItems.length === 0 ? (
+                  <div className={`rounded-[24px] border border-dashed px-6 py-10 text-[15px] ${
+                    isDarkTheme ? "border-slate-700/70 bg-slate-950/45 text-slate-400" : "border-slate-200 bg-slate-50/80 text-slate-500"
+                  }`}>
+                    Once gift progress or group updates start happening, your recent activity will show up here.
+                  </div>
+                ) : (
+                  <div className={isDarkTheme ? "divide-y divide-slate-700/70" : "divide-y divide-slate-200/70"}>
+                    {activityFeedItems.slice(0, 5).map((item) => {
                       const theme = getDashboardToneTheme(item.tone, isDarkTheme);
-
-                      const row = (
-                        <div
-                          className={`group relative overflow-hidden rounded-[22px] border px-4 py-4 text-left shadow-[0_12px_30px_rgba(148,163,184,0.08)] transition ${
-                            item.href ? "hover:-translate-y-0.5" : ""
-                          } ${theme.rowSurface}`}
-                        >
-                          <div className={`pointer-events-none absolute inset-x-0 top-0 h-16 bg-gradient-to-r ${theme.glow}`} />
-                          <div className="relative flex items-start gap-4">
-                            <div
-                              className={`mt-0.5 inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl text-[18px] ${theme.iconShell}`}
-                            >
-                              <span aria-hidden="true">{item.icon}</span>
-                            </div>
-                            <div className="min-w-0 flex-1">
-                              <div className="flex flex-wrap items-center gap-2">
-                                <span className={`inline-flex rounded-full px-2.5 py-1 text-[12px] font-bold ${theme.chip}`}>
-                                  {item.href ? "Open update" : "Latest update"}
-                                </span>
-                                <span className="text-[12px] font-semibold uppercase tracking-[0.16em] text-slate-400">
-                                  {formatRelativeTime(item.createdAt)}
-                                </span>
-                              </div>
-                              <div className={`mt-2 text-[16px] font-bold leading-6 ${isDarkTheme ? "text-white" : "text-slate-900"}`}>{item.title}</div>
-                              <div className={`mt-1.5 text-[15px] leading-6 ${isDarkTheme ? "text-slate-300" : "text-slate-600"}`}>{item.subtitle}</div>
-                            </div>
-                            {item.href ? (
-                              <div className={`mt-1 inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full transition group-hover:text-sky-400 ${isDarkTheme ? "bg-slate-900/85 text-slate-300 shadow-[0_8px_20px_rgba(2,8,23,0.24)] ring-1 ring-slate-700/70" : "bg-white/90 text-slate-500 shadow-[0_8px_20px_rgba(148,163,184,0.14)] ring-1 ring-white/80 group-hover:text-sky-600"}`}>
-                                <ArrowRightIcon className="h-4 w-4" />
-                              </div>
-                            ) : null}
-                          </div>
+                      const content = (
+                        <div className="flex items-center gap-4 px-4 py-4 text-left">
+                          <span className={`inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-[16px] ${theme.iconShell}`}>
+                            {item.icon}
+                          </span>
+                          <span className="min-w-0 flex-1">
+                            <span className={`block truncate text-[15px] font-extrabold ${dashboardPanelHeadingClass}`}>
+                              {item.title}
+                            </span>
+                            <span className={`mt-0.5 block truncate text-sm ${dashboardPanelTextClass}`}>
+                              {item.subtitle}
+                            </span>
+                          </span>
+                          <span className={`shrink-0 text-sm font-bold ${isDarkTheme ? "text-slate-500" : "text-slate-400"}`}>
+                            {formatRelativeTime(item.createdAt)}
+                          </span>
+                          {item.href && <ArrowRightIcon className={`h-4 w-4 shrink-0 ${utilityIconClass}`} />}
                         </div>
                       );
 
-                      if (!item.href) {
-                        return <div key={item.id}>{row}</div>;
-                      }
-
-                      return (
+                      return item.href ? (
                         <button
                           key={item.id}
                           type="button"
                           onClick={() => router.push(item.href as string)}
-                          className="block w-full"
+                          className="block w-full rounded-[20px] transition hover:bg-slate-500/5"
                         >
-                          {row}
+                          {content}
                         </button>
-                      );
-                    })
-                  )}
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <div className="space-y-2">
-
-            <div className={dashboardCardShellClass}>
-            <div className="inline-flex items-center gap-2 rounded-full bg-emerald-100 px-3 py-1 text-[13px] font-semibold text-emerald-700">
-              Gift planning
-            </div>
-            <h3 className={`mt-2.5 text-[1.42rem] font-bold ${dashboardPanelHeadingClass}`}>Track your gift progress</h3>
-            <p className={`mt-1.5 text-[15px] leading-6 ${dashboardPanelTextClass}`}>
-              {giftProgressSummary
-                ? giftProgressSummary.totalAssignments === 1 &&
-                  giftProgressSummary.recipientName &&
-                  giftProgressSummary.groupName
-                  ? `Stay on top of ${giftProgressSummary.recipientName} in ${giftProgressSummary.groupName}.`
-                  : `${giftProgressSummary.focusCount} of ${giftProgressSummary.totalAssignments} gifts are currently in ${giftProgressSteps[currentGiftProgressIndex]?.label.toLowerCase()}.`
-                : "Once your draw is ready, your gift planning steps will show up here."}
-            </p>
-
-            {giftProgressSummary ? (
-              <>
-                <div className={`mt-4 overflow-hidden rounded-[20px] border ${isDarkTheme ? "border-slate-700/70 bg-slate-950/50" : "border-slate-200/80 bg-slate-100/95"}`}>
-                  <div className="grid grid-cols-4">
-                    {giftProgressSteps.map((step, index) => {
-                      const isCurrent = index === currentGiftProgressIndex;
-                      const count = giftProgressSummary.countsByStep[step.key];
-                      const isActive = count > 0;
-
-                      return (
-                        <div
-                          key={step.key}
-                          className={`flex min-h-[52px] items-center justify-center border-r px-2 text-center text-sm font-semibold last:border-r-0 ${
-                            isActive
-                              ? `${step.accent} text-white`
-                              : isDarkTheme
-                                ? "border-slate-700/70 bg-slate-800/85 text-slate-400"
-                                : "border-white/60 bg-[#6fa0cf] text-white/90"
-                          }`}
-                        >
-                          {isCurrent ? step.label : count > 0 ? `${count}` : ""}
-                        </div>
+                      ) : (
+                        <div key={item.id}>{content}</div>
                       );
                     })}
                   </div>
+                )}
+              </div>
+            </section>
+          </div>
+
+          <aside className="space-y-8 lg:sticky lg:top-24">
+            <section className={`relative overflow-hidden rounded-[32px] p-8 shadow-[0_14px_32px_rgba(45,51,55,0.05)] ${
+              isDarkTheme ? "bg-slate-900/82 text-slate-100" : "bg-white text-slate-900"
+            }`}>
+              <div className="mb-5 flex items-center justify-between gap-3">
+                <div className="inline-flex items-center gap-2">
+                  <WishlistIcon className={isDarkTheme ? "h-5 w-5 text-rose-200" : "h-5 w-5 text-red-700"} />
+                  <h3 className="text-lg font-black">My Wishlist</h3>
                 </div>
+                <span className={`rounded-full px-3 py-1 text-xs font-black ${
+                  isDarkTheme ? "bg-slate-800 text-slate-300" : "bg-blue-50 text-blue-500"
+                }`}>
+                  {wishlistItemCount} item{wishlistItemCount === 1 ? "" : "s"}
+                </span>
+              </div>
+              <p className={`text-[15px] leading-7 ${dashboardPanelTextClass}`}>
+                Make it easy for your Santa to find the perfect gift. {wishlistGroupCount} group{wishlistGroupCount === 1 ? "" : "s"} already use your ideas.
+              </p>
+              <button
+                type="button"
+                onClick={() => router.push("/wishlist")}
+                className="mt-7 flex w-full items-center justify-center rounded-full bg-[#c71824] px-5 py-4 text-[15px] font-extrabold text-white shadow-[0_16px_30px_rgba(199,24,36,0.20)] transition hover:-translate-y-0.5"
+              >
+                Manage Wishlist
+              </button>
+            </section>
 
-                <div className="mt-4 space-y-3">
-                  {giftProgressSteps.map((step, index) => {
-                    const isCurrent = index === currentGiftProgressIndex;
-                    const count = giftProgressSummary.countsByStep[step.key];
-                    const hasAny = count > 0;
+            <section className={`rounded-[32px] p-8 shadow-[0_14px_32px_rgba(45,51,55,0.05)] ${
+              isDarkTheme ? "bg-slate-900/82 text-slate-100" : "bg-white text-slate-900"
+            }`}>
+              <h3 className="text-lg font-black">Gift Progress</h3>
+              <div className="mt-5 space-y-4">
+                {giftProgressSteps.map((step, index) => {
+                  const count = giftProgressSummary?.countsByStep[step.key] ?? 0;
+                  const isCurrent = giftProgressSummary ? index === currentGiftProgressIndex : index === 0;
+                  const isDone = giftProgressSummary ? count > 0 && index <= currentGiftProgressIndex : false;
 
-                    return (
-                      <div
-                        key={step.key}
-                        className={`flex items-center justify-between gap-3 rounded-[20px] border px-4 py-3 ${
-                          isCurrent
-                            ? isDarkTheme
-                              ? "border-emerald-500/35 bg-emerald-500/8"
-                              : "border-emerald-200 bg-emerald-50/80"
+                  return (
+                    <div key={step.key} className="flex items-center gap-3">
+                      <span
+                        className={`inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-sm font-black ${
+                          isDone || isCurrent
+                            ? "bg-green-600 text-white"
                             : isDarkTheme
-                              ? "border-slate-700/70 bg-slate-950/45"
-                              : "border-slate-200/80 bg-white/92"
+                              ? "bg-slate-800 text-slate-500"
+                              : "bg-slate-100 text-slate-400"
                         }`}
                       >
-                        <div className="flex min-w-0 items-center gap-3">
-                          <div
-                            className={`inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl text-lg font-bold ${
-                              hasAny || isCurrent
-                                ? step.rowTone
-                                : isDarkTheme
-                                  ? "bg-slate-800 text-slate-400"
-                                  : "bg-slate-100 text-slate-400"
-                            }`}
-                          >
-                            {count > 0 && !isCurrent ? "✓" : step.icon}
-                          </div>
-                          <span className={`text-[16px] font-semibold ${dashboardPanelHeadingClass}`}>{step.label}</span>
-                        </div>
-                        <span
-                          className={`shrink-0 rounded-full px-3 py-1 text-[12px] font-bold uppercase tracking-[0.14em] ${
-                            isCurrent
-                              ? isDarkTheme
-                                ? "bg-emerald-500/18 text-emerald-100"
-                                : "bg-emerald-500 text-white"
-                              : hasAny
-                                ? isDarkTheme
-                                  ? "bg-slate-800 text-slate-200"
-                                  : "bg-lime-100 text-lime-700"
-                                : isDarkTheme
-                                  ? "bg-slate-800 text-slate-400"
-                                  : "bg-slate-100 text-slate-400"
-                          }`}
-                        >
-                          {isCurrent
-                            ? `${count} gift${count === 1 ? "" : "s"}`
-                            : hasAny
-                              ? `${count} gift${count === 1 ? "" : "s"}`
-                              : "Next"}
+                        {isDone ? "✓" : ""}
+                      </span>
+                      <span className={`text-[15px] font-extrabold ${
+                        isCurrent ? "text-green-600" : dashboardPanelHeadingClass
+                      }`}>
+                        {step.label}
+                      </span>
+                      {isCurrent && count > 0 && (
+                        <span className={`ml-auto rounded-full px-2.5 py-1 text-[11px] font-black ${
+                          isDarkTheme ? "bg-green-500/15 text-green-200" : "bg-green-50 text-green-700"
+                        }`}>
+                          {count}
                         </span>
-                      </div>
-                    );
-                  })}
-                </div>
-
-                <div className={`mt-4 flex items-center justify-between gap-3 rounded-[20px] border px-4 py-3.5 ${dashboardSubtleSurfaceClass} ${isDarkTheme ? "shadow-[0_10px_24px_rgba(2,8,23,0.18)]" : "shadow-[0_10px_24px_rgba(148,163,184,0.08)]"}`}>
-                  <div>
-                    <div className={`text-[12px] font-extrabold uppercase tracking-[0.14em] ${dashboardStatLabelClass}`}>
-                      Progress snapshot
+                      )}
                     </div>
-                    <div className={`mt-1 text-[15px] font-semibold ${isDarkTheme ? "text-slate-200" : "text-slate-700"}`}>
-                      {giftProgressSummary.totalAssignments} recipient
-                      {giftProgressSummary.totalAssignments === 1 ? "" : "s"} • {giftProgressSummary.readyToGiveCount} ready to give
-                    </div>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => router.push("/secret-santa")}
-                    className="inline-flex items-center gap-2 rounded-full bg-[linear-gradient(135deg,#2f80ff,#1f66e5)] px-4 py-2.5 text-[15px] font-semibold text-white shadow-[0_14px_35px_rgba(37,99,235,0.22)] transition hover:-translate-y-0.5"
-                  >
-                    <span>Open gift planning</span>
-                    <ArrowRightIcon />
-                  </button>
-                </div>
-              </>
-            ) : (
-              <div className={`mt-4 rounded-[22px] border border-dashed px-5 py-8 text-sm ${isDarkTheme ? "border-slate-700/70 bg-slate-950/45 text-slate-400" : "border-slate-200 bg-white/90 text-slate-500"}`}>
-                You&apos;ll see your planning steps here after the organizer runs the draw and your assignment is ready.
+                  );
+                })}
               </div>
-            )}
-          </div>
-          
-          <div className={dashboardCardShellClass}>
-            <div className={dashboardInnerPanelClass}>
-              <div className="flex items-start justify-between gap-4">
-                <div>
-                  <div className="inline-flex items-center gap-2 rounded-full bg-blue-100 px-3 py-1 text-[13px] font-semibold text-blue-700">
-                    <BellIcon className="h-4 w-4" />
-                    Notifications
-                  </div>
-                  <h3 className={`mt-2.5 text-[1.42rem] font-bold ${dashboardPanelHeadingClass}`}>Inbox highlights</h3>
-                  <p className={`mt-1.5 text-[15px] leading-6 ${dashboardPanelTextClass}`}>
-                    Your newest alerts, distilled into the fastest things to open next.
-                  </p>
-                </div>
-                <div className={dashboardStatChipClass}>
-                  <div className={`text-[11px] font-extrabold uppercase tracking-[0.16em] ${dashboardStatLabelClass}`}>
-                    Unread
-                  </div>
-                  <div className={`mt-0.5 text-[16px] font-bold ${dashboardStatValueClass}`}>{unreadNotificationCount}</div>
-                </div>
-              </div>
+              <button
+                type="button"
+                onClick={() => router.push("/secret-santa")}
+                className={`mt-7 flex w-full items-center justify-center rounded-full px-5 py-3 text-sm font-extrabold transition hover:-translate-y-0.5 ${
+                  isDarkTheme ? "bg-slate-800 text-slate-100" : "bg-slate-50 text-slate-700"
+                }`}
+              >
+                Open gift planning
+              </button>
+            </section>
 
-              {notificationPreviewItems.length > 0 ? (
-                <div className="mt-4 space-y-3">
-                  {notificationPreviewItems.slice(0, 1).map((item) => {
+            <section className={`rounded-[32px] p-8 shadow-[0_14px_32px_rgba(45,51,55,0.05)] ${
+              isDarkTheme ? "bg-slate-900/82 text-slate-100" : "bg-white text-slate-900"
+            }`}>
+              <h3 className="text-lg font-black">Inbox Highlights</h3>
+              <div className="mt-5 space-y-4">
+                {notificationPreviewItems.length === 0 ? (
+                  <div className={`rounded-[22px] border border-dashed px-4 py-7 text-sm ${
+                    isDarkTheme ? "border-slate-700/70 text-slate-400" : "border-slate-200 text-slate-500"
+                  }`}>
+                    New invites, chat pings, and draw updates will show up here.
+                  </div>
+                ) : (
+                  notificationPreviewItems.slice(0, 2).map((item) => {
                     const theme = getDashboardToneTheme(item.tone, isDarkTheme);
 
                     return (
                       <button
                         key={item.id}
                         type="button"
-                        onClick={() => {
-                          if (item.href) {
-                            router.push(item.href);
-                            return;
-                          }
-
-                          router.push("/notifications");
-                        }}
-                        className={`group relative block w-full overflow-hidden rounded-[24px] border p-4 text-left shadow-[0_16px_32px_rgba(148,163,184,0.14)] transition hover:-translate-y-0.5 ${theme.notificationSurface}`}
+                        onClick={() => router.push(item.href || "/notifications")}
+                        className="flex w-full items-center gap-3 rounded-[20px] p-3 text-left transition hover:bg-slate-500/5"
                       >
-                        <div className={`pointer-events-none absolute inset-x-0 top-0 h-24 bg-gradient-to-r ${theme.glow}`} />
-                        <div className="relative flex items-start justify-between gap-3">
-                          <div>
-                            <div className={`inline-flex rounded-full px-2.5 py-1 text-[12px] font-bold ${theme.chip}`}>
-                              Latest alert
-                            </div>
-                            <div className={`mt-2 text-base font-bold leading-6 ${isDarkTheme ? "text-white" : "text-slate-900"}`}>{item.title}</div>
-                            <div className={`mt-1.5 text-[15px] font-medium ${isDarkTheme ? "text-slate-300" : "text-slate-600"}`}>
-                              Inbox alert • {formatRelativeTime(item.createdAt)}
-                            </div>
-                          </div>
-                          <div className={`inline-flex h-12 w-12 shrink-0 items-center justify-center rounded-[18px] text-[24px] ${theme.iconShell}`}>
-                            <span aria-hidden="true">{item.icon}</span>
-                          </div>
-                        </div>
+                        <span className={`inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-lg ${theme.iconShell}`}>
+                          {item.icon}
+                        </span>
+                        <span className="min-w-0 flex-1">
+                          <span className={`block truncate text-sm font-extrabold ${dashboardPanelHeadingClass}`}>{item.title}</span>
+                          <span className={`mt-0.5 block truncate text-xs ${dashboardPanelTextClass}`}>
+                            {formatRelativeTime(item.createdAt)}
+                          </span>
+                        </span>
                       </button>
                     );
-                  })}
-
-                  <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                    {notificationPreviewItems.slice(1, 3).map((item) => {
-                      const theme = getDashboardToneTheme(item.tone, isDarkTheme);
-
-                      return (
-                        <button
-                          key={item.id}
-                          type="button"
-                          onClick={() => {
-                            if (item.href) {
-                              router.push(item.href);
-                              return;
-                            }
-
-                            router.push("/notifications");
-                          }}
-                          className={`group relative overflow-hidden rounded-[20px] border p-3 text-left shadow-[0_12px_24px_rgba(148,163,184,0.12)] transition hover:-translate-y-0.5 ${theme.notificationSurface}`}
-                        >
-                          <div className={`pointer-events-none absolute inset-x-0 top-0 h-14 bg-gradient-to-r ${theme.glow}`} />
-                          <div className="relative">
-                            <div className={`inline-flex h-10 w-10 items-center justify-center rounded-2xl text-[20px] ${theme.iconShell}`}>
-                              <span aria-hidden="true">{item.icon}</span>
-                            </div>
-                            <div className={`mt-3 text-[15px] font-bold leading-6 ${isDarkTheme ? "text-white" : "text-slate-900"}`}>{item.title}</div>
-                            <div className={`mt-1 text-sm font-medium ${isDarkTheme ? "text-slate-400" : "text-slate-500"}`}>
-                              {formatRelativeTime(item.createdAt)}
-                            </div>
-                          </div>
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
-              ) : (
-                <div className={`mt-4 rounded-[22px] border border-dashed px-5 py-8 text-sm ${isDarkTheme ? "border-slate-700/70 bg-slate-950/45 text-slate-400" : "border-slate-200 bg-white/90 text-slate-500"}`}>
-                  Once invites, chat pings, and gift updates arrive, your inbox highlights will show up here.
-                </div>
-              )}
-
-              <div className={`mt-4 flex items-center justify-between gap-3 rounded-[20px] border px-4 py-3.5 ${dashboardSubtleSurfaceClass} ${isDarkTheme ? "shadow-[0_10px_24px_rgba(2,8,23,0.18)]" : "shadow-[0_10px_24px_rgba(148,163,184,0.08)]"}`}>
-                <div>
-                  <div className={`text-[12px] font-extrabold uppercase tracking-[0.14em] ${dashboardStatLabelClass}`}>
-                    Inbox status
-                  </div>
-                  <div className={`mt-1 text-[15px] font-semibold ${isDarkTheme ? "text-slate-200" : "text-slate-700"}`}>
-                    {unreadNotificationCount} unread • {pendingInvites.length} pending invite
-                    {pendingInvites.length === 1 ? "" : "s"}
-                  </div>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => router.push("/notifications")}
-                  className="inline-flex items-center gap-2 rounded-full bg-[linear-gradient(135deg,#2f80ff,#1f66e5)] px-4 py-2.5 text-[15px] font-semibold text-white shadow-[0_14px_35px_rgba(37,99,235,0.22)] transition hover:-translate-y-0.5"
-                >
-                  <span>Open</span>
-                  <ArrowRightIcon />
-                </button>
+                  })
+                )}
               </div>
-            </div>
-            </div>
-          </div>
-        </section>
-
-        <section data-fade className="-mt-4 mb-8">
-          <div className="mb-1">
-            <p className={`text-sm font-semibold uppercase tracking-[0.18em] ${isDarkTheme ? "text-sky-300" : "text-sky-600"}`}>
-              Groups
-            </p>
-            <h2 className={`mt-1 text-3xl font-bold ${dashboardPanelHeadingClass}`}>Your groups</h2>
-          </div>
-          {totalDashboardGroupCount === 0 ? (
-            <div className="grid gap-5">
-              <section className={`relative overflow-hidden rounded-[24px] border p-5 backdrop-blur-md ${isDarkTheme ? "border-slate-700/70 bg-slate-900/70 shadow-[0_18px_40px_rgba(2,8,23,0.24)]" : "border-white/70 bg-white/90 shadow-[0_18px_40px_rgba(148,163,184,0.12)]"}`}>
-                <div className="absolute bottom-4 right-5 h-24 w-24 rounded-full bg-[radial-gradient(circle_at_center,#dbeafe,transparent_70%)]" />
-                <p className={`text-sm font-semibold uppercase tracking-[0.16em] ${isDarkTheme ? "text-slate-400" : "text-slate-500"}`}>
-                  Start here
-                </p>
-                <h3 className={`mt-3 text-2xl font-bold ${dashboardPanelHeadingClass}`}>
-                  Don&apos;t have a group yet?
-                </h3>
-                <p className={`mt-3 max-w-md text-sm leading-6 ${dashboardPanelTextClass}`}>
-                  Create a group and start your Secret Santa planning with a budget, date, and invite list already in place.
-                </p>
-                <button
-                  type="button"
-                  onClick={() => router.push("/create-group")}
-                  className="mt-6 inline-flex items-center gap-2 rounded-full bg-[linear-gradient(135deg,#2f80ff,#1f66e5)] px-5 py-2.5 text-sm font-semibold text-white shadow-[0_14px_35px_rgba(37,99,235,0.22)] transition hover:-translate-y-0.5"
-                >
-                  <span>Start new group</span>
-                  <ArrowRightIcon />
-                </button>
-              </section>
-            </div>
-          ) : (
-            <div className="space-y-4">
-              {ownedGroups.length > 0 && (
-                <GroupBucket
-                  title="Hosted by you"
-                  subtitle="Groups you created and manage as the organizer."
-                  count={ownedGroups.length}
-                  groups={ownedGroups}
-                  type="owned"
-                />
-              )}
-              {invitedGroups.length > 0 && (
-                <GroupBucket
-                  title="Joined as participant"
-                  subtitle="Groups where someone else is hosting and you joined the exchange."
-                  count={invitedGroups.length}
-                  groups={invitedGroups}
-                  type="invited"
-                />
-              )}
-            </div>
-          )}
+              <button
+                type="button"
+                onClick={() => router.push("/notifications")}
+                className={`mt-6 flex w-full items-center justify-center gap-2 rounded-full px-5 py-3 text-sm font-extrabold transition hover:-translate-y-0.5 ${
+                  isDarkTheme ? "bg-slate-800 text-slate-100" : "bg-slate-50 text-slate-700"
+                }`}
+              >
+                Go to Inbox
+                {unreadNotificationCount > 0 && (
+                  <span className="rounded-full bg-rose-500 px-2 py-0.5 text-[11px] text-white">{unreadNotificationCount}</span>
+                )}
+              </button>
+            </section>
+          </aside>
         </section>
 
       </FadeIn>

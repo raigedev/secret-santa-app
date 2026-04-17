@@ -1226,7 +1226,11 @@ function LazadaHealthCheckCard({
         />
         <HealthMetric
           label="Sale mapping"
-          value={`${health.totalConversions - health.unmappedConversions}/${health.totalConversions}`}
+          value={
+            health.totalConversions > 0
+              ? `${Math.max(0, health.totalConversions - health.unmappedConversions)}/${health.totalConversions}`
+              : "No sales yet"
+          }
           helper={buildSaleMappingHelper(health)}
         />
       </div>
