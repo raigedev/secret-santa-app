@@ -127,7 +127,19 @@ function createGroupUserKey(groupId: string, userId: string): string {
 }
 
 function formatThreadTime(value: string): string {
-  return new Date(value).toLocaleTimeString([], {
+  const trimmedValue = value.trim();
+
+  if (!trimmedValue) {
+    return "New";
+  }
+
+  const date = new Date(trimmedValue);
+
+  if (Number.isNaN(date.getTime())) {
+    return trimmedValue;
+  }
+
+  return date.toLocaleTimeString([], {
     hour: "2-digit",
     minute: "2-digit",
   });
