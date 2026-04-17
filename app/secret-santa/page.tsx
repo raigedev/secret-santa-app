@@ -129,6 +129,7 @@ type GiftPrepStatus =
 const ITEM_LINK_MAX_LENGTH = 500;
 const MAX_GROUP_ROUTE_PREFETCH = 8;
 const AI_SUGGESTION_REQUEST_TIMEOUT_MS = 18000;
+const MAX_VISIBLE_RECIPIENT_WISHLIST_ITEMS = 3;
 const PAGE_BACKGROUND =
   "radial-gradient(circle at top, rgba(255,255,255,.28), transparent 32%), linear-gradient(180deg,#dfe7e4 0%,#d2dbd8 42%,#c9d4d4 100%)";
 const PAGE_TEXT_COLOR = "#25363a";
@@ -140,7 +141,6 @@ const SURFACE_HEADER_BACKGROUND =
   "linear-gradient(180deg,rgba(245,248,246,.94),rgba(236,242,239,.96))";
 const SURFACE_HEADER_BORDER = "1px solid rgba(96,117,122,.12)";
 const SURFACE_SHADOW = "0 14px 34px rgba(34,55,59,.08)";
-const INSET_BACKGROUND = "rgba(239,244,241,.86)";
 const INSET_BORDER = "1px solid rgba(96,117,122,.12)";
 const INPUT_BACKGROUND = "rgba(250,251,249,.9)";
 const INPUT_BORDER = "1px solid rgba(96,117,122,.18)";
@@ -553,18 +553,18 @@ function getFeaturedLazadaRoleLabel(
   }
 
   if (index === 0) {
-    return "Closest to request";
+    return "Best match";
   }
 
   if (index === 1) {
-    return "Step-up option";
+    return "Budget pick";
   }
 
-  return "Highest-price option";
+  return "Premium option";
 }
 
 function getFeaturedLazadaButtonLabel(product: WishlistFeaturedProductCard): string {
-  return product.catalogSource === "catalog-product" ? "Open Lazada item" : "Browse Lazada";
+  return product.catalogSource === "catalog-product" ? "Open Lazada" : "Browse Lazada";
 }
 
 function getFeaturedLazadaCollectionLabel(params: {
@@ -593,18 +593,18 @@ function getFeaturedLazadaCollectionDescription(params: {
   usingMatchedProducts: boolean;
 }): string {
   if (params.hasMixed) {
-    return "Start with direct listings first. Use search cards only when you want more variety.";
+    return "Start with the direct Lazada cards, then use search cards if you want more variety.";
   }
 
   if (params.usingMatchedProducts) {
-    return "Direct Lazada listings matched to the option you picked.";
+    return "Direct Lazada listings matched to the shopping style you picked.";
   }
 
   if (params.allSearchBacked) {
-    return "Search pages that keep the query and budget direction ready.";
+    return "Affiliate-ready Lazada search pages with the gift direction already prepared.";
   }
 
-  return "Use these cards to compare the clearest Lazada options for this gift.";
+  return "Compare the clearest Lazada paths for this gift without losing the wishlist context.";
 }
 
 function getFeaturedLazadaSourceMeta(product: WishlistFeaturedProductCard): {
@@ -1886,36 +1886,55 @@ export default function SecretSantaPage() {
                         SHOPPING_REGION_OPTIONS.find(
                           (option) => option.value === shoppingRegion
                         )?.label || shoppingRegion;
+                      const topWishlistItems = assignment.receiver_wishlist.slice(
+                        0,
+                        MAX_VISIBLE_RECIPIENT_WISHLIST_ITEMS
+                      );
+                      const visibleWishlistItems = topWishlistItems.some(
+                        (wishlistItem) => wishlistItem.id === item.id
+                      )
+                        ? topWishlistItems
+                        : [item, ...topWishlistItems].slice(
+                            0,
+                            MAX_VISIBLE_RECIPIENT_WISHLIST_ITEMS
+                          );
+                      const hiddenWishlistItemCount = Math.max(
+                        assignment.receiver_wishlist.length -
+                          visibleWishlistItems.length,
+                        0
+                      );
 
                       return (
                         <div
-                          className="grid gap-4 lg:grid-cols-[minmax(260px,300px)_minmax(0,1fr)]"
+                          className="grid gap-5 xl:grid-cols-[320px_minmax(0,1fr)] lg:grid-cols-[290px_minmax(0,1fr)]"
                           style={{ alignItems: "start" }}
                         >
-                          <div className="space-y-3">
+                          <div className="space-y-3 lg:sticky lg:top-5 self-start">
                             <div
-                              className="rounded-[18px] p-3.5"
+                              className="rounded-[24px] p-4"
                               style={{
-                                background: "rgba(255,255,255,.68)",
+                                background:
+                                  "linear-gradient(180deg,rgba(255,255,255,.9),rgba(246,249,247,.82))",
                                 border: "1px solid rgba(96,117,122,.1)",
+                                boxShadow: "0 14px 30px rgba(34,55,59,.04)",
                               }}
                             >
                               <div
-                                className="text-[12px] font-extrabold"
+                                className="text-[14px] font-extrabold"
                                 style={{ color: HOLIDAY_GREEN }}
                               >
-                                Gift ideas
+                                {assignment.receiver_nickname}&apos;s wishlist
                               </div>
                               <div
-                                className="text-[11px] mt-1 leading-relaxed"
+                                className="text-[11px] mt-1.5 leading-relaxed"
                                 style={{ color: TEXT_MUTED }}
                               >
-                                Pick one idea. The shopping panel stays beside the list
-                                so you can compare without losing your place.
+                                Pick a gift idea. The shopping guide updates beside it
+                                without pushing the rest of the list down.
                               </div>
                             </div>
 
-                            {assignment.receiver_wishlist.map((wishlistItem) => {
+                            {visibleWishlistItems.map((wishlistItem) => {
                               const isActiveItem = wishlistItem.id === item.id;
                               const wishlistCategoryStyle = wishlistItem.item_category
                                 ? getWishlistCategoryStyle(wishlistItem.item_category)
@@ -1943,16 +1962,16 @@ export default function SecretSantaPage() {
                                       wishlistItem.id
                                     )
                                   }
-                                  className="w-full rounded-[18px] p-3.5 text-left transition"
+                                  className="w-full rounded-[22px] p-3.5 text-left transition hover:-translate-y-0.5"
                                   style={{
                                     background: isActiveItem
-                                      ? "rgba(47,107,86,.1)"
-                                      : "rgba(255,255,255,.72)",
+                                      ? "linear-gradient(135deg,rgba(47,107,86,.14),rgba(255,255,255,.92))"
+                                      : "rgba(255,255,255,.78)",
                                     border: isActiveItem
-                                      ? "1px solid rgba(47,107,86,.22)"
+                                      ? "1px solid rgba(47,107,86,.26)"
                                       : "1px solid rgba(96,117,122,.1)",
                                     boxShadow: isActiveItem
-                                      ? "0 10px 22px rgba(47,107,86,.08)"
+                                      ? "0 14px 26px rgba(47,107,86,.1)"
                                       : "none",
                                     cursor: "pointer",
                                     fontFamily: "inherit",
@@ -1960,7 +1979,7 @@ export default function SecretSantaPage() {
                                 >
                                   <div className="flex items-start gap-3">
                                     <div
-                                      className="w-12 h-12 rounded-2xl flex items-center justify-center text-[17px] shrink-0 overflow-hidden"
+                                      className="w-16 h-16 rounded-2xl flex items-center justify-center text-[19px] shrink-0 overflow-hidden"
                                       style={{
                                         background: "rgba(255,255,255,.88)",
                                         border: "1px solid rgba(96,117,122,.1)",
@@ -1997,10 +2016,10 @@ export default function SecretSantaPage() {
                                         </div>
                                         {isActiveItem && (
                                           <span
-                                            className="text-[9px] font-extrabold px-2 py-1 rounded-full"
-                                            style={{
-                                              background: "rgba(47,107,86,.12)",
-                                              color: HOLIDAY_GREEN,
+                                          className="text-[9px] font-extrabold px-2.5 py-1 rounded-full"
+                                          style={{
+                                            background: "rgba(47,107,86,.12)",
+                                            color: HOLIDAY_GREEN,
                                             }}
                                           >
                                             Viewing
@@ -2056,30 +2075,48 @@ export default function SecretSantaPage() {
                                 </button>
                               );
                             })}
+
+                            {hiddenWishlistItemCount > 0 && (
+                              <div
+                                className="rounded-[18px] px-4 py-3 text-center text-[11px] font-extrabold"
+                                style={{
+                                  background: "rgba(255,255,255,.66)",
+                                  border: "1px dashed rgba(96,117,122,.16)",
+                                  color: TEXT_MUTED,
+                                }}
+                              >
+                                Showing first {visibleWishlistItems.length}.{" "}
+                                {hiddenWishlistItemCount} more idea
+                                {hiddenWishlistItemCount !== 1 ? "s" : ""} stay saved
+                                for this recipient.
+                              </div>
+                            )}
                           </div>
 
                           <div className="lg:sticky lg:top-5 self-start">
                             <div
-                              className="rounded-[18px] p-4"
+                              className="rounded-[28px] p-4 sm:p-5"
                               style={{
-                                background: INSET_BACKGROUND,
+                                background:
+                                  "linear-gradient(180deg,rgba(255,255,255,.86),rgba(246,249,247,.8))",
                                 border: INSET_BORDER,
+                                boxShadow: "0 18px 38px rgba(34,55,59,.06)",
                               }}
                             >
                               <div className="flex items-start justify-between gap-3 mb-4 flex-wrap">
                                 <div>
                                   <div
-                                    className="text-[12px] font-extrabold"
+                                    className="text-[18px] font-extrabold"
                                     style={{ color: HOLIDAY_GREEN }}
                                   >
-                                    Shopping guide for {item.item_name}
+                                    Shopping guide
                                   </div>
                                   <div
-                                    className="text-[11px] mt-0.5"
+                                    className="text-[12px] mt-1"
                                     style={{ color: TEXT_MUTED }}
                                   >
-                                    Keep the wishlist in view on the left while you
-                                    compare the best Lazada-ready options here.
+                                    Curated Lazada paths for {item.item_name}, with the
+                                    wishlist still visible beside your choices.
                                   </div>
                                 </div>
                                 <div className="flex items-center gap-2 flex-wrap">
@@ -2120,19 +2157,21 @@ export default function SecretSantaPage() {
                               </div>
 
                               <div
-                                className="rounded-[18px] p-3.5"
+                                className="rounded-[26px] overflow-hidden"
                                 style={{
-                                  background: "rgba(255,255,255,.72)",
+                                  background:
+                                    "linear-gradient(135deg,rgba(255,255,255,.98),rgba(244,248,246,.92))",
                                   border: "1px solid rgba(96,117,122,.1)",
+                                  boxShadow: "0 14px 30px rgba(34,55,59,.05)",
                                 }}
                               >
-                                <div className="flex items-start gap-3">
+                                <div className="grid gap-0 md:grid-cols-[minmax(150px,220px)_1fr]">
                                   <div
-                                    className="w-14 h-14 rounded-2xl flex items-center justify-center text-[18px] shrink-0 overflow-hidden"
+                                    className="min-h-[170px] flex items-center justify-center text-[42px] overflow-hidden"
                                     style={{
-                                      background: "rgba(255,255,255,.88)",
-                                      border: "1px solid rgba(96,117,122,.12)",
-                                      boxShadow: "0 8px 18px rgba(34,55,59,.05)",
+                                      background:
+                                        "linear-gradient(180deg,rgba(229,236,233,.82),rgba(255,255,255,.72))",
+                                      borderRight: "1px solid rgba(96,117,122,.08)",
                                     }}
                                   >
                                     {safeItemImageUrl ? (
@@ -2140,17 +2179,26 @@ export default function SecretSantaPage() {
                                       <img
                                         src={safeItemImageUrl}
                                         alt={item.item_name}
-                                        className="h-full w-full object-cover"
+                                        className="h-full min-h-[170px] w-full object-cover"
                                       />
                                     ) : (
                                       priorityMeta.icon
                                     )}
                                   </div>
-                                  <div className="flex-1 min-w-0">
+                                  <div className="flex-1 min-w-0 p-4">
+                                    <div
+                                      className="mb-3 inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-[10px] font-extrabold uppercase tracking-[0.12em]"
+                                      style={{
+                                        background: "rgba(169,135,61,.12)",
+                                        color: HOLIDAY_GOLD,
+                                      }}
+                                    >
+                                      Most useful starting point
+                                    </div>
                                     <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                                       <div className="min-w-0">
                                         <div
-                                          className="text-[15px] font-extrabold leading-tight"
+                                          className="text-[22px] font-extrabold leading-tight"
                                           style={{ color: PAGE_TEXT_COLOR }}
                                         >
                                           {item.item_name}
@@ -2234,20 +2282,19 @@ export default function SecretSantaPage() {
                                       className="text-[12px] font-extrabold"
                                       style={{ color: HOLIDAY_GREEN }}
                                     >
-                                      Pick a shopping option
+                                      Choose a shopping style
                                     </div>
                                     <div
                                       className="text-[11px] mt-0.5"
                                       style={{ color: TEXT_MUTED }}
                                     >
-                                      Choose the version that feels closest to what
-                                      you want to buy, then we&apos;ll show the best
-                                      Lazada picks for it.
+                                      Pick the direction that feels closest to the gift,
+                                      then compare the strongest Lazada paths.
                                     </div>
                                   </div>
                                 </div>
 
-                                <div className="grid gap-2 sm:grid-cols-2">
+                                <div className="grid gap-3 sm:grid-cols-2">
                                 {suggestionOptions.map((suggestion) => {
                                   const isSelected = suggestion.id === selectedSuggestionId;
 
@@ -2258,16 +2305,16 @@ export default function SecretSantaPage() {
                                       onClick={() =>
                                         selectRecipientSuggestion(item.id, suggestion.id)
                                       }
-                                      className="w-full rounded-2xl p-3 text-left transition"
+                                      className="w-full rounded-[22px] p-3.5 text-left transition hover:-translate-y-0.5"
                                       style={{
                                         background: isSelected
-                                          ? "rgba(47,107,86,.12)"
-                                          : "rgba(255,255,255,.78)",
+                                          ? "linear-gradient(135deg,rgba(47,107,86,.14),rgba(255,255,255,.9))"
+                                          : "rgba(255,255,255,.84)",
                                         border: isSelected
-                                          ? "1px solid rgba(47,107,86,.24)"
+                                          ? "1px solid rgba(47,107,86,.28)"
                                           : "1px solid rgba(96,117,122,.12)",
                                         boxShadow: isSelected
-                                          ? "0 8px 18px rgba(47,107,86,.08)"
+                                          ? "0 14px 26px rgba(47,107,86,.1)"
                                           : "none",
                                         fontFamily: "inherit",
                                         cursor: "pointer",
@@ -2347,13 +2394,13 @@ export default function SecretSantaPage() {
                                     className="text-[12px] font-extrabold"
                                     style={{ color: HOLIDAY_GREEN }}
                                   >
-                                    Pick one option above first
+                                    Choose a shopping style first
                                   </div>
                                   <div
                                     className="text-[11px] mt-1 leading-relaxed"
                                     style={{ color: TEXT_MUTED }}
                                   >
-                                    We&apos;ll load the best Lazada picks for{" "}
+                                    We&apos;ll load the best Lazada ideas for{" "}
                                     <strong>{item.item_name}</strong> here without
                                     hiding the rest of the wishlist.
                                   </div>
@@ -2384,7 +2431,7 @@ export default function SecretSantaPage() {
                                               className="text-[9px] font-extrabold uppercase tracking-[0.08em]"
                                               style={{ color: HOLIDAY_GREEN }}
                                             >
-                                              Shopping plan
+                                              Selected style
                                             </div>
                                             <div
                                               className="text-[15px] font-extrabold mt-1"
@@ -2517,7 +2564,7 @@ export default function SecretSantaPage() {
                                               className="text-[12px] font-extrabold"
                                               style={{ color: HOLIDAY_GREEN }}
                                             >
-                                              Best Lazada picks to open first
+                                              Curated Lazada ideas
                                             </div>
                                             <span
                                               className="text-[10px] font-extrabold px-2.5 py-1 rounded-full"
@@ -2614,13 +2661,13 @@ export default function SecretSantaPage() {
                                               return (
                                                 <div
                                                   key={product.id}
-                                                  className="rounded-[20px] p-3.5 transition flex flex-col h-full"
+                                                  className="rounded-[26px] p-4 transition flex flex-col h-full hover:-translate-y-0.5"
                                                   style={{
                                                     background: cardSurface.background,
                                                     border: cardSurface.border,
                                                     color: PAGE_TEXT_COLOR,
                                                     boxShadow: cardSurface.boxShadow,
-                                                    minHeight: 310,
+                                                    minHeight: 340,
                                                     cursor: "default",
                                                   }}
                                                 >
@@ -2670,7 +2717,7 @@ export default function SecretSantaPage() {
                                                     <div
                                                       className="mt-3 rounded-[18px] overflow-hidden flex items-center justify-center"
                                                       style={{
-                                                        minHeight: 104,
+                                                        minHeight: 128,
                                                         background:
                                                           "linear-gradient(180deg,rgba(239,244,241,.9),rgba(229,236,233,.86))",
                                                         border: "1px solid rgba(96,117,122,.08)",
@@ -2681,7 +2728,7 @@ export default function SecretSantaPage() {
                                                         <img
                                                           src={safeProductImageUrl}
                                                           alt={product.title}
-                                                          className="w-full h-[104px] object-contain"
+                                                          className="w-full h-[128px] object-contain"
                                                         />
                                                       ) : (
                                                         <div
@@ -2695,7 +2742,7 @@ export default function SecretSantaPage() {
                                                   )}
 
                                                   <div
-                                                    className="text-[16px] font-extrabold mt-3 leading-snug"
+                                                    className="text-[18px] font-extrabold mt-3 leading-snug"
                                                     style={{
                                                       color: PAGE_TEXT_COLOR,
                                                       display: "-webkit-box",
@@ -2737,19 +2784,19 @@ export default function SecretSantaPage() {
                                                         "1px solid rgba(96,117,122,.08)",
                                                     }}
                                                   >
-                                                    <a
-                                                      href={product.href}
-                                                      target="_blank"
-                                                      rel="noopener noreferrer"
-                                                      className="inline-flex w-full items-center justify-center gap-2 rounded-2xl px-4 py-3 text-[12px] font-extrabold leading-none whitespace-nowrap"
+                                                      <a
+                                                        href={product.href}
+                                                        target="_blank"
+                                                        rel="noopener noreferrer"
+                                                      className="inline-flex w-full items-center justify-center gap-2 rounded-full px-4 py-3.5 text-[12px] font-extrabold leading-none whitespace-nowrap transition hover:scale-[1.01]"
                                                       style={{
                                                         background:
-                                                          "linear-gradient(180deg,#5f7f9b 0%, #4c6d89 100%)",
+                                                          "linear-gradient(135deg,#a43c3f 0%, #7f252b 100%)",
                                                         color: "#f8fbfc",
                                                         boxShadow:
-                                                          "0 10px 18px rgba(88,116,142,.18)",
+                                                          "0 12px 24px rgba(164,60,63,.18)",
                                                         border:
-                                                          "1px solid rgba(76,109,137,.28)",
+                                                          "1px solid rgba(164,60,63,.28)",
                                                         textDecoration: "none",
                                                       }}
                                                     >
@@ -2782,7 +2829,7 @@ export default function SecretSantaPage() {
                                               className="text-[11px] font-extrabold"
                                               style={{ color: HOLIDAY_GREEN }}
                                             >
-                                              Backup store searches
+                                              More places to shop
                                             </span>
                                             <span
                                               className="text-[9px] font-bold rounded-full px-2 py-1"
