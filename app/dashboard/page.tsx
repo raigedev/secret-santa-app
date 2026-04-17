@@ -196,6 +196,77 @@ function getDaysUntilEvent(value: string, now: number): number | null {
   return Math.max(0, Math.ceil((eventTime - now) / 86_400_000));
 }
 
+function buildDashboardRevealMessage(groups: Group[], now: number): string {
+  const events = groups
+    .map((group) => {
+      const eventTime = new Date(group.event_date).getTime();
+
+      if (Number.isNaN(eventTime)) {
+        return null;
+      }
+
+      return {
+        daysUntilEvent: Math.max(0, Math.ceil((eventTime - now) / 86_400_000)),
+        groupName: group.name || "your exchange",
+        hasStarted: eventTime <= now,
+        sortTime: eventTime,
+      };
+    })
+    .filter((event): event is NonNullable<typeof event> => event !== null)
+    .sort((left, right) => {
+      if (left.daysUntilEvent !== right.daysUntilEvent) {
+        return left.daysUntilEvent - right.daysUntilEvent;
+      }
+
+      return left.sortTime - right.sortTime;
+    });
+
+  if (events.length === 0) {
+    return "Manage your groups, draws, and chats in one place.";
+  }
+
+  const openEvents = events.filter((event) => event.hasStarted);
+  const futureEvents = events.filter((event) => !event.hasStarted);
+
+  if (openEvents.length > 0) {
+    const [openEvent] = openEvents;
+    const openEventName =
+      openEvents.length > 1
+        ? `${openEvent.groupName} and ${openEvents.length - 1} more`
+        : openEvent.groupName;
+    const nextFutureEvent = futureEvents[0];
+
+    if (!nextFutureEvent) {
+      return `Reveal day is open for ${openEventName}.`;
+    }
+
+    const futureDayLabel = `${nextFutureEvent.daysUntilEvent} day${
+      nextFutureEvent.daysUntilEvent === 1 ? "" : "s"
+    }`;
+
+    return `Reveal is open for ${openEventName}. Next: ${nextFutureEvent.groupName} in ${futureDayLabel}.`;
+  }
+
+  const nextEvent = futureEvents[0];
+  const sameDayEvents = futureEvents.filter(
+    (event) => event.daysUntilEvent === nextEvent.daysUntilEvent
+  );
+  const extraSameDayCount = sameDayEvents.length - 1;
+  const extraUpcomingCount = futureEvents.length - sameDayEvents.length;
+
+  const dayLabel = `${nextEvent.daysUntilEvent} day${nextEvent.daysUntilEvent === 1 ? "" : "s"}`;
+
+  if (extraSameDayCount > 0) {
+    return `${sameDayEvents.length} reveals are ${dayLabel} away. First up: ${nextEvent.groupName}.`;
+  }
+
+  return `Next reveal: ${nextEvent.groupName} in ${dayLabel}.${
+    extraUpcomingCount > 0
+      ? ` ${extraUpcomingCount} more upcoming.`
+      : ""
+  }`;
+}
+
 function formatDashboardBudget(budget: number | null, currency: string | null): string | null {
   if (budget === null) {
     return null;
@@ -1504,14 +1575,7 @@ export default function DashboardPage() {
   const isDarkTheme = dashboardTheme === "midnight";
   const totalDashboardGroupCount = ownedGroups.length + invitedGroups.length;
   const allDashboardGroups = [...ownedGroups, ...invitedGroups];
-  const nextEventDays = allDashboardGroups
-    .map((group) => getDaysUntilEvent(group.event_date, countdownNow))
-    .filter((days): days is number => days !== null)
-    .sort((a, b) => a - b)[0];
-  const revealMessage =
-    nextEventDays !== undefined
-      ? `There are ${nextEventDays} day${nextEventDays === 1 ? "" : "s"} left until the big reveal.`
-      : "Manage your groups, draws, and chats in one place.";
+  const revealMessage = buildDashboardRevealMessage(allDashboardGroups, countdownNow);
   const utilityIconClass = isDarkTheme ? "text-slate-300" : "text-slate-500";
   const dashboardShellClass = isDarkTheme
     ? "relative min-h-screen overflow-hidden bg-[linear-gradient(180deg,#08111f_0%,#0f172a_38%,#111827_100%)] text-slate-100"
