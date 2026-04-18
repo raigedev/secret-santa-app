@@ -131,24 +131,65 @@ const MAX_GROUP_ROUTE_PREFETCH = 8;
 const AI_SUGGESTION_REQUEST_TIMEOUT_MS = 18000;
 const MAX_VISIBLE_RECIPIENT_WISHLIST_ITEMS = 3;
 const PAGE_BACKGROUND =
-  "radial-gradient(circle at top, rgba(255,255,255,.28), transparent 32%), linear-gradient(180deg,#dfe7e4 0%,#d2dbd8 42%,#c9d4d4 100%)";
-const PAGE_TEXT_COLOR = "#25363a";
-const TEXT_MUTED = "#60757a";
-const TEXT_SOFT = "#819397";
-const SURFACE_BACKGROUND = "rgba(248,250,248,.82)";
-const SURFACE_BORDER = "1px solid rgba(96,117,122,.16)";
+  "radial-gradient(circle at 10% 4%, rgba(255,171,169,.44), transparent 28%), radial-gradient(circle at 86% 10%, rgba(215,250,219,.62), transparent 30%), radial-gradient(circle at 50% 102%, rgba(252,206,114,.26), transparent 34%), linear-gradient(180deg,#f9faf8 0%,#f2f4f2 45%,#dfe4e1 100%)";
+const PAGE_TEXT_COLOR = "#2e3432";
+const TEXT_MUTED = "#5b605e";
+const TEXT_SOFT = "#777c7a";
+const SURFACE_BACKGROUND = "rgba(255,255,255,.86)";
+const SURFACE_BORDER = "1px solid rgba(174,179,177,.15)";
 const SURFACE_HEADER_BACKGROUND =
-  "linear-gradient(180deg,rgba(245,248,246,.94),rgba(236,242,239,.96))";
-const SURFACE_HEADER_BORDER = "1px solid rgba(96,117,122,.12)";
-const SURFACE_SHADOW = "0 14px 34px rgba(34,55,59,.08)";
-const INSET_BORDER = "1px solid rgba(96,117,122,.12)";
-const INPUT_BACKGROUND = "rgba(250,251,249,.9)";
-const INPUT_BORDER = "1px solid rgba(96,117,122,.18)";
-const INPUT_TEXT = "#314447";
-const HOLIDAY_RED = "#9f4e42";
-const HOLIDAY_GREEN = "#2f6b56";
-const HOLIDAY_GOLD = "#a9873d";
+  "linear-gradient(135deg,rgba(255,255,255,.94),rgba(242,244,242,.84))";
+const SURFACE_HEADER_BORDER = "1px solid rgba(174,179,177,.12)";
+const SURFACE_SHADOW = "0 28px 68px rgba(46,52,50,.07)";
+const INSET_BORDER = "1px solid rgba(174,179,177,.14)";
+const INPUT_BACKGROUND = "rgba(255,255,255,.92)";
+const INPUT_BORDER = "1px solid rgba(174,179,177,.2)";
+const INPUT_TEXT = "#2e3432";
+const HOLIDAY_RED = "#a43c3f";
+const HOLIDAY_GREEN = "#48664e";
+const HOLIDAY_GOLD = "#7b5902";
 const HOLIDAY_BLUE = "#58748e";
+
+function GiftMark({ className = "h-5 w-5" }: { className?: string }) {
+  return (
+    <svg
+      aria-hidden="true"
+      className={className}
+      viewBox="0 0 24 24"
+      fill="none"
+    >
+      <path
+        d="M4.75 10.25h14.5v8.5a1.5 1.5 0 0 1-1.5 1.5H6.25a1.5 1.5 0 0 1-1.5-1.5v-8.5Z"
+        stroke="currentColor"
+        strokeWidth="1.8"
+      />
+      <path d="M12 10.25v10M3.5 7.25h17v3h-17v-3Z" stroke="currentColor" strokeWidth="1.8" />
+      <path
+        d="M12 7.25c-2.6-3.2-6.4-1.9-5.2.7.7 1.5 3.2 1.2 5.2-.7Zm0 0c2.6-3.2 6.4-1.9 5.2.7-.7 1.5-3.2 1.2-5.2-.7Z"
+        stroke="currentColor"
+        strokeWidth="1.8"
+      />
+    </svg>
+  );
+}
+
+function SparkleMark({ className = "h-5 w-5" }: { className?: string }) {
+  return (
+    <svg
+      aria-hidden="true"
+      className={className}
+      viewBox="0 0 24 24"
+      fill="none"
+    >
+      <path
+        d="M12 3.75 14.1 9.9 20.25 12l-6.15 2.1L12 20.25 9.9 14.1 3.75 12 9.9 9.9 12 3.75Z"
+        stroke="currentColor"
+        strokeLinejoin="round"
+        strokeWidth="1.8"
+      />
+    </svg>
+  );
+}
 const GIFT_PREP_OPTIONS: Array<{
   value: GiftPrepStatus;
   label: string;
@@ -1488,13 +1529,16 @@ export default function SecretSantaPage() {
   }
 
   const assignmentGroupCount = new Set(assignments.map((assignment) => assignment.group_id)).size;
+  const pageRegionLabel =
+    SHOPPING_REGION_OPTIONS.find((option) => option.value === shoppingRegion)?.label ||
+    shoppingRegion;
 
   return (
     <main
       className="min-h-screen relative overflow-x-hidden"
       style={{
         background: PAGE_BACKGROUND,
-        fontFamily: "'Nunito', sans-serif",
+        fontFamily: "'Be Vietnam Pro', 'Nunito', sans-serif",
         color: PAGE_TEXT_COLOR,
       }}
     >
@@ -1507,25 +1551,132 @@ export default function SecretSantaPage() {
         @keyframes fall{0%{transform:translateY(-10px) translateX(0);opacity:.6;}50%{transform:translateY(50vh) translateX(12px);}100%{transform:translateY(105vh) translateX(-6px);opacity:.1;}}
       `}</style>
 
-      <div className="relative z-10 mx-auto w-full max-w-7xl px-4 py-5 sm:px-6 sm:py-6">
+      <div className="relative z-10 mx-auto w-full max-w-7xl px-4 py-5 sm:px-6 sm:py-8">
         {/* Primary navigation back to the dashboard. */}
         <button
           type="button"
           onClick={() => router.push("/dashboard")}
-          className="mb-5 inline-flex w-full items-center justify-center gap-1.5 rounded-lg px-4 py-2 text-sm font-bold transition sm:w-auto"
+          className="mb-5 inline-flex w-full items-center justify-center gap-2 rounded-full px-5 py-2.5 text-sm font-extrabold transition hover:-translate-y-0.5 sm:w-auto"
           style={{
-            color: TEXT_MUTED,
-            background: "rgba(255,255,255,.72)",
-            border: "1px solid rgba(163,127,90,.16)",
-            boxShadow: "0 10px 24px rgba(103,72,52,.06)",
+            color: HOLIDAY_GREEN,
+            background: "rgba(255,255,255,.74)",
+            border: "1px solid rgba(174,179,177,.14)",
+            boxShadow: "0 18px 42px rgba(46,52,50,.06)",
+            backdropFilter: "blur(18px)",
             fontFamily: "inherit",
           }}
         >
           ← Back to Dashboard
         </button>
 
+        <section
+          className="relative mb-6 overflow-hidden rounded-[36px] p-6 sm:p-8 lg:p-10"
+          style={{
+            background:
+              "linear-gradient(135deg,rgba(255,255,255,.92),rgba(242,244,242,.84) 46%,rgba(255,240,236,.72))",
+            border: "1px solid rgba(174,179,177,.13)",
+            boxShadow: "0 34px 80px rgba(46,52,50,.08)",
+            backdropFilter: "blur(20px)",
+          }}
+        >
+          <div
+            aria-hidden="true"
+            className="absolute -right-20 -top-24 h-64 w-64 rounded-full"
+            style={{
+              background:
+                "radial-gradient(circle, rgba(255,171,169,.34), transparent 66%)",
+            }}
+          />
+          <div
+            aria-hidden="true"
+            className="absolute -bottom-20 left-1/3 h-56 w-56 rounded-full"
+            style={{
+              background:
+                "radial-gradient(circle, rgba(252,206,114,.22), transparent 68%)",
+            }}
+          />
+
+          <div className="relative grid gap-6 lg:grid-cols-[minmax(0,1fr)_320px] lg:items-end">
+            <div>
+              <div
+                className="mb-4 inline-flex items-center gap-2 rounded-full px-4 py-2 text-[11px] font-extrabold uppercase tracking-[0.18em]"
+                style={{
+                  background: "rgba(215,250,219,.72)",
+                  color: HOLIDAY_GREEN,
+                }}
+              >
+                <GiftMark className="h-4 w-4" />
+                Gift room
+              </div>
+              <h1
+                className="max-w-3xl text-[38px] font-black leading-[0.95] tracking-[-0.04em] sm:text-[54px] lg:text-[66px]"
+                style={{
+                  fontFamily: "'Plus Jakarta Sans', 'Fredoka', sans-serif",
+                  color: PAGE_TEXT_COLOR,
+                }}
+              >
+                Curate the right Secret Santa gift.
+              </h1>
+              <p
+                className="mt-4 max-w-2xl text-[15px] font-semibold leading-relaxed sm:text-[17px]"
+                style={{ color: TEXT_MUTED }}
+              >
+                Pick a wishlist clue, choose the gift style, then open
+                affiliate-ready Lazada paths with your recipient and budget still
+                in view.
+              </p>
+            </div>
+
+            <div
+              className="relative rounded-[28px] p-5"
+              style={{
+                background: "rgba(255,255,255,.72)",
+                border: "1px solid rgba(174,179,177,.12)",
+                boxShadow: "0 18px 48px rgba(46,52,50,.06)",
+              }}
+            >
+              <div className="flex items-center justify-between gap-3">
+                <span
+                  className="rounded-full px-3 py-1 text-[10px] font-extrabold uppercase tracking-[0.14em]"
+                  style={{ background: "rgba(164,60,63,.1)", color: HOLIDAY_RED }}
+                >
+                  Today&apos;s list
+                </span>
+                <SparkleMark className="h-5 w-5" />
+              </div>
+              <div className="mt-5 grid grid-cols-2 gap-3">
+                <div>
+                  <div className="text-[32px] font-black leading-none">
+                    {assignments.length}
+                  </div>
+                  <div className="mt-1 text-[11px] font-bold" style={{ color: TEXT_MUTED }}>
+                    recipient{assignments.length !== 1 ? "s" : ""}
+                  </div>
+                </div>
+                <div>
+                  <div className="text-[32px] font-black leading-none">
+                    {assignmentGroupCount}
+                  </div>
+                  <div className="mt-1 text-[11px] font-bold" style={{ color: TEXT_MUTED }}>
+                    group{assignmentGroupCount !== 1 ? "s" : ""}
+                  </div>
+                </div>
+              </div>
+              <div
+                className="mt-5 rounded-2xl px-4 py-3 text-[12px] font-extrabold"
+                style={{
+                  background: "rgba(252,206,114,.18)",
+                  color: HOLIDAY_GOLD,
+                }}
+              >
+                Lazada region: {pageRegionLabel}
+              </div>
+            </div>
+          </div>
+        </section>
+
         {/* Header content and recipient summary. */}
-        <div className="text-center mb-7">
+        <div className="hidden">
           <h1
             className="text-[32px] font-bold mb-1"
             style={{
@@ -1571,45 +1722,46 @@ export default function SecretSantaPage() {
         )}
 
         <div
-          className="rounded-[18px] p-4 mb-4"
+          className="mb-5 rounded-[28px] p-4 sm:p-5"
           style={{
-            background: "rgba(248,250,248,.74)",
-            border: "1px solid rgba(96,117,122,.12)",
-            boxShadow: "0 10px 24px rgba(34,55,59,.05)",
+            background:
+              "linear-gradient(135deg,rgba(236,239,236,.82),rgba(255,255,255,.78))",
+            border: "1px solid rgba(174,179,177,.13)",
+            boxShadow: "0 18px 42px rgba(46,52,50,.05)",
           }}
         >
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-            <div>
+          <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+            <div className="flex items-start gap-3">
               <div
-                className="text-[14px] font-extrabold"
-                style={{ color: HOLIDAY_GREEN }}
+                className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl"
+                style={{
+                  background: "rgba(164,60,63,.1)",
+                  color: HOLIDAY_RED,
+                }}
               >
-                Shopping setup
+                <GiftMark className="h-5 w-5" />
               </div>
-              <div
-                className="text-[11px] mt-1 leading-relaxed"
-                style={{ color: TEXT_MUTED }}
-              >
-                We&apos;ll use this region for Lazada suggestions and store links
-                across the page.
+              <div>
+                <div
+                  className="text-[15px] font-extrabold"
+                  style={{ color: HOLIDAY_GREEN }}
+                >
+                  Shopping region
+                </div>
+                <div
+                  className="mt-1 max-w-2xl text-[12px] leading-relaxed"
+                  style={{ color: TEXT_MUTED }}
+                >
+                  Used for Lazada gift ideas and backup store links. Keep it on
+                  Philippines for affiliate-ready Lazada paths.
+                </div>
               </div>
             </div>
-            <span
-              className="text-[10px] font-extrabold px-2.5 py-1 rounded-full"
-              style={{
-                background: "rgba(255,255,255,.78)",
-                color: HOLIDAY_GREEN,
-              }}
-            >
-              Easy to change anytime
-            </span>
-          </div>
 
-          <div className="mt-4 max-w-[320px]">
-            <label className="block">
+            <label className="block w-full lg:max-w-[340px]">
               <div
-                className="text-[11px] font-bold mb-1"
-                style={{ color: PAGE_TEXT_COLOR }}
+                className="mb-1 text-[10px] font-extrabold uppercase tracking-[0.14em]"
+                style={{ color: TEXT_MUTED }}
               >
                 Online shop region
               </div>
@@ -1618,12 +1770,13 @@ export default function SecretSantaPage() {
                 onChange={(event) =>
                   setShoppingRegion(event.target.value as ShoppingRegion)
                 }
-                className="w-full rounded-xl px-3 py-2 text-[12px] font-semibold"
+                className="w-full rounded-full px-4 py-3 text-[13px] font-extrabold"
                 style={{
                   background: INPUT_BACKGROUND,
                   border: INPUT_BORDER,
                   color: INPUT_TEXT,
                   fontFamily: "inherit",
+                  boxShadow: "0 12px 28px rgba(46,52,50,.04)",
                 }}
               >
                 {SHOPPING_REGION_OPTIONS.map((option) => (
@@ -1632,7 +1785,7 @@ export default function SecretSantaPage() {
                   </option>
                 ))}
               </select>
-              <div className="text-[10px] mt-1" style={{ color: TEXT_SOFT }}>
+              <div className="mt-2 text-[11px]" style={{ color: TEXT_SOFT }}>
                 {
                   SHOPPING_REGION_OPTIONS.find(
                     (option) => option.value === shoppingRegion
@@ -1671,20 +1824,20 @@ export default function SecretSantaPage() {
             </p>
           </div>
         ) : (
-          <div className="flex flex-col gap-4 mb-7">
+          <div className="mb-8 flex flex-col gap-6">
             {assignments.map((assignment, index) => (
               <div
                 key={assignment.group_id}
-                className="rounded-[18px] overflow-hidden transition"
+                className="overflow-hidden rounded-[34px] transition"
                 style={{
                   background: SURFACE_BACKGROUND,
                   border: SURFACE_BORDER,
                   boxShadow: SURFACE_SHADOW,
-                  backdropFilter: "blur(8px)",
+                  backdropFilter: "blur(18px)",
                 }}
               >
                 <div
-                  className="flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between"
+                  className="flex flex-col gap-4 p-5 sm:flex-row sm:items-center sm:justify-between sm:p-6"
                   style={{
                     background: SURFACE_HEADER_BACKGROUND,
                     borderBottom: SURFACE_HEADER_BORDER,
@@ -1692,13 +1845,18 @@ export default function SecretSantaPage() {
                 >
                   <div className="flex items-center gap-3">
                     <div
-                      className="w-11 h-11 rounded-xl flex items-center justify-center text-[22px]"
+                      className="flex h-14 w-14 items-center justify-center rounded-[22px] text-[24px]"
                       style={{ background: ICON_COLORS[index % ICON_COLORS.length] }}
                     >
                       {ICON_EMOJIS[index % ICON_EMOJIS.length]}
                     </div>
                     <div>
-                      <div className="text-[16px] font-extrabold">{assignment.group_name}</div>
+                      <div
+                        className="text-[20px] font-black leading-tight"
+                        style={{ fontFamily: "'Plus Jakarta Sans', 'Fredoka', sans-serif" }}
+                      >
+                        {assignment.group_name}
+                      </div>
                       <div
                         className="text-[11px] font-semibold"
                         style={{ color: TEXT_MUTED }}
@@ -1708,26 +1866,26 @@ export default function SecretSantaPage() {
                     </div>
                   </div>
                   <div
-                    className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-[14px] font-extrabold text-white"
+                    className="flex items-center gap-2 rounded-full px-4 py-2 text-[13px] font-extrabold text-white"
                     style={{
-                      background: "linear-gradient(135deg,#ccb57b,#a9873d)",
-                      boxShadow: "0 4px 16px rgba(169,135,61,.2)",
+                      background: "linear-gradient(135deg,#a43c3f,#7b5902)",
+                      boxShadow: "0 16px 34px rgba(164,60,63,.16)",
                     }}
                   >
                     🎁→ {assignment.receiver_nickname}
                   </div>
                 </div>
 
-                <div className="p-4">
-                  <div className="flex items-center justify-between mb-3">
+                <div className="p-5 sm:p-6">
+                  <div className="mb-4 flex items-center justify-between gap-3">
                     <p
-                      className="text-[14px] font-extrabold"
+                      className="text-[15px] font-extrabold"
                       style={{ color: HOLIDAY_GREEN }}
                     >
                       🎅 {assignment.receiver_nickname}&apos;s wishlist
                     </p>
                     <span
-                      className="text-[10px] font-extrabold px-2.5 py-1 rounded-lg"
+                      className="rounded-full px-3 py-1 text-[10px] font-extrabold"
                       style={{
                         background: "rgba(184,131,29,.12)",
                         color: HOLIDAY_GOLD,
@@ -1906,31 +2064,41 @@ export default function SecretSantaPage() {
 
                       return (
                         <div
-                          className="grid gap-5 xl:grid-cols-[320px_minmax(0,1fr)] lg:grid-cols-[290px_minmax(0,1fr)]"
+                          className="grid gap-5 xl:grid-cols-[340px_minmax(0,1fr)] lg:grid-cols-[300px_minmax(0,1fr)]"
                           style={{ alignItems: "start" }}
                         >
-                          <div className="space-y-3 lg:sticky lg:top-5 self-start">
+                          <div className="self-start space-y-3 lg:sticky lg:top-5">
                             <div
-                              className="rounded-[24px] p-4"
+                              className="rounded-[28px] p-5"
                               style={{
                                 background:
-                                  "linear-gradient(180deg,rgba(255,255,255,.9),rgba(246,249,247,.82))",
-                                border: "1px solid rgba(96,117,122,.1)",
-                                boxShadow: "0 14px 30px rgba(34,55,59,.04)",
+                                  "linear-gradient(135deg,rgba(255,255,255,.92),rgba(236,239,236,.78))",
+                                border: "1px solid rgba(174,179,177,.12)",
+                                boxShadow: "0 16px 34px rgba(46,52,50,.04)",
                               }}
                             >
                               <div
-                                className="text-[14px] font-extrabold"
+                                className="mb-3 inline-flex items-center gap-2 rounded-full px-3 py-1 text-[10px] font-extrabold uppercase tracking-[0.14em]"
+                                style={{
+                                  background: "rgba(164,60,63,.1)",
+                                  color: HOLIDAY_RED,
+                                }}
+                              >
+                                <GiftMark className="h-3.5 w-3.5" />
+                                Giftee clues
+                              </div>
+                              <div
+                                className="text-[18px] font-black leading-tight"
                                 style={{ color: HOLIDAY_GREEN }}
                               >
                                 {assignment.receiver_nickname}&apos;s wishlist
                               </div>
                               <div
-                                className="text-[11px] mt-1.5 leading-relaxed"
+                                className="mt-2 text-[12px] leading-relaxed"
                                 style={{ color: TEXT_MUTED }}
                               >
-                                Pick a gift idea. The shopping guide updates beside it
-                                without pushing the rest of the list down.
+                                Select one clue and the Lazada guide updates beside it
+                                without pushing the other ideas away.
                               </div>
                             </div>
 
@@ -1962,16 +2130,16 @@ export default function SecretSantaPage() {
                                       wishlistItem.id
                                     )
                                   }
-                                  className="w-full rounded-[22px] p-3.5 text-left transition hover:-translate-y-0.5"
+                                  className="w-full rounded-[24px] p-4 text-left transition hover:-translate-y-0.5"
                                   style={{
                                     background: isActiveItem
-                                      ? "linear-gradient(135deg,rgba(47,107,86,.14),rgba(255,255,255,.92))"
+                                      ? "linear-gradient(135deg,rgba(215,250,219,.52),rgba(255,255,255,.94))"
                                       : "rgba(255,255,255,.78)",
                                     border: isActiveItem
-                                      ? "1px solid rgba(47,107,86,.26)"
-                                      : "1px solid rgba(96,117,122,.1)",
+                                      ? "1px solid rgba(72,102,78,.24)"
+                                      : "1px solid rgba(174,179,177,.12)",
                                     boxShadow: isActiveItem
-                                      ? "0 14px 26px rgba(47,107,86,.1)"
+                                      ? "0 18px 36px rgba(72,102,78,.1)"
                                       : "none",
                                     cursor: "pointer",
                                     fontFamily: "inherit",
@@ -1979,10 +2147,10 @@ export default function SecretSantaPage() {
                                 >
                                   <div className="flex items-start gap-3">
                                     <div
-                                      className="w-16 h-16 rounded-2xl flex items-center justify-center text-[19px] shrink-0 overflow-hidden"
+                                      className="flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-[22px] text-[19px]"
                                       style={{
                                         background: "rgba(255,255,255,.88)",
-                                        border: "1px solid rgba(96,117,122,.1)",
+                                        border: "1px solid rgba(174,179,177,.12)",
                                       }}
                                     >
                                       {wishlistImageUrl ? (
@@ -2093,36 +2261,46 @@ export default function SecretSantaPage() {
                             )}
                           </div>
 
-                          <div className="lg:sticky lg:top-5 self-start">
+                          <div className="self-start lg:sticky lg:top-5">
                             <div
-                              className="rounded-[28px] p-4 sm:p-5"
+                              className="rounded-[34px] p-4 sm:p-6"
                               style={{
                                 background:
-                                  "linear-gradient(180deg,rgba(255,255,255,.86),rgba(246,249,247,.8))",
+                                  "linear-gradient(135deg,rgba(255,255,255,.9),rgba(242,244,242,.78) 52%,rgba(255,245,229,.7))",
                                 border: INSET_BORDER,
-                                boxShadow: "0 18px 38px rgba(34,55,59,.06)",
+                                boxShadow: "0 26px 64px rgba(46,52,50,.07)",
                               }}
                             >
                               <div className="flex items-start justify-between gap-3 mb-4 flex-wrap">
                                 <div>
                                   <div
-                                    className="text-[18px] font-extrabold"
-                                    style={{ color: HOLIDAY_GREEN }}
+                                    className="mb-3 inline-flex items-center gap-2 rounded-full px-3 py-1 text-[10px] font-extrabold uppercase tracking-[0.14em]"
+                                    style={{
+                                      background: "rgba(252,206,114,.2)",
+                                      color: HOLIDAY_GOLD,
+                                    }}
                                   >
-                                    Shopping guide
+                                    <SparkleMark className="h-3.5 w-3.5" />
+                                    Affiliate-ready paths
                                   </div>
                                   <div
-                                    className="text-[12px] mt-1"
+                                    className="text-[24px] font-black leading-tight"
+                                    style={{ color: HOLIDAY_GREEN }}
+                                  >
+                                    Lazada gift guide
+                                  </div>
+                                  <div
+                                    className="mt-2 max-w-2xl text-[13px] leading-relaxed"
                                     style={{ color: TEXT_MUTED }}
                                   >
-                                    Curated Lazada paths for {item.item_name}, with the
-                                    wishlist still visible beside your choices.
+                                    Compare gift directions for {item.item_name} while
+                                    the giftee&apos;s wishlist stays visible.
                                   </div>
                                 </div>
                                 <div className="flex items-center gap-2 flex-wrap">
                                   {shoppingRegion === "PH" && aiSuggestionState?.loading && (
                                     <span
-                                      className="text-[10px] font-extrabold px-2 py-1 rounded-lg"
+                                      className="rounded-full px-3 py-1 text-[10px] font-extrabold"
                                       style={{
                                         background: "rgba(88,116,142,.1)",
                                         color: HOLIDAY_BLUE,
@@ -2135,7 +2313,7 @@ export default function SecretSantaPage() {
                                     !aiSuggestionState?.loading &&
                                     aiSuggestionState?.usedAi && (
                                       <span
-                                        className="text-[10px] font-extrabold px-2 py-1 rounded-lg"
+                                        className="rounded-full px-3 py-1 text-[10px] font-extrabold"
                                         style={{
                                           background: "rgba(169,135,61,.12)",
                                           color: HOLIDAY_GOLD,
@@ -2145,7 +2323,7 @@ export default function SecretSantaPage() {
                                       </span>
                                     )}
                                   <span
-                                    className="text-[10px] font-extrabold px-2 py-1 rounded-lg"
+                                    className="rounded-full px-3 py-1 text-[10px] font-extrabold"
                                     style={{
                                       background: "rgba(255,255,255,.78)",
                                       color: HOLIDAY_GREEN,
@@ -2157,21 +2335,21 @@ export default function SecretSantaPage() {
                               </div>
 
                               <div
-                                className="rounded-[26px] overflow-hidden"
+                                className="overflow-hidden rounded-[30px]"
                                 style={{
                                   background:
-                                    "linear-gradient(135deg,rgba(255,255,255,.98),rgba(244,248,246,.92))",
-                                  border: "1px solid rgba(96,117,122,.1)",
-                                  boxShadow: "0 14px 30px rgba(34,55,59,.05)",
+                                    "linear-gradient(135deg,rgba(255,255,255,.98),rgba(236,239,236,.9))",
+                                  border: "1px solid rgba(174,179,177,.12)",
+                                  boxShadow: "0 18px 42px rgba(46,52,50,.05)",
                                 }}
                               >
                                 <div className="grid gap-0 md:grid-cols-[minmax(150px,220px)_1fr]">
                                   <div
-                                    className="min-h-[170px] flex items-center justify-center text-[42px] overflow-hidden"
+                                    className="flex min-h-[190px] items-center justify-center overflow-hidden text-[42px]"
                                     style={{
                                       background:
-                                        "linear-gradient(180deg,rgba(229,236,233,.82),rgba(255,255,255,.72))",
-                                      borderRight: "1px solid rgba(96,117,122,.08)",
+                                        "linear-gradient(180deg,rgba(215,250,219,.38),rgba(255,255,255,.78))",
+                                      borderRight: "1px solid rgba(174,179,177,.1)",
                                     }}
                                   >
                                     {safeItemImageUrl ? (
@@ -2279,17 +2457,17 @@ export default function SecretSantaPage() {
                                 <div className="flex items-center justify-between gap-3 mb-3 flex-wrap">
                                   <div>
                                     <div
-                                      className="text-[12px] font-extrabold"
-                                      style={{ color: HOLIDAY_GREEN }}
-                                    >
-                                      Choose a shopping style
+                                    className="text-[13px] font-extrabold"
+                                    style={{ color: HOLIDAY_GREEN }}
+                                  >
+                                      Pick a gift direction
                                     </div>
                                     <div
-                                      className="text-[11px] mt-0.5"
+                                      className="mt-1 text-[11px]"
                                       style={{ color: TEXT_MUTED }}
                                     >
-                                      Pick the direction that feels closest to the gift,
-                                      then compare the strongest Lazada paths.
+                                      Start close to the wishlist, go budget-friendly,
+                                      or choose a more polished version.
                                     </div>
                                   </div>
                                 </div>
@@ -2305,16 +2483,16 @@ export default function SecretSantaPage() {
                                       onClick={() =>
                                         selectRecipientSuggestion(item.id, suggestion.id)
                                       }
-                                      className="w-full rounded-[22px] p-3.5 text-left transition hover:-translate-y-0.5"
+                                      className="w-full rounded-[24px] p-4 text-left transition hover:-translate-y-0.5"
                                       style={{
                                         background: isSelected
-                                          ? "linear-gradient(135deg,rgba(47,107,86,.14),rgba(255,255,255,.9))"
+                                          ? "linear-gradient(135deg,rgba(215,250,219,.54),rgba(255,255,255,.92))"
                                           : "rgba(255,255,255,.84)",
                                         border: isSelected
-                                          ? "1px solid rgba(47,107,86,.28)"
-                                          : "1px solid rgba(96,117,122,.12)",
+                                          ? "1px solid rgba(72,102,78,.28)"
+                                          : "1px solid rgba(174,179,177,.12)",
                                         boxShadow: isSelected
-                                          ? "0 14px 26px rgba(47,107,86,.1)"
+                                          ? "0 18px 36px rgba(72,102,78,.1)"
                                           : "none",
                                         fontFamily: "inherit",
                                         cursor: "pointer",
@@ -2343,7 +2521,7 @@ export default function SecretSantaPage() {
                                         }}
                                       >
                                         {isSelected
-                                          ? "Selected"
+                                          ? "Chosen"
                                           : suggestion.source === "ai"
                                             ? "AI idea"
                                             : suggestion.fitLabel}
@@ -2564,7 +2742,7 @@ export default function SecretSantaPage() {
                                               className="text-[12px] font-extrabold"
                                               style={{ color: HOLIDAY_GREEN }}
                                             >
-                                              Curated Lazada ideas
+                                              Gift picks on Lazada
                                             </div>
                                             <span
                                               className="text-[10px] font-extrabold px-2.5 py-1 rounded-full"
@@ -2661,13 +2839,13 @@ export default function SecretSantaPage() {
                                               return (
                                                 <div
                                                   key={product.id}
-                                                  className="rounded-[26px] p-4 transition flex flex-col h-full hover:-translate-y-0.5"
+                                                  className="flex h-full flex-col rounded-[30px] p-4 transition hover:-translate-y-0.5"
                                                   style={{
                                                     background: cardSurface.background,
                                                     border: cardSurface.border,
                                                     color: PAGE_TEXT_COLOR,
                                                     boxShadow: cardSurface.boxShadow,
-                                                    minHeight: 340,
+                                                    minHeight: 360,
                                                     cursor: "default",
                                                   }}
                                                 >
@@ -2715,12 +2893,12 @@ export default function SecretSantaPage() {
 
                                                   {showVisualPreview && (
                                                     <div
-                                                      className="mt-3 rounded-[18px] overflow-hidden flex items-center justify-center"
+                                                      className="mt-3 flex items-center justify-center overflow-hidden rounded-[24px]"
                                                       style={{
                                                         minHeight: 128,
                                                         background:
                                                           "linear-gradient(180deg,rgba(239,244,241,.9),rgba(229,236,233,.86))",
-                                                        border: "1px solid rgba(96,117,122,.08)",
+                                                        border: "1px solid rgba(174,179,177,.1)",
                                                       }}
                                                     >
                                                       {safeProductImageUrl ? (
@@ -2742,7 +2920,7 @@ export default function SecretSantaPage() {
                                                   )}
 
                                                   <div
-                                                    className="text-[18px] font-extrabold mt-3 leading-snug"
+                                                    className="mt-4 text-[19px] font-black leading-snug"
                                                     style={{
                                                       color: PAGE_TEXT_COLOR,
                                                       display: "-webkit-box",
@@ -2755,7 +2933,7 @@ export default function SecretSantaPage() {
                                                   </div>
 
                                                     <div
-                                                      className="text-[11px] mt-1 leading-relaxed"
+                                                      className="mt-2 text-[12px] leading-relaxed"
                                                       style={{ color: TEXT_MUTED }}
                                                     >
                                                       {conciseSubtitle}
@@ -2763,13 +2941,13 @@ export default function SecretSantaPage() {
 
                                                   <div className="mt-3 flex-1">
                                                     <div
-                                                      className="text-[10px] font-semibold uppercase tracking-[0.08em]"
-                                                      style={{ color: HOLIDAY_BLUE }}
+                                                      className="text-[10px] font-extrabold uppercase tracking-[0.12em]"
+                                                      style={{ color: HOLIDAY_GOLD }}
                                                     >
                                                       Why this fits
                                                     </div>
                                                     <div
-                                                      className="text-[11px] mt-1 leading-relaxed"
+                                                      className="mt-1.5 text-[12px] leading-relaxed"
                                                       style={{ color: TEXT_SOFT }}
                                                     >
                                                       {conciseReason}
@@ -2778,17 +2956,17 @@ export default function SecretSantaPage() {
                                                   </div>
 
                                                   <div
-                                                    className="mt-4 pt-3"
+                                                    className="mt-5 pt-4"
                                                     style={{
                                                       borderTop:
-                                                        "1px solid rgba(96,117,122,.08)",
+                                                        "1px solid rgba(174,179,177,.1)",
                                                     }}
                                                   >
                                                       <a
                                                         href={product.href}
                                                         target="_blank"
                                                         rel="noopener noreferrer"
-                                                      className="inline-flex w-full items-center justify-center gap-2 rounded-full px-4 py-3.5 text-[12px] font-extrabold leading-none whitespace-nowrap transition hover:scale-[1.01]"
+                                                      className="inline-flex w-full items-center justify-center gap-2 rounded-full px-4 py-4 text-[13px] font-extrabold leading-none whitespace-nowrap transition hover:scale-[1.01]"
                                                       style={{
                                                         background:
                                                           "linear-gradient(135deg,#a43c3f 0%, #7f252b 100%)",
@@ -2916,39 +3094,40 @@ export default function SecretSantaPage() {
                   )}
 
                   <div
-                    className="rounded-xl p-3.5 mt-3"
+                    className="mt-4 rounded-[28px] p-4"
                     style={{
-                      background: "rgba(63,111,178,.09)",
-                      border: "1px solid rgba(63,111,178,.16)",
+                      background:
+                        "linear-gradient(135deg,rgba(215,250,219,.32),rgba(255,255,255,.78))",
+                      border: "1px solid rgba(72,102,78,.16)",
                     }}
                   >
                     <div className="flex items-start justify-between gap-3 mb-3">
                       <div>
                         <div
-                          className="text-[13px] font-extrabold"
-                          style={{ color: HOLIDAY_BLUE }}
+                          className="text-[14px] font-extrabold"
+                          style={{ color: HOLIDAY_GREEN }}
                         >
                           Private gift prep
                         </div>
                         <div
-                          className="text-[11px] mt-0.5"
+                          className="mt-1 text-[12px]"
                           style={{ color: TEXT_MUTED }}
                         >
                           Optional progress that only you can see.
                         </div>
                       </div>
                       <div
-                        className="px-3 py-1 rounded-lg text-[10px] font-extrabold"
+                        className="rounded-full px-3 py-1 text-[10px] font-extrabold"
                         style={{
-                          background: "rgba(63,111,178,.12)",
-                          color: HOLIDAY_BLUE,
+                          background: "rgba(255,255,255,.76)",
+                          color: HOLIDAY_GREEN,
                         }}
                       >
                         Only you
                       </div>
                     </div>
 
-                    <div className="flex flex-wrap gap-2">
+                    <div className="grid gap-2 sm:grid-cols-4">
                       {GIFT_PREP_OPTIONS.map((option) => {
                         const isActive = assignment.gift_prep_status === option.value;
                         const isDisabled =
@@ -2963,10 +3142,10 @@ export default function SecretSantaPage() {
                               handleUpdateGiftPrep(assignment.group_id, option.value)
                             }
                             disabled={isDisabled}
-                            className="px-3 py-2 rounded-xl text-[11px] font-bold transition"
+                            className="rounded-2xl px-3 py-3 text-[11px] font-extrabold transition"
                             style={{
                               background: isActive
-                                ? "linear-gradient(135deg,#7f97ad,#58748e)"
+                                ? "linear-gradient(135deg,#48664e,#3c5a43)"
                                 : "rgba(255,255,255,.75)",
                               color: isActive ? "#fff" : PAGE_TEXT_COLOR,
                               border: `1px solid ${
@@ -2991,13 +3170,13 @@ export default function SecretSantaPage() {
                     </div>
 
                     <div
-                      className="mt-3 rounded-lg px-3 py-2 text-[11px]"
+                      className="mt-3 rounded-2xl px-4 py-3 text-[12px]"
                       style={{
                         background: "rgba(255,255,255,.72)",
                         color: PAGE_TEXT_COLOR,
                       }}
                     >
-                      <span className="font-bold" style={{ color: HOLIDAY_BLUE }}>
+                      <span className="font-bold" style={{ color: HOLIDAY_GREEN }}>
                         Current:
                       </span>{" "}
                       {getGiftPrepLabel(assignment.gift_prep_status)}
