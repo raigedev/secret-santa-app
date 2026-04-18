@@ -1350,7 +1350,7 @@ export default function DashboardPage() {
           return;
         }
 
-        setUserName(defaultName);
+        setUserName((current) => current || defaultName);
 
         // claimInvitedMemberships only needs to run once per browser session.
         // Email-linked invites don't change between visits; realtime will trigger
