@@ -1989,14 +1989,35 @@ export default function DashboardPage() {
                 <button
                   type="button"
                   onClick={() => router.push("/dashboard/affiliate-report")}
-                  className={isDarkTheme ? "text-slate-400 text-base font-semibold hover:text-red-300" : "text-slate-500 text-base font-semibold hover:text-red-600"}
+                  className={`inline-flex items-center gap-2 rounded-full px-3.5 py-2 text-sm font-extrabold transition hover:-translate-y-0.5 ${
+                    isDarkTheme
+                      ? "bg-amber-300/12 text-amber-100 ring-1 ring-amber-200/20 hover:bg-amber-300/18"
+                      : "bg-amber-50 text-amber-800 ring-1 ring-amber-200/70 hover:bg-amber-100"
+                  }`}
+                  aria-label="Open Lazada affiliate report"
+                  title="Open Lazada affiliate report"
                 >
-                  Report
+                  Affiliate report
                 </button>
               )}
             </nav>
           </div>
           <div className="flex shrink-0 items-center gap-2">
+            {canViewAffiliateReport && (
+              <button
+                type="button"
+                onClick={() => router.push("/dashboard/affiliate-report")}
+                className={`inline-flex items-center rounded-full px-3 py-2 text-xs font-extrabold transition hover:-translate-y-0.5 md:hidden ${
+                  isDarkTheme
+                    ? "bg-amber-300/12 text-amber-100 ring-1 ring-amber-200/20"
+                    : "bg-amber-50 text-amber-800 ring-1 ring-amber-200/70"
+                }`}
+                aria-label="Open Lazada affiliate report"
+                title="Open Lazada affiliate report"
+              >
+                Report
+              </button>
+            )}
             <button
               type="button"
               onClick={() => router.push("/notifications")}
