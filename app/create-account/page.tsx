@@ -5,6 +5,25 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 
 const MIN_PASSWORD_LENGTH = 8;
+const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+function getFriendlySignupError(message: string): string {
+  const normalized = message.toLowerCase();
+
+  if (
+    normalized.includes("error sending confirmation email") ||
+    normalized.includes("smtp") ||
+    normalized.includes("rate limit")
+  ) {
+    return "We couldn't send the confirmation email right now. Please try again later. If this keeps happening, the app owner needs to configure Supabase Custom SMTP.";
+  }
+
+  if (normalized.includes("already registered") || normalized.includes("already exists")) {
+    return "This email already has an account. Please sign in instead.";
+  }
+
+  return message || "Signup failed. Please try again.";
+}
 
 function CreateAccountPageInner() {
   const router = useRouter();
@@ -15,6 +34,7 @@ function CreateAccountPageInner() {
   const [name, setName] = useState("");
   const [error, setError] = useState("");
   const [confirmation, setConfirmation] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const nextPath = (() => {
     const candidate = searchParams.get("next") || "/dashboard";
@@ -26,11 +46,23 @@ function CreateAccountPageInner() {
   };
 
   const handleSignup = async () => {
+    if (isSubmitting) {
+      return;
+    }
+
     setError("");
     rememberNextPath();
 
-    if (!name.trim()) {
+    const trimmedName = name.trim();
+    const trimmedEmail = email.trim().toLowerCase();
+
+    if (!trimmedName) {
       setError("Please enter your name.");
+      return;
+    }
+
+    if (!EMAIL_PATTERN.test(trimmedEmail)) {
+      setError("Please enter a valid email address.");
       return;
     }
 
@@ -39,21 +71,30 @@ function CreateAccountPageInner() {
       return;
     }
 
-    const { error: signUpError } = await supabase.auth.signUp({
-      email: email.trim(),
-      password,
-      options: {
-        data: { name: name.trim() },
-        emailRedirectTo: `${location.origin}/auth/callback?next=${encodeURIComponent(nextPath)}`,
-      },
-    });
+    setIsSubmitting(true);
 
-    if (signUpError) {
-      setError(signUpError.message);
-      return;
+    try {
+      const redirectUrl = new URL("/auth/callback", window.location.origin);
+      redirectUrl.searchParams.set("next", nextPath);
+
+      const { error: signUpError } = await supabase.auth.signUp({
+        email: trimmedEmail,
+        password,
+        options: {
+          data: { name: trimmedName },
+          emailRedirectTo: redirectUrl.toString(),
+        },
+      });
+
+      if (signUpError) {
+        setError(getFriendlySignupError(signUpError.message));
+        return;
+      }
+
+      setConfirmation(true);
+    } finally {
+      setIsSubmitting(false);
     }
-
-    setConfirmation(true);
   };
 
   return (
@@ -99,9 +140,12 @@ function CreateAccountPageInner() {
 
             <button
               onClick={handleSignup}
-              className="w-full rounded-lg bg-gradient-to-r from-yellow-400 to-yellow-600 py-3 font-bold text-white shadow-lg transition hover:scale-105"
+              disabled={isSubmitting}
+              className={`w-full rounded-lg bg-gradient-to-r from-yellow-400 to-yellow-600 py-3 font-bold text-white shadow-lg transition ${
+                isSubmitting ? "cursor-not-allowed opacity-70" : "hover:scale-105"
+              }`}
             >
-              🎉 Sign Up
+              {isSubmitting ? "Sending confirmation..." : "🎉 Sign Up"}
             </button>
 
             <p className="text-sm text-center mt-4">
