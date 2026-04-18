@@ -1572,6 +1572,7 @@ export default function DashboardPage() {
 
   const hasAssignments = recipientNames.length > 0;
   const displayFirstName = getDisplayFirstName(userName);
+  const profileInitial = displayFirstName.charAt(0).toUpperCase();
   const isDarkTheme = dashboardTheme === "midnight";
   const totalDashboardGroupCount = ownedGroups.length + invitedGroups.length;
   const allDashboardGroups = [...ownedGroups, ...invitedGroups];
@@ -2105,15 +2106,27 @@ export default function DashboardPage() {
               <button
                 type="button"
                 onClick={() => setProfileMenuOpen((current) => !current)}
-                className={`flex h-10 w-10 items-center justify-center overflow-hidden rounded-full ring-2 ${
-                  isDarkTheme ? "bg-slate-800 ring-red-400/40" : "bg-red-50 ring-red-100"
+                className={`relative flex h-10 w-10 items-center justify-center overflow-hidden rounded-full ring-2 transition hover:-translate-y-0.5 ${
+                  isDarkTheme
+                    ? "bg-gradient-to-br from-sky-500/25 via-slate-800 to-emerald-500/20 text-sky-50 ring-sky-300/35"
+                    : "bg-gradient-to-br from-white via-sky-50 to-emerald-50 text-sky-800 ring-sky-100"
                 }`}
                 aria-haspopup="menu"
                 aria-expanded={profileMenuOpen}
                 aria-label="Open profile menu"
                 title="Open profile menu"
               >
-                <SantaMarkIcon size={26} />
+                <span className="text-sm font-black leading-none tracking-tight" aria-hidden="true">
+                  {profileInitial}
+                </span>
+                <span
+                  className={`absolute bottom-0 right-0 flex h-3.5 w-3.5 items-center justify-center rounded-full ring-2 ${
+                    isDarkTheme ? "bg-slate-950 text-sky-200 ring-slate-950" : "bg-white text-sky-600 ring-white"
+                  }`}
+                  aria-hidden="true"
+                >
+                  <UserOutlineIcon className="h-2.5 w-2.5" />
+                </span>
               </button>
             </div>
           </div>
