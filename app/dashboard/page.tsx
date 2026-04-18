@@ -1572,12 +1572,14 @@ export default function DashboardPage() {
 
   const hasAssignments = recipientNames.length > 0;
   const displayFirstName = getDisplayFirstName(userName);
-  const profileInitial = displayFirstName.charAt(0).toUpperCase();
   const isDarkTheme = dashboardTheme === "midnight";
   const totalDashboardGroupCount = ownedGroups.length + invitedGroups.length;
   const allDashboardGroups = [...ownedGroups, ...invitedGroups];
   const revealMessage = buildDashboardRevealMessage(allDashboardGroups, countdownNow);
   const utilityIconClass = isDarkTheme ? "text-slate-300" : "text-slate-500";
+  const utilityButtonClass = `relative inline-flex h-10 w-10 items-center justify-center rounded-full transition hover:-translate-y-0.5 ${
+    isDarkTheme ? "hover:bg-white/10" : "hover:bg-white/80"
+  }`;
   const dashboardShellClass = isDarkTheme
     ? "relative min-h-screen overflow-hidden bg-[linear-gradient(180deg,#08111f_0%,#0f172a_38%,#111827_100%)] text-slate-100"
     : "relative min-h-screen overflow-hidden bg-[linear-gradient(180deg,#edf6ff_0%,#f8fbff_45%,#eef5ff_100%)] text-slate-900";
@@ -2081,7 +2083,7 @@ export default function DashboardPage() {
             <button
               type="button"
               onClick={() => router.push("/notifications")}
-              className="relative rounded-full p-2 transition hover:bg-red-50/80"
+              className={utilityButtonClass}
               aria-label={unreadNotificationCount > 0 ? `Open notifications, ${unreadNotificationCount} unread` : "Open notifications"}
               title="Open notifications"
             >
@@ -2095,7 +2097,7 @@ export default function DashboardPage() {
             <button
               type="button"
               onClick={() => setDashboardTheme((current) => (current === "midnight" ? "default" : "midnight"))}
-              className="rounded-full p-2 transition hover:bg-red-50/80"
+              className={utilityButtonClass}
               aria-pressed={isDarkTheme}
               aria-label={isDarkTheme ? "Switch to default dashboard theme" : "Switch to midnight dashboard theme"}
               title={isDarkTheme ? "Switch to default dashboard theme" : "Switch to midnight dashboard theme"}
@@ -2106,27 +2108,13 @@ export default function DashboardPage() {
               <button
                 type="button"
                 onClick={() => setProfileMenuOpen((current) => !current)}
-                className={`relative flex h-10 w-10 items-center justify-center overflow-hidden rounded-full ring-2 transition hover:-translate-y-0.5 ${
-                  isDarkTheme
-                    ? "bg-gradient-to-br from-sky-500/25 via-slate-800 to-emerald-500/20 text-sky-50 ring-sky-300/35"
-                    : "bg-gradient-to-br from-white via-sky-50 to-emerald-50 text-sky-800 ring-sky-100"
-                }`}
+                className={utilityButtonClass}
                 aria-haspopup="menu"
                 aria-expanded={profileMenuOpen}
                 aria-label="Open profile menu"
                 title="Open profile menu"
               >
-                <span className="text-sm font-black leading-none tracking-tight" aria-hidden="true">
-                  {profileInitial}
-                </span>
-                <span
-                  className={`absolute bottom-0 right-0 flex h-3.5 w-3.5 items-center justify-center rounded-full ring-2 ${
-                    isDarkTheme ? "bg-slate-950 text-sky-200 ring-slate-950" : "bg-white text-sky-600 ring-white"
-                  }`}
-                  aria-hidden="true"
-                >
-                  <UserOutlineIcon className="h-2.5 w-2.5" />
-                </span>
+                <UserOutlineIcon className={`h-5 w-5 ${utilityIconClass}`} />
               </button>
             </div>
           </div>
