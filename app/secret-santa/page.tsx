@@ -1940,9 +1940,6 @@ export default function SecretSantaPage() {
                             )
                           : "";
                       const safeItemImageUrl = normalizeOptionalUrl(item.item_image_url);
-                      const categoryStyle = item.item_category
-                        ? getWishlistCategoryStyle(item.item_category)
-                        : null;
                       const priorityMeta = getWishlistPriorityMeta(item.priority);
                       const selectedSuggestionId =
                         selectedRecipientSuggestionByItem[item.id] || "";
@@ -2080,6 +2077,17 @@ export default function SecretSantaPage() {
                         selectedSuggestion?.priceLabel ||
                         activeGroupBudgetLabel ||
                         "";
+                      const topGuideHref =
+                        primaryFeaturedLazadaProduct?.href ||
+                        lazadaWishlistProductHref ||
+                        safeItemLink;
+                      const topGuideButtonLabel = primaryFeaturedLazadaProduct
+                        ? "Open Lazada"
+                        : lazadaWishlistProductHref
+                          ? "Buy on Lazada"
+                          : safeItemLink
+                            ? "Reference link"
+                            : "";
                       const heroLazadaTags = [
                         primaryFeaturedLazadaProduct?.fitLabel ||
                           selectedSuggestion?.fitLabel ||
@@ -2375,21 +2383,21 @@ export default function SecretSantaPage() {
                                   boxShadow: "0 18px 42px rgba(46,52,50,.05)",
                                 }}
                               >
-                                <div className="grid gap-0 md:grid-cols-[minmax(150px,220px)_1fr]">
+                                <div className="grid gap-0 md:grid-cols-[minmax(230px,38%)_1fr] xl:grid-cols-[minmax(300px,42%)_1fr]">
                                   <div
-                                    className="flex min-h-[190px] items-center justify-center overflow-hidden text-[42px]"
+                                    className="flex min-h-[300px] items-center justify-center overflow-hidden text-[42px]"
                                     style={{
                                       background:
                                         "linear-gradient(180deg,rgba(215,250,219,.38),rgba(255,255,255,.78))",
                                       borderRight: "1px solid rgba(174,179,177,.1)",
                                     }}
                                   >
-                                    {safeItemImageUrl ? (
+                                    {heroLazadaImageUrl ? (
                                       // eslint-disable-next-line @next/next/no-img-element
                                       <img
-                                        src={safeItemImageUrl}
-                                        alt={item.item_name}
-                                        className="h-full min-h-[170px] w-full object-cover"
+                                        src={heroLazadaImageUrl}
+                                        alt={heroLazadaTitle}
+                                        className="h-full min-h-[300px] w-full object-contain p-6"
                                       />
                                     ) : (
                                       priorityMeta.icon
@@ -2408,77 +2416,68 @@ export default function SecretSantaPage() {
                                     <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                                       <div className="min-w-0">
                                         <div
-                                          className="text-[22px] font-extrabold leading-tight"
+                                          className="text-[26px] font-black leading-tight sm:text-[34px]"
                                           style={{ color: PAGE_TEXT_COLOR }}
                                         >
-                                          {item.item_name}
+                                          {heroLazadaTitle}
                                         </div>
-                                        {item.item_note && (
-                                          <div
-                                            className="text-[12px] mt-1 leading-relaxed"
-                                            style={{ color: TEXT_MUTED }}
-                                          >
-                                            {item.item_note}
-                                          </div>
-                                        )}
+                                        <div
+                                          className="text-[12px] mt-2 leading-relaxed"
+                                          style={{ color: TEXT_MUTED }}
+                                        >
+                                          {heroLazadaCopy}
+                                        </div>
                                       </div>
                                       <div className="flex items-center gap-2 flex-wrap justify-end">
-                                        <span
-                                          className="text-[10px] font-extrabold px-2 py-1 rounded-lg"
-                                          style={{
-                                            background: priorityMeta.badgeBackground,
-                                            color: priorityMeta.badgeColor,
-                                          }}
-                                        >
-                                          {priorityMeta.icon} {priorityMeta.label}
-                                        </span>
-                                        {item.item_category && categoryStyle && (
+                                        {heroLazadaTags.length > 0 ? (
+                                          heroLazadaTags.map((tag) => (
+                                            <span
+                                              key={tag}
+                                              className="text-[10px] font-extrabold px-2 py-1 rounded-lg"
+                                              style={{
+                                                background: "rgba(252,206,114,.24)",
+                                                color: HOLIDAY_GOLD,
+                                              }}
+                                            >
+                                              {tag}
+                                            </span>
+                                          ))
+                                        ) : (
                                           <span
                                             className="text-[10px] font-extrabold px-2 py-1 rounded-lg"
-                                            style={categoryStyle}
+                                            style={{
+                                              background: priorityMeta.badgeBackground,
+                                              color: priorityMeta.badgeColor,
+                                            }}
                                           >
-                                            {item.item_category}
+                                            {priorityMeta.icon} {priorityMeta.label}
                                           </span>
                                         )}
                                       </div>
                                     </div>
-                                    {(safeItemImageUrl || safeItemLink) && (
+                                    {topGuideHref && (
                                       <div className="flex flex-wrap gap-2 mt-3">
-                                        {safeItemImageUrl && (
-                                          <a
-                                            href={safeItemImageUrl}
-                                            target="_blank"
-                                            rel="noopener noreferrer"
-                                            title={safeItemImageUrl}
-                                            className="text-[11px] font-semibold px-2.5 py-1.5 rounded-lg inline-flex items-center"
-                                            style={{
-                                              color: HOLIDAY_BLUE,
-                                              background: "rgba(88,116,142,.08)",
-                                              textDecoration: "none",
-                                            }}
-                                          >
-                                            Open image {"->"}
-                                          </a>
-                                        )}
-                                        {safeItemLink && (
-                                          <a
-                                            href={lazadaWishlistProductHref || safeItemLink}
-                                            target="_blank"
-                                            rel="noopener noreferrer"
-                                            title={safeItemLink}
-                                            className="text-[11px] font-semibold px-2.5 py-1.5 rounded-lg inline-flex items-center"
-                                            style={{
-                                              color: HOLIDAY_GOLD,
-                                              background: "rgba(169,135,61,.08)",
-                                              textDecoration: "none",
-                                            }}
-                                          >
-                                            {lazadaWishlistProductHref
-                                              ? "Buy on Lazada"
-                                              : "Reference link"}{" "}
-                                            {"->"}
-                                          </a>
-                                        )}
+                                        <a
+                                          href={topGuideHref}
+                                          target="_blank"
+                                          rel="noopener noreferrer"
+                                          title={topGuideHref}
+                                          className="text-[11px] font-semibold px-2.5 py-1.5 rounded-lg inline-flex items-center"
+                                          style={{
+                                            color: primaryFeaturedLazadaProduct
+                                              ? "#fff7f6"
+                                              : HOLIDAY_GOLD,
+                                            background: primaryFeaturedLazadaProduct
+                                              ? "linear-gradient(135deg,#a43c3f,#7f252b)"
+                                              : "rgba(169,135,61,.08)",
+                                            boxShadow: primaryFeaturedLazadaProduct
+                                              ? "0 12px 24px rgba(164,60,63,.16)"
+                                              : "none",
+                                            textDecoration: "none",
+                                          }}
+                                        >
+                                          {topGuideButtonLabel} {"->"}
+                                        </a>
                                       </div>
                                     )}
                                   </div>
@@ -2766,127 +2765,6 @@ export default function SecretSantaPage() {
                                             ))}
                                           </div>
                                         )}
-
-                                      {primaryFeaturedLazadaProduct && (
-                                        <section
-                                          className="mb-6 overflow-hidden rounded-[34px]"
-                                          style={{
-                                            background:
-                                              "linear-gradient(135deg,rgba(255,255,255,.98),rgba(249,250,248,.92))",
-                                            border:
-                                              "1px solid rgba(174,179,177,.14)",
-                                            boxShadow:
-                                              "0 28px 64px rgba(46,52,50,.08)",
-                                          }}
-                                        >
-                                          <div className="grid lg:grid-cols-[minmax(260px,42%)_1fr]">
-                                            <div
-                                              className="flex min-h-[300px] items-center justify-center overflow-hidden"
-                                              style={{
-                                                background:
-                                                  "linear-gradient(145deg,rgba(236,239,236,.95),rgba(255,255,255,.86))",
-                                              }}
-                                            >
-                                              {heroLazadaImageUrl ? (
-                                                // eslint-disable-next-line @next/next/no-img-element
-                                                <img
-                                                  src={heroLazadaImageUrl}
-                                                  alt={heroLazadaTitle}
-                                                  className="h-full min-h-[300px] w-full object-contain p-6"
-                                                />
-                                              ) : (
-                                                <div
-                                                  className="flex h-28 w-28 items-center justify-center rounded-[34px]"
-                                                  style={{
-                                                    background: "rgba(255,255,255,.84)",
-                                                    color: HOLIDAY_RED,
-                                                  }}
-                                                >
-                                                  <GiftMark className="h-12 w-12" />
-                                                </div>
-                                              )}
-                                            </div>
-
-                                            <div className="flex min-h-[300px] flex-col justify-center p-7 sm:p-10">
-                                              <div
-                                                className="mb-4 inline-flex w-fit items-center gap-2 rounded-full px-3 py-1 text-[10px] font-extrabold uppercase tracking-[0.14em]"
-                                                style={{
-                                                  background: "rgba(252,206,114,.24)",
-                                                  color: HOLIDAY_GOLD,
-                                                }}
-                                              >
-                                                <SparkleMark className="h-3.5 w-3.5" />
-                                                Most wanted
-                                              </div>
-
-                                              <h3
-                                                className="text-[30px] font-black leading-[1.04] sm:text-[38px]"
-                                                style={{
-                                                  color: PAGE_TEXT_COLOR,
-                                                  fontFamily:
-                                                    "'Plus Jakarta Sans', 'Fredoka', sans-serif",
-                                                }}
-                                              >
-                                                {heroLazadaTitle}
-                                              </h3>
-
-                                              <p
-                                                className="mt-4 max-w-xl text-[14px] leading-relaxed sm:text-[15px]"
-                                                style={{ color: TEXT_MUTED }}
-                                              >
-                                                {heroLazadaCopy}
-                                              </p>
-
-                                              {heroLazadaTags.length > 0 && (
-                                                <div className="mt-6 flex flex-wrap gap-2">
-                                                  {heroLazadaTags.map((tag) => (
-                                                    <span
-                                                      key={tag}
-                                                      className="rounded-full px-3 py-1.5 text-[10px] font-extrabold"
-                                                      style={{
-                                                        background:
-                                                          "rgba(252,206,114,.3)",
-                                                        color: HOLIDAY_GOLD,
-                                                      }}
-                                                    >
-                                                      {tag}
-                                                    </span>
-                                                  ))}
-                                                </div>
-                                              )}
-
-                                              <div className="mt-7 flex flex-wrap items-center gap-3">
-                                                <a
-                                                  href={primaryFeaturedLazadaProduct.href}
-                                                  target="_blank"
-                                                  rel="noopener noreferrer"
-                                                  className="inline-flex items-center justify-center gap-2 rounded-full px-6 py-3.5 text-[13px] font-extrabold transition hover:scale-[1.01]"
-                                                  style={{
-                                                    background:
-                                                      "linear-gradient(135deg,#a43c3f,#7f252b)",
-                                                    color: "#fff7f6",
-                                                    boxShadow:
-                                                      "0 18px 34px rgba(164,60,63,.2)",
-                                                    textDecoration: "none",
-                                                  }}
-                                                >
-                                                  Open Lazada
-                                                  <span aria-hidden="true">{"->"}</span>
-                                                </a>
-                                                <span
-                                                  className="rounded-full px-3 py-1.5 text-[10px] font-extrabold"
-                                                  style={{
-                                                    background: "rgba(72,102,78,.1)",
-                                                    color: HOLIDAY_GREEN,
-                                                  }}
-                                                >
-                                                  Search: {selectedSuggestion.searchQuery}
-                                                </span>
-                                              </div>
-                                            </div>
-                                          </div>
-                                        </section>
-                                      )}
 
                                       {featuredLazadaProducts.length > 0 && (
                                         <div className="mb-3">
