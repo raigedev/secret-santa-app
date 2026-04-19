@@ -2061,6 +2061,38 @@ export default function SecretSantaPage() {
                           visibleWishlistItems.length,
                         0
                       );
+                      const primaryFeaturedLazadaProduct =
+                        featuredLazadaProducts[0] || null;
+                      const heroLazadaImageUrl = normalizeOptionalUrl(
+                        primaryFeaturedLazadaProduct?.imageUrl || safeItemImageUrl
+                      );
+                      const heroLazadaTitle =
+                        primaryFeaturedLazadaProduct?.title || item.item_name;
+                      const heroLazadaCopy = summarizeCardCopy(
+                        primaryFeaturedLazadaProduct?.whyItFits ||
+                          primaryFeaturedLazadaProduct?.subtitle ||
+                          item.item_note ||
+                          `Start with ${item.item_name}, then compare the strongest Lazada options for this recipient.`,
+                        220
+                      );
+                      const heroLazadaPriceLabel =
+                        primaryFeaturedLazadaProduct?.priceLabel ||
+                        selectedSuggestion?.priceLabel ||
+                        activeGroupBudgetLabel ||
+                        "";
+                      const heroLazadaTags = [
+                        primaryFeaturedLazadaProduct?.fitLabel ||
+                          selectedSuggestion?.fitLabel ||
+                          "",
+                        primaryFeaturedLazadaProduct?.trackingLabel || "",
+                        heroLazadaPriceLabel,
+                      ]
+                        .filter(
+                          (tag): tag is string =>
+                            typeof tag === "string" && tag.trim().length > 0
+                        )
+                        .slice(0, 3);
+                      const curatedLazadaCards = featuredLazadaProducts.slice(0, 3);
 
                       return (
                         <div
@@ -2085,7 +2117,7 @@ export default function SecretSantaPage() {
                                 }}
                               >
                                 <GiftMark className="h-3.5 w-3.5" />
-                                Giftee clues
+                                Wishlist
                               </div>
                               <div
                                 className="text-[18px] font-black leading-tight"
@@ -2097,8 +2129,7 @@ export default function SecretSantaPage() {
                                 className="mt-2 text-[12px] leading-relaxed"
                                 style={{ color: TEXT_MUTED }}
                               >
-                                Select one clue and the Lazada guide updates beside it
-                                without pushing the other ideas away.
+                                Pick an item and we will keep the shopping guide beside it.
                               </div>
                             </div>
 
@@ -2281,20 +2312,21 @@ export default function SecretSantaPage() {
                                     }}
                                   >
                                     <SparkleMark className="h-3.5 w-3.5" />
-                                    Affiliate-ready paths
+                                    Affiliate-ready guide
                                   </div>
                                   <div
                                     className="text-[24px] font-black leading-tight"
                                     style={{ color: HOLIDAY_GREEN }}
                                   >
-                                    Lazada gift guide
+                                    Your Recipient&apos;s Wishlist
                                   </div>
                                   <div
                                     className="mt-2 max-w-2xl text-[13px] leading-relaxed"
                                     style={{ color: TEXT_MUTED }}
                                   >
-                                    Compare gift directions for {item.item_name} while
-                                    the giftee&apos;s wishlist stays visible.
+                                    We gathered Lazada-ready gift matches for{" "}
+                                    {assignment.receiver_nickname}. Pick a direction,
+                                    then open the product path that feels right.
                                   </div>
                                 </div>
                                 <div className="flex items-center gap-2 flex-wrap">
@@ -2735,6 +2767,127 @@ export default function SecretSantaPage() {
                                           </div>
                                         )}
 
+                                      {primaryFeaturedLazadaProduct && (
+                                        <section
+                                          className="mb-6 overflow-hidden rounded-[34px]"
+                                          style={{
+                                            background:
+                                              "linear-gradient(135deg,rgba(255,255,255,.98),rgba(249,250,248,.92))",
+                                            border:
+                                              "1px solid rgba(174,179,177,.14)",
+                                            boxShadow:
+                                              "0 28px 64px rgba(46,52,50,.08)",
+                                          }}
+                                        >
+                                          <div className="grid lg:grid-cols-[minmax(260px,42%)_1fr]">
+                                            <div
+                                              className="flex min-h-[300px] items-center justify-center overflow-hidden"
+                                              style={{
+                                                background:
+                                                  "linear-gradient(145deg,rgba(236,239,236,.95),rgba(255,255,255,.86))",
+                                              }}
+                                            >
+                                              {heroLazadaImageUrl ? (
+                                                // eslint-disable-next-line @next/next/no-img-element
+                                                <img
+                                                  src={heroLazadaImageUrl}
+                                                  alt={heroLazadaTitle}
+                                                  className="h-full min-h-[300px] w-full object-contain p-6"
+                                                />
+                                              ) : (
+                                                <div
+                                                  className="flex h-28 w-28 items-center justify-center rounded-[34px]"
+                                                  style={{
+                                                    background: "rgba(255,255,255,.84)",
+                                                    color: HOLIDAY_RED,
+                                                  }}
+                                                >
+                                                  <GiftMark className="h-12 w-12" />
+                                                </div>
+                                              )}
+                                            </div>
+
+                                            <div className="flex min-h-[300px] flex-col justify-center p-7 sm:p-10">
+                                              <div
+                                                className="mb-4 inline-flex w-fit items-center gap-2 rounded-full px-3 py-1 text-[10px] font-extrabold uppercase tracking-[0.14em]"
+                                                style={{
+                                                  background: "rgba(252,206,114,.24)",
+                                                  color: HOLIDAY_GOLD,
+                                                }}
+                                              >
+                                                <SparkleMark className="h-3.5 w-3.5" />
+                                                Most wanted
+                                              </div>
+
+                                              <h3
+                                                className="text-[30px] font-black leading-[1.04] sm:text-[38px]"
+                                                style={{
+                                                  color: PAGE_TEXT_COLOR,
+                                                  fontFamily:
+                                                    "'Plus Jakarta Sans', 'Fredoka', sans-serif",
+                                                }}
+                                              >
+                                                {heroLazadaTitle}
+                                              </h3>
+
+                                              <p
+                                                className="mt-4 max-w-xl text-[14px] leading-relaxed sm:text-[15px]"
+                                                style={{ color: TEXT_MUTED }}
+                                              >
+                                                {heroLazadaCopy}
+                                              </p>
+
+                                              {heroLazadaTags.length > 0 && (
+                                                <div className="mt-6 flex flex-wrap gap-2">
+                                                  {heroLazadaTags.map((tag) => (
+                                                    <span
+                                                      key={tag}
+                                                      className="rounded-full px-3 py-1.5 text-[10px] font-extrabold"
+                                                      style={{
+                                                        background:
+                                                          "rgba(252,206,114,.3)",
+                                                        color: HOLIDAY_GOLD,
+                                                      }}
+                                                    >
+                                                      {tag}
+                                                    </span>
+                                                  ))}
+                                                </div>
+                                              )}
+
+                                              <div className="mt-7 flex flex-wrap items-center gap-3">
+                                                <a
+                                                  href={primaryFeaturedLazadaProduct.href}
+                                                  target="_blank"
+                                                  rel="noopener noreferrer"
+                                                  className="inline-flex items-center justify-center gap-2 rounded-full px-6 py-3.5 text-[13px] font-extrabold transition hover:scale-[1.01]"
+                                                  style={{
+                                                    background:
+                                                      "linear-gradient(135deg,#a43c3f,#7f252b)",
+                                                    color: "#fff7f6",
+                                                    boxShadow:
+                                                      "0 18px 34px rgba(164,60,63,.2)",
+                                                    textDecoration: "none",
+                                                  }}
+                                                >
+                                                  Open Lazada
+                                                  <span aria-hidden="true">{"->"}</span>
+                                                </a>
+                                                <span
+                                                  className="rounded-full px-3 py-1.5 text-[10px] font-extrabold"
+                                                  style={{
+                                                    background: "rgba(72,102,78,.1)",
+                                                    color: HOLIDAY_GREEN,
+                                                  }}
+                                                >
+                                                  Search: {selectedSuggestion.searchQuery}
+                                                </span>
+                                              </div>
+                                            </div>
+                                          </div>
+                                        </section>
+                                      )}
+
                                       {featuredLazadaProducts.length > 0 && (
                                         <div className="mb-3">
                                           <div className="flex items-center justify-between gap-3 mb-2 flex-wrap">
@@ -2742,7 +2895,7 @@ export default function SecretSantaPage() {
                                               className="text-[12px] font-extrabold"
                                               style={{ color: HOLIDAY_GREEN }}
                                             >
-                                              Gift picks on Lazada
+                                              Curated shopping ideas
                                             </div>
                                             <span
                                               className="text-[10px] font-extrabold px-2.5 py-1 rounded-full"
@@ -2806,7 +2959,7 @@ export default function SecretSantaPage() {
                                           )}
 
                                           <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
-                                            {featuredLazadaProducts.map((product, index) => {
+                                            {curatedLazadaCards.map((product, index) => {
                                               const safeProductImageUrl = normalizeOptionalUrl(
                                                 product.imageUrl || ""
                                               );
@@ -2895,7 +3048,7 @@ export default function SecretSantaPage() {
                                                     <div
                                                       className="mt-3 flex items-center justify-center overflow-hidden rounded-[24px]"
                                                       style={{
-                                                        minHeight: 128,
+                                                        minHeight: 154,
                                                         background:
                                                           "linear-gradient(180deg,rgba(239,244,241,.9),rgba(229,236,233,.86))",
                                                         border: "1px solid rgba(174,179,177,.1)",
@@ -2906,7 +3059,7 @@ export default function SecretSantaPage() {
                                                         <img
                                                           src={safeProductImageUrl}
                                                           alt={product.title}
-                                                          className="w-full h-[128px] object-contain"
+                                                          className="w-full h-[154px] object-contain p-2"
                                                         />
                                                       ) : (
                                                         <div
