@@ -141,7 +141,6 @@ const SURFACE_HEADER_BACKGROUND =
   "linear-gradient(135deg,rgba(255,255,255,.9),rgba(236,239,236,.86))";
 const SURFACE_HEADER_BORDER = "1px solid rgba(174,179,177,.08)";
 const SURFACE_SHADOW = "0 28px 68px rgba(46,52,50,.07)";
-const INSET_BORDER = "1px solid rgba(174,179,177,.09)";
 const INPUT_BACKGROUND = "rgba(255,255,255,.92)";
 const INPUT_BORDER = "1px solid rgba(174,179,177,.2)";
 const INPUT_TEXT = "#2e3432";
@@ -606,116 +605,6 @@ function getFeaturedLazadaRoleLabel(
 
 function getFeaturedLazadaButtonLabel(product: WishlistFeaturedProductCard): string {
   return product.catalogSource === "catalog-product" ? "Open Lazada" : "Browse Lazada";
-}
-
-function getFeaturedLazadaCollectionLabel(params: {
-  allSearchBacked: boolean;
-  hasMixed: boolean;
-  usingMatchedProducts: boolean;
-}): string {
-  if (params.hasMixed) {
-    return "Direct picks + more results";
-  }
-
-  if (params.usingMatchedProducts) {
-    return "Direct Lazada picks";
-  }
-
-  if (params.allSearchBacked) {
-    return "Lazada search results";
-  }
-
-  return "Lazada picks";
-}
-
-function getFeaturedLazadaCollectionDescription(params: {
-  allSearchBacked: boolean;
-  hasMixed: boolean;
-  usingMatchedProducts: boolean;
-}): string {
-  if (params.hasMixed) {
-    return "Start with the direct Lazada cards, then use search cards if you want more variety.";
-  }
-
-  if (params.usingMatchedProducts) {
-    return "Direct Lazada listings matched to the shopping style you picked.";
-  }
-
-  if (params.allSearchBacked) {
-    return "Affiliate-ready Lazada search pages with the gift direction already prepared.";
-  }
-
-  return "Compare the clearest Lazada paths for this gift without losing the wishlist context.";
-}
-
-function getFeaturedLazadaSourceMeta(product: WishlistFeaturedProductCard): {
-  background: string;
-  color: string;
-  label: string;
-} {
-  if (product.catalogSource === "catalog-product") {
-    return {
-      background: "rgba(72,102,78,.1)",
-      color: HOLIDAY_GREEN,
-      label: "Exact listing",
-    };
-  }
-
-  return {
-    background: "rgba(252,206,114,.24)",
-    color: HOLIDAY_GOLD,
-    label: "Search page",
-  };
-}
-
-function getFeaturedLazadaPriceCaption(product: WishlistFeaturedProductCard): string {
-  if (product.priceLabel) {
-    return product.catalogSource === "catalog-product"
-      ? "Affiliate-feed price"
-      : "Guide price for this option";
-  }
-
-  return product.catalogSource === "catalog-product"
-    ? "Direct Lazada listing"
-    : "More Lazada results";
-}
-
-function getFeaturedLazadaCardSurfaceStyle(product: WishlistFeaturedProductCard): {
-  background: string;
-  border: string;
-  boxShadow: string;
-} {
-  if (product.catalogSource === "catalog-product") {
-    return {
-      background:
-        "linear-gradient(180deg,rgba(255,255,255,.99),rgba(242,244,242,.96))",
-      border: "1px solid rgba(174,179,177,.09)",
-      boxShadow: "0 26px 54px rgba(72,102,78,.08)",
-    };
-  }
-
-  return {
-    background:
-      "linear-gradient(180deg,rgba(255,255,255,.98),rgba(255,250,241,.95))",
-    border: "1px solid rgba(174,179,177,.08)",
-    boxShadow: "0 24px 50px rgba(123,89,2,.07)",
-  };
-}
-
-function buildRecipientWishlistProductHref(
-  groupId: string,
-  wishlistItemId: string,
-  itemName: string,
-  itemUrl: string
-): string {
-  const params = new URLSearchParams({
-    groupId,
-    itemId: wishlistItemId,
-    name: itemName,
-    url: itemUrl,
-  });
-
-  return `/go/wishlist-link?${params.toString()}`;
 }
 
 function getMerchantBadgeStyle(
@@ -1968,16 +1857,6 @@ export default function SecretSantaPage() {
                       }
 
                       const item = activeItem;
-                      const safeItemLink = normalizeOptionalUrl(item.item_link);
-                      const lazadaWishlistProductHref =
-                        safeItemLink && isLazadaProductPageUrl(safeItemLink)
-                          ? buildRecipientWishlistProductHref(
-                              assignment.group_id,
-                              item.id,
-                              item.item_name,
-                              safeItemLink
-                            )
-                          : "";
                       const safeItemImageUrl = normalizeOptionalUrl(item.item_image_url);
                       const priorityMeta = getWishlistPriorityMeta(item.priority);
                       const selectedSuggestionId =
@@ -2062,24 +1941,6 @@ export default function SecretSantaPage() {
                             : rawMatchedLazadaProducts.length > 0
                               ? rawMatchedLazadaProducts
                               : fallbackFeaturedLazadaProducts;
-                      const hasDirectFeaturedLazadaProducts = featuredLazadaProducts.some(
-                        (product) => product.catalogSource === "catalog-product"
-                      );
-                      const allFeaturedLazadaProductsSearchBacked =
-                        featuredLazadaProducts.length > 0 &&
-                        featuredLazadaProducts.every(
-                          (product) => product.catalogSource !== "catalog-product"
-                        );
-                      const usingMatchedLazadaProducts = hasDirectFeaturedLazadaProducts;
-                      const hasMixedFeaturedLazadaProducts =
-                        hasDirectFeaturedLazadaProducts &&
-                        featuredLazadaProducts.some(
-                          (product) => product.catalogSource !== "catalog-product"
-                        );
-                      const activeRegionLabel =
-                        SHOPPING_REGION_OPTIONS.find(
-                          (option) => option.value === shoppingRegion
-                        )?.label || shoppingRegion;
                       const topWishlistItems = assignment.receiver_wishlist.slice(
                         0,
                         MAX_VISIBLE_RECIPIENT_WISHLIST_ITEMS
@@ -2118,17 +1979,6 @@ export default function SecretSantaPage() {
                         selectedSuggestion?.priceLabel ||
                         activeGroupBudgetLabel ||
                         "";
-                      const topGuideHref =
-                        primaryFeaturedLazadaProduct?.href ||
-                        lazadaWishlistProductHref ||
-                        safeItemLink;
-                      const topGuideButtonLabel = primaryFeaturedLazadaProduct
-                        ? getFeaturedLazadaButtonLabel(primaryFeaturedLazadaProduct)
-                        : lazadaWishlistProductHref
-                          ? "Buy on Lazada"
-                          : safeItemLink
-                            ? "Reference link"
-                            : "";
                       const heroLazadaTags = [
                         primaryFeaturedLazadaProduct?.fitLabel ||
                           selectedSuggestion?.fitLabel ||
@@ -2341,95 +2191,42 @@ export default function SecretSantaPage() {
                             )}
                           </div>
 
-                          <div className="self-start lg:sticky lg:top-5">
-                            <div
-                              className="rounded-[34px] p-4 sm:p-6"
-                              style={{
-                                background:
-                                  "linear-gradient(135deg,rgba(255,255,255,.92),rgba(236,239,236,.84) 56%,rgba(255,248,236,.72))",
-                                border: INSET_BORDER,
-                                boxShadow: "0 26px 64px rgba(46,52,50,.07)",
-                              }}
-                            >
-                              <div className="flex items-start justify-between gap-3 mb-4 flex-wrap">
-                                <div>
-                                  <div
-                                    className="mb-3 inline-flex items-center gap-2 rounded-full px-3 py-1 text-[10px] font-extrabold uppercase"
-                                    style={{
-                                      background: "rgba(252,206,114,.2)",
-                                      color: HOLIDAY_GOLD,
-                                    }}
-                                  >
-                                    <SparkleMark className="h-3.5 w-3.5" />
-                                    Affiliate-ready guide
-                                  </div>
-                                  <div
-                                    className="text-[24px] font-black leading-tight"
-                                    style={{ color: HOLIDAY_GREEN }}
-                                  >
-                                    Your Recipient&apos;s Wishlist
-                                  </div>
-                                  <div
-                                    className="mt-2 max-w-2xl text-[13px] leading-relaxed"
-                                    style={{ color: TEXT_MUTED }}
-                                  >
-                                    We gathered Lazada-ready gift matches for{" "}
-                                    {assignment.receiver_nickname}. Pick a direction,
-                                    then open the product path that feels right.
-                                  </div>
-                                </div>
-                                <div className="flex items-center gap-2 flex-wrap">
-                                  {shoppingRegion === "PH" && aiSuggestionState?.loading && (
-                                    <span
-                                      className="rounded-full px-3 py-1 text-[10px] font-extrabold"
-                                      style={{
-                                        background: "rgba(88,116,142,.1)",
-                                        color: HOLIDAY_BLUE,
-                                      }}
-                                    >
-                                      Getting more ideas...
-                                    </span>
-                                  )}
-                                  {shoppingRegion === "PH" &&
-                                    !aiSuggestionState?.loading &&
-                                    aiSuggestionState?.usedAi && (
-                                      <span
-                                        className="rounded-full px-3 py-1 text-[10px] font-extrabold"
-                                        style={{
-                                          background: "rgba(169,135,61,.12)",
-                                          color: HOLIDAY_GOLD,
-                                        }}
-                                      >
-                                        AI helped
-                                      </span>
-                                    )}
-                                  <span
-                                    className="rounded-full px-3 py-1 text-[10px] font-extrabold"
-                                    style={{
-                                      background: "rgba(255,255,255,.78)",
-                                      color: HOLIDAY_GREEN,
-                                    }}
-                                  >
-                                    {activeRegionLabel}
-                                  </span>
-                                </div>
+                          <div className="self-start">
+                            <div className="space-y-10">
+                              <div>
+                                <h2
+                                  className="text-[28px] font-extrabold leading-tight sm:text-[38px]"
+                                  style={{
+                                    color: PAGE_TEXT_COLOR,
+                                    fontFamily:
+                                      "'Plus Jakarta Sans', 'Fredoka', sans-serif",
+                                  }}
+                                >
+                                  Your Recipient&apos;s Wishlist
+                                </h2>
+                                <p
+                                  className="mt-2 max-w-3xl text-[14px] font-medium leading-relaxed sm:text-[16px]"
+                                  style={{ color: TEXT_MUTED }}
+                                >
+                                  We&apos;ve gathered the best matches for{" "}
+                                  {assignment.receiver_nickname}&apos;s holiday
+                                  requests. Pick something special to brighten
+                                  their season.
+                                </p>
                               </div>
 
                               <div
-                                className="overflow-hidden rounded-[30px]"
+                                className="group overflow-hidden rounded-[34px]"
                                 style={{
-                                  background:
-                                    "linear-gradient(135deg,rgba(255,255,255,.98),rgba(242,244,242,.92))",
-                                  border: "1px solid rgba(174,179,177,.08)",
-                                  boxShadow: "0 24px 54px rgba(46,52,50,.06)",
+                                  background: "#ffffff",
+                                  boxShadow: "0 26px 64px rgba(46,52,50,.045)",
                                 }}
                               >
-                                <div className="grid gap-0 md:grid-cols-[minmax(240px,40%)_1fr] xl:grid-cols-[minmax(320px,44%)_1fr]">
+                                <div className="grid gap-0 md:grid-cols-[minmax(260px,50%)_1fr]">
                                   <div
-                                    className="flex min-h-[320px] items-center justify-center overflow-hidden text-[42px]"
+                                    className="flex min-h-[300px] items-center justify-center overflow-hidden text-[42px] sm:min-h-[360px]"
                                     style={{
-                                      background:
-                                        "linear-gradient(145deg,rgba(236,239,236,.96),rgba(255,255,255,.82))",
+                                      background: "#ecefec",
                                     }}
                                   >
                                     {heroLazadaImageUrl ? (
@@ -2437,300 +2234,169 @@ export default function SecretSantaPage() {
                                       <img
                                         src={heroLazadaImageUrl}
                                         alt={heroLazadaTitle}
-                                        className="h-full min-h-[320px] w-full object-contain p-5 sm:p-7"
+                                        className="h-full min-h-[300px] w-full object-cover transition duration-700 group-hover:scale-[1.03] sm:min-h-[360px]"
                                       />
                                     ) : (
                                       priorityMeta.icon
                                     )}
                                   </div>
-                                  <div className="flex-1 min-w-0 p-5 sm:p-7">
+                                  <div className="flex min-w-0 flex-col justify-center p-7 sm:p-10 lg:p-12">
                                     <div
-                                      className="mb-3 inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-[10px] font-extrabold uppercase"
+                                      className="mb-4 inline-flex items-center gap-2 text-[12px] font-extrabold uppercase"
                                       style={{
-                                        background: "rgba(169,135,61,.12)",
                                         color: HOLIDAY_GOLD,
                                       }}
                                     >
-                                      Most useful starting point
+                                      <span aria-hidden="true">★</span>
+                                      Most wanted
                                     </div>
-                                    <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-                                      <div className="min-w-0">
-                                        <div
-                                          className="text-[26px] font-black leading-tight sm:text-[34px]"
-                                          style={{ color: PAGE_TEXT_COLOR }}
-                                        >
-                                          {heroLazadaTitle}
-                                        </div>
-                                        <div
-                                          className="text-[12px] mt-2 leading-relaxed"
-                                          style={{ color: TEXT_MUTED }}
-                                        >
-                                          {heroLazadaCopy}
-                                        </div>
-                                      </div>
-                                      <div className="flex items-center gap-2 flex-wrap justify-end">
-                                        {heroLazadaTags.length > 0 ? (
-                                          heroLazadaTags.map((tag) => (
-                                            <span
-                                              key={tag}
-                                              className="text-[10px] font-extrabold px-2 py-1 rounded-lg"
-                                              style={{
-                                                background: "rgba(252,206,114,.24)",
-                                                color: HOLIDAY_GOLD,
-                                              }}
-                                            >
-                                              {tag}
-                                            </span>
-                                          ))
-                                        ) : (
-                                          <span
-                                            className="text-[10px] font-extrabold px-2 py-1 rounded-lg"
-                                            style={{
-                                              background: priorityMeta.badgeBackground,
-                                              color: priorityMeta.badgeColor,
-                                            }}
-                                          >
-                                            {priorityMeta.icon} {priorityMeta.label}
-                                          </span>
-                                        )}
-                                      </div>
-                                    </div>
-                                    {topGuideHref && (
-                                      <div className="flex flex-wrap gap-2 mt-5">
-                                        <a
-                                          href={topGuideHref}
-                                          target="_blank"
-                                          rel="noopener noreferrer"
-                                          title={topGuideHref}
-                                          className="inline-flex items-center justify-center rounded-full px-5 py-3 text-[13px] font-extrabold transition hover:-translate-y-0.5"
-                                          style={{
-                                            color: primaryFeaturedLazadaProduct
-                                              ? "#fff7f6"
-                                              : HOLIDAY_GOLD,
-                                            background: primaryFeaturedLazadaProduct
-                                              ? "linear-gradient(135deg,#a43c3f,#7f252b)"
-                                              : "rgba(252,206,114,.2)",
-                                            boxShadow: primaryFeaturedLazadaProduct
-                                              ? "0 18px 34px rgba(164,60,63,.18)"
-                                              : "none",
-                                            textDecoration: "none",
-                                          }}
-                                        >
-                                          {topGuideButtonLabel} {"->"}
-                                        </a>
-                                      </div>
-                                    )}
-                                  </div>
-                                </div>
-                              </div>
-
-                              <div className="mt-4">
-                                <div className="flex items-center justify-between gap-3 mb-3 flex-wrap">
-                                  <div>
-                                    <div
-                                    className="text-[13px] font-extrabold"
-                                    style={{ color: HOLIDAY_GREEN }}
-                                  >
-                                      Pick a gift direction
-                                    </div>
-                                    <div
-                                      className="mt-1 text-[11px]"
-                                      style={{ color: TEXT_MUTED }}
-                                    >
-                                      Start close to the wishlist, go budget-friendly,
-                                      or choose a more polished version.
-                                    </div>
-                                  </div>
-                                </div>
-
-                                <div className="grid gap-3 sm:grid-cols-2">
-                                {suggestionOptions.map((suggestion) => {
-                                  const isSelected = suggestion.id === selectedSuggestionId;
-
-                                  return (
-                                    <button
-                                      key={suggestion.id}
-                                      type="button"
-                                      onClick={() =>
-                                        selectRecipientSuggestion(item.id, suggestion.id)
-                                      }
-                                      className="w-full rounded-[24px] p-4 text-left transition hover:-translate-y-0.5"
-                                      style={{
-                                        background: isSelected
-                                          ? "linear-gradient(135deg,rgba(255,255,255,.95),rgba(215,250,219,.42))"
-                                          : "rgba(255,255,255,.78)",
-                                        border: isSelected
-                                          ? "1px solid rgba(72,102,78,.18)"
-                                          : "1px solid rgba(174,179,177,.07)",
-                                        boxShadow: isSelected
-                                          ? "0 18px 36px rgba(72,102,78,.1)"
-                                          : "none",
-                                        fontFamily: "inherit",
-                                        cursor: "pointer",
-                                      }}
-                                    >
-                                      <div className="flex items-center justify-between gap-3 flex-wrap">
-                                        <div
-                                          className="text-[13px] font-extrabold"
-                                          style={{ color: PAGE_TEXT_COLOR }}
-                                        >
-                                        {suggestion.title}
-                                      </div>
-                                      <span
-                                        className="text-[10px] font-extrabold px-2 py-1 rounded-full"
+                                    <div className="min-w-0">
+                                      <h3
+                                        className="text-[26px] font-extrabold leading-[1.08] sm:text-[34px]"
                                         style={{
-                                          color: isSelected
-                                            ? HOLIDAY_GREEN
-                                            : suggestion.source === "ai"
-                                              ? HOLIDAY_GOLD
-                                              : TEXT_MUTED,
-                                          background: isSelected
-                                            ? "rgba(47,107,86,.12)"
-                                            : suggestion.source === "ai"
-                                              ? "rgba(252,206,114,.2)"
-                                              : "rgba(96,117,122,.08)",
+                                          color: PAGE_TEXT_COLOR,
+                                          fontFamily:
+                                            "'Plus Jakarta Sans', 'Fredoka', sans-serif",
                                         }}
                                       >
-                                        {isSelected
-                                          ? "Chosen"
-                                          : suggestion.source === "ai"
-                                            ? "AI idea"
-                                            : suggestion.fitLabel}
-                                      </span>
-                                      </div>
-                                      <div
-                                        className="text-[11px] mt-1"
+                                        {heroLazadaTitle}
+                                      </h3>
+                                      <p
+                                        className="mt-4 text-[14px] font-medium leading-relaxed sm:text-[15px]"
                                         style={{ color: TEXT_MUTED }}
                                       >
-                                        {suggestion.subtitle}
-                                      </div>
-                                      <div className="mt-3 flex items-center gap-2 flex-wrap">
+                                        {heroLazadaCopy}
+                                      </p>
+                                    </div>
+                                    <div className="mt-7 flex flex-wrap gap-2">
+                                      {heroLazadaTags.length > 0 ? (
+                                        heroLazadaTags.map((tag) => (
+                                          <span
+                                            key={tag}
+                                            className="rounded-full px-4 py-1.5 text-[11px] font-extrabold"
+                                            style={{
+                                              background: "rgba(252,206,114,.9)",
+                                              color: "#5f4500",
+                                            }}
+                                          >
+                                            {tag}
+                                          </span>
+                                        ))
+                                      ) : (
                                         <span
-                                          className="text-[10px] font-bold px-2.5 py-1 rounded-full"
+                                          className="rounded-full px-4 py-1.5 text-[11px] font-extrabold"
                                           style={{
-                                            color: HOLIDAY_GREEN,
-                                            background: "rgba(72,102,78,.08)",
+                                            background: priorityMeta.badgeBackground,
+                                            color: priorityMeta.badgeColor,
                                           }}
                                         >
-                                          Search: {suggestion.searchQuery}
+                                          {priorityMeta.label}
                                         </span>
-                                        {suggestion.priceLabel && (
-                                          <span
-                                            className="text-[10px] font-bold px-2.5 py-1 rounded-full"
-                                            style={{
-                                              color: HOLIDAY_GOLD,
-                                              background: "rgba(169,135,61,.08)",
-                                            }}
-                                          >
-                                            {suggestion.priceLabel}
-                                          </span>
-                                        )}
-                                      </div>
-                                    </button>
-                                  );
-                                })}
-                              </div>
-
-                              {!selectedSuggestion && (
-                                <div
-                                  className="mt-4 rounded-2xl p-3"
-                                  style={{
-                                    background: "rgba(255,255,255,.76)",
-                                    border: "1px solid rgba(174,179,177,.08)",
-                                  }}
-                                >
-                                  <div
-                                    className="text-[12px] font-extrabold"
-                                    style={{ color: HOLIDAY_GREEN }}
-                                  >
-                                    Choose a shopping style first
-                                  </div>
-                                  <div
-                                    className="text-[11px] mt-1 leading-relaxed"
-                                    style={{ color: TEXT_MUTED }}
-                                  >
-                                    We&apos;ll load the best Lazada ideas for{" "}
-                                    <strong>{item.item_name}</strong> here without
-                                    hiding the rest of the wishlist.
+                                      )}
+                                    </div>
                                   </div>
                                 </div>
-                              )}
+                              </div>
 
-                              {selectedSuggestion && (
-                                <div className="mt-4">
-                                  <div className="grid gap-3">
+                              <details
+                                className="rounded-[28px] px-5 py-4"
+                                style={{
+                                  background: "rgba(236,239,236,.74)",
+                                  color: PAGE_TEXT_COLOR,
+                                }}
+                              >
+                                <summary className="flex cursor-pointer list-none items-center justify-between gap-3">
+                                  <div>
                                     <div
-                                      className="rounded-[28px] p-4"
-                                      style={{
-                                        background:
-                                          "linear-gradient(135deg,rgba(236,239,236,.76),rgba(255,255,255,.7))",
-                                        border: "1px solid rgba(174,179,177,.07)",
-                                      }}
+                                      className="text-[13px] font-extrabold"
+                                      style={{ color: HOLIDAY_GREEN }}
                                     >
-                                      <div
-                                        className="rounded-[24px] p-4 mb-4"
+                                      Gift direction
+                                    </div>
+                                    <div
+                                      className="mt-0.5 text-[11px]"
+                                      style={{ color: TEXT_MUTED }}
+                                    >
+                                      {selectedSuggestion
+                                        ? selectedSuggestion.title
+                                        : "Choose a starting point"}
+                                    </div>
+                                  </div>
+                                  <span
+                                    className="rounded-full px-3 py-1 text-[10px] font-extrabold"
+                                    style={{
+                                      background: "#ffffff",
+                                      color: HOLIDAY_GREEN,
+                                    }}
+                                  >
+                                    Change
+                                  </span>
+                                </summary>
+                                <div className="mt-4 grid gap-3 sm:grid-cols-2">
+                                  {suggestionOptions.map((suggestion) => {
+                                    const isSelected =
+                                      suggestion.id === selectedSuggestionId;
+
+                                    return (
+                                      <button
+                                        key={suggestion.id}
+                                        type="button"
+                                        onClick={() =>
+                                          selectRecipientSuggestion(
+                                            item.id,
+                                            suggestion.id
+                                          )
+                                        }
+                                        className="w-full rounded-[22px] p-4 text-left transition hover:-translate-y-0.5"
                                         style={{
-                                          background:
-                                            "linear-gradient(135deg,rgba(255,255,255,.92),rgba(215,250,219,.34))",
-                                          border: "1px solid rgba(72,102,78,.08)",
-                                          boxShadow: "0 18px 36px rgba(72,102,78,.06)",
+                                          background: isSelected
+                                            ? "#ffffff"
+                                            : "rgba(255,255,255,.7)",
+                                          border: isSelected
+                                            ? "1px solid rgba(72,102,78,.16)"
+                                            : "1px solid rgba(174,179,177,.08)",
+                                          boxShadow: isSelected
+                                            ? "0 18px 36px rgba(72,102,78,.08)"
+                                            : "none",
+                                          fontFamily: "inherit",
+                                          cursor: "pointer",
                                         }}
                                       >
-                                        <div className="flex items-start justify-between gap-3 flex-wrap">
-                                          <div className="min-w-0">
-                                            <div
-                                              className="text-[9px] font-extrabold uppercase"
-                                              style={{ color: HOLIDAY_GREEN }}
-                                            >
-                                              Active direction
-                                            </div>
-                                            <div
-                                              className="text-[15px] font-extrabold mt-1"
-                                              style={{ color: PAGE_TEXT_COLOR }}
-                                            >
-                                              {selectedSuggestion.title}
-                                            </div>
-                                            <div
-                                              className="text-[11px] mt-1 leading-relaxed"
-                                              style={{ color: TEXT_MUTED }}
-                                            >
-                                              {selectedSuggestion.subtitle}
-                                            </div>
+                                        <div className="flex flex-wrap items-start justify-between gap-3">
+                                          <div
+                                            className="text-[13px] font-extrabold"
+                                            style={{ color: PAGE_TEXT_COLOR }}
+                                          >
+                                            {suggestion.title}
                                           </div>
                                           <span
-                                            className="text-[10px] font-extrabold px-2.5 py-1 rounded-full"
+                                            className="rounded-full px-2.5 py-1 text-[10px] font-extrabold"
                                             style={{
-                                              background: "rgba(255,255,255,.82)",
-                                              color: HOLIDAY_GREEN,
+                                              color: isSelected
+                                                ? HOLIDAY_GREEN
+                                                : TEXT_MUTED,
+                                              background: isSelected
+                                                ? "rgba(72,102,78,.1)"
+                                                : "rgba(255,255,255,.72)",
                                             }}
                                           >
-                                            {activeRegionLabel}
+                                            {isSelected ? "Chosen" : suggestion.fitLabel}
                                           </span>
                                         </div>
+                                        <div
+                                          className="mt-1 text-[11px] leading-relaxed"
+                                          style={{ color: TEXT_MUTED }}
+                                        >
+                                          {suggestion.subtitle}
+                                        </div>
+                                      </button>
+                                    );
+                                  })}
+                                </div>
+                              </details>
 
-                                        <div className="mt-3 flex items-center gap-2 flex-wrap">
-                                          <span
-                                            className="text-[10px] font-bold px-2.5 py-1 rounded-full"
-                                            style={{
-                                              color: HOLIDAY_GREEN,
-                                              background: "rgba(72,102,78,.08)",
-                                            }}
-                                          >
-                                            Search: {selectedSuggestion.searchQuery}
-                                          </span>
-                                          <span
-                                            className="text-[10px] font-bold px-2.5 py-1 rounded-full"
-                                            style={{
-                                              color: HOLIDAY_GOLD,
-                                              background: "rgba(169,135,61,.08)",
-                                            }}
-                                          >
-                                            {selectedSuggestion.priceLabel ||
-                                              activeGroupBudgetLabel ||
-                                              "No fixed budget"}
-                                          </span>
-                                        </div>
-                                      </div>
+                              {selectedSuggestion && (
+                                <div className="space-y-10">
 
                                       {lazadaMatchedProductsState?.loading && (
                                         <div
@@ -2809,84 +2475,22 @@ export default function SecretSantaPage() {
                                         )}
 
                                       {featuredLazadaProducts.length > 0 && (
-                                        <div className="mb-3">
-                                          <div className="flex items-center justify-between gap-3 mb-2 flex-wrap">
-                                            <div
-                                              className="text-[15px] font-extrabold"
-                                              style={{ color: HOLIDAY_GREEN }}
-                                            >
-                                              Curated shopping ideas
-                                            </div>
-                                            <span
-                                              className="text-[10px] font-extrabold px-2.5 py-1 rounded-full"
-                                              style={{
-                                                background: "rgba(72,102,78,.08)",
-                                                color: HOLIDAY_GREEN,
-                                              }}
-                                            >
-                                              {getFeaturedLazadaCollectionLabel({
-                                                allSearchBacked:
-                                                  allFeaturedLazadaProductsSearchBacked,
-                                                hasMixed: hasMixedFeaturedLazadaProducts,
-                                                usingMatchedProducts:
-                                                  usingMatchedLazadaProducts,
-                                              })}
-                                            </span>
-                                          </div>
-
-                                          <div
-                                            className="text-[11px] mb-4 max-w-2xl leading-relaxed"
+                                        <section>
+                                          <h3
+                                            className="mb-8 text-[24px] font-extrabold leading-tight sm:text-[28px]"
                                             style={{
-                                              color: TEXT_SOFT,
+                                              color: PAGE_TEXT_COLOR,
+                                              fontFamily:
+                                                "'Plus Jakarta Sans', 'Fredoka', sans-serif",
                                             }}
                                           >
-                                            {getFeaturedLazadaCollectionDescription({
-                                              allSearchBacked:
-                                                allFeaturedLazadaProductsSearchBacked,
-                                              hasMixed: hasMixedFeaturedLazadaProducts,
-                                              usingMatchedProducts:
-                                                usingMatchedLazadaProducts,
-                                            })}
-                                          </div>
+                                            Curated Shopping Ideas
+                                          </h3>
 
-                                          {hasDirectFeaturedLazadaProducts &&
-                                            activeGroupBudgetLabel && (
-                                              <div
-                                                className="text-[10px] mb-2 font-semibold rounded-2xl px-3 py-2"
-                                                style={{
-                                                  color: HOLIDAY_GOLD,
-                                                  background: "rgba(169,135,61,.06)",
-                                                  border: "1px solid rgba(169,135,61,.06)",
-                                                }}
-                                              >
-                                                Direct listings are shown near your{" "}
-                                                {activeGroupBudgetLabel} budget, with one
-                                                higher-budget step-up when the feed has a stronger option.
-                                              </div>
-                                            )}
-
-                                          {hasDirectFeaturedLazadaProducts && (
-                                            <div
-                                              className="text-[10px] mb-3 leading-relaxed"
-                                              style={{ color: TEXT_SOFT }}
-                                            >
-                                              Prices come from the Lazada affiliate feed and can
-                                              differ from live listings after vouchers, seller
-                                              changes, or variant selection.
-                                            </div>
-                                          )}
-
-                                          <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+                                          <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
                                             {curatedLazadaCards.map((product, index) => {
-                                              const safeProductImageUrl = normalizeOptionalUrl(
-                                                product.imageUrl || ""
-                                              );
                                               const conciseSubtitle = summarizeCardCopy(
-                                                product.subtitle,
-                                                60
-                                              );
-                                              const conciseReason = summarizeCardCopy(
-                                                product.whyItFits,
+                                                product.whyItFits || product.subtitle,
                                                 92
                                               );
                                               const cardTypeLabel =
@@ -2897,101 +2501,59 @@ export default function SecretSantaPage() {
                                               );
                                               const buttonLabel =
                                                 getFeaturedLazadaButtonLabel(product);
-                                              const sourceMeta =
-                                                getFeaturedLazadaSourceMeta(product);
-                                              const priceCaption =
-                                                getFeaturedLazadaPriceCaption(product);
-                                              const cardSurface =
-                                                getFeaturedLazadaCardSurfaceStyle(product);
-                                              const showVisualPreview = Boolean(
-                                                safeProductImageUrl || product.catalogSource === "catalog-product"
-                                              );
+                                              const roleBackground =
+                                                index === 1
+                                                  ? "rgba(252,206,114,.26)"
+                                                  : index === 2
+                                                    ? "rgba(46,52,50,.08)"
+                                                    : "rgba(72,102,78,.1)";
+                                              const roleColor =
+                                                index === 1
+                                                  ? HOLIDAY_GOLD
+                                                  : index === 2
+                                                    ? PAGE_TEXT_COLOR
+                                                    : HOLIDAY_GREEN;
 
                                               return (
                                                 <div
                                                   key={product.id}
-                                                  className="flex h-full flex-col rounded-[30px] p-5 transition hover:-translate-y-0.5"
+                                                  className="flex h-full flex-col rounded-[24px] p-6 transition hover:-translate-y-0.5"
                                                   style={{
-                                                    background: cardSurface.background,
-                                                    border: cardSurface.border,
+                                                    background: "#ffffff",
+                                                    border:
+                                                      "1px solid rgba(174,179,177,.08)",
                                                     color: PAGE_TEXT_COLOR,
-                                                    boxShadow: cardSurface.boxShadow,
-                                                    minHeight: 388,
+                                                    boxShadow:
+                                                      "0 24px 54px rgba(46,52,50,.045)",
+                                                    minHeight: 250,
                                                     cursor: "default",
                                                   }}
                                                 >
                                                   <div style={{ pointerEvents: "none" }}>
-                                                  <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-                                                    <div className="flex items-center gap-2 flex-wrap">
+                                                  <div className="mb-6 flex items-start justify-between gap-4">
                                                       <span
-                                                        className="text-[10px] font-extrabold px-2.5 py-1 rounded-full"
+                                                        className="max-w-[8rem] rounded-full px-3 py-1 text-[9px] font-extrabold uppercase leading-tight"
                                                         style={{
-                                                          color: HOLIDAY_GREEN,
-                                                          background: "rgba(47,107,86,.1)",
+                                                          color: roleColor,
+                                                          background: roleBackground,
                                                         }}
                                                       >
                                                         {roleLabel}
                                                       </span>
-                                                      <span
-                                                        className="text-[10px] font-bold px-2.5 py-1 rounded-full"
-                                                        style={{
-                                                          color: sourceMeta.color,
-                                                          background: sourceMeta.background,
-                                                        }}
-                                                      >
-                                                        {sourceMeta.label}
-                                                      </span>
-                                                    </div>
-                                                    <div className="text-right">
                                                       <div
-                                                        className="text-[11px] font-bold"
+                                                        className="shrink-0 text-[18px] font-extrabold leading-none"
                                                         style={{
                                                           color: product.priceLabel
-                                                            ? HOLIDAY_GOLD
+                                                            ? PAGE_TEXT_COLOR
                                                             : TEXT_MUTED,
                                                         }}
                                                       >
                                                         {product.priceLabel || cardTypeLabel}
                                                       </div>
-                                                      <div
-                                                        className="text-[10px] mt-0.5"
-                                                        style={{ color: TEXT_SOFT }}
-                                                      >
-                                                        {priceCaption}
-                                                      </div>
-                                                    </div>
                                                   </div>
 
-                                                  {showVisualPreview && (
-                                                    <div
-                                                      className="mt-3 flex items-center justify-center overflow-hidden rounded-[24px]"
-                                                      style={{
-                                                        minHeight: 172,
-                                                        background:
-                                                          "linear-gradient(180deg,rgba(239,244,241,.9),rgba(229,236,233,.86))",
-                                                        border: "1px solid rgba(174,179,177,.06)",
-                                                      }}
-                                                    >
-                                                      {safeProductImageUrl ? (
-                                                        // eslint-disable-next-line @next/next/no-img-element
-                                                        <img
-                                                          src={safeProductImageUrl}
-                                                          alt={product.title}
-                                                          className="w-full h-[172px] object-contain p-2"
-                                                        />
-                                                      ) : (
-                                                        <div
-                                                          className="text-[12px] font-bold text-center px-4"
-                                                          style={{ color: TEXT_MUTED }}
-                                                        >
-                                                          {cardTypeLabel}
-                                                        </div>
-                                                      )}
-                                                    </div>
-                                                  )}
-
                                                   <div
-                                                    className="mt-5 text-[19px] font-black leading-snug"
+                                                    className="text-[17px] font-extrabold leading-tight"
                                                     style={{
                                                       color: PAGE_TEXT_COLOR,
                                                       display: "-webkit-box",
@@ -3004,30 +2566,15 @@ export default function SecretSantaPage() {
                                                   </div>
 
                                                     <div
-                                                      className="mt-2 text-[12px] leading-relaxed"
+                                                      className="mt-2 flex-1 text-[12px] leading-relaxed"
                                                       style={{ color: TEXT_MUTED }}
                                                     >
                                                       {conciseSubtitle}
                                                     </div>
-
-                                                  <div className="mt-3 flex-1">
-                                                    <div
-                                                      className="text-[10px] font-extrabold uppercase"
-                                                      style={{ color: HOLIDAY_GOLD }}
-                                                    >
-                                                      Why this fits
-                                                    </div>
-                                                    <div
-                                                      className="mt-1.5 text-[12px] leading-relaxed"
-                                                      style={{ color: TEXT_SOFT }}
-                                                    >
-                                                      {conciseReason}
-                                                    </div>
-                                                  </div>
                                                   </div>
 
                                                   <div
-                                                    className="mt-5"
+                                                    className="mt-8"
                                                   >
                                                       <a
                                                         href={product.href}
@@ -3057,41 +2604,52 @@ export default function SecretSantaPage() {
                                               );
                                             })}
                                           </div>
-                                        </div>
+                                        </section>
                                       )}
 
                                       {backupMerchantLinks.length > 0 && (
                                         <details
-                                          className="rounded-2xl p-3"
+                                          className="rounded-[34px] p-7 sm:p-8"
                                           style={{
-                                            background: "rgba(255,255,255,.58)",
-                                            border: "1px solid rgba(174,179,177,.07)",
+                                            background: "#f2f4f2",
+                                            color: PAGE_TEXT_COLOR,
                                           }}
                                         >
-                                          <summary className="flex cursor-pointer list-none items-center justify-between gap-3">
+                                          <summary className="flex cursor-pointer list-none items-center justify-between gap-4">
+                                            <div className="flex items-center gap-4">
+                                              <div
+                                                className="flex h-10 w-10 items-center justify-center rounded-full"
+                                                style={{
+                                                  background: "#ffffff",
+                                                  color: HOLIDAY_GREEN,
+                                                }}
+                                              >
+                                                <GiftMark className="h-5 w-5" />
+                                              </div>
+                                              <div>
+                                                <div
+                                                  className="text-[15px] font-extrabold"
+                                                  style={{ color: PAGE_TEXT_COLOR }}
+                                                >
+                                                  More places to shop
+                                                </div>
+                                                <div
+                                                  className="mt-0.5 text-[11px]"
+                                                  style={{ color: TEXT_MUTED }}
+                                                >
+                                                  Check availability on other platforms
+                                                </div>
+                                              </div>
+                                            </div>
                                             <span
-                                              className="text-[11px] font-extrabold"
-                                              style={{ color: HOLIDAY_GREEN }}
+                                              aria-hidden="true"
+                                              className="text-[16px]"
+                                              style={{ color: TEXT_MUTED }}
                                             >
-                                              More places to shop
-                                            </span>
-                                            <span
-                                              className="text-[9px] font-bold rounded-full px-2 py-1"
-                                              style={{
-                                                background: "rgba(88,116,142,.08)",
-                                                color: TEXT_SOFT,
-                                              }}
-                                            >
-                                              Optional
+                                              v
                                             </span>
                                           </summary>
-                                          <div
-                                            className="text-[10px] mt-2 mb-3 leading-relaxed"
-                                            style={{ color: TEXT_MUTED }}
-                                          >
-                                            Use these only if Lazada does not have the right item.
-                                          </div>
-                                          <div className="flex flex-wrap gap-2">
+                                          <div className="mt-8 grid gap-4 sm:grid-cols-2">
                                             {backupMerchantLinks.map((merchantLink) => {
                                               const merchantBadgeStyle =
                                                 getMerchantBadgeStyle(
@@ -3105,31 +2663,27 @@ export default function SecretSantaPage() {
                                                   href={merchantLink.href}
                                                   target="_blank"
                                                   rel="noopener noreferrer"
-                                                  className="inline-flex items-center gap-2 rounded-xl px-3 py-2 text-[11px] font-bold"
+                                                  className="inline-flex items-center justify-between gap-3 rounded-full px-4 py-3 text-[12px] font-extrabold transition hover:-translate-y-0.5"
                                                   style={{
-                                                    background: "rgba(255,255,255,.88)",
-                                                    border:
-                                                      "1px solid rgba(174,179,177,.08)",
+                                                    background: "#ffffff",
                                                     color: PAGE_TEXT_COLOR,
                                                     textDecoration: "none",
                                                   }}
                                                 >
-                                                  <span
-                                                    className="px-2 py-1 rounded-lg text-[10px] font-extrabold"
-                                                    style={merchantBadgeStyle}
-                                                  >
-                                                    {merchantLink.merchantLabel}
-                                                  </span>
-                                                  <span
-                                                    style={{ color: TEXT_MUTED }}
-                                                  >
-                                                    {merchantLink.isAffiliateReady
-                                                      ? "Partner"
-                                                      : "Search"}
+                                                  <span className="flex min-w-0 items-center gap-3">
+                                                    <span
+                                                      className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-[10px] font-extrabold"
+                                                      style={merchantBadgeStyle}
+                                                    >
+                                                      {merchantLink.merchantLabel.slice(0, 1)}
+                                                    </span>
+                                                    <span className="truncate">
+                                                      {merchantLink.merchantLabel}
+                                                    </span>
                                                   </span>
                                                   <span
                                                     aria-hidden="true"
-                                                    style={{ color: HOLIDAY_BLUE }}
+                                                    style={{ color: TEXT_MUTED }}
                                                   >
                                                     {"->"}
                                                   </span>
@@ -3147,13 +2701,10 @@ export default function SecretSantaPage() {
                                         {selectedSuggestion.disclosure}
                                       </div>
                                     </div>
-                                    </div>
-                                  </div>
                                 )}
                               </div>
                             </div>
                           </div>
-                        </div>
                       );
                     })()
 
