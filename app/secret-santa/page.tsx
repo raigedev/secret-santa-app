@@ -1752,23 +1752,21 @@ export default function SecretSantaPage() {
             </p>
           </div>
         ) : (
-          <div className="mb-8 flex flex-col gap-6">
+          <div className="mb-8 flex flex-col gap-10">
             {assignments.map((assignment, index) => (
               <div
                 key={assignment.group_id}
                 className="overflow-hidden rounded-[34px] transition"
                 style={{
-                  background: SURFACE_BACKGROUND,
-                  border: SURFACE_BORDER,
-                  boxShadow: SURFACE_SHADOW,
+                  background: "rgba(249,250,248,.36)",
+                  boxShadow: "0 22px 58px rgba(46,52,50,.045)",
                   backdropFilter: "blur(18px)",
                 }}
               >
                 <div
                   className="flex flex-col gap-4 p-5 sm:flex-row sm:items-center sm:justify-between sm:p-6"
                   style={{
-                    background: SURFACE_HEADER_BACKGROUND,
-                    borderBottom: SURFACE_HEADER_BORDER,
+                    background: "rgba(255,255,255,.66)",
                   }}
                 >
                   <div className="flex items-center gap-3">
@@ -1804,7 +1802,7 @@ export default function SecretSantaPage() {
                   </div>
                 </div>
 
-                <div className="p-5 sm:p-6">
+                <div className="p-4 sm:p-6">
                   <div className="mb-4 flex items-center justify-between gap-3">
                     <p
                       className="text-[15px] font-extrabold"
@@ -2298,41 +2296,39 @@ export default function SecretSantaPage() {
                                 </div>
                               </div>
 
-                              <details
-                                className="rounded-[28px] px-5 py-4"
+                              <section
+                                className="rounded-[30px] p-5 sm:p-6"
                                 style={{
-                                  background: "rgba(236,239,236,.74)",
+                                  background: "rgba(242,244,242,.86)",
                                   color: PAGE_TEXT_COLOR,
                                 }}
                               >
-                                <summary className="flex cursor-pointer list-none items-center justify-between gap-3">
+                                <div className="flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between">
                                   <div>
-                                    <div
-                                      className="text-[13px] font-extrabold"
+                                    <h3
+                                      className="text-[15px] font-extrabold"
                                       style={{ color: HOLIDAY_GREEN }}
                                     >
                                       Gift direction
-                                    </div>
-                                    <div
-                                      className="mt-0.5 text-[11px]"
+                                    </h3>
+                                    <p
+                                      className="mt-1 text-[12px] leading-relaxed"
                                       style={{ color: TEXT_MUTED }}
                                     >
                                       {selectedSuggestion
                                         ? selectedSuggestion.title
-                                        : "Choose a starting point"}
-                                    </div>
+                                        : "Choose the shopping angle before opening Lazada."}
+                                    </p>
                                   </div>
                                   <span
-                                    className="rounded-full px-3 py-1 text-[10px] font-extrabold"
-                                    style={{
-                                      background: "#ffffff",
-                                      color: HOLIDAY_GREEN,
-                                    }}
+                                    className="text-[10px] font-extrabold uppercase"
+                                    style={{ color: TEXT_SOFT }}
                                   >
-                                    Change
+                                    Tap to switch
                                   </span>
-                                </summary>
-                                <div className="mt-4 grid gap-3 sm:grid-cols-2">
+                                </div>
+
+                                <div className="mt-4 grid gap-3 sm:grid-cols-3">
                                   {suggestionOptions.map((suggestion) => {
                                     const isSelected =
                                       suggestion.id === selectedSuggestionId;
@@ -2347,30 +2343,30 @@ export default function SecretSantaPage() {
                                             suggestion.id
                                           )
                                         }
-                                        className="w-full rounded-[22px] p-4 text-left transition hover:-translate-y-0.5"
+                                        className="flex min-h-[104px] w-full flex-col rounded-[22px] p-4 text-left transition hover:-translate-y-0.5"
                                         style={{
                                           background: isSelected
                                             ? "#ffffff"
-                                            : "rgba(255,255,255,.7)",
-                                          border: isSelected
-                                            ? "1px solid rgba(72,102,78,.16)"
-                                            : "1px solid rgba(174,179,177,.08)",
+                                            : "rgba(255,255,255,.58)",
                                           boxShadow: isSelected
-                                            ? "0 18px 36px rgba(72,102,78,.08)"
+                                            ? "0 18px 38px rgba(72,102,78,.09)"
                                             : "none",
-                                          fontFamily: "inherit",
                                           cursor: "pointer",
+                                          fontFamily: "inherit",
+                                          outline: isSelected
+                                            ? "1px solid rgba(72,102,78,.18)"
+                                            : "1px solid rgba(174,179,177,.08)",
                                         }}
                                       >
-                                        <div className="flex flex-wrap items-start justify-between gap-3">
+                                        <div className="flex items-start justify-between gap-3">
                                           <div
-                                            className="text-[13px] font-extrabold"
+                                            className="text-[13px] font-extrabold leading-tight"
                                             style={{ color: PAGE_TEXT_COLOR }}
                                           >
                                             {suggestion.title}
                                           </div>
                                           <span
-                                            className="rounded-full px-2.5 py-1 text-[10px] font-extrabold"
+                                            className="shrink-0 rounded-full px-2.5 py-1 text-[9px] font-extrabold"
                                             style={{
                                               color: isSelected
                                                 ? HOLIDAY_GREEN
@@ -2380,12 +2376,18 @@ export default function SecretSantaPage() {
                                                 : "rgba(255,255,255,.72)",
                                             }}
                                           >
-                                            {isSelected ? "Chosen" : suggestion.fitLabel}
+                                            {isSelected ? "Selected" : suggestion.fitLabel}
                                           </span>
                                         </div>
                                         <div
-                                          className="mt-1 text-[11px] leading-relaxed"
-                                          style={{ color: TEXT_MUTED }}
+                                          className="mt-2 text-[11px] leading-relaxed"
+                                          style={{
+                                            color: TEXT_MUTED,
+                                            display: "-webkit-box",
+                                            WebkitLineClamp: 2,
+                                            WebkitBoxOrient: "vertical",
+                                            overflow: "hidden",
+                                          }}
                                         >
                                           {suggestion.subtitle}
                                         </div>
@@ -2393,7 +2395,7 @@ export default function SecretSantaPage() {
                                     );
                                   })}
                                 </div>
-                              </details>
+                              </section>
 
                               {selectedSuggestion && (
                                 <div className="space-y-10">
@@ -2477,7 +2479,7 @@ export default function SecretSantaPage() {
                                       {featuredLazadaProducts.length > 0 && (
                                         <section>
                                           <h3
-                                            className="mb-8 text-[24px] font-extrabold leading-tight sm:text-[28px]"
+                                            className="mb-6 text-[22px] font-extrabold leading-tight sm:text-[26px]"
                                             style={{
                                               color: PAGE_TEXT_COLOR,
                                               fontFamily:
@@ -2487,7 +2489,7 @@ export default function SecretSantaPage() {
                                             Curated Shopping Ideas
                                           </h3>
 
-                                          <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
+                                          <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
                                             {curatedLazadaCards.map((product, index) => {
                                               const conciseSubtitle = summarizeCardCopy(
                                                 product.whyItFits || product.subtitle,
@@ -2517,20 +2519,20 @@ export default function SecretSantaPage() {
                                               return (
                                                 <div
                                                   key={product.id}
-                                                  className="flex h-full flex-col rounded-[24px] p-6 transition hover:-translate-y-0.5"
+                                                  className="flex h-full min-h-[232px] flex-col rounded-[24px] p-5 transition hover:-translate-y-0.5"
                                                   style={{
                                                     background: "#ffffff",
-                                                    border:
-                                                      "1px solid rgba(174,179,177,.08)",
                                                     color: PAGE_TEXT_COLOR,
                                                     boxShadow:
-                                                      "0 24px 54px rgba(46,52,50,.045)",
-                                                    minHeight: 250,
+                                                      "0 18px 44px rgba(46,52,50,.045)",
                                                     cursor: "default",
                                                   }}
                                                 >
-                                                  <div style={{ pointerEvents: "none" }}>
-                                                  <div className="mb-6 flex items-start justify-between gap-4">
+                                                  <div
+                                                    className="flex flex-1 flex-col"
+                                                    style={{ pointerEvents: "none" }}
+                                                  >
+                                                    <div className="mb-6 flex items-start justify-between gap-4">
                                                       <span
                                                         className="max-w-[8rem] rounded-full px-3 py-1 text-[9px] font-extrabold uppercase leading-tight"
                                                         style={{
@@ -2550,20 +2552,20 @@ export default function SecretSantaPage() {
                                                       >
                                                         {product.priceLabel || cardTypeLabel}
                                                       </div>
-                                                  </div>
+                                                    </div>
 
-                                                  <div
-                                                    className="text-[17px] font-extrabold leading-tight"
-                                                    style={{
-                                                      color: PAGE_TEXT_COLOR,
-                                                      display: "-webkit-box",
-                                                      WebkitLineClamp: 2,
-                                                      WebkitBoxOrient: "vertical",
-                                                      overflow: "hidden",
-                                                    }}
-                                                  >
-                                                    {product.title}
-                                                  </div>
+                                                    <div
+                                                      className="text-[17px] font-extrabold leading-tight"
+                                                      style={{
+                                                        color: PAGE_TEXT_COLOR,
+                                                        display: "-webkit-box",
+                                                        WebkitLineClamp: 2,
+                                                        WebkitBoxOrient: "vertical",
+                                                        overflow: "hidden",
+                                                      }}
+                                                    >
+                                                      {product.title}
+                                                    </div>
 
                                                     <div
                                                       className="mt-2 flex-1 text-[12px] leading-relaxed"
@@ -2573,9 +2575,7 @@ export default function SecretSantaPage() {
                                                     </div>
                                                   </div>
 
-                                                  <div
-                                                    className="mt-8"
-                                                  >
+                                                  <div className="mt-7">
                                                       <a
                                                         href={product.href}
                                                         target="_blank"
@@ -2609,6 +2609,7 @@ export default function SecretSantaPage() {
 
                                       {backupMerchantLinks.length > 0 && (
                                         <details
+                                          open
                                           className="rounded-[34px] p-7 sm:p-8"
                                           style={{
                                             background: "#f2f4f2",
