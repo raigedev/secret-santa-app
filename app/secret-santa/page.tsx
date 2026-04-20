@@ -9,6 +9,7 @@ import { isLazadaProductPageUrl } from "@/lib/affiliate/lazada-url";
 import { formatPriceRange } from "@/lib/wishlist/pricing";
 import {
   type SuggestionInput,
+  buildTrackedSuggestionHref,
   buildWishlistFeaturedLazadaProducts,
   buildWishlistMerchantLinks,
   buildWishlistSuggestionOptions,
@@ -616,11 +617,51 @@ function getFeaturedLazadaButtonLabel(product: WishlistFeaturedProductCard): str
 }
 
 function getDisplayableLazadaProducts(
-  products: WishlistFeaturedProductCard[]
+  products: WishlistFeaturedProductCard[],
+  context: {
+    groupBudget: number | null;
+    groupId: string;
+    itemCategory: string;
+    itemName: string;
+    itemNote: string;
+    region: ShoppingRegion;
+    selectedQuery: string;
+    wishlistItemId: string;
+  }
 ): WishlistFeaturedProductCard[] {
-  // Local catalog-product entries can go stale on Lazada, so keep the UI on
-  // search-backed links until product availability can be verified live.
-  return products.filter((product) => product.catalogSource !== "catalog-product");
+  return products.map((product) => {
+    if (product.catalogSource !== "catalog-product") {
+      return product;
+    }
+
+    const searchQuery = product.searchQuery || product.title || context.selectedQuery;
+
+    return {
+      ...product,
+      catalogSource: "search-backed",
+      href: buildTrackedSuggestionHref(
+        "lazada",
+        context.groupId,
+        context.wishlistItemId,
+        searchQuery,
+        product.title,
+        context.region,
+        {
+          catalogSource: "search-backed",
+          fitLabel: product.fitLabel,
+          groupBudget: context.groupBudget,
+          itemCategory: context.itemCategory,
+          itemName: context.itemName,
+          itemNote: context.itemNote,
+          selectedQuery: context.selectedQuery,
+          trackingLabel: "Search results",
+        }
+      ),
+      productId: null,
+      skuId: null,
+      trackingLabel: "Search results",
+    };
+  });
 }
 
 function getMerchantBadgeStyle(
@@ -1993,10 +2034,26 @@ export default function SecretSantaPage() {
                           : null;
                       const rawMatchedLazadaProducts =
                         lazadaMatchedProductsState?.products || [];
+                      const lazadaDisplayContext = {
+                        groupBudget: assignment.group_budget,
+                        groupId: assignment.group_id,
+                        itemCategory: item.item_category,
+                        itemName: item.item_name,
+                        itemNote: item.item_note,
+                        region: shoppingRegion,
+                        selectedQuery: selectedSuggestion?.searchQuery || item.item_name,
+                        wishlistItemId: item.id,
+                      };
                       const displayableMatchedLazadaProducts =
-                        getDisplayableLazadaProducts(rawMatchedLazadaProducts);
+                        getDisplayableLazadaProducts(
+                          rawMatchedLazadaProducts,
+                          lazadaDisplayContext
+                        );
                       const displayableFallbackLazadaProducts =
-                        getDisplayableLazadaProducts(fallbackFeaturedLazadaProducts);
+                        getDisplayableLazadaProducts(
+                          fallbackFeaturedLazadaProducts,
+                          lazadaDisplayContext
+                        );
                       const featuredLazadaProducts =
                         lazadaMatchesLoading
                           ? []
