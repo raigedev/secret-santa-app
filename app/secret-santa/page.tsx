@@ -125,6 +125,14 @@ type GiftPrepStatus =
   | "purchased"
   | "wrapped"
   | "ready_to_give";
+type GuideTabId = "wishlist" | "direction" | "matches" | "prep";
+
+const GUIDE_TABS: Array<{ id: GuideTabId; label: string }> = [
+  { id: "wishlist", label: "Wishlist" },
+  { id: "direction", label: "Gift Direction" },
+  { id: "matches", label: "Lazada Picks" },
+  { id: "prep", label: "Prep" },
+];
 
 const ITEM_LINK_MAX_LENGTH = 500;
 const MAX_GROUP_ROUTE_PREFETCH = 8;
@@ -607,6 +615,14 @@ function getFeaturedLazadaButtonLabel(product: WishlistFeaturedProductCard): str
   return product.catalogSource === "catalog-product" ? "Open Lazada" : "Browse Lazada";
 }
 
+function getDisplayableLazadaProducts(
+  products: WishlistFeaturedProductCard[]
+): WishlistFeaturedProductCard[] {
+  // Local catalog-product entries can go stale on Lazada, so keep the UI on
+  // search-backed links until product availability can be verified live.
+  return products.filter((product) => product.catalogSource !== "catalog-product");
+}
+
 function getMerchantBadgeStyle(
   merchant: string,
   isPartnerLink: boolean
@@ -669,6 +685,9 @@ export default function SecretSantaPage() {
     expandedRecipientWishlistByAssignment,
     setExpandedRecipientWishlistByAssignment,
   ] = useState<Record<string, boolean>>({});
+  const [activeGuideTabByAssignment, setActiveGuideTabByAssignment] = useState<
+    Record<string, GuideTabId>
+  >({});
   const [selectedRecipientSuggestionByItem, setSelectedRecipientSuggestionByItem] = useState<
     Record<string, string>
   >({});
@@ -1464,6 +1483,13 @@ export default function SecretSantaPage() {
     }));
   };
 
+  const selectGuideTab = (groupId: string, tabId: GuideTabId) => {
+    setActiveGuideTabByAssignment((current) => ({
+      ...current,
+      [groupId]: tabId,
+    }));
+  };
+
   const toggleRecipientWishlistExpansion = (groupId: string) => {
     setExpandedRecipientWishlistByAssignment((current) => ({
       ...current,
@@ -1819,25 +1845,24 @@ export default function SecretSantaPage() {
                     className="mb-6 flex gap-7 overflow-x-auto px-1 pb-2 text-[13px] font-extrabold"
                     style={{ color: HOLIDAY_GREEN }}
                   >
-                    {[
-                      ["Wishlist", `#wishlist-${assignment.group_id}`],
-                      ["Gift Direction", `#direction-${assignment.group_id}`],
-                      ["Lazada Picks", `#matches-${assignment.group_id}`],
-                      ["Prep", `#prep-${assignment.group_id}`],
-                    ].map(([label, href]) => {
-                      const isActive = label === "Lazada Picks";
+                    {GUIDE_TABS.map((tab) => {
+                      const isActive =
+                        (activeGuideTabByAssignment[assignment.group_id] ||
+                          "matches") === tab.id;
 
                       return (
                         <a
-                          key={label}
-                          href={href}
+                          key={tab.id}
+                          href={`#${tab.id}-${assignment.group_id}`}
+                          aria-current={isActive ? "page" : undefined}
+                          onClick={() => selectGuideTab(assignment.group_id, tab.id)}
                           className="relative shrink-0 pb-2"
                           style={{
                             color: isActive ? HOLIDAY_RED : HOLIDAY_GREEN,
                             textDecoration: "none",
                           }}
                         >
-                          {label}
+                          {tab.label}
                           {isActive && (
                             <span
                               aria-hidden="true"
@@ -1968,23 +1993,16 @@ export default function SecretSantaPage() {
                           : null;
                       const rawMatchedLazadaProducts =
                         lazadaMatchedProductsState?.products || [];
-                      const premiumOnlyMatchedProducts =
-                        rawMatchedLazadaProducts.length === 1 &&
-                        rawMatchedLazadaProducts[0]?.catalogSource === "catalog-product" &&
-                        rawMatchedLazadaProducts[0]?.fitLabel === "Highest-price option"
-                          ? rawMatchedLazadaProducts
-                          : [];
+                      const displayableMatchedLazadaProducts =
+                        getDisplayableLazadaProducts(rawMatchedLazadaProducts);
+                      const displayableFallbackLazadaProducts =
+                        getDisplayableLazadaProducts(fallbackFeaturedLazadaProducts);
                       const featuredLazadaProducts =
                         lazadaMatchesLoading
                           ? []
-                          : premiumOnlyMatchedProducts.length > 0
-                            ? [
-                                ...fallbackFeaturedLazadaProducts.slice(0, 2),
-                                premiumOnlyMatchedProducts[0],
-                              ]
-                            : rawMatchedLazadaProducts.length > 0
-                              ? rawMatchedLazadaProducts
-                              : fallbackFeaturedLazadaProducts;
+                          : displayableMatchedLazadaProducts.length > 0
+                            ? displayableMatchedLazadaProducts
+                            : displayableFallbackLazadaProducts;
                       const isWishlistExpanded = Boolean(
                         expandedRecipientWishlistByAssignment[assignment.group_id]
                       );
@@ -2011,7 +2029,7 @@ export default function SecretSantaPage() {
                       );
                       const primaryFeaturedLazadaProduct =
                         (lazadaMatchesLoading
-                          ? fallbackFeaturedLazadaProducts[0]
+                          ? displayableFallbackLazadaProducts[0]
                           : featuredLazadaProducts[0]) || null;
                       const heroLazadaImageUrl = normalizeOptionalUrl(
                         primaryFeaturedLazadaProduct?.imageUrl || safeItemImageUrl
@@ -2023,7 +2041,7 @@ export default function SecretSantaPage() {
                           primaryFeaturedLazadaProduct?.subtitle ||
                           item.item_note ||
                           `Start with ${item.item_name}, then compare the strongest Lazada options for this recipient.`,
-                        220
+                        150
                       );
                       const heroLazadaPriceLabel =
                         primaryFeaturedLazadaProduct?.priceLabel ||
@@ -2246,15 +2264,15 @@ export default function SecretSantaPage() {
                               </div>
 
                               <div
-                                className="group overflow-hidden rounded-[34px]"
+                                className="group overflow-hidden rounded-[30px]"
                                 style={{
                                   background: "#ffffff",
-                                  boxShadow: "0 26px 64px rgba(46,52,50,.045)",
+                                  boxShadow: "0 22px 52px rgba(46,52,50,.04)",
                                 }}
                               >
-                                <div className="grid gap-0 md:grid-cols-[minmax(260px,50%)_1fr]">
+                                <div className="grid gap-0 md:grid-cols-[minmax(220px,42%)_1fr]">
                                   <div
-                                    className="flex min-h-[300px] items-center justify-center overflow-hidden text-[42px] sm:min-h-[360px]"
+                                    className="flex min-h-[220px] items-center justify-center overflow-hidden text-[42px] sm:min-h-[260px] lg:min-h-[300px]"
                                     style={{
                                       background: "#ecefec",
                                     }}
@@ -2264,15 +2282,15 @@ export default function SecretSantaPage() {
                                       <img
                                         src={heroLazadaImageUrl}
                                         alt={heroLazadaTitle}
-                                        className="h-full min-h-[300px] w-full object-cover transition duration-700 group-hover:scale-[1.03] sm:min-h-[360px]"
+                                        className="h-full min-h-[220px] w-full object-cover transition duration-700 group-hover:scale-[1.03] sm:min-h-[260px] lg:min-h-[300px]"
                                       />
                                     ) : (
                                       priorityMeta.icon
                                     )}
                                   </div>
-                                  <div className="flex min-w-0 flex-col justify-center p-7 sm:p-10 lg:p-12">
+                                  <div className="flex min-w-0 flex-col justify-center p-6 sm:p-7 lg:p-8">
                                     <div
-                                      className="mb-4 inline-flex items-center gap-2 text-[12px] font-extrabold uppercase"
+                                      className="mb-3 inline-flex items-center gap-2 text-[11px] font-extrabold uppercase"
                                       style={{
                                         color: HOLIDAY_GOLD,
                                       }}
@@ -2282,31 +2300,44 @@ export default function SecretSantaPage() {
                                     </div>
                                     <div className="min-w-0">
                                       <h3
-                                        className="text-[26px] font-extrabold leading-[1.08] sm:text-[34px]"
+                                        className="text-[23px] font-extrabold leading-[1.08] sm:text-[29px] lg:text-[31px]"
                                         style={{
                                           color: PAGE_TEXT_COLOR,
                                           fontFamily:
                                             "'Plus Jakarta Sans', 'Fredoka', sans-serif",
+                                          display: "-webkit-box",
+                                          WebkitLineClamp: 4,
+                                          WebkitBoxOrient: "vertical",
+                                          overflow: "hidden",
+                                          overflowWrap: "anywhere",
                                         }}
                                       >
                                         {heroLazadaTitle}
                                       </h3>
                                       <p
-                                        className="mt-4 text-[14px] font-medium leading-relaxed sm:text-[15px]"
-                                        style={{ color: TEXT_MUTED }}
+                                        className="mt-3 text-[13px] font-medium leading-relaxed sm:text-[14px]"
+                                        style={{
+                                          color: TEXT_MUTED,
+                                          display: "-webkit-box",
+                                          WebkitLineClamp: 3,
+                                          WebkitBoxOrient: "vertical",
+                                          overflow: "hidden",
+                                          overflowWrap: "anywhere",
+                                        }}
                                       >
                                         {heroLazadaCopy}
                                       </p>
                                     </div>
-                                    <div className="mt-7 flex flex-wrap gap-2">
+                                    <div className="mt-5 flex flex-wrap gap-2">
                                       {heroLazadaTags.length > 0 ? (
                                         heroLazadaTags.map((tag) => (
                                           <span
                                             key={tag}
-                                            className="rounded-full px-4 py-1.5 text-[11px] font-extrabold"
+                                            className="max-w-full rounded-full px-4 py-1.5 text-[11px] font-extrabold"
                                             style={{
                                               background: "rgba(252,206,114,.9)",
                                               color: "#5f4500",
+                                              overflowWrap: "anywhere",
                                             }}
                                           >
                                             {tag}
@@ -2314,10 +2345,11 @@ export default function SecretSantaPage() {
                                         ))
                                       ) : (
                                         <span
-                                          className="rounded-full px-4 py-1.5 text-[11px] font-extrabold"
+                                          className="max-w-full rounded-full px-4 py-1.5 text-[11px] font-extrabold"
                                           style={{
                                             background: priorityMeta.badgeBackground,
                                             color: priorityMeta.badgeColor,
+                                            overflowWrap: "anywhere",
                                           }}
                                         >
                                           {priorityMeta.label}
@@ -2451,9 +2483,9 @@ export default function SecretSantaPage() {
                                       )}
 
                                       {lazadaMatchedProductsState?.loading &&
-                                        fallbackFeaturedLazadaProducts.length > 0 && (
+                                        displayableFallbackLazadaProducts.length > 0 && (
                                           <div className="mb-3 grid gap-3 md:grid-cols-2 xl:grid-cols-3">
-                                            {fallbackFeaturedLazadaProducts.map((product) => (
+                                            {displayableFallbackLazadaProducts.map((product) => (
                                               <div
                                                 key={`loading-${product.id}`}
                                                 className="rounded-[22px] p-4"
@@ -2552,7 +2584,7 @@ export default function SecretSantaPage() {
                                               return (
                                                 <div
                                                   key={product.id}
-                                                  className="flex h-full min-h-[232px] flex-col rounded-[24px] p-5 transition hover:-translate-y-0.5"
+                                                  className="flex h-full min-h-[244px] min-w-0 flex-col rounded-[24px] p-5 transition hover:-translate-y-0.5"
                                                   style={{
                                                     background: "#ffffff",
                                                     color: PAGE_TEXT_COLOR,
@@ -2565,22 +2597,24 @@ export default function SecretSantaPage() {
                                                     className="flex flex-1 flex-col"
                                                     style={{ pointerEvents: "none" }}
                                                   >
-                                                    <div className="mb-6 flex items-start justify-between gap-4">
+                                                    <div className="mb-5 grid grid-cols-[minmax(0,1fr)_minmax(0,auto)] items-start gap-3">
                                                       <span
-                                                        className="max-w-[8rem] rounded-full px-3 py-1 text-[9px] font-extrabold uppercase leading-tight"
+                                                        className="max-w-full rounded-full px-3 py-1 text-[9px] font-extrabold uppercase leading-tight"
                                                         style={{
                                                           color: roleColor,
                                                           background: roleBackground,
+                                                          overflowWrap: "anywhere",
                                                         }}
                                                       >
                                                         {roleLabel}
                                                       </span>
                                                       <div
-                                                        className="shrink-0 text-[18px] font-extrabold leading-none"
+                                                        className="min-w-0 max-w-[9rem] text-right text-[15px] font-extrabold leading-tight"
                                                         style={{
                                                           color: product.priceLabel
                                                             ? PAGE_TEXT_COLOR
                                                             : TEXT_MUTED,
+                                                          overflowWrap: "anywhere",
                                                         }}
                                                       >
                                                         {product.priceLabel || cardTypeLabel}
@@ -2595,6 +2629,7 @@ export default function SecretSantaPage() {
                                                         WebkitLineClamp: 2,
                                                         WebkitBoxOrient: "vertical",
                                                         overflow: "hidden",
+                                                        overflowWrap: "anywhere",
                                                       }}
                                                     >
                                                       {product.title}
@@ -2602,7 +2637,14 @@ export default function SecretSantaPage() {
 
                                                     <div
                                                       className="mt-2 flex-1 text-[12px] leading-relaxed"
-                                                      style={{ color: TEXT_MUTED }}
+                                                      style={{
+                                                        color: TEXT_MUTED,
+                                                        display: "-webkit-box",
+                                                        WebkitLineClamp: 3,
+                                                        WebkitBoxOrient: "vertical",
+                                                        overflow: "hidden",
+                                                        overflowWrap: "anywhere",
+                                                      }}
                                                     >
                                                       {conciseSubtitle}
                                                     </div>
@@ -2613,7 +2655,7 @@ export default function SecretSantaPage() {
                                                         href={product.href}
                                                         target="_blank"
                                                         rel="noopener noreferrer"
-                                                      className="inline-flex w-full items-center justify-center gap-2 rounded-full px-4 py-4 text-[13px] font-extrabold leading-none whitespace-nowrap transition hover:scale-[1.01]"
+                                                      className="inline-flex w-full min-w-0 items-center justify-center gap-2 rounded-full px-3 py-3.5 text-center text-[13px] font-extrabold leading-none transition hover:scale-[1.01]"
                                                       style={{
                                                         background:
                                                           "linear-gradient(135deg,#a43c3f 0%, #7f252b 100%)",
@@ -2624,7 +2666,9 @@ export default function SecretSantaPage() {
                                                         textDecoration: "none",
                                                       }}
                                                     >
-                                                      <span>{buttonLabel}</span>
+                                                      <span className="min-w-0 truncate">
+                                                        {buttonLabel}
+                                                      </span>
                                                       <span
                                                         aria-hidden="true"
                                                         className="text-[14px]"
