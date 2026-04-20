@@ -1,0 +1,21 @@
+# Continuity
+
+## PLAN
+- 2026-04-20T00:00:00+08:00 [USER] Keep this file as compact durable context for new Codex chats in this workspace.
+- 2026-04-20T00:00:00+08:00 [USER] Next chats should read `AGENTS.md` first, then this file when present.
+
+## DECISIONS
+- 2026-04-20T00:00:00+08:00 [USER] User usually commits and pushes manually unless explicitly asking Codex to do it.
+- 2026-04-20T00:00:00+08:00 [USER] Use Stitch MCP for UI design context, design tokens, screen metadata, and Stitch implementation details.
+- 2026-04-20T00:00:00+08:00 [USER] Preserve Lazada affiliate backend/data wiring while polishing UI.
+- 2026-04-20T00:00:00+08:00 [USER] Treat security, auth, postback, affiliate tracking, and public redirect routes as abuse-sensitive.
+
+## PROGRESS
+- 2026-04-20T00:00:00+08:00 [CODE] `AGENTS.md` now records project stack, security rules, launch guardrails, operating rules, and continuity rules.
+- 2026-04-20T00:00:00+08:00 [CODE] Secret Santa Lazada UI was recently reshaped toward the Stitch Winter Atelier mockup while keeping affiliate flow intact.
+
+## DISCOVERIES
+- 2026-04-20T00:00:00+08:00 [TOOL] Current recurring build warnings: parent lockfile workspace-root inference and Next.js middleware-to-proxy deprecation.
+
+## OUTCOMES
+- 2026-04-20T00:00:00+08:00 [CODE] New chats can recover durable project rules from `AGENTS.md` and compact state from this file.

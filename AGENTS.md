@@ -2,6 +2,19 @@
 
 - Always use the Stitch MCP server when the user asks for UI design context, design tokens, screen metadata, or implementation details from the user's Stitch project.
 
+## Project Stack
+
+- Next.js `16.2.3` App Router on Vercel.
+- React `19.2.5`.
+- TypeScript `5` in strict mode.
+- Tailwind CSS `4.2.2`.
+- Supabase auth/database with `@supabase/ssr`, `@supabase/supabase-js`, and legacy `@supabase/auth-helpers-nextjs` still installed.
+- Vercel Cron jobs are configured in `vercel.json`.
+- Lazada affiliate features include feed/catalog matching, promo-link priming, click tracking, postback handling, report access, and health/test endpoints.
+- AI wishlist suggestions use configured provider keys, with deterministic local fallbacks where implemented.
+- ESLint 9 uses security and no-secrets plugins. Husky prepare script is present.
+- Deployment is from GitHub `main` to Vercel. The user usually commits and pushes manually unless explicitly asking the agent to do it.
+
 ## Security Rules
 
 - Before marking code changes done, run `npm.cmd run typecheck`, `npm.cmd run lint:security`, and `npm.cmd run build` unless the change is documentation-only or there is a clear blocker.
@@ -17,3 +30,120 @@
 - When touching Vercel Cron or reminder processing, keep secret validation strict in production and avoid creating unauthenticated production cron execution paths.
 - Keep CSP/security headers in `next.config.ts` restrictive. Only add external sources when required by the implemented feature and scoped as tightly as practical.
 - Keep `eslint-plugin-security` and `eslint-plugin-no-secrets` checks passing; do not suppress security warnings without a specific reason documented in the change.
+
+### Security Playbook
+
+- Authentication sessions must have expiration limits. JWT/session lifetimes should not exceed 7 days without refresh-token rotation or an equivalent managed-session control.
+- Never invent or hand-roll app authentication. Use the existing Supabase auth stack unless the user explicitly approves a reviewed migration to Clerk, Auth0, or another managed provider.
+- Keep API keys strictly server-side in environment variables. Never expose provider keys to client components or browser-readable bundles.
+- Rotate production secrets at least every 90 days when operationally possible, especially provider, webhook, affiliate, and service-role credentials.
+- Before installing packages, verify that suggested packages are reputable, maintained, and appropriate for the current stack. Prefer newer secure versions that do not break compatibility.
+- Run `npm audit` after dependency changes and before security-sensitive releases. Use `npm audit fix` only when the proposed changes are safe and reviewed; do not use `--force` without explicit approval.
+- Sanitize and validate all inputs. Use parameterized Supabase queries or structured APIs instead of string-built queries.
+- Enable and preserve Row-Level Security for Supabase tables that contain user data.
+- Remove or avoid `console.log` statements before production deployment, especially logs involving auth, user data, affiliate data, payloads, tokens, or secrets.
+- Restrict CORS and allowed origins to approved production and development domains. Do not allow wildcard production origins.
+- Validate redirect URLs against an allow-list. Do not redirect to arbitrary user-controlled URLs.
+- Add auth, authorization, and rate limiting to endpoints by default. Any public endpoint must have an explicit reason and abuse controls.
+- Cap AI API usage and costs in code and provider dashboards where supported.
+- Use Vercel/edge protections or equivalent controls for DDoS and abuse-sensitive routes.
+- Lock down storage access so users can only access their own files and approved shared assets.
+- Validate file uploads by content signature, size, and server-side rules, not only by extension.
+- Verify webhook signatures or shared secrets before processing payment, affiliate, postback, or other external event data.
+- Review permissions server-side. UI-only checks are not security boundaries.
+- Log critical actions such as deletions, role changes, payment/affiliate exports, postback processing, and admin/report access without logging secrets or private payloads.
+- Build real account deletion flows when account deletion is implemented. Do not rely on manual database cleanup.
+- Automate backups and periodically test restore procedures. Untested backups should not be treated as reliable.
+- Keep test, preview, and production environments separated, including secrets, webhooks, data, and external side effects.
+- Never let test webhooks mutate real production systems.
+
+### Launch, Backend, and Growth Guardrails
+
+- Prefer token-based authentication and managed session flows for long-term web/mobile stability. Avoid password/session schemes that are hard to rotate, revoke, or audit.
+- Do not treat UI polish as a substitute for backend reliability. Before launch or major releases, verify login, database reads/writes, affiliate redirects, postbacks, cron jobs, and any payment flows that exist.
+- If payments are added later, fully test the real provider flow in the correct test environment before launch. Do not touch live cards, live payments, or production fulfillment from test flows.
+- Production launches should use a real domain with SSL enabled.
+- Keep development, preview, and production environments separate for data, secrets, webhooks, cron jobs, and third-party integrations.
+- Never expose API keys, auth tokens, affiliate credentials, webhook secrets, or provider keys in public files, client bundles, repositories, screenshots, or logs.
+- Back up the production database regularly and verify restores. Data loss is a launch-blocking risk once real users exist.
+- Require email verification where account authenticity matters, especially before enabling sensitive actions.
+- Add or preserve rate limiting, input validation, and basic bot/abuse protection on signup, login, invite, chat, affiliate redirect, postback, AI, and notification endpoints.
+- Plan for real usage by paginating long lists and data-heavy pages instead of loading unbounded rows.
+- Add database indexes for common filters, joins, and ordering paths before data volume grows.
+- Move slow work to background jobs, cron jobs, queues, or deferred processing instead of blocking user-facing requests.
+- Monitor application errors, failed cron runs, affiliate/postback failures, auth issues, and slow routes so problems can be fixed before users report them.
+
+## Agent Operating Rules
+
+- Prefer failing loudly with clear error logs over failing silently with hidden fallbacks.
+- Work in autonomous proactive mode: use tools as needed to complete the task end-to-end, while still respecting safety rules, scope controls, and explicit user preferences.
+- Make the smallest safe change that solves the issue. Preserve existing style and conventions. Prefer patch-style edits and reviewable diffs over full-file rewrites.
+- Only modify files directly required by the current task. If a change would touch files outside the stated scope, including cleanup or refactors, list the files and reason first and wait for approval.
+- Never rename, move, or delete files without explicit instruction.
+- For 1-2 changed files, state the approach in one sentence and proceed. For 3+ changed files, write a brief plan listing each file and change, then get approval. For architectural or cross-cutting work, write a sequenced plan with risks and rollback approach, then implement in stages.
+- When in doubt, over-plan. A short plan is cheaper than a wasted refactor.
+- New or substantially edited code files should stay under 300 lines. This repo already has larger legacy files; when touching one materially, prefer extracting focused helpers/components instead of making it larger.
+- Do not install system packages on the host unless explicitly instructed. Use the existing repo toolchain first. If new system-level tooling is needed, prefer a container or repo-contained workflow.
+
+### Error Handling
+
+- Never add `try`/`catch` unless the catch block has explicit recovery logic, returns a deliberate user-facing error, or preserves a required fail-closed security path.
+- Empty catch blocks and generic fallbacks such as `return null`, `return []`, or log-and-continue are banned unless the fallback is intentionally documented and safe.
+- If the code does not know how to handle an error, let it propagate. The stack trace is more valuable than hidden graceful degradation.
+- Do not add hidden fallback paths for authentication, affiliate tracking, postbacks, cron secrets, AI providers, or database writes.
+
+### Test Failures
+
+- When a test or check fails, determine the root cause before changing code.
+- Treat production code as wrong until proven otherwise.
+- Never weaken an assertion, broaden a matcher, or add skip/xfail just to make a test pass.
+- If a test is genuinely wrong, explain what it tested incorrectly and why the new assertion is more accurate.
+
+### API and Remote Services
+
+- External API and remote-service calls must be read-only unless the user explicitly requests a write operation.
+- For remote write operations, dry-run first when supported and present the expected outcome before executing.
+- Never execute destructive operations such as `DELETE`, `DROP`, overwrite, force-push, production data mutation, or live webhook/payment side effects without showing the exact command/action and getting confirmation.
+
+### Accuracy and Sourcing
+
+- For requests depending on recency, first establish the current date/time with `Get-Date -Format o` or an equivalent command and state it explicitly.
+- Prefer official or primary sources such as vendor docs, release notes, changelogs, repository docs, and API references.
+- Before using a new API or library function, verify it exists in the version used by this project. If not verified, label it `UNCONFIRMED`.
+- Use Context7 MCP for library/API docs when available. Pin the library and target version when known, and fetch only targeted docs.
+- Use web search when it materially improves correctness or freshness, especially for recent APIs, advisories, release notes, and vendor guidance. Prefer official sources and record source dates when relevant.
+
+### Reading Project Documents
+
+- For PDFs, uploads, long text, spreadsheets, CSVs, and other project documents, read the full source before drafting conclusions.
+- Before finalizing, re-check the original source for factual accuracy, missing details, and preserved wording/style unless the user asked for rewriting.
+- If paraphrasing, label it as a paraphrase.
+
+### Continuity State
+
+- Maintain `.agent/CONTINUITY.md` as the canonical state file for this workspace.
+- Read `.agent/CONTINUITY.md` at the start of a new task or new chat when present.
+- Update it only when something materially changes: goals, decisions, progress, discoveries, outcomes, or next steps.
+- Each entry should use an ISO timestamp and a provenance tag: `[USER]`, `[CODE]`, `[TOOL]`, or `[ASSUMPTION]`.
+- Mark unverified facts as `UNCONFIRMED`.
+- Supersede changed facts explicitly; never silently rewrite history.
+- Keep `.agent/CONTINUITY.md` under 80 lines. Compress older entries into milestone bullets instead of storing raw logs or transcripts.
+
+### Definition of Done
+
+- The requested change is implemented or the question is answered.
+- Build is attempted when source code changed.
+- Linting is run when source code changed.
+- Tests and typecheck pass where applicable.
+- Errors and warnings are fixed or clearly listed as out-of-scope.
+- Documentation is updated when behavior, security, deployment, or workflow changes.
+- Impact is explained: what changed, where, and why.
+- Follow-ups are listed for anything intentionally left out.
+- `.agent/CONTINUITY.md` is updated when the change affects goal, state, decisions, or durable project knowledge.
+
+### Project-Specific References
+
+- Code style and conventions: see `docs/STYLE.md` if present.
+- CSS hygiene: see `styles/STYLEGUIDE.md` if present.
+- Deployment procedures: see `docs/DEPLOY.md` if present.
+- Known issues and workarounds: see `docs/KNOWN_ISSUES.md` if present.
