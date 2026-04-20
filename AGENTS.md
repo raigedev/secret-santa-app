@@ -30,44 +30,52 @@
 - When touching Vercel Cron or reminder processing, keep secret validation strict in production and avoid creating unauthenticated production cron execution paths.
 - Keep CSP/security headers in `next.config.ts` restrictive. Only add external sources when required by the implemented feature and scoped as tightly as practical.
 - Keep `eslint-plugin-security` and `eslint-plugin-no-secrets` checks passing; do not suppress security warnings without a specific reason documented in the change.
+- Use CodeRabbit or an equivalent AI code reviewer on every pull request when available. Treat it as an additional security/reliability gate for SQL injection, exposed credentials, broken auth, unsafe redirects, race conditions, and other common regressions; it is not a replacement for tests, typecheck, linting, build, or human review.
 
 ### Security Playbook
 
 - Authentication sessions must have expiration limits. JWT/session lifetimes should not exceed 7 days without refresh-token rotation or an equivalent managed-session control.
 - Never invent or hand-roll app authentication. Use the existing Supabase auth stack unless the user explicitly approves a reviewed migration to Clerk, Auth0, or another managed provider.
 - Keep API keys strictly server-side in environment variables. Never expose provider keys to client components or browser-readable bundles.
+- Prefer managed secret storage such as Vercel environment variables for this app, or Google Secret Manager/AWS Secrets Manager when using those platforms. Keys do not belong in source code, public files, or committed docs.
 - Rotate production secrets at least every 90 days when operationally possible, especially provider, webhook, affiliate, and service-role credentials.
-- Before installing packages, verify that suggested packages are reputable, maintained, and appropriate for the current stack. Prefer newer secure versions that do not break compatibility.
+- Before installing packages, verify that suggested packages are reputable, maintained, and appropriate for the current stack. Prefer newer secure versions that do not break compatibility, and keep dependencies updated to avoid known vulnerabilities.
 - Run `npm audit` after dependency changes and before security-sensitive releases. Use `npm audit fix` only when the proposed changes are safe and reviewed; do not use `--force` without explicit approval.
-- Sanitize and validate all inputs. Use parameterized Supabase queries or structured APIs instead of string-built queries.
+- Sanitize and validate all inputs on the backend, even when the frontend already validates for UX. Include forms, URL query params, route params, uploads, webhook/postback payloads, AI prompts, and affiliate redirect params. Use parameterized Supabase queries or structured APIs instead of string-built queries.
 - Enable and preserve Row-Level Security for Supabase tables that contain user data.
+- AI may help draft RLS policies, but every policy must be reviewed and tested by attempting cross-user access before it is trusted.
 - Remove or avoid `console.log` statements before production deployment, especially logs involving auth, user data, affiliate data, payloads, tokens, or secrets.
 - Restrict CORS and allowed origins to approved production and development domains. Do not allow wildcard production origins.
 - Validate redirect URLs against an allow-list. Do not redirect to arbitrary user-controlled URLs.
 - Add auth, authorization, and rate limiting to endpoints by default. Any public endpoint must have an explicit reason and abuse controls.
+- Start strict for public endpoints: use about `100` requests/hour per IP as the default ceiling unless a route has a documented reason for a different limit. Loosen later only if real users are blocked.
 - Cap AI API usage and costs in code and provider dashboards where supported.
 - Use Vercel/edge protections or equivalent controls for DDoS and abuse-sensitive routes.
 - Lock down storage access so users can only access their own files and approved shared assets.
 - Validate file uploads by content signature, size, and server-side rules, not only by extension.
 - Verify webhook signatures or shared secrets before processing payment, affiliate, postback, or other external event data.
+- For payments, postbacks, affiliate events, email sends, reminders, and any future wallet/credit flows, check idempotency and race-condition behavior so duplicate requests cannot double-charge, double-credit, double-count, or double-send.
 - Review permissions server-side. UI-only checks are not security boundaries.
 - Log critical actions such as deletions, role changes, payment/affiliate exports, postback processing, and admin/report access without logging secrets or private payloads.
 - Build real account deletion flows when account deletion is implemented. Do not rely on manual database cleanup.
 - Automate backups and periodically test restore procedures. Untested backups should not be treated as reliable.
 - Keep test, preview, and production environments separated, including secrets, webhooks, data, and external side effects.
 - Never let test webhooks mutate real production systems.
+- Keep dependencies updated through reviewed Dependabot or manual PRs. Check changelogs, security advisories, and lockfile changes before merging dependency updates.
 
 ### Launch, Backend, and Growth Guardrails
 
 - Prefer token-based authentication and managed session flows for long-term web/mobile stability. Avoid password/session schemes that are hard to rotate, revoke, or audit.
 - Do not treat UI polish as a substitute for backend reliability. Before launch or major releases, verify login, database reads/writes, affiliate redirects, postbacks, cron jobs, and any payment flows that exist.
-- If payments are added later, fully test the real provider flow in the correct test environment before launch. Do not touch live cards, live payments, or production fulfillment from test flows.
+- If payments are added later, fully test the provider flow in the correct test environment before launch, including idempotency and race-condition/double-charge protection. Do not touch live cards, live payments, or production fulfillment from test flows.
 - Production launches should use a real domain with SSL enabled.
+- HTTPS is required for every endpoint in production. Redirect HTTP to HTTPS automatically and do not allow plaintext auth, tokens, sessions, webhook payloads, or API traffic.
 - Keep development, preview, and production environments separate for data, secrets, webhooks, cron jobs, and third-party integrations.
 - Never expose API keys, auth tokens, affiliate credentials, webhook secrets, or provider keys in public files, client bundles, repositories, screenshots, or logs.
 - Back up the production database regularly and verify restores. Data loss is a launch-blocking risk once real users exist.
 - Require email verification where account authenticity matters, especially before enabling sensitive actions.
 - Add or preserve rate limiting, input validation, and basic bot/abuse protection on signup, login, invite, chat, affiliate redirect, postback, AI, and notification endpoints.
+- Add invisible CAPTCHA or equivalent bot challenges where spam risk is high, especially registration, login, password reset, invite/contact-style forms, and other public submissions. Keep it low-friction for real users.
 - Plan for real usage by paginating long lists and data-heavy pages instead of loading unbounded rows.
 - Add database indexes for common filters, joins, and ordering paths before data volume grows.
 - Move slow work to background jobs, cron jobs, queues, or deferred processing instead of blocking user-facing requests.
