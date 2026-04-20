@@ -15,6 +15,7 @@
 - 2026-04-20T00:00:00+08:00 [CODE] Secret Santa Lazada UI was recently reshaped toward the Stitch Winter Atelier mockup while keeping affiliate flow intact.
 - 2026-04-20T13:10:59+08:00 [CODE] `AGENTS.md` extended with CodeRabbit/AI PR review, 100 req/hour public-route baseline, CAPTCHA, HTTPS, secret-manager, dependency, RLS testing, input validation, and idempotency guardrails.
 - 2026-04-20T13:25:00+08:00 [CODE] Secret Santa Lazada UI polish continued: visible gift-direction cards, lighter curated Lazada cards, softer assignment framing, and open backup shopping strip.
+- 2026-04-20T13:30:10+08:00 [CODE] Secret Santa Lazada UI moved closer to Stitch mockup: top section tabs, single soft wishlist rail, compact image wishlist cards, working See more, and Lazada Picks heading.
 
 ## DISCOVERIES
 - 2026-04-20T00:00:00+08:00 [TOOL] Current recurring build warnings: parent lockfile workspace-root inference and Next.js middleware-to-proxy deprecation.

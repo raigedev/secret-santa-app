@@ -665,6 +665,10 @@ export default function SecretSantaPage() {
   const [activeRecipientItemByAssignment, setActiveRecipientItemByAssignment] = useState<
     Record<string, string>
   >({});
+  const [
+    expandedRecipientWishlistByAssignment,
+    setExpandedRecipientWishlistByAssignment,
+  ] = useState<Record<string, boolean>>({});
   const [selectedRecipientSuggestionByItem, setSelectedRecipientSuggestionByItem] = useState<
     Record<string, string>
   >({});
@@ -1460,6 +1464,13 @@ export default function SecretSantaPage() {
     }));
   };
 
+  const toggleRecipientWishlistExpansion = (groupId: string) => {
+    setExpandedRecipientWishlistByAssignment((current) => ({
+      ...current,
+      [groupId]: !current[groupId],
+    }));
+  };
+
   // We keep the selected option per item so switching between wishlist cards
   // does not throw away what the giver was comparing.
   const selectRecipientSuggestion = (itemId: string, suggestionId: string) => {
@@ -1803,7 +1814,42 @@ export default function SecretSantaPage() {
                 </div>
 
                 <div className="p-4 sm:p-6">
-                  <div className="mb-4 flex items-center justify-between gap-3">
+                  <nav
+                    aria-label={`${assignment.receiver_nickname} gift guide sections`}
+                    className="mb-6 flex gap-7 overflow-x-auto px-1 pb-2 text-[13px] font-extrabold"
+                    style={{ color: HOLIDAY_GREEN }}
+                  >
+                    {[
+                      ["Wishlist", `#wishlist-${assignment.group_id}`],
+                      ["Gift Direction", `#direction-${assignment.group_id}`],
+                      ["Lazada Picks", `#matches-${assignment.group_id}`],
+                      ["Prep", `#prep-${assignment.group_id}`],
+                    ].map(([label, href]) => {
+                      const isActive = label === "Lazada Picks";
+
+                      return (
+                        <a
+                          key={label}
+                          href={href}
+                          className="relative shrink-0 pb-2"
+                          style={{
+                            color: isActive ? HOLIDAY_RED : HOLIDAY_GREEN,
+                            textDecoration: "none",
+                          }}
+                        >
+                          {label}
+                          {isActive && (
+                            <span
+                              aria-hidden="true"
+                              className="absolute inset-x-0 bottom-0 h-0.5 rounded-full"
+                              style={{ background: HOLIDAY_RED }}
+                            />
+                          )}
+                        </a>
+                      );
+                    })}
+                  </nav>
+                  <div className="hidden">
                     <p
                       className="text-[15px] font-extrabold"
                       style={{ color: HOLIDAY_GREEN }}
@@ -1939,18 +1985,25 @@ export default function SecretSantaPage() {
                             : rawMatchedLazadaProducts.length > 0
                               ? rawMatchedLazadaProducts
                               : fallbackFeaturedLazadaProducts;
-                      const topWishlistItems = assignment.receiver_wishlist.slice(
-                        0,
-                        MAX_VISIBLE_RECIPIENT_WISHLIST_ITEMS
+                      const isWishlistExpanded = Boolean(
+                        expandedRecipientWishlistByAssignment[assignment.group_id]
                       );
-                      const visibleWishlistItems = topWishlistItems.some(
-                        (wishlistItem) => wishlistItem.id === item.id
-                      )
-                        ? topWishlistItems
-                        : [item, ...topWishlistItems].slice(
+                      const topWishlistItems = isWishlistExpanded
+                        ? assignment.receiver_wishlist
+                        : assignment.receiver_wishlist.slice(
                             0,
                             MAX_VISIBLE_RECIPIENT_WISHLIST_ITEMS
                           );
+                      const visibleWishlistItems = isWishlistExpanded
+                        ? topWishlistItems
+                        : topWishlistItems.some(
+                              (wishlistItem) => wishlistItem.id === item.id
+                            )
+                          ? topWishlistItems
+                          : [item, ...topWishlistItems].slice(
+                              0,
+                              MAX_VISIBLE_RECIPIENT_WISHLIST_ITEMS
+                            );
                       const hiddenWishlistItemCount = Math.max(
                         assignment.receiver_wishlist.length -
                           visibleWishlistItems.length,
@@ -1996,38 +2049,42 @@ export default function SecretSantaPage() {
                           className="grid gap-5 xl:grid-cols-[340px_minmax(0,1fr)] lg:grid-cols-[300px_minmax(0,1fr)]"
                           style={{ alignItems: "start" }}
                         >
-                          <div className="self-start space-y-3 lg:sticky lg:top-5">
-                            <div
-                              className="rounded-[28px] p-5"
-                              style={{
-                                background:
-                                  "linear-gradient(135deg,rgba(236,239,236,.92),rgba(255,255,255,.8))",
-                                border: "1px solid rgba(174,179,177,.08)",
-                                boxShadow: "0 18px 38px rgba(46,52,50,.04)",
-                              }}
-                            >
-                              <div
-                                className="mb-3 inline-flex items-center gap-2 rounded-full px-3 py-1 text-[10px] font-extrabold uppercase"
+                          <div
+                            id={`wishlist-${assignment.group_id}`}
+                            className="self-start space-y-4 rounded-[40px] p-5 sm:p-6 lg:sticky lg:top-5"
+                            style={{
+                              background: "#ecefec",
+                              boxShadow: "0 22px 54px rgba(46,52,50,.045)",
+                            }}
+                          >
+                            <div className="mb-2 flex items-center justify-between gap-4">
+                              <div className="flex min-w-0 items-center gap-3">
+                                <span
+                                  className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl"
+                                  style={{ color: HOLIDAY_GREEN }}
+                                >
+                                  <GiftMark className="h-5 w-5" />
+                                </span>
+                                <div
+                                  className="min-w-0 text-[20px] font-black leading-tight"
+                                  style={{
+                                    color: PAGE_TEXT_COLOR,
+                                    fontFamily:
+                                      "'Plus Jakarta Sans', 'Fredoka', sans-serif",
+                                  }}
+                                >
+                                  {assignment.receiver_nickname}&apos;s Wishlist
+                                </div>
+                              </div>
+                              <span
+                                className="shrink-0 rounded-full px-3 py-1 text-[10px] font-extrabold"
                                 style={{
-                                  background: "rgba(164,60,63,.1)",
-                                  color: HOLIDAY_RED,
+                                  background: "rgba(255,255,255,.72)",
+                                  color: HOLIDAY_GREEN,
                                 }}
                               >
-                                <GiftMark className="h-3.5 w-3.5" />
-                                Wishlist
-                              </div>
-                              <div
-                                className="text-[18px] font-black leading-tight"
-                                style={{ color: HOLIDAY_GREEN }}
-                              >
-                                {assignment.receiver_nickname}&apos;s wishlist
-                              </div>
-                              <div
-                                className="mt-2 text-[12px] leading-relaxed"
-                                style={{ color: TEXT_MUTED }}
-                              >
-                                Pick one clue. The shopping guide stays beside it.
-                              </div>
+                                {assignment.receiver_wishlist.length}
+                              </span>
                             </div>
 
                             {visibleWishlistItems.map((wishlistItem) => {
@@ -2040,14 +2097,6 @@ export default function SecretSantaPage() {
                               const wishlistImageUrl = normalizeOptionalUrl(
                                 wishlistItem.item_image_url
                               );
-                              const wishlistHasLink =
-                                normalizeOptionalUrl(wishlistItem.item_link).length >
-                                0;
-                              const wishlistNote = summarizeCardCopy(
-                                wishlistItem.item_note,
-                                84
-                              );
-
                               return (
                                 <button
                                   key={wishlistItem.id}
@@ -2058,16 +2107,16 @@ export default function SecretSantaPage() {
                                       wishlistItem.id
                                     )
                                   }
-                                  className="w-full rounded-[24px] p-4 text-left transition hover:-translate-y-0.5"
+                                  className="w-full rounded-[30px] p-3.5 text-left transition hover:-translate-y-0.5"
                                   style={{
                                     background: isActiveItem
-                                      ? "linear-gradient(135deg,rgba(255,255,255,.96),rgba(215,250,219,.42))"
-                                      : "rgba(242,244,242,.76)",
-                                    border: isActiveItem
-                                      ? "1px solid rgba(72,102,78,.18)"
-                                      : "1px solid rgba(174,179,177,.07)",
+                                      ? "#ffffff"
+                                      : "rgba(255,255,255,.5)",
+                                    outline: isActiveItem
+                                      ? "1px solid rgba(164,60,63,.18)"
+                                      : "1px solid rgba(255,255,255,.58)",
                                     boxShadow: isActiveItem
-                                      ? "0 22px 42px rgba(72,102,78,.1)"
+                                      ? "0 18px 38px rgba(164,60,63,.08)"
                                       : "none",
                                     cursor: "pointer",
                                     fontFamily: "inherit",
@@ -2075,7 +2124,7 @@ export default function SecretSantaPage() {
                                 >
                                   <div className="flex items-start gap-3">
                                     <div
-                                      className="flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-[22px] text-[19px]"
+                                      className="flex h-[72px] w-[72px] shrink-0 items-center justify-center overflow-hidden rounded-[14px] text-[19px]"
                                       style={{
                                         background: "rgba(255,255,255,.88)",
                                         border: "1px solid rgba(174,179,177,.08)",
@@ -2097,34 +2146,21 @@ export default function SecretSantaPage() {
                                         <div className="min-w-0">
                                           <div
                                             className="text-[14px] font-extrabold leading-tight"
-                                            style={{ color: PAGE_TEXT_COLOR }}
+                                            style={{
+                                              color: PAGE_TEXT_COLOR,
+                                              display: "-webkit-box",
+                                              WebkitLineClamp: 2,
+                                              WebkitBoxOrient: "vertical",
+                                              overflow: "hidden",
+                                            }}
                                           >
                                             {wishlistItem.item_name}
                                           </div>
-                                          {wishlistNote && (
-                                            <div
-                                              className="text-[11px] mt-1 leading-relaxed"
-                                              style={{ color: TEXT_MUTED }}
-                                            >
-                                              {wishlistNote}
-                                            </div>
-                                          )}
                                         </div>
-                                        {isActiveItem && (
-                                          <span
-                                          className="text-[9px] font-extrabold px-2.5 py-1 rounded-full"
-                                          style={{
-                                            background: "rgba(47,107,86,.12)",
-                                            color: HOLIDAY_GREEN,
-                                            }}
-                                          >
-                                            Active
-                                          </span>
-                                        )}
                                       </div>
                                       <div className="mt-3 flex items-center gap-2 flex-wrap">
                                         <span
-                                          className="text-[9px] font-extrabold px-2 py-1 rounded-lg"
+                                          className="text-[9px] font-extrabold uppercase tracking-[0.04em] px-2.5 py-1 rounded-full"
                                           style={{
                                             background:
                                               wishlistPriorityMeta.badgeBackground,
@@ -2143,28 +2179,6 @@ export default function SecretSantaPage() {
                                               {wishlistItem.item_category}
                                             </span>
                                           )}
-                                        {wishlistHasLink && (
-                                          <span
-                                            className="text-[9px] font-bold px-2 py-1 rounded-lg"
-                                            style={{
-                                              background: "rgba(88,116,142,.08)",
-                                              color: HOLIDAY_BLUE,
-                                            }}
-                                          >
-                                            Link
-                                          </span>
-                                        )}
-                                        {wishlistImageUrl && (
-                                          <span
-                                            className="text-[9px] font-bold px-2 py-1 rounded-lg"
-                                            style={{
-                                              background: "rgba(169,135,61,.08)",
-                                              color: HOLIDAY_GOLD,
-                                            }}
-                                          >
-                                            Photo
-                                          </span>
-                                        )}
                                       </div>
                                     </div>
                                   </div>
@@ -2172,24 +2186,44 @@ export default function SecretSantaPage() {
                               );
                             })}
 
-                            {hiddenWishlistItemCount > 0 && (
-                              <div
-                                className="rounded-[18px] px-4 py-3 text-center text-[11px] font-extrabold"
+                            {assignment.receiver_wishlist.length >
+                              MAX_VISIBLE_RECIPIENT_WISHLIST_ITEMS && (
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  toggleRecipientWishlistExpansion(
+                                    assignment.group_id
+                                  )
+                                }
+                                className="mx-auto flex items-center gap-2 rounded-full px-4 py-3 text-[12px] font-extrabold transition hover:-translate-y-0.5"
                                 style={{
-                                  background: "rgba(255,255,255,.66)",
-                                  border: "1px solid rgba(174,179,177,.07)",
-                                  color: TEXT_MUTED,
+                                  color: HOLIDAY_GREEN,
+                                  fontFamily: "inherit",
                                 }}
                               >
-                                Showing first {visibleWishlistItems.length}.{" "}
-                                {hiddenWishlistItemCount} more idea
-                                {hiddenWishlistItemCount !== 1 ? "s" : ""} stay saved
-                                for this recipient.
-                              </div>
+                                {isWishlistExpanded ? "Show less" : "See more"}
+                                <span aria-hidden="true">
+                                  {isWishlistExpanded ? "^" : "v"}
+                                </span>
+                                {!isWishlistExpanded && (
+                                  <span
+                                    className="rounded-full px-2 py-0.5 text-[10px]"
+                                    style={{
+                                      background: "rgba(255,255,255,.72)",
+                                      color: TEXT_MUTED,
+                                    }}
+                                  >
+                                    +{hiddenWishlistItemCount}
+                                  </span>
+                                )}
+                              </button>
                             )}
                           </div>
 
-                          <div className="self-start">
+                          <div
+                            id={`matches-${assignment.group_id}`}
+                            className="self-start"
+                          >
                             <div className="space-y-10">
                               <div>
                                 <h2
@@ -2200,16 +2234,14 @@ export default function SecretSantaPage() {
                                       "'Plus Jakarta Sans', 'Fredoka', sans-serif",
                                   }}
                                 >
-                                  Your Recipient&apos;s Wishlist
+                                  Lazada Picks
                                 </h2>
                                 <p
                                   className="mt-2 max-w-3xl text-[14px] font-medium leading-relaxed sm:text-[16px]"
                                   style={{ color: TEXT_MUTED }}
                                 >
-                                  We&apos;ve gathered the best matches for{" "}
-                                  {assignment.receiver_nickname}&apos;s holiday
-                                  requests. Pick something special to brighten
-                                  their season.
+                                  Gift ideas for {assignment.receiver_nickname}, shaped by
+                                  the wishlist clue and the selected direction.
                                 </p>
                               </div>
 
@@ -2297,6 +2329,7 @@ export default function SecretSantaPage() {
                               </div>
 
                               <section
+                                id={`direction-${assignment.group_id}`}
                                 className="rounded-[30px] p-5 sm:p-6"
                                 style={{
                                   background: "rgba(242,244,242,.86)",
@@ -2712,6 +2745,7 @@ export default function SecretSantaPage() {
                   )}
 
                   <div
+                    id={`prep-${assignment.group_id}`}
                     className="mt-4 rounded-[28px] p-4"
                     style={{
                       background:
