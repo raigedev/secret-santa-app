@@ -1093,6 +1093,62 @@ export default function SecretSantaPage() {
   }, [aiSuggestionStateByItem, assignments, shoppingRegion]);
 
   useEffect(() => {
+    setSelectedRecipientSuggestionByItem((current) => {
+      let changed = false;
+      const nextState = { ...current };
+
+      for (const assignment of assignments) {
+        const activeItemId = getActiveRecipientWishlistItemId(
+          assignment,
+          activeRecipientItemByAssignment
+        );
+
+        if (!activeItemId || nextState[activeItemId]) {
+          continue;
+        }
+
+        const activeItem =
+          assignment.receiver_wishlist.find(
+            (wishlistItem) => wishlistItem.id === activeItemId
+          ) || null;
+
+        if (!activeItem) {
+          continue;
+        }
+
+        const aiSuggestionState = aiSuggestionStateByItem[activeItem.id] || null;
+
+        if (shoppingRegion === "PH" && aiSuggestionState?.loading) {
+          continue;
+        }
+
+        const suggestionInput = buildRecipientSuggestionInput(assignment, activeItem);
+        const suggestionOptions = applySuggestionDisplayOrder(
+          mergeWishlistSuggestionOptions(
+            buildWishlistSuggestionOptions(suggestionInput),
+            aiSuggestionState?.options || []
+          ),
+          suggestionDisplayOrderByItem[activeItem.id] || []
+        );
+        const defaultSuggestion = suggestionOptions[0] || null;
+
+        if (defaultSuggestion) {
+          nextState[activeItem.id] = defaultSuggestion.id;
+          changed = true;
+        }
+      }
+
+      return changed ? nextState : current;
+    });
+  }, [
+    activeRecipientItemByAssignment,
+    aiSuggestionStateByItem,
+    assignments,
+    shoppingRegion,
+    suggestionDisplayOrderByItem,
+  ]);
+
+  useEffect(() => {
     if (shoppingRegion !== "PH") {
       return;
     }
@@ -2059,7 +2115,9 @@ export default function SecretSantaPage() {
                         0
                       );
                       const primaryFeaturedLazadaProduct =
-                        featuredLazadaProducts[0] || null;
+                        (lazadaMatchesLoading
+                          ? fallbackFeaturedLazadaProducts[0]
+                          : featuredLazadaProducts[0]) || null;
                       const heroLazadaImageUrl = normalizeOptionalUrl(
                         primaryFeaturedLazadaProduct?.imageUrl || safeItemImageUrl
                       );
@@ -2082,7 +2140,7 @@ export default function SecretSantaPage() {
                         lazadaWishlistProductHref ||
                         safeItemLink;
                       const topGuideButtonLabel = primaryFeaturedLazadaProduct
-                        ? "Open Lazada"
+                        ? getFeaturedLazadaButtonLabel(primaryFeaturedLazadaProduct)
                         : lazadaWishlistProductHref
                           ? "Buy on Lazada"
                           : safeItemLink
