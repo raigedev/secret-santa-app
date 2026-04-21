@@ -2460,9 +2460,9 @@ export default function SecretSantaPage() {
                                       boxShadow: "0 24px 52px rgba(46,52,50,.05)",
                                     }}
                                   >
-                                    <div className="grid gap-0 md:grid-cols-[minmax(220px,36%)_minmax(0,1fr)]">
+                                    <div className="grid gap-0 md:grid-cols-[minmax(180px,31%)_minmax(0,1fr)]">
                                     <div
-                                      className="relative flex min-h-[220px] items-center justify-center overflow-hidden text-[40px] sm:min-h-[240px] lg:min-h-[260px]"
+                                      className="relative flex min-h-[190px] items-center justify-center overflow-hidden px-4 py-5 text-[40px] sm:min-h-[210px] sm:px-5 sm:py-6 lg:min-h-[220px]"
                                       style={{
                                         background:
                                           "linear-gradient(180deg,rgba(236,239,236,.96),rgba(223,228,225,.92))",
@@ -2473,7 +2473,7 @@ export default function SecretSantaPage() {
                                         <img
                                           src={heroLazadaImageUrl}
                                           alt={heroLazadaTitle}
-                                          className="h-full min-h-[220px] w-full object-cover object-center transition duration-700 group-hover:scale-[1.03] sm:min-h-[240px] lg:min-h-[260px]"
+                                          className="h-full max-h-[190px] w-full object-contain transition duration-700 group-hover:scale-[1.02] sm:max-h-[210px] lg:max-h-[220px]"
                                         />
                                       ) : (
                                         <div
@@ -2484,7 +2484,7 @@ export default function SecretSantaPage() {
                                         </div>
                                       )}
                                     </div>
-                                    <div className="flex min-w-0 flex-col justify-center p-5 sm:p-7">
+                                    <div className="flex min-w-0 flex-col justify-center p-5 sm:p-6">
                                       <div
                                         className="mb-3 inline-flex items-center gap-2 text-[11px] font-extrabold uppercase"
                                         style={{
@@ -2496,7 +2496,7 @@ export default function SecretSantaPage() {
                                       </div>
                                       <div className="min-w-0">
                                         <h3
-                                          className="text-[20px] font-extrabold leading-[1.08] sm:text-[26px] lg:text-[28px]"
+                                          className="text-[19px] font-extrabold leading-[1.08] sm:text-[24px] lg:text-[26px]"
                                           style={{
                                             color: PAGE_TEXT_COLOR,
                                             fontFamily:
