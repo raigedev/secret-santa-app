@@ -2117,7 +2117,12 @@ export default function SecretSantaPage() {
                             typeof tag === "string" && tag.trim().length > 0
                         )
                         .slice(0, 3);
-                      const curatedLazadaCards = featuredLazadaProducts.slice(0, 3);
+                      const heroLazadaHref =
+                        primaryFeaturedLazadaProduct?.href || null;
+                      const heroLazadaButtonLabel = primaryFeaturedLazadaProduct
+                        ? getFeaturedLazadaButtonLabel(primaryFeaturedLazadaProduct)
+                        : "Browse Lazada";
+                      const curatedLazadaCards = featuredLazadaProducts.slice(1, 4);
 
                       return (
                         <div
@@ -2320,16 +2325,16 @@ export default function SecretSantaPage() {
                                 </p>
                               </div>
 
-                              <div className="grid gap-5 xl:grid-cols-[minmax(320px,0.88fr)_minmax(0,1.12fr)] xl:items-start">
+                              <div className="grid gap-4 lg:grid-cols-[minmax(280px,320px)_minmax(0,1fr)] lg:items-start">
                                 <section
                                   id={`direction-${assignment.group_id}`}
-                                  className="order-2 rounded-[30px] p-5 sm:p-6 xl:order-1"
+                                  className="rounded-[30px] p-5 sm:p-6"
                                   style={{
                                     background: "rgba(242,244,242,.86)",
                                     color: PAGE_TEXT_COLOR,
                                   }}
                                 >
-                                  <div className="flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between xl:flex-col xl:items-start xl:gap-2">
+                                  <div className="flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between lg:flex-col lg:items-start lg:gap-2">
                                     <div>
                                       <h3
                                         className="text-[15px] font-extrabold"
@@ -2354,7 +2359,7 @@ export default function SecretSantaPage() {
                                     </span>
                                   </div>
 
-                                  <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-1">
+                                  <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-1">
                                     {suggestionOptions.map((suggestion) => {
                                       const isSelected =
                                         suggestion.id === selectedSuggestionId;
@@ -2423,14 +2428,15 @@ export default function SecretSantaPage() {
                                   </div>
                                 </section>
 
-                                <div
-                                  className="order-1 group overflow-hidden rounded-[28px] xl:order-2"
-                                  style={{
-                                    background: "#ffffff",
-                                    boxShadow: "0 20px 44px rgba(46,52,50,.04)",
-                                  }}
-                                >
-                                  <div className="grid gap-0 md:grid-cols-[minmax(180px,34%)_1fr]">
+                                <div className="space-y-5">
+                                  <div
+                                    className="group overflow-hidden rounded-[28px]"
+                                    style={{
+                                      background: "#ffffff",
+                                      boxShadow: "0 20px 44px rgba(46,52,50,.04)",
+                                    }}
+                                  >
+                                    <div className="grid gap-0 md:grid-cols-[minmax(180px,34%)_1fr]">
                                     <div
                                       className="flex min-h-[180px] items-center justify-center overflow-hidden text-[40px] sm:min-h-[210px] lg:min-h-[230px]"
                                       style={{
@@ -2516,13 +2522,38 @@ export default function SecretSantaPage() {
                                           </span>
                                         )}
                                       </div>
+                                      {heroLazadaHref && (
+                                        <div className="mt-5">
+                                          <a
+                                            href={heroLazadaHref}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            className="inline-flex items-center gap-2 rounded-full px-5 py-3 text-[13px] font-extrabold leading-none transition hover:scale-[1.01]"
+                                            style={{
+                                              background:
+                                                "linear-gradient(135deg,#a43c3f 0%, #7f252b 100%)",
+                                              color: "#f8fbfc",
+                                              boxShadow:
+                                                "0 12px 24px rgba(164,60,63,.18)",
+                                              textDecoration: "none",
+                                            }}
+                                          >
+                                            <span>{heroLazadaButtonLabel}</span>
+                                            <span
+                                              aria-hidden="true"
+                                              className="text-[14px]"
+                                            >
+                                              {"->"}
+                                            </span>
+                                          </a>
+                                        </div>
+                                      )}
                                     </div>
                                   </div>
-                                </div>
-                              </div>
+                                  </div>
 
-                              {selectedSuggestion && (
-                                <div className="space-y-8">
+                                  {selectedSuggestion && (
+                                    <div className="space-y-6">
 
                                       {lazadaMatchedProductsState?.loading && (
                                         <div
@@ -2600,10 +2631,10 @@ export default function SecretSantaPage() {
                                           </div>
                                         )}
 
-                                      {featuredLazadaProducts.length > 0 && (
+                                      {curatedLazadaCards.length > 0 && (
                                         <section>
                                           <h3
-                                            className="mb-6 text-[22px] font-extrabold leading-tight sm:text-[26px]"
+                                            className="mb-5 text-[20px] font-extrabold leading-tight sm:text-[24px]"
                                             style={{
                                               color: PAGE_TEXT_COLOR,
                                               fontFamily:
@@ -2613,7 +2644,7 @@ export default function SecretSantaPage() {
                                             Curated Shopping Ideas
                                           </h3>
 
-                                          <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
+                                          <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
                                             {curatedLazadaCards.map((product, index) => {
                                               const conciseSubtitle = summarizeCardCopy(
                                                 product.whyItFits || product.subtitle,
@@ -2838,10 +2869,12 @@ export default function SecretSantaPage() {
                                         {selectedSuggestion.disclosure}
                                       </div>
                                     </div>
-                                )}
+                                  )}
+                                </div>
                               </div>
                             </div>
                           </div>
+                        </div>
                       );
                     })()
 
