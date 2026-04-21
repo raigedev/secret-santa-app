@@ -21,6 +21,7 @@
 - 2026-04-21T10:06:04+08:00 [CODE] Secret Santa Lazada top section now treats Gift direction as the control panel and Most wanted as the live preview beside it on desktop, with a smaller hero and Curated Shopping Ideas pushed below as secondary browsing.
 - 2026-04-21T10:18:27+08:00 [CODE] Secret Santa Lazada right column now stacks a clickable Most wanted card with its primary Lazada CTA above Curated Shopping Ideas, while the Gift direction rail stays beside it on large screens and above it on smaller screens.
 - 2026-04-21T10:26:05+08:00 [CODE] Secret Santa Lazada supporting cards now use wider auto-fit grids, non-breaking badge chips, non-truncating CTA labels, and safer backup-merchant grid layout to prevent vertical text collapse and cramped card failures.
+- 2026-04-21T10:31:33+08:00 [CODE] Curated Shopping Ideas now fills up to 3 distinct alternatives after the featured hero by merging deduped matched and fallback Lazada products instead of simply slicing the hero list.
 
 ## DISCOVERIES
 - 2026-04-20T00:00:00+08:00 [TOOL] Current recurring build warnings: parent lockfile workspace-root inference and Next.js middleware-to-proxy deprecation.

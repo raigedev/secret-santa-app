@@ -2122,7 +2122,30 @@ export default function SecretSantaPage() {
                       const heroLazadaButtonLabel = primaryFeaturedLazadaProduct
                         ? getFeaturedLazadaButtonLabel(primaryFeaturedLazadaProduct)
                         : "Browse Lazada";
-                      const curatedLazadaCards = featuredLazadaProducts.slice(1, 4);
+                      const curatedLazadaCardPool = [
+                        ...featuredLazadaProducts,
+                        ...displayableMatchedLazadaProducts,
+                        ...displayableFallbackLazadaProducts,
+                      ].filter(
+                        (product, index, array) =>
+                          array.findIndex(
+                            (candidate) =>
+                              candidate.id === product.id ||
+                              candidate.href === product.href
+                          ) === index
+                      );
+                      const curatedLazadaCards = curatedLazadaCardPool
+                        .filter((product) => {
+                          if (!primaryFeaturedLazadaProduct) {
+                            return true;
+                          }
+
+                          return (
+                            product.id !== primaryFeaturedLazadaProduct.id &&
+                            product.href !== primaryFeaturedLazadaProduct.href
+                          );
+                        })
+                        .slice(0, 3);
 
                       return (
                         <div
