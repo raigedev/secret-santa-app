@@ -2299,7 +2299,7 @@ export default function SecretSantaPage() {
                             id={`matches-${assignment.group_id}`}
                             className="self-start"
                           >
-                            <div className="space-y-10">
+                            <div className="space-y-8">
                               <div>
                                 <h2
                                   className="text-[28px] font-extrabold leading-tight sm:text-[38px]"
@@ -2320,207 +2320,209 @@ export default function SecretSantaPage() {
                                 </p>
                               </div>
 
-                              <div
-                                className="group overflow-hidden rounded-[30px]"
-                                style={{
-                                  background: "#ffffff",
-                                  boxShadow: "0 22px 52px rgba(46,52,50,.04)",
-                                }}
-                              >
-                                <div className="grid gap-0 md:grid-cols-[minmax(220px,42%)_1fr]">
-                                  <div
-                                    className="flex min-h-[220px] items-center justify-center overflow-hidden text-[42px] sm:min-h-[260px] lg:min-h-[300px]"
-                                    style={{
-                                      background: "#ecefec",
-                                    }}
-                                  >
-                                    {heroLazadaImageUrl ? (
-                                      // eslint-disable-next-line @next/next/no-img-element
-                                      <img
-                                        src={heroLazadaImageUrl}
-                                        alt={heroLazadaTitle}
-                                        className="h-full min-h-[220px] w-full object-cover transition duration-700 group-hover:scale-[1.03] sm:min-h-[260px] lg:min-h-[300px]"
-                                      />
-                                    ) : (
-                                      priorityMeta.icon
-                                    )}
-                                  </div>
-                                  <div className="flex min-w-0 flex-col justify-center p-6 sm:p-7 lg:p-8">
-                                    <div
-                                      className="mb-3 inline-flex items-center gap-2 text-[11px] font-extrabold uppercase"
-                                      style={{
-                                        color: HOLIDAY_GOLD,
-                                      }}
-                                    >
-                                      <span aria-hidden="true">★</span>
-                                      Most wanted
-                                    </div>
-                                    <div className="min-w-0">
+                              <div className="grid gap-5 xl:grid-cols-[minmax(320px,0.88fr)_minmax(0,1.12fr)] xl:items-start">
+                                <section
+                                  id={`direction-${assignment.group_id}`}
+                                  className="order-2 rounded-[30px] p-5 sm:p-6 xl:order-1"
+                                  style={{
+                                    background: "rgba(242,244,242,.86)",
+                                    color: PAGE_TEXT_COLOR,
+                                  }}
+                                >
+                                  <div className="flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between xl:flex-col xl:items-start xl:gap-2">
+                                    <div>
                                       <h3
-                                        className="text-[23px] font-extrabold leading-[1.08] sm:text-[29px] lg:text-[31px]"
-                                        style={{
-                                          color: PAGE_TEXT_COLOR,
-                                          fontFamily:
-                                            "'Plus Jakarta Sans', 'Fredoka', sans-serif",
-                                          display: "-webkit-box",
-                                          WebkitLineClamp: 4,
-                                          WebkitBoxOrient: "vertical",
-                                          overflow: "hidden",
-                                          overflowWrap: "anywhere",
-                                        }}
+                                        className="text-[15px] font-extrabold"
+                                        style={{ color: HOLIDAY_GREEN }}
                                       >
-                                        {heroLazadaTitle}
+                                        Gift direction
                                       </h3>
                                       <p
-                                        className="mt-3 text-[13px] font-medium leading-relaxed sm:text-[14px]"
-                                        style={{
-                                          color: TEXT_MUTED,
-                                          display: "-webkit-box",
-                                          WebkitLineClamp: 3,
-                                          WebkitBoxOrient: "vertical",
-                                          overflow: "hidden",
-                                          overflowWrap: "anywhere",
-                                        }}
+                                        className="mt-1 text-[12px] leading-relaxed"
+                                        style={{ color: TEXT_MUTED }}
                                       >
-                                        {heroLazadaCopy}
+                                        {selectedSuggestion
+                                          ? selectedSuggestion.title
+                                          : "Choose the shopping angle before opening Lazada."}
                                       </p>
                                     </div>
-                                    <div className="mt-5 flex flex-wrap gap-2">
-                                      {heroLazadaTags.length > 0 ? (
-                                        heroLazadaTags.map((tag) => (
-                                          <span
-                                            key={tag}
-                                            className="max-w-full rounded-full px-4 py-1.5 text-[11px] font-extrabold"
+                                    <span
+                                      className="text-[10px] font-extrabold uppercase"
+                                      style={{ color: TEXT_SOFT }}
+                                    >
+                                      Tap to switch
+                                    </span>
+                                  </div>
+
+                                  <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-1">
+                                    {suggestionOptions.map((suggestion) => {
+                                      const isSelected =
+                                        suggestion.id === selectedSuggestionId;
+
+                                      return (
+                                        <button
+                                          key={suggestion.id}
+                                          type="button"
+                                          onClick={() =>
+                                            selectRecipientSuggestion(
+                                              item.id,
+                                              suggestion.id
+                                            )
+                                          }
+                                          className="flex min-h-[92px] w-full flex-col rounded-[22px] p-4 text-left transition hover:-translate-y-0.5"
+                                          style={{
+                                            background: isSelected
+                                              ? "#ffffff"
+                                              : "rgba(255,255,255,.58)",
+                                            boxShadow: isSelected
+                                              ? "0 18px 38px rgba(72,102,78,.09)"
+                                              : "none",
+                                            cursor: "pointer",
+                                            fontFamily: "inherit",
+                                            outline: isSelected
+                                              ? "1px solid rgba(72,102,78,.18)"
+                                              : "1px solid rgba(174,179,177,.08)",
+                                          }}
+                                        >
+                                          <div className="flex items-start justify-between gap-3">
+                                            <div
+                                              className="text-[13px] font-extrabold leading-tight"
+                                              style={{ color: PAGE_TEXT_COLOR }}
+                                            >
+                                              {suggestion.title}
+                                            </div>
+                                            <span
+                                              className="shrink-0 rounded-full px-2.5 py-1 text-[9px] font-extrabold"
+                                              style={{
+                                                color: isSelected
+                                                  ? HOLIDAY_GREEN
+                                                  : TEXT_MUTED,
+                                                background: isSelected
+                                                  ? "rgba(72,102,78,.1)"
+                                                  : "rgba(255,255,255,.72)",
+                                              }}
+                                            >
+                                              {isSelected ? "Selected" : suggestion.fitLabel}
+                                            </span>
+                                          </div>
+                                          <div
+                                            className="mt-2 text-[11px] leading-relaxed"
                                             style={{
-                                              background: "rgba(252,206,114,.9)",
-                                              color: "#5f4500",
-                                              overflowWrap: "anywhere",
+                                              color: TEXT_MUTED,
+                                              display: "-webkit-box",
+                                              WebkitLineClamp: 2,
+                                              WebkitBoxOrient: "vertical",
+                                              overflow: "hidden",
                                             }}
                                           >
-                                            {tag}
-                                          </span>
-                                        ))
+                                            {suggestion.subtitle}
+                                          </div>
+                                        </button>
+                                      );
+                                    })}
+                                  </div>
+                                </section>
+
+                                <div
+                                  className="order-1 group overflow-hidden rounded-[28px] xl:order-2"
+                                  style={{
+                                    background: "#ffffff",
+                                    boxShadow: "0 20px 44px rgba(46,52,50,.04)",
+                                  }}
+                                >
+                                  <div className="grid gap-0 md:grid-cols-[minmax(180px,34%)_1fr]">
+                                    <div
+                                      className="flex min-h-[180px] items-center justify-center overflow-hidden text-[40px] sm:min-h-[210px] lg:min-h-[230px]"
+                                      style={{
+                                        background: "#ecefec",
+                                      }}
+                                    >
+                                      {heroLazadaImageUrl ? (
+                                        // eslint-disable-next-line @next/next/no-img-element
+                                        <img
+                                          src={heroLazadaImageUrl}
+                                          alt={heroLazadaTitle}
+                                          className="h-full min-h-[180px] w-full object-cover transition duration-700 group-hover:scale-[1.03] sm:min-h-[210px] lg:min-h-[230px]"
+                                        />
                                       ) : (
-                                        <span
-                                          className="max-w-full rounded-full px-4 py-1.5 text-[11px] font-extrabold"
+                                        priorityMeta.icon
+                                      )}
+                                    </div>
+                                    <div className="flex min-w-0 flex-col justify-center p-5 sm:p-6 lg:p-6">
+                                      <div
+                                        className="mb-3 inline-flex items-center gap-2 text-[11px] font-extrabold uppercase"
+                                        style={{
+                                          color: HOLIDAY_GOLD,
+                                        }}
+                                      >
+                                        <span aria-hidden="true">★</span>
+                                        Most wanted
+                                      </div>
+                                      <div className="min-w-0">
+                                        <h3
+                                          className="text-[20px] font-extrabold leading-[1.08] sm:text-[25px] lg:text-[27px]"
                                           style={{
-                                            background: priorityMeta.badgeBackground,
-                                            color: priorityMeta.badgeColor,
+                                            color: PAGE_TEXT_COLOR,
+                                            fontFamily:
+                                              "'Plus Jakarta Sans', 'Fredoka', sans-serif",
+                                            display: "-webkit-box",
+                                            WebkitLineClamp: 3,
+                                            WebkitBoxOrient: "vertical",
+                                            overflow: "hidden",
                                             overflowWrap: "anywhere",
                                           }}
                                         >
-                                          {priorityMeta.label}
-                                        </span>
-                                      )}
+                                          {heroLazadaTitle}
+                                        </h3>
+                                        <p
+                                          className="mt-3 text-[13px] font-medium leading-relaxed"
+                                          style={{
+                                            color: TEXT_MUTED,
+                                            display: "-webkit-box",
+                                            WebkitLineClamp: 3,
+                                            WebkitBoxOrient: "vertical",
+                                            overflow: "hidden",
+                                            overflowWrap: "anywhere",
+                                          }}
+                                        >
+                                          {heroLazadaCopy}
+                                        </p>
+                                      </div>
+                                      <div className="mt-4 flex flex-wrap gap-2">
+                                        {heroLazadaTags.length > 0 ? (
+                                          heroLazadaTags.map((tag) => (
+                                            <span
+                                              key={tag}
+                                              className="max-w-full rounded-full px-4 py-1.5 text-[11px] font-extrabold"
+                                              style={{
+                                                background: "rgba(252,206,114,.9)",
+                                                color: "#5f4500",
+                                                overflowWrap: "anywhere",
+                                              }}
+                                            >
+                                              {tag}
+                                            </span>
+                                          ))
+                                        ) : (
+                                          <span
+                                            className="max-w-full rounded-full px-4 py-1.5 text-[11px] font-extrabold"
+                                            style={{
+                                              background: priorityMeta.badgeBackground,
+                                              color: priorityMeta.badgeColor,
+                                              overflowWrap: "anywhere",
+                                            }}
+                                          >
+                                            {priorityMeta.label}
+                                          </span>
+                                        )}
+                                      </div>
                                     </div>
                                   </div>
                                 </div>
                               </div>
 
-                              <section
-                                id={`direction-${assignment.group_id}`}
-                                className="rounded-[30px] p-5 sm:p-6"
-                                style={{
-                                  background: "rgba(242,244,242,.86)",
-                                  color: PAGE_TEXT_COLOR,
-                                }}
-                              >
-                                <div className="flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between">
-                                  <div>
-                                    <h3
-                                      className="text-[15px] font-extrabold"
-                                      style={{ color: HOLIDAY_GREEN }}
-                                    >
-                                      Gift direction
-                                    </h3>
-                                    <p
-                                      className="mt-1 text-[12px] leading-relaxed"
-                                      style={{ color: TEXT_MUTED }}
-                                    >
-                                      {selectedSuggestion
-                                        ? selectedSuggestion.title
-                                        : "Choose the shopping angle before opening Lazada."}
-                                    </p>
-                                  </div>
-                                  <span
-                                    className="text-[10px] font-extrabold uppercase"
-                                    style={{ color: TEXT_SOFT }}
-                                  >
-                                    Tap to switch
-                                  </span>
-                                </div>
-
-                                <div className="mt-4 grid gap-3 sm:grid-cols-3">
-                                  {suggestionOptions.map((suggestion) => {
-                                    const isSelected =
-                                      suggestion.id === selectedSuggestionId;
-
-                                    return (
-                                      <button
-                                        key={suggestion.id}
-                                        type="button"
-                                        onClick={() =>
-                                          selectRecipientSuggestion(
-                                            item.id,
-                                            suggestion.id
-                                          )
-                                        }
-                                        className="flex min-h-[104px] w-full flex-col rounded-[22px] p-4 text-left transition hover:-translate-y-0.5"
-                                        style={{
-                                          background: isSelected
-                                            ? "#ffffff"
-                                            : "rgba(255,255,255,.58)",
-                                          boxShadow: isSelected
-                                            ? "0 18px 38px rgba(72,102,78,.09)"
-                                            : "none",
-                                          cursor: "pointer",
-                                          fontFamily: "inherit",
-                                          outline: isSelected
-                                            ? "1px solid rgba(72,102,78,.18)"
-                                            : "1px solid rgba(174,179,177,.08)",
-                                        }}
-                                      >
-                                        <div className="flex items-start justify-between gap-3">
-                                          <div
-                                            className="text-[13px] font-extrabold leading-tight"
-                                            style={{ color: PAGE_TEXT_COLOR }}
-                                          >
-                                            {suggestion.title}
-                                          </div>
-                                          <span
-                                            className="shrink-0 rounded-full px-2.5 py-1 text-[9px] font-extrabold"
-                                            style={{
-                                              color: isSelected
-                                                ? HOLIDAY_GREEN
-                                                : TEXT_MUTED,
-                                              background: isSelected
-                                                ? "rgba(72,102,78,.1)"
-                                                : "rgba(255,255,255,.72)",
-                                            }}
-                                          >
-                                            {isSelected ? "Selected" : suggestion.fitLabel}
-                                          </span>
-                                        </div>
-                                        <div
-                                          className="mt-2 text-[11px] leading-relaxed"
-                                          style={{
-                                            color: TEXT_MUTED,
-                                            display: "-webkit-box",
-                                            WebkitLineClamp: 2,
-                                            WebkitBoxOrient: "vertical",
-                                            overflow: "hidden",
-                                          }}
-                                        >
-                                          {suggestion.subtitle}
-                                        </div>
-                                      </button>
-                                    );
-                                  })}
-                                </div>
-                              </section>
-
                               {selectedSuggestion && (
-                                <div className="space-y-10">
+                                <div className="space-y-8">
 
                                       {lazadaMatchedProductsState?.loading && (
                                         <div

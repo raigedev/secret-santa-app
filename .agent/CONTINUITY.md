@@ -18,6 +18,7 @@
 - 2026-04-20T13:30:10+08:00 [CODE] Secret Santa Lazada UI moved closer to Stitch mockup: top section tabs, single soft wishlist rail, compact image wishlist cards, working See more, and Lazada Picks heading.
 - 2026-04-20T16:51:17+08:00 [CODE] Secret Santa Lazada UI fixed overflow-prone card text, reduced hero sizing, made section tabs stateful, and excluded stale direct Lazada product cards from display in favor of search-backed links.
 - 2026-04-20T17:00:23+08:00 [CODE] Corrected Lazada card display to keep matched product image/title/price while rewriting direct catalog-product clicks to tracked search-backed Lazada routes.
+- 2026-04-21T10:06:04+08:00 [CODE] Secret Santa Lazada top section now treats Gift direction as the control panel and Most wanted as the live preview beside it on desktop, with a smaller hero and Curated Shopping Ideas pushed below as secondary browsing.
 
 ## DISCOVERIES
 - 2026-04-20T00:00:00+08:00 [TOOL] Current recurring build warnings: parent lockfile workspace-root inference and Next.js middleware-to-proxy deprecation.
