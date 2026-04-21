@@ -2149,7 +2149,7 @@ export default function SecretSantaPage() {
 
                       return (
                         <div
-                          className="grid gap-5 xl:grid-cols-[340px_minmax(0,1fr)] lg:grid-cols-[300px_minmax(0,1fr)]"
+                          className="grid gap-5 xl:grid-cols-[320px_minmax(0,1fr)] lg:grid-cols-[300px_minmax(0,1fr)]"
                           style={{ alignItems: "start" }}
                         >
                           <div
@@ -2348,7 +2348,7 @@ export default function SecretSantaPage() {
                                 </p>
                               </div>
 
-                              <div className="grid gap-4 lg:grid-cols-[minmax(250px,290px)_minmax(0,1fr)] lg:items-start">
+                              <div className="grid gap-5 xl:grid-cols-[minmax(250px,290px)_minmax(0,1fr)] xl:items-start">
                                 <section
                                   id={`direction-${assignment.group_id}`}
                                   className="rounded-[30px] p-5 sm:p-6"
@@ -2453,17 +2453,19 @@ export default function SecretSantaPage() {
 
                                 <div className="space-y-5">
                                   <div
-                                    className="group overflow-hidden rounded-[28px]"
+                                    className="group overflow-hidden rounded-[34px]"
                                     style={{
-                                      background: "#ffffff",
-                                      boxShadow: "0 20px 44px rgba(46,52,50,.04)",
+                                      background:
+                                        "linear-gradient(135deg,rgba(255,255,255,.98),rgba(247,249,247,.92))",
+                                      boxShadow: "0 24px 52px rgba(46,52,50,.05)",
                                     }}
                                   >
-                                    <div className="grid gap-0 md:grid-cols-[minmax(160px,30%)_1fr]">
+                                    <div className="grid gap-0 md:grid-cols-[minmax(220px,36%)_minmax(0,1fr)]">
                                     <div
-                                      className="flex min-h-[170px] items-center justify-center overflow-hidden text-[40px] sm:min-h-[190px] lg:min-h-[210px]"
+                                      className="relative flex min-h-[220px] items-center justify-center overflow-hidden text-[40px] sm:min-h-[240px] lg:min-h-[260px]"
                                       style={{
-                                        background: "#ecefec",
+                                        background:
+                                          "linear-gradient(180deg,rgba(236,239,236,.96),rgba(223,228,225,.92))",
                                       }}
                                     >
                                       {heroLazadaImageUrl ? (
@@ -2471,13 +2473,18 @@ export default function SecretSantaPage() {
                                         <img
                                           src={heroLazadaImageUrl}
                                           alt={heroLazadaTitle}
-                                          className="h-full min-h-[170px] w-full object-cover object-center transition duration-700 group-hover:scale-[1.03] sm:min-h-[190px] lg:min-h-[210px]"
+                                          className="h-full min-h-[220px] w-full object-cover object-center transition duration-700 group-hover:scale-[1.03] sm:min-h-[240px] lg:min-h-[260px]"
                                         />
                                       ) : (
-                                        priorityMeta.icon
+                                        <div
+                                          className="flex h-full w-full items-center justify-center"
+                                          style={{ color: HOLIDAY_GOLD }}
+                                        >
+                                          <SparkleMark className="h-10 w-10" />
+                                        </div>
                                       )}
                                     </div>
-                                    <div className="flex min-w-0 flex-col justify-center p-5 sm:p-6 lg:p-6">
+                                    <div className="flex min-w-0 flex-col justify-center p-5 sm:p-7">
                                       <div
                                         className="mb-3 inline-flex items-center gap-2 text-[11px] font-extrabold uppercase"
                                         style={{
@@ -2489,7 +2496,7 @@ export default function SecretSantaPage() {
                                       </div>
                                       <div className="min-w-0">
                                         <h3
-                                          className="text-[20px] font-extrabold leading-[1.08] sm:text-[25px] lg:text-[27px]"
+                                          className="text-[20px] font-extrabold leading-[1.08] sm:text-[26px] lg:text-[28px]"
                                           style={{
                                             color: PAGE_TEXT_COLOR,
                                             fontFamily:
@@ -2504,11 +2511,11 @@ export default function SecretSantaPage() {
                                           {heroLazadaTitle}
                                         </h3>
                                         <p
-                                          className="mt-3 text-[13px] font-medium leading-relaxed"
+                                          className="mt-3 text-[13px] font-medium leading-relaxed sm:text-[14px]"
                                           style={{
                                             color: TEXT_MUTED,
                                             display: "-webkit-box",
-                                            WebkitLineClamp: 3,
+                                            WebkitLineClamp: 4,
                                             WebkitBoxOrient: "vertical",
                                             overflow: "hidden",
                                             overflowWrap: "anywhere",
@@ -2517,14 +2524,14 @@ export default function SecretSantaPage() {
                                           {heroLazadaCopy}
                                         </p>
                                       </div>
-                                      <div className="mt-4 flex flex-wrap gap-2">
+                                      <div className="mt-4 flex flex-wrap gap-2.5">
                                         {heroLazadaTags.length > 0 ? (
                                           heroLazadaTags.map((tag) => (
                                             <span
                                               key={tag}
-                                              className="max-w-full rounded-full px-4 py-1.5 text-[11px] font-extrabold"
+                                              className="max-w-full rounded-full px-4 py-2 text-[11px] font-extrabold leading-none"
                                               style={{
-                                                background: "rgba(252,206,114,.9)",
+                                                background: "rgba(252,206,114,.88)",
                                                 color: "#5f4500",
                                                 overflowWrap: "anywhere",
                                               }}
@@ -2534,7 +2541,7 @@ export default function SecretSantaPage() {
                                           ))
                                         ) : (
                                           <span
-                                            className="max-w-full rounded-full px-4 py-1.5 text-[11px] font-extrabold"
+                                            className="max-w-full rounded-full px-4 py-2 text-[11px] font-extrabold leading-none"
                                             style={{
                                               background: priorityMeta.badgeBackground,
                                               color: priorityMeta.badgeColor,
@@ -2546,12 +2553,12 @@ export default function SecretSantaPage() {
                                         )}
                                       </div>
                                       {heroLazadaHref && (
-                                        <div className="mt-5">
+                                        <div className="mt-6">
                                           <a
                                             href={heroLazadaHref}
                                             target="_blank"
                                             rel="noopener noreferrer"
-                                            className="inline-flex items-center gap-2 rounded-full px-5 py-3 text-[13px] font-extrabold leading-none transition hover:scale-[1.01]"
+                                            className="inline-flex w-full items-center justify-center gap-2 rounded-full px-5 py-3.5 text-[13px] font-extrabold leading-none transition hover:scale-[1.01] sm:w-auto"
                                             style={{
                                               background:
                                                 "linear-gradient(135deg,#a43c3f 0%, #7f252b 100%)",
@@ -2574,9 +2581,10 @@ export default function SecretSantaPage() {
                                     </div>
                                   </div>
                                   </div>
+                                </div>
 
-                                  {selectedSuggestion && (
-                                    <div className="space-y-6">
+                                {selectedSuggestion && (
+                                    <div className="space-y-6 xl:col-span-2">
 
                                       {lazadaMatchedProductsState?.loading && (
                                         <div
@@ -2597,7 +2605,7 @@ export default function SecretSantaPage() {
 
                                       {lazadaMatchedProductsState?.loading &&
                                         displayableFallbackLazadaProducts.length > 0 && (
-                                          <div className="mb-3 grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+                                          <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
                                             {displayableFallbackLazadaProducts.map((product) => (
                                               <div
                                                 key={`loading-${product.id}`}
@@ -2656,18 +2664,27 @@ export default function SecretSantaPage() {
 
                                       {curatedLazadaCards.length > 0 && (
                                         <section>
-                                          <h3
-                                            className="mb-5 text-[20px] font-extrabold leading-tight sm:text-[24px]"
-                                            style={{
-                                              color: PAGE_TEXT_COLOR,
-                                              fontFamily:
-                                                "'Plus Jakarta Sans', 'Fredoka', sans-serif",
-                                            }}
-                                          >
-                                            Curated Shopping Ideas
-                                          </h3>
+                                          <div className="mb-5 flex flex-col gap-1">
+                                            <h3
+                                              className="text-[20px] font-extrabold leading-tight sm:text-[24px]"
+                                              style={{
+                                                color: PAGE_TEXT_COLOR,
+                                                fontFamily:
+                                                  "'Plus Jakarta Sans', 'Fredoka', sans-serif",
+                                              }}
+                                            >
+                                              Curated Shopping Ideas
+                                            </h3>
+                                            <p
+                                              className="text-[12px] font-medium leading-relaxed sm:text-[13px]"
+                                              style={{ color: TEXT_MUTED }}
+                                            >
+                                              A shortlist that keeps the wishlist clue, the
+                                              chosen direction, and the budget in view.
+                                            </p>
+                                          </div>
 
-                                          <div className="grid gap-4 [grid-template-columns:repeat(auto-fit,minmax(240px,1fr))]">
+                                          <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
                                             {curatedLazadaCards.map((product, index) => {
                                               const conciseSubtitle = summarizeCardCopy(
                                                 product.whyItFits || product.subtitle,
@@ -2681,6 +2698,9 @@ export default function SecretSantaPage() {
                                               );
                                               const buttonLabel =
                                                 getFeaturedLazadaButtonLabel(product);
+                                              const productImageUrl = normalizeOptionalUrl(
+                                                product.imageUrl || ""
+                                              );
                                               const roleBackground =
                                                 index === 1
                                                   ? "rgba(252,206,114,.26)"
@@ -2697,7 +2717,7 @@ export default function SecretSantaPage() {
                                               return (
                                                 <div
                                                   key={product.id}
-                                                  className="flex h-full min-h-[252px] min-w-0 flex-col rounded-[24px] p-5 transition hover:-translate-y-0.5"
+                                                  className="flex h-full min-w-0 flex-col overflow-hidden rounded-[28px] transition hover:-translate-y-0.5"
                                                   style={{
                                                     background: "#ffffff",
                                                     color: PAGE_TEXT_COLOR,
@@ -2707,12 +2727,30 @@ export default function SecretSantaPage() {
                                                   }}
                                                 >
                                                   <div
-                                                    className="flex flex-1 flex-col"
-                                                    style={{ pointerEvents: "none" }}
+                                                    className="relative aspect-[4/3] overflow-hidden"
+                                                    style={{
+                                                      background:
+                                                        "linear-gradient(180deg,rgba(236,239,236,.96),rgba(223,228,225,.92))",
+                                                    }}
                                                   >
-                                                    <div className="mb-4 flex flex-wrap items-start gap-2">
+                                                    {productImageUrl ? (
+                                                      // eslint-disable-next-line @next/next/no-img-element
+                                                      <img
+                                                        src={productImageUrl}
+                                                        alt={product.title}
+                                                        className="h-full w-full object-cover object-center transition duration-700 hover:scale-[1.03]"
+                                                      />
+                                                    ) : (
+                                                      <div
+                                                        className="flex h-full w-full items-center justify-center"
+                                                        style={{ color: HOLIDAY_GOLD }}
+                                                      >
+                                                        <SparkleMark className="h-9 w-9" />
+                                                      </div>
+                                                    )}
+                                                    <div className="absolute inset-x-0 top-0 flex items-start justify-between gap-3 p-4">
                                                       <span
-                                                        className="shrink-0 rounded-full px-3 py-1 text-[9px] font-extrabold uppercase leading-tight"
+                                                        className="shrink-0 rounded-full px-3 py-1.5 text-[9px] font-extrabold uppercase leading-tight"
                                                         style={{
                                                           color: roleColor,
                                                           background: roleBackground,
@@ -2722,20 +2760,24 @@ export default function SecretSantaPage() {
                                                         {roleLabel}
                                                       </span>
                                                       <div
-                                                        className="ml-auto min-w-0 max-w-[9.5rem] text-right text-[15px] font-extrabold leading-tight"
+                                                        className="max-w-[9rem] rounded-full px-3 py-1.5 text-right text-[13px] font-extrabold leading-tight"
                                                         style={{
                                                           color: product.priceLabel
                                                             ? PAGE_TEXT_COLOR
                                                             : TEXT_MUTED,
+                                                          background: "rgba(255,255,255,.9)",
                                                           overflowWrap: "break-word",
                                                         }}
                                                       >
                                                         {product.priceLabel || cardTypeLabel}
                                                       </div>
                                                     </div>
-
+                                                  </div>
+                                                  <div
+                                                    className="flex flex-1 flex-col p-5"
+                                                  >
                                                     <div
-                                                      className="text-[17px] font-extrabold leading-tight"
+                                                      className="text-[18px] font-extrabold leading-tight"
                                                       style={{
                                                         color: PAGE_TEXT_COLOR,
                                                         display: "-webkit-box",
@@ -2800,16 +2842,17 @@ export default function SecretSantaPage() {
                                       {backupMerchantLinks.length > 0 && (
                                         <details
                                           open
-                                          className="rounded-[30px] p-5 sm:p-6"
+                                          className="rounded-[34px] p-6"
                                           style={{
-                                            background: "#f2f4f2",
+                                            background:
+                                              "linear-gradient(180deg,rgba(242,244,242,.92),rgba(236,239,236,.9))",
                                             color: PAGE_TEXT_COLOR,
                                           }}
                                         >
                                           <summary className="flex cursor-pointer list-none flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                                             <div className="flex min-w-0 items-center gap-4">
                                               <div
-                                                className="flex h-10 w-10 items-center justify-center rounded-full"
+                                                className="flex h-11 w-11 items-center justify-center rounded-full"
                                                 style={{
                                                   background: "#ffffff",
                                                   color: HOLIDAY_GREEN,
@@ -2840,7 +2883,7 @@ export default function SecretSantaPage() {
                                               v
                                             </span>
                                           </summary>
-                                          <div className="mt-6 grid gap-3 [grid-template-columns:repeat(auto-fit,minmax(220px,1fr))]">
+                                          <div className="mt-6 grid gap-3 md:grid-cols-2 xl:grid-cols-3">
                                             {backupMerchantLinks.map((merchantLink) => {
                                               const merchantBadgeStyle =
                                                 getMerchantBadgeStyle(
@@ -2854,16 +2897,18 @@ export default function SecretSantaPage() {
                                                   href={merchantLink.href}
                                                   target="_blank"
                                                   rel="noopener noreferrer"
-                                                  className="inline-flex min-w-0 items-center justify-between gap-3 rounded-[22px] px-4 py-3.5 text-[12px] font-extrabold transition hover:-translate-y-0.5"
+                                                  className="inline-flex min-w-0 items-center justify-between gap-4 rounded-[22px] px-5 py-4 text-[12px] font-extrabold transition hover:-translate-y-0.5"
                                                   style={{
                                                     background: "#ffffff",
                                                     color: PAGE_TEXT_COLOR,
                                                     textDecoration: "none",
+                                                    boxShadow:
+                                                      "0 12px 24px rgba(46,52,50,.035)",
                                                   }}
                                                 >
                                                   <span className="flex min-w-0 items-center gap-3">
                                                     <span
-                                                      className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-[10px] font-extrabold"
+                                                      className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-[10px] font-extrabold"
                                                       style={merchantBadgeStyle}
                                                     >
                                                       {merchantLink.merchantLabel.slice(0, 1)}
@@ -2893,7 +2938,6 @@ export default function SecretSantaPage() {
                                       </div>
                                     </div>
                                   )}
-                                </div>
                               </div>
                             </div>
                           </div>
