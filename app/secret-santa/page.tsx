@@ -9,7 +9,6 @@ import { isLazadaProductPageUrl } from "@/lib/affiliate/lazada-url";
 import { formatPriceRange } from "@/lib/wishlist/pricing";
 import {
   type SuggestionInput,
-  buildTrackedSuggestionHref,
   buildWishlistFeaturedLazadaProducts,
   buildWishlistMerchantLinks,
   buildWishlistSuggestionOptions,
@@ -617,51 +616,9 @@ function getFeaturedLazadaButtonLabel(product: WishlistFeaturedProductCard): str
 }
 
 function getDisplayableLazadaProducts(
-  products: WishlistFeaturedProductCard[],
-  context: {
-    groupBudget: number | null;
-    groupId: string;
-    itemCategory: string;
-    itemName: string;
-    itemNote: string;
-    region: ShoppingRegion;
-    selectedQuery: string;
-    wishlistItemId: string;
-  }
+  products: WishlistFeaturedProductCard[]
 ): WishlistFeaturedProductCard[] {
-  return products.map((product) => {
-    if (product.catalogSource !== "catalog-product") {
-      return product;
-    }
-
-    const searchQuery = product.searchQuery || product.title || context.selectedQuery;
-
-    return {
-      ...product,
-      catalogSource: "search-backed",
-      href: buildTrackedSuggestionHref(
-        "lazada",
-        context.groupId,
-        context.wishlistItemId,
-        searchQuery,
-        product.title,
-        context.region,
-        {
-          catalogSource: "search-backed",
-          fitLabel: product.fitLabel,
-          groupBudget: context.groupBudget,
-          itemCategory: context.itemCategory,
-          itemName: context.itemName,
-          itemNote: context.itemNote,
-          selectedQuery: context.selectedQuery,
-          trackingLabel: "Search results",
-        }
-      ),
-      productId: null,
-      skuId: null,
-      trackingLabel: "Search results",
-    };
-  });
+  return products;
 }
 
 function getMerchantBadgeStyle(
@@ -2034,26 +1991,10 @@ export default function SecretSantaPage() {
                           : null;
                       const rawMatchedLazadaProducts =
                         lazadaMatchedProductsState?.products || [];
-                      const lazadaDisplayContext = {
-                        groupBudget: assignment.group_budget,
-                        groupId: assignment.group_id,
-                        itemCategory: item.item_category,
-                        itemName: item.item_name,
-                        itemNote: item.item_note,
-                        region: shoppingRegion,
-                        selectedQuery: selectedSuggestion?.searchQuery || item.item_name,
-                        wishlistItemId: item.id,
-                      };
                       const displayableMatchedLazadaProducts =
-                        getDisplayableLazadaProducts(
-                          rawMatchedLazadaProducts,
-                          lazadaDisplayContext
-                        );
+                        getDisplayableLazadaProducts(rawMatchedLazadaProducts);
                       const displayableFallbackLazadaProducts =
-                        getDisplayableLazadaProducts(
-                          fallbackFeaturedLazadaProducts,
-                          lazadaDisplayContext
-                        );
+                        getDisplayableLazadaProducts(fallbackFeaturedLazadaProducts);
                       const featuredLazadaProducts =
                         lazadaMatchesLoading
                           ? []

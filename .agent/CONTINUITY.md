@@ -26,12 +26,17 @@
 - 2026-04-21T16:49:00+08:00 [CODE] The Most wanted hero now uses a smaller media column and `object-contain` image treatment so product photos stay visible instead of being cropped like edge-to-edge fashion posters.
 - 2026-04-22T10:36:25+08:00 [CODE] Root request guard migrated from `middleware.ts` to `proxy.ts` for Next.js 16 while keeping the existing Supabase session, invite-page, OAuth-code, and email-verification redirect behavior unchanged.
 - 2026-04-22T10:36:25+08:00 [CODE] Public affiliate redirect routes `/go/suggestion` and `/go/wishlist-link` now enforce the repo baseline of about 100 requests/hour per client IP and record click-tracking failures to the audit log instead of swallowing them silently.
+- 2026-04-23T02:20:00+08:00 [CODE] Secret Santa Lazada cards now preserve true `catalog-product` routes again instead of downgrading all direct cards into search-backed links before render, so Most wanted and Curated Shopping Ideas can open the intended product path.
+- 2026-04-23T02:20:00+08:00 [CODE] Lazada click logging now records the resolved product title/id returned by the affiliate target resolver when available, which keeps affiliate reporting closer to the actual landing product after direct/promotion-link resolution.
+- 2026-04-23T02:20:00+08:00 [CODE] Removed the unused `@supabase/auth-helpers-nextjs` dependency from the app and corrected `AGENTS.md` so the repo no longer claims the deprecated helper is still installed.
 
 ## DISCOVERIES
 - 2026-04-20T00:00:00+08:00 [TOOL] Current recurring build warnings: parent lockfile workspace-root inference and Next.js middleware-to-proxy deprecation.
 - 2026-04-22T10:05:52+08:00 [TOOL] Official Vercel April 2026 bulletin says customer env vars not marked "sensitive" should be treated as potentially exposed and rotated; for this app the highest-priority secret classes visible in repo config are `SUPABASE_SERVICE_ROLE_KEY`, Lazada app/user/postback secrets, OpenRouter/Gemini API keys, and cron/health/reminder shared secrets. `NEXT_PUBLIC_*` values are public by design and are not the priority rotation set.
 - 2026-04-22T10:36:25+08:00 [TOOL] Supersedes the middleware-deprecation portion of the 2026-04-20 build-warning note: `next build` now reports `Proxy` instead of the old middleware deprecation warning; the remaining recurring build warning is the parent lockfile workspace-root inference from `C:\Users\kenda\package-lock.json`.
+- 2026-04-23T02:20:00+08:00 [TOOL] `next build` no longer emits the deprecated `@supabase/auth-helpers-nextjs` install warning after removing that package. The remaining recurring build warning is still the parent lockfile workspace-root inference. The separate `node-domexception@1.0.0` npm deprecation warning comes from the repo-local `supabase` CLI dependency tree, not from the Next.js app runtime.
 
 ## OUTCOMES
 - 2026-04-20T00:00:00+08:00 [CODE] New chats can recover durable project rules from `AGENTS.md` and compact state from this file.
 - 2026-04-22T10:36:25+08:00 [TOOL] After the proxy migration and affiliate-redirect hardening, `npm.cmd run typecheck`, `npm.cmd run lint:security`, and `npm.cmd run build` all passed locally.
+- 2026-04-23T02:20:00+08:00 [TOOL] After the direct-product route restore and Supabase package cleanup, `npm.cmd run typecheck`, `npm.cmd run lint:security`, `npm.cmd run build`, and `git diff --check` passed locally.

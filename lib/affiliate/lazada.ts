@@ -100,6 +100,8 @@ export type LazadaPromotionLinkResolution = {
     | "open-api-not-live"
     | "open-api-pending"
     | "promotion-link-ready";
+  resolvedProductId: string | null;
+  resolvedTitle: string | null;
   targetUrl: string;
 };
 
@@ -604,6 +606,8 @@ export async function resolveLazadaPromotionLinkTarget(options: {
     return {
       mode: "search-fallback",
       reason: "missing-product-id",
+      resolvedProductId: null,
+      resolvedTitle: null,
       targetUrl: options.fallbackUrl,
     };
   }
@@ -618,6 +622,8 @@ export async function resolveLazadaPromotionLinkTarget(options: {
     return {
       mode: "promotion-link",
       reason: "feed-promo-link-ready",
+      resolvedProductId: feedProduct.itemId,
+      resolvedTitle: feedProduct.productName || null,
       targetUrl: appendLazadaSubIdsToPromotionLink(feedProduct.promoShortLink, wishlistSubIds),
     };
   }
@@ -628,6 +634,8 @@ export async function resolveLazadaPromotionLinkTarget(options: {
     return {
       mode: "search-fallback",
       reason: "open-api-pending",
+      resolvedProductId: options.productId,
+      resolvedTitle: feedProduct?.productName || null,
       targetUrl: options.fallbackUrl,
     };
   }
@@ -636,6 +644,8 @@ export async function resolveLazadaPromotionLinkTarget(options: {
     return {
       mode: "search-fallback",
       reason: "open-api-disabled",
+      resolvedProductId: options.productId,
+      resolvedTitle: feedProduct?.productName || null,
       targetUrl: options.fallbackUrl,
     };
   }
@@ -648,6 +658,8 @@ export async function resolveLazadaPromotionLinkTarget(options: {
     return {
       mode: "promotion-link",
       reason: "promotion-link-ready",
+      resolvedProductId: cachedPromotionLink.productId || options.productId,
+      resolvedTitle: cachedPromotionLink.productName || cachedPromotionLink.offerName || null,
       targetUrl: appendLazadaSubIdsToPromotionLink(
         cachedPromotionLink.promotionLink,
         wishlistSubIds
@@ -670,6 +682,8 @@ export async function resolveLazadaPromotionLinkTarget(options: {
       return {
         mode: "promotion-link",
         reason: "promotion-link-ready",
+        resolvedProductId: livePromotionLink.productId || options.productId,
+        resolvedTitle: livePromotionLink.productName || livePromotionLink.offerName || null,
         targetUrl: appendLazadaSubIdsToPromotionLink(
           livePromotionLink.promotionLink,
           wishlistSubIds
@@ -680,6 +694,8 @@ export async function resolveLazadaPromotionLinkTarget(options: {
     return {
       mode: "search-fallback",
       reason: "api-error",
+      resolvedProductId: options.productId,
+      resolvedTitle: feedProduct?.productName || null,
       targetUrl: options.fallbackUrl,
     };
   }
@@ -687,6 +703,8 @@ export async function resolveLazadaPromotionLinkTarget(options: {
   return {
     mode: "search-fallback",
     reason: "open-api-not-live",
+    resolvedProductId: options.productId,
+    resolvedTitle: feedProduct?.productName || null,
     targetUrl: options.fallbackUrl,
   };
 }
@@ -729,6 +747,8 @@ export async function resolveLazadaSuggestionLinkTarget(options: {
     return {
       mode: "search-fallback",
       reason: "missing-product-id",
+      resolvedProductId: null,
+      resolvedTitle: null,
       targetUrl: options.fallbackUrl,
     };
   }
@@ -742,6 +762,8 @@ export async function resolveLazadaSuggestionLinkTarget(options: {
     return {
       mode: "promotion-link",
       reason: "feed-promo-link-ready",
+      resolvedProductId: topMatch.product.itemId,
+      resolvedTitle: topMatch.product.productName,
       targetUrl: appendLazadaSubIdsToPromotionLink(topMatch.product.promoShortLink, wishlistSubIds),
     };
   }
@@ -766,6 +788,8 @@ export async function resolveLazadaWishlistItemLinkTarget(options: {
     return {
       mode: "search-fallback",
       reason: "invalid-product-url",
+      resolvedProductId: null,
+      resolvedTitle: options.itemName,
       targetUrl: options.fallbackUrl,
     };
   }
@@ -780,6 +804,8 @@ export async function resolveLazadaWishlistItemLinkTarget(options: {
     return {
       mode: "promotion-link",
       reason: "feed-promo-link-ready",
+      resolvedProductId: feedProduct.itemId,
+      resolvedTitle: feedProduct.productName || options.itemName,
       targetUrl: appendLazadaSubIdsToPromotionLink(feedProduct.promoShortLink, wishlistSubIds),
     };
   }
@@ -790,6 +816,8 @@ export async function resolveLazadaWishlistItemLinkTarget(options: {
     return {
       mode: "search-fallback",
       reason: "open-api-pending",
+      resolvedProductId: feedProduct?.itemId || null,
+      resolvedTitle: feedProduct?.productName || options.itemName,
       targetUrl: options.fallbackUrl,
     };
   }
@@ -798,6 +826,8 @@ export async function resolveLazadaWishlistItemLinkTarget(options: {
     return {
       mode: "search-fallback",
       reason: "open-api-disabled",
+      resolvedProductId: feedProduct?.itemId || null,
+      resolvedTitle: feedProduct?.productName || options.itemName,
       targetUrl: options.fallbackUrl,
     };
   }
@@ -812,6 +842,12 @@ export async function resolveLazadaWishlistItemLinkTarget(options: {
     return {
       mode: "promotion-link",
       reason: "promotion-link-ready",
+      resolvedProductId: cachedPromotionLink.productId || feedProduct?.itemId || null,
+      resolvedTitle:
+        cachedPromotionLink.productName ||
+        cachedPromotionLink.offerName ||
+        feedProduct?.productName ||
+        options.itemName,
       targetUrl: appendLazadaSubIdsToPromotionLink(
         cachedPromotionLink.promotionLink,
         wishlistSubIds
@@ -836,6 +872,12 @@ export async function resolveLazadaWishlistItemLinkTarget(options: {
       return {
         mode: "promotion-link",
         reason: "promotion-link-ready",
+        resolvedProductId: livePromotionLink.productId || feedProduct?.itemId || null,
+        resolvedTitle:
+          livePromotionLink.productName ||
+          livePromotionLink.offerName ||
+          feedProduct?.productName ||
+          options.itemName,
         targetUrl: appendLazadaSubIdsToPromotionLink(
           livePromotionLink.promotionLink,
           wishlistSubIds
@@ -846,6 +888,8 @@ export async function resolveLazadaWishlistItemLinkTarget(options: {
     return {
       mode: "search-fallback",
       reason: "api-error",
+      resolvedProductId: feedProduct?.itemId || null,
+      resolvedTitle: feedProduct?.productName || options.itemName,
       targetUrl: options.fallbackUrl,
     };
   }
@@ -853,6 +897,8 @@ export async function resolveLazadaWishlistItemLinkTarget(options: {
   return {
     mode: "search-fallback",
     reason: "open-api-not-live",
+    resolvedProductId: feedProduct?.itemId || null,
+    resolvedTitle: feedProduct?.productName || options.itemName,
     targetUrl: options.fallbackUrl,
   };
 }
@@ -866,6 +912,8 @@ export async function resolveLazadaSearchRouteLinkTarget(options: {
     return {
       mode: "search-fallback",
       reason: "invalid-search-url",
+      resolvedProductId: null,
+      resolvedTitle: null,
       targetUrl: options.fallbackUrl,
     };
   }
@@ -882,6 +930,8 @@ export async function resolveLazadaSearchRouteLinkTarget(options: {
       return {
         mode: "promotion-link",
         reason: "promotion-link-ready",
+        resolvedProductId: null,
+        resolvedTitle: null,
         targetUrl: appendLazadaSubIdsToPromotionLink(options.fallbackUrl, wishlistSubIds),
       };
     }
@@ -889,6 +939,8 @@ export async function resolveLazadaSearchRouteLinkTarget(options: {
     return {
       mode: "search-fallback",
       reason: "invalid-search-url",
+      resolvedProductId: null,
+      resolvedTitle: null,
       targetUrl: options.fallbackUrl,
     };
   }
@@ -899,6 +951,8 @@ export async function resolveLazadaSearchRouteLinkTarget(options: {
     return {
       mode: "search-fallback",
       reason: "open-api-pending",
+      resolvedProductId: null,
+      resolvedTitle: null,
       targetUrl: options.fallbackUrl,
     };
   }
@@ -907,6 +961,8 @@ export async function resolveLazadaSearchRouteLinkTarget(options: {
     return {
       mode: "search-fallback",
       reason: "open-api-disabled",
+      resolvedProductId: null,
+      resolvedTitle: null,
       targetUrl: options.fallbackUrl,
     };
   }
@@ -921,6 +977,8 @@ export async function resolveLazadaSearchRouteLinkTarget(options: {
     return {
       mode: "promotion-link",
       reason: "promotion-link-ready",
+      resolvedProductId: cachedPromotionLink.productId || null,
+      resolvedTitle: cachedPromotionLink.productName || cachedPromotionLink.offerName || null,
       targetUrl: appendLazadaSubIdsToPromotionLink(
         cachedPromotionLink.promotionLink,
         wishlistSubIds
@@ -945,6 +1003,8 @@ export async function resolveLazadaSearchRouteLinkTarget(options: {
       return {
         mode: "promotion-link",
         reason: "promotion-link-ready",
+        resolvedProductId: livePromotionLink.productId || null,
+        resolvedTitle: livePromotionLink.productName || livePromotionLink.offerName || null,
         targetUrl: appendLazadaSubIdsToPromotionLink(
           livePromotionLink.promotionLink,
           wishlistSubIds
@@ -955,6 +1015,8 @@ export async function resolveLazadaSearchRouteLinkTarget(options: {
     return {
       mode: "search-fallback",
       reason: "api-error",
+      resolvedProductId: null,
+      resolvedTitle: null,
       targetUrl: options.fallbackUrl,
     };
   }
@@ -962,6 +1024,8 @@ export async function resolveLazadaSearchRouteLinkTarget(options: {
   return {
     mode: "search-fallback",
     reason: "open-api-not-live",
+    resolvedProductId: null,
+    resolvedTitle: null,
     targetUrl: options.fallbackUrl,
   };
 }

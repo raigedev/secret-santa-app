@@ -89,6 +89,8 @@ export async function GET(request: NextRequest) {
     | {
         mode: string;
         reason: string;
+        resolvedProductId: string | null;
+        resolvedTitle: string | null;
       }
     | null = null;
   const clickToken = merchant === "lazada" ? createLazadaClickToken() : null;
@@ -147,10 +149,14 @@ export async function GET(request: NextRequest) {
     lazadaResolution = {
       mode: lazadaTarget.mode,
       reason: lazadaTarget.reason,
+      resolvedProductId: lazadaTarget.resolvedProductId,
+      resolvedTitle: lazadaTarget.resolvedTitle,
     };
   }
 
   let actorUserId: string | null = null;
+  const loggedSuggestionTitle =
+    lazadaResolution?.resolvedTitle?.trim() || suggestionTitle;
 
   try {
     const supabase = await createClient();
@@ -164,7 +170,7 @@ export async function GET(request: NextRequest) {
       group_id: groupId,
       wishlist_item_id: wishlistItemId,
       merchant,
-      suggestion_title: suggestionTitle.slice(0, 120),
+      suggestion_title: loggedSuggestionTitle.slice(0, 120),
       catalog_source: catalogSource,
       click_token: savedClickToken,
       fit_label: fitLabel,
@@ -179,6 +185,8 @@ export async function GET(request: NextRequest) {
         trackingLabel,
         lazadaResolution?.mode,
         lazadaResolution?.reason,
+        lazadaResolution?.resolvedProductId,
+        lazadaResolution?.resolvedTitle,
       ]
         .filter(Boolean)
         .join(" | ")

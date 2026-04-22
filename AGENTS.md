@@ -8,7 +8,7 @@
 - React `19.2.5`.
 - TypeScript `5` in strict mode.
 - Tailwind CSS `4.2.2`.
-- Supabase auth/database with `@supabase/ssr`, `@supabase/supabase-js`, and legacy `@supabase/auth-helpers-nextjs` still installed.
+- Supabase auth/database with `@supabase/ssr` and `@supabase/supabase-js`.
 - Vercel Cron jobs are configured in `vercel.json`.
 - Lazada affiliate features include feed/catalog matching, promo-link priming, click tracking, postback handling, report access, and health/test endpoints.
 - AI wishlist suggestions use configured provider keys, with deterministic local fallbacks where implemented.
