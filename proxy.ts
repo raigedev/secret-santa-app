@@ -4,7 +4,7 @@ import { createServerClient } from "@supabase/ssr";
 import { getEmailVerificationMessage, isUserEmailVerified } from "@/lib/auth/user-status";
 
 // Central request guard for auth, invite-link access, and email-verification redirects.
-export async function middleware(req: NextRequest) {
+export async function proxy(req: NextRequest) {
   // Some OAuth providers bounce back to `/` with a `code` query param. Route that
   // through the callback handler first so the session is exchanged before any UI renders.
   const hasOAuthCode = req.nextUrl.searchParams.has("code");
@@ -23,7 +23,7 @@ export async function middleware(req: NextRequest) {
 
   const res = NextResponse.next();
 
-  // Middleware runs before the normal server helpers, so it needs its own
+  // Proxy runs before the normal server helpers, so it needs its own
   // cookie-aware Supabase client to read and refresh the session safely.
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -88,7 +88,7 @@ export async function middleware(req: NextRequest) {
 
 export const config = {
   matcher: [
-    // Only run middleware on page routes. API and redirect endpoints don't need
+    // Only run the proxy on page routes. API and redirect endpoints don't need
     // per-request auth checks here and can handle auth in their own handlers.
     "/((?!api|go|_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
   ],

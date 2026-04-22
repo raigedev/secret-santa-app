@@ -28,6 +28,25 @@ export function safeEqualSecret(
   );
 }
 
+export function extractRequestClientIp(headers: Headers): string | null {
+  const forwardedFor = headers.get("x-forwarded-for");
+  const candidates = [
+    headers.get("cf-connecting-ip"),
+    headers.get("x-real-ip"),
+    forwardedFor ? forwardedFor.split(",")[0] : null,
+  ];
+
+  for (const candidate of candidates) {
+    const normalized = candidate?.trim();
+
+    if (normalized) {
+      return normalized;
+    }
+  }
+
+  return null;
+}
+
 export function normalizeSafeAppPath(
   candidate: string | null | undefined,
   fallback = "/"

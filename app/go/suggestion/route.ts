@@ -8,6 +8,9 @@ import {
 } from "@/lib/affiliate/lazada";
 import type { LazadaAffiliateAttributionContext } from "@/lib/affiliate/lazada";
 import { insertAffiliateClick } from "@/lib/affiliate/click-tracking";
+import { recordServerFailure } from "@/lib/security/audit";
+import { enforceRateLimit } from "@/lib/security/rate-limit";
+import { extractRequestClientIp } from "@/lib/security/web";
 import { createClient } from "@/lib/supabase/server";
 import {
   AFFILIATE_READY_MERCHANTS,
@@ -60,6 +63,25 @@ export async function GET(request: NextRequest) {
     searchQuery.length === 0
   ) {
     return NextResponse.redirect(new URL("/secret-santa", request.url));
+  }
+
+  const clientIp = extractRequestClientIp(request.headers) || "unknown";
+  const rateLimit = await enforceRateLimit({
+    action: "affiliate.redirect.suggestion",
+    maxAttempts: 100,
+    resourceId: wishlistItemId,
+    resourceType: "affiliate_redirect",
+    subject: `${merchant}:${clientIp}`,
+    windowSeconds: 3600,
+  });
+
+  if (!rateLimit.allowed) {
+    return new NextResponse(rateLimit.message, {
+      status: 429,
+      headers: {
+        "Retry-After": String(Math.max(rateLimit.retryAfterSeconds, 1)),
+      },
+    });
   }
 
   let targetUrl = buildMerchantDestinationUrl(merchant, searchQuery, region);
@@ -128,14 +150,17 @@ export async function GET(request: NextRequest) {
     };
   }
 
+  let actorUserId: string | null = null;
+
   try {
     const supabase = await createClient();
     const {
       data: { user },
     } = await supabase.auth.getUser();
+    actorUserId = user?.id || null;
 
     await insertAffiliateClick({
-      user_id: user?.id || null,
+      user_id: actorUserId,
       group_id: groupId,
       wishlist_item_id: wishlistItemId,
       merchant,
@@ -162,8 +187,23 @@ export async function GET(request: NextRequest) {
       target_url: targetUrl.slice(0, 1000),
       tracking_label: trackingLabel,
     });
-  } catch {
-    // Click tracking should never block the user from reaching the merchant page.
+  } catch (error) {
+    const message =
+      error instanceof Error ? error.message : "Unknown affiliate suggestion click tracking error.";
+
+    await recordServerFailure({
+      actorUserId,
+      details: {
+        groupId,
+        merchant,
+        path: "/go/suggestion",
+        wishlistItemId,
+      },
+      errorMessage: message,
+      eventType: "affiliate.redirect.suggestion.click_insert_failed",
+      resourceId: wishlistItemId,
+      resourceType: "affiliate_redirect",
+    });
   }
 
   return NextResponse.redirect(targetUrl);

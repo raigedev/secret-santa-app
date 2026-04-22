@@ -24,9 +24,14 @@
 - 2026-04-21T10:31:33+08:00 [CODE] Curated Shopping Ideas now fills up to 3 distinct alternatives after the featured hero by merging deduped matched and fallback Lazada products instead of simply slicing the hero list.
 - 2026-04-21T11:14:26+08:00 [CODE] Used Stitch "Secret Santa Shopping Redesign" desktop/mobile screens to recompose the Lazada area: narrower wishlist rail, calmer featured hero, and curated product cards moved into a full-width image-led grid beneath the direction/hero row so the page reads as one shopping flow instead of squeezed stacked blocks.
 - 2026-04-21T16:49:00+08:00 [CODE] The Most wanted hero now uses a smaller media column and `object-contain` image treatment so product photos stay visible instead of being cropped like edge-to-edge fashion posters.
+- 2026-04-22T10:36:25+08:00 [CODE] Root request guard migrated from `middleware.ts` to `proxy.ts` for Next.js 16 while keeping the existing Supabase session, invite-page, OAuth-code, and email-verification redirect behavior unchanged.
+- 2026-04-22T10:36:25+08:00 [CODE] Public affiliate redirect routes `/go/suggestion` and `/go/wishlist-link` now enforce the repo baseline of about 100 requests/hour per client IP and record click-tracking failures to the audit log instead of swallowing them silently.
 
 ## DISCOVERIES
 - 2026-04-20T00:00:00+08:00 [TOOL] Current recurring build warnings: parent lockfile workspace-root inference and Next.js middleware-to-proxy deprecation.
+- 2026-04-22T10:05:52+08:00 [TOOL] Official Vercel April 2026 bulletin says customer env vars not marked "sensitive" should be treated as potentially exposed and rotated; for this app the highest-priority secret classes visible in repo config are `SUPABASE_SERVICE_ROLE_KEY`, Lazada app/user/postback secrets, OpenRouter/Gemini API keys, and cron/health/reminder shared secrets. `NEXT_PUBLIC_*` values are public by design and are not the priority rotation set.
+- 2026-04-22T10:36:25+08:00 [TOOL] Supersedes the middleware-deprecation portion of the 2026-04-20 build-warning note: `next build` now reports `Proxy` instead of the old middleware deprecation warning; the remaining recurring build warning is the parent lockfile workspace-root inference from `C:\Users\kenda\package-lock.json`.
 
 ## OUTCOMES
 - 2026-04-20T00:00:00+08:00 [CODE] New chats can recover durable project rules from `AGENTS.md` and compact state from this file.
+- 2026-04-22T10:36:25+08:00 [TOOL] After the proxy migration and affiliate-redirect hardening, `npm.cmd run typecheck`, `npm.cmd run lint:security`, and `npm.cmd run build` all passed locally.
