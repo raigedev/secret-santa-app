@@ -10,8 +10,10 @@
     "lint": "eslint app lib utils scripts tests *.ts *.mjs --no-error-on-unmatched-pattern",
     "lint:security": "eslint app lib utils scripts tests *.ts *.mjs --max-warnings=0 --no-error-on-unmatched-pattern",
     "test:e2e": "playwright test",
+    "test:e2e:ui": "playwright test --ui",
     "test:e2e:headed": "playwright test --headed",
     "test:e2e:debug": "playwright test --debug",
+    "test:e2e:report": "playwright show-report",
     "typecheck": "tsc --noEmit",
     "prepare": "node ./scripts/prepare-husky.mjs",
     "import:lazada-feed": "powershell -ExecutionPolicy Bypass -File ./scripts/import-lazada-feed.ps1"
@@ -24,6 +26,7 @@
     "react-dom": "19.2.5"
   },
   "devDependencies": {
+    "@axe-core/playwright": "^4.11.2",
     "@playwright/test": "^1.59.1",
     "@tailwindcss/postcss": "^4",
     "@types/node": "^20.19.37",
