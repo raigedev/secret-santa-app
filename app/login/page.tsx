@@ -1,32 +1,106 @@
 "use client";
-
 import Image from "next/image";
+import { Suspense, useState, type ReactNode } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Suspense, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { linkUserToGroup } from "@/utils/linkUserToGroup";
-
+const TRUST_MARKERS = [
+  { title: "Invite-safe return path", copy: "We keep your group or invite destination ready after sign-in so you do not lose your place." },
+  { title: "Private gifting tools", copy: "Wishlists, draw results, and anonymous chat stay behind your signed-in account." },
+  { title: "Built for the fun part", copy: "Once you are in, you can jump straight back into planning, gifting, and reveal-day details." },
+] as const;
+const AUTH_ERROR_MESSAGES: Record<string, string> = {
+  confirm_email: "Please confirm your email address before opening the app.",
+  auth_failed: "Authentication failed. Please try again.",
+  no_code: "We did not receive a valid authentication code. Please try again.",
+};
+const FIELD_CLASS_NAME =
+  "mt-2 w-full rounded-[1.5rem] bg-[#e5e9e6] px-4 py-3.5 text-[15px] text-[#2e3432] outline outline-1 outline-[#aeb3b1]/30 transition placeholder:text-[#777c7a] focus:bg-white focus:outline-[#a43c3f]/35 focus:outline-2 focus:outline-offset-0 focus:outline";
 function mapAuthErrorMessage(errorCode: string | null, message: string | null): string | null {
-  if (message) {
-    return message;
-  }
-
-  if (!errorCode) {
-    return null;
-  }
-
-  switch (errorCode) {
-    case "confirm_email":
-      return "Please confirm your email address before opening the app.";
-    case "auth_failed":
-      return "Authentication failed. Please try again.";
-    case "no_code":
-      return "We did not receive a valid authentication code. Please try again.";
-    default:
-      return null;
-  }
+  return message || (errorCode ? AUTH_ERROR_MESSAGES[errorCode] || null : null);
 }
-
+function getFriendlyLoginError(message: string): string {
+  const normalized = message.toLowerCase();
+  return normalized.includes("invalid login credentials")
+    ? "We could not match that email and password. Please try again."
+    : normalized.includes("email not confirmed")
+      ? "Please confirm your email before signing in."
+      : message || "Login failed. Please try again.";
+}
+function getSupportingCopy(nextPath: string): string {
+  return nextPath !== "/dashboard"
+    ? "Sign back in and we will return you to the invite, group, or gift-planning page you came from."
+    : "Sign in once, then slip back into wishlists, group details, and reveal-day planning without starting over.";
+}
+function rememberPostLoginNextPath(nextPath: string) {
+  document.cookie = `post_login_next=${encodeURIComponent(nextPath)}; Path=/; Max-Age=1800; SameSite=Lax`;
+}
+function AuthHeading({ description }: { description: string }) {
+  return (
+    <>
+      <div className="inline-flex items-center gap-2 rounded-full bg-[#d7fadb] px-3 py-1.5 text-sm font-semibold text-[#43614a]">Returning member</div>
+      <h1 className="mt-4 font-[Plus_Jakarta_Sans] text-3xl font-black tracking-[-0.05em] text-[#2e3432] sm:text-4xl">GiftDraw</h1>
+      <h2 className="mt-2 font-[Plus_Jakarta_Sans] text-2xl font-black tracking-[-0.04em] text-[#48664e] sm:text-[2rem]">Welcome back</h2>
+      <p className="mt-3 text-[15px] leading-7 text-[#5b605e] sm:text-base">{description}</p>
+    </>
+  );
+}
+function LoginLayout({ children, supportingCopy }: { children: ReactNode; supportingCopy: string }) {
+  return (
+    <main className="relative min-h-screen overflow-hidden bg-[#f9faf8] px-4 py-6 sm:px-6 lg:px-8">
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,_rgba(252,206,114,0.32),_transparent_34%),radial-gradient(circle_at_bottom_right,_rgba(164,60,63,0.16),_transparent_32%),linear-gradient(180deg,_#fbfcfa_0%,_#f2f4f2_100%)]" />
+      <div className="absolute inset-0 bg-[url('/snowflakes.png')] bg-cover bg-center opacity-10" />
+      <div className="absolute left-[-8rem] top-[-6rem] h-72 w-72 rounded-full bg-[#ffaba9]/30 blur-3xl" />
+      <div className="absolute bottom-[-9rem] right-[-5rem] h-80 w-80 rounded-full bg-[#d7fadb]/60 blur-3xl" />
+      <div className="relative mx-auto flex min-h-[calc(100vh-3rem)] max-w-6xl items-center">
+        <div className="grid w-full gap-4 rounded-[2.25rem] bg-white/72 p-3 shadow-[0_32px_90px_rgba(46,52,50,0.08)] backdrop-blur-xl lg:grid-cols-[1.02fr_0.98fr] lg:p-4">
+          <section className="relative overflow-hidden rounded-[1.9rem] bg-[#ecefec] px-6 py-8 sm:px-8 sm:py-10 lg:px-10 lg:py-12">
+            <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,_rgba(255,255,255,0.72),_transparent_54%),linear-gradient(180deg,_rgba(255,255,255,0.18)_0%,_rgba(236,239,236,0.98)_100%)]" />
+            <div className="absolute right-[-2rem] top-8 h-28 w-28 rounded-full bg-[#fcce72]/35 blur-2xl" />
+            <div className="relative z-10 flex h-full flex-col justify-between gap-8">
+              <div>
+                <div className="inline-flex items-center gap-2 rounded-full bg-white/85 px-4 py-2 text-[11px] font-semibold uppercase tracking-[0.24em] text-[#7b5902] shadow-[0_16px_32px_rgba(123,89,2,0.08)]">
+                  The Magic Returns
+                </div>
+                <h2 className="mt-6 max-w-xl font-[Plus_Jakarta_Sans] text-4xl font-black tracking-[-0.06em] text-[#2e3432] sm:text-5xl lg:text-[3.3rem] lg:leading-[1.02]">
+                  Return to the calmer side of Secret Santa.
+                </h2>
+                <p className="mt-4 max-w-xl text-base leading-7 text-[#5b605e] sm:text-lg">
+                  Pick up where you left off: thoughtful wishlists, polished gifting plans, and private
+                  exchanges that feel more like a holiday lookbook than a default dashboard.
+                </p>
+                <div className="mt-6 rounded-[1.75rem] bg-white/82 p-5 text-sm leading-6 text-[#43614a] shadow-[0_20px_45px_rgba(62,92,69,0.08)]">
+                  {supportingCopy}
+                </div>
+              </div>
+              <div className="relative overflow-hidden rounded-[2rem] bg-white/82 p-5 shadow-[0_24px_56px_rgba(46,52,50,0.06)]">
+                <div className="absolute inset-x-0 top-0 h-24 bg-[linear-gradient(180deg,_rgba(252,206,114,0.22),_transparent)]" />
+                <div className="relative z-10 flex items-start justify-between gap-4">
+                  <div className="max-w-sm">
+                    <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-[#7b5902]">Cozy comeback</p>
+                    <h3 className="mt-2 font-[Plus_Jakarta_Sans] text-2xl font-black tracking-[-0.05em] text-[#2e3432]">Warm details, private draws, and your group waiting on the other side.</h3>
+                  </div>
+                  <Image src="/bells-holly.png" alt="Holiday greenery" width={160} height={160} className="hidden w-24 shrink-0 drop-shadow-[0_18px_30px_rgba(123,89,2,0.16)] sm:block" />
+                </div>
+                <div className="mt-6 grid gap-3 sm:grid-cols-3">
+                  {TRUST_MARKERS.map((marker) => (
+                    <div key={marker.title} className="rounded-[1.35rem] bg-[#f2f4f2] p-4">
+                      <p className="text-sm font-semibold text-[#2e3432]">{marker.title}</p>
+                      <p className="mt-2 text-sm leading-6 text-[#5b605e]">{marker.copy}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </section>
+          <section className="rounded-[1.9rem] bg-white px-5 py-6 sm:px-8 sm:py-8 lg:px-10 lg:py-10">
+            {children}
+          </section>
+        </div>
+      </div>
+    </main>
+  );
+}
 function LoginPageInner() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -36,196 +110,175 @@ function LoginPageInner() {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [redirecting, setRedirecting] = useState(false);
-
   const nextPath = (() => {
     const candidate = searchParams.get("next") || "/dashboard";
     return candidate.startsWith("/") ? candidate : "/dashboard";
   })();
   const pageError = mapAuthErrorMessage(searchParams.get("error"), searchParams.get("message"));
-
-  // Keep the desired post-login destination in a short-lived cookie so the
-  // OAuth callback can return the user to an invite link or other deep page.
-  const rememberNextPath = () => {
-    document.cookie = `post_login_next=${encodeURIComponent(nextPath)}; Path=/; Max-Age=1800; SameSite=Lax`;
-  };
-
+  const activeError = error || pageError;
   const handleGoogleLogin = async () => {
     setError(null);
     setRedirecting(true);
-    rememberNextPath();
-
+    rememberPostLoginNextPath(nextPath);
     const { error: signInError } = await supabase.auth.signInWithOAuth({
       provider: "google",
       options: {
         redirectTo: `${window.location.origin}/auth/callback`,
       },
     });
-
     if (signInError) {
       setRedirecting(false);
-      setError(signInError.message);
+      setError(getFriendlyLoginError(signInError.message));
     }
   };
-
   const handleEmailLogin = async () => {
+    if (loading || redirecting) {
+      return;
+    }
+    const trimmedEmail = email.trim();
     setError(null);
+    rememberPostLoginNextPath(nextPath);
+    if (!trimmedEmail) {
+      setError("Please enter your email address.");
+      return;
+    }
+    if (!password) {
+      setError("Please enter your password.");
+      return;
+    }
     setLoading(true);
-
     const { data, error: signInError } = await supabase.auth.signInWithPassword({
-      email,
+      email: trimmedEmail,
       password,
     });
-
     if (signInError) {
-      setError(signInError.message);
+      setError(getFriendlyLoginError(signInError.message));
       setLoading(false);
       return;
     }
-
     const { user } = data;
     if (user) {
       await linkUserToGroup(user);
     }
-
     router.replace(nextPath);
     setLoading(false);
   };
-
   return (
-    <div className="relative flex min-h-screen items-center justify-center bg-[url('/snowflakes.png')] bg-cover bg-center px-4 py-16 sm:px-6">
-      {redirecting && (
-        <div className="absolute inset-0 bg-white/90 flex flex-col items-center justify-center z-50">
-          <div className="animate-spin rounded-full h-12 w-12 border-t-4 border-blue-600 mb-4" />
-          <p className="text-lg font-semibold text-blue-700">Redirecting to Google...</p>
-        </div>
-      )}
-
-      <div className="relative w-full max-w-md rounded-lg border-4 border-white bg-gradient-to-br from-white via-blue-100 to-gray-200 p-5 shadow-xl ring-4 ring-blue-200 sm:p-8">
-        <Image
-          src="/bells-holly.png"
-          alt="Bells Holly"
-          width={128}
-          height={128}
-          className="absolute -top-10 left-1/2 w-20 -translate-x-1/2 transform animate-bounce sm:-top-12 sm:w-24"
-        />
-
-        <h1 className="mb-2 text-center text-2xl font-bold text-blue-900 drop-shadow-lg sm:text-3xl">
-          GiftDraw
-        </h1>
-        <p className="mb-6 text-center text-sm text-gray-700 sm:text-base">Welcome to Secret Santa!</p>
-
-        <input
-          type="text"
-          placeholder="Enter your username or email"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          className="w-full border-2 border-blue-600 rounded-md p-3 mb-4 focus:ring-2 focus:ring-blue-400 bg-white text-black placeholder-gray-600 shadow-sm"
-        />
-
-        <input
-          type="password"
-          placeholder="Enter your password"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          className="w-full border-2 border-blue-600 rounded-md p-3 mb-6 focus:ring-2 focus:ring-blue-400 bg-white text-black placeholder-gray-600 shadow-sm"
-        />
-
-        <button
-          onClick={handleEmailLogin}
-          disabled={loading || redirecting}
-          className={`w-full font-semibold py-3 rounded-md transition ${
-            loading || redirecting
-              ? "bg-gray-400 cursor-not-allowed text-white"
-              : "bg-blue-600 text-white hover:bg-blue-700"
-          }`}
-        >
-          {loading ? "Logging in..." : "Login"}
-        </button>
-
-        {(error || pageError) && (
-          <p className="text-red-600 text-sm mt-2">{error || pageError}</p>
+    <LoginLayout supportingCopy={getSupportingCopy(nextPath)}>
+      <div className="relative mx-auto w-full max-w-xl">
+        {redirecting && (
+          <div className="absolute inset-0 z-50 flex rounded-[1.9rem] bg-[#f9faf8]/92 backdrop-blur-sm">
+            <div className="m-auto flex max-w-xs flex-col items-center rounded-[1.75rem] bg-white px-6 py-7 text-center shadow-[0_24px_55px_rgba(46,52,50,0.1)]">
+              <div className="h-12 w-12 animate-spin rounded-full border-[3px] border-[#d7fadb] border-t-[#48664e]" />
+              <p className="mt-4 font-[Plus_Jakarta_Sans] text-xl font-black tracking-[-0.04em] text-[#2e3432]">Redirecting to Google</p>
+              <p className="mt-2 text-sm leading-6 text-[#5b605e]">Hold on for a moment while we open the secure sign-in flow.</p>
+            </div>
+          </div>
         )}
-
-        <div className="text-center text-gray-700 my-4">or</div>
-
-        <button
-          onClick={handleGoogleLogin}
-          disabled={loading || redirecting}
-          className={`w-full flex items-center justify-center border border-gray-300 py-3 rounded-md transition shadow-sm ${
-            loading || redirecting
-              ? "bg-gray-200 text-gray-400 cursor-not-allowed"
-              : "bg-white text-gray-700 hover:bg-gray-50"
-          }`}
-        >
-          <Image
-            src="/google-logo.png"
-            alt="Google"
-            width={24}
-            height={24}
-            className="mr-3"
-          />
-          <span className="text-base font-medium">
-            {redirecting ? "Redirecting..." : "Continue with Google"}
-          </span>
-        </button>
-
-        <div className="mt-6 flex flex-col gap-3 sm:flex-row">
+        <AuthHeading description="Sign in to reopen your wishlist, group details, and gift-planning notes without losing your path." />
+        <form className="mt-8 space-y-5" noValidate onSubmit={(event) => {
+          event.preventDefault();
+          void handleEmailLogin();
+        }}>
+          <div>
+            <label htmlFor="login-email" className="text-sm font-semibold text-[#2e3432]">
+              Email address
+            </label>
+            <input
+              id="login-email"
+              type="text"
+              autoComplete="email"
+              inputMode="email"
+              spellCheck={false}
+              placeholder="Enter your username or email"
+              value={email}
+              onChange={(event) => setEmail(event.target.value)}
+              className={FIELD_CLASS_NAME}
+            />
+          </div>
+          <div>
+            <div className="flex items-center justify-between gap-4">
+              <label htmlFor="login-password" className="text-sm font-semibold text-[#2e3432]">
+                Password
+              </label>
+              <button
+                type="button"
+                onClick={() => router.push("/forgot-password")}
+                className="text-sm font-semibold text-[#a43c3f] transition hover:text-[#812227]"
+              >
+                Forgot password?
+              </button>
+            </div>
+            <input
+              id="login-password"
+              type="password"
+              autoComplete="current-password"
+              placeholder="Enter your password"
+              value={password}
+              onChange={(event) => setPassword(event.target.value)}
+              className={FIELD_CLASS_NAME}
+            />
+          </div>
+          <div className="rounded-[1.35rem] bg-[#f2f4f2] px-4 py-3 text-sm leading-6 text-[#5b605e]">
+            You will be returned to your group or invite after signing in.
+          </div>
+          {activeError ? (
+            <div role="alert" className="rounded-[1.35rem] bg-[#fff1ef] px-4 py-3 text-sm leading-6 text-[#821a01]">
+              {activeError}
+            </div>
+          ) : null}
           <button
-            onClick={() => router.push(`/create-account?next=${encodeURIComponent(nextPath)}`)}
+            type="submit"
             disabled={loading || redirecting}
-            className={`w-full flex-1 rounded-md py-2 text-center font-medium shadow transition ${
-              loading || redirecting
-                ? "bg-gray-300 text-gray-500 cursor-not-allowed"
-                : "bg-blue-600 text-white hover:bg-blue-700"
-            }`}
+            className="w-full rounded-full bg-[linear-gradient(135deg,#a43c3f_0%,#943034_100%)] px-6 py-4 text-base font-semibold text-[#fff7f6] shadow-[0_24px_55px_rgba(164,60,63,0.18)] transition hover:-translate-y-0.5 hover:shadow-[0_30px_60px_rgba(164,60,63,0.24)] disabled:translate-y-0 disabled:cursor-not-allowed disabled:opacity-70 disabled:shadow-none"
           >
-            {loading || redirecting ? "Please wait..." : "Create Account"}
+            {loading ? "Logging in..." : "Login"}
           </button>
+          <div className="flex items-center gap-3 py-1">
+            <div className="h-px flex-1 bg-[#dfe4e1]" />
+            <span className="text-xs font-semibold uppercase tracking-[0.2em] text-[#777c7a]">
+              Or continue with
+            </span>
+            <div className="h-px flex-1 bg-[#dfe4e1]" />
+          </div>
           <button
-            onClick={() => router.push("/forgot-password")}
+            type="button"
+            onClick={() => void handleGoogleLogin()}
             disabled={loading || redirecting}
-            className={`w-full flex-1 rounded-md py-2 text-center font-medium shadow transition ${
-              loading || redirecting
-                ? "bg-gray-300 text-gray-500 cursor-not-allowed"
-                : "bg-red-600 text-white hover:bg-red-700"
-            }`}
+            className="flex w-full items-center justify-center gap-3 rounded-[1.5rem] bg-[#f2f4f2] px-5 py-4 text-base font-semibold text-[#2e3432] shadow-[0_16px_35px_rgba(46,52,50,0.06)] transition hover:-translate-y-0.5 hover:bg-white hover:shadow-[0_24px_48px_rgba(46,52,50,0.1)] disabled:translate-y-0 disabled:cursor-not-allowed disabled:opacity-70 disabled:shadow-none"
           >
-            {loading || redirecting ? "Please wait..." : "Forgot Password?"}
+            <Image src="/google-logo.png" alt="Google" width={24} height={24} />
+            <span>{redirecting ? "Redirecting..." : "Continue with Google"}</span>
           </button>
-        </div>
-
-        <Image
-          src="/gifts.png"
-          alt="Gift Box"
-          width={128}
-          height={128}
-          className="absolute -bottom-10 left-4 hidden w-20 animate-pulse md:-bottom-12 md:left-6 md:block md:w-28"
-        />
-        <Image
-          src="/santa-hat.png"
-          alt="Santa Hat"
-          width={128}
-          height={128}
-          className="absolute -bottom-10 right-4 hidden w-20 animate-wiggle md:-bottom-12 md:right-6 md:block md:w-28"
-        />
+          <div className="rounded-[1.5rem] bg-[#fff8f1] px-4 py-4 text-sm leading-6 text-[#5f4500]">
+            Sign in once and we will send you right back to the exchange flow you came from.
+          </div>
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <p className="text-sm leading-6 text-[#5b605e]">
+              Do not have an account yet?
+            </p>
+            <button
+              type="button"
+              onClick={() => router.push(`/create-account?next=${encodeURIComponent(nextPath)}`)}
+              className="rounded-full bg-[linear-gradient(135deg,#48664e_0%,#3c5a43_100%)] px-5 py-3 text-sm font-semibold text-[#f7fbf8] shadow-[0_18px_38px_rgba(60,90,67,0.18)] transition hover:-translate-y-0.5 hover:shadow-[0_24px_46px_rgba(60,90,67,0.24)]"
+            >
+              Create Account
+            </button>
+          </div>
+        </form>
       </div>
-    </div>
+    </LoginLayout>
   );
 }
-
 function LoginFallback() {
   return (
-    <div className="relative flex min-h-screen items-center justify-center bg-[url('/snowflakes.png')] bg-cover bg-center px-4 py-16 sm:px-6">
-      <div className="relative w-full max-w-md rounded-lg border-4 border-white bg-gradient-to-br from-white via-blue-100 to-gray-200 p-6 shadow-xl ring-4 ring-blue-200 sm:p-8">
-        <h1 className="mb-2 text-center text-2xl font-bold text-blue-900 drop-shadow-lg sm:text-3xl">
-          GiftDraw
-        </h1>
-        <p className="text-center text-gray-700">Loading login...</p>
+    <LoginLayout supportingCopy="Loading the sign-in experience so your invite or group path is ready when the page finishes.">
+      <div className="mx-auto w-full max-w-xl">
+        <AuthHeading description="Loading login..." />
       </div>
-    </div>
+    </LoginLayout>
   );
 }
-
 export default function LoginPage() {
   return (
     <Suspense fallback={<LoginFallback />}>
