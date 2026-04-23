@@ -12,6 +12,10 @@
 
 # testing
 /coverage
+/playwright-report/*
+!/playwright-report/.gitkeep
+/test-results/*
+!/test-results/.gitkeep
 
 # next.js
 /.next/
