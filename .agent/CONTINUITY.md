@@ -3,7 +3,6 @@
 ## PLAN
 - 2026-04-20T00:00:00+08:00 [USER] Keep this file as compact durable context for new Codex chats in this workspace.
 - 2026-04-20T00:00:00+08:00 [USER] Next chats should read `AGENTS.md` first, then this file when present.
-
 ## DECISIONS
 - 2026-04-20T00:00:00+08:00 [USER] User usually commits and pushes manually unless explicitly asking Codex to do it.
 - 2026-04-20T00:00:00+08:00 [USER] Use Stitch MCP for UI design context, design tokens, screen metadata, and Stitch implementation details.
@@ -52,6 +51,7 @@
 - 2026-04-23T19:19:00+08:00 [CODE] Supersedes the 2026-04-23T18:43:00+08:00 festive login note: at user request, `app/login/page.tsx` was restored to the prior split-layout login design because the festive single-card version scaled too large on-screen.
 - 2026-04-23T19:31:00+08:00 [CODE] Used Stitch screens `beed44935e06450bbdb13a9d1d9f1391` and `cfa9319bfc8345d7b85eb7615a171c5a` as direction for `app/forgot-password/page.tsx`, redesigning the reset screen into the same Winter Atelier auth family with a split layout, calmer recovery copy, and a clearer success/error state while preserving the reset-email flow.
 - 2026-04-23T19:45:00+08:00 [CODE] `app/login/page.tsx` now clears the Google OAuth loading overlay when the browser returns to the login page after a hidden/back-navigation OAuth attempt, fixing the stuck "Redirecting to Google" state without changing the normal redirect path.
+- 2026-04-23T20:02:00+08:00 [CODE] Added `docs/test-case-matrix.md` as the route-by-route UI test inventory for public, auth, protected, group, invite, affiliate, and cross-screen edge cases, including current coverage status and recommended automation order.
 ## DISCOVERIES
 - 2026-04-20T00:00:00+08:00 [TOOL] Current recurring build warnings: parent lockfile workspace-root inference and Next.js middleware-to-proxy deprecation.
 - 2026-04-22T10:05:52+08:00 [TOOL] Official Vercel April 2026 bulletin says customer env vars not marked "sensitive" should be treated as potentially exposed and rotated; for this app the highest-priority secret classes visible in repo config are `SUPABASE_SERVICE_ROLE_KEY`, Lazada app/user/postback secrets, OpenRouter/Gemini API keys, and cron/health/reminder shared secrets. `NEXT_PUBLIC_*` values are public by design and are not the priority rotation set.
