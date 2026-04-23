@@ -49,6 +49,7 @@
 - 2026-04-23T16:48:50+08:00 [CODE] Supersedes the old login-brand portion of the 2026-04-23T16:42:26+08:00 note: the login header now uses the real app name `My Secret Santa`, the `Returning member` badge was removed, and the direct smoke/navigation assertions were updated to match.
 - 2026-04-23T18:15:51+08:00 [CODE] Supersedes the login-copy tone from the 2026-04-23T16:42:26+08:00 redesign: `app/login/page.tsx` now uses plain login/account-access language instead of comeback/return messaging while preserving the post-login `next` redirect behavior in code.
 - 2026-04-23T18:43:00+08:00 [CODE] Supersedes the 2026-04-23T16:42:26+08:00/18:15:51+08:00 login presentation notes: `app/login/page.tsx` now follows a Stitch-generated festive single-card skeuomorphic design closely based on the user-provided holiday reference image, with `My Secret Santa` replacing `GiftDraw` and `Sign In` replacing the old `Login / Signup` caption while preserving the existing email, Google, forgot-password, create-account, and `next` redirect behavior.
+- 2026-04-23T19:19:00+08:00 [CODE] Supersedes the 2026-04-23T18:43:00+08:00 festive login note: at user request, `app/login/page.tsx` was restored to the prior split-layout login design because the festive single-card version scaled too large on-screen.
 
 ## DISCOVERIES
 - 2026-04-20T00:00:00+08:00 [TOOL] Current recurring build warnings: parent lockfile workspace-root inference and Next.js middleware-to-proxy deprecation.
