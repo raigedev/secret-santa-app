@@ -498,7 +498,7 @@ export default async function InviteLinkPage({
             🎁 Join Secret Santa
           </div>
           <p className="text-[13px] mt-1" style={{ color: "rgba(255,255,255,.82)" }}>
-            Use this invite link to join the group before names are drawn.
+            Use this invite link to join the group before names are drawn. Shared links now expire after 7 days.
           </p>
         </div>
 

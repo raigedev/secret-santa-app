@@ -8,10 +8,13 @@ import {
 import type { LazadaAffiliateAttributionContext } from "@/lib/affiliate/lazada";
 import { insertAffiliateClick } from "@/lib/affiliate/click-tracking";
 import { normalizeLazadaProductPageUrl } from "@/lib/affiliate/lazada-url";
+import { canTrackWishlistAffiliateRedirect } from "@/lib/affiliate/redirect-access";
 import { recordServerFailure } from "@/lib/security/audit";
 import { enforceRateLimit } from "@/lib/security/rate-limit";
 import { extractRequestClientIp } from "@/lib/security/web";
 import { createClient } from "@/lib/supabase/server";
+
+const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 export async function GET(request: NextRequest) {
   const { searchParams } = request.nextUrl;
@@ -22,17 +25,59 @@ export async function GET(request: NextRequest) {
 
   const normalizedItemUrl = normalizeLazadaProductPageUrl(itemUrl);
 
-  if (!groupId || !wishlistItemId || !normalizedItemUrl) {
+  if (
+    !groupId ||
+    !UUID_PATTERN.test(groupId) ||
+    !wishlistItemId ||
+    !UUID_PATTERN.test(wishlistItemId) ||
+    !normalizedItemUrl
+  ) {
+    return NextResponse.redirect(new URL("/secret-santa", request.url));
+  }
+
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    return NextResponse.redirect(new URL("/login", request.url));
+  }
+
+  const accessCheck = await canTrackWishlistAffiliateRedirect({
+    groupId,
+    userId: user.id,
+    wishlistItemId,
+  });
+
+  if (!accessCheck.allowed) {
+    if (accessCheck.error) {
+      await recordServerFailure({
+        actorUserId: user.id,
+        details: {
+          groupId,
+          path: "/go/wishlist-link",
+          reason: accessCheck.reason,
+          wishlistItemId,
+        },
+        errorMessage: accessCheck.error,
+        eventType: "affiliate.redirect.wishlist_link.access_lookup_failed",
+        resourceId: wishlistItemId,
+        resourceType: "affiliate_redirect",
+      });
+    }
+
     return NextResponse.redirect(new URL("/secret-santa", request.url));
   }
 
   const clientIp = extractRequestClientIp(request.headers) || "unknown";
   const rateLimit = await enforceRateLimit({
     action: "affiliate.redirect.wishlist_link",
+    actorUserId: user.id,
     maxAttempts: 100,
     resourceId: wishlistItemId,
     resourceType: "affiliate_redirect",
-    subject: `wishlist-link:${clientIp}`,
+    subject: `wishlist-link:${user.id}:${clientIp}`,
     windowSeconds: 3600,
   });
 
@@ -66,17 +111,9 @@ export async function GET(request: NextRequest) {
     ...lazadaAttribution,
   });
 
-  let actorUserId: string | null = null;
-
   try {
-    const supabase = await createClient();
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-    actorUserId = user?.id || null;
-
     await insertAffiliateClick({
-      user_id: actorUserId,
+      user_id: user.id,
       group_id: groupId,
       wishlist_item_id: wishlistItemId,
       merchant: "lazada",
@@ -106,7 +143,7 @@ export async function GET(request: NextRequest) {
       error instanceof Error ? error.message : "Unknown affiliate wishlist click tracking error.";
 
     await recordServerFailure({
-      actorUserId,
+      actorUserId: user.id,
       details: {
         groupId,
         path: "/go/wishlist-link",

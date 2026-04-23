@@ -18,8 +18,10 @@ import {
   ShoppingRegion,
   SuggestionMerchant,
 } from "@/lib/wishlist/suggestions";
+import { canTrackWishlistAffiliateRedirect } from "@/lib/affiliate/redirect-access";
 
 const ALLOWED_MERCHANTS: SuggestionMerchant[] = AFFILIATE_READY_MERCHANTS;
+const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 function isSuggestionMerchant(value: string | null): value is SuggestionMerchant {
   return Boolean(value) && ALLOWED_MERCHANTS.includes(value as SuggestionMerchant);
@@ -59,19 +61,57 @@ export async function GET(request: NextRequest) {
   if (
     !isSuggestionMerchant(merchant) ||
     !groupId ||
+    !UUID_PATTERN.test(groupId) ||
     !wishlistItemId ||
+    !UUID_PATTERN.test(wishlistItemId) ||
     searchQuery.length === 0
   ) {
+    return NextResponse.redirect(new URL("/secret-santa", request.url));
+  }
+
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    return NextResponse.redirect(new URL("/login", request.url));
+  }
+
+  const accessCheck = await canTrackWishlistAffiliateRedirect({
+    groupId,
+    userId: user.id,
+    wishlistItemId,
+  });
+
+  if (!accessCheck.allowed) {
+    if (accessCheck.error) {
+      await recordServerFailure({
+        actorUserId: user.id,
+        details: {
+          groupId,
+          merchant,
+          reason: accessCheck.reason,
+          wishlistItemId,
+        },
+        errorMessage: accessCheck.error,
+        eventType: "affiliate.redirect.suggestion.access_lookup_failed",
+        resourceId: wishlistItemId,
+        resourceType: "affiliate_redirect",
+      });
+    }
+
     return NextResponse.redirect(new URL("/secret-santa", request.url));
   }
 
   const clientIp = extractRequestClientIp(request.headers) || "unknown";
   const rateLimit = await enforceRateLimit({
     action: "affiliate.redirect.suggestion",
+    actorUserId: user.id,
     maxAttempts: 100,
     resourceId: wishlistItemId,
     resourceType: "affiliate_redirect",
-    subject: `${merchant}:${clientIp}`,
+    subject: `${merchant}:${user.id}:${clientIp}`,
     windowSeconds: 3600,
   });
 
@@ -154,19 +194,12 @@ export async function GET(request: NextRequest) {
     };
   }
 
-  let actorUserId: string | null = null;
   const loggedSuggestionTitle =
     lazadaResolution?.resolvedTitle?.trim() || suggestionTitle;
 
   try {
-    const supabase = await createClient();
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-    actorUserId = user?.id || null;
-
     await insertAffiliateClick({
-      user_id: actorUserId,
+      user_id: user.id,
       group_id: groupId,
       wishlist_item_id: wishlistItemId,
       merchant,
@@ -200,7 +233,7 @@ export async function GET(request: NextRequest) {
       error instanceof Error ? error.message : "Unknown affiliate suggestion click tracking error.";
 
     await recordServerFailure({
-      actorUserId,
+      actorUserId: user.id,
       details: {
         groupId,
         merchant,

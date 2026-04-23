@@ -6,7 +6,9 @@ import {
   getGroupCapacityMessage,
   MAX_GROUP_MEMBERS,
 } from "@/lib/groups/capacity";
+import { buildInviteLinkExpiresAt } from "@/lib/groups/invite-links.mjs";
 import { sanitizeGroupNickname, validateAnonymousGroupNickname } from "@/lib/groups/nickname";
+import { hasDeclinedInviteResendTarget } from "@/lib/groups/resend-invite.mjs";
 import { recordAuditEvent, recordServerFailure } from "@/lib/security/audit";
 import { createNotification, createNotifications } from "@/lib/notifications";
 import { enforceRateLimit } from "@/lib/security/rate-limit";
@@ -469,6 +471,33 @@ export async function resendInvite(
   }
 
   const existingUserId = await findExistingUserIdByEmail(normalizedEmail);
+  const { data: memberships, error: membershipsError } = await supabaseAdmin
+    .from("group_members")
+    .select("id, status, user_id, email")
+    .eq("group_id", groupId)
+    .limit(100);
+
+  if (membershipsError) {
+    await recordServerFailure({
+      actorUserId: user.id,
+      details: { memberEmail: normalizedEmail },
+      errorMessage: membershipsError.message,
+      eventType: "group.resend_invite.lookup_memberships",
+      resourceId: groupId,
+      resourceType: "group",
+    });
+
+    return { message: "Failed to resend invite." };
+  }
+
+  if (
+    !hasDeclinedInviteResendTarget(memberships, {
+      email: normalizedEmail,
+      existingUserId,
+    })
+  ) {
+    return { message: "Only declined invites can be resent." };
+  }
 
   if (!existingUserId) {
     const inviteResult = await sendInviteEmail(
@@ -573,11 +602,13 @@ export async function createInviteLink(
 
   const token = buildInviteToken();
   const tokenHash = hashInviteToken(token);
+  const expiresAt = buildInviteLinkExpiresAt();
   const { error: insertError } = await supabaseAdmin.from("group_invite_links").insert({
     group_id: groupId,
     token: null,
     token_hash: tokenHash,
     created_by: user.id,
+    expires_at: expiresAt,
   });
 
   if (insertError) {

@@ -1,6 +1,7 @@
 import { createHash } from "crypto";
 import { NextRequest, NextResponse } from "next/server";
 
+import { stripReservedPostbackSecrets } from "@/lib/affiliate/lazada-postback.mjs";
 import { supabaseAdmin } from "@/lib/supabase/admin";
 import { safeEqualSecret } from "@/lib/security/web";
 
@@ -140,12 +141,13 @@ function isAuthorizedPostback(request: NextRequest, payload: PostbackPayload): b
 }
 
 async function handlePostback(request: NextRequest) {
-  const payload = await readPostbackPayload(request);
+  const rawPayload = await readPostbackPayload(request);
 
-  if (!isAuthorizedPostback(request, payload)) {
+  if (!isAuthorizedPostback(request, rawPayload)) {
     return new NextResponse("Unauthorized", { status: 401 });
   }
 
+  const payload = stripReservedPostbackSecrets(rawPayload);
   const clickToken = getFirstPayloadValue(payload, [
     "subId6",
     "sub_id6",

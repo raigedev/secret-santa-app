@@ -1,6 +1,7 @@
 "use server";
 
 import { randomInt } from "crypto";
+import { isAssignmentAlreadyDrawnError } from "@/lib/groups/draw.mjs";
 import { validateAnonymousGroupNickname } from "@/lib/groups/nickname";
 import { recordAuditEvent, recordServerFailure } from "@/lib/security/audit";
 import { createNotifications } from "@/lib/notifications";
@@ -710,6 +711,10 @@ export async function drawSecretSanta(
   const { error: insertError } = await supabaseAdmin.from("assignments").insert(assignments);
 
   if (insertError) {
+    if (isAssignmentAlreadyDrawnError(insertError)) {
+      return { success: false, message: "Names have already been drawn for this group." };
+    }
+
     await recordServerFailure({
       actorUserId: user.id,
       details: { assignmentCount: assignments.length },

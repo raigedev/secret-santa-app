@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 
 import { primeLazadaPromotionLinks } from "@/lib/affiliate/lazada";
 import { normalizeLazadaProductPageUrl } from "@/lib/affiliate/lazada-url";
+import { enforceRateLimit } from "@/lib/security/rate-limit";
 import { createClient } from "@/lib/supabase/server";
 
 const MAX_BATCH_INPUTS = 100;
@@ -47,6 +48,28 @@ export async function POST(request: NextRequest) {
 
   if (!user) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  const rateLimit = await enforceRateLimit({
+    action: "affiliate.lazada.prime_links",
+    actorUserId: user.id,
+    maxAttempts: 60,
+    resourceId: "lazada",
+    resourceType: "affiliate_redirect",
+    subject: user.id,
+    windowSeconds: 3600,
+  });
+
+  if (!rateLimit.allowed) {
+    return NextResponse.json(
+      { error: rateLimit.message },
+      {
+        status: 429,
+        headers: {
+          "Retry-After": String(Math.max(rateLimit.retryAfterSeconds, 1)),
+        },
+      }
+    );
   }
 
   let payload: PrimeLinksBody;
