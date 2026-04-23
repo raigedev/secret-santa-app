@@ -176,7 +176,7 @@ function LoginPageInner() {
             className={`w-full flex-1 rounded-md py-2 text-center font-medium shadow transition ${
               loading || redirecting
                 ? "bg-gray-300 text-gray-500 cursor-not-allowed"
-                : "bg-blue-500 text-white hover:bg-blue-600"
+                : "bg-blue-600 text-white hover:bg-blue-700"
             }`}
           >
             {loading || redirecting ? "Please wait..." : "Create Account"}
@@ -187,7 +187,7 @@ function LoginPageInner() {
             className={`w-full flex-1 rounded-md py-2 text-center font-medium shadow transition ${
               loading || redirecting
                 ? "bg-gray-300 text-gray-500 cursor-not-allowed"
-                : "bg-red-500 text-white hover:bg-red-600"
+                : "bg-red-600 text-white hover:bg-red-700"
             }`}
           >
             {loading || redirecting ? "Please wait..." : "Forgot Password?"}

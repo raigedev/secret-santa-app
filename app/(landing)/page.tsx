@@ -78,9 +78,9 @@ function SantaLogo({ dark = false }: { dark?: boolean }) {
         <span style={{ fontSize: 22, color: dark ? "#fff" : "#1a1a1a", letterSpacing: "-0.5px" }}>Santa</span><br />
         <span
           style={{
-            fontSize: 9,
+            fontSize: 10,
             fontWeight: 700,
-            color: dark ? "rgba(255,255,255,.4)" : "#c0392b",
+            color: dark ? "#a9b7ce" : "#c0392b",
             fontStyle: "italic",
             fontFamily: "var(--font-landing-body), sans-serif",
             letterSpacing: "0",
@@ -259,7 +259,7 @@ export default function Landing() {
         .testimonial-avatar{width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:800;color:#fff;}
         .ta-red{background:linear-gradient(135deg,var(--red),var(--red-light));}.ta-green{background:linear-gradient(135deg,var(--green),var(--green-light));}.ta-gold{background:linear-gradient(135deg,var(--gold),var(--gold-light));}
         .testimonial-name{font-size:13px;font-weight:800;color:#1f2937;}
-        .testimonial-role{font-size:11px;color:#9ca3af;}
+        .testimonial-role{font-size:11px;color:#6b7280;}
 
         .cta-section{padding:100px 24px;background:linear-gradient(135deg,var(--red-dark),var(--red),var(--red-light));text-align:center;position:relative;overflow:hidden;}
         .cta-section::before{content:'';position:absolute;inset:0;background:url("data:image/svg+xml,%3Csvg width='6' height='6' xmlns='http://www.w3.org/2000/svg'%3E%3Ccircle cx='3' cy='3' r='.5' fill='rgba(255,255,255,0.04)'/%3E%3C/svg%3E");}
@@ -284,14 +284,14 @@ export default function Landing() {
         .app-badge-big{font-size:16px;font-weight:800;display:block;margin-top:1px;}
         .app-coming{display:inline-flex;align-items:center;gap:6px;font-size:11px;font-weight:700;color:rgba(255,255,255,.3);background:rgba(255,255,255,.04);padding:6px 14px;border-radius:20px;border:1px solid rgba(255,255,255,.06);}
 
-        footer{padding:60px 24px 40px;background:var(--navy);color:rgba(255,255,255,.6);font-size:13px;border-top:1px solid rgba(255,255,255,.06);}
+        footer{padding:60px 24px 40px;background:var(--navy);color:#cfd8ea;font-size:13px;border-top:1px solid rgba(255,255,255,.06);}
         .footer-inner{max-width:1000px;margin:0 auto;display:flex;justify-content:space-between;align-items:flex-start;gap:40px;flex-wrap:wrap;}
         .footer-brand{max-width:280px;}
-        .footer-brand-desc{font-size:13px;line-height:1.6;color:rgba(255,255,255,.4);margin-top:12px;}
+        .footer-brand-desc{font-size:13px;line-height:1.6;color:#a9b7ce;margin-top:12px;}
         .footer-col h4{font-size:13px;font-weight:800;color:#fff;margin-bottom:12px;text-transform:uppercase;letter-spacing:.08em;}
-        .footer-col a{display:block;font-size:13px;color:rgba(255,255,255,.4);text-decoration:none;padding:4px 0;transition:color .2s;cursor:pointer;}
+        .footer-col a{display:block;font-size:13px;color:#a9b7ce;text-decoration:none;padding:4px 0;transition:color .2s;cursor:pointer;}
         .footer-col a:hover{color:#fff;}
-        .footer-bottom{max-width:1000px;margin:32px auto 0;padding-top:24px;border-top:1px solid rgba(255,255,255,.06);text-align:center;font-size:12px;color:rgba(255,255,255,.25);}
+        .footer-bottom{max-width:1000px;margin:32px auto 0;padding-top:24px;border-top:1px solid rgba(255,255,255,.06);text-align:center;font-size:12px;color:#9cabc4;}
 
         .fade-up{opacity:0;transform:translateY(24px);animation:fadeUp .7s ease forwards;}
         .d1{animation-delay:.1s}.d2{animation-delay:.2s}.d3{animation-delay:.3s}
