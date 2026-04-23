@@ -27,4 +27,12 @@ test.describe("public accessibility coverage", () => {
   test("create-account page has no serious accessibility violations", async ({ page }) => {
     await expectNoSeriousA11yViolations("/create-account", page);
   });
+
+  test("forgot-password page has no serious accessibility violations", async ({ page }) => {
+    await expectNoSeriousA11yViolations("/forgot-password", page);
+  });
+
+  test("reset-password page has no serious accessibility violations", async ({ page }) => {
+    await expectNoSeriousA11yViolations("/reset-password", page);
+  });
 });
