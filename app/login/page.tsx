@@ -1,7 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import { Suspense, useState, type ReactNode } from "react";
+import { Suspense, useEffect, useRef, useState, type ReactNode } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 
 import { createClient } from "@/lib/supabase/client";
@@ -145,6 +145,7 @@ function LoginPageInner() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const supabase = createClient();
+  const oauthAttemptLeftPageRef = useRef(false);
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -159,6 +160,42 @@ function LoginPageInner() {
 
   const pageError = mapAuthErrorMessage(searchParams.get("error"), searchParams.get("message"));
   const activeError = error || pageError;
+
+  useEffect(() => {
+    const clearRedirectState = () => {
+      if (!oauthAttemptLeftPageRef.current) {
+        return;
+      }
+
+      oauthAttemptLeftPageRef.current = false;
+      setRedirecting(false);
+    };
+
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === "hidden") {
+        oauthAttemptLeftPageRef.current = true;
+        return;
+      }
+
+      if (document.visibilityState === "visible") {
+        clearRedirectState();
+      }
+    };
+
+    const handlePageShow = (event: PageTransitionEvent) => {
+      if (event.persisted) {
+        clearRedirectState();
+      }
+    };
+
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+    window.addEventListener("pageshow", handlePageShow);
+
+    return () => {
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+      window.removeEventListener("pageshow", handlePageShow);
+    };
+  }, []);
 
   const handleGoogleLogin = async () => {
     setError(null);
