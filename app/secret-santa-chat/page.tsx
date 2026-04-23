@@ -6,13 +6,10 @@ import { useRouter } from "next/navigation";
 import { ChatSkeleton } from "@/app/components/PageSkeleton";
 import { createClient } from "@/lib/supabase/client";
 
-import {
-  SecretSantaActiveThreadView,
-  SecretSantaChatOverview,
-  type ChatMessage,
-  type ChatThread,
-} from "./components";
+import { SecretSantaChatOverview } from "./chat-overview";
 import { sendMessage } from "./chat-actions";
+import { SecretSantaActiveThreadView } from "./chat-workspace";
+import type { ChatMessage, ChatThread } from "./chat-ui-shared";
 
 type MembershipRow = { group_id: string };
 type GroupRow = { id: string; name: string | null };
@@ -548,6 +545,9 @@ export default function SecretSantaChatPage() {
   if (activeThread && userId) {
     return (
       <SecretSantaActiveThreadView
+        threads={threads}
+        giverThreads={giverThreads}
+        receiverThreads={receiverThreads}
         activeThread={activeThread}
         messages={messages}
         msgInput={msgInput}
@@ -555,6 +555,7 @@ export default function SecretSantaChatPage() {
         userId={userId}
         messagesEndRef={messagesEndRef}
         onBackToThreads={closeThread}
+        onOpenThread={openThread}
         onMessageInputChange={setMsgInput}
         onComposerKeyDown={handleComposerKeyDown}
         onSend={() => {
