@@ -5,9 +5,9 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { linkUserToGroup } from "@/utils/linkUserToGroup";
 const TRUST_MARKERS = [
-  { title: "Invite-safe return path", copy: "We keep your group or invite destination ready after sign-in so you do not lose your place." },
-  { title: "Private gifting tools", copy: "Wishlists, draw results, and anonymous chat stay behind your signed-in account." },
-  { title: "Built for the fun part", copy: "Once you are in, you can jump straight back into planning, gifting, and reveal-day details." },
+  { title: "Protected account access", copy: "Wishlists, draw results, anonymous chat, and group details stay behind your signed-in account." },
+  { title: "Email or Google sign-in", copy: "Use your email and password or continue with Google from the same screen." },
+  { title: "Groups and invites", copy: "One login covers your dashboard, group pages, invite links, and notifications." },
 ] as const;
 const AUTH_ERROR_MESSAGES: Record<string, string> = {
   confirm_email: "Please confirm your email address before opening the app.",
@@ -29,8 +29,8 @@ function getFriendlyLoginError(message: string): string {
 }
 function getSupportingCopy(nextPath: string): string {
   return nextPath !== "/dashboard"
-    ? "Sign back in and we will return you to the invite, group, or gift-planning page you came from."
-    : "Sign in once, then slip back into wishlists, group details, and reveal-day planning without starting over.";
+    ? "Sign in to open the page you requested."
+    : "Use your account to access wishlists, groups, notifications, and gift planning tools.";
 }
 function rememberPostLoginNextPath(nextPath: string) {
   document.cookie = `post_login_next=${encodeURIComponent(nextPath)}; Path=/; Max-Age=1800; SameSite=Lax`;
@@ -39,7 +39,7 @@ function AuthHeading({ description }: { description: string }) {
   return (
     <>
       <h1 className="font-[Plus_Jakarta_Sans] text-3xl font-black tracking-[-0.05em] text-[#2e3432] sm:text-4xl">My Secret Santa</h1>
-      <h2 className="mt-2 font-[Plus_Jakarta_Sans] text-2xl font-black tracking-[-0.04em] text-[#48664e] sm:text-[2rem]">Welcome back</h2>
+      <h2 className="mt-2 font-[Plus_Jakarta_Sans] text-2xl font-black tracking-[-0.04em] text-[#48664e] sm:text-[2rem]">Login</h2>
       <p className="mt-3 text-[15px] leading-7 text-[#5b605e] sm:text-base">{description}</p>
     </>
   );
@@ -59,14 +59,13 @@ function LoginLayout({ children, supportingCopy }: { children: ReactNode; suppor
             <div className="relative z-10 flex h-full flex-col justify-between gap-8">
               <div>
                 <div className="inline-flex items-center gap-2 rounded-full bg-white/85 px-4 py-2 text-[11px] font-semibold uppercase tracking-[0.24em] text-[#7b5902] shadow-[0_16px_32px_rgba(123,89,2,0.08)]">
-                  The Magic Returns
+                  Secure sign in
                 </div>
                 <h2 className="mt-6 max-w-xl font-[Plus_Jakarta_Sans] text-4xl font-black tracking-[-0.06em] text-[#2e3432] sm:text-5xl lg:text-[3.3rem] lg:leading-[1.02]">
-                  Return to the calmer side of Secret Santa.
+                  Sign in to your account.
                 </h2>
                 <p className="mt-4 max-w-xl text-base leading-7 text-[#5b605e] sm:text-lg">
-                  Pick up where you left off: thoughtful wishlists, polished gifting plans, and private
-                  exchanges that feel more like a holiday lookbook than a default dashboard.
+                  Access wishlists, group details, draw results, and private gifting tools from one account.
                 </p>
                 <div className="mt-6 rounded-[1.75rem] bg-white/82 p-5 text-sm leading-6 text-[#43614a] shadow-[0_20px_45px_rgba(62,92,69,0.08)]">
                   {supportingCopy}
@@ -76,8 +75,8 @@ function LoginLayout({ children, supportingCopy }: { children: ReactNode; suppor
                 <div className="absolute inset-x-0 top-0 h-24 bg-[linear-gradient(180deg,_rgba(252,206,114,0.22),_transparent)]" />
                 <div className="relative z-10 flex items-start justify-between gap-4">
                   <div className="max-w-sm">
-                    <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-[#7b5902]">Cozy comeback</p>
-                    <h3 className="mt-2 font-[Plus_Jakarta_Sans] text-2xl font-black tracking-[-0.05em] text-[#2e3432]">Warm details, private draws, and your group waiting on the other side.</h3>
+                    <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-[#7b5902]">Account features</p>
+                    <h3 className="mt-2 font-[Plus_Jakarta_Sans] text-2xl font-black tracking-[-0.05em] text-[#2e3432]">Wishlists, groups, draws, and private chat live behind one login.</h3>
                   </div>
                   <Image src="/bells-holly.png" alt="Holiday greenery" width={160} height={160} className="hidden w-24 shrink-0 drop-shadow-[0_18px_30px_rgba(123,89,2,0.16)] sm:block" />
                 </div>
@@ -174,7 +173,7 @@ function LoginPageInner() {
             </div>
           </div>
         )}
-        <AuthHeading description="Sign in to reopen your wishlist, group details, and gift-planning notes without losing your path." />
+        <AuthHeading description="Use your account to access wishlists, group details, notifications, and gift-planning tools." />
         <form className="mt-8 space-y-5" noValidate onSubmit={(event) => {
           event.preventDefault();
           void handleEmailLogin();
@@ -218,9 +217,6 @@ function LoginPageInner() {
               className={FIELD_CLASS_NAME}
             />
           </div>
-          <div className="rounded-[1.35rem] bg-[#f2f4f2] px-4 py-3 text-sm leading-6 text-[#5b605e]">
-            You will be returned to your group or invite after signing in.
-          </div>
           {activeError ? (
             <div role="alert" className="rounded-[1.35rem] bg-[#fff1ef] px-4 py-3 text-sm leading-6 text-[#821a01]">
               {activeError}
@@ -249,12 +245,9 @@ function LoginPageInner() {
             <Image src="/google-logo.png" alt="Google" width={24} height={24} />
             <span>{redirecting ? "Redirecting..." : "Continue with Google"}</span>
           </button>
-          <div className="rounded-[1.5rem] bg-[#fff8f1] px-4 py-4 text-sm leading-6 text-[#5f4500]">
-            Sign in once and we will send you right back to the exchange flow you came from.
-          </div>
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <p className="text-sm leading-6 text-[#5b605e]">
-              Do not have an account yet?
+              Need an account?
             </p>
             <button
               type="button"
@@ -271,7 +264,7 @@ function LoginPageInner() {
 }
 function LoginFallback() {
   return (
-    <LoginLayout supportingCopy="Loading the sign-in experience so your invite or group path is ready when the page finishes.">
+    <LoginLayout supportingCopy="Loading the sign-in screen.">
       <div className="mx-auto w-full max-w-xl">
         <AuthHeading description="Loading login..." />
       </div>
