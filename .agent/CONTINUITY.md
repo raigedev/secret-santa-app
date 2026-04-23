@@ -9,6 +9,8 @@
 - 2026-04-20T00:00:00+08:00 [USER] Use Stitch MCP for UI design context, design tokens, screen metadata, and Stitch implementation details.
 - 2026-04-20T00:00:00+08:00 [USER] Preserve Lazada affiliate backend/data wiring while polishing UI.
 - 2026-04-20T00:00:00+08:00 [USER] Treat security, auth, postback, affiliate tracking, and public redirect routes as abuse-sensitive.
+- 2026-04-23T16:42:26+08:00 [USER] After each meaningful change, always include a clear "what changed" summary, detailed manual testing steps, and the exact commit/push commands.
+- 2026-04-23T16:42:26+08:00 [USER] User prefers manual verification on Vercel after push instead of local browser testing; future test steps should default to Vercel preview/production checks.
 
 ## PROGRESS
 - 2026-04-20T00:00:00+08:00 [CODE] `AGENTS.md` now records project stack, security rules, launch guardrails, operating rules, and continuity rules.
@@ -43,6 +45,7 @@
 - 2026-04-23T16:04:08+08:00 [CODE] Secret Santa Lazada recommendations now share one fallback metadata layer across `lib/wishlist/suggestions.ts` and `/api/affiliate/lazada/matches`, so direct products and search-backed routes carry consistent labels like Best match, Step-up pick, Budget-safe, and Search-backed fallback.
 - 2026-04-23T16:04:08+08:00 [CODE] Using the Stitch Winter Atelier shopping direction again, the `app/secret-santa/page.tsx` Lazada area now surfaces a stronger lead card with assistant context plus clearer supporting-card badges/chips that distinguish matched products from safer search-backed routes.
 - 2026-04-23T16:42:26+08:00 [CODE] Used Stitch project `3072957204541081703` to generate a Winter Atelier login concept, then redesigned `app/login/page.tsx` into a calmer split auth layout with editorial onboarding copy, softer layered surfaces, preserved `GiftDraw`/`Login`/`Continue with Google` test hooks, and the existing post-login return-path behavior.
+- 2026-04-23T16:48:50+08:00 [CODE] Supersedes the old login-brand portion of the 2026-04-23T16:42:26+08:00 note: the login header now uses the real app name `My Secret Santa`, the `Returning member` badge was removed, and the direct smoke/navigation assertions were updated to match.
 
 ## DISCOVERIES
 - 2026-04-20T00:00:00+08:00 [TOOL] Current recurring build warnings: parent lockfile workspace-root inference and Next.js middleware-to-proxy deprecation.
@@ -64,3 +67,4 @@
 - 2026-04-23T15:32:02+08:00 [TOOL] For the create-account redesign, `npm.cmd run typecheck`, `npm.cmd run lint:security`, `npm.cmd run build`, `npx.cmd playwright test tests/e2e/forms/public-auth-validation.spec.ts --grep "create-account"`, `npx.cmd playwright test tests/e2e/navigation/public-routes.spec.ts --grep "create-account route renders"`, `npx.cmd playwright test tests/e2e/responsive/public-mobile.spec.ts --grep "create-account form remains usable on mobile"`, and `npx.cmd playwright test tests/e2e/accessibility/public-pages.a11y.spec.ts --grep "create-account page has no serious accessibility violations"` all passed locally.
 - 2026-04-23T16:04:08+08:00 [TOOL] For the Lazada recommendation/design pass, `npm.cmd run typecheck`, `npm.cmd run lint:security`, `npm.cmd run build`, and `npm.cmd run test:e2e` all passed locally. Full Playwright remains `235 passed, 10 skipped`, with only the intentional authenticated-flow skips waiting on safe non-production credentials.
 - 2026-04-23T16:42:26+08:00 [TOOL] For the login redesign, `npm.cmd run typecheck`, `npm.cmd run lint:security`, `npm.cmd run build`, and `npm.cmd run test:e2e` all passed locally. Full Playwright remains `235 passed, 10 skipped`, with only the intentional authenticated-flow skips waiting on safe non-production credentials.
+- 2026-04-23T16:48:50+08:00 [TOOL] Installed external Codex skills `webapp-testing` and `create-plan` from `ComposioHQ/awesome-codex-skills` into `C:\Users\kenda\.codex\skills` using the bundled Codex Python runtime and the skill-installer helper with `--ref master`. Codex restart is required before those skills can auto-trigger in new sessions.

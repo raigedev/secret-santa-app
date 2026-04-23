@@ -10,7 +10,7 @@ test.describe("public route coverage", () => {
 
   test("login route renders", async ({ page }) => {
     await page.goto("/login");
-    await expect(page.getByRole("heading", { name: /giftdraw/i })).toBeVisible();
+    await expect(page.getByRole("heading", { name: /my secret santa/i })).toBeVisible();
   });
 
   test("create-account route renders", async ({ page }) => {
