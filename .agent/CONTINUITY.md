@@ -11,6 +11,7 @@
 - 2026-04-20T00:00:00+08:00 [USER] Treat security, auth, postback, affiliate tracking, and public redirect routes as abuse-sensitive.
 - 2026-04-23T16:42:26+08:00 [USER] After each meaningful change, always include a clear "what changed" summary, detailed manual testing steps, and the exact commit/push commands.
 - 2026-04-23T16:42:26+08:00 [USER] User prefers manual verification on Vercel after push instead of local browser testing; future test steps should default to Vercel preview/production checks.
+- 2026-04-23T17:09:00+08:00 [USER] Prefer the installed Codex skills/tooling (`create-plan`, `webapp-testing`, `security-threat-model`, AuraKit skill files, and `jscpd`) in future tasks when they are actually relevant to the request.
 
 ## PROGRESS
 - 2026-04-20T00:00:00+08:00 [CODE] `AGENTS.md` now records project stack, security rules, launch guardrails, operating rules, and continuity rules.
