@@ -50,6 +50,7 @@
 - 2026-04-23T18:15:51+08:00 [CODE] Supersedes the login-copy tone from the 2026-04-23T16:42:26+08:00 redesign: `app/login/page.tsx` now uses plain login/account-access language instead of comeback/return messaging while preserving the post-login `next` redirect behavior in code.
 - 2026-04-23T18:43:00+08:00 [CODE] Supersedes the 2026-04-23T16:42:26+08:00/18:15:51+08:00 login presentation notes: `app/login/page.tsx` now follows a Stitch-generated festive single-card skeuomorphic design closely based on the user-provided holiday reference image, with `My Secret Santa` replacing `GiftDraw` and `Sign In` replacing the old `Login / Signup` caption while preserving the existing email, Google, forgot-password, create-account, and `next` redirect behavior.
 - 2026-04-23T19:19:00+08:00 [CODE] Supersedes the 2026-04-23T18:43:00+08:00 festive login note: at user request, `app/login/page.tsx` was restored to the prior split-layout login design because the festive single-card version scaled too large on-screen.
+- 2026-04-23T19:31:00+08:00 [CODE] Used Stitch screens `beed44935e06450bbdb13a9d1d9f1391` and `cfa9319bfc8345d7b85eb7615a171c5a` as direction for `app/forgot-password/page.tsx`, redesigning the reset screen into the same Winter Atelier auth family with a split layout, calmer recovery copy, and a clearer success/error state while preserving the reset-email flow.
 
 ## DISCOVERIES
 - 2026-04-20T00:00:00+08:00 [TOOL] Current recurring build warnings: parent lockfile workspace-root inference and Next.js middleware-to-proxy deprecation.
