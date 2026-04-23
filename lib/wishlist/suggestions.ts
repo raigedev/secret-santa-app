@@ -1,8 +1,9 @@
-import { formatPriceRange } from "./pricing";
 import {
-  getLazadaStarterProducts,
-  type LazadaStarterCatalogProduct,
-} from "@/lib/affiliate/lazada-catalog";
+  buildLazadaSearchFallbackCards,
+  getLazadaBudgetFitLabel,
+  getLazadaSuggestionPriceLabel,
+} from "@/lib/affiliate/lazada-recommendations";
+import { getLazadaStarterProducts } from "@/lib/affiliate/lazada-catalog";
 
 export type SuggestionMerchant =
   | "amazon"
@@ -66,6 +67,9 @@ export type WishlistFeaturedProductCard = {
   fitLabel: string;
   whyItFits: string;
   trackingLabel: string;
+  recommendationLabel?: string;
+  recommendationCaption?: string;
+  recommendationTone?: "berry" | "forest" | "gold" | "ink";
 };
 
 type SuggestionTemplate = {
@@ -344,13 +348,13 @@ function createSuggestionOption(
     title: template.title,
     subtitle: template.subtitle,
     searchQuery: template.searchQuery,
-    fitLabel: getBudgetFitLabel(
+    fitLabel: getLazadaBudgetFitLabel(
       template,
       input.preferredPriceMin,
       input.preferredPriceMax,
       input.groupBudget
     ),
-    priceLabel: getSuggestionPriceLabel(
+    priceLabel: getLazadaSuggestionPriceLabel(
       template,
       input.preferredPriceMin,
       input.preferredPriceMax,
@@ -498,15 +502,6 @@ export function buildTrackedSuggestionHref(
   }
 
   return `/go/suggestion?${params.toString()}`;
-}
-
-function getFeaturedLazadaTrackingLabel(template: {
-  productId: string | null;
-  source: "catalog-product" | "search-backed";
-}): string {
-  return template.productId && template.source === "catalog-product"
-    ? "Matched product"
-    : "Search results";
 }
 
 function getKeywordTemplates(itemName: string, itemNote: string): SuggestionTemplate[] {
@@ -765,23 +760,6 @@ function dedupeTemplates(templates: SuggestionTemplate[]): SuggestionTemplate[] 
   });
 }
 
-function dedupeFeaturedLazadaProducts(
-  products: LazadaStarterCatalogProduct[]
-): LazadaStarterCatalogProduct[] {
-  const seenQueries = new Set<string>();
-
-  return products.filter((product) => {
-    const key = product.searchQuery.toLowerCase();
-
-    if (seenQueries.has(key)) {
-      return false;
-    }
-
-    seenQueries.add(key);
-    return true;
-  });
-}
-
 function buildStarterSuggestionTemplates(input: SuggestionInput): SuggestionTemplate[] {
   return getLazadaStarterProducts({
     itemName: input.itemName,
@@ -798,58 +776,6 @@ function buildStarterSuggestionTemplates(input: SuggestionInput): SuggestionTemp
     typicalMin: product.typicalMin,
     typicalMax: product.typicalMax,
   }));
-}
-
-function getBudgetFitLabel(
-  template: SuggestionTemplate,
-  preferredMin: number | null,
-  preferredMax: number | null,
-  groupBudget: number | null
-): string {
-  const effectiveMax = preferredMax ?? groupBudget;
-
-  if (template.typicalMin === null && template.typicalMax === null) {
-    return effectiveMax !== null ? "Use your budget target" : "Flexible pricing";
-  }
-
-  if (effectiveMax !== null && template.typicalMin !== null && template.typicalMin > effectiveMax) {
-    return "Usually above target";
-  }
-
-  if (
-    effectiveMax !== null &&
-    template.typicalMax !== null &&
-    template.typicalMax <= effectiveMax
-  ) {
-    return "Usually within target";
-  }
-
-  if (preferredMin !== null && template.typicalMax !== null && template.typicalMax < preferredMin) {
-    return "Usually under target";
-  }
-
-  return "Flexible pricing";
-}
-
-function getSuggestionPriceLabel(
-  template: SuggestionTemplate,
-  preferredMin: number | null,
-  preferredMax: number | null,
-  groupBudget: number | null,
-  currency: string | null
-): string | null {
-  if (preferredMin !== null || preferredMax !== null) {
-    const preferredLabel = formatPriceRange(preferredMin, preferredMax, currency);
-    return preferredLabel ? `Target: ${preferredLabel}` : null;
-  }
-
-  if (groupBudget !== null) {
-    const groupBudgetLabel = formatPriceRange(groupBudget, groupBudget, currency);
-    return groupBudgetLabel ? `Budget target: ${groupBudgetLabel}` : null;
-  }
-
-  const typicalLabel = formatPriceRange(template.typicalMin, template.typicalMax, currency);
-  return typicalLabel ? `Typical spend: ${typicalLabel}` : null;
 }
 
 export function buildWishlistSuggestionOptions(
@@ -992,75 +918,43 @@ export function buildWishlistFeaturedLazadaProducts(input: {
     return [];
   }
 
-  // These cards intentionally use specific Lazada-oriented search picks now.
-  // Once the Lazada Open API is approved, the same UI can swap to real
-  // product-level promotion links without redesigning the wishlist flow.
-  const templates = dedupeFeaturedLazadaProducts(
-    getLazadaStarterProducts({
-      itemName: input.itemName,
-      itemCategory: input.itemCategory,
-      itemNote: input.itemNote,
-      searchQuery: input.option.searchQuery,
-      preferredPriceMin: input.preferredPriceMin,
-      preferredPriceMax: input.preferredPriceMax,
-      groupBudget: input.groupBudget,
-    })
-  ).slice(0, 3);
-
-  return templates.map((template) => ({
-    id: `lazada-featured-${slugify(template.searchQuery)}`,
-    merchant: "lazada",
-    merchantLabel: MERCHANT_LABELS.lazada,
-    catalogSource: template.source,
-    imageUrl: null,
-    productId: template.productId,
-    skuId: template.skuId,
-    title: template.title,
-    subtitle: template.subtitle,
-      href: buildTrackedSuggestionHref(
+  return buildLazadaSearchFallbackCards({
+    currency: input.currency,
+    groupBudget: input.groupBudget,
+    groupId: input.groupId,
+    itemCategory: input.itemCategory,
+    itemName: input.itemName,
+    itemNote: input.itemNote,
+    limit: 3,
+    preferredPriceMax: input.preferredPriceMax,
+    preferredPriceMin: input.preferredPriceMin,
+    region: input.region,
+    searchQuery: input.option.searchQuery,
+    wishlistItemId: input.wishlistItemId,
+    buildHref: ({ fitLabel, product, trackingLabel }) =>
+      buildTrackedSuggestionHref(
         "lazada",
         input.groupId,
-      input.wishlistItemId,
-      template.searchQuery,
-      template.title,
-      input.region,
+        input.wishlistItemId,
+        product.searchQuery,
+        product.title,
+        input.region,
         {
-          catalogSource: template.source,
-          fitLabel: getBudgetFitLabel(
-            template,
-            input.preferredPriceMin,
-            input.preferredPriceMax,
-            input.groupBudget
-          ),
+          catalogSource: product.source,
+          fitLabel,
           groupBudget: input.groupBudget,
           itemCategory: input.itemCategory,
           itemName: input.itemName,
-        itemNote: input.itemNote,
-        productId: template.productId,
+          itemNote: input.itemNote,
+          productId: product.productId,
           preferredPriceMax: input.preferredPriceMax,
           preferredPriceMin: input.preferredPriceMin,
           selectedQuery: input.option.searchQuery,
-          skuId: template.skuId,
-          trackingLabel: getFeaturedLazadaTrackingLabel(template),
+          skuId: product.skuId,
+          trackingLabel,
         }
       ),
-    searchQuery: template.searchQuery,
-    priceLabel: getSuggestionPriceLabel(
-      template,
-      input.preferredPriceMin,
-      input.preferredPriceMax,
-      input.groupBudget,
-      input.currency
-    ),
-    fitLabel: getBudgetFitLabel(
-      template,
-      input.preferredPriceMin,
-      input.preferredPriceMax,
-      input.groupBudget
-    ),
-    whyItFits: template.whyItFits,
-    trackingLabel: getFeaturedLazadaTrackingLabel(template),
-  }));
+  });
 }
 
 export function buildMerchantDestinationUrl(

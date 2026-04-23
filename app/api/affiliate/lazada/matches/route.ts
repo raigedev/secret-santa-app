@@ -7,7 +7,11 @@ import {
   type LazadaFeedMatch,
 } from "@/lib/affiliate/lazada-feed";
 import { primeLazadaPromotionLinks } from "@/lib/affiliate/lazada";
-import { getLazadaStarterProducts } from "@/lib/affiliate/lazada-catalog";
+import {
+  buildLazadaSearchFallbackCards,
+  getDirectMatchRecommendationMetadata,
+  type LazadaDirectMatchRole,
+} from "@/lib/affiliate/lazada-recommendations";
 import { enforceRateLimit } from "@/lib/security/rate-limit";
 import { createClient } from "@/lib/supabase/server";
 import { formatPriceRange } from "@/lib/wishlist/pricing";
@@ -29,6 +33,8 @@ type MatchProductsBody = {
   searchQuery?: unknown;
   wishlistItemId?: unknown;
 };
+
+type MatchCardRole = LazadaDirectMatchRole;
 
 function sanitizeString(value: unknown): string {
   return typeof value === "string" ? value.trim() : "";
@@ -71,7 +77,6 @@ function isShoppingRegion(value: string): value is ShoppingRegion {
   return ["AU", "CA", "GLOBAL", "JP", "PH", "UK", "US"].includes(value);
 }
 
-type MatchCardRole = "closest" | "premium" | "step-up";
 type SearchAngleIntent =
   | "accessory"
   | "budget"
@@ -548,6 +553,7 @@ function shouldUseBaseItemFallback(searchAngleIntent: SearchAngleIntent): boolea
 }
 
 function buildSearchFallbackCards(input: {
+  currency: string | null;
   groupBudget: number | null;
   groupId: string;
   itemCategory: string;
@@ -561,53 +567,22 @@ function buildSearchFallbackCards(input: {
   wishlistItemId: string;
   excludeSearchQueries?: string[];
 }): WishlistFeaturedProductCard[] {
-  const normalizedSelectedQuery = normalizeAngleQuery(input.searchQuery);
-  const excludedQueries = new Set(
-    (input.excludeSearchQueries || []).map((query) => normalizeAngleQuery(query))
-  );
-  const fallbackProducts = getLazadaStarterProducts({
-    itemName: input.itemName,
-    itemCategory: input.itemCategory,
-    itemNote: input.itemNote,
-    searchQuery: input.searchQuery,
-    preferredPriceMin: input.preferredPriceMin,
-    preferredPriceMax: input.preferredPriceMax,
+  return buildLazadaSearchFallbackCards({
+    currency: input.currency,
     groupBudget: input.groupBudget,
-  })
-    .filter((product) => product.source === "search-backed")
-    .sort((left, right) => {
-      const leftSelected = normalizeAngleQuery(left.searchQuery) === normalizedSelectedQuery ? 0 : 1;
-      const rightSelected = normalizeAngleQuery(right.searchQuery) === normalizedSelectedQuery ? 0 : 1;
-
-      if (leftSelected !== rightSelected) {
-        return leftSelected - rightSelected;
-      }
-
-      return 0;
-    })
-    .filter((product) => !excludedQueries.has(normalizeAngleQuery(product.searchQuery)))
-    .slice(0, input.limit);
-
-  return fallbackProducts.map((product, index) => {
-    const fitLabel =
-      normalizeAngleQuery(product.searchQuery) === normalizedSelectedQuery
-        ? "Selected angle"
-        : index === 0
-          ? "Closest to request"
-          : "Search route";
-    const trackingLabel = "Search route";
-
-    return {
-      id: `fallback-lazada-${input.wishlistItemId}-${product.id}-${index}`,
-      merchant: "lazada",
-      merchantLabel: "Lazada",
-      catalogSource: "search-backed",
-      imageUrl: null,
-      productId: null,
-      skuId: null,
-      title: product.title,
-      subtitle: product.subtitle,
-      href: buildTrackedSuggestionHref(
+    groupId: input.groupId,
+    itemCategory: input.itemCategory,
+    itemName: input.itemName,
+    itemNote: input.itemNote,
+    limit: input.limit,
+    preferredPriceMax: input.preferredPriceMax,
+    preferredPriceMin: input.preferredPriceMin,
+    region: input.region,
+    searchQuery: input.searchQuery,
+    wishlistItemId: input.wishlistItemId,
+    excludeSearchQueries: input.excludeSearchQueries,
+    buildHref: ({ fitLabel, product, trackingLabel }) =>
+      buildTrackedSuggestionHref(
         "lazada",
         input.groupId,
         input.wishlistItemId,
@@ -627,15 +602,6 @@ function buildSearchFallbackCards(input: {
           trackingLabel,
         }
       ),
-      searchQuery: product.searchQuery,
-      priceLabel:
-        input.groupBudget !== null
-          ? `Budget target: ${formatPriceRange(input.groupBudget, input.groupBudget, "PHP")}`
-          : null,
-      fitLabel,
-      whyItFits: product.whyItFits,
-      trackingLabel,
-    };
   });
 }
 
@@ -849,6 +815,7 @@ export async function POST(request: NextRequest) {
       const lazadaPrice = getLazadaFeedProductPrice(match.product);
       const fitLabel = buildMatchFitLabel(role);
       const trackingLabel = "Matched product";
+      const recommendationMeta = getDirectMatchRecommendationMetadata(role);
 
       return {
         id: `lazada-match-${wishlistItemId}-${match.product.itemId}-${index}`,
@@ -888,11 +855,15 @@ export async function POST(request: NextRequest) {
         fitLabel,
         whyItFits: buildMatchWhyItFits(role, match.reasons, lazadaPrice, basePrice),
         trackingLabel,
+        recommendationLabel: recommendationMeta.recommendationLabel,
+        recommendationCaption: recommendationMeta.recommendationCaption,
+        recommendationTone: recommendationMeta.recommendationTone,
       };
     }
   );
 
   const searchFallbackCards = buildSearchFallbackCards({
+    currency: "PHP",
     groupBudget,
     groupId,
     itemCategory,
@@ -911,6 +882,7 @@ export async function POST(request: NextRequest) {
     directProducts.length > 0
       ? [...directProducts, ...searchFallbackCards].slice(0, 3)
       : buildSearchFallbackCards({
+          currency: "PHP",
           groupBudget,
           groupId,
           itemCategory,

@@ -589,13 +589,22 @@ function summarizeCardCopy(value: string, maxLength: number): string {
 }
 
 function getFeaturedLazadaCardTypeLabel(product: WishlistFeaturedProductCard): string {
-  return product.catalogSource === "catalog-product" ? "Direct product" : "Lazada search";
+  return (
+    product.recommendationCaption ||
+    (product.catalogSource === "catalog-product"
+      ? "Matched Lazada product"
+      : "Search-backed route")
+  );
 }
 
 function getFeaturedLazadaRoleLabel(
   product: WishlistFeaturedProductCard,
   index: number
 ): string {
+  if (product.recommendationLabel) {
+    return product.recommendationLabel;
+  }
+
   if (product.catalogSource === "catalog-product") {
     return product.fitLabel || "Matched product";
   }
@@ -609,6 +618,51 @@ function getFeaturedLazadaRoleLabel(
   }
 
   return "Premium option";
+}
+
+function getFeaturedLazadaToneStyle(
+  product: WishlistFeaturedProductCard
+): {
+  badgeBackground: string;
+  badgeColor: string;
+  chipBackground: string;
+  chipColor: string;
+  panelBackground: string;
+} {
+  switch (product.recommendationTone) {
+    case "berry":
+      return {
+        badgeBackground: "rgba(164,60,63,.12)",
+        badgeColor: HOLIDAY_RED,
+        chipBackground: "rgba(164,60,63,.08)",
+        chipColor: HOLIDAY_RED,
+        panelBackground: "rgba(255,244,244,.82)",
+      };
+    case "gold":
+      return {
+        badgeBackground: "rgba(252,206,114,.34)",
+        badgeColor: "#7b5902",
+        chipBackground: "rgba(252,206,114,.28)",
+        chipColor: "#6b4d00",
+        panelBackground: "rgba(255,248,237,.84)",
+      };
+    case "ink":
+      return {
+        badgeBackground: "rgba(46,52,50,.08)",
+        badgeColor: PAGE_TEXT_COLOR,
+        chipBackground: "rgba(46,52,50,.06)",
+        chipColor: PAGE_TEXT_COLOR,
+        panelBackground: "rgba(246,247,246,.9)",
+      };
+    default:
+      return {
+        badgeBackground: "rgba(72,102,78,.12)",
+        badgeColor: HOLIDAY_GREEN,
+        chipBackground: "rgba(72,102,78,.08)",
+        chipColor: HOLIDAY_GREEN,
+        panelBackground: "rgba(240,246,241,.88)",
+      };
+  }
 }
 
 function getFeaturedLazadaButtonLabel(product: WishlistFeaturedProductCard): string {
@@ -2063,6 +2117,31 @@ export default function SecretSantaPage() {
                       const heroLazadaButtonLabel = primaryFeaturedLazadaProduct
                         ? getFeaturedLazadaButtonLabel(primaryFeaturedLazadaProduct)
                         : "Browse Lazada";
+                      const directLazadaMatchCount =
+                        displayableMatchedLazadaProducts.filter(
+                          (product) => product.catalogSource === "catalog-product"
+                        ).length;
+                      const heroLazadaRoleLabel =
+                        primaryFeaturedLazadaProduct?.recommendationLabel ||
+                        "Most wanted";
+                      const heroLazadaCaption =
+                        primaryFeaturedLazadaProduct?.recommendationCaption ||
+                        (primaryFeaturedLazadaProduct?.catalogSource ===
+                        "catalog-product"
+                          ? "Matched Lazada product"
+                          : "Search-backed route");
+                      const heroLazadaToneStyle = primaryFeaturedLazadaProduct
+                        ? getFeaturedLazadaToneStyle(primaryFeaturedLazadaProduct)
+                        : null;
+                      const heroLazadaAssistantNote = lazadaMatchesLoading
+                        ? "Safe search-backed picks stay visible while we check the live Lazada feed."
+                        : directLazadaMatchCount > 0
+                          ? `Live Lazada feed found ${directLazadaMatchCount} direct ${
+                              directLazadaMatchCount === 1
+                                ? "product match"
+                                : "product matches"
+                            } for this direction.`
+                          : "No confident direct product match yet, so these picks stay on safer search-backed routes.";
                       const curatedLazadaCardPool = [
                         ...featuredLazadaProducts,
                         ...displayableMatchedLazadaProducts,
@@ -2427,13 +2506,26 @@ export default function SecretSantaPage() {
                                     </div>
                                     <div className="flex min-w-0 flex-col justify-center p-5 sm:p-6">
                                       <div
-                                        className="mb-3 inline-flex items-center gap-2 text-[11px] font-extrabold uppercase"
+                                        className="mb-3 inline-flex items-center gap-2 rounded-full px-4 py-2 text-[10px] font-extrabold uppercase leading-none"
                                         style={{
-                                          color: HOLIDAY_GOLD,
+                                          background:
+                                            heroLazadaToneStyle?.badgeBackground ||
+                                            "rgba(252,206,114,.3)",
+                                          color:
+                                            heroLazadaToneStyle?.badgeColor || HOLIDAY_GOLD,
                                         }}
                                       >
                                         <span aria-hidden="true">★</span>
-                                        Most wanted
+                                        {heroLazadaRoleLabel}
+                                      </div>
+                                      <div
+                                        className="mb-4 inline-flex w-fit rounded-full px-3 py-2 text-[10px] font-extrabold uppercase leading-none"
+                                        style={{
+                                          background: "rgba(255,255,255,.8)",
+                                          color: TEXT_MUTED,
+                                        }}
+                                      >
+                                        {heroLazadaCaption}
                                       </div>
                                       <div className="min-w-0">
                                         <h3
@@ -2465,6 +2557,31 @@ export default function SecretSantaPage() {
                                           {heroLazadaCopy}
                                         </p>
                                       </div>
+                                      <div
+                                        className="mt-4 rounded-[24px] px-4 py-3 text-[12px] font-medium leading-relaxed"
+                                        style={{
+                                          background:
+                                            heroLazadaToneStyle?.panelBackground ||
+                                            "rgba(240,246,241,.88)",
+                                          color: PAGE_TEXT_COLOR,
+                                        }}
+                                      >
+                                        <div
+                                          className="text-[10px] font-extrabold uppercase"
+                                          style={{ color: HOLIDAY_GREEN }}
+                                        >
+                                          Shopping assistant
+                                        </div>
+                                        <div className="mt-1">{heroLazadaAssistantNote}</div>
+                                        {selectedSuggestion && (
+                                          <div
+                                            className="mt-2 text-[11px] font-semibold"
+                                            style={{ color: TEXT_MUTED }}
+                                          >
+                                            Chosen direction: {selectedSuggestion.title}
+                                          </div>
+                                        )}
+                                      </div>
                                       <div className="mt-4 flex flex-wrap gap-2.5">
                                         {heroLazadaTags.length > 0 ? (
                                           heroLazadaTags.map((tag) => (
@@ -2472,8 +2589,11 @@ export default function SecretSantaPage() {
                                               key={tag}
                                               className="max-w-full rounded-full px-4 py-2 text-[11px] font-extrabold leading-none"
                                               style={{
-                                                background: "rgba(252,206,114,.88)",
-                                                color: "#5f4500",
+                                                background:
+                                                  heroLazadaToneStyle?.chipBackground ||
+                                                  "rgba(252,206,114,.88)",
+                                                color:
+                                                  heroLazadaToneStyle?.chipColor || "#5f4500",
                                                 overflowWrap: "anywhere",
                                               }}
                                             >
@@ -2642,18 +2762,15 @@ export default function SecretSantaPage() {
                                               const productImageUrl = normalizeOptionalUrl(
                                                 product.imageUrl || ""
                                               );
-                                              const roleBackground =
-                                                index === 1
-                                                  ? "rgba(252,206,114,.26)"
-                                                  : index === 2
-                                                    ? "rgba(46,52,50,.08)"
-                                                    : "rgba(72,102,78,.1)";
-                                              const roleColor =
-                                                index === 1
-                                                  ? HOLIDAY_GOLD
-                                                  : index === 2
-                                                    ? PAGE_TEXT_COLOR
-                                                    : HOLIDAY_GREEN;
+                                              const toneStyle =
+                                                getFeaturedLazadaToneStyle(product);
+                                              const productMetaTags = [
+                                                product.fitLabel,
+                                              ].filter(
+                                                (tag): tag is string =>
+                                                  typeof tag === "string" &&
+                                                  tag.trim().length > 0
+                                              );
 
                                               return (
                                                 <div
@@ -2693,8 +2810,8 @@ export default function SecretSantaPage() {
                                                       <span
                                                         className="shrink-0 rounded-full px-3 py-1.5 text-[9px] font-extrabold uppercase leading-tight"
                                                         style={{
-                                                          color: roleColor,
-                                                          background: roleBackground,
+                                                          color: toneStyle.badgeColor,
+                                                          background: toneStyle.badgeBackground,
                                                           whiteSpace: "nowrap",
                                                         }}
                                                       >
@@ -2718,7 +2835,13 @@ export default function SecretSantaPage() {
                                                     className="flex flex-1 flex-col p-5"
                                                   >
                                                     <div
-                                                      className="text-[18px] font-extrabold leading-tight"
+                                                      className="text-[11px] font-extrabold uppercase tracking-[0.18em]"
+                                                      style={{ color: toneStyle.badgeColor }}
+                                                    >
+                                                      {cardTypeLabel}
+                                                    </div>
+                                                    <div
+                                                      className="mt-2 text-[18px] font-extrabold leading-tight"
                                                       style={{
                                                         color: PAGE_TEXT_COLOR,
                                                         display: "-webkit-box",
@@ -2744,6 +2867,24 @@ export default function SecretSantaPage() {
                                                     >
                                                       {conciseSubtitle}
                                                     </div>
+                                                    {productMetaTags.length > 0 && (
+                                                      <div className="mt-4 flex flex-wrap gap-2">
+                                                        {productMetaTags.map((tag) => (
+                                                          <span
+                                                            key={`${product.id}-${tag}`}
+                                                            className="rounded-full px-3 py-2 text-[10px] font-extrabold leading-none"
+                                                            style={{
+                                                              background:
+                                                                toneStyle.chipBackground,
+                                                              color: toneStyle.chipColor,
+                                                              overflowWrap: "anywhere",
+                                                            }}
+                                                          >
+                                                            {tag}
+                                                          </span>
+                                                        ))}
+                                                      </div>
+                                                    )}
                                                   </div>
 
                                                   <div className="mt-6">
