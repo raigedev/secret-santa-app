@@ -402,31 +402,6 @@ function getWishlistPriorityMeta(priority: number): {
   };
 }
 
-function getWishlistCategoryStyle(category: string) {
-  switch (category) {
-    case "Tech":
-      return { background: "rgba(59,130,246,.12)", color: "#1d4ed8" };
-    case "Fashion":
-      return { background: "rgba(236,72,153,.12)", color: "#be185d" };
-    case "Beauty":
-      return { background: "rgba(244,114,182,.12)", color: "#be185d" };
-    case "Food":
-      return { background: "rgba(249,115,22,.12)", color: "#c2410c" };
-    case "Books":
-      return { background: "rgba(168,85,247,.12)", color: "#7e22ce" };
-    case "Games":
-      return { background: "rgba(34,197,94,.12)", color: "#15803d" };
-    case "Home":
-      return { background: "rgba(14,165,233,.12)", color: "#0369a1" };
-    case "Collectibles":
-      return { background: "rgba(245,158,11,.12)", color: "#b45309" };
-    case "Experience":
-      return { background: "rgba(20,184,166,.12)", color: "#0f766e" };
-    default:
-      return { background: "rgba(148,163,184,.14)", color: "#475569" };
-  }
-}
-
 // Keep important wishlist items visible first and make the order predictable.
 function sortWishlistItems(items: WishlistItem[]): WishlistItem[] {
   return [...items].sort((left, right) => {
@@ -1745,15 +1720,6 @@ export default function SecretSantaPage() {
                   </div>
                 </div>
               </div>
-              <div
-                className="mt-4 rounded-2xl px-3 py-2 text-[11px] font-extrabold"
-                style={{
-                  background: "rgba(252,206,114,.18)",
-                  color: HOLIDAY_GOLD,
-                }}
-              >
-                Lazada region: {pageRegionLabel}
-              </div>
             </div>
           </div>
         </section>
@@ -1835,8 +1801,8 @@ export default function SecretSantaPage() {
                   className="mt-1 max-w-2xl text-[12px] leading-relaxed"
                   style={{ color: TEXT_MUTED }}
                 >
-                  Used for Lazada gift ideas and backup store links. Keep it on
-                  Philippines for affiliate-ready Lazada paths.
+                  Currently using {pageRegionLabel} for Lazada gift ideas and
+                  backup store links.
                 </div>
               </div>
             </div>
@@ -2140,11 +2106,6 @@ export default function SecretSantaPage() {
                               0,
                               MAX_VISIBLE_RECIPIENT_WISHLIST_ITEMS
                             );
-                      const hiddenWishlistItemCount = Math.max(
-                        assignment.receiver_wishlist.length -
-                          visibleWishlistItems.length,
-                        0
-                      );
                       const primaryFeaturedLazadaProduct =
                         (lazadaMatchesLoading
                           ? displayableFallbackLazadaProducts[0]
@@ -2246,22 +2207,22 @@ export default function SecretSantaPage() {
                           <div
                             id={`wishlist-${assignment.group_id}`}
                             data-testid="recipient-wishlist-rail"
-                            className="self-start space-y-4 rounded-[40px] p-5 sm:p-6 lg:sticky lg:top-4 lg:max-h-[calc(100vh-2rem)] lg:overflow-y-auto lg:overscroll-contain"
+                            className="self-start space-y-4 rounded-[44px] p-5 sm:p-7 lg:sticky lg:top-4 lg:max-h-[calc(100vh-2rem)] lg:overflow-y-auto lg:overscroll-contain"
                             style={{
-                              background: "#ecefec",
-                              boxShadow: "0 22px 54px rgba(46,52,50,.045)",
+                              background: "rgba(236,239,236,.92)",
+                              boxShadow: "0 24px 56px rgba(46,52,50,.05)",
                             }}
                           >
-                            <div className="mb-2 flex items-center justify-between gap-4">
+                            <div className="mb-4 flex items-center justify-between gap-4">
                               <div className="flex min-w-0 items-center gap-3">
                                 <span
-                                  className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl"
+                                  className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl"
                                   style={{ color: HOLIDAY_GREEN }}
                                 >
                                   <GiftMark className="h-5 w-5" />
                                 </span>
                                 <div
-                                  className="min-w-0 text-[20px] font-black leading-tight"
+                                  className="min-w-0 truncate whitespace-nowrap text-[18px] font-black leading-tight"
                                   style={{
                                     color: PAGE_TEXT_COLOR,
                                     fontFamily:
@@ -2284,9 +2245,6 @@ export default function SecretSantaPage() {
 
                             {visibleWishlistItems.map((wishlistItem) => {
                               const isActiveItem = wishlistItem.id === item.id;
-                              const wishlistCategoryStyle = wishlistItem.item_category
-                                ? getWishlistCategoryStyle(wishlistItem.item_category)
-                                : null;
                               const wishlistPriorityMeta =
                                 getWishlistPriorityMeta(wishlistItem.priority);
                               const wishlistImageUrl = normalizeOptionalUrl(
@@ -2302,13 +2260,13 @@ export default function SecretSantaPage() {
                                       wishlistItem.id
                                     )
                                   }
-                                  className="w-full rounded-[30px] p-3.5 text-left transition hover:-translate-y-0.5"
+                                  className="w-full rounded-[30px] p-4 text-left transition hover:-translate-y-0.5 sm:p-5"
                                   style={{
                                     background: isActiveItem
                                       ? "#ffffff"
-                                      : "rgba(255,255,255,.5)",
+                                      : "rgba(255,255,255,.48)",
                                     outline: isActiveItem
-                                      ? "1px solid rgba(164,60,63,.18)"
+                                      ? "1px solid rgba(164,60,63,.2)"
                                       : "1px solid rgba(255,255,255,.58)",
                                     boxShadow: isActiveItem
                                       ? "0 18px 38px rgba(164,60,63,.08)"
@@ -2317,9 +2275,9 @@ export default function SecretSantaPage() {
                                     fontFamily: "inherit",
                                   }}
                                 >
-                                  <div className="flex items-start gap-3">
+                                  <div className="flex items-center gap-4">
                                     <div
-                                      className="flex h-[72px] w-[72px] shrink-0 items-center justify-center overflow-hidden rounded-[14px] text-[19px]"
+                                      className="flex h-[68px] w-[68px] shrink-0 items-center justify-center overflow-hidden rounded-[10px] text-[19px] sm:h-[72px] sm:w-[72px]"
                                       style={{
                                         background: "rgba(255,255,255,.88)",
                                         border: "1px solid rgba(174,179,177,.08)",
@@ -2340,7 +2298,7 @@ export default function SecretSantaPage() {
                                       <div className="flex items-start justify-between gap-3">
                                         <div className="min-w-0">
                                           <div
-                                            className="text-[14px] font-extrabold leading-tight"
+                                            className="text-[15px] font-extrabold leading-tight"
                                             style={{
                                               color: PAGE_TEXT_COLOR,
                                               display: "-webkit-box",
@@ -2353,27 +2311,17 @@ export default function SecretSantaPage() {
                                           </div>
                                         </div>
                                       </div>
-                                      <div className="mt-3 flex items-center gap-2 flex-wrap">
+                                      <div className="mt-2 flex items-center gap-2">
                                         <span
-                                          className="text-[9px] font-extrabold uppercase tracking-[0.04em] px-2.5 py-1 rounded-full"
+                                          className="rounded-full px-2.5 py-1 text-[9px] font-extrabold uppercase tracking-[0.04em]"
                                           style={{
                                             background:
                                               wishlistPriorityMeta.badgeBackground,
                                             color: wishlistPriorityMeta.badgeColor,
                                           }}
                                         >
-                                          {wishlistPriorityMeta.icon}{" "}
                                           {wishlistPriorityMeta.label}
                                         </span>
-                                        {wishlistItem.item_category &&
-                                          wishlistCategoryStyle && (
-                                            <span
-                                              className="text-[9px] font-extrabold px-2 py-1 rounded-lg"
-                                              style={wishlistCategoryStyle}
-                                            >
-                                              {wishlistItem.item_category}
-                                            </span>
-                                          )}
                                       </div>
                                     </div>
                                   </div>
@@ -2397,20 +2345,9 @@ export default function SecretSantaPage() {
                                 }}
                               >
                                 {isWishlistExpanded ? "Show less" : "See more"}
-                                <span aria-hidden="true">
+                                <span aria-hidden="true" className="text-[13px]">
                                   {isWishlistExpanded ? "^" : "v"}
                                 </span>
-                                {!isWishlistExpanded && (
-                                  <span
-                                    className="rounded-full px-2 py-0.5 text-[10px]"
-                                    style={{
-                                      background: "rgba(255,255,255,.72)",
-                                      color: TEXT_MUTED,
-                                    }}
-                                  >
-                                    +{hiddenWishlistItemCount}
-                                  </span>
-                                )}
                               </button>
                             )}
                           </div>
