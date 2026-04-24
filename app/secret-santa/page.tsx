@@ -2537,10 +2537,9 @@ export default function SecretSantaPage() {
                                   >
                                     <div className="grid min-w-0 gap-0 md:grid-cols-[minmax(112px,140px)_minmax(0,1fr)]">
                                     <div
-                                      className="relative flex min-h-[108px] min-w-0 items-center justify-center overflow-hidden px-3 py-3 text-[30px] sm:min-h-[116px] lg:min-h-[124px]"
+                                      className="relative flex min-h-[108px] min-w-0 items-center justify-center overflow-hidden bg-white p-2 text-[30px] sm:min-h-[116px] lg:min-h-[124px]"
                                       style={{
-                                        background:
-                                          "linear-gradient(180deg,rgba(236,239,236,.96),rgba(223,228,225,.92))",
+                                        borderRight: "1px solid rgba(174,179,177,.08)",
                                       }}
                                     >
                                       {heroLazadaImageUrl ? (
@@ -2548,7 +2547,7 @@ export default function SecretSantaPage() {
                                         <img
                                           src={heroLazadaImageUrl}
                                           alt={heroLazadaTitle}
-                                          className="h-full max-h-[104px] w-full object-contain transition duration-700 group-hover:scale-[1.02] sm:max-h-[112px] lg:max-h-[120px]"
+                                          className="h-full max-h-[108px] w-full object-contain object-center transition duration-700 group-hover:scale-[1.02] sm:max-h-[116px] lg:max-h-[124px]"
                                         />
                                       ) : (
                                         <div
@@ -2771,10 +2770,10 @@ export default function SecretSantaPage() {
                                                   }}
                                                 >
                                                   <div
-                                                    className="relative isolate flex aspect-[16/9] min-w-0 items-center justify-center overflow-hidden p-3"
+                                                    className="relative isolate flex aspect-[16/9] min-w-0 items-center justify-center overflow-hidden bg-white p-3"
                                                     style={{
-                                                      background:
-                                                        "linear-gradient(180deg,rgba(236,239,236,.96),rgba(223,228,225,.92))",
+                                                      borderBottom:
+                                                        "1px solid rgba(174,179,177,.08)",
                                                     }}
                                                   >
                                                     {productImageUrl ? (
