@@ -64,6 +64,16 @@ type MemberNicknameRow = {
 
 type FestiveTone = "gold" | "green" | "neutral";
 
+const CHAT_PAGE_BACKGROUND =
+  "radial-gradient(circle at 14% 8%,rgba(252,206,114,.22),transparent 24%),radial-gradient(circle at 88% 18%,rgba(164,60,63,.18),transparent 30%),radial-gradient(circle at 78% 84%,rgba(72,102,78,.24),transparent 34%),linear-gradient(180deg,#111911 0%,#211719 50%,#0f1411 100%)";
+const CHAT_SURFACE = "linear-gradient(145deg,rgba(255,248,240,.12),rgba(236,239,236,.055))";
+const CHAT_SURFACE_STRONG = "linear-gradient(180deg,rgba(255,248,240,.09),rgba(46,52,50,.56))";
+const CHAT_SURFACE_MUTED = "rgba(46,52,50,.46)";
+const CHAT_BORDER = "1px solid rgba(252,206,114,.14)";
+const CHAT_BORDER_SOFT = "1px solid rgba(255,248,240,.1)";
+const CHAT_TEXT_MUTED = "#d8ddd6";
+const CHAT_TEXT_SUBTLE = "#aeb8ae";
+
 function SantaMarkIcon({ className = "h-10 w-10" }: { className?: string }) {
   return (
     <svg viewBox="10 5 140 145" className={className} xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
@@ -1172,8 +1182,8 @@ export default function SecretSantaChatPage() {
 
   if (activeThread) {
     const isGiver = activeThread.role === "giver";
-    const accent = isGiver ? "#d9ae56" : "#7fc99a";
-    const accentDark = isGiver ? "#7b5902" : "#48664e";
+    const accent = isGiver ? "#fcce72" : "#d7fadb";
+    const accentDark = isGiver ? "#a43c3f" : "#48664e";
     const roleLabel = isGiver ? "You are gifting" : "Your mystery Santa";
     const recipientLabel = isGiver ? activeThread.other_name : "Secret Santa";
     const privacyCopy = isGiver
@@ -1184,8 +1194,7 @@ export default function SecretSantaChatPage() {
       <main
         className="relative min-h-screen overflow-hidden"
         style={{
-          background:
-            "radial-gradient(circle at 18% 10%,rgba(217,174,86,.18),transparent 28%),radial-gradient(circle at 86% 18%,rgba(72,102,78,.2),transparent 32%),linear-gradient(180deg,#08111f 0%,#101b2f 52%,#07101d 100%)",
+          background: CHAT_PAGE_BACKGROUND,
           color: "#f8fafc",
           fontFamily: "'Be Vietnam Pro','Nunito',sans-serif",
         }}
@@ -1212,9 +1221,9 @@ export default function SecretSantaChatPage() {
               }}
               className="inline-flex w-full items-center justify-center gap-2 rounded-full px-4 py-2.5 text-sm font-extrabold transition hover:-translate-y-0.5 sm:w-auto"
               style={{
-                background: "rgba(15,23,42,.46)",
-                border: "1px solid rgba(255,255,255,.09)",
-                color: "#e2e8f0",
+                background: "rgba(46,52,50,.52)",
+                border: CHAT_BORDER,
+                color: "#f3eee8",
               }}
             >
               <span aria-hidden="true">{"<-"}</span>
@@ -1223,8 +1232,8 @@ export default function SecretSantaChatPage() {
             <div
               className="inline-flex items-center justify-center gap-2 rounded-full px-4 py-2 text-[11px] font-black uppercase tracking-[0.18em]"
               style={{
-                background: isGiver ? "rgba(217,174,86,.12)" : "rgba(127,201,154,.12)",
-                border: "1px solid rgba(255,255,255,.08)",
+                background: isGiver ? "rgba(252,206,114,.14)" : "rgba(215,250,219,.12)",
+                border: isGiver ? "1px solid rgba(252,206,114,.2)" : "1px solid rgba(215,250,219,.16)",
                 color: accent,
               }}
             >
@@ -1237,9 +1246,9 @@ export default function SecretSantaChatPage() {
             <div
               className="flex min-h-[calc(100vh-120px)] flex-col overflow-hidden rounded-[34px]"
               style={{
-                background: "linear-gradient(180deg,rgba(248,250,252,.08),rgba(15,23,42,.74))",
-                border: "1px solid rgba(255,255,255,.1)",
-                boxShadow: "0 24px 60px rgba(0,0,0,.22)",
+                background: CHAT_SURFACE_STRONG,
+                border: CHAT_BORDER,
+                boxShadow: "0 24px 60px rgba(46,52,50,.2)",
                 backdropFilter: "blur(18px)",
               }}
             >
@@ -1275,8 +1284,8 @@ export default function SecretSantaChatPage() {
                 <div
                   className="rounded-[22px] px-4 py-3 text-sm font-bold leading-6 text-slate-200"
                   style={{
-                    background: "rgba(15,23,42,.42)",
-                    border: "1px solid rgba(255,255,255,.08)",
+                    background: CHAT_SURFACE_MUTED,
+                    border: CHAT_BORDER_SOFT,
                   }}
                 >
                   {privacyCopy}
@@ -1288,8 +1297,8 @@ export default function SecretSantaChatPage() {
                   className="flex min-h-[46vh] flex-col gap-3 overflow-y-auto rounded-[28px] p-4 sm:min-h-[54vh] sm:p-5"
                   style={{
                     background:
-                      "linear-gradient(180deg,rgba(2,6,23,.48),rgba(15,23,42,.88))",
-                    border: "1px solid rgba(255,255,255,.08)",
+                      "linear-gradient(180deg,rgba(24,31,25,.58),rgba(20,24,21,.88))",
+                    border: "1px solid rgba(252,206,114,.1)",
                   }}
                 >
                   {threadMessage && (
@@ -1314,10 +1323,10 @@ export default function SecretSantaChatPage() {
                           border: "1px solid rgba(255,255,255,.1)",
                         }}
                       >
-                        <ChatLineIcon className="h-8 w-8 text-slate-300" />
+                        <ChatLineIcon className="h-8 w-8 text-[#d8ddd6]" />
                       </div>
                       <p className="text-xl font-black tracking-[-0.03em]">No messages yet</p>
-                      <p className="mt-2 text-sm leading-6 text-slate-400">
+                      <p className="mt-2 text-sm leading-6" style={{ color: CHAT_TEXT_SUBTLE }}>
                         Start with a simple hint, size question, or delivery note.
                       </p>
                     </div>
@@ -1342,7 +1351,7 @@ export default function SecretSantaChatPage() {
                           style={{
                             background: isMine
                               ? `linear-gradient(135deg,${accentDark},${accent})`
-                              : "rgba(248,250,252,.09)",
+                              : "rgba(255,248,240,.1)",
                             border: isMine ? "1px solid rgba(255,255,255,.12)" : "1px solid rgba(255,255,255,.1)",
                             color: "#fff",
                             opacity: isTemp ? 0.72 : 1,
@@ -1371,8 +1380,8 @@ export default function SecretSantaChatPage() {
               <div
                 className="mt-auto flex flex-col gap-3 p-4 sm:flex-row sm:p-6"
                 style={{
-                  background: "rgba(255,255,255,.035)",
-                  borderTop: "1px solid rgba(255,255,255,.08)",
+                  background: "rgba(255,248,240,.04)",
+                  borderTop: "1px solid rgba(252,206,114,.1)",
                 }}
               >
                 <input
@@ -1383,8 +1392,8 @@ export default function SecretSantaChatPage() {
                   maxLength={500}
                   className="min-h-12 w-full rounded-full px-5 text-[15px] font-semibold outline-none sm:flex-1"
                   style={{
-                    background: "rgba(255,255,255,.1)",
-                    border: "1px solid rgba(255,255,255,.14)",
+                    background: "rgba(249,250,248,.11)",
+                    border: "1px solid rgba(252,206,114,.16)",
                     color: "#fff",
                     fontFamily: "inherit",
                   }}
@@ -1415,8 +1424,8 @@ export default function SecretSantaChatPage() {
               <div
                 className="rounded-[30px] p-5"
                 style={{
-                  background: "rgba(248,250,252,.08)",
-                  border: "1px solid rgba(255,255,255,.1)",
+                  background: `${CHAT_SURFACE},rgba(46,52,50,.58)`,
+                  border: CHAT_BORDER,
                   backdropFilter: "blur(18px)",
                 }}
               >
@@ -1429,7 +1438,7 @@ export default function SecretSantaChatPage() {
                     <h2 className="text-xl font-black tracking-[-0.04em]">Keep it secret</h2>
                   </div>
                 </div>
-                <div className="space-y-3 text-sm leading-6 text-slate-300">
+                <div className="space-y-3 text-sm leading-6" style={{ color: CHAT_TEXT_MUTED }}>
                   <p>
                     <strong className="text-white">You → Giftee:</strong> ask questions without revealing your name.
                   </p>
@@ -1440,8 +1449,8 @@ export default function SecretSantaChatPage() {
                 <div
                   className="mt-5 rounded-[22px] px-4 py-3 text-sm leading-6 text-slate-300"
                   style={{
-                    background: "rgba(15,23,42,.4)",
-                    border: "1px solid rgba(255,255,255,.08)",
+                    background: "rgba(46,52,50,.46)",
+                    border: "1px solid rgba(252,206,114,.12)",
                   }}
                 >
                   Ask about size, color, delivery timing, or what they already own. Keep each question short so the thread stays easy to scan.
@@ -1461,7 +1470,7 @@ export default function SecretSantaChatPage() {
         title: "People you gift",
         description: "Ask quiet gift questions without exposing your name.",
         threads: giverThreads,
-        accent: "#d9ae56",
+        accent: "#fcce72",
         empty: "No recipient chat yet. Once your group draw is ready, your private recipient chat appears here.",
       },
       {
@@ -1469,7 +1478,7 @@ export default function SecretSantaChatPage() {
         title: "Your mystery Santa",
         description: "Reply to the person assigned to you while their identity stays hidden.",
         threads: receiverThreads,
-        accent: "#7fc99a",
+        accent: "#d7fadb",
         empty: "No Santa chat yet. Your assigned Santa can start a private thread after the draw.",
       },
     ];
@@ -1484,8 +1493,7 @@ export default function SecretSantaChatPage() {
       <main
         className="relative min-h-screen overflow-x-hidden"
         style={{
-          background:
-            "radial-gradient(circle at 14% 8%,rgba(217,174,86,.18),transparent 24%),radial-gradient(circle at 86% 18%,rgba(72,102,78,.2),transparent 28%),linear-gradient(180deg,#08111f 0%,#101b2f 48%,#07101d 100%)",
+          background: CHAT_PAGE_BACKGROUND,
           color: "#f8fafc",
           fontFamily: "'Be Vietnam Pro','Nunito',sans-serif",
         }}
@@ -1512,7 +1520,7 @@ export default function SecretSantaChatPage() {
             <button
               onClick={() => router.push("/dashboard")}
               className="inline-flex w-fit items-center gap-2 rounded-full px-4 py-2 text-sm font-black text-slate-200 transition hover:text-white"
-              style={{ background: "rgba(15,23,42,.5)", border: "1px solid rgba(255,255,255,.08)" }}
+              style={{ background: "rgba(46,52,50,.52)", border: CHAT_BORDER }}
             >
               <span aria-hidden="true">{"<-"}</span> Dashboard
             </button>
@@ -1521,7 +1529,7 @@ export default function SecretSantaChatPage() {
                 <SantaMarkIcon className="h-9 w-9" />
               </div>
               <div>
-                <p className="text-[10px] font-black uppercase tracking-[0.28em]" style={{ color: "#d9ae56" }}>
+                <p className="text-[10px] font-black uppercase tracking-[0.28em]" style={{ color: "#fcce72" }}>
                   My Secret Santa
                 </p>
                 <h1 className="font-[Plus_Jakarta_Sans] text-[2rem] font-black tracking-[-0.05em] sm:text-[2.35rem]">
@@ -1535,19 +1543,19 @@ export default function SecretSantaChatPage() {
             <div
               className="rounded-[34px] p-6 sm:p-7"
               style={{
-                background: "linear-gradient(145deg,rgba(255,255,255,.11),rgba(255,255,255,.05))",
-                border: "1px solid rgba(255,255,255,.1)",
-                boxShadow: "0 22px 54px rgba(0,0,0,.2)",
+                background: `${CHAT_SURFACE},rgba(46,52,50,.52)`,
+                border: CHAT_BORDER,
+                boxShadow: "0 22px 54px rgba(46,52,50,.18)",
               }}
             >
               <div className="max-w-3xl">
-                <p className="mb-3 text-[11px] font-black uppercase tracking-[0.22em]" style={{ color: "#7fc99a" }}>
+                <p className="mb-3 text-[11px] font-black uppercase tracking-[0.22em]" style={{ color: "#d7fadb" }}>
                   Not a group chat
                 </p>
                 <h2 className="font-[Plus_Jakarta_Sans] text-[2.25rem] font-black tracking-[-0.06em] sm:text-[3.4rem]">
                   One private thread for each Secret Santa match.
                 </h2>
-                <p className="mt-4 max-w-2xl text-base leading-7 text-slate-300 sm:text-lg sm:leading-8">
+                <p className="mt-4 max-w-2xl text-base leading-7 sm:text-lg sm:leading-8" style={{ color: CHAT_TEXT_MUTED }}>
                   Use this page only for your giftee and the person gifting you. The app keeps names hidden so hints stay useful without spoiling the reveal.
                 </p>
               </div>
@@ -1557,9 +1565,9 @@ export default function SecretSantaChatPage() {
                   <div
                     key={stat.label}
                     className="rounded-[22px] px-4 py-3.5"
-                    style={{ background: "rgba(2,6,23,.38)", border: "1px solid rgba(255,255,255,.08)" }}
+                    style={{ background: "rgba(46,52,50,.42)", border: "1px solid rgba(252,206,114,.1)" }}
                   >
-                    <p className="text-xs font-black uppercase tracking-[0.2em] text-slate-400">{stat.label}</p>
+                    <p className="text-xs font-black uppercase tracking-[0.2em]" style={{ color: CHAT_TEXT_SUBTLE }}>{stat.label}</p>
                     <p className="mt-2 text-[2rem] font-black leading-none">{stat.value}</p>
                   </div>
                 ))}
@@ -1569,18 +1577,18 @@ export default function SecretSantaChatPage() {
             <aside
               className="rounded-[34px] p-6 sm:p-7"
               style={{
-                background: "rgba(248,250,252,.08)",
-                border: "1px solid rgba(255,255,255,.1)",
+                background: `${CHAT_SURFACE},rgba(46,52,50,.58)`,
+                border: CHAT_BORDER,
                 backdropFilter: "blur(18px)",
               }}
             >
               <div className="flex items-start gap-4">
-                <div className="grid h-11 w-11 shrink-0 place-items-center rounded-2xl" style={{ background: "rgba(217,174,86,.14)", color: "#d9ae56" }}>
+                <div className="grid h-11 w-11 shrink-0 place-items-center rounded-2xl" style={{ background: "rgba(252,206,114,.16)", color: "#fcce72" }}>
                   <LockLineIcon className="h-5 w-5" />
                 </div>
                 <div>
-                  <p className="text-[11px] font-black uppercase tracking-[0.2em] text-slate-400">How privacy works</p>
-                  <div className="mt-4 space-y-4 text-sm leading-6 text-slate-300">
+                  <p className="text-[11px] font-black uppercase tracking-[0.2em]" style={{ color: CHAT_TEXT_SUBTLE }}>How privacy works</p>
+                  <div className="mt-4 space-y-4 text-sm leading-6" style={{ color: CHAT_TEXT_MUTED }}>
                     <p>
                       <strong className="text-white">You -&gt; Giftee:</strong> ask questions as their Secret Santa.
                     </p>
@@ -1608,11 +1616,11 @@ export default function SecretSantaChatPage() {
           {threads.length === 0 ? (
             <section
               className="rounded-[34px] p-8 text-center"
-              style={{ background: "rgba(255,255,255,.08)", border: "1px dashed rgba(255,255,255,.18)" }}
+              style={{ background: "rgba(255,248,240,.08)", border: "1px dashed rgba(252,206,114,.2)" }}
             >
-              <ChatLineIcon className="mx-auto h-10 w-10 text-slate-400" />
+              <ChatLineIcon className="mx-auto h-10 w-10 text-[#aeb8ae]" />
               <h2 className="mt-4 text-2xl font-black">No private chats yet</h2>
-              <p className="mx-auto mt-3 max-w-xl text-slate-300">
+              <p className="mx-auto mt-3 max-w-xl" style={{ color: CHAT_TEXT_MUTED }}>
                 Once a group finishes drawing names, your private Secret Santa conversations will appear here automatically.
               </p>
             </section>
@@ -1623,9 +1631,9 @@ export default function SecretSantaChatPage() {
                   key={group.title}
                   className="relative rounded-[32px] p-4 pt-9 sm:p-5 sm:pt-10"
                   style={{
-                    background: "rgba(255,255,255,.08)",
-                    border: "1px solid rgba(255,255,255,.1)",
-                    boxShadow: "0 18px 44px rgba(0,0,0,.18)",
+                    background: `${CHAT_SURFACE},rgba(46,52,50,.5)`,
+                    border: CHAT_BORDER,
+                    boxShadow: "0 18px 44px rgba(46,52,50,.16)",
                   }}
                 >
                   <FestiveTrim tone={group.title === "People you gift" ? "gold" : "green"} compact />
@@ -1635,16 +1643,16 @@ export default function SecretSantaChatPage() {
                         {group.eyebrow}
                       </p>
                       <h2 className="mt-1 text-[1.85rem] font-black tracking-[-0.04em]">{group.title}</h2>
-                      <p className="mt-2 max-w-md text-sm leading-6 text-slate-300">{group.description}</p>
+                      <p className="mt-2 max-w-md text-sm leading-6" style={{ color: CHAT_TEXT_MUTED }}>{group.description}</p>
                     </div>
-                    <span className="shrink-0 rounded-full px-3 py-1 text-xs font-black text-slate-100" style={{ background: "rgba(2,6,23,.42)" }}>
+                    <span className="shrink-0 rounded-full px-3 py-1 text-xs font-black text-slate-100" style={{ background: "rgba(46,52,50,.5)" }}>
                       {group.threads.length}
                     </span>
                   </div>
 
                   <div className="relative space-y-3">
                     {group.threads.length === 0 ? (
-                      <div className="rounded-[26px] p-5 text-sm leading-6 text-slate-300" style={{ background: "rgba(2,6,23,.34)", border: "1px solid rgba(255,255,255,.08)" }}>
+                      <div className="rounded-[26px] p-5 text-sm leading-6" style={{ background: "rgba(46,52,50,.4)", border: "1px solid rgba(252,206,114,.1)", color: CHAT_TEXT_MUTED }}>
                         {group.empty}
                       </div>
                     ) : (
@@ -1654,8 +1662,8 @@ export default function SecretSantaChatPage() {
                           onClick={() => openThread(thread)}
                           className="group w-full rounded-[26px] p-4 text-left transition duration-200 hover:-translate-y-0.5"
                           style={{
-                            background: "linear-gradient(135deg,rgba(255,255,255,.1),rgba(255,255,255,.05))",
-                            border: thread.unread > 0 ? `1px solid ${group.accent}` : "1px solid rgba(255,255,255,.08)",
+                            background: "linear-gradient(135deg,rgba(255,248,240,.11),rgba(236,239,236,.055))",
+                            border: thread.unread > 0 ? `1px solid ${group.accent}` : "1px solid rgba(252,206,114,.1)",
                           }}
                         >
                           <div className="flex items-center gap-4">
@@ -1668,12 +1676,12 @@ export default function SecretSantaChatPage() {
                               </p>
                               <div className="flex items-center justify-between gap-3">
                                 <p className="truncate text-lg font-black">{thread.other_name}</p>
-                                <span className="text-xs font-bold uppercase tracking-[0.15em] text-slate-400">
+                                <span className="text-xs font-bold uppercase tracking-[0.15em]" style={{ color: CHAT_TEXT_SUBTLE }}>
                                   {formatThreadTime(thread.last_time)}
                                 </span>
                               </div>
-                              <p className="mt-1 truncate text-sm text-slate-300">{thread.group_name}</p>
-                              <p className="mt-2 truncate text-sm text-slate-400">{thread.last_message}</p>
+                              <p className="mt-1 truncate text-sm" style={{ color: CHAT_TEXT_MUTED }}>{thread.group_name}</p>
+                              <p className="mt-2 truncate text-sm" style={{ color: CHAT_TEXT_SUBTLE }}>{thread.last_message}</p>
                             </div>
                             <div className="flex shrink-0 items-center gap-2">
                               {thread.unread > 0 && (
@@ -1681,7 +1689,7 @@ export default function SecretSantaChatPage() {
                                   {thread.unread}
                                 </span>
                               )}
-                              <span className="grid h-10 w-10 place-items-center rounded-full text-slate-200 transition group-hover:translate-x-1" style={{ background: "rgba(2,6,23,.42)" }}>
+                              <span className="grid h-10 w-10 place-items-center rounded-full text-slate-200 transition group-hover:translate-x-1" style={{ background: "rgba(46,52,50,.5)" }}>
                                 <ArrowRightIcon className="h-5 w-5" />
                               </span>
                             </div>
