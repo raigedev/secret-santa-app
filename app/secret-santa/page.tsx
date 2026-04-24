@@ -588,8 +588,72 @@ function summarizeCardCopy(value: string, maxLength: number): string {
   return `${normalized.slice(0, Math.max(maxLength - 3, 0)).trimEnd()}...`;
 }
 
+function getFriendlyLazadaLabel(value: string | null | undefined): string {
+  const label = value?.trim();
+
+  if (!label) {
+    return "";
+  }
+
+  const normalized = label.toLowerCase();
+
+  if (normalized === "search-backed fallback" || normalized === "search-backed route") {
+    return "Browse similar items";
+  }
+
+  if (normalized === "safe fallback") {
+    return "More ideas";
+  }
+
+  if (normalized === "budget-safe") {
+    return "Budget-friendly";
+  }
+
+  if (normalized === "matched lazada product") {
+    return "Ready on Lazada";
+  }
+
+  if (normalized === "matched product") {
+    return "Product match";
+  }
+
+  if (normalized === "selected angle") {
+    return "Chosen focus";
+  }
+
+  if (normalized === "wishlist wording") {
+    return "Wishlist clue";
+  }
+
+  if (normalized === "search route") {
+    return "Lazada search";
+  }
+
+  if (normalized === "use your budget target") {
+    return "Budget guided";
+  }
+
+  if (normalized === "usually within target") {
+    return "Within budget";
+  }
+
+  if (normalized === "usually under target") {
+    return "Under budget";
+  }
+
+  if (normalized === "usually above target") {
+    return "Above budget";
+  }
+
+  if (normalized === "flexible pricing") {
+    return "Flexible price";
+  }
+
+  return label;
+}
+
 function getFeaturedLazadaCardTypeLabel(product: WishlistFeaturedProductCard): string {
-  return (
+  return getFriendlyLazadaLabel(
     product.recommendationCaption ||
     (product.catalogSource === "catalog-product"
       ? "Matched Lazada product"
@@ -602,11 +666,11 @@ function getFeaturedLazadaRoleLabel(
   index: number
 ): string {
   if (product.recommendationLabel) {
-    return product.recommendationLabel;
+    return getFriendlyLazadaLabel(product.recommendationLabel);
   }
 
   if (product.catalogSource === "catalog-product") {
-    return product.fitLabel || "Matched product";
+    return getFriendlyLazadaLabel(product.fitLabel || "Matched product");
   }
 
   if (index === 0) {
@@ -1152,7 +1216,9 @@ export default function SecretSantaPage() {
           shoppingRegion
         );
 
-        if (matchedLazadaProductsByKeyRef.current[requestKey]) {
+        const existingMatchState = matchedLazadaProductsByKeyRef.current[requestKey];
+
+        if (existingMatchState && !existingMatchState.loading) {
           continue;
         }
 
@@ -2101,10 +2167,11 @@ export default function SecretSantaPage() {
                         activeGroupBudgetLabel ||
                         "";
                       const heroLazadaTags = [
-                        primaryFeaturedLazadaProduct?.fitLabel ||
-                          selectedSuggestion?.fitLabel ||
-                          "",
-                        primaryFeaturedLazadaProduct?.trackingLabel || "",
+                        getFriendlyLazadaLabel(
+                          primaryFeaturedLazadaProduct?.fitLabel ||
+                            selectedSuggestion?.fitLabel ||
+                            ""
+                        ),
                         heroLazadaPriceLabel,
                       ]
                         .filter(
@@ -2122,26 +2189,30 @@ export default function SecretSantaPage() {
                           (product) => product.catalogSource === "catalog-product"
                         ).length;
                       const heroLazadaRoleLabel =
-                        primaryFeaturedLazadaProduct?.recommendationLabel ||
-                        "Most wanted";
+                        getFriendlyLazadaLabel(
+                          primaryFeaturedLazadaProduct?.recommendationLabel ||
+                            "Most wanted"
+                        );
                       const heroLazadaCaption =
-                        primaryFeaturedLazadaProduct?.recommendationCaption ||
-                        (primaryFeaturedLazadaProduct?.catalogSource ===
-                        "catalog-product"
-                          ? "Matched Lazada product"
-                          : "Search-backed route");
+                        getFriendlyLazadaLabel(
+                          primaryFeaturedLazadaProduct?.recommendationCaption ||
+                            (primaryFeaturedLazadaProduct?.catalogSource ===
+                            "catalog-product"
+                              ? "Matched Lazada product"
+                              : "Search-backed route")
+                        );
                       const heroLazadaToneStyle = primaryFeaturedLazadaProduct
                         ? getFeaturedLazadaToneStyle(primaryFeaturedLazadaProduct)
                         : null;
                       const heroLazadaAssistantNote = lazadaMatchesLoading
-                        ? "Safe search-backed picks stay visible while we check the live Lazada feed."
+                        ? "Ready-to-browse picks stay visible while we check the live Lazada catalog."
                         : directLazadaMatchCount > 0
                           ? `Live Lazada feed found ${directLazadaMatchCount} direct ${
                               directLazadaMatchCount === 1
                                 ? "product match"
                                 : "product matches"
-                            } for this direction.`
-                          : "No confident direct product match yet, so these picks stay on safer search-backed routes.";
+                            } for this focus.`
+                          : "No exact product match yet, so these picks open Lazada with helpful search terms.";
                       const curatedLazadaCardPool = [
                         ...featuredLazadaProducts,
                         ...displayableMatchedLazadaProducts,
@@ -2364,45 +2435,50 @@ export default function SecretSantaPage() {
                                   style={{ color: TEXT_MUTED }}
                                 >
                                   Gift ideas for {assignment.receiver_nickname}, shaped by
-                                  the wishlist clue and the selected direction.
+                                  the wishlist clue and the shopping focus.
                                 </p>
                               </div>
 
-                              <div className="grid gap-5 xl:grid-cols-[minmax(250px,290px)_minmax(0,1fr)] xl:items-start">
+                              <div className="grid gap-5">
                                 <section
                                   id={`direction-${assignment.group_id}`}
                                   className="rounded-[30px] p-5 sm:p-6"
                                   style={{
-                                    background: "rgba(242,244,242,.86)",
+                                    background:
+                                      "linear-gradient(135deg,rgba(242,244,242,.94),rgba(255,255,255,.88))",
                                     color: PAGE_TEXT_COLOR,
+                                    boxShadow: "0 18px 42px rgba(46,52,50,.04)",
                                   }}
                                 >
-                                  <div className="flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between lg:flex-col lg:items-start lg:gap-2">
+                                  <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
                                     <div>
                                       <h3
-                                        className="text-[15px] font-extrabold"
+                                        className="text-[18px] font-extrabold"
                                         style={{ color: HOLIDAY_GREEN }}
                                       >
-                                        Gift direction
+                                        Shopping focus
                                       </h3>
                                       <p
-                                        className="mt-1 text-[12px] leading-relaxed"
+                                        className="mt-1 max-w-2xl text-[13px] leading-relaxed"
                                         style={{ color: TEXT_MUTED }}
                                       >
                                         {selectedSuggestion
-                                          ? selectedSuggestion.title
-                                          : "Choose the shopping angle before opening Lazada."}
+                                          ? `Currently browsing around: ${selectedSuggestion.title}`
+                                          : "Choose how Lazada should search around this wishlist item."}
                                       </p>
                                     </div>
                                     <span
-                                      className="text-[10px] font-extrabold uppercase"
-                                      style={{ color: TEXT_SOFT }}
+                                      className="w-fit rounded-full px-3 py-2 text-[10px] font-extrabold uppercase"
+                                      style={{
+                                        background: "rgba(72,102,78,.08)",
+                                        color: HOLIDAY_GREEN,
+                                      }}
                                     >
-                                      Tap to switch
+                                      Choose one
                                     </span>
                                   </div>
 
-                                  <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-1">
+                                  <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
                                     {suggestionOptions.map((suggestion) => {
                                       const isSelected =
                                         suggestion.id === selectedSuggestionId;
@@ -2417,7 +2493,7 @@ export default function SecretSantaPage() {
                                               suggestion.id
                                             )
                                           }
-                                          className="flex min-h-[92px] w-full flex-col rounded-[22px] p-4 text-left transition hover:-translate-y-0.5"
+                                          className="flex min-h-[120px] w-full flex-col rounded-[22px] p-4 text-left transition hover:-translate-y-0.5"
                                           style={{
                                             background: isSelected
                                               ? "#ffffff"
@@ -2450,7 +2526,7 @@ export default function SecretSantaPage() {
                                                   : "rgba(255,255,255,.72)",
                                               }}
                                             >
-                                              {isSelected ? "Selected" : suggestion.fitLabel}
+                                              {isSelected ? "Selected" : "Try this"}
                                             </span>
                                           </div>
                                           <div
@@ -2578,7 +2654,7 @@ export default function SecretSantaPage() {
                                             className="mt-2 text-[11px] font-semibold"
                                             style={{ color: TEXT_MUTED }}
                                           >
-                                            Chosen direction: {selectedSuggestion.title}
+                                            Shopping focus: {selectedSuggestion.title}
                                           </div>
                                         )}
                                       </div>
@@ -2645,12 +2721,16 @@ export default function SecretSantaPage() {
                                 </div>
 
                                 {selectedSuggestion && (
-                                    <div className="space-y-6 xl:col-span-2">
+                                    <div className="space-y-6">
 
                                       {lazadaMatchedProductsState?.loading && (
                                         <div
-                                          className="mb-3 flex items-center gap-2 text-[10px] font-semibold"
-                                          style={{ color: TEXT_SOFT }}
+                                          className="flex items-center gap-2 rounded-full px-4 py-2 text-[11px] font-semibold"
+                                          style={{
+                                            background: "rgba(88,116,142,.08)",
+                                            color: TEXT_MUTED,
+                                            width: "fit-content",
+                                          }}
                                         >
                                           <span
                                             className="inline-block h-2 w-2 rounded-full"
@@ -2660,68 +2740,9 @@ export default function SecretSantaPage() {
                                                 "0 0 0 4px rgba(88,116,142,.12)",
                                             }}
                                           />
-                                          Finding better Lazada matches...
+                                          Checking live Lazada products. These picks are ready to browse.
                                         </div>
                                       )}
-
-                                      {lazadaMatchedProductsState?.loading &&
-                                        displayableFallbackLazadaProducts.length > 0 && (
-                                          <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-                                            {displayableFallbackLazadaProducts.map((product) => (
-                                              <div
-                                                key={`loading-${product.id}`}
-                                                className="rounded-[22px] p-4"
-                                                style={{
-                                                  background:
-                                                    "linear-gradient(180deg,rgba(255,255,255,.9),rgba(245,248,246,.86))",
-                                                  border:
-                                                    "1px solid rgba(174,179,177,.07)",
-                                                  boxShadow:
-                                                    "0 10px 24px rgba(34,55,59,.04)",
-                                                }}
-                                              >
-                                                <div
-                                                  className="h-6 w-32 rounded-full"
-                                                  style={{
-                                                    background:
-                                                      "rgba(47,107,86,.08)",
-                                                  }}
-                                                />
-                                                <div
-                                                  className="mt-3 h-[104px] rounded-[18px]"
-                                                  style={{
-                                                    background:
-                                                      "linear-gradient(180deg,rgba(239,244,241,.82),rgba(229,236,233,.76))",
-                                                    border:
-                                                      "1px solid rgba(174,179,177,.06)",
-                                                  }}
-                                                />
-                                                <div
-                                                  className="mt-3 h-5 rounded-lg"
-                                                  style={{
-                                                    background:
-                                                      "rgba(96,117,122,.1)",
-                                                  }}
-                                                />
-                                                <div
-                                                  className="mt-2 h-4 rounded-lg"
-                                                  style={{
-                                                    width: "85%",
-                                                    background:
-                                                      "rgba(96,117,122,.08)",
-                                                  }}
-                                                />
-                                                <div
-                                                  className="mt-4 h-10 rounded-2xl"
-                                                  style={{
-                                                    background:
-                                                      "rgba(88,116,142,.12)",
-                                                  }}
-                                                />
-                                              </div>
-                                            ))}
-                                          </div>
-                                        )}
 
                                       {curatedLazadaCards.length > 0 && (
                                         <section>
@@ -2741,7 +2762,7 @@ export default function SecretSantaPage() {
                                               style={{ color: TEXT_MUTED }}
                                             >
                                               A shortlist that keeps the wishlist clue, the
-                                              chosen direction, and the budget in view.
+                                              shopping focus, and the budget in view.
                                             </p>
                                           </div>
 
@@ -2765,7 +2786,7 @@ export default function SecretSantaPage() {
                                               const toneStyle =
                                                 getFeaturedLazadaToneStyle(product);
                                               const productMetaTags = [
-                                                product.fitLabel,
+                                                getFriendlyLazadaLabel(product.fitLabel),
                                               ].filter(
                                                 (tag): tag is string =>
                                                   typeof tag === "string" &&
@@ -2785,7 +2806,7 @@ export default function SecretSantaPage() {
                                                   }}
                                                 >
                                                   <div
-                                                    className="relative aspect-[4/3] overflow-hidden"
+                                                    className="relative flex aspect-[4/3] items-center justify-center overflow-hidden p-4"
                                                     style={{
                                                       background:
                                                         "linear-gradient(180deg,rgba(236,239,236,.96),rgba(223,228,225,.92))",
@@ -2796,7 +2817,7 @@ export default function SecretSantaPage() {
                                                       <img
                                                         src={productImageUrl}
                                                         alt={product.title}
-                                                        className="h-full w-full object-cover object-center transition duration-700 hover:scale-[1.03]"
+                                                        className="h-full max-h-[190px] w-full object-contain object-center transition duration-700 hover:scale-[1.03]"
                                                       />
                                                     ) : (
                                                       <div
