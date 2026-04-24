@@ -232,6 +232,42 @@ function buildSelectedAngleLabel(
   );
 }
 
+function hasConvertedProductSummary(
+  row: Pick<
+    AffiliatePerformanceRow,
+    "converted_product_id" | "converted_product_sku" | "converted_product_title"
+  >
+): boolean {
+  return Boolean(row.converted_product_title || row.converted_product_id || row.converted_product_sku);
+}
+
+function buildSuggestionDisplayTitle(row: AffiliatePerformanceRow): string {
+  const convertedProduct =
+    row.converted_product_title || row.converted_product_id || row.converted_product_sku;
+
+  if (convertedProduct) {
+    return convertedProduct;
+  }
+
+  if (row.catalog_source === "search-backed") {
+    return `Lazada search: ${buildSelectedAngleLabel(row)}`;
+  }
+
+  return row.suggestion_title;
+}
+
+function buildSuggestionDisplayDetail(row: AffiliatePerformanceRow): string {
+  if (hasConvertedProductSummary(row)) {
+    return `Converted from app link: ${row.suggestion_title}`;
+  }
+
+  if (row.catalog_source === "search-backed") {
+    return "Specific product appears after Lazada sends a mapped conversion postback.";
+  }
+
+  return summarizeSearchQuery(row.search_query);
+}
+
 function inferItemFamily(value: string): string {
   // This is intentionally heuristic. The goal is not perfect taxonomy; it is
   // to group related Lazada clicks into a few practical families we can tune
@@ -2012,24 +2048,22 @@ export default async function AffiliateReportPage({
                         <div className="mt-1 text-xs text-slate-500">Step 1 angle</div>
                       </td>
                       <td className="px-3 py-3 align-top">
-                        <div className="font-semibold text-slate-900">{row.suggestion_title}</div>
-                        {(row.converted_product_title ||
-                          row.converted_product_id ||
-                          row.converted_product_sku) && (
-                          <div className="mt-2 rounded-2xl bg-emerald-50 px-3 py-2 text-xs leading-5 text-emerald-800">
-                            <span className="font-semibold">Converted product: </span>
-                            {row.converted_product_title ||
-                              row.converted_product_id ||
-                              row.converted_product_sku}
-                            {row.converted_product_sku && (
-                              <span className="block text-emerald-700">
-                                SKU {row.converted_product_sku}
-                              </span>
-                            )}
-                          </div>
-                        )}
-                        <div className="mt-1 text-xs text-slate-500">
-                          {summarizeSearchQuery(row.search_query)}
+                        <div className="font-semibold text-slate-900">
+                          {buildSuggestionDisplayTitle(row)}
+                        </div>
+                        <div
+                          className={`mt-1 text-xs leading-5 ${
+                            hasConvertedProductSummary(row)
+                              ? "text-emerald-700"
+                              : row.catalog_source === "search-backed"
+                                ? "text-amber-700"
+                                : "text-slate-500"
+                          }`}
+                        >
+                          {buildSuggestionDisplayDetail(row)}
+                          {hasConvertedProductSummary(row) && row.converted_product_sku
+                            ? ` | SKU ${row.converted_product_sku}`
+                            : ""}
                         </div>
                       </td>
                       <td className="px-3 py-3 align-top">
