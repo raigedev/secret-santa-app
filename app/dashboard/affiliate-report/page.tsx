@@ -241,14 +241,7 @@ function hasConvertedProductSummary(
   return Boolean(row.converted_product_title || row.converted_product_id || row.converted_product_sku);
 }
 
-function buildSuggestionDisplayTitle(row: AffiliatePerformanceRow): string {
-  const convertedProduct =
-    row.converted_product_title || row.converted_product_id || row.converted_product_sku;
-
-  if (convertedProduct) {
-    return convertedProduct;
-  }
-
+function buildOpenedLinkDisplayTitle(row: AffiliatePerformanceRow): string {
   if (row.catalog_source === "search-backed") {
     const selectedAngle = buildSelectedAngleLabel(row).trim().toLowerCase();
     const suggestionTitle = row.suggestion_title.trim();
@@ -263,23 +256,46 @@ function buildSuggestionDisplayTitle(row: AffiliatePerformanceRow): string {
   return row.suggestion_title;
 }
 
-function buildSuggestionDisplayDetail(row: AffiliatePerformanceRow): string {
-  if (hasConvertedProductSummary(row)) {
-    return `Converted from app link: ${row.suggestion_title}`;
-  }
-
+function buildOpenedLinkDisplayDetail(row: AffiliatePerformanceRow): string {
   if (row.catalog_source === "search-backed") {
-    const selectedAngle = buildSelectedAngleLabel(row);
-    const suggestionTitle = row.suggestion_title.trim();
-    const hasAppSelectedProduct =
-      suggestionTitle.length > 0 && suggestionTitle.toLowerCase() !== selectedAngle.trim().toLowerCase();
-
-    return hasAppSelectedProduct
-      ? `App-selected result from Lazada search: ${selectedAngle}. Exact Lazada-side choice appears after mapped conversion postback.`
-      : "Opened Lazada search. Specific product appears after Lazada sends a mapped conversion postback.";
+    return `Search route for ${buildSelectedAngleLabel(row)}`;
   }
 
   return summarizeSearchQuery(row.search_query);
+}
+
+function buildLazadaProductDisplayTitle(row: AffiliatePerformanceRow): string {
+  const convertedProduct =
+    row.converted_product_title || row.converted_product_id || row.converted_product_sku;
+
+  if (convertedProduct) {
+    return convertedProduct;
+  }
+
+  if (row.catalog_source === "search-backed") {
+    return "Waiting for Lazada";
+  }
+
+  return "Not reported yet";
+}
+
+function buildLazadaProductDisplayDetail(row: AffiliatePerformanceRow): string {
+  if (hasConvertedProductSummary(row)) {
+    const identifiers = [
+      row.converted_product_id,
+      row.converted_product_sku ? `SKU ${row.converted_product_sku}` : null,
+    ]
+      .filter(Boolean)
+      .join(" | ");
+
+    return identifiers || "Product details came from Lazada conversion postback.";
+  }
+
+  if (row.catalog_source === "search-backed") {
+    return "Search-backed clicks can only show the exact product after a mapped postback.";
+  }
+
+  return "Shown here when Lazada sends product details in the conversion postback.";
 }
 
 function inferItemFamily(value: string): string {
@@ -2016,9 +2032,9 @@ export default async function AffiliateReportPage({
                 Clicks and conversions
               </h2>
               <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-500">
-                The main product name is the app link the user opened. If the user chooses a
-                different item inside Lazada, that product can only appear here after Lazada sends a
-                mapped conversion postback.
+                Opened in Lazada is what our app sent the user to. Lazada reported product stays
+                pending for search-backed routes until Lazada sends a mapped conversion postback
+                with product details.
               </p>
             </div>
             <p className="text-sm text-slate-500">Owner-only visibility across the app.</p>
@@ -2035,7 +2051,8 @@ export default async function AffiliateReportPage({
                   <tr className="text-left text-xs font-semibold uppercase tracking-[0.14em] text-slate-500">
                     <th className="px-3 py-2">User</th>
                     <th className="px-3 py-2">Selected angle</th>
-                    <th className="px-3 py-2">Suggestion</th>
+                    <th className="px-3 py-2">Opened in Lazada</th>
+                    <th className="px-3 py-2">Lazada reported product</th>
                     <th className="px-3 py-2">Type</th>
                     <th className="px-3 py-2">Resolution</th>
                     <th className="px-3 py-2">Status</th>
@@ -2063,7 +2080,15 @@ export default async function AffiliateReportPage({
                       </td>
                       <td className="px-3 py-3 align-top">
                         <div className="font-semibold text-slate-900">
-                          {buildSuggestionDisplayTitle(row)}
+                          {buildOpenedLinkDisplayTitle(row)}
+                        </div>
+                        <div className="mt-1 text-xs leading-5 text-slate-500">
+                          {buildOpenedLinkDisplayDetail(row)}
+                        </div>
+                      </td>
+                      <td className="px-3 py-3 align-top">
+                        <div className="font-semibold text-slate-900">
+                          {buildLazadaProductDisplayTitle(row)}
                         </div>
                         <div
                           className={`mt-1 text-xs leading-5 ${
@@ -2074,10 +2099,7 @@ export default async function AffiliateReportPage({
                                 : "text-slate-500"
                           }`}
                         >
-                          {buildSuggestionDisplayDetail(row)}
-                          {hasConvertedProductSummary(row) && row.converted_product_sku
-                            ? ` | SKU ${row.converted_product_sku}`
-                            : ""}
+                          {buildLazadaProductDisplayDetail(row)}
                         </div>
                       </td>
                       <td className="px-3 py-3 align-top">
