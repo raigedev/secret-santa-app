@@ -250,6 +250,13 @@ function buildSuggestionDisplayTitle(row: AffiliatePerformanceRow): string {
   }
 
   if (row.catalog_source === "search-backed") {
+    const selectedAngle = buildSelectedAngleLabel(row).trim().toLowerCase();
+    const suggestionTitle = row.suggestion_title.trim();
+
+    if (suggestionTitle && suggestionTitle.toLowerCase() !== selectedAngle) {
+      return suggestionTitle;
+    }
+
     return `Lazada search: ${buildSelectedAngleLabel(row)}`;
   }
 
@@ -262,7 +269,14 @@ function buildSuggestionDisplayDetail(row: AffiliatePerformanceRow): string {
   }
 
   if (row.catalog_source === "search-backed") {
-    return "Specific product appears after Lazada sends a mapped conversion postback.";
+    const selectedAngle = buildSelectedAngleLabel(row);
+    const suggestionTitle = row.suggestion_title.trim();
+    const hasAppSelectedProduct =
+      suggestionTitle.length > 0 && suggestionTitle.toLowerCase() !== selectedAngle.trim().toLowerCase();
+
+    return hasAppSelectedProduct
+      ? `App-selected result from Lazada search: ${selectedAngle}. Exact Lazada-side choice appears after mapped conversion postback.`
+      : "Opened Lazada search. Specific product appears after Lazada sends a mapped conversion postback.";
   }
 
   return summarizeSearchQuery(row.search_query);
