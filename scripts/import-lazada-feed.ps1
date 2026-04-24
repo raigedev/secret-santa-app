@@ -3,7 +3,15 @@ param(
 
   [string]$SourceDirectory,
 
-  [string]$OutputPath = "C:\Users\kenda\secret-santa-app\lib\affiliate\lazada-feed-data.generated.json"
+  [string]$OutputPath = "C:\Users\kenda\secret-santa-app\lib\affiliate\lazada-feed-data.generated.json",
+
+  [string]$ProvenancePath,
+
+  [string]$FeedSource = "Lazada Affiliate Dashboard product feed export",
+
+  [string]$ExportedAt,
+
+  [string]$EvidenceNote
 )
 
 $ErrorActionPreference = "Stop"
@@ -12,9 +20,19 @@ if ([string]::IsNullOrWhiteSpace($SourcePath) -and [string]::IsNullOrWhiteSpace(
   throw "Provide either -SourcePath or -SourceDirectory."
 }
 
+if ([string]::IsNullOrWhiteSpace($ExportedAt)) {
+  throw "Provide -ExportedAt with the date shown by the Lazada affiliate dashboard/export."
+}
+
 Add-Type -AssemblyName System.IO.Compression.FileSystem
 
 $InvariantCulture = [System.Globalization.CultureInfo]::InvariantCulture
+
+function Get-FileSha256 {
+  param([string]$Path)
+
+  return (Get-FileHash -LiteralPath $Path -Algorithm SHA256).Hash.ToLowerInvariant()
+}
 
 function Get-ZipEntryText {
   param(
@@ -328,4 +346,44 @@ if ($mergedRecords.Count -eq 1) {
 
 Set-Content -LiteralPath $OutputPath -Value $json -Encoding utf8
 
+if ([string]::IsNullOrWhiteSpace($ProvenancePath)) {
+  $ProvenancePath = Join-Path $outputDirectory "lazada-feed-provenance.generated.json"
+}
+
+$provenanceDirectory = Split-Path -Parent $ProvenancePath
+
+if (-not [string]::IsNullOrWhiteSpace($provenanceDirectory) -and -not (Test-Path -LiteralPath $provenanceDirectory)) {
+  New-Item -ItemType Directory -Path $provenanceDirectory | Out-Null
+}
+
+$sourceFileEvidence = @(
+  $sourceFiles | ForEach-Object {
+    [ordered]@{
+      fileName = $_.Name
+      lengthBytes = $_.Length
+      lastWriteTimeUtc = $_.LastWriteTimeUtc.ToString("o", $InvariantCulture)
+      sha256 = Get-FileSha256 -Path $_.FullName
+    }
+  }
+)
+
+$provenance = [ordered]@{
+  provenanceVersion = 1
+  generatedAtUtc = [System.DateTimeOffset]::UtcNow.ToString("o", $InvariantCulture)
+  source = $FeedSource.Trim()
+  sourceType = "affiliate-dashboard-export"
+  exportedAt = $ExportedAt.Trim()
+  evidenceNote = if ([string]::IsNullOrWhiteSpace($EvidenceNote)) { "" } else { $EvidenceNote.Trim() }
+  sourceFiles = $sourceFileEvidence
+  output = [ordered]@{
+    fileName = [System.IO.Path]::GetFileName($OutputPath)
+    recordCount = $mergedRecords.Count
+    sha256 = Get-FileSha256 -Path $OutputPath
+  }
+}
+
+$provenanceJson = $provenance | ConvertTo-Json -Depth 6
+Set-Content -LiteralPath $ProvenancePath -Value $provenanceJson -Encoding utf8
+
 Write-Output "Imported $($mergedRecords.Count) Lazada feed row(s) from $($sourceFiles.Count) file(s) into $OutputPath"
+Write-Output "Wrote Lazada feed provenance to $ProvenancePath"
