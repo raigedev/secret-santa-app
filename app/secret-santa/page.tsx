@@ -766,6 +766,18 @@ function getDisplayableLazadaProducts(
   return products;
 }
 
+function getFirstProductImageUrl(products: WishlistFeaturedProductCard[]): string {
+  for (const product of products) {
+    const imageUrl = normalizeOptionalUrl(product.imageUrl || "");
+
+    if (imageUrl) {
+      return imageUrl;
+    }
+  }
+
+  return "";
+}
+
 function getMerchantBadgeStyle(
   merchant: string,
   isPartnerLink: boolean
@@ -1153,50 +1165,40 @@ export default function SecretSantaPage() {
       const nextState = { ...current };
 
       for (const assignment of assignments) {
-        const activeItemId = getActiveRecipientWishlistItemId(
-          assignment,
-          activeRecipientItemByAssignment
-        );
+        for (const wishlistItem of assignment.receiver_wishlist) {
+          if (nextState[wishlistItem.id]) {
+            continue;
+          }
 
-        if (!activeItemId || nextState[activeItemId]) {
-          continue;
-        }
+          const aiSuggestionState = aiSuggestionStateByItem[wishlistItem.id] || null;
 
-        const activeItem =
-          assignment.receiver_wishlist.find(
-            (wishlistItem) => wishlistItem.id === activeItemId
-          ) || null;
+          if (shoppingRegion === "PH" && aiSuggestionState?.loading) {
+            continue;
+          }
 
-        if (!activeItem) {
-          continue;
-        }
+          const suggestionInput = buildRecipientSuggestionInput(
+            assignment,
+            wishlistItem
+          );
+          const suggestionOptions = applySuggestionDisplayOrder(
+            mergeWishlistSuggestionOptions(
+              buildWishlistSuggestionOptions(suggestionInput),
+              aiSuggestionState?.options || []
+            ),
+            suggestionDisplayOrderByItem[wishlistItem.id] || []
+          );
+          const defaultSuggestion = suggestionOptions[0] || null;
 
-        const aiSuggestionState = aiSuggestionStateByItem[activeItem.id] || null;
-
-        if (shoppingRegion === "PH" && aiSuggestionState?.loading) {
-          continue;
-        }
-
-        const suggestionInput = buildRecipientSuggestionInput(assignment, activeItem);
-        const suggestionOptions = applySuggestionDisplayOrder(
-          mergeWishlistSuggestionOptions(
-            buildWishlistSuggestionOptions(suggestionInput),
-            aiSuggestionState?.options || []
-          ),
-          suggestionDisplayOrderByItem[activeItem.id] || []
-        );
-        const defaultSuggestion = suggestionOptions[0] || null;
-
-        if (defaultSuggestion) {
-          nextState[activeItem.id] = defaultSuggestion.id;
-          changed = true;
+          if (defaultSuggestion) {
+            nextState[wishlistItem.id] = defaultSuggestion.id;
+            changed = true;
+          }
         }
       }
 
       return changed ? nextState : current;
     });
   }, [
-    activeRecipientItemByAssignment,
     aiSuggestionStateByItem,
     assignments,
     shoppingRegion,
@@ -2298,6 +2300,24 @@ export default function SecretSantaPage() {
                               const wishlistImageUrl = normalizeOptionalUrl(
                                 wishlistItem.item_image_url
                               );
+                              const wishlistSuggestionId =
+                                selectedRecipientSuggestionByItem[wishlistItem.id] || "";
+                              const wishlistMatchKey = wishlistSuggestionId
+                                ? createLazadaMatchRequestKey(
+                                    wishlistItem.id,
+                                    wishlistSuggestionId,
+                                    shoppingRegion
+                                  )
+                                : "";
+                              const wishlistMatchedProducts =
+                                (wishlistMatchKey
+                                  ? matchedLazadaProductsByKey[wishlistMatchKey]?.products
+                                  : []) || [];
+                              const wishlistMatchedImageUrl =
+                                getFirstProductImageUrl(wishlistMatchedProducts);
+                              const resolvedWishlistImageUrl =
+                                wishlistImageUrl || wishlistMatchedImageUrl;
+
                               return (
                                 <button
                                   key={wishlistItem.id}
@@ -2331,12 +2351,12 @@ export default function SecretSantaPage() {
                                         border: "1px solid rgba(174,179,177,.08)",
                                       }}
                                     >
-                                      {wishlistImageUrl ? (
+                                      {resolvedWishlistImageUrl ? (
                                         // eslint-disable-next-line @next/next/no-img-element
                                         <img
-                                          src={wishlistImageUrl}
+                                          src={resolvedWishlistImageUrl}
                                           alt={wishlistItem.item_name}
-                                          className="h-full w-full object-cover"
+                                          className="h-full w-full object-contain p-1.5"
                                         />
                                       ) : (
                                         wishlistPriorityMeta.icon
