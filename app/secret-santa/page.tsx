@@ -1635,7 +1635,7 @@ export default function SecretSantaPage() {
 
   return (
     <main
-      className="min-h-screen relative overflow-x-hidden"
+      className="min-h-screen relative overflow-x-clip"
       style={{
         background: PAGE_BACKGROUND,
         fontFamily: "'Be Vietnam Pro', 'Nunito', sans-serif",
@@ -1692,7 +1692,7 @@ export default function SecretSantaPage() {
                 Gift room
               </div>
               <h1
-                className="max-w-3xl text-[32px] font-black leading-[0.98] sm:text-[42px] lg:text-[48px]"
+                className="max-w-none text-[32px] font-black leading-[0.98] sm:text-[42px] lg:text-[42px] xl:text-[48px] min-[1180px]:whitespace-nowrap"
                 style={{
                   fontFamily: "'Plus Jakarta Sans', 'Fredoka', sans-serif",
                   color: PAGE_TEXT_COLOR,
@@ -1911,7 +1911,7 @@ export default function SecretSantaPage() {
             {assignments.map((assignment, index) => (
               <div
                 key={assignment.group_id}
-                className="overflow-hidden rounded-[34px] transition"
+                className="overflow-visible rounded-[34px] transition"
                 style={{
                   background: "rgba(249,250,248,.36)",
                   boxShadow: "0 22px 58px rgba(46,52,50,.045)",
@@ -1919,7 +1919,7 @@ export default function SecretSantaPage() {
                 }}
               >
                 <div
-                  className="flex flex-col gap-4 p-5 sm:flex-row sm:items-center sm:justify-between sm:p-6"
+                  className="flex flex-col gap-4 rounded-t-[34px] p-5 sm:flex-row sm:items-center sm:justify-between sm:p-6"
                   style={{
                     background: "rgba(255,255,255,.66)",
                   }}
@@ -2245,7 +2245,8 @@ export default function SecretSantaPage() {
                         >
                           <div
                             id={`wishlist-${assignment.group_id}`}
-                            className="self-start space-y-4 rounded-[40px] p-5 sm:p-6 lg:sticky lg:top-5"
+                            data-testid="recipient-wishlist-rail"
+                            className="self-start space-y-4 rounded-[40px] p-5 sm:p-6 lg:sticky lg:top-4 lg:max-h-[calc(100vh-2rem)] lg:overflow-y-auto lg:overscroll-contain"
                             style={{
                               background: "#ecefec",
                               boxShadow: "0 22px 54px rgba(46,52,50,.045)",
@@ -2478,7 +2479,10 @@ export default function SecretSantaPage() {
                                     </span>
                                   </div>
 
-                                  <div className="mt-3 flex flex-wrap gap-2">
+                                  <div
+                                    data-testid="shopping-focus-options"
+                                    className="mt-3 flex flex-nowrap gap-2 overflow-x-auto pb-1 pr-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+                                  >
                                     {suggestionOptions.map((suggestion) => {
                                       const isSelected =
                                         suggestion.id === selectedSuggestionId;
@@ -2493,7 +2497,7 @@ export default function SecretSantaPage() {
                                               suggestion.id
                                             )
                                           }
-                                          className="inline-flex max-w-full items-center gap-2 rounded-full px-3 py-2 text-left transition hover:-translate-y-0.5"
+                                          className="inline-flex min-w-fit shrink-0 items-center gap-2 whitespace-nowrap rounded-full px-3 py-2 text-left transition hover:-translate-y-0.5"
                                           style={{
                                             background: isSelected
                                               ? "#ffffff"
@@ -2509,7 +2513,7 @@ export default function SecretSantaPage() {
                                           }}
                                         >
                                             <div
-                                              className="max-w-[10rem] truncate text-[12px] font-extrabold leading-tight"
+                                              className="max-w-[7.8rem] truncate text-[12px] font-extrabold leading-tight sm:max-w-[8.8rem] xl:max-w-[9.5rem]"
                                               style={{ color: PAGE_TEXT_COLOR }}
                                             >
                                               {suggestion.title}
