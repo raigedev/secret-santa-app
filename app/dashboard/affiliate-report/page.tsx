@@ -3,6 +3,7 @@ import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 
 import {
+  extractConversionProductSummary,
   isLikelyTestConversion,
   loadLazadaHealthStatus,
   type AffiliateConversionRow,
@@ -48,6 +49,9 @@ type AffiliatePerformanceRow = {
   actor_label: string;
   catalog_source: string | null;
   clicked_at: string;
+  converted_product_id: string | null;
+  converted_product_sku: string | null;
+  converted_product_title: string | null;
   conversion_status: string | null;
   converted_at: string | null;
   currency: string | null;
@@ -392,6 +396,7 @@ function buildPerformanceRows(
 
   return clicks.map((click) => {
     const matchingConversion = conversionsByClickId.get(click.id) || null;
+    const convertedProduct = extractConversionProductSummary(matchingConversion?.raw_payload);
 
     return {
       affiliate_click_id: click.id,
@@ -400,6 +405,9 @@ function buildPerformanceRows(
       actor_label: buildActorLabel(click.user_id, profilesByUserId),
       catalog_source: click.catalog_source,
       clicked_at: click.created_at,
+      converted_product_id: convertedProduct.productId,
+      converted_product_sku: convertedProduct.skuId,
+      converted_product_title: convertedProduct.title,
       conversion_status: matchingConversion?.conversion_status || null,
       converted_at: matchingConversion?.received_at || null,
       currency: "PHP",
@@ -1222,7 +1230,7 @@ function LazadaHealthCheckCard({
         <HealthMetric
           label="Promotion links"
           value={`${health.promotionLinkRecentClicks}/${health.sampledRecentClicks}`}
-          helper="Recent sample using c.lazada.com.ph affiliate promotion links."
+          helper="Recent sample using Lazada promotion links that carry click tokens."
         />
         <HealthMetric
           label="Sale mapping"
@@ -1572,7 +1580,9 @@ export default async function AffiliateReportPage({
   if (clickIds.length > 0) {
     const { data: conversions, error: conversionsError } = await supabaseAdmin
       .from("affiliate_conversions")
-      .select("id, affiliate_click_id, amount, click_token, conversion_status, external_order_id, payout, received_at")
+      .select(
+        "id, affiliate_click_id, amount, click_token, conversion_status, external_order_id, payout, raw_payload, received_at"
+      )
       .in("affiliate_click_id", clickIds)
       .order("received_at", { ascending: false });
 
@@ -1955,6 +1965,11 @@ export default async function AffiliateReportPage({
               <h2 className="mt-1 text-2xl font-bold text-slate-900">
                 Clicks and conversions
               </h2>
+              <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-500">
+                The main product name is the app link the user opened. If the user chooses a
+                different item inside Lazada, that product can only appear here after Lazada sends a
+                mapped conversion postback.
+              </p>
             </div>
             <p className="text-sm text-slate-500">Owner-only visibility across the app.</p>
           </div>
@@ -1998,6 +2013,21 @@ export default async function AffiliateReportPage({
                       </td>
                       <td className="px-3 py-3 align-top">
                         <div className="font-semibold text-slate-900">{row.suggestion_title}</div>
+                        {(row.converted_product_title ||
+                          row.converted_product_id ||
+                          row.converted_product_sku) && (
+                          <div className="mt-2 rounded-2xl bg-emerald-50 px-3 py-2 text-xs leading-5 text-emerald-800">
+                            <span className="font-semibold">Converted product: </span>
+                            {row.converted_product_title ||
+                              row.converted_product_id ||
+                              row.converted_product_sku}
+                            {row.converted_product_sku && (
+                              <span className="block text-emerald-700">
+                                SKU {row.converted_product_sku}
+                              </span>
+                            )}
+                          </div>
+                        )}
                         <div className="mt-1 text-xs text-slate-500">
                           {summarizeSearchQuery(row.search_query)}
                         </div>

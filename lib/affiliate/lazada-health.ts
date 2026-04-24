@@ -11,6 +11,8 @@ type AffiliateHealthClickRow = {
   target_url: string | null;
 };
 
+export type AffiliateConversionPayload = Record<string, unknown>;
+
 export type AffiliateConversionRow = {
   affiliate_click_id: string | null;
   id: string;
@@ -19,6 +21,7 @@ export type AffiliateConversionRow = {
   conversion_status: string | null;
   external_order_id: string | null;
   payout: number | string | null;
+  raw_payload?: AffiliateConversionPayload | null;
   received_at: string;
 };
 
@@ -40,16 +43,98 @@ export type LazadaHealthStatus = {
   unmappedConversions: number;
 };
 
-function readUrlHost(value: string | null): string | null {
-  if (!value) {
+function normalizePayloadDisplayValue(value: unknown): string | null {
+  if (value === null || value === undefined) {
     return null;
   }
 
-  try {
-    return new URL(value).host;
-  } catch {
+  if (typeof value === "string") {
+    const trimmed = value.trim();
+    return trimmed.length > 0 ? trimmed.slice(0, 120) : null;
+  }
+
+  if (typeof value === "number" || typeof value === "bigint") {
+    return String(value);
+  }
+
+  if (Array.isArray(value)) {
+    for (const item of value) {
+      const normalized = normalizePayloadDisplayValue(item);
+
+      if (normalized) {
+        return normalized;
+      }
+    }
+  }
+
+  if (typeof value === "object") {
+    const nested = value as Record<string, unknown>;
+
+    return (
+      normalizePayloadDisplayValue(nested.productName) ||
+      normalizePayloadDisplayValue(nested.product_name) ||
+      normalizePayloadDisplayValue(nested.itemName) ||
+      normalizePayloadDisplayValue(nested.item_name) ||
+      normalizePayloadDisplayValue(nested.title) ||
+      normalizePayloadDisplayValue(nested.name) ||
+      null
+    );
+  }
+
+  return null;
+}
+
+function getPayloadDisplayValue(
+  payload: AffiliateConversionPayload | null | undefined,
+  keys: string[]
+): string | null {
+  if (!payload) {
     return null;
   }
+
+  for (const key of keys) {
+    const normalized = normalizePayloadDisplayValue(payload[key]);
+
+    if (normalized) {
+      return normalized;
+    }
+  }
+
+  return null;
+}
+
+export function extractConversionProductSummary(
+  payload: AffiliateConversionPayload | null | undefined
+): {
+  productId: string | null;
+  skuId: string | null;
+  title: string | null;
+} {
+  return {
+    productId: getPayloadDisplayValue(payload, [
+      "productId",
+      "product_id",
+      "itemId",
+      "item_id",
+      "goodsId",
+      "goods_id",
+    ]),
+    skuId: getPayloadDisplayValue(payload, ["skuId", "sku_id", "sku", "skuid"]),
+    title: getPayloadDisplayValue(payload, [
+      "productName",
+      "product_name",
+      "productTitle",
+      "product_title",
+      "itemName",
+      "item_name",
+      "goodsName",
+      "goods_name",
+      "skuName",
+      "sku_name",
+      "title",
+      "name",
+    ]),
+  };
 }
 
 function readLazadaClickTokenFromTarget(value: string | null): string | null {
@@ -100,9 +185,8 @@ function buildHealthStatus(input: {
 
   for (const click of input.latestClicks) {
     const targetClickToken = readLazadaClickTokenFromTarget(click.target_url);
-    const targetHost = readUrlHost(click.target_url);
 
-    if (targetHost === "c.lazada.com.ph" && click.resolution_mode === "promotion-link") {
+    if (click.resolution_mode === "promotion-link" && targetClickToken) {
       promotionLinkRecentClicks += 1;
     }
 
