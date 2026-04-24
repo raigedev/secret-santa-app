@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useCallback, useEffect, useId, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
@@ -65,12 +65,12 @@ type MemberNicknameRow = {
 type FestiveTone = "gold" | "green" | "neutral";
 
 const CHAT_PAGE_BACKGROUND =
-  "radial-gradient(circle at 14% 8%,rgba(252,206,114,.22),transparent 24%),radial-gradient(circle at 88% 18%,rgba(164,60,63,.18),transparent 30%),radial-gradient(circle at 78% 84%,rgba(72,102,78,.24),transparent 34%),linear-gradient(180deg,#111911 0%,#211719 50%,#0f1411 100%)";
-const CHAT_SURFACE = "linear-gradient(145deg,rgba(255,248,240,.12),rgba(236,239,236,.055))";
-const CHAT_SURFACE_STRONG = "linear-gradient(180deg,rgba(255,248,240,.09),rgba(46,52,50,.56))";
-const CHAT_SURFACE_MUTED = "rgba(46,52,50,.46)";
-const CHAT_BORDER = "1px solid rgba(252,206,114,.14)";
-const CHAT_BORDER_SOFT = "1px solid rgba(255,248,240,.1)";
+  "radial-gradient(circle at 14% 8%,rgba(252,206,114,.3),transparent 24%),radial-gradient(circle at 88% 18%,rgba(164,60,63,.28),transparent 30%),radial-gradient(circle at 78% 84%,rgba(72,102,78,.32),transparent 34%),linear-gradient(180deg,#13160d 0%,#261214 50%,#10150f 100%)";
+const CHAT_PANEL_BACKGROUND = "linear-gradient(145deg,rgba(255,248,240,.16),rgba(46,52,50,.74) 58%,rgba(72,102,78,.34))";
+const CHAT_SURFACE_STRONG = "linear-gradient(180deg,rgba(255,248,240,.11),rgba(46,52,50,.66))";
+const CHAT_SURFACE_MUTED = "rgba(46,52,50,.58)";
+const CHAT_BORDER = "1px solid rgba(252,206,114,.2)";
+const CHAT_BORDER_SOFT = "1px solid rgba(255,248,240,.14)";
 const CHAT_TEXT_MUTED = "#d8ddd6";
 const CHAT_TEXT_SUBTLE = "#aeb8ae";
 
@@ -120,6 +120,16 @@ function ArrowRightIcon({ className = "h-4 w-4" }: { className?: string }) {
   return (
     <svg viewBox="0 0 20 20" fill="none" className={className} aria-hidden="true">
       <path d="M4 10h11M11 5.5 15.5 10 11 14.5" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+function DashboardIcon({ className = "h-4 w-4" }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 20 20" fill="none" className={className} aria-hidden="true">
+      <path d="M3.5 8.4 10 3.2l6.5 5.2" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M5.4 8.2v7.1h9.2V8.2" stroke="currentColor" strokeWidth="1.8" strokeLinejoin="round" />
+      <path d="M8.4 15.3v-4.1h3.2v4.1" stroke="currentColor" strokeWidth="1.8" strokeLinejoin="round" />
     </svg>
   );
 }
@@ -725,7 +735,7 @@ export default function SecretSantaChatPage() {
     [supabase]
   );
 
-  // ─── Load threads on mount + real-time ───
+  // â”€â”€â”€ Load threads on mount + real-time â”€â”€â”€
   useEffect(() => {
     let reloadTimer: ReturnType<typeof setTimeout> | null = null;
 
@@ -976,7 +986,7 @@ export default function SecretSantaChatPage() {
     };
   }, [supabase, router]);
 
-  // ─── Load messages + real-time for active thread ───
+  // â”€â”€â”€ Load messages + real-time for active thread â”€â”€â”€
   useEffect(() => {
     if (!activeThread) return;
 
@@ -1189,6 +1199,23 @@ export default function SecretSantaChatPage() {
     const privacyCopy = isGiver
       ? `${activeThread.other_name} sees this chat as messages from their Secret Santa.`
       : "Your Santa can message you here, but their identity stays hidden.";
+    const activeThreadDetails = [
+      {
+        label: isGiver ? "Recipient" : "Sender",
+        value: isGiver ? activeThread.other_name : "Anonymous Santa",
+      },
+      {
+        label: "Group",
+        value: activeThread.group_name,
+      },
+      {
+        label: "Visibility",
+        value: isGiver ? "Your name stays hidden" : "Their name stays hidden",
+      },
+    ];
+    const promptChips = isGiver
+      ? ["Size", "Color", "Delivery", "Already owns"]
+      : ["Wishlist", "Preference", "Timing", "Thank you"];
 
     return (
       <main
@@ -1221,12 +1248,15 @@ export default function SecretSantaChatPage() {
               }}
               className="inline-flex w-full items-center justify-center gap-2 rounded-full px-4 py-2.5 text-sm font-extrabold transition hover:-translate-y-0.5 sm:w-auto"
               style={{
-                background: "rgba(46,52,50,.52)",
-                border: CHAT_BORDER,
+                background: "linear-gradient(135deg,rgba(252,206,114,.18),rgba(46,52,50,.62))",
+                border: "1px solid rgba(252,206,114,.24)",
                 color: "#f3eee8",
+                boxShadow: "0 14px 30px rgba(10,14,10,.18)",
               }}
             >
-              <span aria-hidden="true">{"<-"}</span>
+              <span className="grid h-7 w-7 place-items-center rounded-full" style={{ background: "rgba(252,206,114,.18)", color: "#fcce72" }}>
+                <ArrowRightIcon className="h-4 w-4 rotate-180" />
+              </span>
               Back to chats
             </button>
             <div
@@ -1258,7 +1288,7 @@ export default function SecretSantaChatPage() {
                     className="flex h-12 w-12 shrink-0 items-center justify-center rounded-[20px]"
                     style={{
                       background: `linear-gradient(135deg,${accent},${accentDark})`,
-                      boxShadow: `0 14px 28px ${isGiver ? "rgba(217,174,86,.18)" : "rgba(127,201,154,.16)"}`,
+                      boxShadow: `0 14px 28px ${isGiver ? "rgba(252,206,114,.22)" : "rgba(215,250,219,.16)"}`,
                     }}
                   >
                     {isGiver ? <SantaMarkIcon className="h-9 w-9" /> : <ChatLineIcon className="h-6 w-6 text-white" />}
@@ -1267,7 +1297,7 @@ export default function SecretSantaChatPage() {
                     <div
                       className="mb-1 inline-flex rounded-full px-3 py-1 text-[11px] font-black uppercase tracking-[0.18em]"
                       style={{
-                        background: isGiver ? "rgba(217,174,86,.14)" : "rgba(127,201,154,.14)",
+                        background: isGiver ? "rgba(252,206,114,.16)" : "rgba(215,250,219,.12)",
                         color: accent,
                       }}
                     >
@@ -1411,7 +1441,7 @@ export default function SecretSantaChatPage() {
                     cursor: msgInput.trim() ? "pointer" : "not-allowed",
                     border: "1px solid rgba(255,255,255,.1)",
                     fontFamily: "inherit",
-                    boxShadow: msgInput.trim() ? `0 18px 34px ${isGiver ? "rgba(217,174,86,.22)" : "rgba(127,201,154,.18)"}` : "none",
+                    boxShadow: msgInput.trim() ? `0 18px 34px ${isGiver ? "rgba(252,206,114,.26)" : "rgba(215,250,219,.18)"}` : "none",
                   }}
                 >
                   Send
@@ -1420,11 +1450,11 @@ export default function SecretSantaChatPage() {
               </div>
             </div>
 
-            <aside className="lg:content-start">
+            <aside className="grid gap-4 lg:content-start">
               <div
                 className="rounded-[30px] p-5"
                 style={{
-                  background: `${CHAT_SURFACE},rgba(46,52,50,.58)`,
+                  background: CHAT_PANEL_BACKGROUND,
                   border: CHAT_BORDER,
                   backdropFilter: "blur(18px)",
                 }}
@@ -1440,11 +1470,28 @@ export default function SecretSantaChatPage() {
                 </div>
                 <div className="space-y-3 text-sm leading-6" style={{ color: CHAT_TEXT_MUTED }}>
                   <p>
-                    <strong className="text-white">You → Giftee:</strong> ask questions without revealing your name.
+                    <strong className="text-white">You -&gt; Giftee:</strong> ask questions without revealing your name.
                   </p>
                   <p>
-                    <strong className="text-white">Santa → You:</strong> reply without seeing who they are.
+                    <strong className="text-white">Santa -&gt; You:</strong> reply without seeing who they are.
                   </p>
+                </div>
+                <div className="mt-5 grid gap-2">
+                  {activeThreadDetails.map((detail) => (
+                    <div
+                      key={detail.label}
+                      className="rounded-[18px] px-4 py-3"
+                      style={{
+                        background: "rgba(20,24,21,.42)",
+                        border: "1px solid rgba(252,206,114,.1)",
+                      }}
+                    >
+                      <p className="text-[10px] font-black uppercase tracking-[0.18em]" style={{ color: CHAT_TEXT_SUBTLE }}>
+                        {detail.label}
+                      </p>
+                      <p className="mt-1 truncate text-sm font-black text-white">{detail.value}</p>
+                    </div>
+                  ))}
                 </div>
                 <div
                   className="mt-5 rounded-[22px] px-4 py-3 text-sm leading-6 text-slate-300"
@@ -1454,6 +1501,21 @@ export default function SecretSantaChatPage() {
                   }}
                 >
                   Ask about size, color, delivery timing, or what they already own. Keep each question short so the thread stays easy to scan.
+                </div>
+                <div className="mt-4 flex flex-wrap gap-2">
+                  {promptChips.map((chip) => (
+                    <span
+                      key={chip}
+                      className="rounded-full px-3 py-1.5 text-xs font-black"
+                      style={{
+                        background: isGiver ? "rgba(252,206,114,.13)" : "rgba(215,250,219,.11)",
+                        border: isGiver ? "1px solid rgba(252,206,114,.18)" : "1px solid rgba(215,250,219,.16)",
+                        color: accent,
+                      }}
+                    >
+                      {chip}
+                    </span>
+                  ))}
                 </div>
               </div>
             </aside>
@@ -1488,6 +1550,12 @@ export default function SecretSantaChatPage() {
       { label: "Unread", value: totalUnread },
       { label: "Groups", value: uniqueGroupCount },
     ];
+    const privacyHighlights = [
+      { label: "Giftee thread", value: "You ask without revealing your name." },
+      { label: "Santa thread", value: "They can reply while staying hidden." },
+      { label: "Private scope", value: "Each chat stays tied to one match." },
+    ];
+    const privacyBadges = ["Identity hidden", "Match-only", "No group thread"];
 
     return (
       <main
@@ -1511,7 +1579,7 @@ export default function SecretSantaChatPage() {
           @import url('https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@600;700;800&display=swap');
           .chat-scrollbar::-webkit-scrollbar { width: 8px; }
           .chat-scrollbar::-webkit-scrollbar-track { background: rgba(255,255,255,.04); border-radius: 999px; }
-          .chat-scrollbar::-webkit-scrollbar-thumb { background: rgba(217,174,86,.42); border-radius: 999px; }
+          .chat-scrollbar::-webkit-scrollbar-thumb { background: rgba(252,206,114,.5); border-radius: 999px; }
           @media (max-width: 640px) { #snowWrap { opacity: .35; } }
         `}</style>
 
@@ -1519,10 +1587,17 @@ export default function SecretSantaChatPage() {
           <header className="flex flex-col gap-4 rounded-[32px] sm:flex-row sm:items-start sm:justify-between">
             <button
               onClick={() => router.push("/dashboard")}
-              className="inline-flex w-fit items-center gap-2 rounded-full px-4 py-2 text-sm font-black text-slate-200 transition hover:text-white"
-              style={{ background: "rgba(46,52,50,.52)", border: CHAT_BORDER }}
+              className="group inline-flex w-fit items-center gap-2 rounded-full py-2 pl-2 pr-4 text-sm font-black text-[#f9faf8] transition hover:-translate-y-0.5 hover:text-white"
+              style={{
+                background: "linear-gradient(135deg,rgba(164,60,63,.34),rgba(46,52,50,.68))",
+                border: "1px solid rgba(252,206,114,.24)",
+                boxShadow: "0 18px 36px rgba(10,14,10,.22)",
+              }}
             >
-              <span aria-hidden="true">{"<-"}</span> Dashboard
+              <span className="grid h-7 w-7 place-items-center rounded-full" style={{ background: "rgba(252,206,114,.2)", color: "#fcce72" }}>
+                <DashboardIcon className="h-4 w-4" />
+              </span>
+              Dashboard
             </button>
             <div className="flex items-center gap-3 self-end sm:self-auto">
               <div className="grid h-12 w-12 place-items-center rounded-full bg-white/95 shadow-xl shadow-black/15">
@@ -1543,7 +1618,7 @@ export default function SecretSantaChatPage() {
             <div
               className="rounded-[34px] p-6 sm:p-7"
               style={{
-                background: `${CHAT_SURFACE},rgba(46,52,50,.52)`,
+                background: CHAT_PANEL_BACKGROUND,
                 border: CHAT_BORDER,
                 boxShadow: "0 22px 54px rgba(46,52,50,.18)",
               }}
@@ -1575,20 +1650,21 @@ export default function SecretSantaChatPage() {
             </div>
 
             <aside
-              className="rounded-[34px] p-6 sm:p-7"
+              className="self-start rounded-[34px] p-6 sm:p-7"
               style={{
-                background: `${CHAT_SURFACE},rgba(46,52,50,.58)`,
-                border: CHAT_BORDER,
+                background: "linear-gradient(145deg,rgba(164,60,63,.18),rgba(46,52,50,.72) 52%,rgba(72,102,78,.5))",
+                border: "1px solid rgba(252,206,114,.24)",
+                boxShadow: "0 22px 54px rgba(10,14,10,.18)",
                 backdropFilter: "blur(18px)",
               }}
             >
               <div className="flex items-start gap-4">
-                <div className="grid h-11 w-11 shrink-0 place-items-center rounded-2xl" style={{ background: "rgba(252,206,114,.16)", color: "#fcce72" }}>
+                <div className="grid h-12 w-12 shrink-0 place-items-center rounded-2xl" style={{ background: "rgba(252,206,114,.2)", color: "#fcce72" }}>
                   <LockLineIcon className="h-5 w-5" />
                 </div>
                 <div>
                   <p className="text-[11px] font-black uppercase tracking-[0.2em]" style={{ color: CHAT_TEXT_SUBTLE }}>How privacy works</p>
-                  <div className="mt-4 space-y-4 text-sm leading-6" style={{ color: CHAT_TEXT_MUTED }}>
+                  <div className="mt-4 space-y-3 text-sm leading-6" style={{ color: CHAT_TEXT_MUTED }}>
                     <p>
                       <strong className="text-white">You -&gt; Giftee:</strong> ask questions as their Secret Santa.
                     </p>
@@ -1597,6 +1673,42 @@ export default function SecretSantaChatPage() {
                     </p>
                   </div>
                 </div>
+              </div>
+
+              <div className="mt-5 grid gap-2">
+                {privacyHighlights.map((item) => (
+                  <div
+                    key={item.label}
+                    className="rounded-[20px] px-4 py-3"
+                    style={{
+                      background: "rgba(20,24,21,.42)",
+                      border: "1px solid rgba(252,206,114,.12)",
+                    }}
+                  >
+                    <p className="text-[10px] font-black uppercase tracking-[0.18em]" style={{ color: "#fcce72" }}>
+                      {item.label}
+                    </p>
+                    <p className="mt-1 text-sm leading-6" style={{ color: CHAT_TEXT_MUTED }}>
+                      {item.value}
+                    </p>
+                  </div>
+                ))}
+              </div>
+
+              <div className="mt-5 flex flex-wrap gap-2">
+                {privacyBadges.map((badge) => (
+                  <span
+                    key={badge}
+                    className="rounded-full px-3 py-1.5 text-xs font-black"
+                    style={{
+                      background: "rgba(215,250,219,.11)",
+                      border: "1px solid rgba(215,250,219,.16)",
+                      color: "#d7fadb",
+                    }}
+                  >
+                    {badge}
+                  </span>
+                ))}
               </div>
             </aside>
           </section>
@@ -1631,7 +1743,7 @@ export default function SecretSantaChatPage() {
                   key={group.title}
                   className="relative rounded-[32px] p-4 pt-9 sm:p-5 sm:pt-10"
                   style={{
-                    background: `${CHAT_SURFACE},rgba(46,52,50,.5)`,
+                    background: CHAT_PANEL_BACKGROUND,
                     border: CHAT_BORDER,
                     boxShadow: "0 18px 44px rgba(46,52,50,.16)",
                   }}
