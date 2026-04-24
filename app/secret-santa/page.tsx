@@ -2201,11 +2201,7 @@ export default function SecretSantaPage() {
                         displayableMatchedLazadaProducts.filter(
                           (product) => product.catalogSource === "catalog-product"
                         ).length;
-                      const heroLazadaRoleLabel =
-                        getFriendlyLazadaLabel(
-                          primaryFeaturedLazadaProduct?.recommendationLabel ||
-                            "Most wanted"
-                        );
+                      const heroLazadaRoleLabel = "Most Wanted";
                       const heroLazadaCaption =
                         getFriendlyLazadaLabel(
                           primaryFeaturedLazadaProduct?.recommendationCaption ||
@@ -2560,13 +2556,10 @@ export default function SecretSantaPage() {
                                     </div>
                                     <div className="flex min-w-0 flex-col justify-center p-3.5 sm:p-4">
                                       <div
-                                        className="mb-2 inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-[9px] font-extrabold uppercase leading-none"
+                                        data-testid="featured-lazada-role-label"
+                                        className="mb-2 flex w-fit self-start items-center gap-2 text-[12px] font-extrabold uppercase leading-none tracking-[0.04em] sm:text-[13px]"
                                         style={{
-                                          background:
-                                            heroLazadaToneStyle?.badgeBackground ||
-                                            "rgba(252,206,114,.3)",
-                                          color:
-                                            heroLazadaToneStyle?.badgeColor || HOLIDAY_GOLD,
+                                          color: "#7b5902",
                                         }}
                                       >
                                         <span aria-hidden="true">★</span>
