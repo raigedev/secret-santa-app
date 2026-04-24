@@ -129,9 +129,9 @@ type GuideTabId = "wishlist" | "direction" | "matches" | "prep";
 
 const GUIDE_TABS: Array<{ id: GuideTabId; label: string }> = [
   { id: "wishlist", label: "Wishlist" },
-  { id: "direction", label: "Gift Direction" },
-  { id: "matches", label: "Lazada Picks" },
-  { id: "prep", label: "Prep" },
+  { id: "matches", label: "My Matches" },
+  { id: "direction", label: "Gift Guide" },
+  { id: "prep", label: "Exchanges" },
 ];
 
 const ITEM_LINK_MAX_LENGTH = 500;
@@ -563,6 +563,33 @@ function summarizeCardCopy(value: string, maxLength: number): string {
   return `${normalized.slice(0, Math.max(maxLength - 3, 0)).trimEnd()}...`;
 }
 
+function toDisplayTitle(value: string): string {
+  return value
+    .replace(/[-_]+/g, " ")
+    .replace(/\s+/g, " ")
+    .trim()
+    .split(" ")
+    .filter((word) => word.length > 0)
+    .map((word) => {
+      if (/^[A-Z0-9]+$/.test(word) && word.length <= 4) {
+        return word;
+      }
+
+      return `${word.charAt(0).toUpperCase()}${word.slice(1).toLowerCase()}`;
+    })
+    .join(" ");
+}
+
+function getShoppingFocusDisplayLabel(value: string): string {
+  const normalized = value.trim();
+
+  if (!normalized) {
+    return "";
+  }
+
+  return toDisplayTitle(normalized.replace(/^budget-friendly\b/i, "Budget"));
+}
+
 function getFriendlyLazadaLabel(value: string | null | undefined): string {
   const label = value?.trim();
 
@@ -636,27 +663,16 @@ function getFeaturedLazadaCardTypeLabel(product: WishlistFeaturedProductCard): s
   );
 }
 
-function getFeaturedLazadaRoleLabel(
-  product: WishlistFeaturedProductCard,
-  index: number
-): string {
-  if (product.recommendationLabel) {
-    return getFriendlyLazadaLabel(product.recommendationLabel);
-  }
-
-  if (product.catalogSource === "catalog-product") {
-    return getFriendlyLazadaLabel(product.fitLabel || "Matched product");
-  }
-
+function getFeaturedLazadaRoleLabel(index: number): string {
   if (index === 0) {
-    return "Best match";
+    return "Best Match";
   }
 
   if (index === 1) {
-    return "Budget pick";
+    return "Budget Pick";
   }
 
-  return "Premium option";
+  return "Premium Option";
 }
 
 function getFeaturedLazadaToneStyle(
@@ -702,6 +718,42 @@ function getFeaturedLazadaToneStyle(
         panelBackground: "rgba(240,246,241,.88)",
       };
   }
+}
+
+function getCuratedLazadaToneStyle(index: number): {
+  badgeBackground: string;
+  badgeColor: string;
+  chipBackground: string;
+  chipColor: string;
+  panelBackground: string;
+} {
+  if (index === 1) {
+    return {
+      badgeBackground: "rgba(252,206,114,.28)",
+      badgeColor: "#7b5902",
+      chipBackground: "rgba(252,206,114,.22)",
+      chipColor: "#6b4d00",
+      panelBackground: "rgba(255,248,237,.84)",
+    };
+  }
+
+  if (index >= 2) {
+    return {
+      badgeBackground: "rgba(46,52,50,.08)",
+      badgeColor: PAGE_TEXT_COLOR,
+      chipBackground: "rgba(46,52,50,.06)",
+      chipColor: PAGE_TEXT_COLOR,
+      panelBackground: "rgba(246,247,246,.9)",
+    };
+  }
+
+  return {
+    badgeBackground: "rgba(72,102,78,.12)",
+    badgeColor: HOLIDAY_GREEN,
+    chipBackground: "rgba(72,102,78,.08)",
+    chipColor: HOLIDAY_GREEN,
+    panelBackground: "rgba(240,246,241,.88)",
+  };
 }
 
 function getFeaturedLazadaButtonLabel(product: WishlistFeaturedProductCard): string {
@@ -2366,7 +2418,7 @@ export default function SecretSantaPage() {
                                       "'Plus Jakarta Sans', 'Fredoka', sans-serif",
                                   }}
                                 >
-                                  Lazada Picks
+                                  My Matches
                                 </h2>
                                 <p
                                   className="mt-2 max-w-3xl text-[14px] font-medium leading-relaxed sm:text-[16px]"
@@ -2428,42 +2480,41 @@ export default function SecretSantaPage() {
                                         <button
                                           key={suggestion.id}
                                           type="button"
+                                          aria-pressed={isSelected}
                                           onClick={() =>
                                             selectRecipientSuggestion(
                                               item.id,
                                               suggestion.id
                                             )
                                           }
-                                          className="inline-flex min-w-fit shrink-0 items-center gap-2 whitespace-nowrap rounded-full px-3 py-2 text-left transition hover:-translate-y-0.5"
+                                          className="inline-flex min-h-[40px] min-w-fit shrink-0 items-center gap-2 whitespace-nowrap rounded-full px-3.5 py-2 text-left transition hover:-translate-y-0.5 sm:px-4"
                                           style={{
-                                            background: isSelected
-                                              ? "#ffffff"
-                                              : "rgba(255,255,255,.58)",
+                                            background: "#ffffff",
                                             boxShadow: isSelected
-                                              ? "0 18px 38px rgba(72,102,78,.09)"
+                                              ? "0 16px 32px rgba(72,102,78,.1)"
                                               : "none",
                                             cursor: "pointer",
                                             fontFamily: "inherit",
                                             outline: isSelected
-                                              ? "1px solid rgba(72,102,78,.18)"
-                                              : "1px solid rgba(174,179,177,.08)",
+                                              ? "1px solid rgba(72,102,78,.2)"
+                                              : "1px solid rgba(174,179,177,.13)",
                                           }}
                                         >
                                             <div
-                                              className="max-w-[7.8rem] truncate text-[12px] font-extrabold leading-tight sm:max-w-[8.8rem] xl:max-w-[9.5rem]"
+                                              className="max-w-[9.5rem] truncate text-[12px] font-extrabold leading-tight sm:max-w-[10.5rem] xl:max-w-[12rem]"
                                               style={{ color: PAGE_TEXT_COLOR }}
                                             >
-                                              {suggestion.title}
+                                              {getShoppingFocusDisplayLabel(suggestion.title)}
                                             </div>
                                             <span
-                                              className="shrink-0 rounded-full px-2.5 py-1 text-[9px] font-extrabold"
+                                              className="shrink-0 rounded-full px-2 py-1 text-[9px] font-extrabold"
                                               style={{
                                                 color: isSelected
                                                   ? HOLIDAY_GREEN
                                                   : TEXT_MUTED,
                                                 background: isSelected
                                                   ? "rgba(72,102,78,.1)"
-                                                  : "rgba(255,255,255,.72)",
+                                                  : "transparent",
                                               }}
                                             >
                                               {isSelected ? "Selected" : "Try this"}
@@ -2685,7 +2736,6 @@ export default function SecretSantaPage() {
                                               const cardTypeLabel =
                                                 getFeaturedLazadaCardTypeLabel(product);
                                               const roleLabel = getFeaturedLazadaRoleLabel(
-                                                product,
                                                 index
                                               );
                                               const buttonLabel =
@@ -2694,7 +2744,7 @@ export default function SecretSantaPage() {
                                                 product.imageUrl || ""
                                               );
                                               const toneStyle =
-                                                getFeaturedLazadaToneStyle(product);
+                                                getCuratedLazadaToneStyle(index);
                                               const productMetaTags = [
                                                 getFriendlyLazadaLabel(product.fitLabel),
                                               ].filter(
