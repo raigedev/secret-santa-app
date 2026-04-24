@@ -1,0 +1,279 @@
+﻿{
+    "provenanceVersion":  1,
+    "generatedAtUtc":  "2026-04-24T16:43:06.0790014+00:00",
+    "source":  "Lazada Affiliate Dashboard product feed export",
+    "sourceType":  "affiliate-dashboard-export",
+    "exportedAt":  "2026-04-03",
+    "evidenceNote":  "Source spreadsheets supplied from the user\u0027s Lazada affiliate dashboard export folder; source spreadsheets are intentionally not committed.",
+    "sourceFiles":  [
+                        {
+                            "fileName":  "Audio.xlsx",
+                            "lengthBytes":  86229,
+                            "lastWriteTimeUtc":  "2026-04-03T11:07:41.9310067Z",
+                            "sha256":  "714e584e892c4e9828c436f04dfa6f2baf98537344c6f7869a7f87941dfccf9e"
+                        },
+                        {
+                            "fileName":  "Automotive.xlsx",
+                            "lengthBytes":  85356,
+                            "lastWriteTimeUtc":  "2026-04-03T11:13:50.9342305Z",
+                            "sha256":  "d7a7c71d5d16cc2efef39359e1fdeea637fe9afc740ea60c84b66831cbbb691d"
+                        },
+                        {
+                            "fileName":  "Bags and Travel.xlsx",
+                            "lengthBytes":  84011,
+                            "lastWriteTimeUtc":  "2026-04-03T10:57:34.2811445Z",
+                            "sha256":  "31aac5ff6b19422e58a04f6bf5d22d5f19bdac326a288e30e8279b6b3b60bf38"
+                        },
+                        {
+                            "fileName":  "Beauty, Skincare \u0026 Wellness.xlsx",
+                            "lengthBytes":  86445,
+                            "lastWriteTimeUtc":  "2026-04-03T11:51:50.4053719Z",
+                            "sha256":  "53e1aa7fe0890250b9398beedb0e1c8b7b649ccb1d67899470fb667ab264db4b"
+                        },
+                        {
+                            "fileName":  "Beauty.xlsx",
+                            "lengthBytes":  83027,
+                            "lastWriteTimeUtc":  "2026-04-03T11:01:11.5312709Z",
+                            "sha256":  "e73df96f7c0d6f3dbb32c51c8ea36112250623c410478dc853a65d45666b385e"
+                        },
+                        {
+                            "fileName":  "Bedding and Bath.xlsx",
+                            "lengthBytes":  81007,
+                            "lastWriteTimeUtc":  "2026-04-03T11:31:48.6040425Z",
+                            "sha256":  "1a9d0fc1d15bfb4b3b817469f4dab64e244211f8f3d528958104d347cb17dc93"
+                        },
+                        {
+                            "fileName":  "Cameras and Drones.xlsx",
+                            "lengthBytes":  91455,
+                            "lastWriteTimeUtc":  "2026-04-03T10:54:18.4708328Z",
+                            "sha256":  "76e86484c4317bd787cbfaebcbe53684c6b9ff6b9c97da2f3a1f305cf2e870cf"
+                        },
+                        {
+                            "fileName":  "Computers and Components.xlsx",
+                            "lengthBytes":  89883,
+                            "lastWriteTimeUtc":  "2026-04-03T10:53:07.8573592Z",
+                            "sha256":  "258a6d6964c1916429453ac0f044e422c39064793dcbbd974877af1f6d6f4072"
+                        },
+                        {
+                            "fileName":  "Data Storage.xlsx",
+                            "lengthBytes":  89449,
+                            "lastWriteTimeUtc":  "2026-04-03T11:06:33.7398419Z",
+                            "sha256":  "989a87e263e1f0b23dc5ec405136052b4467fe6d7052163c915cd81806140717"
+                        },
+                        {
+                            "fileName":  "Digital Goods.xlsx",
+                            "lengthBytes":  31172,
+                            "lastWriteTimeUtc":  "2026-04-03T11:21:10.8242094Z",
+                            "sha256":  "370c701239be37e4e228c007bc00df7082b2e79fa000850f48b9f74769212677"
+                        },
+                        {
+                            "fileName":  "Digital Utilities.xlsx",
+                            "lengthBytes":  72018,
+                            "lastWriteTimeUtc":  "2026-04-03T10:59:24.3132062Z",
+                            "sha256":  "2cb96999ebd43384a931da6174c40f28c838f4ba2f895bf027e18f0cfd41cb68"
+                        },
+                        {
+                            "fileName":  "Electronic Parts and Accessories.xlsx",
+                            "lengthBytes":  77764,
+                            "lastWriteTimeUtc":  "2026-04-03T11:45:42.6469105Z",
+                            "sha256":  "a18606a8cc8562d02356b39eab58229635b6503faf1f25c5f370adbd692ca4fc"
+                        },
+                        {
+                            "fileName":  "Fashion Accessories.xlsx",
+                            "lengthBytes":  85640,
+                            "lastWriteTimeUtc":  "2026-04-03T11:18:27.5744784Z",
+                            "sha256":  "e47faf613c687229c64f2e6d192b75408683335333cd5e7cfec26cdd408f6ff1"
+                        },
+                        {
+                            "fileName":  "Furniture and Organization.xlsx",
+                            "lengthBytes":  78557,
+                            "lastWriteTimeUtc":  "2026-04-03T11:33:43.0224304Z",
+                            "sha256":  "63dd0eb65ad0c704507a3d711c8ba87bb231f5140736a8e50025898adb339c56"
+                        },
+                        {
+                            "fileName":  "Gaming Devices and Software.xlsx",
+                            "lengthBytes":  90901,
+                            "lastWriteTimeUtc":  "2026-04-03T11:11:29.6285679Z",
+                            "sha256":  "b96a49f955b143dca7450227aa56642881d05b8677ad81faee3e892dc7bb446e"
+                        },
+                        {
+                            "fileName":  "Groceries.xlsx",
+                            "lengthBytes":  78819,
+                            "lastWriteTimeUtc":  "2026-04-03T11:15:07.6803090Z",
+                            "sha256":  "dc4b8f879b095b35e4f91b995ef7975545ab21adbab4cf369135164d8b826a85"
+                        },
+                        {
+                            "fileName":  "Health.xlsx",
+                            "lengthBytes":  90203,
+                            "lastWriteTimeUtc":  "2026-04-03T11:12:43.7640326Z",
+                            "sha256":  "7d5fbdc6cb90bcfd68643c86964e322086ac237b310b4c0596a54afc533a703d"
+                        },
+                        {
+                            "fileName":  "Home Appliances.xlsx",
+                            "lengthBytes":  89730,
+                            "lastWriteTimeUtc":  "2026-04-03T10:56:19.6051078Z",
+                            "sha256":  "b873e996eaa4a9af512547f9d1e238ca081c731ac3568a4599d79926fdd379a8"
+                        },
+                        {
+                            "fileName":  "House Hold Supplies.xlsx",
+                            "lengthBytes":  81183,
+                            "lastWriteTimeUtc":  "2026-04-03T11:10:43.1482177Z",
+                            "sha256":  "ef1af12e6f13d174b4fb24b7e3371c53af8fac26ebfd8b07f1e96cfb0ce9707a"
+                        },
+                        {
+                            "fileName":  "Kid\u0027s Fashion.xlsx",
+                            "lengthBytes":  60114,
+                            "lastWriteTimeUtc":  "2026-04-03T11:46:35.5289708Z",
+                            "sha256":  "58ec7b348849dac812f3112a381ee61810c722db9040132da0bcb683730fbc7d"
+                        },
+                        {
+                            "fileName":  "Kitchenware and Tableware.xlsx",
+                            "lengthBytes":  83007,
+                            "lastWriteTimeUtc":  "2026-04-03T11:42:04.3303520Z",
+                            "sha256":  "9d880b3a7a9f221d136172e6861afd502412795998bdf7e36de353e86e7b0ebd"
+                        },
+                        {
+                            "fileName":  "Laundry And Cleaning Equipments.xlsx",
+                            "lengthBytes":  81134,
+                            "lastWriteTimeUtc":  "2026-04-03T11:36:02.4482578Z",
+                            "sha256":  "cf162b170416de864ffbff0a8f1f84f308f7fc76120198514424c3a681aefcfa"
+                        },
+                        {
+                            "fileName":  "Lighting and Decor.xlsx",
+                            "lengthBytes":  82001,
+                            "lastWriteTimeUtc":  "2026-04-03T11:02:00.3906882Z",
+                            "sha256":  "421df98b4cd7940cf219b3e46773bbf1299b1d09072ab25adc07e21568d9ce5b"
+                        },
+                        {
+                            "fileName":  "Lingerie, Sleep, Lounge and Thermal Wear.xlsx",
+                            "lengthBytes":  74779,
+                            "lastWriteTimeUtc":  "2026-04-03T11:26:00.6008015Z",
+                            "sha256":  "3159a6fad4e7cc79397fd1d38ecafa22ad3febd9cae077125787e919a6cd78d6"
+                        },
+                        {
+                            "fileName":  "Media, Music and Books.xlsx",
+                            "lengthBytes":  80903,
+                            "lastWriteTimeUtc":  "2026-04-03T10:58:34.7574273Z",
+                            "sha256":  "3205fa4a430fa737a9b91baa83865b8d687d62f25a1ea4ad7dc617c7753b11cc"
+                        },
+                        {
+                            "fileName":  "Men\u0027s Clothing.xlsx",
+                            "lengthBytes":  74674,
+                            "lastWriteTimeUtc":  "2026-04-03T11:28:17.2846424Z",
+                            "sha256":  "aefe105018b08adecc757aeb1258a63ddafe6d15acc45667fccf0958855e5dc7"
+                        },
+                        {
+                            "fileName":  "Men\u0027s Shoes.xlsx",
+                            "lengthBytes":  74691,
+                            "lastWriteTimeUtc":  "2026-04-03T11:27:15.4256210Z",
+                            "sha256":  "59296f1b4c7bbd7bd6d42be5d762fc04d18a84d0df97b5d12bf4e9eacb2e6899"
+                        },
+                        {
+                            "fileName":  "Mobile accessories.xlsx",
+                            "lengthBytes":  85078,
+                            "lastWriteTimeUtc":  "2026-04-03T11:49:18.4008125Z",
+                            "sha256":  "74efd25e2639c81e9a000d056a651ff62792e4bdb52708a2c9c57f0c1ebc7982"
+                        },
+                        {
+                            "fileName":  "Mobiles and Tablets.xlsx",
+                            "lengthBytes":  86485,
+                            "lastWriteTimeUtc":  "2026-04-03T10:50:43.9268557Z",
+                            "sha256":  "f7870ac0918b2323be3d796d1bd88f75b4a6e2525af029f6a98ebef1ff3b73b0"
+                        },
+                        {
+                            "fileName":  "Mother And Baby.xlsx",
+                            "lengthBytes":  85380,
+                            "lastWriteTimeUtc":  "2026-04-03T11:23:40.1090075Z",
+                            "sha256":  "eb60fe35b5a2a20ad4076761a40ed60224e6919e0bb753c9afd8f3b055d7faac"
+                        },
+                        {
+                            "fileName":  "Outdoor and Garden.xlsx",
+                            "lengthBytes":  88595,
+                            "lastWriteTimeUtc":  "2026-04-03T11:09:29.3724669Z",
+                            "sha256":  "adb56ffeaadcf8b80ecd99e9c73abe20ad6d8a72407ade853c24aaf5fc0c7353"
+                        },
+                        {
+                            "fileName":  "Pet Supplies.xlsx",
+                            "lengthBytes":  83972,
+                            "lastWriteTimeUtc":  "2026-04-03T11:30:20.5748378Z",
+                            "sha256":  "469bf3b3ac2d3136a1d8cbef42bf5f5a998b64de1d4e771a7942bb39c93110fa"
+                        },
+                        {
+                            "fileName":  "Printers and Scanners.xlsx",
+                            "lengthBytes":  90302,
+                            "lastWriteTimeUtc":  "2026-04-03T11:03:35.7833004Z",
+                            "sha256":  "bc5de8f11f5dd2331639a6dee1ac28e9f08ef8032243c12d8ac841523dc1acab"
+                        },
+                        {
+                            "fileName":  "Services.xlsx",
+                            "lengthBytes":  76949,
+                            "lastWriteTimeUtc":  "2026-04-03T11:00:11.4747608Z",
+                            "sha256":  "22c5a687a3a5acbf8113ec9fd6f850185555c5f0d642805d4fe788021c9967b2"
+                        },
+                        {
+                            "fileName":  "Smart Devices.xlsx",
+                            "lengthBytes":  91590,
+                            "lastWriteTimeUtc":  "2026-04-03T11:04:25.6800715Z",
+                            "sha256":  "6683b6b9150cbb2689e04d16e549d1965cfc9551c78492dcf3c0e74639ce9d69"
+                        },
+                        {
+                            "fileName":  "Special Digital Products.xlsx",
+                            "lengthBytes":  14089,
+                            "lastWriteTimeUtc":  "2026-04-03T11:43:17.0366920Z",
+                            "sha256":  "fe96c2e11c39c416e07828014e60b9b8eb6e4eb2bdc0540431318c659e98eccb"
+                        },
+                        {
+                            "fileName":  "Sports and Outdoors Activities Equipments.xlsx",
+                            "lengthBytes":  81551,
+                            "lastWriteTimeUtc":  "2026-04-03T10:49:01.9570572Z",
+                            "sha256":  "7e1eb1fd54544c563a9bb9fe550b7d24fac40f906ca05477d9dfcdb3d4099303"
+                        },
+                        {
+                            "fileName":  "Sports, Shoes and Clothing.xlsx",
+                            "lengthBytes":  61596,
+                            "lastWriteTimeUtc":  "2026-04-03T11:44:23.1087819Z",
+                            "sha256":  "3a4bdd068324fa3154382224e6dadfe7f80169d55082c275fe6bdb282872f05b"
+                        },
+                        {
+                            "fileName":  "Stationery, Craft and Gift Cards.xlsx",
+                            "lengthBytes":  86574,
+                            "lastWriteTimeUtc":  "2026-04-03T11:37:20.2575766Z",
+                            "sha256":  "ca649b6e9a85e78669a19e1e86e931e33f6877c9b1e83731fea82b52fd7be7e0"
+                        },
+                        {
+                            "fileName":  "Televisions and Videos.xlsx",
+                            "lengthBytes":  80433,
+                            "lastWriteTimeUtc":  "2026-04-03T10:55:22.5730761Z",
+                            "sha256":  "c11467c75a8c5a8753ef470df24fbf8ac562f62d66ed025906b93c9b1d4210c2"
+                        },
+                        {
+                            "fileName":  "Tools and Home Improvements.xlsx",
+                            "lengthBytes":  90239,
+                            "lastWriteTimeUtc":  "2026-04-03T11:34:58.4131271Z",
+                            "sha256":  "a889b43f872b0aa2a2196c50a8d3655a6c1eff58df25527c2e7ca041db3068f2"
+                        },
+                        {
+                            "fileName":  "Toys and Games.xlsx",
+                            "lengthBytes":  86342,
+                            "lastWriteTimeUtc":  "2026-04-03T11:22:48.2033070Z",
+                            "sha256":  "52e6385312ac60cfcef43b732d78374245ba70a32586ff33eb48b4bf60d6029a"
+                        },
+                        {
+                            "fileName":  "Women\u0027s Clothing.xlsx",
+                            "lengthBytes":  79993,
+                            "lastWriteTimeUtc":  "2026-04-03T11:29:28.6598744Z",
+                            "sha256":  "0f0b3398d45cf26d082d2653245323ae094a38621fe7044ad7d1e51cd507b0f3"
+                        },
+                        {
+                            "fileName":  "Women\u0027s Shoes.xlsx",
+                            "lengthBytes":  69462,
+                            "lastWriteTimeUtc":  "2026-04-03T11:24:35.2897689Z",
+                            "sha256":  "44badb1631f23ee5dd265ab2ae50e032aeae0cb61ed8906af365ab323c8b1b38"
+                        }
+                    ],
+    "output":  {
+                   "fileName":  "lazada-feed-data.generated.json",
+                   "recordCount":  8338,
+                   "sha256":  "ef89aeb7d16232e2c43792ac4286be769352d54f49ce704c723158a805eecffe"
+               }
+}
