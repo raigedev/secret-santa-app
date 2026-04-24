@@ -232,6 +232,53 @@ function FestiveTrim({
     bellShine: useId().replace(/:/g, ""),
   };
 
+  if (compact) {
+    return (
+      <div className="pointer-events-none absolute inset-x-4 top-0 h-10 overflow-visible" aria-hidden="true">
+        <div
+          className="absolute inset-x-4 top-5 h-px"
+          style={{
+            background: `linear-gradient(90deg, transparent, ${palette.ropeLight}, ${palette.rope}, ${palette.ropeLight}, transparent)`,
+            opacity: 0.9,
+          }}
+        />
+        {[0, 1, 2, 3, 4].map((index) => {
+          const left = `${8 + index * 22}%`;
+          const scale = index === 2 ? 1.05 : 0.9;
+
+          return (
+            <div
+              key={index}
+              className="absolute top-1"
+              style={{
+                left,
+                transform: `translateX(-50%) scale(${scale})`,
+                color: palette.ropeLight,
+              }}
+            >
+              <svg viewBox="0 0 48 20" className="h-7 w-12 drop-shadow-[0_6px_12px_rgba(0,0,0,.18)]">
+                <path
+                  d="M2 9.5 C10 4, 18 4.2, 24 9.5 C30 14.4, 38 14.8, 46 9.5"
+                  fill="none"
+                  stroke={palette.rope}
+                  strokeWidth="1.8"
+                  strokeLinecap="round"
+                />
+                <circle cx="12" cy="10" r="2.4" fill={palette.berry} />
+                <circle cx="24" cy="9" r="2.8" fill={palette.berryDark} />
+                <circle cx="35" cy="10" r="2.4" fill={palette.berry} />
+                <path
+                  d="M21 6.6 C22.5 4.4 25.5 4.4 27 6.6 C25 7.6 23 7.6 21 6.6 Z"
+                  fill={palette.pine}
+                />
+              </svg>
+            </div>
+          );
+        })}
+      </div>
+    );
+  }
+
   const topHeight = compact ? 56 : 78;
   const topOffset = compact ? -22 : -34;
   const cornerSize = compact ? 62 : 84;
@@ -1163,10 +1210,10 @@ export default function SecretSantaChatPage() {
                 }
                 setActiveThread(null);
               }}
-              className="inline-flex w-full items-center justify-center gap-2 rounded-full px-5 py-3 text-sm font-extrabold transition hover:-translate-y-0.5 sm:w-auto"
+              className="inline-flex w-full items-center justify-center gap-2 rounded-full px-4 py-2.5 text-sm font-extrabold transition hover:-translate-y-0.5 sm:w-auto"
               style={{
-                background: "rgba(255,255,255,.1)",
-                border: "1px solid rgba(255,255,255,.12)",
+                background: "rgba(15,23,42,.46)",
+                border: "1px solid rgba(255,255,255,.09)",
                 color: "#e2e8f0",
               }}
             >
@@ -1174,15 +1221,15 @@ export default function SecretSantaChatPage() {
               Back to chats
             </button>
             <div
-              className="inline-flex items-center justify-center gap-2 rounded-full px-4 py-2 text-xs font-black uppercase tracking-[0.18em]"
+              className="inline-flex items-center justify-center gap-2 rounded-full px-4 py-2 text-[11px] font-black uppercase tracking-[0.18em]"
               style={{
-                background: "rgba(255,255,255,.08)",
-                border: "1px solid rgba(255,255,255,.12)",
-                color: "#cbd5e1",
+                background: isGiver ? "rgba(217,174,86,.12)" : "rgba(127,201,154,.12)",
+                border: "1px solid rgba(255,255,255,.08)",
+                color: accent,
               }}
             >
               <LockLineIcon className="h-4 w-4" />
-              Private thread
+              {roleLabel}
             </div>
           </div>
 
@@ -1190,22 +1237,22 @@ export default function SecretSantaChatPage() {
             <div
               className="flex min-h-[calc(100vh-120px)] flex-col overflow-hidden rounded-[34px]"
               style={{
-                background: "linear-gradient(180deg,rgba(248,250,252,.1),rgba(15,23,42,.72))",
-                border: "1px solid rgba(255,255,255,.12)",
-                boxShadow: "0 30px 80px rgba(0,0,0,.28)",
+                background: "linear-gradient(180deg,rgba(248,250,252,.08),rgba(15,23,42,.74))",
+                border: "1px solid rgba(255,255,255,.1)",
+                boxShadow: "0 24px 60px rgba(0,0,0,.22)",
                 backdropFilter: "blur(18px)",
               }}
             >
-              <div className="flex flex-col gap-4 p-5 sm:flex-row sm:items-center sm:justify-between sm:p-6">
+              <div className="flex flex-col gap-4 p-5 sm:p-6">
                 <div className="flex min-w-0 items-center gap-4">
                   <div
-                    className="flex h-14 w-14 shrink-0 items-center justify-center rounded-[22px]"
+                    className="flex h-12 w-12 shrink-0 items-center justify-center rounded-[20px]"
                     style={{
                       background: `linear-gradient(135deg,${accent},${accentDark})`,
-                      boxShadow: `0 18px 38px ${isGiver ? "rgba(217,174,86,.24)" : "rgba(127,201,154,.2)"}`,
+                      boxShadow: `0 14px 28px ${isGiver ? "rgba(217,174,86,.18)" : "rgba(127,201,154,.16)"}`,
                     }}
                   >
-                    {isGiver ? <SantaMarkIcon className="h-10 w-10" /> : <ChatLineIcon className="h-7 w-7 text-white" />}
+                    {isGiver ? <SantaMarkIcon className="h-9 w-9" /> : <ChatLineIcon className="h-6 w-6 text-white" />}
                   </div>
                   <div className="min-w-0">
                     <div
@@ -1226,10 +1273,10 @@ export default function SecretSantaChatPage() {
                   </div>
                 </div>
                 <div
-                  className="rounded-[24px] px-4 py-3 text-sm font-bold leading-6 text-slate-200"
+                  className="rounded-[22px] px-4 py-3 text-sm font-bold leading-6 text-slate-200"
                   style={{
-                    background: "rgba(255,255,255,.08)",
-                    border: "1px solid rgba(255,255,255,.1)",
+                    background: "rgba(15,23,42,.42)",
+                    border: "1px solid rgba(255,255,255,.08)",
                   }}
                 >
                   {privacyCopy}
@@ -1324,7 +1371,7 @@ export default function SecretSantaChatPage() {
               <div
                 className="mt-auto flex flex-col gap-3 p-4 sm:flex-row sm:p-6"
                 style={{
-                  background: "rgba(255,255,255,.045)",
+                  background: "rgba(255,255,255,.035)",
                   borderTop: "1px solid rgba(255,255,255,.08)",
                 }}
               >
@@ -1364,12 +1411,12 @@ export default function SecretSantaChatPage() {
               </div>
             </div>
 
-            <aside className="grid gap-4 lg:content-start">
+            <aside className="lg:content-start">
               <div
                 className="rounded-[30px] p-5"
                 style={{
                   background: "rgba(248,250,252,.08)",
-                  border: "1px solid rgba(255,255,255,.12)",
+                  border: "1px solid rgba(255,255,255,.1)",
                   backdropFilter: "blur(18px)",
                 }}
               >
@@ -1384,30 +1431,21 @@ export default function SecretSantaChatPage() {
                 </div>
                 <div className="space-y-3 text-sm leading-6 text-slate-300">
                   <p>
-                    {isGiver
-                      ? "You can ask gift questions without revealing your name."
-                      : "You can reply to your Santa, but the app keeps their name hidden."}
+                    <strong className="text-white">You → Giftee:</strong> ask questions without revealing your name.
                   </p>
                   <p>
-                    This is for your giftee and your Secret Santa only. It is not a group chat.
+                    <strong className="text-white">Santa → You:</strong> reply without seeing who they are.
                   </p>
                 </div>
-              </div>
-
-              <div
-                className="rounded-[30px] p-5"
-                style={{
-                  background: "rgba(248,250,252,.08)",
-                  border: "1px solid rgba(255,255,255,.12)",
-                  backdropFilter: "blur(18px)",
-                }}
-              >
-                <p className="text-xs font-black uppercase tracking-[0.2em] text-slate-400">
-                  Conversation prompt
-                </p>
-                <p className="mt-3 text-lg font-black leading-7">
-                  Ask about size, color, delivery timing, or what they already own.
-                </p>
+                <div
+                  className="mt-5 rounded-[22px] px-4 py-3 text-sm leading-6 text-slate-300"
+                  style={{
+                    background: "rgba(15,23,42,.4)",
+                    border: "1px solid rgba(255,255,255,.08)",
+                  }}
+                >
+                  Ask about size, color, delivery timing, or what they already own. Keep each question short so the thread stays easy to scan.
+                </div>
               </div>
             </aside>
           </section>
@@ -1469,79 +1507,79 @@ export default function SecretSantaChatPage() {
           @media (max-width: 640px) { #snowWrap { opacity: .35; } }
         `}</style>
 
-        <div className="relative z-10 mx-auto flex w-full max-w-7xl flex-col gap-8 px-4 py-6 sm:px-6 lg:px-8">
-          <header className="flex flex-col gap-5 rounded-[32px] p-5 sm:flex-row sm:items-center sm:justify-between">
+        <div className="relative z-10 mx-auto flex w-full max-w-7xl flex-col gap-6 px-4 py-6 sm:px-6 lg:px-8">
+          <header className="flex flex-col gap-4 rounded-[32px] sm:flex-row sm:items-start sm:justify-between">
             <button
               onClick={() => router.push("/dashboard")}
               className="inline-flex w-fit items-center gap-2 rounded-full px-4 py-2 text-sm font-black text-slate-200 transition hover:text-white"
-              style={{ background: "rgba(255,255,255,.08)", border: "1px solid rgba(255,255,255,.1)" }}
+              style={{ background: "rgba(15,23,42,.5)", border: "1px solid rgba(255,255,255,.08)" }}
             >
               <span aria-hidden="true">{"<-"}</span> Dashboard
             </button>
-            <div className="flex items-center gap-3">
-              <div className="grid h-16 w-16 place-items-center rounded-full bg-white/95 shadow-2xl shadow-black/20">
-                <SantaMarkIcon className="h-12 w-12" />
+            <div className="flex items-center gap-3 self-end sm:self-auto">
+              <div className="grid h-12 w-12 place-items-center rounded-full bg-white/95 shadow-xl shadow-black/15">
+                <SantaMarkIcon className="h-9 w-9" />
               </div>
               <div>
-                <p className="text-xs font-black uppercase tracking-[0.32em]" style={{ color: "#d9ae56" }}>
+                <p className="text-[10px] font-black uppercase tracking-[0.28em]" style={{ color: "#d9ae56" }}>
                   My Secret Santa
                 </p>
-                <h1 className="font-[Plus_Jakarta_Sans] text-3xl font-black tracking-[-0.05em] sm:text-4xl">
+                <h1 className="font-[Plus_Jakarta_Sans] text-[2rem] font-black tracking-[-0.05em] sm:text-[2.35rem]">
                   Private gift whispers
                 </h1>
               </div>
             </div>
           </header>
 
-          <section className="grid gap-5 lg:grid-cols-[1.1fr_.9fr]">
+          <section className="grid gap-4 lg:grid-cols-[minmax(0,1.15fr)_360px]">
             <div
-              className="rounded-[38px] p-6 sm:p-8"
+              className="rounded-[34px] p-6 sm:p-7"
               style={{
-                background: "linear-gradient(145deg,rgba(255,255,255,.12),rgba(255,255,255,.045))",
-                border: "1px solid rgba(255,255,255,.12)",
-                boxShadow: "0 28px 80px rgba(0,0,0,.26)",
+                background: "linear-gradient(145deg,rgba(255,255,255,.11),rgba(255,255,255,.05))",
+                border: "1px solid rgba(255,255,255,.1)",
+                boxShadow: "0 22px 54px rgba(0,0,0,.2)",
               }}
             >
               <div className="max-w-3xl">
-                <p className="mb-3 text-sm font-black uppercase tracking-[0.22em]" style={{ color: "#7fc99a" }}>
+                <p className="mb-3 text-[11px] font-black uppercase tracking-[0.22em]" style={{ color: "#7fc99a" }}>
                   Not a group chat
                 </p>
-                <h2 className="font-[Plus_Jakarta_Sans] text-4xl font-black tracking-[-0.06em] sm:text-5xl">
+                <h2 className="font-[Plus_Jakarta_Sans] text-[2.25rem] font-black tracking-[-0.06em] sm:text-[3.4rem]">
                   One private thread for each Secret Santa match.
                 </h2>
-                <p className="mt-5 max-w-2xl text-lg leading-8 text-slate-300">
+                <p className="mt-4 max-w-2xl text-base leading-7 text-slate-300 sm:text-lg sm:leading-8">
                   Use this page only for your giftee and the person gifting you. The app keeps names hidden so hints stay useful without spoiling the reveal.
                 </p>
               </div>
 
-              <div className="mt-8 grid gap-3 sm:grid-cols-3">
+              <div className="mt-7 grid gap-3 sm:grid-cols-3">
                 {stats.map((stat) => (
                   <div
                     key={stat.label}
-                    className="rounded-[24px] px-5 py-4"
-                    style={{ background: "rgba(2,6,23,.42)", border: "1px solid rgba(255,255,255,.1)" }}
+                    className="rounded-[22px] px-4 py-3.5"
+                    style={{ background: "rgba(2,6,23,.38)", border: "1px solid rgba(255,255,255,.08)" }}
                   >
                     <p className="text-xs font-black uppercase tracking-[0.2em] text-slate-400">{stat.label}</p>
-                    <p className="mt-2 text-3xl font-black">{stat.value}</p>
+                    <p className="mt-2 text-[2rem] font-black leading-none">{stat.value}</p>
                   </div>
                 ))}
               </div>
             </div>
 
             <aside
-              className="rounded-[38px] p-6 sm:p-8"
+              className="rounded-[34px] p-6 sm:p-7"
               style={{
                 background: "rgba(248,250,252,.08)",
-                border: "1px solid rgba(255,255,255,.12)",
+                border: "1px solid rgba(255,255,255,.1)",
                 backdropFilter: "blur(18px)",
               }}
             >
               <div className="flex items-start gap-4">
-                <div className="grid h-12 w-12 shrink-0 place-items-center rounded-2xl" style={{ background: "rgba(217,174,86,.16)", color: "#d9ae56" }}>
-                  <LockLineIcon className="h-6 w-6" />
+                <div className="grid h-11 w-11 shrink-0 place-items-center rounded-2xl" style={{ background: "rgba(217,174,86,.14)", color: "#d9ae56" }}>
+                  <LockLineIcon className="h-5 w-5" />
                 </div>
                 <div>
-                  <p className="text-xs font-black uppercase tracking-[0.2em] text-slate-400">How privacy works</p>
+                  <p className="text-[11px] font-black uppercase tracking-[0.2em] text-slate-400">How privacy works</p>
                   <div className="mt-4 space-y-4 text-sm leading-6 text-slate-300">
                     <p>
                       <strong className="text-white">You -&gt; Giftee:</strong> ask questions as their Secret Santa.
@@ -1583,23 +1621,23 @@ export default function SecretSantaChatPage() {
               {chatGroups.map((group) => (
                 <div
                   key={group.title}
-                  className="relative rounded-[36px] p-4 pt-10 sm:p-5 sm:pt-11"
+                  className="relative rounded-[32px] p-4 pt-9 sm:p-5 sm:pt-10"
                   style={{
                     background: "rgba(255,255,255,.08)",
-                    border: "1px solid rgba(255,255,255,.12)",
-                    boxShadow: "0 24px 70px rgba(0,0,0,.22)",
+                    border: "1px solid rgba(255,255,255,.1)",
+                    boxShadow: "0 18px 44px rgba(0,0,0,.18)",
                   }}
                 >
                   <FestiveTrim tone={group.title === "People you gift" ? "gold" : "green"} compact />
-                  <div className="relative mb-4 flex items-end justify-between gap-3 px-2">
+                  <div className="relative mb-4 flex items-start justify-between gap-3 px-2">
                     <div>
-                      <p className="text-xs font-black uppercase tracking-[0.22em]" style={{ color: group.accent }}>
+                      <p className="text-[11px] font-black uppercase tracking-[0.22em]" style={{ color: group.accent }}>
                         {group.eyebrow}
                       </p>
-                      <h2 className="mt-1 text-2xl font-black tracking-[-0.04em]">{group.title}</h2>
-                      <p className="mt-2 text-sm leading-6 text-slate-300">{group.description}</p>
+                      <h2 className="mt-1 text-[1.85rem] font-black tracking-[-0.04em]">{group.title}</h2>
+                      <p className="mt-2 max-w-md text-sm leading-6 text-slate-300">{group.description}</p>
                     </div>
-                    <span className="shrink-0 rounded-full px-3 py-1 text-xs font-black text-slate-100" style={{ background: "rgba(0,0,0,.18)" }}>
+                    <span className="shrink-0 rounded-full px-3 py-1 text-xs font-black text-slate-100" style={{ background: "rgba(2,6,23,.42)" }}>
                       {group.threads.length}
                     </span>
                   </div>
@@ -1614,17 +1652,20 @@ export default function SecretSantaChatPage() {
                         <button
                           key={createThreadKey(thread.group_id, thread.giver_id, thread.receiver_id)}
                           onClick={() => openThread(thread)}
-                          className="group w-full rounded-[28px] p-4 text-left transition duration-200 hover:-translate-y-0.5"
+                          className="group w-full rounded-[26px] p-4 text-left transition duration-200 hover:-translate-y-0.5"
                           style={{
-                            background: "linear-gradient(135deg,rgba(255,255,255,.1),rgba(255,255,255,.045))",
-                            border: thread.unread > 0 ? `1px solid ${group.accent}` : "1px solid rgba(255,255,255,.1)",
+                            background: "linear-gradient(135deg,rgba(255,255,255,.1),rgba(255,255,255,.05))",
+                            border: thread.unread > 0 ? `1px solid ${group.accent}` : "1px solid rgba(255,255,255,.08)",
                           }}
                         >
                           <div className="flex items-center gap-4">
-                            <div className="grid h-12 w-12 place-items-center rounded-2xl text-lg font-black" style={{ background: `${group.accent}22`, color: group.accent }}>
+                            <div className="grid h-11 w-11 place-items-center rounded-2xl text-lg font-black" style={{ background: `${group.accent}20`, color: group.accent }}>
                               {thread.role === "giver" ? <ChatLineIcon className="h-6 w-6" /> : <SantaMarkIcon className="h-10 w-10" />}
                             </div>
                             <div className="min-w-0 flex-1">
+                              <p className="text-[11px] font-black uppercase tracking-[0.18em]" style={{ color: group.accent }}>
+                                {group.title === "People you gift" ? "Giftee thread" : "Anonymous Santa"}
+                              </p>
                               <div className="flex items-center justify-between gap-3">
                                 <p className="truncate text-lg font-black">{thread.other_name}</p>
                                 <span className="text-xs font-bold uppercase tracking-[0.15em] text-slate-400">
@@ -1640,7 +1681,7 @@ export default function SecretSantaChatPage() {
                                   {thread.unread}
                                 </span>
                               )}
-                              <span className="grid h-10 w-10 place-items-center rounded-full text-slate-200 transition group-hover:translate-x-1" style={{ background: "rgba(2,6,23,.44)" }}>
+                              <span className="grid h-10 w-10 place-items-center rounded-full text-slate-200 transition group-hover:translate-x-1" style={{ background: "rgba(2,6,23,.42)" }}>
                                 <ArrowRightIcon className="h-5 w-5" />
                               </span>
                             </div>
