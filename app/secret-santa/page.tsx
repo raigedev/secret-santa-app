@@ -129,7 +129,7 @@ type GuideTabId = "wishlist" | "direction" | "matches" | "prep";
 
 const GUIDE_TABS: Array<{ id: GuideTabId; label: string }> = [
   { id: "wishlist", label: "Wishlist" },
-  { id: "matches", label: "My Matches" },
+  { id: "matches", label: "Shopping Picks" },
   { id: "direction", label: "Gift Guide" },
   { id: "prep", label: "Exchanges" },
 ];
@@ -2278,6 +2278,14 @@ export default function SecretSantaPage() {
                           );
                         })
                         .slice(0, 3);
+                      const curatedFallbackImageUrl =
+                        getFirstProductImageUrl([
+                          ...displayableMatchedLazadaProducts,
+                          ...featuredLazadaProducts,
+                          ...displayableFallbackLazadaProducts,
+                        ]) ||
+                        heroLazadaImageUrl ||
+                        safeItemImageUrl;
 
                       return (
                         <div
@@ -2485,7 +2493,7 @@ export default function SecretSantaPage() {
                                       "'Plus Jakarta Sans', 'Fredoka', sans-serif",
                                   }}
                                 >
-                                  My Matches
+                                  Shopping Picks
                                 </h2>
                                 <p
                                   className="mt-2 max-w-3xl text-[14px] font-medium leading-relaxed sm:text-[16px]"
@@ -2814,7 +2822,8 @@ export default function SecretSantaPage() {
                                               const buttonLabel =
                                                 getFeaturedLazadaButtonLabel(product);
                                               const productImageUrl = normalizeOptionalUrl(
-                                                product.imageUrl || ""
+                                                product.imageUrl ||
+                                                  curatedFallbackImageUrl
                                               );
                                               const toneStyle =
                                                 getCuratedLazadaToneStyle(index);
