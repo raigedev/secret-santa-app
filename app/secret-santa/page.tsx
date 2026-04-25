@@ -2772,13 +2772,6 @@ export default function SecretSantaPage() {
                                               );
                                               const toneStyle =
                                                 getCuratedLazadaToneStyle(index);
-                                              const productMetaTags = [
-                                                getFriendlyLazadaLabel(product.fitLabel),
-                                              ].filter(
-                                                (tag): tag is string =>
-                                                  typeof tag === "string" &&
-                                                  tag.trim().length > 0
-                                              );
 
                                               return (
                                                 <div
@@ -2880,24 +2873,6 @@ export default function SecretSantaPage() {
                                                     >
                                                       {conciseSubtitle}
                                                     </div>
-                                                    {productMetaTags.length > 0 && (
-                                                      <div className="mt-3 flex flex-wrap gap-2">
-                                                        {productMetaTags.map((tag) => (
-                                                          <span
-                                                            key={`${product.id}-${tag}`}
-                                                            className="rounded-full px-3 py-1.5 text-[10px] font-extrabold leading-none"
-                                                            style={{
-                                                              background:
-                                                                toneStyle.chipBackground,
-                                                              color: toneStyle.chipColor,
-                                                              overflowWrap: "anywhere",
-                                                            }}
-                                                          >
-                                                            {tag}
-                                                          </span>
-                                                        ))}
-                                                      </div>
-                                                    )}
                                                   </div>
 
                                                   <div className="mt-4">
