@@ -2306,7 +2306,7 @@ export default function SecretSantaPage() {
                           <div
                             id={`wishlist-${assignment.group_id}`}
                             data-testid="recipient-wishlist-rail"
-                            className="self-start space-y-4 rounded-[44px] p-5 sm:p-7 lg:sticky lg:top-4 lg:max-h-[calc(100vh-2rem)] lg:overflow-y-auto lg:overscroll-contain"
+                            className="self-start space-y-4 rounded-[44px] p-5 sm:p-7 lg:sticky lg:top-4 lg:max-h-[calc(100vh-2rem)] lg:overflow-y-auto"
                             style={{
                               background: "rgba(236,239,236,.92)",
                               boxShadow: "0 24px 56px rgba(46,52,50,.05)",

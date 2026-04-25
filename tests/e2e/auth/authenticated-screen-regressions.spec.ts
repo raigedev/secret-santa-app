@@ -186,6 +186,33 @@ test.describe("authenticated screen regressions", () => {
     );
     expect(overlappingCardHeaders).toEqual([]);
   });
+
+  test("secret-santa wishlist rail does not trap page scrolling", async ({ page }) => {
+    await loginWithTestCredentials(page, credentials!);
+    await page.goto("/secret-santa");
+
+    const wishlistRail = page.getByTestId("recipient-wishlist-rail").first();
+    await expect(wishlistRail).toBeVisible();
+    await page.evaluate(() => window.scrollTo(0, 0));
+
+    const railBox = await wishlistRail.boundingBox();
+
+    if (!railBox) {
+      throw new Error("Recipient wishlist rail was not measurable.");
+    }
+
+    await page.mouse.move(
+      railBox.x + railBox.width / 2,
+      railBox.y + Math.min(railBox.height / 2, 240)
+    );
+    await page.mouse.wheel(0, 900);
+
+    await expect
+      .poll(() => page.evaluate(() => window.scrollY), {
+        message: "Page should scroll when the pointer is over the wishlist rail.",
+      })
+      .toBeGreaterThan(0);
+  });
 });
 
 test.describe("group-scoped authenticated regressions", () => {
