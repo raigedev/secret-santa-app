@@ -15,6 +15,86 @@
 - ESLint 9 uses security and no-secrets plugins. Husky prepare script is present.
 - Deployment is from GitHub `main` to Vercel. The user usually commits and pushes manually unless explicitly asking the agent to do it.
 
+## Senior Engineering Standards
+
+Act as a senior full-stack engineer and software architect. Code this project with clean structure, maintainability, security, scalability, and reviewability in mind.
+
+### 1. Code Quality
+
+- Write clean, readable, maintainable code.
+- Prefer simple solutions over over-engineering.
+- Use clear names for variables, functions, files, and components.
+- Avoid duplicated code; extract shared helpers only when they remove real repetition or complexity.
+- Keep files focused on one responsibility.
+- Keep components small and reusable.
+- Add comments only when they explain why something exists, not obvious code.
+
+### 2. Project Structure
+
+- Follow the existing Next.js App Router structure.
+- Separate UI components, server actions, utilities, types, hooks, and database logic.
+- Do not put everything inside one large component.
+- Use consistent folder naming that matches the surrounding code.
+- Do not create random files without explaining why they are needed.
+
+### 3. TypeScript
+
+- Use TypeScript strictly.
+- Avoid `any` unless there is a clear reason.
+- Create shared types when reused across modules.
+- Validate external data before trusting it, including API responses, route params, form input, webhook payloads, AI output, and affiliate data.
+
+### 4. Next.js Best Practices
+
+- Use Server Components by default.
+- Use `"use client"` only when needed for state, effects, browser APIs, or interactivity.
+- Keep client components small.
+- Use `loading.tsx`, `error.tsx`, and `not-found.tsx` where helpful.
+- Avoid unnecessary client-side data fetching when server-side fetching is better.
+
+### 5. Supabase Best Practices
+
+- Never expose service-role keys to the browser.
+- Keep database logic secure and predictable.
+- Respect Row Level Security and existing ownership boundaries.
+- Avoid repeated Supabase calls; batch or reuse data where practical.
+- Handle empty states, errors, and loading states properly.
+- Keep auth logic safe, explicit, and easy to reason about.
+
+### 6. Security
+
+- Never hardcode secrets.
+- Never log sensitive data.
+- Validate user input on the server.
+- Handle authorization checks before allowing data changes.
+- Check that users can only access their own groups, wishlists, invites, assignments, and affiliate reports.
+
+### 7. UX And Accessibility
+
+- Make UI text easy for normal users to understand.
+- Use clear button labels.
+- Add helpful empty states and error messages.
+- Use semantic HTML where possible.
+- Keep forms accessible with labels and validation messages.
+- Make the app responsive for mobile, tablet, and desktop.
+
+### 8. Testing
+
+- Add or update tests when changing important logic or user-facing flows.
+- Use Playwright for major user flows and UI regressions when useful.
+- Test auth, dashboard, group creation, invites, wishlist, assignments, gift confirmation, and affiliate shopping flows when touched.
+- Run build and lint after source changes, following the required project checks below.
+
+### 9. Change Discipline
+
+- Before editing, inspect existing files and understand current patterns.
+- Make small, safe, reviewable changes.
+- Do not rewrite the whole app unless explicitly asked.
+- Do not remove features unless explicitly asked.
+- Do not change database schema unless necessary and explained.
+- After changes, summarize what changed, why, and what files were touched.
+- After updating project instructions, review the current project structure and recommend improvements before making unrelated code changes.
+
 ## Security Rules
 
 - Before marking code changes done, run `npm.cmd run typecheck`, `npm.cmd run lint:security`, and `npm.cmd run build` unless the change is documentation-only or there is a clear blocker.
