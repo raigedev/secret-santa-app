@@ -193,6 +193,7 @@ export default function WishlistPage() {
   const router = useRouter();
   const [supabase] = useState(() => createClient());
   const prefetched = useRef<Set<string>>(new Set());
+  const hasLoadedOnceRef = useRef(false);
   const loadDataRef = useRef<(() => Promise<void>) | null>(null);
   const [loading, setLoading] = useState(true);
   const [groups, setGroups] = useState<GroupOption[]>([]);
@@ -217,7 +218,7 @@ export default function WishlistPage() {
   const [deletingId, setDeletingId] = useState<string | null>(null);
 
   useEffect(() => {
-    for (const route of ["/dashboard", "/secret-santa"]) {
+    for (const route of ["/dashboard", "/secret-santa", "/secret-santa-chat"]) {
       if (!prefetched.current.has(route)) {
         prefetched.current.add(route);
         router.prefetch(route);
@@ -229,7 +230,9 @@ export default function WishlistPage() {
     let active = true;
 
     const loadData = async () => {
-      setLoading(true);
+      if (!hasLoadedOnceRef.current) {
+        setLoading(true);
+      }
 
       try {
         const {
@@ -313,7 +316,10 @@ export default function WishlistPage() {
         if (!active) return;
         setMessage({ type: "error", text: "We could not load your wishlist. Refresh the page and try again." });
       } finally {
-        if (active) setLoading(false);
+        if (active) {
+          hasLoadedOnceRef.current = true;
+          setLoading(false);
+        }
       }
     };
 

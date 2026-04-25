@@ -6,12 +6,19 @@ import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
 import { getAnonymousGroupDisplayName } from "@/lib/groups/nickname";
 import { createClient } from "@/lib/supabase/client";
-import InviteCard from "./InviteCard";
 import { getProfile } from "@/app/profile/actions";
 import { claimInvitedMemberships } from "./actions";
 import { deleteGroup } from "@/app/group/[id]/actions";
 import { DashboardSkeleton } from "@/app/components/PageSkeleton";
 import FadeIn from "@/app/components/FadeIn";
+
+type InviteCardProps = {
+  groupId: string;
+  groupName: string;
+  eventDate: string;
+  description?: string;
+  requiresAnonymousNickname?: boolean;
+};
 
 type ProfileSetupModalProps = {
   defaultName: string;
@@ -19,11 +26,16 @@ type ProfileSetupModalProps = {
   onSkip: () => void;
 };
 
+const InviteCard = dynamic<InviteCardProps>(() => import("./InviteCard"), {
+  loading: () => null,
+});
+
 const ProfileSetupModal = dynamic<ProfileSetupModalProps>(() => import("./ProfileSetupModal"), {
   loading: () => null,
 });
 
 type GroupMember = {
+  userId: string | null;
   nickname: string | null;
   email: string | null;
   role: string;
@@ -823,6 +835,7 @@ export default function DashboardPage() {
     let dashboardReloadTimer: ReturnType<typeof setTimeout> | null = null;
     let profileReloadTimer: ReturnType<typeof setTimeout> | null = null;
     let notificationPollInterval: ReturnType<typeof setInterval> | null = null;
+    let dashboardLoadVersion = 0;
     let sessionUser:
       | {
           id: string;
@@ -830,9 +843,88 @@ export default function DashboardPage() {
         }
       | null = null;
 
+    const loadDashboardPeerProfiles = async (
+      groups: Group[],
+      loadVersion: number
+    ) => {
+      if (groups.length === 0) {
+        return;
+      }
+
+      const profileEntries = await Promise.all(
+        groups.map(async (group) => {
+          const result = await supabase.rpc("list_group_peer_profiles", {
+            p_group_id: group.id,
+          });
+
+          return {
+            groupId: group.id,
+            // Avatar strips are a visual enhancement. If the profile helper
+            // fails for one group, keep the dashboard working with initials.
+            profiles: result.error ? [] : ((result.data || []) as PeerProfileRow[]),
+          };
+        })
+      );
+
+      if (!isMounted || loadVersion !== dashboardLoadVersion) {
+        return;
+      }
+
+      const profileMapByGroup = new Map<
+        string,
+        Map<string, { avatarEmoji: string | null; displayName: string | null; avatarUrl: string | null }>
+      >();
+
+      for (const entry of profileEntries) {
+        const profileMap = new Map<
+          string,
+          { avatarEmoji: string | null; displayName: string | null; avatarUrl: string | null }
+        >();
+
+        for (const profile of entry.profiles) {
+          if (profile.user_id) {
+            profileMap.set(profile.user_id, {
+              avatarEmoji: profile.avatar_emoji || null,
+              displayName: profile.display_name || null,
+              avatarUrl: profile.avatar_url || null,
+            });
+          }
+        }
+
+        profileMapByGroup.set(entry.groupId, profileMap);
+      }
+
+      const enhanceGroup = (group: Group): Group => {
+        const groupProfileMap = profileMapByGroup.get(group.id);
+
+        if (!groupProfileMap) {
+          return group;
+        }
+
+        return {
+          ...group,
+          members: group.members.map((member) => {
+            const profile = member.userId ? groupProfileMap.get(member.userId) : null;
+
+            return {
+              ...member,
+              displayName: group.require_anonymous_nickname ? null : profile?.displayName || member.displayName,
+              avatarEmoji: profile?.avatarEmoji || member.avatarEmoji,
+              avatarUrl: group.require_anonymous_nickname ? null : profile?.avatarUrl || member.avatarUrl,
+            };
+          }),
+        };
+      };
+
+      setOwnedGroups((currentGroups) => currentGroups.map(enhanceGroup));
+      setInvitedGroups((currentGroups) => currentGroups.map(enhanceGroup));
+    };
+
     // Reload the dashboard cards and lists without repeating one-time setup like
     // profile bootstrap or invited-membership claiming on every realtime event.
     const loadDashboardData = async (user: { id: string; email?: string | null }) => {
+      const currentLoadVersion = ++dashboardLoadVersion;
+
       try {
         const email = (user.email || "guest@example.com").toLowerCase();
 
@@ -897,7 +989,6 @@ export default function DashboardPage() {
           pendingRes,
           wishlistSummaryRes,
           activityNotificationsRes,
-          peerProfilesByGroup,
         ] =
           await Promise.all([
             acceptedGroupIds.length > 0
@@ -945,23 +1036,6 @@ export default function DashboardPage() {
               .in("type", ["invite", "chat", "draw", "reveal", "gift_received"])
               .order("created_at", { ascending: false })
               .limit(8),
-            acceptedGroupIds.length > 0
-              ? Promise.all(
-                  acceptedGroupIds.map(async (groupId) => {
-                    const result = await supabase.rpc("list_group_peer_profiles", {
-                      p_group_id: groupId,
-                    });
-
-                    return {
-                      groupId,
-                      // Avatar strips are a visual enhancement. If the profile helper
-                      // fails for one group, keep the dashboard working and fall back
-                      // to initials instead of failing the whole page.
-                      profiles: result.error ? [] : ((result.data || []) as PeerProfileRow[]),
-                    };
-                  })
-                )
-              : Promise.resolve([] as { groupId: string; profiles: PeerProfileRow[] }[]),
           ]);
 
         if (groupsRes.error) {
@@ -1002,51 +1076,22 @@ export default function DashboardPage() {
           (activityNotificationsRes.data || []) as NotificationFeedRow[];
         const drawnGroupIds = new Set(allAssignments.map((assignment) => assignment.group_id));
 
-        const profileMapByGroup = new Map<
-          string,
-          Map<string, { avatarEmoji: string | null; displayName: string | null; avatarUrl: string | null }>
-        >();
-
-        for (const entry of peerProfilesByGroup) {
-          const profileMap = new Map<
-            string,
-            { avatarEmoji: string | null; displayName: string | null; avatarUrl: string | null }
-          >();
-
-          for (const profile of entry.profiles) {
-            if (profile.user_id) {
-              profileMap.set(profile.user_id, {
-                avatarEmoji: profile.avatar_emoji || null,
-                displayName: profile.display_name || null,
-                avatarUrl: profile.avatar_url || null,
-              });
-            }
-          }
-
-          profileMapByGroup.set(entry.groupId, profileMap);
-        }
-
         const groupsWithMembers: Group[] = groupsData.map((group) => {
-          const groupProfileMap = profileMapByGroup.get(group.id) || new Map();
-
           return {
             ...group,
             isOwner: roleMap[group.id] === "owner",
             hasDrawn: drawnGroupIds.has(group.id),
             members: allMembers
               .filter((member) => member.group_id === group.id)
-              .map((member) => {
-                const profile = member.user_id ? groupProfileMap.get(member.user_id) : null;
-
-                return {
-                  nickname: member.nickname,
-                  email: member.email,
-                  role: member.role,
-                  displayName: group.require_anonymous_nickname ? null : profile?.displayName || null,
-                  avatarEmoji: profile?.avatarEmoji || null,
-                  avatarUrl: group.require_anonymous_nickname ? null : profile?.avatarUrl || null,
-                };
-              }),
+              .map((member) => ({
+                userId: member.user_id,
+                nickname: member.nickname,
+                email: member.email,
+                role: member.role,
+                displayName: null,
+                avatarEmoji: null,
+                avatarUrl: null,
+              })),
           };
         });
 
@@ -1056,6 +1101,8 @@ export default function DashboardPage() {
 
         setOwnedGroups(groupsWithMembers.filter((group) => group.isOwner));
         setInvitedGroups(groupsWithMembers.filter((group) => !group.isOwner));
+
+        void loadDashboardPeerProfiles(groupsWithMembers, currentLoadVersion);
 
         const receiverNameByGroupUser = new Map<string, string>();
         const groupNameById = new Map(groupsData.map((group) => [group.id, group.name]));
@@ -1500,7 +1547,13 @@ export default function DashboardPage() {
       router.prefetch(route);
     };
 
-    const routesToPrefetch = ["/secret-santa", "/wishlist", "/notifications"];
+    const routesToPrefetch = [
+      "/secret-santa",
+      "/secret-santa-chat",
+      "/wishlist",
+      "/notifications",
+      "/create-group",
+    ];
     if (canViewAffiliateReport) {
       routesToPrefetch.push("/dashboard/affiliate-report");
     }
@@ -1531,6 +1584,47 @@ export default function DashboardPage() {
       }
     };
   }, [router, canViewAffiliateReport]);
+
+  useEffect(() => {
+    const groupRoutes = [...ownedGroups, ...invitedGroups]
+      .slice(0, 6)
+      .map((group) => `/group/${group.id}`);
+    if (groupRoutes.length === 0) {
+      return;
+    }
+
+    const prefetchGroupRoutes = () => {
+      for (const route of groupRoutes) {
+        if (prefetchedRoutesRef.current.has(route)) {
+          continue;
+        }
+
+        prefetchedRoutesRef.current.add(route);
+        router.prefetch(route);
+      }
+    };
+
+    let timeoutId: ReturnType<typeof setTimeout> | null = null;
+    let idleId: number | null = null;
+
+    if (typeof window !== "undefined" && "requestIdleCallback" in window) {
+      idleId = window.requestIdleCallback(prefetchGroupRoutes, { timeout: 1800 });
+    } else if (typeof window !== "undefined") {
+      timeoutId = setTimeout(prefetchGroupRoutes, 1200);
+    } else {
+      prefetchGroupRoutes();
+    }
+
+    return () => {
+      if (typeof window !== "undefined" && idleId !== null && "cancelIdleCallback" in window) {
+        window.cancelIdleCallback(idleId);
+      }
+
+      if (timeoutId !== null) {
+        clearTimeout(timeoutId);
+      }
+    };
+  }, [router, ownedGroups, invitedGroups]);
 
   const handleLogout = async () => {
     await supabase.auth.signOut();

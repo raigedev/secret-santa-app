@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import dynamic from "next/dynamic";
 import { useParams, useRouter } from "next/navigation";
 import { getAnonymousGroupDisplayName } from "@/lib/groups/nickname";
 import { createClient } from "@/lib/supabase/client";
@@ -8,7 +9,6 @@ import InviteForm from "./InviteForm";
 import NicknameForm from "./NicknameForm";
 import ResendButton from "./ResendButton";
 import RevokeInviteButton from "./RevokeInviteButton";
-import ShareResultsCard from "./ShareResultsCard";
 import {
   addDrawExclusion,
   drawSecretSanta,
@@ -29,6 +29,17 @@ import {
 } from "./actions";
 import { GroupSkeleton } from "@/app/components/PageSkeleton";
 import FadeIn from "@/app/components/FadeIn";
+
+type ShareResultsCardProps = {
+  codename: string;
+  eventDate: string;
+  groupName: string;
+  recipientName: string;
+};
+
+const ShareResultsCard = dynamic<ShareResultsCardProps>(() => import("./ShareResultsCard"), {
+  loading: () => null,
+});
 
 type Member = {
   id: string;
@@ -294,8 +305,10 @@ export default function GroupDetailsPage() {
     // not overwrite newer state from the next page load.
     let isMounted = true;
     let reloadTimer: ReturnType<typeof setTimeout> | null = null;
+    let loadVersion = 0;
 
     const loadGroupData = async () => {
+      const currentLoadVersion = ++loadVersion;
       const {
         data: { session },
       } = await supabase.auth.getSession();
@@ -343,6 +356,13 @@ export default function GroupDetailsPage() {
       }
 
       const group = groupResult.data;
+      setOwnerInsights(null);
+      setRevealMatches([]);
+      setGroupRecap(null);
+      setDrawCycleHistory([]);
+      setDrawResetHistory([]);
+      setHasMoreDrawCycles(false);
+      setHasMoreDrawResets(false);
       setGroupData(group);
       const isCurrentUserOwner = user.id === group.owner_id;
       setIsOwner(isCurrentUserOwner);
@@ -350,65 +370,24 @@ export default function GroupDetailsPage() {
       const safeMembers = (membersResult.data ?? []) as Member[];
       setMembers(safeMembers);
 
-      // Keep the owner's readiness panel in sync with the main group data.
-      // Chat stays aggregate-only here so the owner gets engagement signals
-      // without learning anything about the anonymous pairings themselves.
-      const [{ data: myAssignment }, insightsResult, revealResult, recapResult, exclusionResult, rerollHistoryResult] = await Promise.all([
+      // Load assignment and draw-rule data before showing the page so draw actions
+      // never run with stale owner exclusions.
+      const [{ data: myAssignment }, exclusionResult] = await Promise.all([
         supabase
           .from("assignments")
           .select("receiver_id")
           .eq("group_id", id)
           .eq("giver_id", user.id)
           .maybeSingle(),
-        isCurrentUserOwner ? getGroupOwnerInsights(id) : Promise.resolve(null),
-        group.revealed ? getRevealMatches(id) : Promise.resolve(null),
-        group.revealed ? getGroupRecap(id) : Promise.resolve(null),
         isCurrentUserOwner ? getDrawExclusions(id) : Promise.resolve(null),
-        isCurrentUserOwner
-          ? getDrawRerollHistory(id, {
-              cycleOffset: 0,
-              resetOffset: 0,
-              pageSize: HISTORY_PAGE_SIZE,
-            })
-          : Promise.resolve(null),
       ]);
 
-      if (!isMounted) return;
-
-      if (insightsResult?.success && insightsResult.insights) {
-        setOwnerInsights(insightsResult.insights);
-      } else {
-        setOwnerInsights(null);
-      }
-
-      if (revealResult?.success && revealResult.matches) {
-        setRevealMatches(revealResult.matches);
-      } else {
-        setRevealMatches([]);
-      }
-
-      if (recapResult?.success && recapResult.recap) {
-        setGroupRecap(recapResult.recap);
-      } else {
-        setGroupRecap(null);
-      }
+      if (!isMounted || currentLoadVersion !== loadVersion) return;
 
       if (exclusionResult?.success && exclusionResult.exclusions) {
         setDrawExclusions(exclusionResult.exclusions);
       } else {
         setDrawExclusions([]);
-      }
-
-      if (rerollHistoryResult?.success) {
-        setDrawCycleHistory(rerollHistoryResult.cycles || []);
-        setDrawResetHistory(rerollHistoryResult.resets || []);
-        setHasMoreDrawCycles(Boolean(rerollHistoryResult.hasMoreCycles));
-        setHasMoreDrawResets(Boolean(rerollHistoryResult.hasMoreResets));
-      } else {
-        setDrawCycleHistory([]);
-        setDrawResetHistory([]);
-        setHasMoreDrawCycles(false);
-        setHasMoreDrawResets(false);
       }
 
       if (myAssignment) {
@@ -423,6 +402,53 @@ export default function GroupDetailsPage() {
       }
 
       setLoading(false);
+
+      void (async () => {
+        const [insightsResult, revealResult, recapResult, rerollHistoryResult] = await Promise.all([
+          isCurrentUserOwner ? getGroupOwnerInsights(id) : Promise.resolve(null),
+          group.revealed ? getRevealMatches(id) : Promise.resolve(null),
+          group.revealed ? getGroupRecap(id) : Promise.resolve(null),
+          isCurrentUserOwner
+            ? getDrawRerollHistory(id, {
+                cycleOffset: 0,
+                resetOffset: 0,
+                pageSize: HISTORY_PAGE_SIZE,
+              })
+            : Promise.resolve(null),
+        ]);
+
+        if (!isMounted || currentLoadVersion !== loadVersion) return;
+
+        if (insightsResult?.success && insightsResult.insights) {
+          setOwnerInsights(insightsResult.insights);
+        } else {
+          setOwnerInsights(null);
+        }
+
+        if (revealResult?.success && revealResult.matches) {
+          setRevealMatches(revealResult.matches);
+        } else {
+          setRevealMatches([]);
+        }
+
+        if (recapResult?.success && recapResult.recap) {
+          setGroupRecap(recapResult.recap);
+        } else {
+          setGroupRecap(null);
+        }
+
+        if (rerollHistoryResult?.success) {
+          setDrawCycleHistory(rerollHistoryResult.cycles || []);
+          setDrawResetHistory(rerollHistoryResult.resets || []);
+          setHasMoreDrawCycles(Boolean(rerollHistoryResult.hasMoreCycles));
+          setHasMoreDrawResets(Boolean(rerollHistoryResult.hasMoreResets));
+        } else {
+          setDrawCycleHistory([]);
+          setDrawResetHistory([]);
+          setHasMoreDrawCycles(false);
+          setHasMoreDrawResets(false);
+        }
+      })();
     };
 
     loadGroupDataRef.current = loadGroupData;
@@ -539,6 +565,7 @@ export default function GroupDetailsPage() {
 
   useEffect(() => {
     router.prefetch("/dashboard");
+    router.prefetch("/wishlist");
     router.prefetch("/secret-santa");
     router.prefetch("/secret-santa-chat");
     router.prefetch(`/group/${id}/reveal`);

@@ -705,6 +705,8 @@ export default function SecretSantaChatPage() {
 
   useEffect(() => {
     router.prefetch("/dashboard");
+    router.prefetch("/secret-santa");
+    router.prefetch("/wishlist");
   }, [router]);
 
   useEffect(() => {

@@ -3429,9 +3429,26 @@ export default function SecretSantaPage() {
 
 function SnowEffect() {
   useEffect(() => {
-    const snowWrapper = document.getElementById("snowWrap");
+    const prefersReducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
+    if (prefersReducedMotion.matches) {
+      return;
+    }
 
-    if (snowWrapper && snowWrapper.children.length === 0) {
+    let cancelled = false;
+    let timeoutId: ReturnType<typeof setTimeout> | null = null;
+    let idleId: number | null = null;
+
+    const addSnowflakes = () => {
+      if (cancelled) {
+        return;
+      }
+
+      const snowWrapper = document.getElementById("snowWrap");
+
+      if (!snowWrapper || snowWrapper.children.length > 0) {
+        return;
+      }
+
       // Use a fragment so all snowflakes are appended in a single DOM write.
       const fragment = document.createDocumentFragment();
 
@@ -3453,10 +3470,23 @@ function SnowEffect() {
       }
 
       snowWrapper.appendChild(fragment);
+    };
+
+    if ("requestIdleCallback" in window) {
+      idleId = window.requestIdleCallback(addSnowflakes, { timeout: 1200 });
+    } else {
+      timeoutId = setTimeout(addSnowflakes, 600);
     }
 
     // replaceChildren avoids parsing an empty HTML string and directly clears the container.
     return () => {
+      cancelled = true;
+      if (idleId !== null && "cancelIdleCallback" in window) {
+        window.cancelIdleCallback(idleId);
+      }
+      if (timeoutId !== null) {
+        clearTimeout(timeoutId);
+      }
       const currentWrapper = document.getElementById("snowWrap");
       currentWrapper?.replaceChildren();
     };
