@@ -9,15 +9,15 @@ import { createClient } from "@/lib/supabase/client";
 const RESET_MARKERS = [
   {
     title: "Secure reset link",
-    copy: "We email the recovery step so password changes stay inside your inbox.",
+    copy: "We send the reset step to your email so only you can change the password.",
   },
   {
     title: "Check your inbox",
-    copy: "Open the message, follow the reset link, and choose a new password there.",
+    copy: "Open the email, tap the reset link, and choose a new password.",
   },
   {
-    title: "Return to login",
-    copy: "Once the password is updated, come back and sign in with the new one.",
+    title: "Sign in again",
+    copy: "After the password is changed, use the new one to sign in.",
   },
 ] as const;
 
@@ -50,11 +50,11 @@ function ForgotPasswordLayout({
                   Password help
                 </div>
                 <h2 className="mt-6 max-w-xl font-[Plus_Jakarta_Sans] text-4xl font-black tracking-[-0.06em] text-[#2e3432] sm:text-5xl lg:text-[3.2rem] lg:leading-[1.02]">
-                  Reset access without losing your place.
+                  Get back into your account.
                 </h2>
                 <p className="mt-4 max-w-xl text-base leading-7 text-[#5b605e] sm:text-lg">
-                  Enter your email and we will send a secure reset link so you can choose a new
-                  password and get back into your account.
+                  Enter your account email. We will send a reset link so you can choose a new
+                  password.
                 </p>
                 <div className="mt-6 rounded-[1.75rem] bg-white/82 p-5 text-sm leading-6 text-[#43614a] shadow-[0_20px_45px_rgba(62,92,69,0.08)]">
                   {supportingCopy}
@@ -66,10 +66,10 @@ function ForgotPasswordLayout({
                 <div className="relative z-10 flex items-start justify-between gap-4">
                   <div className="max-w-sm">
                     <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-[#7b5902]">
-                      Reset flow
+                      What happens next
                     </p>
                     <h3 className="mt-2 font-[Plus_Jakarta_Sans] text-2xl font-black tracking-[-0.05em] text-[#2e3432]">
-                      One inbox step, then you are back at sign in with a new password.
+                      Use the link in your email, then sign in with your new password.
                     </h3>
                   </div>
                   <Image
@@ -120,7 +120,7 @@ export default function ForgotPasswordPage() {
     setMessageTone("idle");
 
     if (!trimmedEmail) {
-      setMessage("Please enter your registered email.");
+      setMessage("Enter the email address for your account.");
       setMessageTone("error");
       return;
     }
@@ -138,13 +138,13 @@ export default function ForgotPasswordPage() {
       return;
     }
 
-    setMessage("If that email matches an account, a reset link is on its way. Check your inbox.");
+    setMessage("If that email belongs to an account, a reset link is on its way. Check your inbox.");
     setMessageTone("success");
     setIsSubmitting(false);
   };
 
   return (
-    <ForgotPasswordLayout supportingCopy="Use the email already connected to your account. We will handle the reset from there and bring you back to sign in after the password is changed.">
+    <ForgotPasswordLayout supportingCopy="Use the email connected to your account. After the password is changed, sign in again with the new one.">
       <div className="mx-auto w-full max-w-xl">
         <div className="inline-flex items-center gap-2 rounded-full bg-[#fcce72]/28 px-3 py-1.5 text-sm font-semibold text-[#5f4500]">
           Account recovery
@@ -153,7 +153,7 @@ export default function ForgotPasswordPage() {
           Forgot Password
         </h1>
         <p className="mt-3 text-[15px] leading-7 text-[#5b605e] sm:text-base">
-          Please provide the email address associated with your account and we will send the reset
+          Enter the email address for your account. If we find it, we will send a password reset
           link there.
         </p>
 
@@ -167,7 +167,7 @@ export default function ForgotPasswordPage() {
         >
           <div>
             <label htmlFor="forgot-password-email" className="text-sm font-semibold text-[#2e3432]">
-              Registered email
+              Account email
             </label>
             <input
               id="forgot-password-email"
@@ -175,7 +175,7 @@ export default function ForgotPasswordPage() {
               autoComplete="email"
               inputMode="email"
               spellCheck={false}
-              placeholder="Enter your registered email"
+              placeholder="Enter your email address"
               value={email}
               onChange={(event) => setEmail(event.target.value)}
               className={FIELD_CLASS_NAME}
@@ -200,21 +200,21 @@ export default function ForgotPasswordPage() {
             disabled={isSubmitting}
             className="w-full rounded-full bg-[linear-gradient(135deg,#a43c3f_0%,#943034_100%)] px-6 py-4 text-base font-semibold text-[#fff7f6] shadow-[0_24px_55px_rgba(164,60,63,0.18)] transition hover:-translate-y-0.5 hover:shadow-[0_30px_60px_rgba(164,60,63,0.24)] disabled:translate-y-0 disabled:cursor-not-allowed disabled:opacity-70 disabled:shadow-none"
           >
-            {isSubmitting ? "Sending reset link..." : "Send Reset Link"}
+            {isSubmitting ? "Sending reset link..." : "Email Reset Link"}
           </button>
 
           <div className="rounded-[1.35rem] bg-[#f2f4f2] px-4 py-4 text-sm leading-6 text-[#5b605e]">
-            You will reset the password from the email link, not directly on this page.
+            For your safety, the password reset happens from the email link.
           </div>
 
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-            <p className="text-sm leading-6 text-[#5b605e]">Remembered it?</p>
+            <p className="text-sm leading-6 text-[#5b605e]">Remember your password?</p>
             <button
               type="button"
               onClick={() => router.push("/login")}
               className="rounded-full bg-[linear-gradient(135deg,#48664e_0%,#3c5a43_100%)] px-5 py-3 text-sm font-semibold text-[#f7fbf8] shadow-[0_18px_38px_rgba(60,90,67,0.18)] transition hover:-translate-y-0.5 hover:shadow-[0_24px_46px_rgba(60,90,67,0.24)]"
             >
-              Return to Login
+              Back to Login
             </button>
           </div>
         </form>

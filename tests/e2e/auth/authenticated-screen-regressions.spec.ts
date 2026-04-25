@@ -32,7 +32,7 @@ const AUTHENTICATED_SCREEN_CASES: ScreenCase[] = [
     name: "create-group",
     path: "/create-group",
     assertVisible: async (page) => {
-      await expect(page.getByRole("heading", { name: /create your secret santa group/i })).toBeVisible();
+      await expect(page.getByRole("heading", { name: /create a secret santa group/i })).toBeVisible();
       await expect(page.getByRole("button", { name: /create group/i })).toBeVisible();
     },
   },
@@ -64,7 +64,7 @@ const AUTHENTICATED_SCREEN_CASES: ScreenCase[] = [
     name: "secret-santa",
     path: "/secret-santa",
     assertVisible: async (page) => {
-      await expect(page.getByRole("heading", { name: /curate the right secret santa gift/i })).toBeVisible();
+      await expect(page.getByRole("heading", { name: /find a secret santa gift they will like/i })).toBeVisible();
       await expect(page.getByRole("button", { name: /back to dashboard/i })).toBeVisible();
     },
   },
@@ -97,7 +97,7 @@ test.describe("group-scoped authenticated regressions", () => {
     await loginWithTestCredentials(page, credentials!);
     await page.goto(`/group/${groupId}`);
     await expect(page.getByRole("button", { name: /back to dashboard/i })).toBeVisible();
-    await expect(page.getByText(/manage members, draw names, and monitor the group from here/i)).toBeVisible();
+    await expect(page.getByText(/manage members, invites, wishlists, and the name draw from here/i)).toBeVisible();
   });
 
   test("group reveal route renders for a seeded member", async ({ page }) => {

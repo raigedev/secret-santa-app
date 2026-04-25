@@ -283,7 +283,7 @@ export default function ProfilePage() {
         {/* Header */}
         <div data-fade className="text-center mb-8">
           <h1 className="mb-1 text-[24px] font-bold sm:text-[28px]" style={{ fontFamily: "'Fredoka', sans-serif", color: "#1a1a1a" }}>🎅 My Profile</h1>
-          <p className="text-[14px]" style={{ color: "#6b7280" }}>Manage your account and preferences</p>
+          <p className="text-[14px]" style={{ color: "#6b7280" }}>Manage how your name, photo, and notifications appear in groups.</p>
         </div>
 
         {/* ═══ AVATAR SECTION ═══ */}
@@ -337,7 +337,7 @@ export default function ProfilePage() {
                   fontFamily: "inherit",
                 }}
               >
-                Use festive avatar
+                Use a festive avatar
               </button>
             )}
           </div>
@@ -453,11 +453,11 @@ export default function ProfilePage() {
           <h2 className="text-[18px] font-bold mb-5 flex items-center gap-2" style={{ fontFamily: "'Fredoka', sans-serif", color: "#1a1a1a" }}>🔔 Notifications</h2>
 
           {[
-            { key: "notify_invites" as const, label: "Group Invitations", desc: "Get notified when someone invites you to a group" },
-            { key: "notify_draws" as const, label: "Draw Results", desc: "Get notified when names are drawn in your groups" },
-            { key: "notify_chat" as const, label: "Chat Messages", desc: "Get notified when your Secret Santa sends a message" },
-            { key: "notify_wishlist" as const, label: "Wishlist Updates", desc: "Get notified when your recipient updates their wishlist" },
-            { key: "notify_marketing" as const, label: "Marketing Emails", desc: "Tips, new features, and seasonal reminders" },
+            { key: "notify_invites" as const, label: "Group invitations", desc: "Tell me when someone invites me to a group." },
+            { key: "notify_draws" as const, label: "Name draw results", desc: "Tell me when names are drawn in my groups." },
+            { key: "notify_chat" as const, label: "Private messages", desc: "Tell me when my Santa or recipient sends a message." },
+            { key: "notify_wishlist" as const, label: "Wishlist updates", desc: "Tell me when my recipient updates their wishlist." },
+            { key: "notify_marketing" as const, label: "Tips and updates", desc: "Send occasional product updates and seasonal tips." },
           ].map((item, i, arr) => (
             <div key={item.key} className="flex items-center justify-between gap-3 py-3"
               style={{ borderBottom: i < arr.length - 1 ? "1px solid #f3f4f6" : "none" }}>
@@ -501,12 +501,12 @@ export default function ProfilePage() {
             }}>
             {saving ? "Saving..." : "Save Changes"}
           </button>
-          <p className="text-[11px] mt-2" style={{ color: "#9ca3af" }}>Changes are saved to your account</p>
+          <p className="text-[11px] mt-2" style={{ color: "#9ca3af" }}>Your changes apply the next time members see your profile.</p>
         </div>
 
         {/* ═══ DANGER ZONE ═══ */}
         <div data-fade className="rounded-[20px] p-5 sm:p-7" style={{ background: "#fff", border: "1px solid rgba(220,38,38,.1)", boxShadow: "0 4px 20px rgba(0,0,0,.04)" }}>
-          <h2 className="text-[18px] font-bold mb-3" style={{ fontFamily: "'Fredoka', sans-serif", color: "#dc2626" }}>⚠️ Danger Zone</h2>
+          <h2 className="text-[18px] font-bold mb-3" style={{ fontFamily: "'Fredoka', sans-serif", color: "#dc2626" }}>⚠️ Account actions</h2>
           <div className="flex flex-wrap gap-2">
             <button onClick={() => router.push("/reset-password")}
               className="w-full rounded-[10px] px-5 py-2.5 text-[13px] font-bold transition sm:w-auto"

@@ -752,7 +752,7 @@ export default function SecretSantaChatPage() {
         .eq("user_id", user.id).eq("status", "accepted");
 
       if (membershipsError) {
-        setThreadListMessage("Failed to load your chats. Please refresh and try again.");
+        setThreadListMessage("We could not load your chats. Please refresh the page.");
         setThreads([]);
         setLoading(false);
         return;
@@ -788,7 +788,7 @@ export default function SecretSantaChatPage() {
         messagesError ||
         readTimestampsError
       ) {
-        setThreadListMessage("Failed to load your chats. Please refresh and try again.");
+        setThreadListMessage("We could not load your chats. Please refresh the page.");
         setThreads([]);
         setLoading(false);
         return;
@@ -815,7 +815,7 @@ export default function SecretSantaChatPage() {
       const receiverNameByGroupUser = new Map(
         memberNicknames.map((member) => [
           createGroupUserKey(member.group_id, member.user_id),
-          member.nickname || "Participant",
+            member.nickname || "Member",
         ])
       );
       const threadMetaByKey = buildThreadMetaMap(
@@ -829,7 +829,7 @@ export default function SecretSantaChatPage() {
       for (const a of giverRows) {
         const name =
           receiverNameByGroupUser.get(createGroupUserKey(a.group_id, a.receiver_id)) ||
-          "Participant";
+            "Member";
         const threadMeta = threadMetaByKey.get(
           createThreadKey(a.group_id, a.giver_id, a.receiver_id)
         );
@@ -1004,7 +1004,7 @@ export default function SecretSantaChatPage() {
       if (error) {
         // Keep the chat open and explain the failure in the UI instead of
         // sending users to the browser console for basic load issues.
-        setThreadMessage("Failed to load messages. Try reopening this chat.");
+        setThreadMessage("We could not load messages. Try reopening this chat.");
         return;
       }
 
@@ -1142,7 +1142,7 @@ export default function SecretSantaChatPage() {
 
     if (!result.success) {
       setMessages((prev) => prev.filter((m) => m.id !== tempId));
-      setThreadMessage(result.message || "Failed to send your message. Please try again.");
+      setThreadMessage(result.message || "We could not send your message. Please try again.");
       return;
     }
 
@@ -1197,8 +1197,8 @@ export default function SecretSantaChatPage() {
     const roleLabel = isGiver ? "You are gifting" : "Your mystery Santa";
     const recipientLabel = isGiver ? activeThread.other_name : "Secret Santa";
     const privacyCopy = isGiver
-      ? `${activeThread.other_name} sees this chat as messages from their Secret Santa.`
-      : "Your Santa can message you here, but their identity stays hidden.";
+      ? `${activeThread.other_name} sees these messages from their Secret Santa, not your name.`
+      : "Your Santa can message you here, but their name stays hidden.";
     const activeThreadDetails = [
       {
         label: isGiver ? "Recipient" : "Sender",
@@ -1418,7 +1418,7 @@ export default function SecretSantaChatPage() {
                   value={msgInput}
                   onChange={(e) => setMsgInput(e.target.value)}
                   onKeyDown={handleKeyDown}
-                  placeholder={isGiver ? `Send a hidden hint to ${activeThread.other_name}...` : "Reply without knowing who your Santa is..."}
+                  placeholder={isGiver ? `Ask ${activeThread.other_name} a private gift question...` : "Reply to your Santa..."}
                   maxLength={500}
                   className="min-h-12 w-full rounded-full px-5 text-[15px] font-semibold outline-none sm:flex-1"
                   style={{
@@ -1470,10 +1470,10 @@ export default function SecretSantaChatPage() {
                 </div>
                 <div className="space-y-3 text-sm leading-6" style={{ color: CHAT_TEXT_MUTED }}>
                   <p>
-                    <strong className="text-white">You -&gt; Giftee:</strong> ask questions without revealing your name.
+                    <strong className="text-white">You -&gt; Giftee:</strong> ask questions without showing your name.
                   </p>
                   <p>
-                    <strong className="text-white">Santa -&gt; You:</strong> reply without seeing who they are.
+                    <strong className="text-white">Santa -&gt; You:</strong> reply while their name stays hidden.
                   </p>
                 </div>
                 <div className="mt-5 grid gap-2">
@@ -1500,7 +1500,7 @@ export default function SecretSantaChatPage() {
                     border: "1px solid rgba(252,206,114,.12)",
                   }}
                 >
-                  Ask about size, color, delivery timing, or what they already own. Keep each question short so the thread stays easy to scan.
+                  Ask about size, color, delivery timing, or what they already own. Short questions are easier to answer.
                 </div>
                 <div className="mt-4 flex flex-wrap gap-2">
                   {promptChips.map((chip) => (
@@ -1530,18 +1530,18 @@ export default function SecretSantaChatPage() {
       {
         eyebrow: "You gift them",
         title: "People you gift",
-        description: "Ask quiet gift questions without exposing your name.",
+        description: "Ask gift questions without showing your name.",
         threads: giverThreads,
         accent: "#fcce72",
-        empty: "No recipient chat yet. Once your group draw is ready, your private recipient chat appears here.",
+        empty: "No recipient chat yet. After names are drawn, your private recipient chat appears here.",
       },
       {
         eyebrow: "They gift you",
         title: "Your mystery Santa",
-        description: "Reply to the person assigned to you while their identity stays hidden.",
+        description: "Reply to the person assigned to you while their name stays hidden.",
         threads: receiverThreads,
         accent: "#d7fadb",
-        empty: "No Santa chat yet. Your assigned Santa can start a private thread after the draw.",
+        empty: "No Santa chat yet. Your Santa can start a private thread after names are drawn.",
       },
     ];
 
@@ -1551,8 +1551,8 @@ export default function SecretSantaChatPage() {
       { label: "Groups", value: uniqueGroupCount },
     ];
     const privacyHighlights = [
-      { label: "Giftee thread", value: "You ask without revealing your name." },
-      { label: "Santa thread", value: "They can reply while staying hidden." },
+      { label: "Giftee thread", value: "You ask without showing your name." },
+      { label: "Santa thread", value: "They can reply while their name stays hidden." },
       { label: "Private scope", value: "Each chat stays tied to one match." },
     ];
     const privacyBadges = ["Identity hidden", "Match-only", "No group thread"];
@@ -1631,7 +1631,7 @@ export default function SecretSantaChatPage() {
                   One private thread for each Secret Santa match.
                 </h2>
                 <p className="mt-4 max-w-2xl text-base leading-7 sm:text-lg sm:leading-8" style={{ color: CHAT_TEXT_MUTED }}>
-                  Use this page only for your giftee and the person gifting you. The app keeps names hidden so hints stay useful without spoiling the reveal.
+                  Use this page for your recipient and the person gifting you. Names stay hidden so hints help without spoiling the surprise.
                 </p>
               </div>
 
@@ -1669,7 +1669,7 @@ export default function SecretSantaChatPage() {
                       <strong className="text-white">You -&gt; Giftee:</strong> ask questions as their Secret Santa.
                     </p>
                     <p>
-                      <strong className="text-white">Santa -&gt; You:</strong> reply without seeing who they are.
+                      <strong className="text-white">Santa -&gt; You:</strong> reply while their name stays hidden.
                     </p>
                   </div>
                 </div>
@@ -1733,7 +1733,7 @@ export default function SecretSantaChatPage() {
               <ChatLineIcon className="mx-auto h-10 w-10 text-[#aeb8ae]" />
               <h2 className="mt-4 text-2xl font-black">No private chats yet</h2>
               <p className="mx-auto mt-3 max-w-xl" style={{ color: CHAT_TEXT_MUTED }}>
-                Once a group finishes drawing names, your private Secret Santa conversations will appear here automatically.
+                After a group draws names, your private Secret Santa conversations will appear here automatically.
               </p>
             </section>
           ) : (

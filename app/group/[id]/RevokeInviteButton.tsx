@@ -34,7 +34,7 @@ export default function RevokeInviteButton({
   if (status === "revoked") {
     return (
       <span className="text-xs bg-red-100 text-red-700 px-3 py-1 rounded-full font-bold">
-        ✅ Revoked
+        ✅ Invite revoked
       </span>
     );
   }
@@ -49,7 +49,7 @@ export default function RevokeInviteButton({
           : "bg-red-100 text-red-700 hover:bg-red-200"
       }`}
     >
-      {status === "loading" ? "Revoking..." : "🛑 Revoke Invite"}
+      {status === "loading" ? "Revoking..." : "🛑 Revoke invite"}
     </button>
   );
 }

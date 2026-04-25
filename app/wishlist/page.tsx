@@ -125,9 +125,9 @@ function formatBudget(budget: number | null, currency: string | null) {
 }
 
 function priorityLabel(priority: WishlistPriority) {
-  if (priority === 2) return "Want most";
+  if (priority === 2) return "Top priority";
   if (priority === 1) return "Nice to have";
-  return "Just an idea";
+  return "Gift idea";
 }
 
 function priorityTone(priority: WishlistPriority) {
@@ -311,7 +311,7 @@ export default function WishlistPage() {
         });
       } catch {
         if (!active) return;
-        setMessage({ type: "error", text: "Failed to load your wishlist. Please refresh and try again." });
+        setMessage({ type: "error", text: "We could not load your wishlist. Refresh the page and try again." });
       } finally {
         if (active) setLoading(false);
       }
@@ -341,7 +341,7 @@ export default function WishlistPage() {
     if (selectedGroupAtLimit) {
       setMessage({
         type: "error",
-        text: `You can only keep ${WISHLIST_ITEMS_PER_GROUP_LIMIT} wishlist items per group.`,
+        text: `You can add up to ${WISHLIST_ITEMS_PER_GROUP_LIMIT} wishlist items per group.`,
       });
       return;
     }
@@ -372,7 +372,7 @@ export default function WishlistPage() {
         await loadDataRef.current?.();
       }
     } catch {
-      setMessage({ type: "error", text: "Failed to save the wishlist item. Please try again." });
+      setMessage({ type: "error", text: "We could not save this wishlist item. Please try again." });
     } finally {
       setAdding(false);
     }
@@ -407,7 +407,7 @@ export default function WishlistPage() {
         await loadDataRef.current?.();
       }
     } catch {
-      setMessage({ type: "error", text: "Failed to update the wishlist item. Please try again." });
+      setMessage({ type: "error", text: "We could not update this wishlist item. Please try again." });
     } finally {
       setSavingEditId(null);
     }
@@ -428,7 +428,7 @@ export default function WishlistPage() {
         await loadDataRef.current?.();
       }
     } catch {
-      setMessage({ type: "error", text: "Failed to delete the wishlist item. Please try again." });
+      setMessage({ type: "error", text: "We could not delete this wishlist item. Please try again." });
     } finally {
       setDeletingId(null);
     }
@@ -515,13 +515,13 @@ export default function WishlistPage() {
                 Keep your gift ideas wrapped and ready.
               </h1>
               <p className="mt-5 max-w-2xl text-base leading-8 text-[#5b605e] sm:text-lg">
-                This is your own Christmas wishlist. Your Secret Santa can use it for clues, while gift planning stays focused on shopping for your assigned recipient.
+                This is your wishlist. Your Santa can use these ideas as clues when choosing your gift.
               </p>
               <div className="mt-8 grid gap-3 sm:grid-cols-3">
                 {[
                   { label: "Total items", value: items.length, helper: "Ideas visible to your Santa" },
-                  { label: "Active groups", value: groups.length, helper: "Accepted exchanges" },
-                  { label: "Top priority", value: topPriorityCount, helper: "Marked want most" },
+                  { label: "Active groups", value: groups.length, helper: "Groups joined" },
+                  { label: "Top priority", value: topPriorityCount, helper: "Marked top priority" },
                 ].map((stat) => (
                   <div key={stat.label} className="rounded-[28px] bg-[#f2f4f2] p-5">
                     <p className="text-xs font-black uppercase tracking-[0.22em] text-[#777c7a]">{stat.label}</p>
@@ -541,10 +541,10 @@ export default function WishlistPage() {
             <div className="relative">
               <p className="text-xs font-black uppercase tracking-[0.28em] text-white/70">Holiday note</p>
               <h2 className="mt-4 font-[Plus_Jakarta_Sans] text-3xl font-black tracking-[-0.05em]">
-                A clearer wishlist means fewer mystery socks.
+                A clearer wishlist makes gift shopping easier.
               </h2>
               <p className="mt-4 text-sm leading-7 text-white/78">
-                Add specific colors, sizes, links, and notes. The better the clue, the easier it is for your Santa to pick something that actually feels like you.
+                Add colors, sizes, links, images, and notes. Clear details help your Santa choose something that feels right for you.
               </p>
               <div className="mt-7 rounded-[28px] bg-white/12 p-4 backdrop-blur">
                 <div className="flex items-center justify-between gap-3 text-sm font-black">
@@ -587,7 +587,7 @@ export default function WishlistPage() {
                     Add an idea
                   </h2>
                   <p className="mt-2 text-sm leading-6 text-[#5b605e]">
-                    Save up to {WISHLIST_ITEMS_PER_GROUP_LIMIT} clues per group.
+                    Save up to {WISHLIST_ITEMS_PER_GROUP_LIMIT} wishlist items per group.
                   </p>
                 </div>
                 <div className="grid h-14 w-14 shrink-0 place-items-center rounded-[22px] bg-[#fff7f6] text-[#a43c3f]">
@@ -597,7 +597,7 @@ export default function WishlistPage() {
 
               {groups.length === 0 ? (
                 <div className="rounded-[28px] bg-[#fcce72]/25 px-5 py-6 text-sm leading-6 text-[#5f4500]">
-                  Join a group first before adding wishlist items.
+                  Join a group before adding wishlist items.
                 </div>
               ) : (
                 <div className="space-y-3">
@@ -618,7 +618,7 @@ export default function WishlistPage() {
 
                   <div className="rounded-[24px] bg-[#f2f4f2] p-4">
                     <div className="flex items-center justify-between gap-3 text-xs font-black uppercase tracking-[0.16em] text-[#5b605e]">
-                      <span>Wishlist space</span>
+                      <span>Wishlist spots</span>
                       <span>{selectedGroupItemCount}/{WISHLIST_ITEMS_PER_GROUP_LIMIT}</span>
                     </div>
                     <div className="mt-3 h-2.5 overflow-hidden rounded-full bg-white">
@@ -669,7 +669,7 @@ export default function WishlistPage() {
                     value={addLink}
                     onChange={(event) => setAddLink(event.target.value)}
                     maxLength={ITEM_URL_MAX}
-                    placeholder="Reference link (optional)"
+                    placeholder="Product or inspiration link (optional)"
                     className="w-full rounded-[20px] bg-[#e5e9e6] px-4 py-3 text-sm font-bold text-[#2e3432] outline-none placeholder:text-[#777c7a] focus:bg-white focus:ring-2 focus:ring-[#a43c3f]/20"
                   />
                   <input
@@ -678,7 +678,7 @@ export default function WishlistPage() {
                     value={addImageUrl}
                     onChange={(event) => setAddImageUrl(event.target.value)}
                     maxLength={ITEM_URL_MAX}
-                    placeholder="Image URL (optional)"
+                    placeholder="Image link (optional)"
                     className="w-full rounded-[20px] bg-[#e5e9e6] px-4 py-3 text-sm font-bold text-[#2e3432] outline-none placeholder:text-[#777c7a] focus:bg-white focus:ring-2 focus:ring-[#a43c3f]/20"
                   />
                   <input
@@ -699,7 +699,7 @@ export default function WishlistPage() {
                       ? "Saving..."
                       : selectedGroupAtLimit
                         ? "Group full"
-                        : "Wrap this idea"}
+                        : "Add to Wishlist"}
                     <ArrowRightIcon />
                   </button>
                 </div>
@@ -732,7 +732,7 @@ export default function WishlistPage() {
                         </h2>
                         <div className="mt-3 flex flex-wrap gap-2 text-xs font-bold text-[#5b605e]">
                           <span className="rounded-full bg-white px-3 py-1.5">
-                            Event: {formatDate(group.eventDate)}
+                            Gift date: {formatDate(group.eventDate)}
                           </span>
                           {budget && (
                             <span className="rounded-full bg-white px-3 py-1.5">
@@ -757,7 +757,7 @@ export default function WishlistPage() {
                     {group.items.length === 0 ? (
                       <div className="rounded-[30px] bg-[#fcce72]/22 px-5 py-8 text-center text-sm leading-6 text-[#5f4500]">
                         <SparkleIcon className="mx-auto mb-3 h-7 w-7" />
-                        No wishlist items in this group yet. Add a few clear clues so your Santa is not guessing in the snow.
+                        No wishlist items in this group yet. Add a few clear ideas so your Santa has a place to start.
                       </div>
                     ) : (
                       <div className="grid gap-4 xl:grid-cols-2">
@@ -771,7 +771,7 @@ export default function WishlistPage() {
                                   <GiftIcon className="h-6 w-6" />
                                 </div>
                                 <div>
-                                  <p className="text-xs font-black uppercase tracking-[0.18em] text-[#777c7a]">Editing gift clue</p>
+                                  <p className="text-xs font-black uppercase tracking-[0.18em] text-[#777c7a]">Editing wishlist item</p>
                                   <h3 className="text-lg font-black text-[#2e3432]">Update item</h3>
                                 </div>
                               </div>
@@ -815,7 +815,7 @@ export default function WishlistPage() {
                                   value={editLink}
                                   onChange={(event) => setEditLink(event.target.value)}
                                   maxLength={ITEM_URL_MAX}
-                                  placeholder="Reference link"
+                                  placeholder="Product or inspiration link"
                                   className="w-full rounded-[18px] bg-white px-4 py-3 text-sm font-bold text-[#2e3432] outline-none placeholder:text-[#777c7a] focus:ring-2 focus:ring-[#a43c3f]/20"
                                 />
                                 <input
@@ -824,7 +824,7 @@ export default function WishlistPage() {
                                   value={editImageUrl}
                                   onChange={(event) => setEditImageUrl(event.target.value)}
                                   maxLength={ITEM_URL_MAX}
-                                  placeholder="Image URL"
+                                  placeholder="Image link"
                                   className="w-full rounded-[18px] bg-white px-4 py-3 text-sm font-bold text-[#2e3432] outline-none placeholder:text-[#777c7a] focus:ring-2 focus:ring-[#a43c3f]/20"
                                 />
                                 <input

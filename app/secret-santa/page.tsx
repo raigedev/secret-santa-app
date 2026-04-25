@@ -157,7 +157,7 @@ const HOLIDAY_GREEN = "#48664e";
 const HOLIDAY_GOLD = "#7b5902";
 const HOLIDAY_BLUE = "#58748e";
 const LAZADA_AFFILIATE_DISCLOSURE =
-  "Some Lazada links may earn us a commission.";
+  "Some Lazada links are affiliate links.";
 
 function GiftMark({ className = "h-5 w-5" }: { className?: string }) {
   return (
@@ -474,7 +474,7 @@ function buildRecipientData(
         group_event_date: group?.eventDate || "",
         group_budget: group?.budget ?? null,
         group_currency: group?.currency ?? null,
-        receiver_nickname: receiver?.nickname || "Secret Participant",
+        receiver_nickname: receiver?.nickname || "Secret Member",
         receiver_wishlist: sortWishlistItems(
           wishlistsByKey.get(
             createGroupUserKey(assignment.group_id, assignment.receiver_id)
@@ -660,8 +660,8 @@ function getFeaturedLazadaCardTypeLabel(product: WishlistFeaturedProductCard): s
   return getFriendlyLazadaLabel(
     product.recommendationCaption ||
     (product.catalogSource === "catalog-product"
-      ? "Matched Lazada product"
-      : "Search-backed route")
+      ? "Ready on Lazada"
+      : "Browse similar items")
   );
 }
 
@@ -1522,7 +1522,7 @@ export default function SecretSantaPage() {
         setReceivedGifts([]);
         setMessage({
           type: "error",
-          text: "Failed to load your Secret Santa data. Please refresh and try again.",
+          text: "We could not load your Secret Santa details. Please refresh the page.",
         });
       } finally {
         if (isMounted) {
@@ -1608,7 +1608,7 @@ export default function SecretSantaPage() {
     } catch {
       setMessage({
         type: "error",
-        text: "Failed to update gift progress. Please try again.",
+        text: "We could not update your gift progress. Please try again.",
       });
     } finally {
       setUpdatingPrepGroup(null);
@@ -1616,7 +1616,7 @@ export default function SecretSantaPage() {
   };
 
   const handleConfirmGift = async (groupId: string) => {
-    if (!confirm("Confirm that you received your gift? This can't be undone.")) {
+    if (!confirm("Confirm that you received your gift? You cannot undo this later.")) {
       return;
     }
 
@@ -1645,7 +1645,7 @@ export default function SecretSantaPage() {
     } catch {
       setMessage({
         type: "error",
-        text: "Failed to confirm gift receipt. Please try again.",
+        text: "We could not confirm your gift yet. Please try again.",
       });
     } finally {
       setConfirmingGroup(null);
@@ -1758,14 +1758,14 @@ export default function SecretSantaPage() {
                   color: PAGE_TEXT_COLOR,
                 }}
               >
-                Curate the right Secret Santa gift.
+                Find a Secret Santa gift they will like.
               </h1>
               <p
                 className="mt-2 max-w-2xl text-[13px] font-semibold leading-relaxed sm:text-[15px]"
                 style={{ color: TEXT_MUTED }}
               >
-                Pick a wishlist clue, choose the gift style, then open
-                Lazada gift paths with your recipient and budget still in view.
+                Pick one wishlist idea, choose a shopping option, then open Lazada with your
+                recipient and budget still in view.
               </p>
             </div>
 
@@ -1885,8 +1885,7 @@ export default function SecretSantaPage() {
                   className="mt-1 max-w-2xl text-[12px] leading-relaxed"
                   style={{ color: TEXT_MUTED }}
                 >
-                  Currently using {pageRegionLabel} for Lazada gift ideas and
-                  backup store links.
+                  Using {pageRegionLabel} for Lazada gift ideas and backup store links.
                 </div>
               </div>
             </div>
@@ -1953,7 +1952,7 @@ export default function SecretSantaPage() {
               className="text-[13px] mt-1"
               style={{ color: TEXT_MUTED }}
             >
-              Once a group owner draws names, your recipients will appear here!
+              When a group owner draws names, the people you are gifting will appear here.
             </p>
           </div>
         ) : (
@@ -2239,8 +2238,8 @@ export default function SecretSantaPage() {
                           primaryFeaturedLazadaProduct?.recommendationCaption ||
                             (primaryFeaturedLazadaProduct?.catalogSource ===
                             "catalog-product"
-                              ? "Matched Lazada product"
-                              : "Search-backed route")
+                              ? "Ready on Lazada"
+                              : "Browse similar items")
                         );
                       const heroLazadaToneStyle = primaryFeaturedLazadaProduct
                         ? getFeaturedLazadaToneStyle(primaryFeaturedLazadaProduct)
@@ -2499,8 +2498,8 @@ export default function SecretSantaPage() {
                                   className="mt-2 max-w-3xl text-[14px] font-medium leading-relaxed sm:text-[16px]"
                                   style={{ color: TEXT_MUTED }}
                                 >
-                                  Gift ideas for {assignment.receiver_nickname}, shaped by
-                                  the wishlist clue and the shopping focus.
+                                  Gift ideas for {assignment.receiver_nickname}, based on
+                                  their wishlist, your selected option, and the group budget.
                                 </p>
                                 <p
                                   className="mt-1 text-[11px] font-semibold leading-relaxed sm:text-[12px]"
@@ -2527,15 +2526,15 @@ export default function SecretSantaPage() {
                                         className="text-[15px] font-extrabold"
                                         style={{ color: HOLIDAY_GREEN }}
                                       >
-                                        Shopping focus
+                                        Shopping option
                                       </h3>
                                       <p
                                         className="mt-0.5 max-w-2xl text-[11px] leading-relaxed"
                                         style={{ color: TEXT_MUTED }}
                                       >
                                         {selectedSuggestion
-                                          ? `Currently browsing around: ${selectedSuggestion.title}`
-                                          : "Choose how Lazada should search around this wishlist item."}
+                                          ? `Browsing around: ${selectedSuggestion.title}`
+                                          : "Choose the kind of gift ideas you want to see."}
                                       </p>
                                     </div>
                                     <span
@@ -2779,7 +2778,7 @@ export default function SecretSantaPage() {
                                                 "0 0 0 4px rgba(88,116,142,.12)",
                                             }}
                                           />
-                                          Checking live Lazada products. These picks are ready to browse.
+                                          Checking current Lazada products. You can still browse these picks.
                                         </div>
                                       )}
 
@@ -2800,8 +2799,7 @@ export default function SecretSantaPage() {
                                               className="text-[12px] font-medium leading-relaxed sm:text-[13px]"
                                               style={{ color: TEXT_MUTED }}
                                             >
-                                              Gift ideas based on what they asked for,
-                                              the option you chose, and your budget.
+                                              Gift ideas based on their wishlist, your selected option, and the group budget.
                                             </p>
                                           </div>
 
@@ -2990,7 +2988,7 @@ export default function SecretSantaPage() {
                                                   className="text-[15px] font-extrabold"
                                                   style={{ color: PAGE_TEXT_COLOR }}
                                                 >
-                                                  More places to shop
+                                                  Other places to shop
                                                 </div>
                                                 <div
                                                   className="mt-0.5 text-[11px]"
@@ -3087,13 +3085,13 @@ export default function SecretSantaPage() {
                           className="text-[14px] font-extrabold"
                           style={{ color: HOLIDAY_GREEN }}
                         >
-                          Private gift prep
+                          Gift progress
                         </div>
                         <div
                           className="mt-1 text-[12px]"
                           style={{ color: TEXT_MUTED }}
                         >
-                          Optional progress that only you can see.
+                          Only you can see this progress.
                         </div>
                       </div>
                       <div
@@ -3188,7 +3186,7 @@ export default function SecretSantaPage() {
                       >
                         {assignment.gift_received
                           ? "✅ Recipient confirmed receipt"
-                          : "🎁 Waiting for recipient confirmation"}
+                          : "🎁 Waiting for your recipient to confirm"}
                       </div>
                       <div
                         className="text-[11px] mt-0.5"
@@ -3198,7 +3196,7 @@ export default function SecretSantaPage() {
                           ? `${assignment.receiver_nickname} confirmed on ${formatDisplayDate(
                               assignment.gift_received_at
                             )}`
-                          : "Your recipient will confirm once the gift reaches them."}
+                          : "Your recipient can confirm after the gift reaches them."}
                       </div>
                     </div>
                     <div
@@ -3251,7 +3249,7 @@ export default function SecretSantaPage() {
                 className="text-[13px] font-semibold mt-1"
                 style={{ color: TEXT_MUTED }}
               >
-                Confirm your own gift here after it reaches you.
+                Confirm here after you receive your gift.
               </p>
             </div>
 
@@ -3333,7 +3331,7 @@ export default function SecretSantaPage() {
                         >
                           {gift.gift_received
                             ? `Confirmed on ${formatDisplayDate(gift.gift_received_at)}`
-                            : "Use this only for the gift you received from your own Secret Santa."}
+                            : "Use this only after you receive your own Secret Santa gift."}
                         </div>
                       </div>
 

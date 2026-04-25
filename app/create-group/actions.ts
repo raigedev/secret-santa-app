@@ -135,7 +135,7 @@ export async function createGroupWithInvites(
   const cleanOwnerCodename = sanitizeGroupNickname(input.ownerCodename || "");
 
   if (!cleanName) {
-    return { success: false, message: "Group name is required." };
+    return { success: false, message: "Enter a group name." };
   }
 
   if (!input.eventDate || isPastDate(input.eventDate)) {

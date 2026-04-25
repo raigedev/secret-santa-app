@@ -23,11 +23,11 @@ export default function ResetPasswordPage() {
     });
 
     if (error) {
-      setMessage(error.message || "Error updating password.");
+      setMessage("We could not update your password. Please try the reset link again.");
       return;
     }
 
-    setMessage("Password updated successfully!");
+    setMessage("Your password has been updated. Taking you back to login...");
 
     // Sign out after a successful password reset so the user comes back through
     // a fresh login with the new credential.
@@ -44,7 +44,7 @@ export default function ResetPasswordPage() {
 
         <input
           type="password"
-          placeholder="Enter new password"
+          placeholder="Enter your new password"
           className="mb-3 w-full rounded border-2 border-red-600 bg-white p-3 text-black shadow-sm focus:outline-none focus:ring-2 focus:ring-red-500"
           value={newPassword}
           onChange={(event) => setNewPassword(event.target.value)}
@@ -58,7 +58,7 @@ export default function ResetPasswordPage() {
           onClick={handleUpdatePassword}
           className="w-full rounded bg-red-600 px-4 py-2 text-white transition hover:bg-red-700"
         >
-          Update Password
+          Save New Password
         </button>
 
         {message && <p className="mt-4 text-green-600">{message}</p>}

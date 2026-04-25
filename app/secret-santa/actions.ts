@@ -26,7 +26,7 @@ export async function updateGiftPrepStatus(
   status: string
 ): Promise<{ success: boolean; message: string }> {
   if (!groupId || !UUID_PATTERN.test(groupId) || !status || !isGiftPrepStatus(status)) {
-    return { success: false, message: "Invalid gift progress update." };
+    return { success: false, message: "Choose a valid gift progress option." };
   }
 
   const supabase = await createClient();
@@ -68,7 +68,7 @@ export async function updateGiftPrepStatus(
       resourceType: "assignment",
     });
 
-    return { success: false, message: "Failed to update gift progress." };
+    return { success: false, message: "We could not update gift progress." };
   }
 
   if (!assignment) {
@@ -105,7 +105,7 @@ export async function updateGiftPrepStatus(
       resourceType: "assignment",
     });
 
-    return { success: false, message: "Failed to update gift progress. Please try again." };
+    return { success: false, message: "We could not update gift progress. Please try again." };
   }
 
   await recordAuditEvent({
@@ -166,7 +166,7 @@ export async function confirmGiftReceived(
       resourceType: "assignment",
     });
 
-    return { success: false, message: "Failed to confirm. Please try again." };
+    return { success: false, message: "We could not confirm your gift. Please try again." };
   }
 
   if (!assignment) {
@@ -191,7 +191,7 @@ export async function confirmGiftReceived(
       resourceId: groupId,
       resourceType: "assignment",
     });
-    return { success: false, message: "Failed to confirm. Please try again." };
+    return { success: false, message: "We could not confirm your gift. Please try again." };
   }
 
   const { data: group } = await supabaseAdmin
@@ -204,7 +204,7 @@ export async function confirmGiftReceived(
     await createNotification({
       userId: assignment.giver_id,
       type: "gift_received",
-      title: "Your recipient confirmed their gift",
+      title: "Your recipient received their gift",
       body: `Your recipient confirmed they received their gift in ${group?.name || "your group"}.`,
       linkPath: "/secret-santa",
       metadata: {

@@ -54,13 +54,13 @@ export default function CreateGroupPage() {
     const cleanOwnerCodename = sanitizeGroupNickname(ownerCodename);
 
     if (!cleanName) {
-      setErrorMsg("Group name is required.");
+      setErrorMsg("Enter a group name.");
       setLoading(false);
       return;
     }
 
     if (!eventDate) {
-      setErrorMsg("Event date is required.");
+      setErrorMsg("Choose a gift exchange date.");
       setLoading(false);
       return;
     }
@@ -150,7 +150,7 @@ export default function CreateGroupPage() {
           className="mb-6 text-center text-[22px] font-bold leading-tight sm:text-[26px]"
           style={{ fontFamily: "'Fredoka', sans-serif", color: "#1a6b2a" }}
         >
-          Create Your Secret Santa Group
+          Create a Secret Santa Group
         </h1>
 
         <form onSubmit={handleSubmit} className="space-y-4">
@@ -159,7 +159,7 @@ export default function CreateGroupPage() {
               className="text-[13px] font-extrabold mb-1.5 block"
               style={{ color: "#374151" }}
             >
-              Group Name *
+              Group name *
             </label>
             <input
               type="text"
@@ -182,7 +182,7 @@ export default function CreateGroupPage() {
               className="text-[13px] font-extrabold mb-1.5 block"
               style={{ color: "#374151" }}
             >
-              Description / Rules{" "}
+              Group notes or rules{" "}
               <span className="text-[11px] font-semibold" style={{ color: "#9ca3af" }}>
                 (optional)
               </span>
@@ -208,7 +208,7 @@ export default function CreateGroupPage() {
               className="text-[13px] font-extrabold mb-1.5 block"
               style={{ color: "#374151" }}
             >
-              Event Date *
+              Gift exchange date *
             </label>
             <input
               type="date"
@@ -235,7 +235,7 @@ export default function CreateGroupPage() {
               className="text-[13px] font-extrabold mb-2 block"
               style={{ color: "#c0392b" }}
             >
-              Gift Budget
+              Gift budget
             </label>
             <div className="flex gap-2 flex-wrap">
               {BUDGET_OPTIONS.map((amount) => (
@@ -335,7 +335,7 @@ export default function CreateGroupPage() {
               className="text-[13px] font-extrabold mb-1.5 block"
               style={{ color: "#374151" }}
             >
-              Invite Members{" "}
+              Invite members{" "}
               <span className="text-[11px] font-semibold" style={{ color: "#9ca3af" }}>
                 (optional)
               </span>
@@ -353,7 +353,7 @@ export default function CreateGroupPage() {
               }}
             />
             <p className="text-[11px] mt-1" style={{ color: "#9ca3af" }}>
-              Separate multiple emails with commas
+              Add more than one email by separating them with commas.
             </p>
           </div>
 
@@ -374,11 +374,11 @@ export default function CreateGroupPage() {
                   className="text-[13px] font-extrabold block"
                   style={{ color: "#1f2937" }}
                 >
-                  Anonymous nicknames
+                  Use nicknames in this group
                 </label>
                 <p className="mt-1 text-[12px] leading-5" style={{ color: "#64748b" }}>
                   Everyone in the event, including you as the organizer, joins with a
-                  codename so the exchange does not show real names or emails.
+                  nickname so members do not see real names or emails inside this group.
                 </p>
               </div>
               <button
@@ -407,7 +407,7 @@ export default function CreateGroupPage() {
                   color: requireAnonymousNickname ? "#1d4ed8" : "#475569",
                 }}
               >
-                {requireAnonymousNickname ? "Codenames required" : "Standard invite flow"}
+                {requireAnonymousNickname ? "Nicknames required" : "Names visible"}
               </span>
               <span
                 className="inline-flex rounded-full px-3 py-1 text-[11px] font-bold"
@@ -423,7 +423,7 @@ export default function CreateGroupPage() {
                   className="text-[13px] font-extrabold mb-1.5 block"
                   style={{ color: "#1f2937" }}
                 >
-                  Your organizer codename *
+                  Your organizer nickname *
                 </label>
                 <input
                   type="text"
@@ -441,7 +441,7 @@ export default function CreateGroupPage() {
                   }}
                 />
                 <p className="mt-1 text-[11px]" style={{ color: "#64748b" }}>
-                  This is the codename other members will see for you inside the group.
+                  This is the name other members will see for you inside this group.
                 </p>
               </div>
             )}
@@ -470,7 +470,7 @@ export default function CreateGroupPage() {
               boxShadow: loading ? "none" : "0 4px 16px rgba(26,107,42,.25)",
             }}
           >
-            {loading ? "Creating Group..." : "Create Group"}
+            {loading ? "Creating group..." : "Create Group"}
           </button>
         </form>
       </div>

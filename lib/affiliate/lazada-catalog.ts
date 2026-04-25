@@ -113,7 +113,7 @@ export function getLazadaStarterProducts(
       ),
       buildSearchBackedProduct(
         "Tablet case with stand",
-        "A fallback if the full device is too expensive but a useful add-on still works.",
+        "A useful add-on if the full device is too expensive.",
         "tablet case with stand",
         "This keeps the tablet theme alive without forcing the giver into the full device budget.",
         500,
@@ -173,9 +173,9 @@ export function getLazadaStarterProducts(
       ),
       buildSearchBackedProduct(
         "Reading journal set",
-        "A softer fallback if the giver wants something book-adjacent and gift-ready.",
+        "A softer book-adjacent idea that is easy to gift.",
         "reading journal gift set",
-        "This is a practical fallback when the exact reading taste is still unclear.",
+        "This is practical when the exact reading taste is still unclear.",
         250,
         700
       ),
@@ -263,7 +263,7 @@ export function getLazadaStarterProducts(
       ),
       buildSearchBackedProduct(
         "Monitor light bar",
-        "A desk-friendly fallback when the giftee is into setup upgrades.",
+        "A desk-friendly idea when the giftee likes setup upgrades.",
         "monitor light bar",
         "This keeps the computer theme alive while nudging the search toward polished workspace upgrades.",
         900,
@@ -429,7 +429,7 @@ export function getLazadaStarterProducts(
         "Oversized hoodie",
         "A forgiving apparel gift shape that works well when sizing is not too exact.",
         "oversized hoodie",
-        "This is a common fashion gift fallback when the original clothing request is broad.",
+        "This is a common fashion gift when the original clothing request is broad.",
         700,
         1800
       ),
@@ -503,7 +503,7 @@ export function getLazadaStarterProducts(
       ),
       buildSearchBackedProduct(
         "Tool organizer bag",
-        "A useful fallback if the giver wants something tool-related but easier to gift.",
+        "A useful tool-related idea that is easier to gift.",
         "tool organizer bag",
         "This stays in the same hobby space without forcing a heavy equipment purchase.",
         500,
@@ -563,7 +563,7 @@ export function getLazadaStarterProducts(
       ),
       buildSearchBackedProduct(
         "Makeup organizer kit",
-        "A safer fallback when exact products or shades are still uncertain.",
+        "A safer option when exact products or shades are still uncertain.",
         "makeup organizer kit",
         "It keeps the gift beauty-related without risking a bad shade or formula pick.",
         350,
@@ -579,7 +579,7 @@ export function getLazadaStarterProducts(
         "Gift card and voucher picks",
         "A broad digital route when the giver wants something quick and flexible.",
         "gift card voucher",
-        "This is the safest digital fallback when the exact platform or brand is still open.",
+        "This is a safe digital option when the exact platform or brand is still open.",
         300,
         1500
       ),
@@ -623,7 +623,7 @@ export function getLazadaStarterProducts(
       ),
       buildSearchBackedProduct(
         "Desk organizer",
-        "A neat fallback for workspaces, bedrooms, and study corners.",
+        "A neat idea for workspaces, bedrooms, and study corners.",
         "desk organizer",
         "This is a broad home-style gift that still feels purposeful and easy to buy.",
         250,
@@ -653,7 +653,7 @@ export function getLazadaStarterProducts(
       ),
       buildSearchBackedProduct(
         "Chocolate hamper",
-        "A celebratory fallback when you want the gift to feel festive and easy to share.",
+        "A celebratory option when you want the gift to feel festive and easy to share.",
         "chocolate hamper gift",
         "This keeps the gift indulgent and simple when the exact food item is still open.",
         350,
@@ -713,7 +713,7 @@ export function getLazadaStarterProducts(
       ),
       buildSearchBackedProduct(
         "Acrylic display case",
-        "A practical fallback if the giftee already has collectibles to display.",
+        "A practical option if the giftee already has collectibles to display.",
         "acrylic display case",
         "This stays highly relevant even when the exact fandom item is hard to choose.",
         350,

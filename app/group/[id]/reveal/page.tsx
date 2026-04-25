@@ -363,7 +363,7 @@ export default function GroupRevealPage() {
       : "Secret Santa match"
     : revealedCard
       ? "Identity revealed"
-      : "Mystery codename";
+      : "Mystery nickname";
   const activeCardIcon = isMatchPhase
     ? revealedCard
       ? "🎁"
@@ -373,22 +373,22 @@ export default function GroupRevealPage() {
       : "🎭";
   const activeCardTitle = isMatchPhase
     ? revealedCard
-      ? `${activeMatchEntry?.giver || "Participant"} → ${activeMatchEntry?.receiver || "Participant"}`
+      ? `${activeMatchEntry?.giver || "Member"} → ${activeMatchEntry?.receiver || "Member"}`
       : "Who gets who?"
     : revealedCard
-      ? activeAliasEntry?.realName || activeAliasEntry?.alias || "Participant"
-      : activeAliasEntry?.alias || "Mystery codename";
+      ? activeAliasEntry?.realName || activeAliasEntry?.alias || "Member"
+      : activeAliasEntry?.alias || "Mystery nickname";
   const activeCardDescription = isMatchPhase
     ? revealedCard
-      ? `${activeMatchEntry?.giver || "Participant"} is giving to ${activeMatchEntry?.receiver || "Participant"}.`
+      ? `${activeMatchEntry?.giver || "Member"} is giving to ${activeMatchEntry?.receiver || "Member"}.`
       : "Reveal the next Secret Santa pairing when the room is ready."
     : revealedCard
-      ? `Codename: ${activeAliasEntry?.alias || "Unknown"}`
-      : "Keep the codename on screen first, then flip when the room is ready.";
+      ? `Nickname: ${activeAliasEntry?.alias || "Unknown"}`
+      : "Keep the nickname on screen first, then flip when the room is ready.";
   const revealToggleLabel = revealedCard
     ? isMatchPhase
       ? "Hide Match"
-      : "Show Codename Again"
+      : "Show Nickname Again"
     : isMatchPhase
       ? "Reveal Match"
       : "Reveal Owner";
@@ -398,9 +398,9 @@ export default function GroupRevealPage() {
       : "Owner revealed"
     : isMatchPhase
       ? "Match hidden"
-      : "Codename hidden";
-  const activeMatchGiver = activeMatchEntry?.giver || "Participant";
-  const activeMatchReceiver = activeMatchEntry?.receiver || "Participant";
+      : "Nickname hidden";
+  const activeMatchGiver = activeMatchEntry?.giver || "Member";
+  const activeMatchReceiver = activeMatchEntry?.receiver || "Member";
   const activeAliasTitleStyle = getRevealNameTextStyle(activeCardTitle, "alias");
   const activeMatchGiverStyle = getRevealNameTextStyle(activeMatchGiver, "match");
   const activeMatchReceiverStyle = getRevealNameTextStyle(activeMatchReceiver, "match");
@@ -1138,13 +1138,13 @@ export default function GroupRevealPage() {
                     style={{ color: "#cbd5e1" }}
                   >
                     {isPublishedPresentation
-                      ? "The full reveal is already public. These controls now replay both the codename-owner reveals and the final match reveals for the room."
+                      ? "The full reveal is already public. These controls now replay both nickname reveals and final matches for the room."
                       : presentation.session.status === "waiting"
                       ? "The room is open. Start the countdown when everyone is looking at the screen."
                       : showCountdown
                         ? "The countdown is live now. Controls unlock again as soon as it finishes."
                         : usesSharedSession
-                          ? "The TV and any joined phones stay in sync while you move from codename reveals into the final match reveals."
+                          ? "The TV and any joined phones stay in sync while you move from nickname reveals into the final matches."
                           : "You are still in private preview mode. Start the live reveal when you want other devices to follow along."}
                   </div>
 
@@ -1180,7 +1180,7 @@ export default function GroupRevealPage() {
                     : showCountdown
                       ? "Countdown is running. Stay on this page and the first event reveal card will appear here automatically."
                       : usesSharedSession
-                        ? "The owner is controlling the live reveal. This page will keep updating automatically through both the codename and match phases."
+                        ? "The owner is controlling the live reveal. This page will keep updating automatically through both nickname and match phases."
                         : "You can leave this page open on your phone. It will change automatically once the owner starts the live reveal."}
                 </div>
               )}

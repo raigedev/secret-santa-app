@@ -48,7 +48,7 @@ export default function ProfileSetupModal({ defaultName, onComplete, onSkip }: P
           Welcome to My Secret Santa!
         </h2>
         <p className="text-[14px] mb-7 leading-relaxed" style={{ color: "#6b7280" }}>
-          Let&apos;s set up your profile so your friends can recognize you in their groups.
+          Add your display name so other members can recognize you in their groups.
         </p>
 
         {/* Avatar preview */}
@@ -94,7 +94,7 @@ export default function ProfileSetupModal({ defaultName, onComplete, onSkip }: P
               fontFamily: "inherit",
               boxShadow: saving ? "none" : "0 4px 16px rgba(192,57,43,.25)",
             }}>
-            {saving ? "Saving..." : "Continue →"}
+            {saving ? "Saving..." : "Continue"}
           </button>
           <button onClick={onSkip}
             className="text-[13px] font-bold py-2 transition"

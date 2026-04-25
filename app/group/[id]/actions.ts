@@ -964,7 +964,7 @@ export async function getGroupOwnerInsights(groupId: string): Promise<{
 
   const missingWishlistMemberNames = safeAcceptedMembers
     .filter((member) => !membersWithWishlist.has(member.user_id))
-    .map((member) => member.nickname?.trim() || member.email?.split("@")[0] || "Participant");
+    .map((member) => member.nickname?.trim() || member.email?.split("@")[0] || "Member");
 
   const assignmentThreadKeys = new Set(
     (assignments || []).map((assignment) => `${assignment.giver_id}:${assignment.receiver_id}`)
@@ -1236,7 +1236,7 @@ export async function editGroup(
     return { success: false, message: "Failed to update group. Please try again." };
   }
 
-  return { success: true, message: "Group updated!" };
+  return { success: true, message: "Group saved." };
 }
 
 export async function deleteGroup(
@@ -1515,7 +1515,7 @@ async function loadRevealSourceData(groupId: string): Promise<RevealSourceData> 
   for (const member of members || []) {
     if (member.user_id) {
       const profile = profileByUserId.get(member.user_id);
-      const emailLabel = member.email?.split("@")[0] || "Participant";
+      const emailLabel = member.email?.split("@")[0] || "Member";
       const alias = member.nickname?.trim() || profile?.displayName?.trim() || emailLabel;
       const realName = profile?.displayName?.trim() || alias || emailLabel;
 
@@ -1540,8 +1540,8 @@ async function buildRevealMatches(groupId: string): Promise<RevealMatch[]> {
 
   return assignments
     .map((assignment) => ({
-      giver: realNameByUserId.get(assignment.giver_id) || "Participant",
-      receiver: realNameByUserId.get(assignment.receiver_id) || "Participant",
+      giver: realNameByUserId.get(assignment.giver_id) || "Member",
+      receiver: realNameByUserId.get(assignment.receiver_id) || "Member",
     }))
     .sort((left, right) => left.giver.localeCompare(right.giver));
 }
@@ -1796,15 +1796,15 @@ export async function getRevealPresentationData(
       );
 
       return {
-        giver: giver?.realName || "Participant",
-        receiver: receiver?.realName || "Participant",
+        giver: giver?.realName || "Member",
+        receiver: receiver?.realName || "Member",
       };
     })
     .sort((left, right) => left.giver.localeCompare(right.giver));
 
   return {
     success: true,
-    message: "Reveal presentation loaded.",
+    message: "Reveal screen loaded.",
     data: {
       aliasEntries: sourceData.participants.map((participant) => ({
         alias: participant.alias,
@@ -2300,5 +2300,5 @@ export async function triggerReveal(
     resourceType: "group",
   });
 
-  return { success: true, message: "Reveal triggered!", matches };
+  return { success: true, message: "Matches revealed.", matches };
 }

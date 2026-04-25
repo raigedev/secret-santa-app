@@ -70,11 +70,11 @@ export function getLazadaBudgetFitLabel(
   const effectiveMax = preferredMax ?? groupBudget;
 
   if (template.typicalMin === null && template.typicalMax === null) {
-    return effectiveMax !== null ? "Use your budget target" : "Flexible pricing";
+    return effectiveMax !== null ? "Budget target" : "Flexible price";
   }
 
   if (effectiveMax !== null && template.typicalMin !== null && template.typicalMin > effectiveMax) {
-    return "Usually above target";
+    return "Above budget";
   }
 
   if (
@@ -82,14 +82,14 @@ export function getLazadaBudgetFitLabel(
     template.typicalMax !== null &&
     template.typicalMax <= effectiveMax
   ) {
-    return "Usually within target";
+    return "Within budget";
   }
 
   if (preferredMin !== null && template.typicalMax !== null && template.typicalMax < preferredMin) {
-    return "Usually under target";
+    return "Under budget";
   }
 
-  return "Flexible pricing";
+  return "Flexible price";
 }
 
 export function getLazadaSuggestionPriceLabel(
@@ -121,7 +121,7 @@ export function getDirectMatchRecommendationMetadata(role: LazadaDirectMatchRole
   if (role === "closest") {
     return {
       recommendationLabel: "Best match",
-      recommendationCaption: "Matched Lazada product",
+      recommendationCaption: "Ready on Lazada",
       recommendationTone: "forest",
     };
   }
@@ -129,14 +129,14 @@ export function getDirectMatchRecommendationMetadata(role: LazadaDirectMatchRole
   if (role === "step-up") {
     return {
       recommendationLabel: "Step-up pick",
-      recommendationCaption: "Matched Lazada product",
+      recommendationCaption: "Ready on Lazada",
       recommendationTone: "gold",
     };
   }
 
   return {
     recommendationLabel: "Premium option",
-    recommendationCaption: "Matched Lazada product",
+    recommendationCaption: "Ready on Lazada",
     recommendationTone: "berry",
   };
 }
@@ -155,44 +155,44 @@ function getSearchFallbackPresentation(input: {
 
   if (isSelectedAngle) {
     return {
-      fitLabel: normalizedSelectedQuery === normalizedItemName ? "Closest to request" : "Selected angle",
+      fitLabel: normalizedSelectedQuery === normalizedItemName ? "Closest match" : "Chosen option",
       recommendationLabel:
-        normalizedSelectedQuery === normalizedItemName ? "Stay literal" : "Selected angle",
-      recommendationCaption: "Search-backed route",
+        normalizedSelectedQuery === normalizedItemName ? "Wishlist wording" : "Chosen option",
+      recommendationCaption: "Browse similar items",
       recommendationTone: "forest",
       trackingLabel:
-        normalizedSelectedQuery === normalizedItemName ? "Wishlist wording" : "Selected angle",
+        normalizedSelectedQuery === normalizedItemName ? "Wishlist wording" : "Chosen option",
     };
   }
 
   if (isExactWishlist) {
     return {
-      fitLabel: "Closest to request",
+      fitLabel: "Closest match",
       recommendationLabel: "Wishlist wording",
-      recommendationCaption: "Search-backed fallback",
+      recommendationCaption: "Browse similar items",
       recommendationTone: "berry",
       trackingLabel: "Wishlist wording",
     };
   }
 
   if (
-    input.budgetFitLabel === "Usually within target" ||
-    input.budgetFitLabel === "Usually under target"
+    input.budgetFitLabel === "Within budget" ||
+    input.budgetFitLabel === "Under budget"
   ) {
     return {
       fitLabel: input.budgetFitLabel,
-      recommendationLabel: "Budget-safe",
-      recommendationCaption: "Search-backed fallback",
+      recommendationLabel: "Budget pick",
+      recommendationCaption: "Browse similar items",
       recommendationTone: "gold",
       trackingLabel: "Search route",
     };
   }
 
-  if (input.budgetFitLabel === "Usually above target") {
+  if (input.budgetFitLabel === "Above budget") {
     return {
       fitLabel: input.budgetFitLabel,
       recommendationLabel: "Stretch option",
-      recommendationCaption: "Search-backed fallback",
+      recommendationCaption: "Browse similar items",
       recommendationTone: "ink",
       trackingLabel: "Search route",
     };
@@ -200,8 +200,8 @@ function getSearchFallbackPresentation(input: {
 
   return {
     fitLabel: input.budgetFitLabel,
-    recommendationLabel: "Safe fallback",
-    recommendationCaption: "Search-backed fallback",
+    recommendationLabel: "Similar ideas",
+    recommendationCaption: "Browse similar items",
     recommendationTone: "forest",
     trackingLabel: "Search route",
   };

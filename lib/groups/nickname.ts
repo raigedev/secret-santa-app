@@ -12,7 +12,7 @@ export function sanitizeGroupNickname(input: string): string {
 
 export function getAnonymousGroupDisplayName(
   nickname: string | null | undefined,
-  fallbackLabel = "Participant"
+  fallbackLabel = "Member"
 ): string {
   const cleanNickname = sanitizeGroupNickname(nickname || "");
 
@@ -35,11 +35,11 @@ export function validateAnonymousGroupNickname(options: {
   const cleanNickname = sanitizeGroupNickname(options.nickname);
 
   if (!cleanNickname) {
-    return "Enter an event codename to continue.";
+    return "Enter a group nickname to continue.";
   }
 
   if (cleanNickname.includes("@") || EMAIL_LIKE_PATTERN.test(cleanNickname)) {
-    return "Use a codename, not an email address.";
+    return "Use a nickname, not an email address.";
   }
 
   const normalizedNickname = normalizeComparableValue(cleanNickname);
@@ -48,19 +48,19 @@ export function validateAnonymousGroupNickname(options: {
   const normalizedDisplayName = normalizeComparableValue(options.displayName);
 
   if (RESERVED_ROLE_LABELS.has(normalizedNickname)) {
-    return "Choose a codename instead of a role label.";
+    return "Choose a nickname instead of a role label.";
   }
 
   if (normalizedNickname && normalizedNickname === normalizedEmail) {
-    return "Use a codename, not your email address.";
+    return "Use a nickname, not your email address.";
   }
 
   if (normalizedNickname && normalizedNickname === normalizedEmailName) {
-    return "Choose a codename that is different from your email name.";
+    return "Choose a nickname that is different from your email name.";
   }
 
   if (normalizedDisplayName && normalizedNickname === normalizedDisplayName) {
-    return "Choose a codename that is different from your profile name.";
+    return "Choose a nickname that is different from your profile name.";
   }
 
   return null;

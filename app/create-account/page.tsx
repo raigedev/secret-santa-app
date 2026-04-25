@@ -10,16 +10,16 @@ const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 const TRUST_MARKERS = [
   {
-    title: "Invite-safe setup",
-    copy: "Your account stays tied to the right group or invite path after verification.",
+    title: "Invite-friendly setup",
+    copy: "If you came from an invite, we keep that group ready after you confirm your email.",
   },
   {
     title: "Private by design",
-    copy: "Wishlists, anonymous chat, and draw details stay behind your signed-in account.",
+    copy: "Wishlists, private messages, and recipient details stay inside your account.",
   },
   {
-    title: "Ready for the fun part",
-    copy: "Once you are in, you can move straight into wishlists, groups, and reveal-day plans.",
+    title: "Ready for your group",
+    copy: "After sign-in, you can join groups, add wishlist ideas, and see what to do next.",
   },
 ] as const;
 
@@ -34,22 +34,22 @@ function getFriendlySignupError(message: string): string {
     normalized.includes("smtp") ||
     normalized.includes("rate limit")
   ) {
-    return "We could not send the confirmation email right now. Please try again later. If this keeps happening, the app owner needs to configure Supabase Custom SMTP.";
+    return "We could not send the confirmation email right now. Please try again later or contact the app owner.";
   }
 
   if (normalized.includes("already registered") || normalized.includes("already exists")) {
     return "This email already has an account. Please sign in instead.";
   }
 
-  return message || "Signup failed. Please try again.";
+  return message || "We could not create your account. Please try again.";
 }
 
 function getSupportingCopy(nextPath: string): string {
   if (nextPath !== "/dashboard") {
-    return "Finish creating your account and we will keep your return path ready for the invite or group you came from.";
+    return "Create your account and we will take you back to the invite or group you opened.";
   }
 
-  return "Create your account once, then move into wishlists, group invites, and reveal-day details without starting over.";
+  return "Create your account once, then manage your groups, wishlist, and recipient details in one place.";
 }
 
 function CreateAccountLayout({
@@ -76,14 +76,14 @@ function CreateAccountLayout({
             <div className="relative z-10 flex h-full flex-col justify-between gap-8">
               <div>
                 <div className="inline-flex items-center gap-2 rounded-full bg-white/85 px-4 py-2 text-[11px] font-semibold uppercase tracking-[0.24em] text-[#7b5902] shadow-[0_16px_32px_rgba(123,89,2,0.08)]">
-                  Winter Atelier
+                  New account
                 </div>
                 <h1 className="mt-6 max-w-xl font-[Plus_Jakarta_Sans] text-4xl font-black tracking-[-0.06em] text-[#2e3432] sm:text-5xl lg:text-[3.4rem] lg:leading-[1.02]">
-                  Join a softer kind of gift exchange.
+                  Join your Secret Santa group.
                 </h1>
                 <p className="mt-4 max-w-xl text-base leading-7 text-[#5b605e] sm:text-lg">
-                  Join the calm side of Secret Santa: polished wishlists, private draws, and a setup flow
-                  that feels more like a holiday lookbook than a default auth screen.
+                  Create an account so you can join groups, add wishlist ideas, and see your Secret
+                  Santa details when names are drawn.
                 </p>
                 <div className="mt-6 rounded-[1.75rem] bg-white/82 p-5 text-sm leading-6 text-[#43614a] shadow-[0_20px_45px_rgba(62,92,69,0.08)]">
                   {supportingCopy}
@@ -95,10 +95,10 @@ function CreateAccountLayout({
                 <div className="relative z-10 flex items-start justify-between gap-4">
                   <div className="max-w-sm">
                     <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-[#7b5902]">
-                      Before the draw
+                      Before names are drawn
                     </p>
                     <h2 className="mt-2 font-[Plus_Jakarta_Sans] text-2xl font-black tracking-[-0.05em] text-[#2e3432]">
-                      Wishlists, notes, and reveal-day magic are waiting on the other side.
+                      Add gift ideas now so your Santa has helpful clues later.
                     </h2>
                   </div>
                   <Image
@@ -215,7 +215,7 @@ function CreateAccountPageInner() {
         <p className="mt-3 text-[15px] leading-7 text-[#5b605e] sm:text-base">
           {confirmation
             ? "We sent a confirmation link to your email address. Verify it first, then sign in to continue into the app."
-            : "Set up your details once, confirm your email, and we will keep the path back to your exchange ready."}
+            : "Set up your details once, confirm your email, and we will take you back to the right group or invite."}
         </p>
 
         {!confirmation ? (
@@ -235,7 +235,7 @@ function CreateAccountPageInner() {
                 id="create-account-name"
                 type="text"
                 autoComplete="name"
-                placeholder="Your Name"
+                placeholder="Enter your name"
                 value={name}
                 onChange={(event) => setName(event.target.value)}
                 className={FIELD_CLASS_NAME}
@@ -252,7 +252,7 @@ function CreateAccountPageInner() {
                 autoComplete="email"
                 inputMode="email"
                 spellCheck={false}
-                placeholder="Your Email"
+                placeholder="Enter your email address"
                 value={email}
                 onChange={(event) => setEmail(event.target.value)}
                 className={FIELD_CLASS_NAME}
@@ -267,7 +267,7 @@ function CreateAccountPageInner() {
                 id="create-account-password"
                 type="password"
                 autoComplete="new-password"
-                placeholder="Your Password"
+                placeholder="Create a password"
                 value={password}
                 onChange={(event) => setPassword(event.target.value)}
                 className={FIELD_CLASS_NAME}
@@ -316,16 +316,16 @@ function CreateAccountPageInner() {
               <p className="mt-3 text-sm leading-7 text-[#5b605e] sm:text-base">
                 We sent a confirmation link to{" "}
                 <span className="font-semibold text-[#2e3432]">{email || "your inbox"}</span>. After
-                you verify it, come back here and continue into the app.
+                you confirm it, come back here and sign in.
               </p>
             </div>
 
             <div className="rounded-[1.75rem] bg-[#fff8f1] p-5 sm:p-6">
               <p className="text-sm font-semibold uppercase tracking-[0.18em] text-[#7b5902]">Next up</p>
               <div className="mt-3 space-y-3 text-sm leading-6 text-[#5b605e] sm:text-base">
-                <p>1. Open the confirmation email and approve the new account.</p>
-                <p>2. Return to sign in with the same email and password.</p>
-                <p>3. We will send you on to the right screen after login.</p>
+                <p>1. Open the confirmation email.</p>
+                <p>2. Sign in with the same email and password.</p>
+                <p>3. We will take you to the right screen.</p>
               </div>
             </div>
 
@@ -345,7 +345,7 @@ function CreateAccountPageInner() {
 
 function CreateAccountFallback() {
   return (
-    <CreateAccountLayout supportingCopy="Loading the sign-up experience so you can move into your group or invite without losing your place.">
+    <CreateAccountLayout supportingCopy="Loading the account form so you can continue to your group or invite.">
       <div className="mx-auto w-full max-w-xl">
         <div className="inline-flex items-center gap-2 rounded-full bg-[#fcce72]/28 px-3 py-1.5 text-sm font-semibold text-[#5f4500]">
           New account
@@ -353,7 +353,7 @@ function CreateAccountFallback() {
         <h2 className="mt-4 font-[Plus_Jakarta_Sans] text-3xl font-black tracking-[-0.05em] text-[#2e3432] sm:text-4xl">
           Create your account
         </h2>
-        <p className="mt-3 text-[15px] leading-7 text-[#5b605e] sm:text-base">Loading sign up...</p>
+        <p className="mt-3 text-[15px] leading-7 text-[#5b605e] sm:text-base">Loading account setup...</p>
       </div>
     </CreateAccountLayout>
   );

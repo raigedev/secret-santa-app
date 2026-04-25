@@ -7,7 +7,7 @@ export const metadata: Metadata = {
     template: "%s | My Secret Santa",
   },
   description:
-    "Organize Secret Santa groups with invite links, anonymous chat, wishlists, notifications, and live event-day reveal screens.",
+    "Create Secret Santa groups, invite members, share wishlists, draw names, and keep gift details private.",
   applicationName: "My Secret Santa",
   keywords: [
     "secret santa",

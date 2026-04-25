@@ -75,7 +75,7 @@ export async function addWishlistItem(
   itemImageUrl: string
 ): Promise<{ success: boolean; message: string }> {
   if (!groupId || !UUID_PATTERN.test(groupId)) {
-    return { success: false, message: "Invalid group." };
+    return { success: false, message: "Choose a valid group." };
   }
 
   const cleanName = sanitizeText(itemName, 100);
@@ -139,7 +139,7 @@ export async function addWishlistItem(
 
     return {
       success: false,
-      message: "Failed to check your wishlist limit. Please try again.",
+      message: "We could not check your wishlist limit. Please try again.",
     };
   }
 
@@ -170,7 +170,7 @@ export async function addWishlistItem(
       resourceType: "wishlist",
     });
 
-    return { success: false, message: "Failed to add item. Please try again." };
+    return { success: false, message: "We could not add this wishlist item. Please try again." };
   }
 
   return { success: true, message: "Item added!" };
@@ -186,7 +186,7 @@ export async function editWishlistItem(
   itemImageUrl: string
 ): Promise<{ success: boolean; message: string }> {
   if (!itemId || !UUID_PATTERN.test(itemId)) {
-    return { success: false, message: "Invalid item." };
+    return { success: false, message: "Choose a valid wishlist item." };
   }
 
   const cleanName = sanitizeText(itemName, 100);
@@ -251,7 +251,7 @@ export async function editWishlistItem(
       resourceType: "wishlist",
     });
 
-    return { success: false, message: "Failed to update item. Please try again." };
+    return { success: false, message: "We could not update this wishlist item. Please try again." };
   }
 
   return { success: true, message: "Item updated!" };
@@ -261,7 +261,7 @@ export async function deleteWishlistItem(
   itemId: string
 ): Promise<{ success: boolean; message: string }> {
   if (!itemId || !UUID_PATTERN.test(itemId)) {
-    return { success: false, message: "Invalid item." };
+    return { success: false, message: "Choose a valid wishlist item." };
   }
 
   const supabase = await createClient();
@@ -302,7 +302,7 @@ export async function deleteWishlistItem(
       resourceType: "wishlist",
     });
 
-    return { success: false, message: "Failed to delete item. Please try again." };
+    return { success: false, message: "We could not delete this wishlist item. Please try again." };
   }
 
   return { success: true, message: "Item deleted!" };

@@ -9,23 +9,23 @@ import { linkUserToGroup } from "@/utils/linkUserToGroup";
 
 const TRUST_MARKERS = [
   {
-    title: "Protected account access",
-    copy: "Wishlists, draw results, anonymous chat, and group details stay behind your signed-in account.",
+    title: "Private group details",
+    copy: "Your wishlist, recipient, chat, and group details stay inside your account.",
   },
   {
     title: "Email or Google sign-in",
-    copy: "Use your email and password or continue with Google from the same screen.",
+    copy: "Use your email and password, or continue with Google.",
   },
   {
-    title: "Groups and invites",
-    copy: "One login covers your dashboard, group pages, invite links, and notifications.",
+    title: "Everything in one place",
+    copy: "Open your dashboard, groups, invites, and notifications with the same account.",
   },
 ] as const;
 
 const AUTH_ERROR_MESSAGES: Record<string, string> = {
-  confirm_email: "Please confirm your email address before opening the app.",
-  auth_failed: "Authentication failed. Please try again.",
-  no_code: "We did not receive a valid authentication code. Please try again.",
+  confirm_email: "Please confirm your email address before signing in.",
+  auth_failed: "We could not sign you in. Please try again.",
+  no_code: "The sign-in link did not work. Please try again.",
 };
 
 const FIELD_CLASS_NAME =
@@ -42,13 +42,13 @@ function getFriendlyLoginError(message: string): string {
     ? "We could not match that email and password. Please try again."
     : normalized.includes("email not confirmed")
       ? "Please confirm your email before signing in."
-      : message || "Login failed. Please try again.";
+      : message || "We could not sign you in. Please try again.";
 }
 
 function getSupportingCopy(nextPath: string): string {
   return nextPath !== "/dashboard"
     ? "Sign in to open the page you requested."
-    : "Use your account to access wishlists, groups, notifications, and gift planning tools.";
+    : "Sign in to see your groups, wishlist, messages, and gift planning tools.";
 }
 
 function rememberPostLoginNextPath(nextPath: string) {
@@ -86,13 +86,13 @@ function LoginLayout({ children, supportingCopy }: { children: ReactNode; suppor
             <div className="relative z-10 flex h-full flex-col justify-between gap-8">
               <div>
                 <div className="inline-flex items-center gap-2 rounded-full bg-white/85 px-4 py-2 text-[11px] font-semibold uppercase tracking-[0.24em] text-[#7b5902] shadow-[0_16px_32px_rgba(123,89,2,0.08)]">
-                  Secure sign in
+                  Secure sign-in
                 </div>
                 <h2 className="mt-6 max-w-xl font-[Plus_Jakarta_Sans] text-4xl font-black tracking-[-0.06em] text-[#2e3432] sm:text-5xl lg:text-[3.3rem] lg:leading-[1.02]">
                   Sign in to your account.
                 </h2>
                 <p className="mt-4 max-w-xl text-base leading-7 text-[#5b605e] sm:text-lg">
-                  Access wishlists, group details, draw results, and private gifting tools from one
+                  Open your groups, wishlist, recipient details, and private gift messages from one
                   account.
                 </p>
                 <div className="mt-6 rounded-[1.75rem] bg-white/82 p-5 text-sm leading-6 text-[#43614a] shadow-[0_20px_45px_rgba(62,92,69,0.08)]">
@@ -105,10 +105,10 @@ function LoginLayout({ children, supportingCopy }: { children: ReactNode; suppor
                 <div className="relative z-10 flex items-start justify-between gap-4">
                   <div className="max-w-sm">
                     <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-[#7b5902]">
-                      Account features
+                      What you can open
                     </p>
                     <h3 className="mt-2 font-[Plus_Jakarta_Sans] text-2xl font-black tracking-[-0.05em] text-[#2e3432]">
-                      Wishlists, groups, draws, and private chat live behind one login.
+                      Your Secret Santa details stay together after you sign in.
                     </h3>
                   </div>
                   <Image
@@ -273,7 +273,7 @@ function LoginPageInner() {
           </div>
         )}
 
-        <AuthHeading description="Use your account to access wishlists, group details, notifications, and gift-planning tools." />
+        <AuthHeading description="Use your account to access your groups, wishlist, notifications, and gift planning tools." />
 
         <form
           className="mt-8 space-y-5"
@@ -293,7 +293,7 @@ function LoginPageInner() {
               autoComplete="email"
               inputMode="email"
               spellCheck={false}
-              placeholder="Enter your username or email"
+              placeholder="Enter your email address"
               value={email}
               onChange={(event) => setEmail(event.target.value)}
               className={FIELD_CLASS_NAME}
@@ -344,7 +344,7 @@ function LoginPageInner() {
           <div className="flex items-center gap-3 py-1">
             <div className="h-px flex-1 bg-[#dfe4e1]" />
             <span className="text-xs font-semibold uppercase tracking-[0.2em] text-[#777c7a]">
-              Or continue with
+              Or use
             </span>
             <div className="h-px flex-1 bg-[#dfe4e1]" />
           </div>
@@ -379,7 +379,7 @@ function LoginFallback() {
   return (
     <LoginLayout supportingCopy="Loading the sign-in screen.">
       <div className="mx-auto w-full max-w-xl">
-        <AuthHeading description="Loading login..." />
+        <AuthHeading description="Loading the sign-in screen..." />
       </div>
     </LoginLayout>
   );

@@ -126,7 +126,7 @@ export const SHOPPING_REGION_OPTIONS: ShoppingRegionOption[] = [
   {
     value: "PH",
     label: "Philippines",
-    helper: "Use Lazada, Shopee, and PH-friendly searches.",
+    helper: "Shop with stores available in this region.",
   },
   {
     value: "US",
@@ -229,7 +229,7 @@ const CATEGORY_TEMPLATES: Record<string, SuggestionTemplate[]> = {
     },
     {
       title: "Self-care essentials",
-      subtitle: "Good fallback if the brand preference is unclear.",
+      subtitle: "A good option if the brand preference is unclear.",
       searchQuery: "self care gift set",
       typicalMin: 300,
       typicalMax: 1400,
@@ -309,7 +309,7 @@ const CATEGORY_TEMPLATES: Record<string, SuggestionTemplate[]> = {
     },
     {
       title: "Treat-yourself bundles",
-      subtitle: "A fallback when the experience format is flexible.",
+      subtitle: "A good option when the experience format is flexible.",
       searchQuery: "spa cafe gift voucher",
       typicalMin: 400,
       typicalMax: 2500,
@@ -363,7 +363,7 @@ function createSuggestionOption(
     ),
     disclosure:
       source === "ai"
-        ? "AI-assisted shopping option - Partner link"
+        ? "Suggested shopping option - partner link"
         : AFFILIATE_DISCLOSURE,
     source,
   };
@@ -530,7 +530,7 @@ function getKeywordTemplates(itemName: string, itemNote: string): SuggestionTemp
     return [
       {
         title: "Fiction favorites",
-        subtitle: "A strong fallback when the exact title is open.",
+        subtitle: "A good option when the exact item is flexible.",
         searchQuery: "fiction books gift",
         typicalMin: 350,
         typicalMax: 850,

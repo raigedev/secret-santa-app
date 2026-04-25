@@ -386,21 +386,21 @@ export default function Landing() {
 
         <div className="hero-inner">
           <div className="hero-text">
-            <div className="hero-badge fade-up d1">🎅 Free Secret Santa Organizer — Used Worldwide</div>
+            <div className="hero-badge fade-up d1">🎅 Free Secret Santa Organizer</div>
             <h1 className="hero-title fade-up d2">
-              Make Gift Giving<br /><span>Magical Again</span>
+              Draw names and<br /><span>plan better gifts</span>
             </h1>
             <p className="hero-desc fade-up d3">
-              Draw names online, share wishlists, and chat anonymously with your Secret Santa match. Perfect for office parties, family gatherings, and friend group exchanges.
+              Create a group, invite members, share wishlist ideas, and privately see who you are gifting.
             </p>
             <div className="hero-buttons fade-up d4">
               <button className="btn-primary" onClick={() => router.push("/login")}>Start Drawing Names 🎲</button>
-              <a className="btn-secondary" href="#how">See How it Works</a>
+              <a className="btn-secondary" href="#how">See How It Works</a>
             </div>
             <div className="hero-stats fade-up d5">
-              <div><div className="hero-stat-num">100%</div><div className="hero-stat-label">Free Forever</div></div>
+              <div><div className="hero-stat-num">100%</div><div className="hero-stat-label">Free to start</div></div>
               <div><div className="hero-stat-num">3 min</div><div className="hero-stat-label">Setup Time</div></div>
-              <div><div className="hero-stat-num">🔒</div><div className="hero-stat-label">Fully Private</div></div>
+              <div><div className="hero-stat-num">🔒</div><div className="hero-stat-label">Private details</div></div>
             </div>
           </div>
 
@@ -439,28 +439,28 @@ export default function Landing() {
       {/* How It Works */}
       <section className="how-section" id="how">
         <div className="section-label fade-up">How It Works</div>
-        <div className="section-title fade-up d1">Three Steps to Christmas Magic</div>
-        <div className="section-desc fade-up d2">No slips of paper, no awkward drawing from a hat. Just create, invite, and let the magic happen.</div>
+        <div className="section-title fade-up d1">Set Up Your Gift Exchange in Three Steps</div>
+        <div className="section-desc fade-up d2">Create a group, invite members, then draw names when everyone is ready.</div>
         <div className="steps">
           <div className="step fade-up d3">
             <div className="step-num step-num-1">1</div>
             <div className="step-icon">📋</div>
             <div className="step-title">Create a Group</div>
-            <div className="step-desc">Set a group name, budget, and event date. Add your friends, family, or coworkers by email.</div>
+            <div className="step-desc">Choose a group name, budget, and gift date. Invite friends, family, or coworkers by email.</div>
           </div>
           <div className="step-arrow fade-up d3">→</div>
           <div className="step fade-up d4">
             <div className="step-num step-num-2">2</div>
             <div className="step-icon">🎲</div>
             <div className="step-title">Draw Names</div>
-            <div className="step-desc">One click to randomly assign givers. No one draws themselves. Everyone gets their secret match instantly.</div>
+            <div className="step-desc">Draw names fairly when the group is ready. Each member privately sees who they are gifting.</div>
           </div>
           <div className="step-arrow fade-up d4">→</div>
           <div className="step fade-up d5">
             <div className="step-num step-num-3">3</div>
             <div className="step-icon">🎁</div>
             <div className="step-title">Exchange Gifts</div>
-            <div className="step-desc">Check your match&apos;s wishlist, chat anonymously, and surprise them at the party. Pure holiday joy!</div>
+            <div className="step-desc">Use their wishlist, ask private questions, and mark your gift progress as you prepare.</div>
           </div>
         </div>
       </section>
@@ -468,15 +468,15 @@ export default function Landing() {
       {/* Features */}
       <section className="features-section" id="features">
         <div className="section-label fade-up">Features</div>
-        <div className="section-title fade-up d1">Everything You Need for the Perfect Exchange</div>
-        <div className="section-desc fade-up d2">Every feature designed to make your gift exchange effortless and fun.</div>
+        <div className="section-title fade-up d1">Everything Your Group Needs</div>
+        <div className="section-desc fade-up d2">Clear tools for invites, wishlists, private messages, and the final gift exchange.</div>
         <div className="features-grid">
-          <div className="feature-card fade-up d3"><div className="feature-icon fi-red">🎲</div><div className="feature-title">Fair Random Draw</div><div className="feature-desc">Our algorithm ensures no one draws themselves and no two people get each other. Guaranteed fair every time.</div></div>
-          <div className="feature-card fade-up d3"><div className="feature-icon fi-green">📝</div><div className="feature-title">Wishlists</div><div className="feature-desc">Add gift ideas with links and notes. Your Secret Santa sees exactly what you want — no more guessing.</div></div>
-          <div className="feature-card fade-up d4"><div className="feature-icon fi-gold">💬</div><div className="feature-title">Anonymous Chat</div><div className="feature-desc">Chat with your match without revealing your identity. Ask about sizes, preferences, and drop hints.</div></div>
-          <div className="feature-card fade-up d4"><div className="feature-icon fi-blue">🔒</div><div className="feature-title">Privacy First</div><div className="feature-desc">End-to-end privacy. No one sees who drew who. Your Secret Santa identity stays hidden until the reveal.</div></div>
-          <div className="feature-card fade-up d5"><div className="feature-icon fi-purple">⚡</div><div className="feature-title">Real-Time Updates</div><div className="feature-desc">See instant updates when members accept, wishlists change, or new messages arrive. No refreshing needed.</div></div>
-          <div className="feature-card fade-up d5"><div className="feature-icon fi-pink">👥</div><div className="feature-title">Multiple Groups</div><div className="feature-desc">Manage office party, family Christmas, and friend group exchanges all in one dashboard. No limits.</div></div>
+          <div className="feature-card fade-up d3"><div className="feature-icon fi-red">🎲</div><div className="feature-title">Fair Name Draw</div><div className="feature-desc">Draw names in one click. The app keeps members from drawing themselves.</div></div>
+          <div className="feature-card fade-up d3"><div className="feature-icon fi-green">📝</div><div className="feature-title">Helpful Wishlists</div><div className="feature-desc">Add gift ideas, links, images, and notes so your Santa has useful clues.</div></div>
+          <div className="feature-card fade-up d4"><div className="feature-icon fi-gold">💬</div><div className="feature-title">Private Questions</div><div className="feature-desc">Ask about sizes, colors, and preferences without giving away who you are.</div></div>
+          <div className="feature-card fade-up d4"><div className="feature-icon fi-blue">🔒</div><div className="feature-title">Private by Default</div><div className="feature-desc">Members only see the details they need: their group, wishlist clues, and recipient.</div></div>
+          <div className="feature-card fade-up d5"><div className="feature-icon fi-purple">⚡</div><div className="feature-title">Timely Updates</div><div className="feature-desc">See when members join, wishlists change, or private messages arrive.</div></div>
+          <div className="feature-card fade-up d5"><div className="feature-icon fi-pink">👥</div><div className="feature-title">Multiple Groups</div><div className="feature-desc">Manage family, work, and friend groups from the same dashboard.</div></div>
         </div>
       </section>
 
@@ -484,7 +484,7 @@ export default function Landing() {
       <section className="testimonials-section" id="testimonials">
         <div className="section-label fade-up">What People Say</div>
         <div className="section-title fade-up d1">Loved by Gift Givers Everywhere</div>
-        <div className="section-desc fade-up d2">Join people around the world making their gift exchanges magical.</div>
+        <div className="section-desc fade-up d2">See why group organizers use My Secret Santa to keep gift exchanges simple.</div>
         <div className="testimonials-grid">
           <div className="testimonial fade-up d3">
             <div className="testimonial-stars">⭐⭐⭐⭐⭐</div>
@@ -513,9 +513,9 @@ export default function Landing() {
             </div>
           </div>
           <div className="cta-title fade-up d1">Ready to Start Your<br />Secret Santa?</div>
-          <div className="cta-desc fade-up d2">Create your group in under 3 minutes. It&apos;s completely free — no catches, no ads, no limits.</div>
+          <div className="cta-desc fade-up d2">Create a group, invite members, and draw names when everyone is ready.</div>
           <button className="btn-cta fade-up d3" onClick={() => router.push("/login")}>🎅 Start Drawing Names — It&apos;s Free</button>
-          <div className="cta-note fade-up d4">No credit card needed. Free forever. No limits.</div>
+          <div className="cta-note fade-up d4">No credit card needed.</div>
         </div>
       </section>
 
@@ -528,7 +528,7 @@ export default function Landing() {
             </div>
           </div>
           <div className="app-title fade-up d1">The <span>My Secret Santa</span> App<br />for iPhone and Android.</div>
-          <div className="app-desc fade-up d2">Take your Secret Santa on the go. Get instant notifications, chat in real-time, and manage your wishlists from anywhere.</div>
+          <div className="app-desc fade-up d2">Mobile apps are planned so you can manage groups, wishlists, and messages on the go.</div>
           <div className="app-badges fade-up d3">
             <a className="app-badge" href="#" onClick={(e) => e.preventDefault()}>
               <svg width="24" height="28" viewBox="0 0 24 28" fill="#fff" xmlns="http://www.w3.org/2000/svg"><path d="M19.665 14.748c-.03-3.12 2.544-4.62 2.66-4.692-1.45-2.118-3.706-2.408-4.51-2.44-1.918-.196-3.744 1.13-4.718 1.13-.974 0-2.48-1.1-4.076-1.072-2.098.03-4.032 1.22-5.112 3.1-2.18 3.78-.558 9.378 1.566 12.442 1.038 1.502 2.276 3.19 3.902 3.13 1.564-.064 2.156-1.012 4.048-1.012 1.892 0 2.422 1.012 4.076.98 1.684-.03 2.754-1.53 3.786-3.038 1.194-1.742 1.686-3.428 1.716-3.516-.038-.016-3.292-1.264-3.338-5.012zM16.547 5.368c.862-1.046 1.444-2.498 1.286-3.948-1.242.05-2.748.828-3.64 1.872-.8.926-1.5 2.404-1.312 3.824 1.386.108 2.802-.706 3.666-1.748z"/></svg>
@@ -548,7 +548,7 @@ export default function Landing() {
         <div className="footer-inner">
           <div className="footer-brand">
             <SantaLogo dark />
-            <div className="footer-brand-desc">The easiest way to organize Secret Santa gift exchanges online. Made with ❤️ for gift givers everywhere.</div>
+            <div className="footer-brand-desc">A simple way to organize Secret Santa groups, wishlists, private messages, and gift progress online.</div>
           </div>
           <div className="footer-col">
             <h4>Product</h4>
@@ -558,9 +558,9 @@ export default function Landing() {
           </div>
           <div className="footer-col">
             <h4>Resources</h4>
-            <a href="#">Secret Santa Rules</a>
-            <a href="#">Gift Exchange Guide</a>
-            <a href="#">White Elephant Ideas</a>
+            <a href="#">Secret Santa tips</a>
+            <a href="#">Gift exchange guide</a>
+            <a href="#">Wishlist ideas</a>
           </div>
           <div className="footer-col">
             <h4>Connect</h4>
@@ -569,7 +569,7 @@ export default function Landing() {
             <a href="#">Contact Us</a>
           </div>
         </div>
-        <div className="footer-bottom">© 2026 My Secret Santa. All rights reserved. 🎄 Merry Christmas!</div>
+        <div className="footer-bottom">© 2026 My Secret Santa. All rights reserved.</div>
       </footer>
     </>
   );

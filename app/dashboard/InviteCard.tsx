@@ -92,8 +92,8 @@ export default function InviteCard({
         <h3 className="mt-3 text-xl font-bold text-slate-900">{groupName}</h3>
         <p className="mt-2 text-sm leading-6 text-slate-600">
           {requiresAnonymousNickname
-            ? `You are in. This group will show you as ${sanitizeGroupNickname(nickname)} inside the exchange.`
-            : "You are in. This group now appears in your dashboard so you can jump in whenever you are ready."}
+            ? `You joined the group. Members will see you as ${sanitizeGroupNickname(nickname)} inside this group.`
+            : "You joined the group. It now appears in your dashboard."}
         </p>
       </div>
     );
@@ -107,7 +107,7 @@ export default function InviteCard({
         </div>
         <h3 className="mt-3 text-xl font-bold text-slate-900">{groupName}</h3>
         <p className="mt-2 text-sm leading-6 text-slate-600">
-          This invite has been removed from your queue.
+          This invite has been removed from your dashboard.
         </p>
       </div>
     );
@@ -136,7 +136,7 @@ export default function InviteCard({
         </p>
       ) : (
         <p className="relative z-10 mt-3 max-w-2xl text-sm leading-6 text-slate-600">
-          Join this Secret Santa group to see the draw details and start planning your gift.
+          Join this Secret Santa group to see the group details and add your wishlist ideas.
         </p>
       )}
 
@@ -144,14 +144,14 @@ export default function InviteCard({
         <div className="relative z-10 mt-4 rounded-[22px] border border-sky-100 bg-sky-50/80 p-4">
           <div className="flex flex-wrap items-center gap-2">
             <span className="inline-flex rounded-full bg-sky-100 px-3 py-1 text-xs font-semibold text-sky-700">
-              Alias required
+              Nickname required
             </span>
             <span className="text-xs font-semibold uppercase tracking-[0.12em] text-slate-500">
-              Anonymous event mode
+              Private-name group
             </span>
           </div>
           <p className="mt-2 text-sm leading-6 text-slate-600">
-            This group asks members to join with an event nickname instead of using their real
+            This group asks members to join with a nickname instead of using their real
             name or email.
           </p>
           <input
@@ -159,7 +159,7 @@ export default function InviteCard({
             value={nickname}
             onChange={(event) => setNickname(event.target.value)}
             maxLength={30}
-            placeholder="Pick your event alias, like GiftFox"
+            placeholder="Pick a nickname, like GiftFox"
             className="mt-3 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-900 outline-none transition focus:border-sky-300 focus:ring-2 focus:ring-sky-100"
           />
           <p className="mt-2 text-xs font-medium text-slate-500">
@@ -182,7 +182,7 @@ export default function InviteCard({
           {status === "loading"
             ? "Processing..."
             : requiresAnonymousNickname
-              ? "Accept with alias"
+              ? "Accept with nickname"
               : "Accept invite"}
         </button>
         <button
@@ -195,7 +195,7 @@ export default function InviteCard({
               : "bg-slate-100 text-slate-700 hover:bg-slate-200"
           }`}
         >
-          Decline
+          Decline invite
         </button>
       </div>
 

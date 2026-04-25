@@ -56,7 +56,7 @@ export function canSeededUserOpenAffiliateReport(email: string | null | undefine
 
 export async function loginWithTestCredentials(page: Page, credentials: TestAuthCredentials) {
   await page.goto("/login");
-  await page.getByPlaceholder(/username or email/i).fill(credentials.email);
+  await page.getByPlaceholder(/enter your email address/i).fill(credentials.email);
   await page.getByPlaceholder(/enter your password/i).fill(credentials.password);
   await page.getByRole("button", { name: /^login$/i }).click();
   await page.waitForURL(/\/dashboard$/);

@@ -32,10 +32,10 @@ export default function GroupError({
           className="text-[28px] font-bold mb-3"
           style={{ fontFamily: "'Fredoka', sans-serif", color: "#991b1b" }}
         >
-          Group page hit an error
+          We could not load this group
         </h1>
         <p className="text-[14px] font-semibold leading-relaxed" style={{ color: "#64748b" }}>
-          {error.message || "Something went wrong while loading this group."}
+          {error.message || "Refresh the page, or go back to your dashboard and try again."}
         </p>
 
         <div className="mt-6 flex items-center justify-center gap-3 flex-wrap">
@@ -45,7 +45,7 @@ export default function GroupError({
             className="px-5 py-2.5 rounded-xl text-sm font-extrabold text-white"
             style={{ background: "linear-gradient(135deg,#2563eb,#3b82f6)", border: "none" }}
           >
-            Try Again
+            Try again
           </button>
           <button
             type="button"
@@ -57,7 +57,7 @@ export default function GroupError({
               border: "1px solid rgba(15,23,42,.08)",
             }}
           >
-            Back to Dashboard
+            Back to dashboard
           </button>
         </div>
       </div>

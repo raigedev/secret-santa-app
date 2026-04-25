@@ -39,7 +39,7 @@ export default function ResendButton({ groupId, memberEmail }: Props) {
   if (status === "sent") {
     return (
       <span className="text-xs bg-green-100 text-green-700 px-3 py-1 rounded-full font-bold">
-        ✅ Resent
+        ✅ Invite resent
       </span>
     );
   }
@@ -54,7 +54,7 @@ export default function ResendButton({ groupId, memberEmail }: Props) {
           : "bg-orange-100 text-orange-700 hover:bg-orange-200"
       }`}
     >
-      {status === "loading" ? "Sending..." : "🔄 Resend Invite"}
+      {status === "loading" ? "Sending..." : "🔄 Resend invite"}
     </button>
   );
 }

@@ -44,13 +44,13 @@ export async function sendMessage(
     !threadGiverId || !UUID_PATTERN.test(threadGiverId) ||
     !threadReceiverId || !UUID_PATTERN.test(threadReceiverId)
   ) {
-    return { success: false, message: "Invalid chat thread." };
+    return { success: false, message: "Choose a valid chat first." };
   }
 
   const cleanContent = sanitizeMessage(content);
 
   if (cleanContent.length === 0) {
-    return { success: false, message: "Message cannot be empty." };
+    return { success: false, message: "Write a message before sending." };
   }
 
   // Playbook#19: Server-side auth check
@@ -104,7 +104,7 @@ export async function sendMessage(
         threadReceiverId,
       },
     });
-    return { success: false, message: "Failed to send message. Please try again." };
+    return { success: false, message: "We could not send your message. Please try again." };
   }
 
   const otherUserId = user.id === threadGiverId ? threadReceiverId : threadGiverId;
@@ -115,7 +115,7 @@ export async function sendMessage(
   await createNotification({
     userId: otherUserId,
     type: "chat",
-    title: "New Secret Santa message",
+    title: "New private gift message",
     body: "You have a new message in one of your Secret Santa chats.",
     linkPath: "/secret-santa-chat",
     metadata: {

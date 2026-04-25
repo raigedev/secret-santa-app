@@ -32,10 +32,10 @@ export default function GroupRevealError({
           className="text-[28px] font-bold mb-3 text-white"
           style={{ fontFamily: "'Fredoka', sans-serif" }}
         >
-          Reveal screen hit an error
+          We could not load the reveal
         </h1>
         <p className="text-[14px] font-semibold leading-relaxed" style={{ color: "#cbd5e1" }}>
-          {error.message || "Something went wrong while loading the live reveal."}
+          {error.message || "Refresh the page, or go back and try the reveal again."}
         </p>
 
         <div className="mt-6 flex items-center justify-center gap-3 flex-wrap">
@@ -45,7 +45,7 @@ export default function GroupRevealError({
             className="px-5 py-2.5 rounded-xl text-sm font-extrabold text-white"
             style={{ background: "linear-gradient(135deg,#2563eb,#3b82f6)", border: "none" }}
           >
-            Try Again
+            Try again
           </button>
           <button
             type="button"
@@ -57,7 +57,7 @@ export default function GroupRevealError({
               border: "1px solid rgba(255,255,255,.08)",
             }}
           >
-            Go Back
+            Go back
           </button>
         </div>
       </div>

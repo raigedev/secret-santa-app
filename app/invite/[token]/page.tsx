@@ -88,7 +88,7 @@ async function loadInvitePreview(
       isValid: false,
       isClosed: true,
       membershipStatus: null,
-      message: "This invite link has expired.",
+      message: "This invite link has expired. Ask the group organizer for a new one.",
     };
   }
 
@@ -231,7 +231,7 @@ async function joinGroupViaInviteToken(
   }
 
   if (link.expires_at && new Date(link.expires_at).getTime() < Date.now()) {
-    return { success: false, message: "This invite link has expired." };
+    return { success: false, message: "This invite link has expired. Ask the group organizer for a new one." };
   }
 
   const rateLimit = await enforceRateLimit({
@@ -495,10 +495,10 @@ export default async function InviteLinkPage({
           style={{ background: "linear-gradient(135deg,#14532d,#166534)" }}
         >
           <div className="text-[30px] font-bold" style={{ fontFamily: "'Fredoka', sans-serif" }}>
-            🎁 Join Secret Santa
+            🎁 Join Secret Santa group
           </div>
           <p className="text-[13px] mt-1" style={{ color: "rgba(255,255,255,.82)" }}>
-            Use this invite link to join the group before names are drawn. Shared links now expire after 7 days.
+            Join before names are drawn. For safety, invite links expire after 7 days.
           </p>
         </div>
 
@@ -529,7 +529,7 @@ export default async function InviteLinkPage({
                   style={{ background: "rgba(22,163,74,.06)", border: "1px solid rgba(22,163,74,.12)" }}
                 >
                   <div className="text-[11px] font-bold uppercase tracking-wide text-slate-500">
-                    Event Date
+                    Gift date
                   </div>
                   <div className="text-[15px] font-bold text-slate-800">{preview.eventDate}</div>
                 </div>
@@ -637,7 +637,7 @@ export default async function InviteLinkPage({
                   className="w-full rounded-xl px-5 py-3 text-center text-sm font-bold text-white sm:w-auto"
                   style={{ background: "linear-gradient(135deg,#2563eb,#3b82f6)" }}
                 >
-                  Log In to Join
+                  Log in to Join
                 </Link>
                 <Link
                   href={`/create-account?next=${authNext}`}
@@ -667,7 +667,7 @@ export default async function InviteLinkPage({
                   }}
                 >
                   <div className="text-[11px] font-extrabold uppercase tracking-[0.12em] text-sky-700">
-                    Anonymous nickname required
+                    Choose a nickname for this group
                   </div>
                   <p className="mt-2 text-[13px] leading-6 text-slate-600">
                     This host wants members to join with an event alias instead of using a real
@@ -677,7 +677,7 @@ export default async function InviteLinkPage({
                     type="text"
                     name="nickname"
                     maxLength={30}
-                    placeholder="Choose your event alias"
+                    placeholder="Choose a group nickname"
                     className="mt-3 w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-900 outline-none"
                   />
                 </div>
@@ -690,7 +690,7 @@ export default async function InviteLinkPage({
                 {preview.membershipStatus === "declined"
                   ? "Join Again"
                   : preview.requireAnonymousNickname
-                    ? "Join with Alias"
+                    ? "Join with Nickname"
                     : "Join Group"}
               </button>
             </form>

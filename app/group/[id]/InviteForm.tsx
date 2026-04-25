@@ -83,9 +83,9 @@ export default function InviteForm({ groupId }: { groupId: string }) {
 
     try {
       await navigator.clipboard.writeText(nextLink);
-      setLinkMessage("✅ Invite link copied. Sharing a fresh link disables the previous one.");
+      setLinkMessage("✅ Invite link copied. The previous link is now turned off.");
     } catch {
-      setLinkMessage("✅ Invite link ready below. Copy it manually if your browser blocks clipboard access.");
+      setLinkMessage("✅ Invite link is ready below. Copy it manually if your browser blocks clipboard access.");
     }
 
     setLinkLoading("idle");
@@ -117,14 +117,14 @@ export default function InviteForm({ groupId }: { groupId: string }) {
 
         <div className="rounded-xl p-4" style={{ background: "rgba(255,255,255,.72)", border: "1px solid rgba(255,255,255,.9)" }}>
           <div className="text-[11px] font-extrabold uppercase tracking-[0.1em] text-emerald-700 mb-2">
-            Invite By Email
+            Invite by email
           </div>
 
           <div className="flex gap-2">
             <input
               type="email"
               name="email"
-              placeholder="Enter email to invite"
+              placeholder="Enter an email address"
               className="flex-1 px-3 py-2 border rounded-lg text-black bg-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-green-500"
               required
             />
@@ -160,8 +160,8 @@ export default function InviteForm({ groupId }: { groupId: string }) {
         </div>
 
         <p className="text-[12px] text-slate-600 leading-relaxed mb-3">
-          Generate a shareable link anyone can use to join this group before the draw.
-          Creating a fresh link automatically disables the older one.
+          Create a link members can use to join before names are drawn.
+          Creating a new link turns off the older one.
         </p>
 
         {inviteLink && (
@@ -178,7 +178,7 @@ export default function InviteForm({ groupId }: { groupId: string }) {
             className="w-full px-3 py-2 rounded-lg text-[12px] text-slate-600 bg-white border mb-3"
             style={{ borderColor: "rgba(59,130,246,.18)" }}
           >
-            An invite link is already active. Generate a fresh link to copy a new shareable URL.
+            An invite link is already active. Create a new one if you want to replace it.
           </div>
         )}
 
@@ -199,8 +199,8 @@ export default function InviteForm({ groupId }: { groupId: string }) {
             {linkLoading === "creating"
               ? "Generating..."
               : inviteLink || hasActiveLink
-                ? "Copy Fresh Link"
-                : "Generate Invite Link"}
+                ? "Copy New Link"
+                : "Create Invite Link"}
           </button>
 
           <button

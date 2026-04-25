@@ -148,12 +148,12 @@ export default function SecretSantaCard({ recipientNames }: Props) {
             <span>Your Secret Santa</span>
           </div>
           <h2 className="text-[1.6rem] font-extrabold leading-tight text-white">
-            {hasAssignments ? "Your draw is ready" : "Waiting for the draw"}
+            {hasAssignments ? "Your recipient is ready" : "Waiting for names to be drawn"}
           </h2>
           <p className="mt-1.5 text-sm text-rose-50/95">
             {hasAssignments
-              ? "Open your assignments and start planning the surprise."
-              : "Once your group finishes the draw, your recipient will appear here."}
+              ? "Open your recipient details and start planning the gift."
+              : "When the organizer draws names, your recipient will appear here."}
           </p>
         </div>
         <span
@@ -163,7 +163,7 @@ export default function SecretSantaCard({ recipientNames }: Props) {
               : "bg-white/22 text-white/95"
           }`}
         >
-          {hasAssignments ? "Draw completed" : "Pending draw"}
+          {hasAssignments ? "Names drawn" : "Names not drawn yet"}
         </span>
       </div>
 
@@ -217,13 +217,13 @@ export default function SecretSantaCard({ recipientNames }: Props) {
                 ))}
                 {recipientNames.length > 3 && (
                   <li className="text-xs font-semibold text-slate-500">
-                    +{recipientNames.length - 3} more assignments
+                    +{recipientNames.length - 3} more recipients
                   </li>
                 )}
               </ul>
             ) : (
               <p className="mt-3 max-w-sm text-sm leading-6 text-slate-600">
-                Your group is still getting ready. We will surface your recipient here as soon as the draw is done.
+                Your group is still getting ready. Your recipient will appear here after names are drawn.
               </p>
             )}
           </div>
@@ -235,7 +235,7 @@ export default function SecretSantaCard({ recipientNames }: Props) {
             onClick={() => router.push("/secret-santa")}
             className="inline-flex items-center gap-2 rounded-full bg-[linear-gradient(135deg,#d94633,#b91c1c)] px-5 py-2.5 text-sm font-semibold text-white shadow-[0_14px_35px_rgba(127,29,29,0.28)] transition hover:-translate-y-0.5 group-hover:shadow-[0_18px_42px_rgba(127,29,29,0.34)]"
           >
-            <span>{hasAssignments ? "Open assignments" : "Open Secret Santa"}</span>
+            <span>{hasAssignments ? "View recipient" : "Open Secret Santa"}</span>
             <ArrowRightIcon />
           </button>
         </div>

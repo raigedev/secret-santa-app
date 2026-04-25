@@ -18,12 +18,12 @@ export default function NicknameForm({ groupId, currentNickname }: Props) {
     setMessage("");
 
     if (!nickname || nickname.trim().length === 0) {
-      setMessage("Nickname cannot be empty.");
+      setMessage("Enter a nickname.");
       return;
     }
 
     if (nickname.trim().length > 30) {
-      setMessage("Nickname must be 30 characters or less.");
+      setMessage("Use 30 characters or fewer for your nickname.");
       return;
     }
 
@@ -58,7 +58,7 @@ export default function NicknameForm({ groupId, currentNickname }: Props) {
             onClick={() => setIsEditing(true)}
             className="text-xs bg-white/50 hover:bg-white/80 text-gray-600 px-3 py-1 rounded-full transition font-semibold"
           >
-            Change Nickname
+            Change nickname
           </button>
         </div>
       ) : (
@@ -68,7 +68,7 @@ export default function NicknameForm({ groupId, currentNickname }: Props) {
               type="text"
               value={nickname}
               onChange={(event) => setNickname(event.target.value)}
-              placeholder="Enter your alias (e.g. GiftNinja)"
+              placeholder="Enter a nickname, like GiftNinja"
               maxLength={30}
               className="flex-1 px-3 py-2 rounded-lg text-sm text-black bg-white border border-gray-300 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-green-500"
             />

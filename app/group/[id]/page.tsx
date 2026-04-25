@@ -127,7 +127,7 @@ function getVisibleGroupMemberName(
   member: Member,
   index: number,
   requireAnonymousNickname: boolean,
-  fallbackPrefix = "Participant"
+  fallbackPrefix = "Member"
 ): string {
   if (requireAnonymousNickname) {
     return getAnonymousGroupDisplayName(member.nickname, `${fallbackPrefix} ${index + 1}`);
@@ -415,7 +415,7 @@ export default function GroupDetailsPage() {
         setDrawDone(true);
         const receiver = safeMembers.find((member) => member.user_id === myAssignment.receiver_id);
         setAssignment({
-          receiver_nickname: receiver?.nickname || "Secret Participant",
+          receiver_nickname: receiver?.nickname || "Secret Member",
         });
       } else {
         setDrawDone(false);
@@ -633,7 +633,7 @@ export default function GroupDetailsPage() {
   const handleDraw = async () => {
     if (
       !confirm(
-        "Are you sure? This will assign everyone a recipient. If you reset later, the current assignments and anonymous chat history for this group will be deleted."
+        "Draw names now? Everyone will get one recipient. If you reset later, the current recipients and private chat history for this group will be deleted."
       )
     ) {
       return;
@@ -657,7 +657,7 @@ export default function GroupDetailsPage() {
 
   const handleAddDrawRule = async () => {
     if (!newExclusionGiver || !newExclusionReceiver) {
-      setDrawRuleMessage("Please choose both members for the draw rule.");
+      setDrawRuleMessage("Choose both members for this draw rule.");
       return;
     }
 
@@ -709,7 +709,7 @@ export default function GroupDetailsPage() {
 
     if (
       !confirm(
-        "Reset this draw? This will permanently delete the current assignments, anonymous chat messages, read markers, and gift received confirmations for this group. You can draw again afterwards."
+        "Reset this draw? This will permanently delete the current recipients, private chat messages, read markers, and gift confirmations for this group. You can draw names again afterwards."
       )
     ) {
       return;
@@ -791,7 +791,7 @@ export default function GroupDetailsPage() {
   const handleTriggerReveal = async () => {
     if (
       !confirm(
-        "Reveal the Secret Santa matches for everyone in this group? Once revealed, all accepted members will be able to see the full pairings."
+        "Reveal all Secret Santa matches to this group? Once revealed, accepted members can see every pairing."
       )
     ) {
       return;
@@ -866,7 +866,7 @@ export default function GroupDetailsPage() {
     CURRENCIES.find((item) => item.code === (groupData.currency || "USD"))?.symbol || "$";
   const editCurrencySymbol =
     CURRENCIES.find((item) => item.code === editCurrency)?.symbol || "$";
-  const drawStatusLabel = groupData.revealed ? "Revealed" : drawDone ? "Drawn" : "Not Yet";
+  const drawStatusLabel = groupData.revealed ? "Revealed" : drawDone ? "Names drawn" : "Not yet";
   const missingWishlistPreview = ownerInsights?.missingWishlistMemberNames.slice(0, 4) || [];
   const extraMissingWishlistCount = Math.max(
     (ownerInsights?.missingWishlistMemberNames.length || 0) - missingWishlistPreview.length,
@@ -953,7 +953,7 @@ export default function GroupDetailsPage() {
                 className="text-[12px] font-extrabold block mb-1"
                 style={{ color: "#374151" }}
               >
-                Event Date
+                Gift date
               </label>
               <input
                 type="date"
@@ -1123,7 +1123,7 @@ export default function GroupDetailsPage() {
             <p className="text-[13px] mb-4 leading-relaxed" style={{ color: "#6b7280" }}>
               This will permanently delete{" "}
               <strong style={{ color: "#1f2937" }}>&quot;{groupData.name}&quot;</strong>, all
-              assignments, wishlists, and messages. This cannot be undone.
+              recipients, wishlists, and messages. This cannot be undone.
             </p>
 
             <input
@@ -1184,7 +1184,7 @@ export default function GroupDetailsPage() {
             <p className="text-[13px] mb-4 leading-relaxed" style={{ color: "#6b7280" }}>
               You&apos;ll be removed from{" "}
               <strong style={{ color: "#1f2937" }}>&quot;{groupData.name}&quot;</strong>.
-              You&apos;ll lose access to assignments, wishlists, and chat. You can be
+              You&apos;ll lose access to recipients, wishlists, and chat. You can be
               re-invited later.
             </p>
 
@@ -1322,7 +1322,7 @@ export default function GroupDetailsPage() {
             </div>
 
             <div className="text-[13px] mt-1" style={{ color: "rgba(255,255,255,.8)" }}>
-              Manage members, draw names, and monitor the group from here.
+              Manage members, invites, wishlists, and the name draw from here.
             </div>
           </div>
 
@@ -1347,7 +1347,7 @@ export default function GroupDetailsPage() {
                     letterSpacing: ".08em",
                   }}
                 >
-                  📋 Rules & Description
+                  📋 Group notes and rules
                 </div>
 
                 <div
@@ -1361,14 +1361,14 @@ export default function GroupDetailsPage() {
 
             <div className="mb-5 grid grid-cols-1 gap-3 sm:grid-cols-2 md:grid-cols-4">
               {[
-                { icon: "📅", value: groupData.event_date, label: "Event Date" },
+                { icon: "📅", value: groupData.event_date, label: "Gift date" },
                 {
                   icon: "💰",
                   value: groupData.budget ? `${currencySymbol}${groupData.budget}` : "No limit",
                   label: "Budget",
                 },
                 { icon: "👥", value: `${members.length}`, label: "Members" },
-                  { icon: "🎲", value: drawStatusLabel, label: "Draw Status" },
+                  { icon: "🎲", value: drawStatusLabel, label: "Name draw" },
               ].map((item, index) => (
                 <div
                   key={index}
@@ -1439,12 +1439,12 @@ export default function GroupDetailsPage() {
                     opacity: drawDone ? 0.7 : 1,
                   }}
                 >
-                  {drawDone ? "Draw Locked" : "🚪 Leave Group"}
+                  {drawDone ? "Group locked" : "🚪 Leave Group"}
                 </button>
 
                 {drawDone && (
                   <p className="text-center text-[11px]" style={{ color: "#6b7280" }}>
-                    Participant changes are locked after draw. Ask the owner to reset first.
+                    Member changes are locked after names are drawn. Ask the owner to reset first.
                   </p>
                 )}
               </div>
@@ -1500,8 +1500,8 @@ export default function GroupDetailsPage() {
                       🔎 Owner Insights
                     </div>
                     <div className="text-[12px] font-semibold mt-1" style={{ color: "#64748b" }}>
-                      Quick readiness signals for this group. Anonymous chat stays aggregate-only
-                      here so the secret part stays secret.
+                      Quick readiness signals for this group. Private chat stays summarized here
+                      so surprises stay private.
                     </div>
                   </div>
 
@@ -1512,7 +1512,7 @@ export default function GroupDetailsPage() {
                       color: drawDone ? "#1d4ed8" : "#15803d",
                     }}
                   >
-                    {drawDone ? "Post-draw snapshot" : "Pre-draw readiness"}
+                    {drawDone ? "After names are drawn" : "Before names are drawn"}
                   </div>
                 </div>
 
@@ -1671,7 +1671,7 @@ export default function GroupDetailsPage() {
                     className="text-lg font-bold mb-2"
                     style={{ fontFamily: "'Fredoka', sans-serif", color: "#1d4ed8" }}
                   >
-                    🎲 Names Have Been Drawn!
+                    🎲 Names have been drawn!
                   </div>
 
                   <div
@@ -1682,8 +1682,8 @@ export default function GroupDetailsPage() {
                     }}
                   >
                     {groupData.revealed
-                      ? "Reveal live - pairings are public"
-                      : "🎲 Draw complete - assignments are active"}
+                      ? "Reveal live - everyone can see the pairings"
+                      : "🎲 Names drawn - recipient details are ready"}
                   </div>
 
                   <div
@@ -1713,8 +1713,8 @@ export default function GroupDetailsPage() {
                   {isOwner && (
                     <div className="mt-4 px-4">
                       <p className="text-xs text-gray-500 mb-3 leading-relaxed">
-                        Need to change participants or redraw? Resetting will permanently
-                        delete the current assignments, anonymous chat messages, read
+                        Need to change members or draw names again? Resetting will permanently
+                        delete the current recipients, private chat messages, read
                         markers, and any gift confirmations for this group.
                       </p>
 
@@ -1763,7 +1763,7 @@ export default function GroupDetailsPage() {
                     className="text-lg font-bold mb-2"
                     style={{ fontFamily: "'Fredoka', sans-serif", color: "#7f1d1d" }}
                   >
-                    🎲 Secret Santa Draw
+                    🎲 Secret Santa Name Draw
                   </div>
 
                   {allAccepted ? (
@@ -1771,7 +1771,7 @@ export default function GroupDetailsPage() {
                       className="inline-flex items-center gap-1.5 text-xs font-bold px-3 py-1.5 rounded-lg mb-3"
                       style={{ background: "#dcfce7", color: "#15803d" }}
                     >
-                      ✅ All {acceptedMembers.length} members accepted - Ready to draw!
+                      ✅ All {acceptedMembers.length} members accepted - ready to draw names!
                     </div>
                   ) : (
                     <div
@@ -1826,10 +1826,10 @@ export default function GroupDetailsPage() {
                         className="text-[14px] font-extrabold"
                         style={{ fontFamily: "'Fredoka', sans-serif", color: "#7f1d1d" }}
                       >
-                        🚫 Exclusion Rules (Do Not Pair)
+                        🚫 Pairing rules
                       </div>
                       <p className="text-[12px] mt-1 mb-3" style={{ color: "#64748b" }}>
-                        Example: couples should not draw each other. Rules apply during draw only.
+                        Use these when two members should not be paired. Rules apply only when names are drawn.
                       </p>
 
                       <div className="grid gap-2 md:grid-cols-[1fr_1fr_auto]">
@@ -1924,7 +1924,7 @@ export default function GroupDetailsPage() {
                           onChange={(event) => setNewExclusionBidirectional(event.target.checked)}
                           disabled={drawRuleSaving || drawLoading || resetLoading}
                         />
-                        Block both directions (A↔B)
+                        Block both directions
                       </label>
 
                       {drawRuleMessage && (
@@ -1985,7 +1985,7 @@ export default function GroupDetailsPage() {
                         }}
                       >
                         <div className="text-[13px] font-extrabold" style={{ color: "#334155" }}>
-                          🧭 Fairness Options
+                          🧭 Draw options
                         </div>
                         <label
                           className="mt-2 inline-flex items-center gap-2 text-[12px] font-semibold"
@@ -1997,10 +1997,10 @@ export default function GroupDetailsPage() {
                             onChange={(event) => setAvoidPreviousRecipient(event.target.checked)}
                             disabled={drawRuleSaving || drawLoading || resetLoading}
                           />
-                          Try to avoid assigning the same recipient from the previous cycle
+                          Try not to give members the same recipient as last time.
                         </label>
                         <p className="mt-1 text-[11px]" style={{ color: "#64748b" }}>
-                          If impossible with current exclusions, the draw will automatically relax this preference.
+                          If the current rules make that impossible, the app will relax this preference.
                         </p>
                       </div>
 
@@ -2013,7 +2013,7 @@ export default function GroupDetailsPage() {
                           }}
                         >
                           <div className="text-[13px] font-extrabold" style={{ color: "#334155" }}>
-                            📜 Reroll History
+                            📜 Draw history
                           </div>
 
                           {drawCycleHistory.length > 0 && (
@@ -2028,7 +2028,7 @@ export default function GroupDetailsPage() {
                                     color: "#334155",
                                   }}
                                 >
-                                  <strong>Cycle {cycle.cycleNumber}</strong> • {new Date(cycle.createdAt).toLocaleString()} • {cycle.assignmentCount} assignments
+                                  <strong>Draw {cycle.cycleNumber}</strong> • {new Date(cycle.createdAt).toLocaleString()} • {cycle.assignmentCount} recipients
                                   <div style={{ color: "#64748b" }}>
                                     Avoid previous recipient: {cycle.avoidPreviousRecipient ? "On" : "Off"}
                                     {cycle.repeatAvoidanceRelaxed ? " (relaxed)" : ""}
@@ -2049,7 +2049,7 @@ export default function GroupDetailsPage() {
                                     cursor: drawCycleHistoryLoadingMore ? "not-allowed" : "pointer",
                                   }}
                                 >
-                                  {drawCycleHistoryLoadingMore ? "Loading..." : "Load more cycles"}
+                                  {drawCycleHistoryLoadingMore ? "Loading..." : "Load more draws"}
                                 </button>
                               )}
 
@@ -2071,7 +2071,7 @@ export default function GroupDetailsPage() {
                                     color: "#7c2d12",
                                   }}
                                 >
-                                  <strong>Reset</strong> • {new Date(reset.createdAt).toLocaleString()} • {reset.assignmentCount} assignments, {reset.confirmedGiftCount} confirmed gifts
+                                  <strong>Reset</strong> • {new Date(reset.createdAt).toLocaleString()} • {reset.assignmentCount} recipients, {reset.confirmedGiftCount} confirmed gifts
                                   <div style={{ color: "#9a3412" }}>Reason: {reset.reason}</div>
                                 </div>
                               ))}
@@ -2107,7 +2107,7 @@ export default function GroupDetailsPage() {
                     <div>
                       <p className="text-xs text-gray-500 mb-3 px-8 leading-relaxed">
                         This will randomly assign each member someone to give a gift to. If
-                        you later reset the draw, the current assignments and anonymous chat
+                        you later reset the draw, the current recipients and private chat
                         history for this group will be deleted.
                       </p>
 
@@ -2187,7 +2187,7 @@ export default function GroupDetailsPage() {
                         color: groupData.revealed ? "#166534" : "#7c2d12",
                       }}
                     >
-                      {groupData.revealed ? "🎉 Reveal Board" : "🎁 Event-Day Reveal"}
+                      {groupData.revealed ? "🎉 Reveal Board" : "🎁 Gift Exchange Reveal"}
                     </div>
                     <div className="text-[12px] font-semibold mt-1" style={{ color: "#64748b" }}>
                       {groupData.revealed
@@ -2229,7 +2229,7 @@ export default function GroupDetailsPage() {
                       >
                         Use the event reveal screen on the venue display first. Guests can also
                         open that same screen on their phones and it will stay in sync once you
-                        start the live reveal. It now walks through both codename owners and the
+                        start the live reveal. It now walks through both nickname owners and the
                         final Secret Santa pairings in one shared flow.
                       </p>
 
@@ -2292,7 +2292,7 @@ export default function GroupDetailsPage() {
                         className="text-[12px] font-semibold leading-relaxed"
                         style={{ color: "#475569" }}
                       >
-                        Your own assignment stays secret until the owner starts the event-day
+                        Your own recipient stays secret until the owner starts the gift exchange
                         reveal. You can open the event reveal screen now and keep it ready on
                         your phone while the owner starts the live reveal from the venue.
                       </p>
@@ -2470,7 +2470,7 @@ export default function GroupDetailsPage() {
                               className="text-[11px] font-extrabold uppercase tracking-[0.14em]"
                               style={{ color: "#15803d" }}
                             >
-                              Participants
+                              Members
                             </div>
                             <div
                               className="text-[28px] font-bold mt-2"
@@ -2527,7 +2527,7 @@ export default function GroupDetailsPage() {
                               {groupRecap.activeChatThreadCount}/{groupRecap.totalChatThreadCount}
                             </div>
                             <div className="text-[12px] font-semibold mt-1" style={{ color: "#64748b" }}>
-                              Anonymous chat threads that were used
+                              Private chat threads that were used
                             </div>
                           </div>
 
@@ -2623,7 +2623,7 @@ export default function GroupDetailsPage() {
                                 Final matches revealed: <strong style={{ color: "#166534" }}>{revealMatches.length}</strong>
                               </div>
                               <div>
-                                Alias owners revealed: <strong style={{ color: "#166534" }}>{groupRecap.aliasRoster.length}</strong>
+                                Nickname owners revealed: <strong style={{ color: "#166534" }}>{groupRecap.aliasRoster.length}</strong>
                               </div>
                               <div>
                                 Wishlist gaps before reveal:{" "}
@@ -2658,7 +2658,7 @@ export default function GroupDetailsPage() {
                 color: "#15803d",
               }}
             >
-              🎄 Participants
+              🎄 Members
             </div>
 
             {acceptedMembers.length === 0 ? (

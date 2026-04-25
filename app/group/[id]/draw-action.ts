@@ -618,7 +618,7 @@ export async function drawSecretSanta(
     if (hasInvalidCodename) {
       return {
         success: false,
-        message: "Every participant, including the organizer, needs a codename before drawing names.",
+        message: "Every member, including the organizer, needs a nickname before names can be drawn.",
       };
     }
   }
@@ -724,7 +724,7 @@ export async function drawSecretSanta(
       resourceType: "group",
     });
 
-    return { success: false, message: "Failed to save assignments. Please try again." };
+    return { success: false, message: "We could not save the name draw. Please try again." };
   }
 
   const cycleNumber = await getNextDrawCycleNumber(groupId);
@@ -796,7 +796,7 @@ export async function drawSecretSanta(
         userId: giverId,
         type: "draw",
         title: `Names were drawn in ${group.name}`,
-        body: "Your recipient is ready. Open Secret Santa to see your assignment and start planning.",
+        body: "Your recipient is ready. Open Secret Santa to see who you are gifting and start planning.",
         linkPath: "/secret-santa",
         metadata: {
           groupId,
@@ -821,8 +821,8 @@ export async function drawSecretSanta(
   return {
     success: true,
     message: repeatAvoidanceRelaxed
-      ? `✅ Names drawn! ${assignments.length} members assigned. Repeat-avoidance was relaxed because the current rules left no valid draw.`
-      : `✅ Names drawn! ${assignments.length} members assigned.`,
+      ? `✅ Names drawn! ${assignments.length} members received a recipient. The repeat-recipient preference was relaxed because the current rules left no valid draw.`
+      : `✅ Names drawn! ${assignments.length} members received a recipient.`,
   };
 }
 
@@ -978,7 +978,7 @@ export async function resetSecretSantaDraw(
       resourceType: "group",
     });
 
-    return { success: false, message: "Failed to clear assignments." };
+    return { success: false, message: "We could not clear the current recipients." };
   }
 
   const { error: resetRevealError } = await supabaseAdmin
@@ -1041,7 +1041,7 @@ export async function resetSecretSantaDraw(
 
   return {
     success: true,
-    message: `✅ Draw reset. Removed ${assignmentCount} assignment(s) and cleared anonymous chat history.`,
+    message: `✅ Draw reset. Removed ${assignmentCount} recipient pairing(s) and cleared private chat history.`,
   };
 }
 

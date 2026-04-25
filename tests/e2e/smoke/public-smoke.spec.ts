@@ -10,7 +10,7 @@ test.describe("public smoke coverage", () => {
 
     await expect(page).toHaveTitle(/my secret santa/i);
     await expect(page.getByRole("button", { name: /start drawing names/i }).first()).toBeVisible();
-    await expect(page.getByText(/draw names online, share wishlists/i)).toBeVisible();
+    await expect(page.getByText(/create a group, invite members, share wishlist ideas/i)).toBeVisible();
     await health.expectHealthy();
   });
 
@@ -19,7 +19,7 @@ test.describe("public smoke coverage", () => {
 
     await page.getByRole("link", { name: /see how it works/i }).click();
     await expect(page).toHaveURL(/#how$/);
-    await expect(page.getByText(/three steps to christmas magic/i)).toBeVisible();
+    await expect(page.getByText(/set up your gift exchange in three steps/i)).toBeVisible();
 
     await page.getByRole("button", { name: /start drawing names/i }).first().click();
     await expect(page).toHaveURL(/\/login$/);

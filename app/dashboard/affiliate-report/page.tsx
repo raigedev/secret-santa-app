@@ -208,7 +208,7 @@ function normalizeFallbackReasonLabel(value: string | null | undefined): string 
   const normalized = (value || "").trim();
 
   if (normalized.length === 0) {
-    return "Unknown fallback";
+  return "Unknown reason";
   }
 
   return normalized
@@ -258,7 +258,7 @@ function buildOpenedLinkDisplayTitle(row: AffiliatePerformanceRow): string {
 
 function buildOpenedLinkDisplayDetail(row: AffiliatePerformanceRow): string {
   if (row.catalog_source === "search-backed") {
-    return `Search route for ${buildSelectedAngleLabel(row)}`;
+    return `Lazada search link for ${buildSelectedAngleLabel(row)}`;
   }
 
   return summarizeSearchQuery(row.search_query);
@@ -292,7 +292,7 @@ function buildLazadaProductDisplayDetail(row: AffiliatePerformanceRow): string {
   }
 
   if (row.catalog_source === "search-backed") {
-    return "Search-backed clicks can only show the exact product after a mapped postback.";
+    return "For search links, the exact product appears only after Lazada reports a matching conversion.";
   }
 
   return "Shown here when Lazada sends product details in the conversion postback.";
@@ -408,7 +408,7 @@ function describeRouteFilter(routeFilter: RouteFilter): string {
     case "direct":
       return "Direct product routes";
     case "search":
-      return "Search-backed routes";
+      return "Lazada search links";
     default:
       return "All Lazada routes";
   }
@@ -427,7 +427,7 @@ function buildWindowStartIso(windowFilter: WindowFilter): string | null {
 
 function describeCatalogSource(source: string | null): string {
   if (source === "search-backed") {
-    return "Search-backed";
+    return "Lazada search link";
   }
 
   if (source === "catalog-product") {
@@ -438,7 +438,7 @@ function describeCatalogSource(source: string | null): string {
     return "Wishlist product";
   }
 
-  return source || "Legacy route";
+  return source || "Older tracking";
 }
 
 function buildPerformanceRows(
@@ -628,7 +628,7 @@ function buildRouteQualityInsights(input: {
     },
     {
       coverage: searchCoverage,
-      label: "Search-backed routes",
+      label: "Lazada search links",
       promotion_link_clicks: input.totalSearchPromotionLinkClicks,
       total_clicks: input.totalSearchClicks,
     },
@@ -751,7 +751,7 @@ function buildOptimizationRecommendations(input: {
 
   if (weakestFamily) {
     recommendations.push({
-      description: `${weakestFamily.fallback_clicks} of ${weakestFamily.click_count} clicks in this family still miss the strongest affiliate-ready path.`,
+      description: `${weakestFamily.fallback_clicks} of ${weakestFamily.click_count} clicks in this family still need a stronger affiliate link.`,
       label: "Weakest family",
       title: weakestFamily.family,
     });
@@ -1164,7 +1164,7 @@ function buildLazadaHealthActions(health: LazadaHealthStatus): LazadaHealthActio
 
   if (health.missingTokenRecentClicks > 0) {
     actions.push({
-      body: "Recent sample still includes legacy or fallback clicks without complete token data. Fresh Lazada clicks should reduce this.",
+      body: "Recent sample still includes older clicks without complete token data. Fresh Lazada clicks should reduce this.",
       label: "Watch legacy clicks",
       tone: "watch",
     });
@@ -1180,7 +1180,7 @@ function buildLazadaHealthActions(health: LazadaHealthStatus): LazadaHealthActio
 
   if (health.unmappedConversions > 0) {
     actions.push({
-      body: "Real postback rows arrived without matching a click. Check the Lazada postback sub_id6 value.",
+      body: "Lazada reported conversions that did not match a tracked click. Check the Lazada sub_id6 value.",
       label: "Map sales",
       tone: "watch",
     });
@@ -1191,7 +1191,7 @@ function buildLazadaHealthActions(health: LazadaHealthStatus): LazadaHealthActio
     health.promotionLinkRecentClicks < health.sampledRecentClicks
   ) {
     actions.push({
-      body: "Some recent clicks still use weaker fallback paths. Tune the matcher for the families shown below.",
+      body: "Some recent clicks still use weaker shopping links. Tune the matcher for the families shown below.",
       label: "Improve link coverage",
       tone: "watch",
     });
@@ -1255,11 +1255,10 @@ function LazadaHealthCheckCard({
               {HealthStatusLabel(health.status)}
             </span>
           </div>
-          <h2 className="mt-2 text-2xl font-bold text-slate-900">Tracking confidence check</h2>
+          <h2 className="mt-2 text-2xl font-bold text-slate-900">Tracking check</h2>
           <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-600">
-            This checks whether recent Lazada clicks use promotion links, whether the saved click
-            token matches the URL token Lazada will send back, and whether postback security is
-            configured.
+            This checks whether recent Lazada clicks use affiliate links, whether click tracking
+            can match Lazada reports, and whether postback security is configured.
           </p>
           <p className="mt-2 text-xs font-semibold uppercase tracking-[0.14em] text-slate-400">
             Checked {formatDateTime(health.checkedAt)}
@@ -1271,7 +1270,7 @@ function LazadaHealthCheckCard({
             type="submit"
             className="inline-flex items-center rounded-full bg-slate-900 px-5 py-3 text-sm font-semibold text-white shadow-[0_14px_35px_rgba(15,23,42,0.18)] transition hover:-translate-y-0.5"
           >
-            Run test postback
+            Run test report
           </button>
         </form>
       </div>
@@ -1319,7 +1318,7 @@ function LazadaHealthCheckCard({
           </p>
           <p className="mt-1 text-sm leading-5 text-slate-600">
             {health.postbackSecretConfigured
-              ? "Lazada postbacks must include your shared secret."
+              ? "Lazada reports must include your shared secret."
               : "Add LAZADA_POSTBACK_SECRET in Vercel before opening the postback URL publicly."}
           </p>
         </div>
@@ -1364,8 +1363,8 @@ function LazadaHealthCheckCard({
           </p>
           <div className="mt-3 grid gap-2 text-sm leading-5 text-slate-600">
             <p><span className="font-semibold text-slate-900">Token matching</span> means Lazada can report sales back to the exact click.</p>
-            <p><span className="font-semibold text-slate-900">Promotion links</span> means the click used an affiliate-ready Lazada path.</p>
-            <p><span className="font-semibold text-slate-900">Sale mapping</span> means a real postback row is connected to a tracked click.</p>
+            <p><span className="font-semibold text-slate-900">Affiliate links</span> means the click used a Lazada link that can carry tracking.</p>
+            <p><span className="font-semibold text-slate-900">Sale mapping</span> means Lazada reported a conversion that matched a tracked click.</p>
           </div>
         </div>
       </div>
@@ -1416,7 +1415,7 @@ function InsightCard({ insight }: { insight: TopItemInsight }) {
         </div>
       </div>
       <p className="mt-4 text-sm leading-6 text-slate-600">
-        Dominant route: <span className={`font-semibold ${DominantLabelTone(insight.dominant_route)}`}>{insight.dominant_route}</span>
+        Main link type: <span className={`font-semibold ${DominantLabelTone(insight.dominant_route)}`}>{insight.dominant_route}</span>
       </p>
     </section>
   );
@@ -1430,7 +1429,7 @@ function AngleInsightCard({ insight }: { insight: TopAngleInsight }) {
 
   return (
     <section className="rounded-3xl border border-white/70 bg-white/88 p-4 shadow-[0_18px_50px_rgba(148,163,184,0.12)] backdrop-blur-md">
-      <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">Selected angle</p>
+      <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">Shopping option</p>
       <h3 className="mt-2 text-lg font-bold text-slate-900">{insight.label}</h3>
       <div className="mt-4 grid gap-3 text-sm text-slate-600 sm:grid-cols-3">
         <div>
@@ -1453,7 +1452,7 @@ function AngleInsightCard({ insight }: { insight: TopAngleInsight }) {
 function RouteQualityCard({ insight }: { insight: RouteQualityInsight }) {
   return (
     <section className="rounded-3xl border border-white/70 bg-white/88 p-4 shadow-[0_18px_50px_rgba(148,163,184,0.12)] backdrop-blur-md">
-      <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">Route quality</p>
+      <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">Link quality</p>
       <h3 className="mt-2 text-lg font-bold text-slate-900">{insight.label}</h3>
       <div className="mt-4 grid gap-3 text-sm text-slate-600 sm:grid-cols-3">
         <div>
@@ -1547,8 +1546,8 @@ function LegacySupportTone(value: number): string {
 
 function LegacySupportCopy(value: number): string {
   return value > 0
-    ? `${value} older clicks still sit outside the current direct/search route split.`
-    : "All clicks in this view are already inside the current route split.";
+    ? `${value} older clicks use the previous tracking format.`
+    : "All clicks in this view use the current tracking format.";
 }
 
 function LegacySupportCard({
@@ -1563,7 +1562,7 @@ function LegacySupportCard({
   // visible direct + search counts in all-time views.
   return (
     <section className="rounded-3xl border border-white/70 bg-white/88 p-4 shadow-[0_18px_50px_rgba(148,163,184,0.12)] backdrop-blur-md">
-      <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">Legacy route support</p>
+      <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">Older tracking support</p>
       <h3 className="mt-2 text-lg font-bold text-slate-900">{legacyRouteClicks} legacy clicks</h3>
       <p className={`mt-4 text-sm leading-6 ${LegacySupportTone(legacyRouteClicks)}`}>
         {LegacySupportCopy(legacyRouteClicks)}
@@ -1705,7 +1704,7 @@ export default async function AffiliateReportPage({
       : routeQualityInsights.filter((insight) =>
           routeFilter === "direct"
             ? insight.label === "Direct product routes"
-            : insight.label === "Search-backed routes"
+            : insight.label === "Lazada search links"
         );
   const routeScopedLabel =
     routeFilter === "all" ? "selected route view" : describeRouteFilter(routeFilter).toLowerCase();
@@ -1728,9 +1727,8 @@ export default async function AffiliateReportPage({
               Lazada affiliate report
             </h1>
             <p className="mt-3 max-w-3xl text-sm leading-6 text-slate-600">
-              This owner-only page combines tracked Lazada affiliate clicks and mapped conversions
-              across your app so you can see what users clicked, what converted, and which paths
-              are actually working.
+              This owner-only page shows which Lazada links users opened, which conversions Lazada
+              reported, and which shopping paths are working best.
             </p>
           </div>
 
@@ -1756,9 +1754,9 @@ export default async function AffiliateReportPage({
               <p className="text-sm font-semibold uppercase tracking-[0.18em] text-slate-500">
                 Filters
               </p>
-              <h2 className="mt-1 text-2xl font-bold text-slate-900">Optimization view</h2>
+              <h2 className="mt-1 text-2xl font-bold text-slate-900">What to improve</h2>
             </div>
-            <p className="text-sm text-slate-500">Current view: {filterContext}</p>
+            <p className="text-sm text-slate-500">Showing: {filterContext}</p>
           </div>
 
           <form className="mt-5 flex flex-wrap items-end gap-4" method="get">
@@ -1777,7 +1775,7 @@ export default async function AffiliateReportPage({
             </label>
 
             <label className="flex min-w-45 flex-col gap-2 text-sm font-medium text-slate-700">
-              Route type
+              Link type
               <select
                 name="route"
                 defaultValue={routeFilter}
@@ -1785,7 +1783,7 @@ export default async function AffiliateReportPage({
               >
                 <option value="all">All routes</option>
                 <option value="direct">Direct product routes</option>
-                <option value="search">Search-backed routes</option>
+                <option value="search">Lazada search links</option>
               </select>
             </label>
 
@@ -1807,7 +1805,7 @@ export default async function AffiliateReportPage({
           </form>
 
           <p className="mt-4 text-sm leading-6 text-slate-600">
-            The insights below are based on the selected window and route filter. Recent activity is
+            The insights below are based on the selected time window and link type. Recent activity is
             capped to the latest {REPORT_ACTIVITY_LIMIT} Lazada clicks for performance, with the latest{" "}
             {REPORT_TABLE_LIMIT} rows shown in the table.
           </p>
@@ -1842,12 +1840,12 @@ export default async function AffiliateReportPage({
           <SummaryCard
             label="Search clicks"
             value={String(totalSearchClicks)}
-            helper={`Search-backed Lazada clicks in ${describeWindowFilter(windowFilter).toLowerCase()} for ${routeScopedLabel}.`}
+            helper={`Lazada search-link clicks in ${describeWindowFilter(windowFilter).toLowerCase()} for ${routeScopedLabel}.`}
           />
           <SummaryCard
             label="Promotion-link coverage"
             value={formatPercentValue(promotionLinkCoverage)}
-            helper={`${totalPromotionLinkClicks} of ${totalClicks} Lazada clicks resolved to affiliate-ready promotion links.`}
+            helper={`${totalPromotionLinkClicks} of ${totalClicks} Lazada clicks resolved to trackable affiliate links.`}
           />
           <SummaryCard
             label="Mapped conversions"
@@ -1929,7 +1927,7 @@ export default async function AffiliateReportPage({
                 <h3 className="mt-1 text-xl font-bold text-slate-900">Route coverage by type</h3>
               </div>
               <p className="text-sm text-slate-500">
-                These percentages show how often each route family becomes an affiliate-ready promotion link.
+                These percentages show how often each link type becomes a trackable Lazada affiliate link.
               </p>
             </div>
 
@@ -1971,7 +1969,7 @@ export default async function AffiliateReportPage({
                     className="rounded-3xl border border-white/70 bg-white/88 p-4 shadow-[0_18px_50px_rgba(148,163,184,0.12)] backdrop-blur-md"
                   >
                     <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">
-                      Resolution reason
+                      Tracking reason
                     </p>
                     <h3 className="mt-2 text-lg font-bold text-slate-900">{insight.label}</h3>
                     <p className="mt-4 text-sm text-slate-600">
@@ -2033,7 +2031,7 @@ export default async function AffiliateReportPage({
               </h2>
               <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-500">
                 Opened in Lazada is what our app sent the user to. Lazada reported product stays
-                pending for search-backed routes until Lazada sends a mapped conversion postback
+                pending for search links until Lazada sends a matching conversion report
                 with product details.
               </p>
             </div>
@@ -2050,7 +2048,7 @@ export default async function AffiliateReportPage({
                 <thead>
                   <tr className="text-left text-xs font-semibold uppercase tracking-[0.14em] text-slate-500">
                     <th className="px-3 py-2">User</th>
-                    <th className="px-3 py-2">Selected angle</th>
+                    <th className="px-3 py-2">Shopping option</th>
                     <th className="px-3 py-2">Opened in Lazada</th>
                     <th className="px-3 py-2">Lazada reported product</th>
                     <th className="px-3 py-2">Type</th>

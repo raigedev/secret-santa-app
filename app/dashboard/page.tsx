@@ -222,7 +222,7 @@ function buildDashboardRevealMessage(groups: Group[], now: number): string {
     });
 
   if (events.length === 0) {
-    return "Manage your groups, draws, and chats in one place.";
+    return "Manage your groups, name draws, wishlists, and private messages in one place.";
   }
 
   const openEvents = events.filter((event) => event.hasStarted);
@@ -287,10 +287,10 @@ function formatDashboardBudget(budget: number | null, currency: string | null): 
 
 function getDashboardMemberLabel(member: GroupMember, requireAnonymousNickname: boolean): string {
   if (requireAnonymousNickname) {
-    return getAnonymousGroupDisplayName(member.nickname, "Participant");
+    return getAnonymousGroupDisplayName(member.nickname, "Member");
   }
 
-  return member.displayName || member.nickname || member.email || "Participant";
+  return member.displayName || member.nickname || member.email || "Member";
 }
 
 function formatRelativeTime(value: string): string {
@@ -1057,7 +1057,7 @@ export default function DashboardPage() {
 
           receiverNameByGroupUser.set(
             createGroupUserKey(member.group_id, member.user_id),
-            member.nickname || "Secret Participant"
+            member.nickname || "Secret Member"
           );
         }
 
@@ -1066,7 +1066,7 @@ export default function DashboardPage() {
             return (
               receiverNameByGroupUser.get(
                 createGroupUserKey(assignment.group_id, assignment.receiver_id)
-              ) || "Secret Participant"
+              ) || "Secret Member"
             );
           })
         );
@@ -1531,7 +1531,7 @@ export default function DashboardPage() {
   // Requiring the exact group name adds another deliberate confirmation step.
   const handleDeleteGroup = async (groupId: string, groupName: string) => {
     const confirmed = confirm(
-      `Delete "${groupName}"?\n\nThis will permanently remove the group.`
+      `Delete "${groupName}"?\n\nThis permanently removes the group, members, wishlists, messages, and draw details.`
     );
 
     if (!confirmed) {
@@ -1624,7 +1624,7 @@ export default function DashboardPage() {
     },
     {
       key: "ready_to_give",
-      label: "Gift Sent",
+      label: "Gift sent",
       icon: "🎁",
       accent: "bg-[#b8a0e8]",
       rowTone: isDarkTheme ? "bg-violet-500/10 text-violet-200" : "bg-violet-50 text-violet-700",
@@ -2177,10 +2177,10 @@ export default function DashboardPage() {
         <section data-fade className="mb-12 grid gap-6 md:grid-cols-3">
           <ActionCard
             accent="rose"
-            title={hasAssignments ? "Open Assignment" : "No Assignment Yet"}
+            title={hasAssignments ? "View Recipient" : "No Recipient Yet"}
             description={
               hasAssignments
-                ? "See who you're surprising this year!"
+                ? "See who you are giving a gift to."
                 : "Your recipient will appear after the draw."
             }
             onClick={() => router.push("/secret-santa")}
@@ -2189,14 +2189,14 @@ export default function DashboardPage() {
           <ActionCard
             accent="green"
             title="Secret Santa Chat"
-            description="Message your giftee or your Santa privately."
+            description="Ask private questions without revealing the surprise."
             onClick={() => router.push("/secret-santa-chat")}
             icon={<ChatIcon className="h-8 w-8" />}
           />
           <ActionCard
             accent="blue"
             title="New Group"
-            description="Start a new exchange for friends."
+            description="Create a Secret Santa group and invite members."
             onClick={() => router.push("/create-group")}
             icon={<PlusIcon className="h-8 w-8" />}
           />
@@ -2209,7 +2209,7 @@ export default function DashboardPage() {
                 <div>
                   <h2 className={`text-[1.85rem] font-black tracking-tight ${dashboardPanelHeadingClass}`}>Your Groups</h2>
                   <p className={`mt-1 text-[15px] ${dashboardPanelTextClass}`}>
-                    Hosted and joined exchanges in one clean view.
+                    Groups you host and groups you joined, all in one place.
                   </p>
                 </div>
                 <button
@@ -2255,7 +2255,7 @@ export default function DashboardPage() {
                   )}
                   {invitedGroups.length > 0 && (
                     <GroupBucket
-                      title="Joined as participant"
+                      title="Joined as member"
                       count={invitedGroups.length}
                       groups={invitedGroups}
                       type="invited"
@@ -2266,7 +2266,7 @@ export default function DashboardPage() {
             </section>
 
             <section id="dashboard-activity" className="scroll-mt-24">
-              <h2 className={`mb-5 text-[1.85rem] font-black tracking-tight ${dashboardPanelHeadingClass}`}>Activity Feed</h2>
+              <h2 className={`mb-5 text-[1.85rem] font-black tracking-tight ${dashboardPanelHeadingClass}`}>Recent Activity</h2>
               <div className={`rounded-[30px] p-3 shadow-[0_12px_30px_rgba(45,51,55,0.04)] ${
                 isDarkTheme ? "bg-slate-900/82" : "bg-white/92"
               }`}>
@@ -2335,7 +2335,7 @@ export default function DashboardPage() {
                 </span>
               </div>
               <p className={`text-[15px] leading-7 ${dashboardPanelTextClass}`}>
-                Make it easy for your Santa to find the perfect gift. {wishlistGroupCount} group{wishlistGroupCount === 1 ? "" : "s"} already use your ideas.
+                Help your Santa choose a gift you will like. {wishlistGroupCount} group{wishlistGroupCount === 1 ? "" : "s"} already use your wishlist ideas.
               </p>
               <button
                 type="button"
@@ -2399,7 +2399,7 @@ export default function DashboardPage() {
             <section className={`rounded-[32px] p-8 shadow-[0_14px_32px_rgba(45,51,55,0.05)] ${
               isDarkTheme ? "bg-slate-900/82 text-slate-100" : "bg-white text-slate-900"
             }`}>
-              <h3 className="text-lg font-black">Inbox Highlights</h3>
+              <h3 className="text-lg font-black">Notification Highlights</h3>
               <div className="mt-5 space-y-4">
                 {notificationPreviewItems.length === 0 ? (
                   <div className={`rounded-[22px] border border-dashed px-4 py-7 text-sm ${

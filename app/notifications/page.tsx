@@ -81,9 +81,9 @@ function getNotificationLabel(type: string): string {
     case "reminder_wishlist_incomplete":
       return "Reminder: wishlist";
     case "reminder_event_tomorrow":
-      return "Reminder: event";
+      return "Reminder: gift date";
     case "reminder_post_draw":
-      return "Reminder: planning";
+      return "Gift planning reminder";
     case "reminder_digest":
       return "Reminder digest";
     case "affiliate_lazada_health":
@@ -151,7 +151,7 @@ function getNotificationActionLabel(notification: NotificationItem): string {
     case "reminder_post_draw":
       return "Start planning";
     case "reminder_digest":
-      return "Open digest";
+      return "Open summary";
     case "chat":
       return "Open chat";
     case "invite":
@@ -229,7 +229,7 @@ export default function NotificationsPage() {
       }
 
       if (error) {
-        setMessage("Failed to load notifications.");
+        setMessage("We could not load your notifications. Please refresh the page.");
         setLoading(false);
         return;
       }
@@ -453,7 +453,7 @@ export default function NotificationsPage() {
                   {"\u{1F514}"} Notifications
                 </div>
                 <p className="mt-1 text-[13px]" style={{ color: "rgba(255,255,255,.84)" }}>
-                  Important updates from your groups, chats, gift progress, and reminder system.
+                  Important updates from your groups, private messages, gift progress, and reminders.
                 </p>
               </div>
 
@@ -501,9 +501,8 @@ export default function NotificationsPage() {
                   </div>
                   <h2 className="mt-2 text-[24px] font-bold text-slate-900">Smart reminders</h2>
                   <p className="mt-2 max-w-[680px] text-sm leading-6 text-slate-600">
-                    Choose which reminder types we should send, and whether they arrive immediately
-                    or as one daily digest. Daily digest groups reminders into one in-app update
-                    during the scheduled reminder run.
+                    Choose which reminders you want and whether they arrive one by one or as a
+                    daily summary.
                   </p>
                 </div>
                 <button
@@ -538,8 +537,8 @@ export default function NotificationsPage() {
                 <div className="space-y-3">
                   <ReminderToggle
                     checked={preferences.reminder_wishlist_incomplete}
-                    description="Remind users when an upcoming group still has no wishlist items to guide their Secret Santa."
-                    label="Wishlist incomplete"
+                    description="Remind me when an upcoming group still needs wishlist ideas."
+                    label="Wishlist needed"
                     onChange={() =>
                       setPreferences((current) => ({
                         ...current,
@@ -549,8 +548,8 @@ export default function NotificationsPage() {
                   />
                   <ReminderToggle
                     checked={preferences.reminder_event_tomorrow}
-                    description="Send a heads-up the day before the exchange so people can review their plans."
-                    label="Event tomorrow"
+                    description="Send a heads-up the day before the gift exchange."
+                    label="Gift date tomorrow"
                     onChange={() =>
                       setPreferences((current) => ({
                         ...current,
@@ -560,8 +559,8 @@ export default function NotificationsPage() {
                   />
                   <ReminderToggle
                     checked={preferences.reminder_post_draw}
-                    description="Nudge gifters after a draw so they start planning, checking wishlists, or opening the anonymous chat."
-                    label="Post-draw planning"
+                    description="Remind me after names are drawn so I can check the wishlist or send a private message."
+                    label="After names are drawn"
                     onChange={() =>
                       setPreferences((current) => ({
                         ...current,
@@ -578,13 +577,13 @@ export default function NotificationsPage() {
                   <div className="mt-3 grid gap-3">
                     {[
                       {
-                        description: "Send each reminder as its own notification during the next scheduled reminder processing run.",
+                        description: "Send each reminder as its own notification.",
                         label: "Immediate",
                         value: "immediate" as const,
                       },
                       {
-                        description: "Bundle due reminders into one daily in-app digest during the scheduled reminder processing run.",
-                        label: "Daily digest",
+                        description: "Bundle due reminders into one daily in-app summary.",
+                        label: "Daily summary",
                         value: "daily_digest" as const,
                       },
                     ].map((option) => {

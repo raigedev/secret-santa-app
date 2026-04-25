@@ -161,10 +161,10 @@ export async function updateProfile(
       resourceId: user.id,
       resourceType: "profile",
     });
-    return { success: false, message: "Failed to save. Please try again." };
+    return { success: false, message: "We could not save your profile. Please try again." };
   }
 
-  return { success: true, message: "Profile saved!" };
+  return { success: true, message: "Profile saved." };
 }
 
 export async function quickSetup(
@@ -217,7 +217,7 @@ export async function quickSetup(
       resourceId: user.id,
       resourceType: "profile",
     });
-    return { success: false, message: "Failed to save. Please try again." };
+    return { success: false, message: "We could not save your profile. Please try again." };
   }
 
   return { success: true, message: "Welcome!" };
@@ -274,7 +274,7 @@ export async function deleteAccount(): Promise<{ success: boolean; message: stri
       resourceType: "profile",
     });
 
-    return { success: false, message: "Failed to prepare account deletion. Please try again." };
+    return { success: false, message: "We could not prepare account deletion. Please try again." };
   }
 
   const ownedGroupIds = new Set((ownedGroupsResult.data || []).map((group) => group.id));
@@ -317,7 +317,7 @@ export async function deleteAccount(): Promise<{ success: boolean; message: stri
 
       return {
         success: false,
-        message: "Failed to verify account deletion safety. Please try again.",
+        message: "We could not check whether your account can be deleted safely. Please try again.",
       };
     }
 
@@ -335,7 +335,7 @@ export async function deleteAccount(): Promise<{ success: boolean; message: stri
 
       return {
         success: false,
-        message: `You are still part of a drawn group (${preview}${suffix}). Ask the owner to reset the draw or remove you first.`,
+        message: `You are still part of a group where names were drawn (${preview}${suffix}). Ask the owner to reset the draw or remove you first.`,
       };
     }
   }
@@ -351,7 +351,7 @@ export async function deleteAccount(): Promise<{ success: boolean; message: stri
       resourceType: "profile",
     });
 
-    return { success: false, message: "Failed to delete your account. Please try again." };
+    return { success: false, message: "We could not delete your account. Please try again." };
   }
 
   if (normalizedEmail) {

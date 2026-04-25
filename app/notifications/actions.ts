@@ -94,7 +94,7 @@ export async function saveReminderPreferences(
       resourceType: "profile",
     });
 
-    return { success: false, message: "Failed to save reminder settings." };
+    return { success: false, message: "We could not save reminder settings." };
   }
 
   await reschedulePendingReminderJobsForUser(user.id);
@@ -106,7 +106,7 @@ export async function markNotificationRead(
   notificationId: string
 ): Promise<{ success: boolean; message: string }> {
   if (!notificationId || !UUID_PATTERN.test(notificationId)) {
-    return { success: false, message: "Missing notification." };
+    return { success: false, message: "Choose a notification first." };
   }
 
   const supabase = await createClient();
@@ -148,7 +148,7 @@ export async function markNotificationRead(
       resourceType: "notification",
     });
 
-    return { success: false, message: "Failed to update notification." };
+    return { success: false, message: "We could not update this notification." };
   }
 
   return { success: true, message: "Notification updated." };
@@ -196,7 +196,7 @@ export async function markAllNotificationsRead(): Promise<{
       resourceType: "notification",
     });
 
-    return { success: false, message: "Failed to update notifications." };
+    return { success: false, message: "We could not update your notifications." };
   }
 
   return { success: true, message: "All notifications marked as read." };

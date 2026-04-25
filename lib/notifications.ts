@@ -603,7 +603,7 @@ async function enqueueWishlistIncompleteReminderJobs(now: Date): Promise<number>
     );
 
     const inserted = await insertReminderJob({
-      body: `Add at least one wishlist item for ${group.name} so your Secret Santa has clear gift ideas before the exchange.`,
+      body: `Add at least one wishlist item for ${group.name} so your Santa has clear gift ideas before the exchange.`,
       candidate_due_at: candidateDueAt.toISOString(),
       dedupe_key: `wishlist_incomplete:${group.id}:${userId}:${today}`,
       delivery_mode_snapshot: preferences.reminder_delivery_mode,
@@ -742,7 +742,7 @@ async function enqueuePostDrawReminderJobs(now: Date): Promise<number> {
     );
 
     const inserted = await insertReminderJob({
-      body: `Your draw for ${group.name} is ready. Review the wishlist or send an anonymous message so you can start planning with more confidence.`,
+      body: `Your recipient for ${group.name} is ready. Review their wishlist or send a private message so you can start planning.`,
       candidate_due_at: candidateDueAt.toISOString(),
       dedupe_key: `post_draw:${assignment.group_id}:${assignment.giver_id}:${cycleMarker}`,
       delivery_mode_snapshot: preferences.reminder_delivery_mode,
@@ -797,7 +797,7 @@ function buildDailyDigestNotificationInput(jobs: ReminderJobRow[]): Notification
 
   if (counts.eventTomorrow > 0) {
     summaryParts.push(
-      `${counts.eventTomorrow} event${counts.eventTomorrow === 1 ? "" : "s"} tomorrow`
+      `${counts.eventTomorrow} gift date${counts.eventTomorrow === 1 ? "" : "s"} tomorrow`
     );
   }
 
