@@ -94,6 +94,7 @@ test.describe("authenticated screen regressions", () => {
     await page.goto("/secret-santa");
     await page.getByLabel(/online shop region/i).selectOption({ label: "Philippines" });
 
+    const shoppingOptionPanel = page.getByTestId("shopping-option-panel").first();
     const shoppingOptions = page.getByTestId("shopping-focus-options");
     const optionButtons = shoppingOptions.getByRole("button");
     await expect(optionButtons.first()).toBeVisible();
@@ -130,6 +131,14 @@ test.describe("authenticated screen regressions", () => {
 
     const curatedCards = page.getByTestId("curated-shopping-card");
     await expect(curatedCards.first()).toBeVisible();
+    await curatedCards.last().scrollIntoViewIfNeeded();
+    await expect(shoppingOptionPanel).toBeVisible();
+
+    const stickyPanelTop = await shoppingOptionPanel.evaluate(
+      (panel) => panel.getBoundingClientRect().top
+    );
+    expect(stickyPanelTop).toBeGreaterThanOrEqual(0);
+    expect(stickyPanelTop).toBeLessThanOrEqual(16);
 
     const cardsMissingBudgetTarget = await curatedCards.evaluateAll((cards) =>
       cards

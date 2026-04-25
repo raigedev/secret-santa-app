@@ -2524,7 +2524,8 @@ export default function SecretSantaPage() {
                               <div className="grid min-w-0 gap-3">
                                 <section
                                   id={`direction-${assignment.group_id}`}
-                                  className="min-w-0 overflow-hidden rounded-[22px] p-3 sm:p-4"
+                                  data-testid="shopping-option-panel"
+                                  className="sticky top-2 z-30 min-w-0 overflow-hidden rounded-[22px] p-3 sm:p-4"
                                   style={{
                                     background:
                                       "linear-gradient(135deg,rgba(242,244,242,.94),rgba(255,255,255,.88))",
