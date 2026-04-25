@@ -130,15 +130,18 @@ test.describe("authenticated screen regressions", () => {
     expect(clippedOptionLabels).toEqual([]);
 
     const curatedCards = page.getByTestId("curated-shopping-card");
+    const curatedSection = page.getByTestId("curated-shopping-section").first();
     await expect(curatedCards.first()).toBeVisible();
-    await curatedCards.last().scrollIntoViewIfNeeded();
+    await shoppingOptionPanel.evaluate((panel) => {
+      window.scrollBy(0, panel.getBoundingClientRect().top);
+    });
     await expect(shoppingOptionPanel).toBeVisible();
 
     const stickyPanelTop = await shoppingOptionPanel.evaluate(
       (panel) => panel.getBoundingClientRect().top
     );
     expect(stickyPanelTop).toBeGreaterThanOrEqual(0);
-    expect(stickyPanelTop).toBeLessThanOrEqual(16);
+    expect(stickyPanelTop).toBeLessThanOrEqual(1);
 
     const stickyPanelSurface = await shoppingOptionPanel.evaluate((panel) => {
       const panelStyle = window.getComputedStyle(panel);
@@ -150,6 +153,28 @@ test.describe("authenticated screen regressions", () => {
     });
     expect(stickyPanelSurface.backgroundColor).toBe("rgb(255, 255, 255)");
     expect(stickyPanelSurface.backgroundImage).not.toContain("rgba");
+    await curatedSection.scrollIntoViewIfNeeded();
+
+    const stickyPanelBoundary = await shoppingOptionPanel.evaluate((panel) => {
+      const curatedSection = document.querySelector(
+        '[data-testid="curated-shopping-section"]'
+      );
+
+      if (!(curatedSection instanceof HTMLElement)) {
+        throw new Error("Curated shopping section was not measurable.");
+      }
+
+      const panelRect = panel.getBoundingClientRect();
+      const curatedRect = curatedSection.getBoundingClientRect();
+
+      return {
+        curatedTop: curatedRect.top,
+        panelBottom: panelRect.bottom,
+      };
+    });
+    expect(stickyPanelBoundary.panelBottom).toBeLessThanOrEqual(
+      stickyPanelBoundary.curatedTop + 1
+    );
 
     const cardsMissingBudgetTarget = await curatedCards.evaluateAll((cards) =>
       cards

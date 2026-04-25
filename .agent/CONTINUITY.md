@@ -26,6 +26,7 @@
 - 2026-04-25T23:53:00+08:00 [CODE] `/secret-santa` shopping-option buttons removed `Try this`, use a filled green selected state, and allow labels to wrap without truncation.
 - 2026-04-26T00:32:58+08:00 [CODE] `/secret-santa` shopping-option panel is sticky while viewing Shopping Picks so selected-option changes remain visible near curated cards.
 - 2026-04-26T00:45:44+08:00 [CODE] `/secret-santa` sticky shopping-option panel now uses an opaque surface and stronger elevation so card content does not show through while scrolling.
+- 2026-04-26T00:56:41+08:00 [CODE] `/secret-santa` sticky shopping-option panel is flush to the viewport top when active and is bounded to the pre-curated picks block so it stops before `Curated Shopping Ideas`.
 - 2026-04-25T00:55:00+08:00 [CODE] Affiliate report separates `Opened in Lazada` from `Lazada reported product`; search-link clicks show exact products only after a mapped Lazada conversion report supplies them.
 - 2026-04-23T23:47:58+08:00 [CODE] `/secret-santa-chat` keeps the recognizable dark festive layout with clearer privacy/identity panels, dashboard control, thread labels, and Winter Atelier palette alignment.
 - 2026-04-25T20:35:00+08:00 [CODE] Broad UX-writing pass rewrote public/auth/dashboard/group/wishlist/Secret Santa/chat/notification/profile/affiliate-report text toward simple terms: group, member, wishlist, recipient, gift progress, shopping option, affiliate link. Tests were updated only where assertions intentionally tracked old copy.

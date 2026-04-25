@@ -2521,16 +2521,21 @@ export default function SecretSantaPage() {
                                 </p>
                               </div>
 
-                              <div className="grid min-w-0 gap-3">
+                              <div className="grid min-w-0 gap-4">
+                                <div
+                                  data-testid="shopping-option-sticky-region"
+                                  className="grid min-w-0 gap-3"
+                                >
                                 <section
                                   id={`direction-${assignment.group_id}`}
                                   data-testid="shopping-option-panel"
-                                  className="sticky top-2 z-50 min-w-0 overflow-hidden rounded-[22px] p-3 sm:p-4"
+                                  className="sticky top-0 z-50 min-w-0 overflow-hidden rounded-b-[22px] p-3 sm:p-4"
                                   style={{
                                     backgroundColor: "#ffffff",
                                     backgroundImage:
                                       "linear-gradient(135deg,#f4f6f4 0%,#ffffff 100%)",
                                     border: "1px solid rgba(72,102,78,.12)",
+                                    borderTop: "none",
                                     color: PAGE_TEXT_COLOR,
                                     boxShadow: "0 22px 54px rgba(46,52,50,.14)",
                                   }}
@@ -2772,6 +2777,7 @@ export default function SecretSantaPage() {
                                   </div>
                                   </div>
                                 </div>
+                                </div>
 
                                 {selectedSuggestion && (
                                     <div className="min-w-0 space-y-4">
@@ -2798,7 +2804,10 @@ export default function SecretSantaPage() {
                                       )}
 
                                       {curatedLazadaCards.length > 0 && (
-                                        <section className="min-w-0">
+                                        <section
+                                          data-testid="curated-shopping-section"
+                                          className="min-w-0"
+                                        >
                                           <div className="mb-3 flex flex-col gap-1">
                                             <h3
                                               className="text-[18px] font-extrabold leading-tight sm:text-[22px]"
