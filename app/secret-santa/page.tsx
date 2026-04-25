@@ -2555,11 +2555,16 @@ export default function SecretSantaPage() {
                                     {suggestionOptions.map((suggestion) => {
                                       const isSelected =
                                         suggestion.id === selectedSuggestionId;
+                                      const shoppingFocusLabel =
+                                        getShoppingFocusDisplayLabel(suggestion.title);
 
                                       return (
                                         <button
                                           key={suggestion.id}
                                           type="button"
+                                          aria-label={`${shoppingFocusLabel}${
+                                            isSelected ? ", selected" : ""
+                                          }`}
                                           aria-pressed={isSelected}
                                           onClick={() =>
                                             selectRecipientSuggestion(
@@ -2567,38 +2572,56 @@ export default function SecretSantaPage() {
                                               suggestion.id
                                             )
                                           }
-                                          className="inline-flex min-h-[40px] min-w-fit shrink-0 items-center gap-2 whitespace-nowrap rounded-full px-3.5 py-2 text-left transition hover:-translate-y-0.5 sm:px-4"
+                                          className="inline-flex min-h-[40px] min-w-fit shrink-0 items-center gap-2 whitespace-nowrap rounded-full border px-3.5 py-2 text-left transition hover:-translate-y-0.5 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 sm:px-4"
                                           style={{
-                                            background: "#ffffff",
+                                            background: isSelected
+                                              ? "linear-gradient(135deg, rgba(72,102,78,.18), rgba(255,255,255,.96))"
+                                              : "#ffffff",
+                                            borderColor: isSelected
+                                              ? "rgba(72,102,78,.42)"
+                                              : "rgba(174,179,177,.13)",
                                             boxShadow: isSelected
-                                              ? "0 16px 32px rgba(72,102,78,.1)"
+                                              ? "0 16px 32px rgba(72,102,78,.16), inset 0 0 0 1px rgba(255,255,255,.75)"
                                               : "none",
                                             cursor: "pointer",
                                             fontFamily: "inherit",
-                                            outline: isSelected
-                                              ? "1px solid rgba(72,102,78,.2)"
-                                              : "1px solid rgba(174,179,177,.13)",
+                                            outlineColor: HOLIDAY_GREEN,
                                           }}
                                         >
-                                            <div
-                                              className="max-w-[8.5rem] truncate text-[12px] font-extrabold leading-tight sm:max-w-[9.5rem] xl:max-w-[10.5rem]"
-                                              style={{ color: PAGE_TEXT_COLOR }}
+                                          {isSelected && (
+                                            <span
+                                              aria-hidden="true"
+                                              className="grid size-5 shrink-0 place-items-center rounded-full"
+                                              style={{
+                                                background: HOLIDAY_GREEN,
+                                                boxShadow:
+                                                  "0 6px 14px rgba(72,102,78,.24)",
+                                              }}
                                             >
-                                              {getShoppingFocusDisplayLabel(suggestion.title)}
-                                            </div>
+                                              <span className="size-1.5 rounded-full bg-white" />
+                                            </span>
+                                          )}
+                                          <div
+                                            className="max-w-[8.5rem] truncate text-[12px] font-extrabold leading-tight sm:max-w-[9.5rem] xl:max-w-[10.5rem]"
+                                            style={{
+                                              color: isSelected
+                                                ? HOLIDAY_GREEN
+                                                : PAGE_TEXT_COLOR,
+                                            }}
+                                          >
+                                            {shoppingFocusLabel}
+                                          </div>
+                                          {!isSelected && (
                                             <span
                                               className="shrink-0 rounded-full px-2 py-1 text-[9px] font-extrabold"
                                               style={{
-                                                color: isSelected
-                                                  ? HOLIDAY_GREEN
-                                                  : TEXT_MUTED,
-                                                background: isSelected
-                                                  ? "rgba(72,102,78,.1)"
-                                                  : "transparent",
+                                                color: TEXT_MUTED,
+                                                background: "transparent",
                                               }}
                                             >
-                                              {isSelected ? "Selected" : "Try this"}
+                                              Try this
                                             </span>
+                                          )}
                                         </button>
                                       );
                                     })}
