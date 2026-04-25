@@ -31,6 +31,7 @@
 - 2026-04-23T15:08:24+08:00 [TOOL] Playwright coverage includes public smoke, public/protected navigation, API auth guards, auth-form validation, responsive checks, axe accessibility, OAuth back-navigation, public auth edge cases, and seeded authenticated-screen scaffolding.
 - 2026-04-24T15:34:56+08:00 [TOOL] Ignored `.env.local` has seeded `PLAYWRIGHT_E2E_EMAIL`, `PLAYWRIGHT_E2E_PASSWORD`, and `PLAYWRIGHT_E2E_GROUP_ID`; owner-only affiliate-report tests still skip unless the seeded email is allowlisted.
 - 2026-04-25T20:35:00+08:00 [TOOL] UX-writing pass checks passed: `git diff --check`, `npm.cmd run typecheck`, `npm.cmd run lint:security`, `npm.cmd run build`, focused public-route Playwright, public smoke/forms/a11y Playwright, and authenticated-screen Playwright. Full `npm.cmd run test:e2e` and full Chromium `tests/e2e` attempts timed out before producing reports; focused suites passed.
+- 2026-04-26T00:11:46+08:00 [TOOL] Added permanent authenticated Playwright coverage for `/secret-santa` shopping-option readability, removed `Try this`, filled selected state, curated card budget targets, and header/image separation.
 - 2026-04-20T00:00:00+08:00 [TOOL] Recurring build warning remains the parent lockfile workspace-root inference from `C:\Users\kenda\package-lock.json`.
 
 ## Tooling

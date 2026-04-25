@@ -88,6 +88,80 @@ test.describe("authenticated screen regressions", () => {
       await screen.assertVisible(page);
     });
   }
+
+  test("secret-santa keeps shopping picks readable", async ({ page }) => {
+    await loginWithTestCredentials(page, credentials!);
+    await page.goto("/secret-santa");
+    await page.getByLabel(/online shop region/i).selectOption({ label: "Philippines" });
+
+    const shoppingOptions = page.getByTestId("shopping-focus-options");
+    const optionButtons = shoppingOptions.getByRole("button");
+    await expect(optionButtons.first()).toBeVisible();
+    await expect(shoppingOptions.getByText(/try this/i)).toHaveCount(0);
+
+    const selectedOption = shoppingOptions.locator('button[aria-pressed="true"]').first();
+    await expect(selectedOption).toBeVisible();
+    await expect(selectedOption).toHaveCSS("background-color", "rgb(72, 102, 78)");
+    await expect(selectedOption.locator("div").first()).toHaveCSS("color", "rgb(255, 255, 255)");
+
+    const clippedOptionLabels = await optionButtons.evaluateAll((buttons) =>
+      buttons
+        .map((button, index) => {
+          const label = button.querySelector("div");
+          const labelStyle = label ? window.getComputedStyle(label) : null;
+
+          return {
+            index,
+            text: button.textContent?.replace(/\s+/g, " ").trim() || "",
+            isClipped: label ? label.scrollWidth > label.clientWidth + 1 : true,
+            textOverflow: labelStyle?.textOverflow || "",
+            whiteSpace: labelStyle?.whiteSpace || "",
+          };
+        })
+        .filter(
+          (button) =>
+            button.isClipped ||
+            button.textOverflow === "ellipsis" ||
+            button.whiteSpace === "nowrap"
+        )
+    );
+
+    expect(clippedOptionLabels).toEqual([]);
+
+    const curatedCards = page.getByTestId("curated-shopping-card");
+    await expect(curatedCards.first()).toBeVisible();
+
+    const cardsMissingBudgetTarget = await curatedCards.evaluateAll((cards) =>
+      cards
+        .map((card, index) => ({
+          index,
+          text: card.textContent?.replace(/\s+/g, " ").trim() || "",
+        }))
+        .filter((card) => !/Budget target:/i.test(card.text))
+    );
+    expect(cardsMissingBudgetTarget).toEqual([]);
+
+    const overlappingCardHeaders = await curatedCards.evaluateAll((cards) =>
+      cards
+        .map((card, index) => {
+          const header = card.children.item(0);
+          const media = card.children.item(1);
+
+          if (!(header instanceof HTMLElement) || !(media instanceof HTMLElement)) {
+            return { index, reason: "missing header or media" };
+          }
+
+          const headerRect = header.getBoundingClientRect();
+          const mediaRect = media.getBoundingClientRect();
+
+          return headerRect.bottom <= mediaRect.top + 1
+            ? null
+            : { index, headerBottom: headerRect.bottom, mediaTop: mediaRect.top };
+        })
+        .filter((overlap) => overlap !== null)
+    );
+    expect(overlappingCardHeaders).toEqual([]);
+  });
 });
 
 test.describe("group-scoped authenticated regressions", () => {
