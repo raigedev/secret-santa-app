@@ -141,6 +141,30 @@ test.describe("authenticated screen regressions", () => {
     );
     expect(cardsMissingBudgetTarget).toEqual([]);
 
+    const clippedRoleLabels = await page
+      .getByTestId("curated-shopping-role-label")
+      .evaluateAll((labels) =>
+        labels
+          .map((label, index) => {
+            const labelStyle = window.getComputedStyle(label);
+
+            return {
+              index,
+              text: label.textContent?.replace(/\s+/g, " ").trim() || "",
+              isClipped: label.scrollWidth > label.clientWidth + 1,
+              textOverflow: labelStyle.textOverflow,
+              whiteSpace: labelStyle.whiteSpace,
+            };
+          })
+          .filter(
+            (label) =>
+              label.isClipped ||
+              label.textOverflow === "ellipsis" ||
+              label.whiteSpace === "nowrap"
+          )
+      );
+    expect(clippedRoleLabels).toEqual([]);
+
     const overlappingCardHeaders = await curatedCards.evaluateAll((cards) =>
       cards
         .map((card, index) => {

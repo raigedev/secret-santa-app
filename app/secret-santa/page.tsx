@@ -2861,21 +2861,23 @@ export default function SecretSantaPage() {
                                                     cursor: "default",
                                                   }}
                                                 >
-                                                  <div className="flex min-h-[44px] min-w-0 items-start justify-between gap-2 px-4 pt-4">
+                                                  <div className="grid min-h-[44px] min-w-0 grid-cols-[minmax(5.5rem,1fr)_minmax(7rem,9rem)] items-start gap-2 px-4 pt-4">
                                                     <span
-                                                      className="min-w-0 max-w-[58%] truncate rounded-full px-3 py-1.5 text-[9px] font-extrabold uppercase leading-tight"
+                                                      data-testid="curated-shopping-role-label"
+                                                      className="w-fit max-w-full justify-self-start whitespace-normal rounded-full px-3 py-1.5 text-center text-[9px] font-extrabold uppercase leading-tight"
                                                       style={{
                                                         color: toneStyle.badgeColor,
                                                         background:
                                                           toneStyle.badgeBackground,
                                                         boxShadow:
                                                           "0 8px 18px rgba(46,52,50,.06)",
+                                                        overflowWrap: "anywhere",
                                                       }}
                                                     >
                                                       {roleLabel}
                                                     </span>
                                                     <div
-                                                      className="ml-auto shrink-0 rounded-full px-3 py-1.5 text-right text-[13px] font-extrabold leading-tight"
+                                                      className="justify-self-end rounded-full px-3 py-1.5 text-right text-[13px] font-extrabold leading-tight"
                                                       style={{
                                                         color: budgetTargetLabel ||
                                                           product.priceLabel
