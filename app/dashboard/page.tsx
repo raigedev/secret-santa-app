@@ -156,6 +156,22 @@ type DashboardNotificationPreviewItem = {
   createdAt: string;
 };
 
+type DashboardSnapshot = {
+  createdAt: number;
+  userId: string;
+  userName: string;
+  ownedGroups: Group[];
+  invitedGroups: Group[];
+  pendingInvites: PendingInvite[];
+  recipientNames: string[];
+  unreadNotificationCount: number;
+  wishlistItemCount: number;
+  wishlistGroupCount: number;
+  giftProgressSummary: GiftProgressSummary | null;
+  activityFeedItems: DashboardActivityItem[];
+  notificationPreviewItems: DashboardNotificationPreviewItem[];
+};
+
 type DashboardTheme = "default" | "midnight";
 type GiftProgressStep = "planning" | "purchased" | "wrapped" | "ready_to_give";
 
@@ -176,12 +192,242 @@ type PeerProfileRow = {
   avatar_url: string | null;
 };
 
+const DASHBOARD_SNAPSHOT_TTL_MS = 5 * 60 * 1000;
+const DASHBOARD_SNAPSHOT_STORAGE_PREFIX = "ss_dashboard_snapshot_v1:";
+
 function createGroupUserKey(groupId: string, userId: string): string {
   return `${groupId}:${userId}`;
 }
 
 function createEmptyQueryResult<T>(data: T[] = []): Promise<{ data: T[]; error: null }> {
   return Promise.resolve({ data, error: null });
+}
+
+function getDashboardSnapshotStorageKey(userId: string): string {
+  return `${DASHBOARD_SNAPSHOT_STORAGE_PREFIX}${userId}`;
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+function isNullableString(value: unknown): value is string | null {
+  return typeof value === "string" || value === null;
+}
+
+function isNullableNumber(value: unknown): value is number | null {
+  return typeof value === "number" || value === null;
+}
+
+function isDashboardTone(value: unknown): value is DashboardActivityItem["tone"] {
+  return (
+    value === "amber" ||
+    value === "blue" ||
+    value === "emerald" ||
+    value === "rose" ||
+    value === "violet"
+  );
+}
+
+function isGiftProgressStep(value: unknown): value is GiftProgressStep {
+  return value === "planning" || value === "purchased" || value === "wrapped" || value === "ready_to_give";
+}
+
+function isGroupMember(value: unknown): value is GroupMember {
+  if (!isRecord(value)) {
+    return false;
+  }
+
+  return (
+    isNullableString(value.userId) &&
+    isNullableString(value.nickname) &&
+    isNullableString(value.email) &&
+    typeof value.role === "string" &&
+    isNullableString(value.displayName) &&
+    isNullableString(value.avatarEmoji) &&
+    isNullableString(value.avatarUrl)
+  );
+}
+
+function isDashboardGroup(value: unknown): value is Group {
+  if (!isRecord(value)) {
+    return false;
+  }
+
+  return (
+    typeof value.id === "string" &&
+    typeof value.name === "string" &&
+    typeof value.description === "string" &&
+    typeof value.event_date === "string" &&
+    isNullableNumber(value.budget) &&
+    isNullableString(value.currency) &&
+    typeof value.owner_id === "string" &&
+    typeof value.created_at === "string" &&
+    typeof value.require_anonymous_nickname === "boolean" &&
+    Array.isArray(value.members) &&
+    value.members.every(isGroupMember) &&
+    typeof value.isOwner === "boolean" &&
+    typeof value.hasDrawn === "boolean"
+  );
+}
+
+function isPendingInvite(value: unknown): value is PendingInvite {
+  if (!isRecord(value)) {
+    return false;
+  }
+
+  return (
+    typeof value.group_id === "string" &&
+    typeof value.group_name === "string" &&
+    typeof value.group_description === "string" &&
+    typeof value.group_event_date === "string" &&
+    typeof value.require_anonymous_nickname === "boolean"
+  );
+}
+
+function isGiftProgressSummary(value: unknown): value is GiftProgressSummary {
+  if (!isRecord(value)) {
+    return false;
+  }
+
+  const countsByStep = value.countsByStep;
+
+  return (
+    isGiftProgressStep(value.focusStep) &&
+    typeof value.focusCount === "number" &&
+    isRecord(countsByStep) &&
+    typeof countsByStep.planning === "number" &&
+    typeof countsByStep.purchased === "number" &&
+    typeof countsByStep.wrapped === "number" &&
+    typeof countsByStep.ready_to_give === "number" &&
+    typeof value.totalAssignments === "number" &&
+    typeof value.readyToGiveCount === "number" &&
+    isNullableString(value.recipientName) &&
+    isNullableString(value.groupName)
+  );
+}
+
+function isDashboardActivityItem(value: unknown): value is DashboardActivityItem {
+  if (!isRecord(value)) {
+    return false;
+  }
+
+  return (
+    typeof value.id === "string" &&
+    typeof value.title === "string" &&
+    typeof value.subtitle === "string" &&
+    typeof value.createdAt === "string" &&
+    isNullableString(value.href) &&
+    typeof value.icon === "string" &&
+    isDashboardTone(value.tone)
+  );
+}
+
+function isDashboardNotificationPreviewItem(value: unknown): value is DashboardNotificationPreviewItem {
+  if (!isRecord(value)) {
+    return false;
+  }
+
+  return (
+    typeof value.id === "string" &&
+    typeof value.title === "string" &&
+    isNullableString(value.href) &&
+    typeof value.icon === "string" &&
+    isDashboardTone(value.tone) &&
+    typeof value.createdAt === "string"
+  );
+}
+
+function isDashboardSnapshot(value: unknown, userId: string): value is DashboardSnapshot {
+  if (!isRecord(value)) {
+    return false;
+  }
+
+  return (
+    value.userId === userId &&
+    typeof value.createdAt === "number" &&
+    Date.now() - value.createdAt < DASHBOARD_SNAPSHOT_TTL_MS &&
+    typeof value.userName === "string" &&
+    Array.isArray(value.ownedGroups) &&
+    value.ownedGroups.every(isDashboardGroup) &&
+    Array.isArray(value.invitedGroups) &&
+    value.invitedGroups.every(isDashboardGroup) &&
+    Array.isArray(value.pendingInvites) &&
+    value.pendingInvites.every(isPendingInvite) &&
+    Array.isArray(value.recipientNames) &&
+    value.recipientNames.every((recipientName) => typeof recipientName === "string") &&
+    typeof value.unreadNotificationCount === "number" &&
+    typeof value.wishlistItemCount === "number" &&
+    typeof value.wishlistGroupCount === "number" &&
+    (value.giftProgressSummary === null || isGiftProgressSummary(value.giftProgressSummary)) &&
+    Array.isArray(value.activityFeedItems) &&
+    value.activityFeedItems.every(isDashboardActivityItem) &&
+    Array.isArray(value.notificationPreviewItems) &&
+    value.notificationPreviewItems.every(isDashboardNotificationPreviewItem)
+  );
+}
+
+function readDashboardSnapshot(userId: string): DashboardSnapshot | null {
+  if (typeof sessionStorage === "undefined") {
+    return null;
+  }
+
+  const rawSnapshot = sessionStorage.getItem(getDashboardSnapshotStorageKey(userId));
+
+  if (!rawSnapshot) {
+    return null;
+  }
+
+  try {
+    const parsedSnapshot = JSON.parse(rawSnapshot) as unknown;
+
+    if (isDashboardSnapshot(parsedSnapshot, userId)) {
+      return parsedSnapshot;
+    }
+  } catch {
+    sessionStorage.removeItem(getDashboardSnapshotStorageKey(userId));
+    return null;
+  }
+
+  sessionStorage.removeItem(getDashboardSnapshotStorageKey(userId));
+  return null;
+}
+
+function writeDashboardSnapshot(snapshot: DashboardSnapshot) {
+  if (typeof sessionStorage === "undefined") {
+    return;
+  }
+
+  sessionStorage.setItem(
+    getDashboardSnapshotStorageKey(snapshot.userId),
+    JSON.stringify(snapshot)
+  );
+}
+
+function clearDashboardSnapshots() {
+  if (typeof sessionStorage === "undefined") {
+    return;
+  }
+
+  for (let index = sessionStorage.length - 1; index >= 0; index -= 1) {
+    const key = sessionStorage.key(index);
+
+    if (key?.startsWith(DASHBOARD_SNAPSHOT_STORAGE_PREFIX)) {
+      sessionStorage.removeItem(key);
+    }
+  }
+}
+
+function sanitizeGroupsForDashboardSnapshot(groups: Group[]): Group[] {
+  return groups.map((group) => ({
+    ...group,
+    members: group.members.map((member) => ({
+      ...member,
+      userId: null,
+      email: null,
+      avatarUrl: null,
+    })),
+  }));
 }
 
 const CURRENCY_SYMBOLS: Record<string, string> = {
@@ -843,6 +1089,24 @@ export default function DashboardPage() {
         }
       | null = null;
 
+    const applyDashboardSnapshot = (snapshot: DashboardSnapshot) => {
+      const savedUserName =
+        typeof sessionStorage !== "undefined" ? sessionStorage.getItem("ss_un") : null;
+
+      setUserName(savedUserName || snapshot.userName);
+      setOwnedGroups(snapshot.ownedGroups);
+      setInvitedGroups(snapshot.invitedGroups);
+      setPendingInvites(snapshot.pendingInvites);
+      setRecipientNames(snapshot.recipientNames);
+      setUnreadNotificationCount(snapshot.unreadNotificationCount);
+      setWishlistItemCount(snapshot.wishlistItemCount);
+      setWishlistGroupCount(snapshot.wishlistGroupCount);
+      setGiftProgressSummary(snapshot.giftProgressSummary);
+      setActivityFeedItems(snapshot.activityFeedItems);
+      setNotificationPreviewItems(snapshot.notificationPreviewItems);
+      setLoading(false);
+    };
+
     const loadDashboardPeerProfiles = async (
       groups: Group[],
       loadVersion: number
@@ -954,6 +1218,12 @@ export default function DashboardPage() {
         }
 
         if ((!memberRows || memberRows.length === 0) && ownedGroupIds.length === 0) {
+          const defaultDisplayName = email.split("@")[0];
+          const snapshotUserName =
+            typeof sessionStorage !== "undefined"
+              ? sessionStorage.getItem("ss_un") || defaultDisplayName
+              : defaultDisplayName;
+
           setOwnedGroups([]);
           setInvitedGroups([]);
           setPendingInvites([]);
@@ -963,6 +1233,21 @@ export default function DashboardPage() {
           setGiftProgressSummary(null);
           setActivityFeedItems([]);
           setNotificationPreviewItems([]);
+          writeDashboardSnapshot({
+            createdAt: Date.now(),
+            userId: user.id,
+            userName: snapshotUserName,
+            ownedGroups: [],
+            invitedGroups: [],
+            pendingInvites: [],
+            recipientNames: [],
+            unreadNotificationCount: 0,
+            wishlistItemCount: 0,
+            wishlistGroupCount: 0,
+            giftProgressSummary: null,
+            activityFeedItems: [],
+            notificationPreviewItems: [],
+          });
           setLoading(false);
           return;
         }
@@ -1099,8 +1384,11 @@ export default function DashboardPage() {
           return;
         }
 
-        setOwnedGroups(groupsWithMembers.filter((group) => group.isOwner));
-        setInvitedGroups(groupsWithMembers.filter((group) => !group.isOwner));
+        const nextOwnedGroups = groupsWithMembers.filter((group) => group.isOwner);
+        const nextInvitedGroups = groupsWithMembers.filter((group) => !group.isOwner);
+
+        setOwnedGroups(nextOwnedGroups);
+        setInvitedGroups(nextInvitedGroups);
 
         void loadDashboardPeerProfiles(groupsWithMembers, currentLoadVersion);
 
@@ -1118,18 +1406,20 @@ export default function DashboardPage() {
           );
         }
 
-        setRecipientNames(
-          myAssignments.map((assignment) => {
-            return (
-              receiverNameByGroupUser.get(
-                createGroupUserKey(assignment.group_id, assignment.receiver_id)
-              ) || "Secret Member"
-            );
-          })
-        );
+        const nextRecipientNames = myAssignments.map((assignment) => {
+          return (
+            receiverNameByGroupUser.get(
+              createGroupUserKey(assignment.group_id, assignment.receiver_id)
+            ) || "Secret Member"
+          );
+        });
 
+        setRecipientNames(nextRecipientNames);
         setWishlistItemCount(wishlistSummary.length);
-        setWishlistGroupCount(new Set(wishlistSummary.map((row) => row.group_id)).size);
+        const nextWishlistGroupCount = new Set(wishlistSummary.map((row) => row.group_id)).size;
+        setWishlistGroupCount(nextWishlistGroupCount);
+        let nextGiftProgressSummary: GiftProgressSummary | null = null;
+
         if (myAssignments.length > 0) {
           const normalizedAssignments = myAssignments.map((assignment) => ({
             step: normalizeGiftProgressStep(assignment.gift_prep_status),
@@ -1165,7 +1455,7 @@ export default function DashboardPage() {
 
           const primaryAssignment = [...normalizedAssignments].sort((a, b) => b.updatedAt - a.updatedAt)[0];
 
-          setGiftProgressSummary({
+          nextGiftProgressSummary = {
             focusStep,
             focusCount: countsByStep[focusStep],
             countsByStep,
@@ -1173,10 +1463,10 @@ export default function DashboardPage() {
             readyToGiveCount: countsByStep.ready_to_give,
             recipientName: normalizedAssignments.length === 1 ? primaryAssignment.recipientName : null,
             groupName: normalizedAssignments.length === 1 ? primaryAssignment.groupName : null,
-          });
-        } else {
-          setGiftProgressSummary(null);
+          };
         }
+
+        setGiftProgressSummary(nextGiftProgressSummary);
 
         // The dashboard feed combines "what changed around me" notifications
         // with the user's own gift-progress actions so the home page feels alive
@@ -1220,30 +1510,50 @@ export default function DashboardPage() {
           .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
           .slice(0, 5);
 
+        const nextNotificationPreviewItems = recentNotifications.slice(0, 3).map((notification) => {
+          const visual = getActivityFeedVisual(notification.type);
+
+          return {
+            id: notification.id,
+            title: getNotificationPreviewTitle(notification.type, notification.title),
+            href: notification.link_path,
+            createdAt: notification.created_at,
+            ...visual,
+          };
+        });
+        const nextPendingInvites = pendingGroups.map((group) => ({
+          group_id: group.id,
+          group_name: group.name,
+          group_description: group.description || "",
+          group_event_date: group.event_date,
+          require_anonymous_nickname: Boolean(group.require_anonymous_nickname),
+        }));
+
         setActivityFeedItems(feedItems);
-        setNotificationPreviewItems(
-          recentNotifications.slice(0, 3).map((notification) => {
-            const visual = getActivityFeedVisual(notification.type);
+        setNotificationPreviewItems(nextNotificationPreviewItems);
+        setPendingInvites(nextPendingInvites);
 
-            return {
-              id: notification.id,
-              title: getNotificationPreviewTitle(notification.type, notification.title),
-              href: notification.link_path,
-              createdAt: notification.created_at,
-              ...visual,
-            };
-          })
-        );
+        const defaultDisplayName = email.split("@")[0];
+        const snapshotUserName =
+          typeof sessionStorage !== "undefined"
+            ? sessionStorage.getItem("ss_un") || defaultDisplayName
+            : defaultDisplayName;
 
-        setPendingInvites(
-          pendingGroups.map((group) => ({
-            group_id: group.id,
-            group_name: group.name,
-            group_description: group.description || "",
-            group_event_date: group.event_date,
-            require_anonymous_nickname: Boolean(group.require_anonymous_nickname),
-          }))
-        );
+        writeDashboardSnapshot({
+          createdAt: Date.now(),
+          userId: user.id,
+          userName: snapshotUserName,
+          ownedGroups: sanitizeGroupsForDashboardSnapshot(nextOwnedGroups),
+          invitedGroups: sanitizeGroupsForDashboardSnapshot(nextInvitedGroups),
+          pendingInvites: nextPendingInvites,
+          recipientNames: [],
+          unreadNotificationCount: 0,
+          wishlistItemCount: wishlistSummary.length,
+          wishlistGroupCount: nextWishlistGroupCount,
+          giftProgressSummary: null,
+          activityFeedItems: [],
+          notificationPreviewItems: [],
+        });
       } catch {
         if (!isMounted) {
           return;
@@ -1394,6 +1704,7 @@ export default function DashboardPage() {
         } = await supabase.auth.getSession();
 
         if (!session) {
+          clearDashboardSnapshots();
           router.push("/login");
           return;
         }
@@ -1408,6 +1719,12 @@ export default function DashboardPage() {
         }
 
         setUserName((current) => current || defaultName);
+
+        const cachedDashboard = readDashboardSnapshot(session.user.id);
+
+        if (cachedDashboard) {
+          applyDashboardSnapshot(cachedDashboard);
+        }
 
         // claimInvitedMemberships only needs to run once per browser session.
         // Email-linked invites don't change between visits; realtime will trigger
@@ -1515,6 +1832,7 @@ export default function DashboardPage() {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((_event, session) => {
       if (!session) {
+        clearDashboardSnapshots();
         router.push("/login");
       }
     });
@@ -1627,6 +1945,7 @@ export default function DashboardPage() {
   }, [router, ownedGroups, invitedGroups]);
 
   const handleLogout = async () => {
+    clearDashboardSnapshots();
     await supabase.auth.signOut();
     router.push("/login");
   };
@@ -1660,6 +1979,9 @@ export default function DashboardPage() {
         type: result.success ? "success" : "error",
         text: result.message,
       });
+      if (result.success) {
+        clearDashboardSnapshots();
+      }
     } catch {
       setActionMessage({
         type: "error",
