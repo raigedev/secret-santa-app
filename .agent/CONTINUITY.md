@@ -5,7 +5,7 @@
 - 2026-04-20T00:00:00+08:00 [USER] User usually commits and pushes manually unless explicitly asking Codex to do it.
 - 2026-04-23T16:42:26+08:00 [USER] After meaningful changes, include what changed, detailed Vercel manual test steps, and exact commit/push commands.
 - 2026-04-23T16:42:26+08:00 [USER] User verifies mainly on Vercel preview/production after push, not local browser.
-- 2026-04-24T00:00:00+08:00 [USER] Use relevant installed skills/tools and run Playwright/webapp tests after UI/source changes where possible.
+- 2026-04-24T00:00:00+08:00 [USER] Use the necessary installed skills/tools for each coding task and run Playwright/webapp tests after coding where possible.
 
 ## Security And Product Decisions
 - 2026-04-20T00:00:00+08:00 [USER] Use Stitch MCP for UI design context, design tokens, screen metadata, and Stitch implementation details.
@@ -22,6 +22,7 @@
 - 2026-04-25T21:54:18+08:00 [CODE] `/secret-santa` shopping-option chips no longer show a visible `Selected` mini-pill; the active option now mirrors the gift-guide tab highlight with red text and underline while keeping accessible selected state.
 - 2026-04-25T23:29:06+08:00 [CODE] `/secret-santa` curated shopping cards keep role/price chips in a separate header above the product image so budget labels do not overlap product photos.
 - 2026-04-25T23:40:36+08:00 [CODE] `/secret-santa` curated shopping card headers now show the group `Budget target` consistently; exact Lazada product prices remain visible as a separate body line when available.
+- 2026-04-25T23:53:00+08:00 [CODE] `/secret-santa` shopping-option buttons removed `Try this`, use a filled green selected state, and allow labels to wrap without truncation.
 - 2026-04-25T00:55:00+08:00 [CODE] Affiliate report separates `Opened in Lazada` from `Lazada reported product`; search-link clicks show exact products only after a mapped Lazada conversion report supplies them.
 - 2026-04-23T23:47:58+08:00 [CODE] `/secret-santa-chat` keeps the recognizable dark festive layout with clearer privacy/identity panels, dashboard control, thread labels, and Winter Atelier palette alignment.
 - 2026-04-25T20:35:00+08:00 [CODE] Broad UX-writing pass rewrote public/auth/dashboard/group/wishlist/Secret Santa/chat/notification/profile/affiliate-report text toward simple terms: group, member, wishlist, recipient, gift progress, shopping option, affiliate link. Tests were updated only where assertions intentionally tracked old copy.

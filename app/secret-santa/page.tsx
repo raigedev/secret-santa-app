@@ -2562,7 +2562,7 @@ export default function SecretSantaPage() {
 
                                   <div
                                     data-testid="shopping-focus-options"
-                                    className="mt-3 flex max-w-full flex-nowrap gap-2 overflow-x-auto pb-1 pr-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+                                    className="mt-3 flex max-w-full flex-nowrap items-stretch gap-2 overflow-x-auto pb-1 pr-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
                                   >
                                     {suggestionOptions.map((suggestion) => {
                                       const isSelected =
@@ -2584,48 +2584,33 @@ export default function SecretSantaPage() {
                                               suggestion.id
                                             )
                                           }
-                                          className="relative inline-flex min-h-[40px] min-w-fit shrink-0 items-center gap-2 whitespace-nowrap rounded-full border px-3.5 py-2 text-left transition hover:-translate-y-0.5 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 sm:px-4"
+                                          className="inline-flex min-h-[44px] w-max min-w-[7.25rem] max-w-[15rem] shrink-0 items-center justify-center rounded-[16px] border px-4 py-2.5 text-center transition hover:-translate-y-0.5 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 sm:max-w-[17rem] sm:px-5"
                                           style={{
-                                            background: "#ffffff",
+                                            background: isSelected
+                                              ? HOLIDAY_GREEN
+                                              : "#ffffff",
                                             borderColor: isSelected
-                                              ? "rgba(164,60,63,.28)"
-                                              : "rgba(174,179,177,.13)",
+                                              ? HOLIDAY_GREEN
+                                              : "rgba(72,102,78,.46)",
                                             boxShadow: isSelected
-                                              ? "0 14px 28px rgba(164,60,63,.1)"
+                                              ? "0 14px 28px rgba(72,102,78,.16)"
                                               : "none",
                                             cursor: "pointer",
                                             fontFamily: "inherit",
-                                            outlineColor: HOLIDAY_RED,
+                                            outlineColor: HOLIDAY_GREEN,
                                           }}
                                         >
                                           <div
-                                            className="max-w-[8.5rem] truncate text-[12px] font-extrabold leading-tight sm:max-w-[9.5rem] xl:max-w-[10.5rem]"
+                                            className="min-w-0 whitespace-normal text-[12px] font-extrabold leading-snug"
                                             style={{
                                               color: isSelected
-                                                ? HOLIDAY_RED
-                                                : PAGE_TEXT_COLOR,
+                                                ? "#ffffff"
+                                                : HOLIDAY_GREEN,
+                                              overflowWrap: "anywhere",
                                             }}
                                           >
                                             {shoppingFocusLabel}
                                           </div>
-                                          {isSelected && (
-                                            <span
-                                              aria-hidden="true"
-                                              className="absolute inset-x-4 bottom-1.5 h-0.5 rounded-full"
-                                              style={{ background: HOLIDAY_RED }}
-                                            />
-                                          )}
-                                          {!isSelected && (
-                                            <span
-                                              className="shrink-0 rounded-full px-2 py-1 text-[9px] font-extrabold"
-                                              style={{
-                                                color: TEXT_MUTED,
-                                                background: "transparent",
-                                              }}
-                                            >
-                                              Try this
-                                            </span>
-                                          )}
                                         </button>
                                       );
                                     })}
