@@ -2525,12 +2525,14 @@ export default function SecretSantaPage() {
                                 <section
                                   id={`direction-${assignment.group_id}`}
                                   data-testid="shopping-option-panel"
-                                  className="sticky top-2 z-30 min-w-0 overflow-hidden rounded-[22px] p-3 sm:p-4"
+                                  className="sticky top-2 z-50 min-w-0 overflow-hidden rounded-[22px] p-3 sm:p-4"
                                   style={{
-                                    background:
-                                      "linear-gradient(135deg,rgba(242,244,242,.94),rgba(255,255,255,.88))",
+                                    backgroundColor: "#ffffff",
+                                    backgroundImage:
+                                      "linear-gradient(135deg,#f4f6f4 0%,#ffffff 100%)",
+                                    border: "1px solid rgba(72,102,78,.12)",
                                     color: PAGE_TEXT_COLOR,
-                                    boxShadow: "0 18px 42px rgba(46,52,50,.04)",
+                                    boxShadow: "0 22px 54px rgba(46,52,50,.14)",
                                   }}
                                 >
                                   <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">

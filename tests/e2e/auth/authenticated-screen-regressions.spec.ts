@@ -140,6 +140,17 @@ test.describe("authenticated screen regressions", () => {
     expect(stickyPanelTop).toBeGreaterThanOrEqual(0);
     expect(stickyPanelTop).toBeLessThanOrEqual(16);
 
+    const stickyPanelSurface = await shoppingOptionPanel.evaluate((panel) => {
+      const panelStyle = window.getComputedStyle(panel);
+
+      return {
+        backgroundColor: panelStyle.backgroundColor,
+        backgroundImage: panelStyle.backgroundImage,
+      };
+    });
+    expect(stickyPanelSurface.backgroundColor).toBe("rgb(255, 255, 255)");
+    expect(stickyPanelSurface.backgroundImage).not.toContain("rgba");
+
     const cardsMissingBudgetTarget = await curatedCards.evaluateAll((cards) =>
       cards
         .map((card, index) => ({
