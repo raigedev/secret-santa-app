@@ -2,16 +2,26 @@
 
 import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from "react";
 import { createPortal } from "react-dom";
+import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
 import { getAnonymousGroupDisplayName } from "@/lib/groups/nickname";
 import { createClient } from "@/lib/supabase/client";
 import InviteCard from "./InviteCard";
-import ProfileSetupModal from "./ProfileSetupModal";
 import { getProfile } from "@/app/profile/actions";
 import { claimInvitedMemberships } from "./actions";
 import { deleteGroup } from "@/app/group/[id]/actions";
 import { DashboardSkeleton } from "@/app/components/PageSkeleton";
 import FadeIn from "@/app/components/FadeIn";
+
+type ProfileSetupModalProps = {
+  defaultName: string;
+  onComplete: () => void;
+  onSkip: () => void;
+};
+
+const ProfileSetupModal = dynamic<ProfileSetupModalProps>(() => import("./ProfileSetupModal"), {
+  loading: () => null,
+});
 
 type GroupMember = {
   nickname: string | null;

@@ -73,7 +73,7 @@ function LoginLayout({ children, supportingCopy }: { children: ReactNode; suppor
   return (
     <main className="relative min-h-screen overflow-hidden bg-[#f9faf8] px-4 py-6 sm:px-6 lg:px-8">
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,_rgba(252,206,114,0.32),_transparent_34%),radial-gradient(circle_at_bottom_right,_rgba(164,60,63,0.16),_transparent_32%),linear-gradient(180deg,_#fbfcfa_0%,_#f2f4f2_100%)]" />
-      <div className="absolute inset-0 bg-[url('/snowflakes.png')] bg-cover bg-center opacity-10" />
+      <div className="absolute inset-0 bg-[url('/snowflakes.svg')] bg-[length:320px_320px] bg-repeat opacity-10" />
       <div className="absolute left-[-8rem] top-[-6rem] h-72 w-72 rounded-full bg-[#ffaba9]/30 blur-3xl" />
       <div className="absolute bottom-[-9rem] right-[-5rem] h-80 w-80 rounded-full bg-[#d7fadb]/60 blur-3xl" />
 
@@ -112,7 +112,7 @@ function LoginLayout({ children, supportingCopy }: { children: ReactNode; suppor
                     </h3>
                   </div>
                   <Image
-                    src="/bells-holly.png"
+                    src="/bells-holly.svg"
                     alt="Holiday greenery"
                     width={160}
                     height={160}
@@ -355,7 +355,7 @@ function LoginPageInner() {
             disabled={loading || redirecting}
             className="flex w-full items-center justify-center gap-3 rounded-[1.5rem] bg-[#f2f4f2] px-5 py-4 text-base font-semibold text-[#2e3432] shadow-[0_16px_35px_rgba(46,52,50,0.06)] transition hover:-translate-y-0.5 hover:bg-white hover:shadow-[0_24px_48px_rgba(46,52,50,0.1)] disabled:translate-y-0 disabled:cursor-not-allowed disabled:opacity-70 disabled:shadow-none"
           >
-            <Image src="/google-logo.png" alt="Google" width={24} height={24} />
+            <Image src="/google-logo.svg" alt="Google" width={24} height={24} />
             <span>{redirecting ? "Redirecting..." : "Continue with Google"}</span>
           </button>
 

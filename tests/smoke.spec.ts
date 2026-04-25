@@ -8,7 +8,7 @@ test.describe("public smoke coverage", () => {
     await page.goto("/");
 
     await expect(page.getByRole("button", { name: /start drawing names/i }).first()).toBeVisible();
-    await expect(page.getByText(/draw names online, share wishlists/i)).toBeVisible();
+    await expect(page.getByText(/create a group, invite members, share wishlist ideas/i)).toBeVisible();
   });
 
   test("login page renders the core auth controls", async ({ page }) => {

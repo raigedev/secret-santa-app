@@ -9,7 +9,7 @@ test.describe("public auth regressions", () => {
 
   test("login requires a password after the email is filled", async ({ page }) => {
     await page.goto("/login");
-    await page.getByPlaceholder(/username or email/i).fill("tester@example.com");
+    await page.getByPlaceholder(/enter your email address/i).fill("tester@example.com");
     await page.getByRole("button", { name: /^login$/i }).click();
     await expect(page.getByText(/please enter your password/i)).toBeVisible();
   });
@@ -34,7 +34,7 @@ test.describe("public auth regressions", () => {
 
   test("forgot-password can return to login without breaking the flow", async ({ page }) => {
     await page.goto("/forgot-password");
-    await page.getByRole("button", { name: /return to login/i }).click();
+    await page.getByRole("button", { name: /back to login/i }).click();
     await expect(page).toHaveURL(/\/login$/);
     await expect(page.getByRole("button", { name: /^login$/i })).toBeVisible();
   });

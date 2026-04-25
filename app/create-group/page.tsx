@@ -123,7 +123,7 @@ export default function CreateGroupPage() {
         fontFamily: "'Nunito', sans-serif",
       }}
     >
-      <div className="absolute inset-0 bg-[url('/snowflakes.png')] opacity-20 z-0" />
+      <div className="absolute inset-0 z-0 bg-[url('/snowflakes.svg')] bg-[length:320px_320px] bg-repeat opacity-20" />
 
       <div
         className="relative z-10 w-full max-w-lg rounded-[20px] p-6 shadow-xl sm:p-8"

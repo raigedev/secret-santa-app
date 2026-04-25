@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="160" height="160" viewBox="0 0 160 160" role="img" aria-label="Holiday greenery">
+  <defs>
+    <linearGradient id="bell" x1="46" x2="104" y1="58" y2="124">
+      <stop stop-color="#ffd978"/>
+      <stop offset="1" stop-color="#c68a16"/>
+    </linearGradient>
+    <linearGradient id="leaf" x1="28" x2="132" y1="42" y2="86">
+      <stop stop-color="#6f9b62"/>
+      <stop offset="1" stop-color="#315f3d"/>
+    </linearGradient>
+  </defs>
+  <path fill="url(#leaf)" d="M40 58c20-31 44-31 58-4 19-17 36-14 45 3-20 1-34 11-43 31-18-10-38-10-60 0-6-14-17-23-33-27 10-9 21-10 33-3Z"/>
+  <path fill="#3f7447" d="M78 37c13 9 19 22 17 38-18-9-27-22-17-38ZM55 47c17 5 28 16 33 32-21-3-34-13-33-32ZM111 45c-1 18-12 31-33 37 5-18 16-31 33-37Z"/>
+  <circle cx="72" cy="72" r="6" fill="#b83236"/>
+  <circle cx="86" cy="66" r="6" fill="#d64a4e"/>
+  <circle cx="96" cy="78" r="6" fill="#a9292d"/>
+  <path fill="url(#bell)" d="M53 84c0-18 11-31 27-31s27 13 27 31l9 27H44l9-27Z"/>
+  <path fill="#f8c95a" d="M62 88c2-16 9-24 22-26-9 8-13 19-12 34l-15 8 5-16Z" opacity=".65"/>
+  <path fill="#8c6112" d="M44 111h72c-4 12-15 20-36 20s-32-8-36-20Z"/>
+  <circle cx="80" cy="133" r="9" fill="#b37913"/>
+  <path fill="none" stroke="#7b5902" stroke-linecap="round" stroke-width="5" d="M64 54c5-12 27-12 32 0"/>
+</svg>

@@ -62,7 +62,7 @@ function CreateAccountLayout({
   return (
     <main className="relative min-h-screen overflow-hidden bg-[#f9faf8] px-4 py-6 sm:px-6 lg:px-8">
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,_rgba(252,206,114,0.32),_transparent_34%),radial-gradient(circle_at_bottom_right,_rgba(164,60,63,0.16),_transparent_32%),linear-gradient(180deg,_#fbfcfa_0%,_#f2f4f2_100%)]" />
-      <div className="absolute inset-0 bg-[url('/snowflakes.png')] bg-cover bg-center opacity-10" />
+      <div className="absolute inset-0 bg-[url('/snowflakes.svg')] bg-[length:320px_320px] bg-repeat opacity-10" />
       <div className="absolute left-[-8rem] top-[-6rem] h-72 w-72 rounded-full bg-[#ffaba9]/30 blur-3xl" />
       <div className="absolute bottom-[-9rem] right-[-5rem] h-80 w-80 rounded-full bg-[#d7fadb]/60 blur-3xl" />
 
@@ -102,7 +102,7 @@ function CreateAccountLayout({
                     </h2>
                   </div>
                   <Image
-                    src="/bells-holly.png"
+                    src="/bells-holly.svg"
                     alt="Holiday greenery"
                     width={144}
                     height={144}
