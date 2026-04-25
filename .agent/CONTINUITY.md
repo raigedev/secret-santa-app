@@ -32,6 +32,7 @@
 - 2026-04-25T20:35:00+08:00 [CODE] Broad UX-writing pass rewrote public/auth/dashboard/group/wishlist/Secret Santa/chat/notification/profile/affiliate-report text toward simple terms: group, member, wishlist, recipient, gift progress, shopping option, affiliate link. Tests were updated only where assertions intentionally tracked old copy.
 
 ## Testing Notes
+- 2026-04-26T01:38:17+08:00 [TOOL] Performance audit report created at `docs/performance-audit-2026-04-26.md`; biggest findings are large client pages, browser-side Supabase waits on authenticated screens, missing public/auth loading states, and 1.2-2.1 MB PNG assets in `public/`.
 - 2026-04-23T15:08:24+08:00 [TOOL] Playwright coverage includes public smoke, public/protected navigation, API auth guards, auth-form validation, responsive checks, axe accessibility, OAuth back-navigation, public auth edge cases, and seeded authenticated-screen scaffolding.
 - 2026-04-24T15:34:56+08:00 [TOOL] Ignored `.env.local` has seeded `PLAYWRIGHT_E2E_EMAIL`, `PLAYWRIGHT_E2E_PASSWORD`, and `PLAYWRIGHT_E2E_GROUP_ID`; owner-only affiliate-report tests still skip unless the seeded email is allowlisted.
 - 2026-04-25T20:35:00+08:00 [TOOL] UX-writing pass checks passed: `git diff --check`, `npm.cmd run typecheck`, `npm.cmd run lint:security`, `npm.cmd run build`, focused public-route Playwright, public smoke/forms/a11y Playwright, and authenticated-screen Playwright. Full `npm.cmd run test:e2e` and full Chromium `tests/e2e` attempts timed out before producing reports; focused suites passed.
