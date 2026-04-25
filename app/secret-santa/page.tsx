@@ -2572,45 +2572,37 @@ export default function SecretSantaPage() {
                                               suggestion.id
                                             )
                                           }
-                                          className="inline-flex min-h-[40px] min-w-fit shrink-0 items-center gap-2 whitespace-nowrap rounded-full border px-3.5 py-2 text-left transition hover:-translate-y-0.5 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 sm:px-4"
+                                          className="relative inline-flex min-h-[40px] min-w-fit shrink-0 items-center gap-2 whitespace-nowrap rounded-full border px-3.5 py-2 text-left transition hover:-translate-y-0.5 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 sm:px-4"
                                           style={{
-                                            background: isSelected
-                                              ? "linear-gradient(135deg, rgba(72,102,78,.18), rgba(255,255,255,.96))"
-                                              : "#ffffff",
+                                            background: "#ffffff",
                                             borderColor: isSelected
-                                              ? "rgba(72,102,78,.42)"
+                                              ? "rgba(164,60,63,.28)"
                                               : "rgba(174,179,177,.13)",
                                             boxShadow: isSelected
-                                              ? "0 16px 32px rgba(72,102,78,.16), inset 0 0 0 1px rgba(255,255,255,.75)"
+                                              ? "0 14px 28px rgba(164,60,63,.1)"
                                               : "none",
                                             cursor: "pointer",
                                             fontFamily: "inherit",
-                                            outlineColor: HOLIDAY_GREEN,
+                                            outlineColor: HOLIDAY_RED,
                                           }}
                                         >
-                                          {isSelected && (
-                                            <span
-                                              aria-hidden="true"
-                                              className="grid size-5 shrink-0 place-items-center rounded-full"
-                                              style={{
-                                                background: HOLIDAY_GREEN,
-                                                boxShadow:
-                                                  "0 6px 14px rgba(72,102,78,.24)",
-                                              }}
-                                            >
-                                              <span className="size-1.5 rounded-full bg-white" />
-                                            </span>
-                                          )}
                                           <div
                                             className="max-w-[8.5rem] truncate text-[12px] font-extrabold leading-tight sm:max-w-[9.5rem] xl:max-w-[10.5rem]"
                                             style={{
                                               color: isSelected
-                                                ? HOLIDAY_GREEN
+                                                ? HOLIDAY_RED
                                                 : PAGE_TEXT_COLOR,
                                             }}
                                           >
                                             {shoppingFocusLabel}
                                           </div>
+                                          {isSelected && (
+                                            <span
+                                              aria-hidden="true"
+                                              className="absolute inset-x-4 bottom-1.5 h-0.5 rounded-full"
+                                              style={{ background: HOLIDAY_RED }}
+                                            />
+                                          )}
                                           {!isSelected && (
                                             <span
                                               className="shrink-0 rounded-full px-2 py-1 text-[9px] font-extrabold"
