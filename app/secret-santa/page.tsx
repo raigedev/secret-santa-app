@@ -2854,8 +2854,38 @@ export default function SecretSantaPage() {
                                                     cursor: "default",
                                                   }}
                                                 >
+                                                  <div className="flex min-h-[44px] min-w-0 items-start justify-between gap-2 px-4 pt-4">
+                                                    <span
+                                                      className="min-w-0 max-w-[58%] truncate rounded-full px-3 py-1.5 text-[9px] font-extrabold uppercase leading-tight"
+                                                      style={{
+                                                        color: toneStyle.badgeColor,
+                                                        background:
+                                                          toneStyle.badgeBackground,
+                                                        boxShadow:
+                                                          "0 8px 18px rgba(46,52,50,.06)",
+                                                      }}
+                                                    >
+                                                      {roleLabel}
+                                                    </span>
+                                                    <div
+                                                      className="ml-auto shrink-0 rounded-full px-3 py-1.5 text-right text-[13px] font-extrabold leading-tight"
+                                                      style={{
+                                                        color: product.priceLabel
+                                                          ? PAGE_TEXT_COLOR
+                                                          : TEXT_MUTED,
+                                                        background:
+                                                          "rgba(249,250,248,.94)",
+                                                        boxShadow:
+                                                          "0 8px 18px rgba(46,52,50,.06)",
+                                                        maxWidth: "9rem",
+                                                        overflowWrap: "break-word",
+                                                      }}
+                                                    >
+                                                      {product.priceLabel || cardTypeLabel}
+                                                    </div>
+                                                  </div>
                                                   <div
-                                                    className="relative isolate flex aspect-[16/9] min-w-0 items-center justify-center overflow-hidden bg-white p-3"
+                                                    className="flex aspect-[16/9] min-w-0 items-center justify-center overflow-hidden bg-white p-3"
                                                     style={{
                                                       borderBottom:
                                                         "1px solid rgba(174,179,177,.08)",
@@ -2876,34 +2906,6 @@ export default function SecretSantaPage() {
                                                         <SparkleMark className="h-9 w-9" />
                                                       </div>
                                                     )}
-                                                    <div className="absolute inset-x-0 top-0 z-10 flex items-start justify-between gap-3 p-3">
-                                                      <span
-                                                        className="relative z-10 shrink-0 rounded-full px-3 py-1.5 text-[9px] font-extrabold uppercase leading-tight"
-                                                        style={{
-                                                          color: toneStyle.badgeColor,
-                                                          background: toneStyle.badgeBackground,
-                                                          boxShadow:
-                                                            "0 8px 18px rgba(46,52,50,.08)",
-                                                          whiteSpace: "nowrap",
-                                                        }}
-                                                      >
-                                                        {roleLabel}
-                                                      </span>
-                                                      <div
-                                                        className="relative z-10 max-w-[8.5rem] rounded-full px-3 py-1.5 text-right text-[13px] font-extrabold leading-tight"
-                                                        style={{
-                                                          color: product.priceLabel
-                                                            ? PAGE_TEXT_COLOR
-                                                            : TEXT_MUTED,
-                                                          background: "rgba(255,255,255,.96)",
-                                                          boxShadow:
-                                                            "0 8px 18px rgba(46,52,50,.08)",
-                                                          overflowWrap: "break-word",
-                                                        }}
-                                                      >
-                                                        {product.priceLabel || cardTypeLabel}
-                                                      </div>
-                                                    </div>
                                                   </div>
                                                   <div
                                                         className="flex flex-1 flex-col p-4"
