@@ -709,6 +709,82 @@ export function findLazadaFeedProductByItemId(itemId: string): LazadaFeedProduct
   );
 }
 
+export function findRepresentativeLazadaFeedImage(input: {
+  itemCategory: string;
+  itemName: string;
+  itemNote: string;
+  searchQuery: string;
+}): string | null {
+  const searchTokens = tokenizeFeedText(input.searchQuery).filter(
+    (token) => !INTENT_MODIFIER_STOPWORDS.has(token)
+  );
+  const itemTokens = tokenizeFeedText(input.itemName).filter(
+    (token) => !INTENT_MODIFIER_STOPWORDS.has(token)
+  );
+  const coreTokens = getCoreIntentTokens(input);
+  const matchedFamilyRule = getMatchedLazadaSearchFamilyRule(input);
+  const relevantCategories = getRelevantLazadaSourceCategories(input);
+  const searchContext = normalizeFeedString(
+    `${input.itemName} ${input.itemCategory} ${input.itemNote} ${input.searchQuery}`
+  );
+  const isTechSearch = /(tablet|ipad|android tab|galaxy tab|redmi pad|xiaomi pad)/.test(
+    searchContext
+  );
+  const scoredProducts = getLazadaFeedProducts()
+    .filter((product) => Boolean(product.pictureUrl))
+    .map((product) => {
+      const productText = buildLazadaProductMatchText(product);
+      let score = 0;
+
+      for (const token of searchTokens) {
+        if (productText.includes(token)) {
+          score += 4;
+        }
+      }
+
+      for (const token of itemTokens) {
+        if (productText.includes(token)) {
+          score += 3;
+        }
+      }
+
+      for (const token of coreTokens) {
+        if (productText.includes(token)) {
+          score += 2;
+        }
+      }
+
+      if (
+        matchedFamilyRule?.include.some((term) => productText.includes(term))
+      ) {
+        score += 5;
+      }
+
+      if (
+        matchedFamilyRule?.exclude?.some((term) => productText.includes(term))
+      ) {
+        score -= 20;
+      }
+
+      if (
+        product.sourceCategory &&
+        relevantCategories.includes(product.sourceCategory)
+      ) {
+        score += 2;
+      }
+
+      if (isTechSearch && TECH_EXCLUDE_WORDS.some((word) => productText.includes(word))) {
+        score -= 20;
+      }
+
+      return { product, score };
+    })
+    .filter(({ score }) => score > 0)
+    .sort((left, right) => right.score - left.score);
+
+  return scoredProducts[0]?.product.pictureUrl || null;
+}
+
 export function getLazadaFeedProductPrice(product: {
   discountedPrice: number | null;
   salePrice: number | null;

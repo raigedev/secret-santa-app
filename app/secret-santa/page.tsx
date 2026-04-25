@@ -780,6 +780,35 @@ function getFirstProductImageUrl(products: WishlistFeaturedProductCard[]): strin
   return "";
 }
 
+function getWishlistMatchedImageUrl(input: {
+  itemId: string;
+  matchedProductsByKey: Record<string, LazadaFeaturedProductsState>;
+  preferredMatchKey: string;
+  region: ShoppingRegion;
+}): string {
+  const orderedKeys = [
+    input.preferredMatchKey,
+    ...Object.keys(input.matchedProductsByKey).filter(
+      (key) =>
+        key !== input.preferredMatchKey &&
+        key.startsWith(`${input.itemId}:`) &&
+        key.endsWith(`:${input.region}`)
+    ),
+  ].filter((key) => key.length > 0);
+
+  for (const matchKey of orderedKeys) {
+    const imageUrl = getFirstProductImageUrl(
+      input.matchedProductsByKey[matchKey]?.products || []
+    );
+
+    if (imageUrl) {
+      return imageUrl;
+    }
+  }
+
+  return "";
+}
+
 function getMerchantBadgeStyle(
   merchant: string,
   isPartnerLink: boolean
@@ -2310,14 +2339,25 @@ export default function SecretSantaPage() {
                                     shoppingRegion
                                   )
                                 : "";
-                              const wishlistMatchedProducts =
-                                (wishlistMatchKey
-                                  ? matchedLazadaProductsByKey[wishlistMatchKey]?.products
-                                  : []) || [];
+                              const wishlistMatchedState = wishlistMatchKey
+                                ? matchedLazadaProductsByKey[wishlistMatchKey] || null
+                                : null;
                               const wishlistMatchedImageUrl =
-                                getFirstProductImageUrl(wishlistMatchedProducts);
+                                getWishlistMatchedImageUrl({
+                                  itemId: wishlistItem.id,
+                                  matchedProductsByKey: matchedLazadaProductsByKey,
+                                  preferredMatchKey: wishlistMatchKey,
+                                  region: shoppingRegion,
+                                });
+                              const wishlistAiSuggestionState =
+                                aiSuggestionStateByItem[wishlistItem.id] || null;
                               const resolvedWishlistImageUrl =
                                 wishlistImageUrl || wishlistMatchedImageUrl;
+                              const wishlistImageLoading = Boolean(
+                                !resolvedWishlistImageUrl &&
+                                  (wishlistMatchedState?.loading ||
+                                    wishlistAiSuggestionState?.loading)
+                              );
 
                               return (
                                 <button
@@ -2358,6 +2398,16 @@ export default function SecretSantaPage() {
                                           src={resolvedWishlistImageUrl}
                                           alt={wishlistItem.item_name}
                                           className="h-full w-full object-contain p-1.5"
+                                        />
+                                      ) : wishlistImageLoading ? (
+                                        <span
+                                          aria-label={`Finding image for ${wishlistItem.item_name}`}
+                                          className="block h-full w-full animate-pulse rounded-[9px]"
+                                          role="img"
+                                          style={{
+                                            background:
+                                              "linear-gradient(135deg,rgba(255,255,255,.7),rgba(224,230,225,.9),rgba(255,255,255,.68))",
+                                          }}
                                         />
                                       ) : (
                                         wishlistPriorityMeta.icon

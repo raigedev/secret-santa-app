@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 
 import {
   findBestLazadaFeedMatches,
+  findRepresentativeLazadaFeedImage,
   getLazadaFeedMatchConfidence,
   getLazadaFeedProductPrice,
   type LazadaFeedMatch,
@@ -605,6 +606,53 @@ function buildSearchFallbackCards(input: {
   });
 }
 
+function addRepresentativeImagesToSearchFallbackCards(input: {
+  cards: WishlistFeaturedProductCard[];
+  groupBudget: number | null;
+  itemCategory: string;
+  itemName: string;
+  itemNote: string;
+  preferredPriceMax: number | null;
+  preferredPriceMin: number | null;
+}): WishlistFeaturedProductCard[] {
+  return input.cards.map((card) => {
+    if (card.catalogSource !== "search-backed" || card.imageUrl) {
+      return card;
+    }
+
+    const imageMatch = findBestLazadaFeedMatches({
+      itemCategory: input.itemCategory,
+      itemName: input.itemName,
+      itemNote: input.itemNote,
+      searchQuery: card.searchQuery,
+      budgetMode: "minimum-only",
+      groupBudget: input.groupBudget,
+      limit: 3,
+      minimumScore: 0.25,
+      preferredPriceMax: input.preferredPriceMax,
+      preferredPriceMin: input.preferredPriceMin,
+    }).find((match) => Boolean(match.product.pictureUrl));
+
+    const representativeImageUrl =
+      imageMatch?.product.pictureUrl ||
+      findRepresentativeLazadaFeedImage({
+        itemCategory: input.itemCategory,
+        itemName: input.itemName,
+        itemNote: input.itemNote,
+        searchQuery: card.searchQuery,
+      });
+
+    if (!representativeImageUrl) {
+      return card;
+    }
+
+    return {
+      ...card,
+      imageUrl: representativeImageUrl,
+    };
+  });
+}
+
 export async function POST(request: NextRequest) {
   const supabase = await createClient();
   const {
@@ -862,39 +910,56 @@ export async function POST(request: NextRequest) {
     }
   );
 
-  const searchFallbackCards = buildSearchFallbackCards({
-    currency: "PHP",
+  const searchFallbackCards = addRepresentativeImagesToSearchFallbackCards({
+    cards: buildSearchFallbackCards({
+      currency: "PHP",
+      groupBudget,
+      groupId,
+      itemCategory,
+      itemName,
+      itemNote,
+      limit: Math.max(3 - directProducts.length, 0),
+      preferredPriceMax,
+      preferredPriceMin,
+      region,
+      searchQuery,
+      wishlistItemId,
+      excludeSearchQueries: directProducts.length > 0 ? [searchQuery] : [],
+    }),
     groupBudget,
-    groupId,
     itemCategory,
     itemName,
     itemNote,
-    limit: Math.max(3 - directProducts.length, 0),
     preferredPriceMax,
     preferredPriceMin,
-    region,
-    searchQuery,
-    wishlistItemId,
-    excludeSearchQueries: directProducts.length > 0 ? [searchQuery] : [],
+  });
+  const fallbackProducts = addRepresentativeImagesToSearchFallbackCards({
+    cards: buildSearchFallbackCards({
+      currency: "PHP",
+      groupBudget,
+      groupId,
+      itemCategory,
+      itemName,
+      itemNote,
+      limit: 3,
+      preferredPriceMax,
+      preferredPriceMin,
+      region,
+      searchQuery,
+      wishlistItemId,
+    }),
+    groupBudget,
+    itemCategory,
+    itemName,
+    itemNote,
+    preferredPriceMax,
+    preferredPriceMin,
   });
 
   const products =
     directProducts.length > 0
       ? [...directProducts, ...searchFallbackCards].slice(0, 3)
-      : buildSearchFallbackCards({
-          currency: "PHP",
-          groupBudget,
-          groupId,
-          itemCategory,
-          itemName,
-          itemNote,
-          limit: 3,
-          preferredPriceMax,
-          preferredPriceMin,
-          region,
-          searchQuery,
-          wishlistItemId,
-        });
+      : fallbackProducts;
 
   return NextResponse.json({ products });
 }
