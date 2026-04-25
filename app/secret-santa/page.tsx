@@ -677,6 +677,18 @@ function getFeaturedLazadaRoleLabel(index: number): string {
   return "Premium Option";
 }
 
+function getCuratedProductPriceLabel(
+  product: WishlistFeaturedProductCard
+): string | null {
+  const label = product.priceLabel?.trim();
+
+  if (!label || /^(budget target|target|typical spend):/i.test(label)) {
+    return null;
+  }
+
+  return label;
+}
+
 function getFeaturedLazadaToneStyle(
   product: WishlistFeaturedProductCard
 ): {
@@ -2832,6 +2844,16 @@ export default function SecretSantaPage() {
                                               const roleLabel = getFeaturedLazadaRoleLabel(
                                                 index
                                               );
+                                              const budgetTargetLabel =
+                                                activeGroupBudgetLabel
+                                                  ? `Budget target: ${activeGroupBudgetLabel}`
+                                                  : null;
+                                              const headerPriceLabel =
+                                                budgetTargetLabel ||
+                                                product.priceLabel ||
+                                                cardTypeLabel;
+                                              const productPriceLabel =
+                                                getCuratedProductPriceLabel(product);
                                               const buttonLabel =
                                                 getFeaturedLazadaButtonLabel(product);
                                               const productImageUrl = normalizeOptionalUrl(
@@ -2870,7 +2892,8 @@ export default function SecretSantaPage() {
                                                     <div
                                                       className="ml-auto shrink-0 rounded-full px-3 py-1.5 text-right text-[13px] font-extrabold leading-tight"
                                                       style={{
-                                                        color: product.priceLabel
+                                                        color: budgetTargetLabel ||
+                                                          product.priceLabel
                                                           ? PAGE_TEXT_COLOR
                                                           : TEXT_MUTED,
                                                         background:
@@ -2881,7 +2904,7 @@ export default function SecretSantaPage() {
                                                         overflowWrap: "break-word",
                                                       }}
                                                     >
-                                                      {product.priceLabel || cardTypeLabel}
+                                                      {headerPriceLabel}
                                                     </div>
                                                   </div>
                                                   <div
@@ -2916,6 +2939,14 @@ export default function SecretSantaPage() {
                                                     >
                                                       {cardTypeLabel}
                                                     </div>
+                                                    {productPriceLabel && (
+                                                      <div
+                                                        className="mt-1 text-[11px] font-bold leading-tight"
+                                                        style={{ color: TEXT_SOFT }}
+                                                      >
+                                                        Lazada price: {productPriceLabel}
+                                                      </div>
+                                                    )}
                                                     <div
                                                       className="mt-1.5 text-[16px] font-extrabold leading-tight"
                                                       style={{
