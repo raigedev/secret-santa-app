@@ -2800,8 +2800,8 @@ export default function SecretSantaPage() {
                                               className="text-[12px] font-medium leading-relaxed sm:text-[13px]"
                                               style={{ color: TEXT_MUTED }}
                                             >
-                                              A shortlist that keeps the wishlist clue, the
-                                              shopping focus, and the budget in view.
+                                              Gift ideas based on what they asked for,
+                                              the option you chose, and your budget.
                                             </p>
                                           </div>
 
