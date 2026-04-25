@@ -157,7 +157,7 @@ const HOLIDAY_GREEN = "#48664e";
 const HOLIDAY_GOLD = "#7b5902";
 const HOLIDAY_BLUE = "#58748e";
 const LAZADA_AFFILIATE_DISCLOSURE =
-  "Some Lazada links may be affiliate links. We may earn a commission at no extra cost to you.";
+  "Some Lazada links may earn us a commission.";
 
 function GiftMark({ className = "h-5 w-5" }: { className?: string }) {
   return (
@@ -2444,16 +2444,12 @@ export default function SecretSantaPage() {
                                   Gift ideas for {assignment.receiver_nickname}, shaped by
                                   the wishlist clue and the shopping focus.
                                 </p>
-                                <div
-                                  className="mt-3 inline-flex w-fit max-w-full rounded-[18px] px-3.5 py-2 text-[11px] font-semibold leading-relaxed"
-                                  style={{
-                                    background: "rgba(255,255,255,.72)",
-                                    border: "1px solid rgba(174,179,177,.14)",
-                                    color: TEXT_MUTED,
-                                  }}
+                                <p
+                                  className="mt-1 text-[11px] font-semibold leading-relaxed sm:text-[12px]"
+                                  style={{ color: TEXT_MUTED }}
                                 >
                                   {LAZADA_AFFILIATE_DISCLOSURE}
-                                </div>
+                                </p>
                               </div>
 
                               <div className="grid min-w-0 gap-3">
