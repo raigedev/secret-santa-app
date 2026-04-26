@@ -29,7 +29,7 @@ const AUTH_ERROR_MESSAGES: Record<string, string> = {
 };
 
 const FIELD_CLASS_NAME =
-  "mt-2 w-full rounded-[1.5rem] bg-[#e5e9e6] px-4 py-3.5 text-[15px] text-[#2e3432] outline outline-1 outline-[#aeb3b1]/30 transition placeholder:text-[#777c7a] focus:bg-white focus:outline-[#a43c3f]/35 focus:outline-2 focus:outline-offset-0 focus:outline";
+  "mt-2 w-full rounded-3xl bg-[#e5e9e6] px-4 py-3.5 text-[15px] text-[#2e3432] outline outline-1 outline-[#aeb3b1]/30 transition placeholder:text-[#777c7a] focus:bg-white focus:outline-[#a43c3f]/35 focus:outline-2 focus:outline-offset-0 focus:outline";
 
 function mapAuthErrorMessage(errorCode: string | null, message: string | null): string | null {
   return message || (errorCode ? AUTH_ERROR_MESSAGES[errorCode] || null : null);
@@ -72,16 +72,28 @@ function AuthHeading({ description }: { description: string }) {
 function LoginLayout({ children, supportingCopy }: { children: ReactNode; supportingCopy: string }) {
   return (
     <main className="relative min-h-screen overflow-hidden bg-[#f9faf8] px-4 py-6 sm:px-6 lg:px-8">
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,_rgba(252,206,114,0.32),_transparent_34%),radial-gradient(circle_at_bottom_right,_rgba(164,60,63,0.16),_transparent_32%),linear-gradient(180deg,_#fbfcfa_0%,_#f2f4f2_100%)]" />
+      <div
+        className="absolute inset-0"
+        style={{
+          backgroundImage:
+            "radial-gradient(circle at top left, rgba(252,206,114,0.32), transparent 34%), radial-gradient(circle at bottom right, rgba(164,60,63,0.16), transparent 32%), linear-gradient(180deg, #fbfcfa 0%, #f2f4f2 100%)",
+        }}
+      />
       <div className="absolute inset-0 bg-[url('/snowflakes.svg')] bg-size-[320px_320px] bg-repeat opacity-10" />
-      <div className="absolute left-[-8rem] top-[-6rem] h-72 w-72 rounded-full bg-[#ffaba9]/30 blur-3xl" />
-      <div className="absolute bottom-[-9rem] right-[-5rem] h-80 w-80 rounded-full bg-[#d7fadb]/60 blur-3xl" />
+      <div className="absolute -left-32 -top-24 h-72 w-72 rounded-full bg-[#ffaba9]/30 blur-3xl" />
+      <div className="absolute -bottom-36 -right-20 h-80 w-80 rounded-full bg-[#d7fadb]/60 blur-3xl" />
 
       <div className="relative mx-auto flex min-h-[calc(100vh-3rem)] max-w-6xl items-center">
         <div className="grid w-full gap-4 rounded-[2.25rem] bg-white/72 p-3 shadow-[0_32px_90px_rgba(46,52,50,0.08)] backdrop-blur-xl lg:grid-cols-[1.02fr_0.98fr] lg:p-4">
           <section className="relative overflow-hidden rounded-[1.9rem] bg-[#ecefec] px-6 py-8 sm:px-8 sm:py-10 lg:px-10 lg:py-12">
-            <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,_rgba(255,255,255,0.72),_transparent_54%),linear-gradient(180deg,_rgba(255,255,255,0.18)_0%,_rgba(236,239,236,0.98)_100%)]" />
-            <div className="absolute right-[-2rem] top-8 h-28 w-28 rounded-full bg-[#fcce72]/35 blur-2xl" />
+            <div
+              className="absolute inset-0"
+              style={{
+                backgroundImage:
+                  "radial-gradient(circle at top, rgba(255,255,255,0.72), transparent 54%), linear-gradient(180deg, rgba(255,255,255,0.18) 0%, rgba(236,239,236,0.98) 100%)",
+              }}
+            />
+            <div className="absolute -right-8 top-8 h-28 w-28 rounded-full bg-[#fcce72]/35 blur-2xl" />
 
             <div className="relative z-10 flex h-full flex-col justify-between gap-8">
               <div>
@@ -100,8 +112,14 @@ function LoginLayout({ children, supportingCopy }: { children: ReactNode; suppor
                 </div>
               </div>
 
-              <div className="relative overflow-hidden rounded-[2rem] bg-white/82 p-5 shadow-[0_24px_56px_rgba(46,52,50,0.06)]">
-                <div className="absolute inset-x-0 top-0 h-24 bg-[linear-gradient(180deg,_rgba(252,206,114,0.22),_transparent)]" />
+              <div className="relative overflow-hidden rounded-4xl bg-white/82 p-5 shadow-[0_24px_56px_rgba(46,52,50,0.06)]">
+                <div
+                  className="absolute inset-x-0 top-0 h-24"
+                  style={{
+                    backgroundImage:
+                      "linear-gradient(180deg, rgba(252,206,114,0.22), transparent)",
+                  }}
+                />
                 <div className="relative z-10 flex items-start justify-between gap-4">
                   <div className="max-w-sm">
                     <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-[#7b5902]">
@@ -353,7 +371,7 @@ function LoginPageInner() {
             type="button"
             onClick={() => void handleGoogleLogin()}
             disabled={loading || redirecting}
-            className="flex w-full items-center justify-center gap-3 rounded-[1.5rem] bg-[#f2f4f2] px-5 py-4 text-base font-semibold text-[#2e3432] shadow-[0_16px_35px_rgba(46,52,50,0.06)] transition hover:-translate-y-0.5 hover:bg-white hover:shadow-[0_24px_48px_rgba(46,52,50,0.1)] disabled:translate-y-0 disabled:cursor-not-allowed disabled:opacity-70 disabled:shadow-none"
+            className="flex w-full items-center justify-center gap-3 rounded-3xl bg-[#f2f4f2] px-5 py-4 text-base font-semibold text-[#2e3432] shadow-[0_16px_35px_rgba(46,52,50,0.06)] transition hover:-translate-y-0.5 hover:bg-white hover:shadow-[0_24px_48px_rgba(46,52,50,0.1)] disabled:translate-y-0 disabled:cursor-not-allowed disabled:opacity-70 disabled:shadow-none"
           >
             <Image src="/google-logo.svg" alt="Google" width={24} height={24} />
             <span>{redirecting ? "Redirecting..." : "Continue with Google"}</span>
