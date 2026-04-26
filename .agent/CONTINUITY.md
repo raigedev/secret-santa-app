@@ -7,6 +7,7 @@
 - 2026-04-23T16:42:26+08:00 [USER] User verifies mainly on Vercel preview/production after push, not local browser.
 - 2026-04-24T00:00:00+08:00 [USER] Use the necessary installed skills/tools for each coding task and run Playwright/webapp tests after coding where possible.
 - 2026-04-26T00:37:47+08:00 [USER] `AGENTS.md` now carries senior full-stack engineering standards for code quality, structure, TypeScript, Next.js, Supabase, security, UX/a11y, testing, and change discipline.
+- 2026-04-26T10:36:19+08:00 [USER] After coding or config changes, check VS Code Problems-style diagnostics via repo CLI equivalents such as typecheck, security lint, cSpell, and relevant tests; resolve problems before finalizing.
 
 ## Security And Product Decisions
 - 2026-04-20T00:00:00+08:00 [USER] Use Stitch MCP for UI design context, design tokens, screen metadata, and Stitch implementation details.
