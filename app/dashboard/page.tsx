@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from "react";
+import { useEffect, useRef, useState, type CSSProperties } from "react";
 import { createPortal } from "react-dom";
 import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
@@ -14,18 +14,26 @@ import {
   buildDashboardRevealMessage,
   createEmptyQueryResult,
   createGroupUserKey,
-  formatDashboardBudget,
-  formatDashboardDate,
   formatGiftPrepStatusLabel,
   formatRelativeTime,
-  getAvatarLabel,
-  getDashboardMemberLabel,
-  getDaysUntilEvent,
   getDisplayFirstName,
   getGiftProgressStepIndex,
   getNotificationPreviewTitle,
   normalizeGiftProgressStep,
 } from "./dashboard-formatters";
+import { DashboardActionCard } from "./DashboardActionCard";
+import { DashboardGroupBucket } from "./DashboardGroupCards";
+import {
+  ArrowRightIcon,
+  BellIcon,
+  ChatIcon,
+  GiftIcon,
+  PlusIcon,
+  SantaMarkIcon,
+  ThemeIcon,
+  UserOutlineIcon,
+  WishlistIcon,
+} from "./dashboard-icons";
 import {
   clearDashboardSnapshots,
   readDashboardSnapshot,
@@ -76,162 +84,6 @@ const InviteCard = dynamic<InviteCardProps>(() => import("./InviteCard"), {
 const ProfileSetupModal = dynamic<ProfileSetupModalProps>(() => import("./ProfileSetupModal"), {
   loading: () => null,
 });
-
-function ArrowRightIcon({ className = "h-4 w-4" }: { className?: string }) {
-  return (
-    <svg viewBox="0 0 20 20" fill="none" className={className} aria-hidden="true">
-      <path
-        d="M4 10h12M11.5 5.5 16 10l-4.5 4.5"
-        stroke="currentColor"
-        strokeWidth="1.8"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </svg>
-  );
-}
-
-function BellIcon({ className = "h-4 w-4" }: { className?: string }) {
-  return (
-    <svg viewBox="0 0 20 20" fill="none" className={className} aria-hidden="true">
-      <path
-        d="M10 3.5a3 3 0 0 0-3 3v1.1c0 .8-.2 1.6-.6 2.3l-1 1.7a1 1 0 0 0 .9 1.5h7.4a1 1 0 0 0 .9-1.5l-1-1.7a4.5 4.5 0 0 1-.6-2.3V6.5a3 3 0 0 0-3-3Z"
-        stroke="currentColor"
-        strokeWidth="1.6"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-      <path d="M8.5 15a1.8 1.8 0 0 0 3 0" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
-    </svg>
-  );
-}
-
-function GiftIcon({ className = "h-5 w-5" }: { className?: string }) {
-  return (
-    <svg viewBox="0 0 24 24" fill="none" className={className} aria-hidden="true">
-      <rect x="4" y="10" width="16" height="10" rx="2" stroke="currentColor" strokeWidth="1.8" />
-      <path d="M12 10v10M4 10h16" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
-      <path
-        d="M9.2 10c-1.6 0-2.7-1-2.7-2.3 0-1.1.8-2 1.9-2 1.7 0 2.9 2.1 3.6 4.3H9.2Z"
-        stroke="currentColor"
-        strokeWidth="1.8"
-        strokeLinejoin="round"
-      />
-      <path
-        d="M14.8 10c1.6 0 2.7-1 2.7-2.3 0-1.1-.8-2-1.9-2-1.7 0-2.9 2.1-3.6 4.3h2.8Z"
-        stroke="currentColor"
-        strokeWidth="1.8"
-        strokeLinejoin="round"
-      />
-    </svg>
-  );
-}
-
-function UserOutlineIcon({ className = "h-4 w-4" }: { className?: string }) {
-  return (
-    <svg viewBox="0 0 20 20" fill="none" className={className} aria-hidden="true">
-      <path
-        d="M10 10a2.75 2.75 0 1 0 0-5.5A2.75 2.75 0 0 0 10 10ZM5.5 15.5c.7-2.1 2.45-3.25 4.5-3.25s3.8 1.15 4.5 3.25"
-        stroke="currentColor"
-        strokeWidth="1.6"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </svg>
-  );
-}
-
-function ThemeIcon({
-  className = "h-4 w-4",
-  dark = false,
-}: {
-  className?: string;
-  dark?: boolean;
-}) {
-  return dark ? (
-    <svg viewBox="0 0 20 20" fill="none" className={className} aria-hidden="true">
-      <path
-        d="M12.6 4.4a6.4 6.4 0 1 0 2.9 11.5 7.1 7.1 0 0 1-2.9-11.5Z"
-        stroke="currentColor"
-        strokeWidth="1.6"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </svg>
-  ) : (
-    <svg viewBox="0 0 20 20" fill="none" className={className} aria-hidden="true">
-      <circle cx="10" cy="10" r="3.3" stroke="currentColor" strokeWidth="1.6" />
-      <path
-        d="M10 2.5v1.9M10 15.6v1.9M17.5 10h-1.9M4.4 10H2.5M15.3 4.7l-1.3 1.3M6 14l-1.3 1.3M15.3 15.3 14 14M6 6 4.7 4.7"
-        stroke="currentColor"
-        strokeWidth="1.6"
-        strokeLinecap="round"
-      />
-    </svg>
-  );
-}
-
-function SantaMarkIcon({ size = 22 }: { size?: number }) {
-  return (
-    <svg width={size} height={size} viewBox="10 5 140 145" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-      <defs>
-        <linearGradient id={`dashboard-santa-hat-${size}`} x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stopColor="#e74c3c" />
-          <stop offset="100%" stopColor="#c0392b" />
-        </linearGradient>
-      </defs>
-      <circle cx="80" cy="82" r="50" fill="#fde8e8" />
-      <ellipse cx="80" cy="108" rx="38" ry="24" fill="#fff" />
-      <ellipse cx="80" cy="102" rx="32" ry="16" fill="#fff" />
-      <ellipse cx="66" cy="86" rx="12" ry="6" fill="#fff" />
-      <ellipse cx="94" cy="86" rx="12" ry="6" fill="#fff" />
-      <circle cx="80" cy="76" r="5" fill="#e8a8a8" />
-      <ellipse cx="64" cy="66" rx="5" ry="6" fill="#fff" />
-      <ellipse cx="64" cy="67" rx="4" ry="5" fill="#2c1810" />
-      <circle cx="62" cy="65" r="1.8" fill="#fff" />
-      <path d="M90 66 Q96 60 102 66" fill="none" stroke="#2c1810" strokeWidth="3.5" strokeLinecap="round" />
-      <path d="M54 58 Q64 51 74 58" fill="none" stroke="#c4a090" strokeWidth="2.5" strokeLinecap="round" />
-      <path d="M86 58 Q96 51 106 58" fill="none" stroke="#c4a090" strokeWidth="2.5" strokeLinecap="round" />
-      <ellipse cx="52" cy="78" rx="7" ry="5" fill="#f0a0a0" opacity=".3" />
-      <ellipse cx="108" cy="78" rx="7" ry="5" fill="#f0a0a0" opacity=".3" />
-      <rect x="76" y="84" width="9" height="26" rx="4.5" fill="#f8d0d0" stroke="#e8b8b8" strokeWidth=".8" />
-      <path d="M32 58 C32 58 50 14 82 10 C114 6 128 58 128 58" fill={`url(#dashboard-santa-hat-${size})`} />
-      <rect x="26" y="54" width="108" height="10" rx="5" fill="#fff" />
-      <circle cx="86" cy="10" r="8" fill="#fff" />
-    </svg>
-  );
-}
-
-function WishlistIcon({ className = "h-5 w-5" }: { className?: string }) {
-  return (
-    <svg viewBox="0 0 24 24" fill="none" className={className} aria-hidden="true">
-      <rect x="5" y="4" width="14" height="16" rx="2" stroke="currentColor" strokeWidth="1.8" />
-      <path d="M9 8h6M9 12h6M9 16h4" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
-    </svg>
-  );
-}
-
-function ChatIcon({ className = "h-5 w-5" }: { className?: string }) {
-  return (
-    <svg viewBox="0 0 24 24" fill="none" className={className} aria-hidden="true">
-      <path
-        d="M7 18.5 4.5 20V7a2.5 2.5 0 0 1 2.5-2.5h10A2.5 2.5 0 0 1 19.5 7v7a2.5 2.5 0 0 1-2.5 2.5H7Z"
-        stroke="currentColor"
-        strokeWidth="1.8"
-        strokeLinejoin="round"
-      />
-      <path d="M8 9h8M8 13h5" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
-    </svg>
-  );
-}
-
-function PlusIcon({ className = "h-5 w-5" }: { className?: string }) {
-  return (
-    <svg viewBox="0 0 24 24" fill="none" className={className} aria-hidden="true">
-      <path d="M12 5v14M5 12h14" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
-    </svg>
-  );
-}
 
 export default function DashboardPage() {
   const router = useRouter();
@@ -1357,265 +1209,8 @@ export default function DashboardPage() {
     ? getGiftProgressStepIndex(giftProgressSummary.focusStep)
     : -1;
 
-  const GroupCard = ({
-    group,
-    type,
-  }: {
-    group: Group;
-    type: "owned" | "invited";
-  }) => {
-    const budgetLabel = formatDashboardBudget(group.budget, group.currency);
-    const memberCountLabel = `${group.members.length} member${group.members.length === 1 ? "" : "s"}`;
-    const daysUntilEvent = getDaysUntilEvent(group.event_date, countdownNow);
-    const isOwnedGroup = type === "owned";
-    const avatarShell = isDarkTheme
-      ? "bg-slate-800 text-slate-100 ring-slate-900"
-      : "bg-slate-100 text-slate-600 ring-white";
-    const groupIconClass = isOwnedGroup
-      ? isDarkTheme
-        ? "bg-rose-500/15 text-rose-200"
-        : "bg-red-100 text-red-600"
-      : isDarkTheme
-        ? "bg-sky-500/15 text-sky-200"
-        : "bg-blue-100 text-blue-600";
-    const datePillClass = isOwnedGroup
-      ? isDarkTheme
-        ? "bg-rose-500/15 text-rose-100"
-        : "bg-red-50 text-red-700"
-      : isDarkTheme
-        ? "bg-sky-500/15 text-sky-100"
-        : "bg-blue-50 text-blue-700";
-    const topMembers = group.members.slice(0, 3);
-
-    return (
-      <article
-        className={`group rounded-[24px] p-5 shadow-[0_8px_22px_rgba(45,51,55,0.03)] transition hover:-translate-y-0.5 hover:shadow-[0_16px_30px_rgba(45,51,55,0.07)] ${
-          isDarkTheme ? "bg-slate-900/82 text-slate-100" : "bg-white text-slate-900"
-        }`}
-      >
-        <div className="grid gap-4 md:grid-cols-[minmax(0,1fr)_auto_auto] md:items-center">
-          <button
-            type="button"
-            onClick={() => router.push(`/group/${group.id}`)}
-            className="flex min-w-0 items-center gap-4 text-left"
-          >
-            <span className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-full ${groupIconClass}`}>
-              {isOwnedGroup ? <GiftIcon className="h-5 w-5" /> : <UserOutlineIcon className="h-5 w-5" />}
-            </span>
-            <span className="min-w-0">
-              <span className="block truncate text-[18px] font-extrabold leading-tight">
-                {group.name}
-              </span>
-              <span className={`mt-1 block text-sm ${isDarkTheme ? "text-slate-400" : "text-slate-600"}`}>
-                {budgetLabel ? `Budget: ${budgetLabel}` : "No budget set"} • {memberCountLabel}
-              </span>
-            </span>
-          </button>
-
-          <div className="flex -space-x-3 md:justify-center">
-            {topMembers.map((member, index) => (
-              <span
-                key={`${group.id}-${member.email || member.nickname || index}-avatar`}
-                className={`inline-flex h-10 w-10 items-center justify-center overflow-hidden rounded-full text-[17px] font-bold ring-4 ${avatarShell}`}
-                title={getDashboardMemberLabel(member, group.require_anonymous_nickname)}
-              >
-                {member.avatarUrl ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img src={member.avatarUrl} alt="" className="h-full w-full object-cover" />
-                ) : (
-                  member.avatarEmoji ||
-                  getAvatarLabel(
-                    getDashboardMemberLabel(member, group.require_anonymous_nickname)
-                  )
-                )}
-              </span>
-            ))}
-            {group.members.length > 3 && (
-              <span className={`inline-flex h-10 w-10 items-center justify-center rounded-full text-xs font-bold ring-4 ${avatarShell}`}>
-                +{group.members.length - 3}
-              </span>
-            )}
-          </div>
-
-          <div className="flex items-center gap-2 md:justify-end">
-            <button
-              type="button"
-              onClick={() => router.push(`/group/${group.id}`)}
-              className={`rounded-full px-4 py-2 text-sm font-extrabold ${datePillClass}`}
-              title={`Event date: ${formatDashboardDate(group.event_date)}`}
-            >
-              {daysUntilEvent === null
-                ? "Open"
-                : `${daysUntilEvent} day${daysUntilEvent === 1 ? "" : "s"} left`}
-            </button>
-            {type === "owned" && (
-              <button
-                type="button"
-                onClick={() => void handleDeleteGroup(group.id, group.name)}
-                disabled={deletingGroupId === group.id}
-                className={`rounded-full px-3 py-2 text-xs font-bold transition ${
-                  isDarkTheme
-                    ? "bg-slate-800 text-slate-300 hover:bg-rose-500/15 hover:text-rose-200"
-                    : "bg-slate-100 text-slate-500 hover:bg-rose-50 hover:text-rose-600"
-                }`}
-              >
-                {deletingGroupId === group.id ? "Deleting" : "Delete"}
-              </button>
-            )}
-          </div>
-        </div>
-      </article>
-    );
-  };
-
-  const ActionCard = ({
-    accent,
-    title,
-    description,
-    onClick,
-    icon,
-  }: {
-    accent: "rose" | "green" | "blue";
-    title: string;
-    description: string;
-    onClick: () => void;
-    icon: ReactNode;
-  }) => {
-    const theme =
-      accent === "rose"
-        ? {
-            surface: isDarkTheme
-              ? "bg-[linear-gradient(135deg,#4b1524,#2a0f18)] text-rose-50"
-              : "bg-[linear-gradient(135deg,#ffaaa7,#f67f83)] text-[#7f000c]",
-            icon: isDarkTheme ? "text-rose-100" : "text-[#7f000c]",
-            chip: "Gift match",
-            glow: "bg-rose-200/20",
-            ring: isDarkTheme ? "ring-rose-100/20" : "ring-rose-100/60",
-          }
-        : accent === "green"
-        ? {
-            surface: isDarkTheme
-              ? "bg-[linear-gradient(135deg,#173f25,#0f2a18)] text-emerald-50"
-              : "bg-[linear-gradient(135deg,#b3f7a6,#81df8c)] text-[#065f18]",
-            icon: isDarkTheme ? "text-emerald-100" : "text-[#065f18]",
-            chip: "Private clues",
-            glow: "bg-emerald-200/20",
-            ring: isDarkTheme ? "ring-emerald-100/20" : "ring-emerald-100/60",
-          }
-        : {
-            surface: isDarkTheme
-              ? "bg-[linear-gradient(135deg,#164569,#0d2d48)] text-sky-50"
-              : "bg-[linear-gradient(135deg,#76bfff,#4aa4f6)] text-[#003a5c]",
-            icon: isDarkTheme ? "text-sky-100" : "text-[#003a5c]",
-            chip: "Plan an event",
-            glow: "bg-sky-200/20",
-            ring: isDarkTheme ? "ring-sky-100/20" : "ring-sky-100/60",
-          };
-
-    const artwork =
-      accent === "rose" ? (
-        <svg
-          aria-hidden="true"
-          className="absolute -bottom-10 -right-6 h-44 w-44 text-white/[0.20] transition duration-300 group-hover:scale-105"
-          viewBox="0 0 180 180"
-          fill="none"
-        >
-          <path d="M35 78h110v70H35V78Z" stroke="currentColor" strokeWidth="10" />
-          <path d="M25 56h130v32H25V56Z" stroke="currentColor" strokeWidth="10" />
-          <path d="M90 56v92M54 56c-19-22 13-38 36 0M126 56c19-22-13-38-36 0" stroke="currentColor" strokeWidth="10" strokeLinecap="round" />
-          <path d="M48 118h84" stroke="currentColor" strokeWidth="7" strokeLinecap="round" strokeDasharray="12 14" />
-        </svg>
-      ) : accent === "green" ? (
-        <svg
-          aria-hidden="true"
-          className="absolute -right-9 top-3 h-48 w-48 text-white/[0.18] transition duration-300 group-hover:translate-x-1"
-          viewBox="0 0 190 190"
-          fill="none"
-        >
-          <path d="M31 54c0-18 15-33 33-33h64c18 0 33 15 33 33v33c0 18-15 33-33 33H84l-35 30v-32c-11-6-18-18-18-31V54Z" stroke="currentColor" strokeWidth="9" />
-          <path d="M61 68h72M61 88h45" stroke="currentColor" strokeWidth="9" strokeLinecap="round" />
-          <circle cx="59" cy="137" r="7" fill="currentColor" />
-          <circle cx="82" cy="137" r="7" fill="currentColor" />
-          <circle cx="105" cy="137" r="7" fill="currentColor" />
-        </svg>
-      ) : (
-        <svg
-          aria-hidden="true"
-          className="absolute -bottom-8 -right-5 h-48 w-48 text-white/[0.20] transition duration-300 group-hover:rotate-3"
-          viewBox="0 0 190 190"
-          fill="none"
-        >
-          <path d="M52 50h84c13 0 24 11 24 24v62c0 13-11 24-24 24H52c-13 0-24-11-24-24V74c0-13 11-24 24-24Z" stroke="currentColor" strokeWidth="9" />
-          <path d="M28 84h132M68 34v32M120 34v32" stroke="currentColor" strokeWidth="9" strokeLinecap="round" />
-          <path d="M94 103v34M77 120h34" stroke="currentColor" strokeWidth="9" strokeLinecap="round" />
-          <circle cx="56" cy="116" r="6" fill="currentColor" />
-          <circle cx="132" cy="116" r="6" fill="currentColor" />
-        </svg>
-      );
-
-    return (
-      <button
-        type="button"
-        onClick={onClick}
-        className={`group relative isolate min-h-[166px] overflow-hidden rounded-[32px] p-7 text-left shadow-[0_10px_26px_rgba(45,51,55,0.06)] transition hover:-translate-y-1 hover:shadow-[0_18px_34px_rgba(45,51,55,0.10)] active:scale-[0.99] ${theme.surface}`}
-      >
-        <span
-          aria-hidden="true"
-          className={`absolute -left-16 -top-16 h-40 w-40 rounded-full blur-2xl ${theme.glow}`}
-        />
-        <span
-          aria-hidden="true"
-          className="absolute inset-x-8 top-0 h-px bg-white/30"
-        />
-        {artwork}
-        <div className="relative z-10 flex min-h-[118px] flex-col justify-between">
-          <div>
-            <div className="mb-5 flex items-center justify-between gap-3">
-              <div className={`inline-flex h-12 w-12 items-center justify-center rounded-2xl bg-white/[0.12] ring-1 ${theme.ring} ${theme.icon}`}>
-                {icon}
-              </div>
-              <span className="rounded-full bg-white/[0.12] px-3 py-1 text-[11px] font-black uppercase tracking-[0.14em] text-white/75">
-                {theme.chip}
-              </span>
-            </div>
-            <h2 className="text-[1.55rem] font-black leading-tight tracking-tight">{title}</h2>
-          </div>
-          <p className="mt-3 max-w-[17rem] text-[15px] font-semibold leading-6 opacity-[0.82]">
-            {description}
-          </p>
-        </div>
-      </button>
-    );
-  };
-
-  const GroupBucket = ({
-    title,
-    count,
-    groups,
-    type,
-  }: {
-    title: string;
-    count: number;
-    groups: Group[];
-    type: "owned" | "invited";
-  }) => {
-    return (
-      <section className="space-y-4">
-        <div className="flex items-center justify-between gap-3 px-2">
-          <h3 className={`text-xs font-black uppercase tracking-[0.22em] ${isDarkTheme ? "text-slate-500" : "text-slate-400"}`}>
-            {title}
-          </h3>
-          <span className={`rounded-full px-3 py-1 text-xs font-bold ${isDarkTheme ? "bg-slate-800 text-slate-300" : "bg-slate-100 text-slate-500"}`}>
-            {count} group{count === 1 ? "" : "s"}
-          </span>
-        </div>
-        <div className="space-y-4">
-          {groups.map((group) => (
-            <GroupCard key={`${type}-${group.id}`} group={group} type={type} />
-          ))}
-        </div>
-      </section>
-    );
+  const handleOpenGroup = (groupId: string) => {
+    router.push(`/group/${groupId}`);
   };
 
   const profileMenuStyle: CSSProperties | undefined = profileMenuPosition
@@ -1898,7 +1493,7 @@ export default function DashboardPage() {
         )}
 
         <section data-fade className="mb-12 grid gap-6 md:grid-cols-3">
-          <ActionCard
+          <DashboardActionCard
             accent="rose"
             title={hasAssignments ? "View Recipient" : "No Recipient Yet"}
             description={
@@ -1906,20 +1501,23 @@ export default function DashboardPage() {
                 ? "See who you are giving a gift to."
                 : "Your recipient will appear after the draw."
             }
+            isDarkTheme={isDarkTheme}
             onClick={() => router.push("/secret-santa")}
             icon={<GiftIcon className="h-8 w-8" />}
           />
-          <ActionCard
+          <DashboardActionCard
             accent="green"
             title="Secret Santa Chat"
             description="Ask private questions without revealing the surprise."
+            isDarkTheme={isDarkTheme}
             onClick={() => router.push("/secret-santa-chat")}
             icon={<ChatIcon className="h-8 w-8" />}
           />
-          <ActionCard
+          <DashboardActionCard
             accent="blue"
             title="New Group"
             description="Create a Secret Santa group and invite members."
+            isDarkTheme={isDarkTheme}
             onClick={() => router.push("/create-group")}
             icon={<PlusIcon className="h-8 w-8" />}
           />
@@ -1969,19 +1567,29 @@ export default function DashboardPage() {
               ) : (
                 <div className="space-y-8">
                   {ownedGroups.length > 0 && (
-                    <GroupBucket
+                    <DashboardGroupBucket
                       title="Hosted by you"
                       count={ownedGroups.length}
                       groups={ownedGroups}
                       type="owned"
+                      countdownNow={countdownNow}
+                      deletingGroupId={deletingGroupId}
+                      isDarkTheme={isDarkTheme}
+                      onOpenGroup={handleOpenGroup}
+                      onDeleteGroup={handleDeleteGroup}
                     />
                   )}
                   {invitedGroups.length > 0 && (
-                    <GroupBucket
+                    <DashboardGroupBucket
                       title="Joined as member"
                       count={invitedGroups.length}
                       groups={invitedGroups}
                       type="invited"
+                      countdownNow={countdownNow}
+                      deletingGroupId={deletingGroupId}
+                      isDarkTheme={isDarkTheme}
+                      onOpenGroup={handleOpenGroup}
+                      onDeleteGroup={handleDeleteGroup}
                     />
                   )}
                 </div>
