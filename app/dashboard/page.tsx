@@ -14,23 +14,22 @@ import {
   createEmptyQueryResult,
   createGroupUserKey,
   formatGiftPrepStatusLabel,
-  formatRelativeTime,
   getDisplayFirstName,
-  getGiftProgressStepIndex,
   getNotificationPreviewTitle,
   normalizeGiftProgressStep,
 } from "./dashboard-formatters";
-import { DashboardActionCard } from "./DashboardActionCard";
-import { DashboardGroupBucket } from "./DashboardGroupCards";
+import { DashboardActivitySection } from "./DashboardActivitySection";
+import { DashboardBackdrop } from "./DashboardBackdrop";
+import { DashboardGroupsSection } from "./DashboardGroupsSection";
 import { DashboardHeader } from "./DashboardHeader";
+import { DashboardHero } from "./DashboardHero";
+import { DashboardInvitesSection } from "./DashboardInvitesSection";
 import { DashboardProfileMenu } from "./DashboardProfileMenu";
-import {
-  ArrowRightIcon,
-  ChatIcon,
-  GiftIcon,
-  PlusIcon,
-  WishlistIcon,
-} from "./dashboard-icons";
+import { DashboardQuickActions } from "./DashboardQuickActions";
+import { DashboardSidebar } from "./DashboardSidebar";
+import { DashboardStatusMessage } from "./DashboardStatusMessage";
+import { useDashboardProfileMenu } from "./useDashboardProfileMenu";
+import { useDashboardRoutePrefetch } from "./useDashboardRoutePrefetch";
 import {
   clearDashboardSnapshots,
   readDashboardSnapshot,
@@ -55,28 +54,15 @@ import type {
   PeerProfileRow,
   PendingGroupRow,
   PendingInvite,
-  ProfileMenuPosition,
   WishlistSummaryRow,
 } from "./dashboard-types";
-import { getActivityFeedVisual, getDashboardToneTheme } from "./dashboard-visuals";
-
-type InviteCardProps = {
-  groupId: string;
-  groupName: string;
-  eventDate: string;
-  description?: string;
-  requiresAnonymousNickname?: boolean;
-};
+import { getActivityFeedVisual } from "./dashboard-visuals";
 
 type ProfileSetupModalProps = {
   defaultName: string;
   onComplete: () => void;
   onSkip: () => void;
 };
-
-const InviteCard = dynamic<InviteCardProps>(() => import("./InviteCard"), {
-  loading: () => null,
-});
 
 const ProfileSetupModal = dynamic<ProfileSetupModalProps>(() => import("./ProfileSetupModal"), {
   loading: () => null,
@@ -85,7 +71,6 @@ const ProfileSetupModal = dynamic<ProfileSetupModalProps>(() => import("./Profil
 export default function DashboardPage() {
   const router = useRouter();
   const [supabase] = useState(() => createClient());
-  const prefetchedRoutesRef = useRef<Set<string>>(new Set());
   const [countdownNow, setCountdownNow] = useState(() => Date.now());
   const [canViewAffiliateReport, setCanViewAffiliateReport] = useState(
     () => typeof sessionStorage !== "undefined" && sessionStorage.getItem("ss_ara") === "1"
@@ -116,15 +101,19 @@ export default function DashboardPage() {
   const [showProfileSetup, setShowProfileSetup] = useState(false);
   const [actionMessage, setActionMessage] = useState<ActionMessage>(null);
   const [deletingGroupId, setDeletingGroupId] = useState<string | null>(null);
-  const [profileMenuOpen, setProfileMenuOpen] = useState(false);
-  const [profileMenuPosition, setProfileMenuPosition] = useState<ProfileMenuPosition>(null);
+  const {
+    closeProfileMenu,
+    profileMenuOpen,
+    profileMenuPanelRef,
+    profileMenuPosition,
+    profileMenuRef,
+    toggleProfileMenu,
+  } = useDashboardProfileMenu();
   const loadDashboardDataRef = useRef<
     ((user: { id: string; email?: string | null }) => Promise<void>) | null
   >(null);
   const loadProfileDataRef = useRef<(() => Promise<void>) | null>(null);
   const loadNotificationCountRef = useRef<((userId: string) => Promise<void>) | null>(null);
-  const profileMenuRef = useRef<HTMLDivElement | null>(null);
-  const profileMenuPanelRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
     if (typeof window === "undefined") {
@@ -133,74 +122,6 @@ export default function DashboardPage() {
 
     localStorage.setItem("ss_dashboard_theme", dashboardTheme);
   }, [dashboardTheme]);
-
-  useEffect(() => {
-    if (!profileMenuOpen) {
-      return;
-    }
-
-    const handlePointerDown = (event: MouseEvent) => {
-      const target = event.target as Node;
-      if (
-        !profileMenuRef.current?.contains(target) &&
-        !profileMenuPanelRef.current?.contains(target)
-      ) {
-        setProfileMenuOpen(false);
-      }
-    };
-
-    const handleEscape = (event: KeyboardEvent) => {
-      if (event.key === "Escape") {
-        setProfileMenuOpen(false);
-      }
-    };
-
-    document.addEventListener("mousedown", handlePointerDown);
-    document.addEventListener("keydown", handleEscape);
-
-    return () => {
-      document.removeEventListener("mousedown", handlePointerDown);
-      document.removeEventListener("keydown", handleEscape);
-    };
-  }, [profileMenuOpen]);
-
-  useEffect(() => {
-    if (!profileMenuOpen) {
-      setProfileMenuPosition(null);
-      return;
-    }
-
-    const updateProfileMenuPosition = () => {
-      const trigger = profileMenuRef.current;
-      if (!trigger || typeof window === "undefined") {
-        return;
-      }
-
-      const rect = trigger.getBoundingClientRect();
-      const width = window.innerWidth < 640
-        ? Math.min(220, Math.max(188, window.innerWidth - 28))
-        : Math.min(248, Math.max(224, window.innerWidth - 32));
-      const left = Math.min(
-        Math.max(16, rect.right - width),
-        Math.max(16, window.innerWidth - width - 16)
-      );
-
-      setProfileMenuPosition({
-        top: rect.bottom + 8,
-        left,
-        width,
-      });
-    };
-
-    updateProfileMenuPosition();
-    window.addEventListener("resize", updateProfileMenuPosition);
-    window.addEventListener("scroll", updateProfileMenuPosition, true);
-
-    return () => {
-      window.removeEventListener("resize", updateProfileMenuPosition);
-      window.removeEventListener("scroll", updateProfileMenuPosition, true);
-    };
-  }, [profileMenuOpen]);
 
   useEffect(() => {
     let intervalId: ReturnType<typeof setInterval> | null = null;
@@ -1001,94 +922,12 @@ export default function DashboardPage() {
     };
   }, [supabase, router]);
 
-  useEffect(() => {
-    const prefetchOnce = (route: string) => {
-      if (prefetchedRoutesRef.current.has(route)) {
-        return;
-      }
-
-      prefetchedRoutesRef.current.add(route);
-      router.prefetch(route);
-    };
-
-    const routesToPrefetch = [
-      "/secret-santa",
-      "/secret-santa-chat",
-      "/wishlist",
-      "/notifications",
-      "/create-group",
-    ];
-    if (canViewAffiliateReport) {
-      routesToPrefetch.push("/dashboard/affiliate-report");
-    }
-
-    let timeoutId: ReturnType<typeof setTimeout> | null = null;
-    let idleId: number | null = null;
-
-    const prefetchCoreRoutes = () => {
-      for (const route of routesToPrefetch) {
-        prefetchOnce(route);
-      }
-    };
-
-    if (typeof window !== "undefined" && "requestIdleCallback" in window) {
-      idleId = window.requestIdleCallback(prefetchCoreRoutes, { timeout: 1500 });
-    } else if (typeof window !== "undefined") {
-      timeoutId = setTimeout(prefetchCoreRoutes, 1200);
-    } else {
-      prefetchCoreRoutes();
-    }
-
-    return () => {
-      if (typeof window !== "undefined" && idleId !== null && "cancelIdleCallback" in window) {
-        window.cancelIdleCallback(idleId);
-      }
-      if (timeoutId !== null) {
-        clearTimeout(timeoutId);
-      }
-    };
-  }, [router, canViewAffiliateReport]);
-
-  useEffect(() => {
-    const groupRoutes = [...ownedGroups, ...invitedGroups]
-      .slice(0, 6)
-      .map((group) => `/group/${group.id}`);
-    if (groupRoutes.length === 0) {
-      return;
-    }
-
-    const prefetchGroupRoutes = () => {
-      for (const route of groupRoutes) {
-        if (prefetchedRoutesRef.current.has(route)) {
-          continue;
-        }
-
-        prefetchedRoutesRef.current.add(route);
-        router.prefetch(route);
-      }
-    };
-
-    let timeoutId: ReturnType<typeof setTimeout> | null = null;
-    let idleId: number | null = null;
-
-    if (typeof window !== "undefined" && "requestIdleCallback" in window) {
-      idleId = window.requestIdleCallback(prefetchGroupRoutes, { timeout: 1800 });
-    } else if (typeof window !== "undefined") {
-      timeoutId = setTimeout(prefetchGroupRoutes, 1200);
-    } else {
-      prefetchGroupRoutes();
-    }
-
-    return () => {
-      if (typeof window !== "undefined" && idleId !== null && "cancelIdleCallback" in window) {
-        window.cancelIdleCallback(idleId);
-      }
-
-      if (timeoutId !== null) {
-        clearTimeout(timeoutId);
-      }
-    };
-  }, [router, ownedGroups, invitedGroups]);
+  useDashboardRoutePrefetch({
+    canViewAffiliateReport,
+    invitedGroups,
+    ownedGroups,
+    router,
+  });
 
   const handleLogout = async () => {
     clearDashboardSnapshots();
@@ -1148,61 +987,9 @@ export default function DashboardPage() {
   const totalDashboardGroupCount = ownedGroups.length + invitedGroups.length;
   const allDashboardGroups = [...ownedGroups, ...invitedGroups];
   const revealMessage = buildDashboardRevealMessage(allDashboardGroups, countdownNow);
-  const utilityIconClass = isDarkTheme ? "text-slate-300" : "text-slate-500";
   const dashboardShellClass = isDarkTheme
     ? "relative min-h-screen overflow-hidden bg-[linear-gradient(180deg,#08111f_0%,#0f172a_38%,#111827_100%)] text-slate-100"
     : "relative min-h-screen overflow-hidden bg-[linear-gradient(180deg,#edf6ff_0%,#f8fbff_45%,#eef5ff_100%)] text-slate-900";
-  const dashboardOverlayClass = isDarkTheme
-    ? "absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(59,130,246,0.20),transparent_24%),radial-gradient(circle_at_top_right,rgba(15,23,42,0.92),transparent_28%),radial-gradient(circle_at_bottom_left,rgba(14,165,233,0.14),transparent_34%)]"
-    : "absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(125,180,255,0.26),transparent_25%),radial-gradient(circle_at_top_right,rgba(255,255,255,0.9),transparent_28%),radial-gradient(circle_at_bottom_left,rgba(191,219,254,0.35),transparent_32%)]";
-  const sparkleClass = isDarkTheme
-    ? "h-2.5 w-2.5 rounded-full bg-sky-200/55 shadow-[0_0_18px_rgba(125,211,252,0.36)]"
-    : "h-3 w-3 rounded-full bg-white/85 shadow-[0_0_12px_rgba(255,255,255,0.85)]";
-  const heroTitleClass = isDarkTheme ? "text-white" : "text-sky-900";
-  const heroSubtitleClass = isDarkTheme ? "text-slate-300" : "text-slate-600";
-  const dashboardPanelHeadingClass = isDarkTheme ? "text-white" : "text-slate-900";
-  const dashboardPanelTextClass = isDarkTheme ? "text-slate-300" : "text-slate-600";
-  const dashboardStatLabelClass = isDarkTheme ? "text-slate-500" : "text-slate-400";
-  const giftProgressSteps: Array<{
-    key: GiftProgressStep;
-    label: string;
-    icon: string;
-    accent: string;
-    rowTone: string;
-  }> = [
-    {
-      key: "planning",
-      label: "Planning",
-      icon: "↗",
-      accent: "bg-[#7ccd4c]",
-      rowTone: isDarkTheme ? "bg-emerald-500/10 text-emerald-200" : "bg-emerald-50 text-emerald-700",
-    },
-    {
-      key: "purchased",
-      label: "Purchased",
-      icon: "✓",
-      accent: "bg-[#8fd644]",
-      rowTone: isDarkTheme ? "bg-lime-500/10 text-lime-200" : "bg-lime-50 text-lime-700",
-    },
-    {
-      key: "wrapped",
-      label: "Wrapped",
-      icon: "◫",
-      accent: "bg-[#f2b24b]",
-      rowTone: isDarkTheme ? "bg-amber-500/10 text-amber-200" : "bg-amber-50 text-amber-700",
-    },
-    {
-      key: "ready_to_give",
-      label: "Gift sent",
-      icon: "🎁",
-      accent: "bg-[#b8a0e8]",
-      rowTone: isDarkTheme ? "bg-violet-500/10 text-violet-200" : "bg-violet-50 text-violet-700",
-    },
-  ];
-  const currentGiftProgressIndex = giftProgressSummary
-    ? getGiftProgressStepIndex(giftProgressSummary.focusStep)
-    : -1;
-
   const handleOpenGroup = (groupId: string) => {
     router.push(`/group/${groupId}`);
   };
@@ -1217,29 +1004,13 @@ export default function DashboardPage() {
         />
       )}
 
-      <div className={dashboardOverlayClass} />
-      <div className="pointer-events-none absolute inset-0 opacity-60">
-        {[
-          "left-[8%] top-[12%]",
-          "left-[22%] top-[18%]",
-          "left-[70%] top-[15%]",
-          "left-[84%] top-[24%]",
-          "left-[11%] top-[58%]",
-          "left-[60%] top-[66%]",
-          "left-[88%] top-[72%]",
-        ].map((position) => (
-          <span
-            key={position}
-            className={`absolute ${position} ${sparkleClass}`}
-          />
-        ))}
-      </div>
+      <DashboardBackdrop isDarkTheme={isDarkTheme} />
       {profileMenuOpen && (
         <DashboardProfileMenu
           isDarkTheme={isDarkTheme}
           menuRef={profileMenuPanelRef}
           position={profileMenuPosition}
-          onClose={() => setProfileMenuOpen(false)}
+          onClose={closeProfileMenu}
           onGoProfile={() => router.push("/profile")}
           onLogout={() => void handleLogout()}
         />
@@ -1257,348 +1028,62 @@ export default function DashboardPage() {
         onGoAffiliateReport={() => router.push("/dashboard/affiliate-report")}
         onScrollToActivity={() => document.getElementById("dashboard-activity")?.scrollIntoView({ behavior: "smooth" })}
         onScrollToGroups={() => document.getElementById("dashboard-groups")?.scrollIntoView({ behavior: "smooth" })}
-        onToggleProfileMenu={() => setProfileMenuOpen((current) => !current)}
+        onToggleProfileMenu={toggleProfileMenu}
         onToggleTheme={() => setDashboardTheme((current) => (current === "midnight" ? "default" : "midnight"))}
       />
 
       <FadeIn className="relative z-10 mx-auto w-full max-w-7xl px-4 pb-24 pt-8 sm:px-6 lg:px-8">
-        {actionMessage && (
-          <div
-            data-fade
-            role="status"
-            aria-live="polite"
-            className={`mb-6 rounded-3xl px-4 py-3 text-sm font-semibold ${
-              actionMessage.type === "success"
-                ? "border border-emerald-200 bg-emerald-50 text-emerald-700"
-                : "border border-rose-200 bg-rose-50 text-rose-700"
-            }`}
-          >
-            {actionMessage.text}
-          </div>
-        )}
+        <DashboardStatusMessage message={actionMessage} />
 
-        <div data-fade className="mb-9 text-left">
-          <h1 className={`text-4xl font-extrabold tracking-tight sm:text-[3.35rem] ${heroTitleClass}`}>
-            Welcome back, {displayFirstName}
-          </h1>
-          <p className={`mt-2 text-[19px] ${heroSubtitleClass}`}>
-            {revealMessage} <span aria-hidden="true">🎄</span>
-          </p>
-        </div>
+        <DashboardHero
+          displayFirstName={displayFirstName}
+          isDarkTheme={isDarkTheme}
+          revealMessage={revealMessage}
+        />
 
-        {pendingInvites.length > 0 && (
-          <section data-fade className="mb-10">
-            <div className="mb-4 flex items-center justify-between gap-4">
-              <div>
-                <p className="text-sm font-semibold uppercase tracking-[0.18em] text-orange-500">
-                  Invitations
-                </p>
-                <h2 className="mt-1 text-3xl font-bold text-slate-900">Pending invites</h2>
-              </div>
-              <span className="inline-flex rounded-full bg-orange-50 px-3 py-1 text-sm font-semibold text-orange-700">
-                {pendingInvites.length} waiting
-              </span>
-            </div>
-            <div className="grid gap-4 md:grid-cols-2">
-              {pendingInvites.map((invite) => (
-                <InviteCard
-                  key={invite.group_id}
-                  groupId={invite.group_id}
-                  groupName={invite.group_name}
-                  eventDate={invite.group_event_date}
-                  description={invite.group_description}
-                  requiresAnonymousNickname={invite.require_anonymous_nickname}
-                />
-              ))}
-            </div>
-          </section>
-        )}
+        <DashboardInvitesSection pendingInvites={pendingInvites} />
 
-        <section data-fade className="mb-12 grid gap-6 md:grid-cols-3">
-          <DashboardActionCard
-            accent="rose"
-            title={hasAssignments ? "View Recipient" : "No Recipient Yet"}
-            description={
-              hasAssignments
-                ? "See who you are giving a gift to."
-                : "Your recipient will appear after the draw."
-            }
-            isDarkTheme={isDarkTheme}
-            onClick={() => router.push("/secret-santa")}
-            icon={<GiftIcon className="h-8 w-8" />}
-          />
-          <DashboardActionCard
-            accent="green"
-            title="Secret Santa Chat"
-            description="Ask private questions without revealing the surprise."
-            isDarkTheme={isDarkTheme}
-            onClick={() => router.push("/secret-santa-chat")}
-            icon={<ChatIcon className="h-8 w-8" />}
-          />
-          <DashboardActionCard
-            accent="blue"
-            title="New Group"
-            description="Create a Secret Santa group and invite members."
-            isDarkTheme={isDarkTheme}
-            onClick={() => router.push("/create-group")}
-            icon={<PlusIcon className="h-8 w-8" />}
-          />
-        </section>
+        <DashboardQuickActions
+          hasAssignments={hasAssignments}
+          isDarkTheme={isDarkTheme}
+          onCreateGroup={() => router.push("/create-group")}
+          onOpenChat={() => router.push("/secret-santa-chat")}
+          onOpenSecretSanta={() => router.push("/secret-santa")}
+        />
 
         <section data-fade className="grid items-start gap-10 lg:grid-cols-[minmax(0,1fr)_360px]">
           <div className="space-y-12">
-            <section id="dashboard-groups" className="scroll-mt-24">
-              <div className="mb-5 flex items-end justify-between gap-4">
-                <div>
-                  <h2 className={`text-[1.85rem] font-black tracking-tight ${dashboardPanelHeadingClass}`}>Your Groups</h2>
-                  <p className={`mt-1 text-[15px] ${dashboardPanelTextClass}`}>
-                    Groups you host and groups you joined, all in one place.
-                  </p>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => router.push("/create-group")}
-                  className={`hidden items-center gap-1.5 rounded-full px-3 py-1.5 text-sm font-extrabold transition hover:-translate-y-0.5 sm:inline-flex ${
-                    isDarkTheme ? "bg-red-500/12 text-red-200" : "bg-red-50 text-red-700"
-                  }`}
-                >
-                  New group
-                  <ArrowRightIcon className="h-3.5 w-3.5" />
-                </button>
-              </div>
+            <DashboardGroupsSection
+              countdownNow={countdownNow}
+              deletingGroupId={deletingGroupId}
+              invitedGroups={invitedGroups}
+              isDarkTheme={isDarkTheme}
+              ownedGroups={ownedGroups}
+              totalDashboardGroupCount={totalDashboardGroupCount}
+              onCreateGroup={() => router.push("/create-group")}
+              onDeleteGroup={handleDeleteGroup}
+              onOpenGroup={handleOpenGroup}
+            />
 
-              {totalDashboardGroupCount === 0 ? (
-                <section className={`relative overflow-hidden rounded-[28px] p-7 shadow-[0_12px_30px_rgba(45,51,55,0.04)] ${
-                  isDarkTheme ? "bg-slate-900/82 text-slate-100" : "bg-white text-slate-900"
-                }`}>
-                  <div className="absolute bottom-4 right-6 h-24 w-24 rounded-full bg-[radial-gradient(circle_at_center,#dbeafe,transparent_70%)] opacity-80" />
-                  <p className={`text-[12px] font-black uppercase tracking-[0.18em] ${dashboardStatLabelClass}`}>Start here</p>
-                  <h3 className="mt-4 text-2xl font-black">Don&apos;t have a group yet?</h3>
-                  <p className={`mt-3 max-w-md text-[15px] leading-7 ${dashboardPanelTextClass}`}>
-                    Create a group and start your Secret Santa planning with a budget, date, and invite list already in place.
-                  </p>
-                  <button
-                    type="button"
-                    onClick={() => router.push("/create-group")}
-                    className="mt-7 inline-flex items-center gap-2 rounded-full bg-[#186be8] px-6 py-3 text-[15px] font-extrabold text-white shadow-[0_14px_30px_rgba(24,107,232,0.22)] transition hover:-translate-y-0.5"
-                  >
-                    Start new group
-                    <ArrowRightIcon />
-                  </button>
-                </section>
-              ) : (
-                <div className="space-y-8">
-                  {ownedGroups.length > 0 && (
-                    <DashboardGroupBucket
-                      title="Hosted by you"
-                      count={ownedGroups.length}
-                      groups={ownedGroups}
-                      type="owned"
-                      countdownNow={countdownNow}
-                      deletingGroupId={deletingGroupId}
-                      isDarkTheme={isDarkTheme}
-                      onOpenGroup={handleOpenGroup}
-                      onDeleteGroup={handleDeleteGroup}
-                    />
-                  )}
-                  {invitedGroups.length > 0 && (
-                    <DashboardGroupBucket
-                      title="Joined as member"
-                      count={invitedGroups.length}
-                      groups={invitedGroups}
-                      type="invited"
-                      countdownNow={countdownNow}
-                      deletingGroupId={deletingGroupId}
-                      isDarkTheme={isDarkTheme}
-                      onOpenGroup={handleOpenGroup}
-                      onDeleteGroup={handleDeleteGroup}
-                    />
-                  )}
-                </div>
-              )}
-            </section>
-
-            <section id="dashboard-activity" className="scroll-mt-24">
-              <h2 className={`mb-5 text-[1.85rem] font-black tracking-tight ${dashboardPanelHeadingClass}`}>Recent Activity</h2>
-              <div className={`rounded-[30px] p-3 shadow-[0_12px_30px_rgba(45,51,55,0.04)] ${
-                isDarkTheme ? "bg-slate-900/82" : "bg-white/92"
-              }`}>
-                {activityFeedItems.length === 0 ? (
-                  <div className={`rounded-[24px] border border-dashed px-6 py-10 text-[15px] ${
-                    isDarkTheme ? "border-slate-700/70 bg-slate-950/45 text-slate-400" : "border-slate-200 bg-slate-50/80 text-slate-500"
-                  }`}>
-                    Once gift progress or group updates start happening, your recent activity will show up here.
-                  </div>
-                ) : (
-                  <div className={isDarkTheme ? "divide-y divide-slate-700/70" : "divide-y divide-slate-200/70"}>
-                    {activityFeedItems.slice(0, 5).map((item) => {
-                      const theme = getDashboardToneTheme(item.tone, isDarkTheme);
-                      const content = (
-                        <div className="flex items-center gap-4 px-4 py-4 text-left">
-                          <span className={`inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-[16px] ${theme.iconShell}`}>
-                            {item.icon}
-                          </span>
-                          <span className="min-w-0 flex-1">
-                            <span className={`block truncate text-[15px] font-extrabold ${dashboardPanelHeadingClass}`}>
-                              {item.title}
-                            </span>
-                            <span className={`mt-0.5 block truncate text-sm ${dashboardPanelTextClass}`}>
-                              {item.subtitle}
-                            </span>
-                          </span>
-                          <span className={`shrink-0 text-sm font-bold ${isDarkTheme ? "text-slate-500" : "text-slate-400"}`}>
-                            {formatRelativeTime(item.createdAt)}
-                          </span>
-                          {item.href && <ArrowRightIcon className={`h-4 w-4 shrink-0 ${utilityIconClass}`} />}
-                        </div>
-                      );
-
-                      return item.href ? (
-                        <button
-                          key={item.id}
-                          type="button"
-                          onClick={() => router.push(item.href as string)}
-                          className="block w-full rounded-[20px] transition hover:bg-slate-500/5"
-                        >
-                          {content}
-                        </button>
-                      ) : (
-                        <div key={item.id}>{content}</div>
-                      );
-                    })}
-                  </div>
-                )}
-              </div>
-            </section>
+            <DashboardActivitySection
+              activityFeedItems={activityFeedItems}
+              isDarkTheme={isDarkTheme}
+              onOpenPath={(path) => router.push(path)}
+            />
           </div>
 
-          <aside className="space-y-8 lg:sticky lg:top-24">
-            <section className={`relative overflow-hidden rounded-[32px] p-8 shadow-[0_14px_32px_rgba(45,51,55,0.05)] ${
-              isDarkTheme ? "bg-slate-900/82 text-slate-100" : "bg-white text-slate-900"
-            }`}>
-              <div className="mb-5 flex items-center justify-between gap-3">
-                <div className="inline-flex items-center gap-2">
-                  <WishlistIcon className={isDarkTheme ? "h-5 w-5 text-rose-200" : "h-5 w-5 text-red-700"} />
-                  <h3 className="text-lg font-black">My Wishlist</h3>
-                </div>
-                <span className={`rounded-full px-3 py-1 text-xs font-black ${
-                  isDarkTheme ? "bg-slate-800 text-slate-300" : "bg-blue-50 text-blue-500"
-                }`}>
-                  {wishlistItemCount} item{wishlistItemCount === 1 ? "" : "s"}
-                </span>
-              </div>
-              <p className={`text-[15px] leading-7 ${dashboardPanelTextClass}`}>
-                Help your Santa choose a gift you will like. {wishlistGroupCount} group{wishlistGroupCount === 1 ? "" : "s"} already use your wishlist ideas.
-              </p>
-              <button
-                type="button"
-                onClick={() => router.push("/wishlist")}
-                className="mt-7 flex w-full items-center justify-center rounded-full bg-[#c71824] px-5 py-4 text-[15px] font-extrabold text-white shadow-[0_16px_30px_rgba(199,24,36,0.20)] transition hover:-translate-y-0.5"
-              >
-                Manage Wishlist
-              </button>
-            </section>
-
-            <section className={`rounded-[32px] p-8 shadow-[0_14px_32px_rgba(45,51,55,0.05)] ${
-              isDarkTheme ? "bg-slate-900/82 text-slate-100" : "bg-white text-slate-900"
-            }`}>
-              <h3 className="text-lg font-black">Gift Progress</h3>
-              <div className="mt-5 space-y-4">
-                {giftProgressSteps.map((step, index) => {
-                  const count = giftProgressSummary?.countsByStep[step.key] ?? 0;
-                  const isCurrent = giftProgressSummary ? index === currentGiftProgressIndex : index === 0;
-                  const isDone = giftProgressSummary ? count > 0 && index <= currentGiftProgressIndex : false;
-
-                  return (
-                    <div key={step.key} className="flex items-center gap-3">
-                      <span
-                        className={`inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-sm font-black ${
-                          isDone || isCurrent
-                            ? "bg-green-600 text-white"
-                            : isDarkTheme
-                              ? "bg-slate-800 text-slate-500"
-                              : "bg-slate-100 text-slate-400"
-                        }`}
-                      >
-                        {isDone ? "✓" : ""}
-                      </span>
-                      <span className={`text-[15px] font-extrabold ${
-                        isCurrent ? "text-green-600" : dashboardPanelHeadingClass
-                      }`}>
-                        {step.label}
-                      </span>
-                      {isCurrent && count > 0 && (
-                        <span className={`ml-auto rounded-full px-2.5 py-1 text-[11px] font-black ${
-                          isDarkTheme ? "bg-green-500/15 text-green-200" : "bg-green-50 text-green-700"
-                        }`}>
-                          {count}
-                        </span>
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
-              <button
-                type="button"
-                onClick={() => router.push("/secret-santa")}
-                className={`mt-7 flex w-full items-center justify-center rounded-full px-5 py-3 text-sm font-extrabold transition hover:-translate-y-0.5 ${
-                  isDarkTheme ? "bg-slate-800 text-slate-100" : "bg-slate-50 text-slate-700"
-                }`}
-              >
-                Open gift planning
-              </button>
-            </section>
-
-            <section className={`rounded-[32px] p-8 shadow-[0_14px_32px_rgba(45,51,55,0.05)] ${
-              isDarkTheme ? "bg-slate-900/82 text-slate-100" : "bg-white text-slate-900"
-            }`}>
-              <h3 className="text-lg font-black">Notification Highlights</h3>
-              <div className="mt-5 space-y-4">
-                {notificationPreviewItems.length === 0 ? (
-                  <div className={`rounded-[22px] border border-dashed px-4 py-7 text-sm ${
-                    isDarkTheme ? "border-slate-700/70 text-slate-400" : "border-slate-200 text-slate-500"
-                  }`}>
-                    New invites, chat pings, and draw updates will show up here.
-                  </div>
-                ) : (
-                  notificationPreviewItems.slice(0, 2).map((item) => {
-                    const theme = getDashboardToneTheme(item.tone, isDarkTheme);
-
-                    return (
-                      <button
-                        key={item.id}
-                        type="button"
-                        onClick={() => router.push(item.href || "/notifications")}
-                        className="flex w-full items-center gap-3 rounded-[20px] p-3 text-left transition hover:bg-slate-500/5"
-                      >
-                        <span className={`inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-lg ${theme.iconShell}`}>
-                          {item.icon}
-                        </span>
-                        <span className="min-w-0 flex-1">
-                          <span className={`block truncate text-sm font-extrabold ${dashboardPanelHeadingClass}`}>{item.title}</span>
-                          <span className={`mt-0.5 block truncate text-xs ${dashboardPanelTextClass}`}>
-                            {formatRelativeTime(item.createdAt)}
-                          </span>
-                        </span>
-                      </button>
-                    );
-                  })
-                )}
-              </div>
-              <button
-                type="button"
-                onClick={() => router.push("/notifications")}
-                className={`mt-6 flex w-full items-center justify-center gap-2 rounded-full px-5 py-3 text-sm font-extrabold transition hover:-translate-y-0.5 ${
-                  isDarkTheme ? "bg-slate-800 text-slate-100" : "bg-slate-50 text-slate-700"
-                }`}
-              >
-                Go to Inbox
-                {unreadNotificationCount > 0 && (
-                  <span className="rounded-full bg-rose-500 px-2 py-0.5 text-[11px] text-white">{unreadNotificationCount}</span>
-                )}
-              </button>
-            </section>
-          </aside>
+          <DashboardSidebar
+            giftProgressSummary={giftProgressSummary}
+            isDarkTheme={isDarkTheme}
+            notificationPreviewItems={notificationPreviewItems}
+            unreadNotificationCount={unreadNotificationCount}
+            wishlistGroupCount={wishlistGroupCount}
+            wishlistItemCount={wishlistItemCount}
+            onGoNotifications={() => router.push("/notifications")}
+            onGoSecretSanta={() => router.push("/secret-santa")}
+            onGoWishlist={() => router.push("/wishlist")}
+            onOpenPath={(path) => router.push(path)}
+          />
         </section>
 
       </FadeIn>
