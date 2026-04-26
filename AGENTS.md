@@ -19,6 +19,21 @@
 
 Act as a senior full-stack engineer and software architect. Code this project with clean structure, maintainability, security, scalability, and reviewability in mind.
 
+### Refactoring And Architecture Review
+
+- When asked to review or refactor the codebase, first inspect the current project structure, identify architectural/code-organization problems, propose a refactor plan, and ask before making major structural changes.
+- Preserve existing behavior unless the user explicitly asks for a behavior change.
+- Prefer clear module boundaries over large files, while avoiding unnecessary abstractions.
+- Keep functions small and focused.
+- Separate business logic, data access, UI/API/routes, utilities, configuration, and framework/controller code.
+- Improve unclear naming when it makes the code easier to understand.
+- Remove meaningful duplication where it reduces maintenance risk.
+- Follow the existing Next.js App Router conventions and local project patterns.
+- Add or update tests for meaningful refactors and user-facing flows.
+- Run lint, typecheck, VS Code Problems-style checks, build, and relevant tests before the final response when available.
+- Explain tradeoffs briefly after changes.
+- Do not rewrite the whole project unnecessarily, add new dependencies without approval, or change public APIs without explaining why.
+
 ### 1. Code Quality
 
 - Write clean, readable, maintainable code.
