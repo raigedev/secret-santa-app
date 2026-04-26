@@ -84,7 +84,7 @@ Act as a senior full-stack engineer and software architect. Code this project wi
 - Use Playwright for major user flows and UI regressions when useful.
 - Test auth, dashboard, group creation, invites, wishlist, assignments, gift confirmation, and affiliate shopping flows when touched.
 - Run build and lint after source changes, following the required project checks below.
-- After coding or config changes, check the diagnostics that feed the VS Code Problems panel, including TypeScript, ESLint/security lint, cSpell, and targeted tests where relevant. Resolve those problems before marking the task done.
+- After coding or config changes, run `npm.cmd run check:problems` to check the diagnostics that feed the VS Code Problems panel, including TypeScript, ESLint/security lint, cSpell, and the project Tailwind warning-pattern scan. Resolve those problems before marking the task done.
 
 ### 9. Change Discipline
 
@@ -224,7 +224,7 @@ Act as a senior full-stack engineer and software architect. Code this project wi
 - Build is attempted when source code changed.
 - Linting is run when source code changed.
 - Tests and typecheck pass where applicable.
-- VS Code Problems-style diagnostics are checked after changes, using the repo CLI equivalents where possible: `npm.cmd run typecheck`, `npm.cmd run lint:security`, `npx.cmd --yes cspell@8 --no-progress .`, and relevant tests.
+- VS Code Problems-style diagnostics are checked after changes with `npm.cmd run check:problems`, plus relevant tests.
 - Errors and warnings are fixed or clearly listed as out-of-scope.
 - Documentation is updated when behavior, security, deployment, or workflow changes.
 - Impact is explained: what changed, where, and why.

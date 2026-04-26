@@ -9,6 +9,7 @@
     "start:e2e": "next start --hostname 127.0.0.1 --port 3000",
     "lint": "eslint app lib utils scripts tests *.ts *.mjs --no-error-on-unmatched-pattern",
     "lint:security": "eslint app lib utils scripts tests *.ts *.mjs --max-warnings=0 --no-error-on-unmatched-pattern",
+    "check:problems": "node ./scripts/check-vscode-problems.mjs",
     "test:e2e": "playwright test",
     "test:e2e:ui": "playwright test --ui",
     "test:e2e:headed": "playwright test --headed",
