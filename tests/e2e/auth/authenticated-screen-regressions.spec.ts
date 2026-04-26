@@ -267,7 +267,9 @@ test.describe("authenticated screen regressions", () => {
     expect(overlappingCardHeaders).toEqual([]);
   });
 
-  test("secret-santa wishlist rail does not trap page scrolling", async ({ page }) => {
+  test("secret-santa wishlist rail does not trap page scrolling", async ({ page, isMobile }) => {
+    test.skip(isMobile, "Mouse-wheel pointer behavior is a desktop interaction.");
+
     await loginWithTestCredentials(page, credentials!);
     await page.goto("/secret-santa");
 
@@ -281,10 +283,14 @@ test.describe("authenticated screen regressions", () => {
       throw new Error("Recipient wishlist rail was not measurable.");
     }
 
-    await page.mouse.move(
-      railBox.x + railBox.width / 2,
-      railBox.y + Math.min(railBox.height / 2, 240)
+    const viewport = page.viewportSize();
+    const pointerX = railBox.x + railBox.width / 2;
+    const pointerY = Math.min(
+      railBox.y + Math.min(railBox.height / 2, 240),
+      (viewport?.height || 720) - 20
     );
+
+    await page.mouse.move(pointerX, pointerY);
     await page.mouse.wheel(0, 900);
 
     await expect
