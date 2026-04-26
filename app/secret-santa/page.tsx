@@ -199,6 +199,71 @@ function SparkleMark({ className = "h-5 w-5" }: { className?: string }) {
     </svg>
   );
 }
+
+function LazadaArrowIcon({ className = "h-3.5 w-3.5" }: { className?: string }) {
+  return (
+    <svg
+      aria-hidden="true"
+      className={className}
+      viewBox="0 0 16 16"
+      fill="none"
+    >
+      <path
+        d="M4 12 12 4M7 4h5v5"
+        stroke="currentColor"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeWidth="1.9"
+      />
+    </svg>
+  );
+}
+
+function LazadaCtaLink({
+  href,
+  label,
+  fullWidth = false,
+}: {
+  href: string;
+  label: string;
+  fullWidth?: boolean;
+}) {
+  return (
+    <a
+      href={href}
+      target="_blank"
+      rel="noopener noreferrer"
+      data-testid="lazada-cta-link"
+      className={`group/lazada inline-flex min-h-11 min-w-[138px] items-center justify-center gap-2 rounded-full px-3.5 py-2.5 text-center text-[12px] font-extrabold leading-none transition duration-200 hover:-translate-y-0.5 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 ${
+        fullWidth ? "w-full" : "w-full sm:w-auto"
+      }`}
+      style={{
+        background:
+          "linear-gradient(135deg,#b1464a 0%, #a43c3f 46%, #7f252b 100%)",
+        color: "#fffaf8",
+        boxShadow:
+          "0 12px 26px rgba(164,60,63,.2), inset 0 1px 0 rgba(255,255,255,.16)",
+        border: "1px solid rgba(127,37,43,.18)",
+        textDecoration: "none",
+        outlineColor: "rgba(164,60,63,.5)",
+      }}
+    >
+      <span className="min-w-0 truncate">{label}</span>
+      <span
+        aria-hidden="true"
+        className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full transition group-hover/lazada:translate-x-0.5"
+        style={{
+          background: "rgba(255,255,255,.16)",
+          border: "1px solid rgba(255,255,255,.28)",
+          color: "#fffaf8",
+        }}
+      >
+        <LazadaArrowIcon />
+      </span>
+    </a>
+  );
+}
+
 const GIFT_PREP_OPTIONS: Array<{
   value: GiftPrepStatus;
   label: string;
@@ -2749,28 +2814,10 @@ export default function SecretSantaPage() {
                                       </div>
                                       {heroLazadaHref && (
                                         <div className="mt-3">
-                                          <a
+                                          <LazadaCtaLink
                                             href={heroLazadaHref}
-                                            target="_blank"
-                                            rel="noopener noreferrer"
-                                            className="inline-flex w-full items-center justify-center gap-2 rounded-full px-4 py-2.5 text-[12px] font-extrabold leading-none transition hover:scale-[1.01] sm:w-auto"
-                                            style={{
-                                              background:
-                                                "linear-gradient(135deg,#a43c3f 0%, #7f252b 100%)",
-                                              color: "#f8fbfc",
-                                              boxShadow:
-                                                "0 12px 24px rgba(164,60,63,.18)",
-                                              textDecoration: "none",
-                                            }}
-                                          >
-                                            <span>{heroLazadaButtonLabel}</span>
-                                            <span
-                                              aria-hidden="true"
-                                              className="text-[14px]"
-                                            >
-                                              {"->"}
-                                            </span>
-                                          </a>
+                                            label={heroLazadaButtonLabel}
+                                          />
                                         </div>
                                       )}
                                     </div>
@@ -2976,31 +3023,11 @@ export default function SecretSantaPage() {
                                                   </div>
 
                                                   <div className="mt-4">
-                                                      <a
-                                                        href={product.href}
-                                                        target="_blank"
-                                                        rel="noopener noreferrer"
-                                                      className="inline-flex w-full min-w-0 items-center justify-center gap-2 rounded-full px-4 py-3 text-center text-[12px] font-extrabold leading-none transition hover:scale-[1.01]"
-                                                      style={{
-                                                        background:
-                                                          "linear-gradient(135deg,#a43c3f 0%, #7f252b 100%)",
-                                                        color: "#f8fbfc",
-                                                        boxShadow:
-                                                          "0 12px 24px rgba(164,60,63,.18)",
-                                                        border: "none",
-                                                        textDecoration: "none",
-                                                      }}
-                                                    >
-                                                      <span className="min-w-0">
-                                                        {buttonLabel}
-                                                      </span>
-                                                      <span
-                                                        aria-hidden="true"
-                                                        className="text-[14px]"
-                                                      >
-                                                        →
-                                                      </span>
-                                                    </a>
+                                                    <LazadaCtaLink
+                                                      href={product.href}
+                                                      label={buttonLabel}
+                                                      fullWidth
+                                                    />
                                                   </div>
                                                 </div>
                                               );

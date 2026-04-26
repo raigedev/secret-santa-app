@@ -132,6 +132,41 @@ test.describe("authenticated screen regressions", () => {
     const curatedCards = page.getByTestId("curated-shopping-card");
     const curatedSection = page.getByTestId("curated-shopping-section").first();
     await expect(curatedCards.first()).toBeVisible();
+    const lazadaCtas = page.getByTestId("lazada-cta-link");
+    await expect(lazadaCtas.first()).toBeVisible();
+
+    const plainArrowLazadaCtas = await lazadaCtas.evaluateAll((links) =>
+      links
+        .map((link, index) => ({
+          index,
+          text: link.textContent?.replace(/\s+/g, " ").trim() || "",
+        }))
+        .filter((link) => /->|→/.test(link.text))
+    );
+    expect(plainArrowLazadaCtas).toEqual([]);
+
+    const firstLazadaCtaShape = await lazadaCtas.first().evaluate((link) => {
+      const linkRect = link.getBoundingClientRect();
+      const linkStyle = window.getComputedStyle(link);
+      const iconWell = link.querySelector('span[aria-hidden="true"]');
+      const iconRect = iconWell instanceof HTMLElement
+        ? iconWell.getBoundingClientRect()
+        : null;
+
+      return {
+        backgroundImage: linkStyle.backgroundImage,
+        borderRadius: linkStyle.borderRadius,
+        height: linkRect.height,
+        iconHeight: iconRect?.height || 0,
+        iconWidth: iconRect?.width || 0,
+      };
+    });
+    expect(firstLazadaCtaShape.backgroundImage).toContain("linear-gradient");
+    expect(firstLazadaCtaShape.height).toBeGreaterThanOrEqual(42);
+    expect(parseFloat(firstLazadaCtaShape.borderRadius)).toBeGreaterThanOrEqual(20);
+    expect(firstLazadaCtaShape.iconHeight).toBeGreaterThanOrEqual(26);
+    expect(firstLazadaCtaShape.iconWidth).toBeGreaterThanOrEqual(26);
+
     await shoppingOptionPanel.evaluate((panel) => {
       window.scrollBy(0, panel.getBoundingClientRect().top);
     });
