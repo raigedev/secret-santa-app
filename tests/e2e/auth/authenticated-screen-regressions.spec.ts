@@ -1,7 +1,6 @@
 import { expect, test, type Page } from "@playwright/test";
 
 import {
-  AFFILIATE_REPORT_BLOCKED_MESSAGE,
   AUTH_BLOCKED_MESSAGE,
   GROUP_BLOCKED_MESSAGE,
   canSeededUserOpenAffiliateReport,
@@ -268,14 +267,37 @@ test.describe("authenticated screen regressions", () => {
   });
 
   test("secret-santa wishlist rail does not trap page scrolling", async ({ page, isMobile }) => {
-    test.skip(isMobile, "Mouse-wheel pointer behavior is a desktop interaction.");
-
     await loginWithTestCredentials(page, credentials!);
     await page.goto("/secret-santa");
 
     const wishlistRail = page.getByTestId("recipient-wishlist-rail").first();
     await expect(wishlistRail).toBeVisible();
     await page.evaluate(() => window.scrollTo(0, 0));
+
+    if (isMobile) {
+      const mobileScrollState = await wishlistRail.evaluate((rail) => {
+        const railStyle = window.getComputedStyle(rail);
+        const scrollingElement = document.scrollingElement || document.documentElement;
+
+        return {
+          maxHeight: railStyle.maxHeight,
+          overflowY: railStyle.overflowY,
+          pageCanScroll: scrollingElement.scrollHeight > window.innerHeight + 1,
+        };
+      });
+
+      expect(mobileScrollState.maxHeight).toBe("none");
+      expect(["auto", "scroll"]).not.toContain(mobileScrollState.overflowY);
+      expect(mobileScrollState.pageCanScroll).toBe(true);
+
+      await page.evaluate(() => window.scrollBy(0, Math.round(window.innerHeight * 0.8)));
+      await expect
+        .poll(() => page.evaluate(() => window.scrollY), {
+          message: "Page should remain the scrolling surface on mobile layouts.",
+        })
+        .toBeGreaterThan(0);
+      return;
+    }
 
     const railBox = await wishlistRail.boundingBox();
 
@@ -320,15 +342,20 @@ test.describe("group-scoped authenticated regressions", () => {
 });
 
 test.describe("owner-only affiliate route regressions", () => {
-  test.skip(
-    !credentials || !canSeededUserOpenAffiliateReport(credentials.email),
-    !credentials ? AUTH_BLOCKED_MESSAGE : AFFILIATE_REPORT_BLOCKED_MESSAGE
-  );
+  test.skip(!credentials, AUTH_BLOCKED_MESSAGE);
 
-  test("affiliate report renders for an allowed owner account", async ({ page }) => {
+  test("affiliate report enforces owner-only access", async ({ page }) => {
     await loginWithTestCredentials(page, credentials!);
     await page.goto("/dashboard/affiliate-report");
-    await expect(page.getByRole("heading", { name: /lazada affiliate report/i })).toBeVisible();
-    await expect(page.getByRole("link", { name: /open shopping flow/i })).toBeVisible();
+
+    if (canSeededUserOpenAffiliateReport(credentials!.email)) {
+      await expect(page.getByRole("heading", { name: /lazada affiliate report/i })).toBeVisible();
+      await expect(page.getByRole("link", { name: /open shopping flow/i })).toBeVisible();
+      return;
+    }
+
+    await page.waitForURL(/\/dashboard$/);
+    await expect(page).toHaveURL(/\/dashboard$/);
+    await expect(page.getByText(/your groups/i)).toBeVisible();
   });
 });
