@@ -19,8 +19,7 @@ import { recordServerFailure } from "@/lib/security/audit";
 import { createNotification } from "@/lib/notifications";
 import { enforceRateLimit } from "@/lib/security/rate-limit";
 import { createClient } from "@/lib/supabase/server";
-
-const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+import { isUuid } from "@/lib/validation/common";
 
 // Core#1: Strip HTML tags, trim, enforce max length
 function sanitizeMessage(input: string): string {
@@ -40,9 +39,9 @@ export async function sendMessage(
 
   // Core#1: Validate inputs
   if (
-    !groupId || !UUID_PATTERN.test(groupId) ||
-    !threadGiverId || !UUID_PATTERN.test(threadGiverId) ||
-    !threadReceiverId || !UUID_PATTERN.test(threadReceiverId)
+    !isUuid(groupId) ||
+    !isUuid(threadGiverId) ||
+    !isUuid(threadReceiverId)
   ) {
     return { success: false, message: "Choose a valid chat first." };
   }

@@ -1,5 +1,9 @@
 import "server-only";
 
+import {
+  buildWishlistBudgetContext,
+  parseWishlistSuggestionDraftsFromJson,
+} from "@/lib/ai/wishlist-suggestion-drafts";
 import type { AiWishlistSuggestionDraft, SuggestionInput, WishlistSuggestionOption } from "@/lib/wishlist/suggestions";
 
 type GeminiGenerateContentResponse = {
@@ -21,26 +25,8 @@ const GEMINI_API_BASE_URL = "https://generativelanguage.googleapis.com/v1beta/mo
 const DEFAULT_GEMINI_WISHLIST_MODEL = "gemini-2.5-flash-lite";
 const GEMINI_REQUEST_TIMEOUT_MS = 15000;
 
-function sanitizeDraftValue(value: unknown, maxLength: number): string {
-  return typeof value === "string" ? value.replace(/\s+/g, " ").trim().slice(0, maxLength) : "";
-}
-
 function extractJsonText(payload: GeminiGenerateContentResponse): string {
   return payload.candidates?.[0]?.content?.parts?.map((part) => part.text || "").join("").trim() || "";
-}
-
-function buildBudgetContext(input: SuggestionInput): string {
-  if (input.preferredPriceMin !== null || input.preferredPriceMax !== null) {
-    const min = input.preferredPriceMin ?? "none";
-    const max = input.preferredPriceMax ?? "none";
-    return `Preferred price range: ${min} to ${max} ${input.currency || "PHP"}.`;
-  }
-
-  if (input.groupBudget !== null) {
-    return `Budget target: ${input.groupBudget} ${input.currency || "PHP"}.`;
-  }
-
-  return "No strict budget target was provided.";
 }
 
 function buildPrompt(input: SuggestionInput, baseOptions: WishlistSuggestionOption[]): string {
@@ -58,7 +44,7 @@ function buildPrompt(input: SuggestionInput, baseOptions: WishlistSuggestionOpti
     `Wishlist item: ${input.itemName}`,
     `Category: ${input.itemCategory || "Other"}`,
     `Note: ${input.itemNote || "None"}`,
-    buildBudgetContext(input),
+    buildWishlistBudgetContext(input),
     "",
     "Current rule-based starter angles:",
     starterAngles || "None",
@@ -151,29 +137,5 @@ export async function generateGeminiWishlistSuggestionDrafts(input: {
     return [];
   }
 
-  try {
-    const parsed = JSON.parse(jsonText) as {
-      suggestions?: Array<{
-        searchQuery?: unknown;
-        subtitle?: unknown;
-        title?: unknown;
-      }>;
-    };
-
-    return (parsed.suggestions || [])
-      .map((suggestion) => ({
-        title: sanitizeDraftValue(suggestion.title, 48),
-        subtitle: sanitizeDraftValue(suggestion.subtitle, 140),
-        searchQuery: sanitizeDraftValue(suggestion.searchQuery, 64),
-      }))
-      .filter(
-        (suggestion) =>
-          suggestion.title.length > 0 &&
-          suggestion.subtitle.length > 0 &&
-          suggestion.searchQuery.length > 0
-      )
-      .slice(0, 3);
-  } catch {
-    return [];
-  }
+  return parseWishlistSuggestionDraftsFromJson(jsonText);
 }

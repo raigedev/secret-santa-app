@@ -8,27 +8,20 @@ import {
 } from "@/lib/affiliate/lazada";
 import type { LazadaAffiliateAttributionContext } from "@/lib/affiliate/lazada";
 import { insertAffiliateClick } from "@/lib/affiliate/click-tracking";
+import { requireWishlistAffiliateRedirectAccess } from "@/lib/affiliate/redirect-route";
 import { recordServerFailure } from "@/lib/security/audit";
-import { enforceRateLimit } from "@/lib/security/rate-limit";
-import { extractRequestClientIp } from "@/lib/security/web";
-import { createClient } from "@/lib/supabase/server";
 import {
   AFFILIATE_READY_MERCHANTS,
   buildMerchantDestinationUrl,
   ShoppingRegion,
   SuggestionMerchant,
 } from "@/lib/wishlist/suggestions";
-import { canTrackWishlistAffiliateRedirect } from "@/lib/affiliate/redirect-access";
+import { isSupportedShoppingRegion, isUuid } from "@/lib/validation/common";
 
 const ALLOWED_MERCHANTS: SuggestionMerchant[] = AFFILIATE_READY_MERCHANTS;
-const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 function isSuggestionMerchant(value: string | null): value is SuggestionMerchant {
   return Boolean(value) && ALLOWED_MERCHANTS.includes(value as SuggestionMerchant);
-}
-
-function isShoppingRegion(value: string | null): value is ShoppingRegion {
-  return ["AU", "CA", "GLOBAL", "JP", "PH", "UK", "US"].includes(value || "");
 }
 
 // Suggestion clicks are routed through the app so we can log them before handing the user
@@ -54,74 +47,32 @@ export async function GET(request: NextRequest) {
   const trackingLabel = searchParams.get("trackingLabel")?.trim() || null;
   const selectedQuery = searchParams.get("selectedQuery")?.trim() || searchQuery;
   const requestedRegion = searchParams.get("region");
-  const region: ShoppingRegion = isShoppingRegion(requestedRegion)
+  const region: ShoppingRegion = isSupportedShoppingRegion(requestedRegion)
     ? requestedRegion
     : "GLOBAL";
 
   if (
     !isSuggestionMerchant(merchant) ||
-    !groupId ||
-    !UUID_PATTERN.test(groupId) ||
-    !wishlistItemId ||
-    !UUID_PATTERN.test(wishlistItemId) ||
+    !isUuid(groupId) ||
+    !isUuid(wishlistItemId) ||
     searchQuery.length === 0
   ) {
     return NextResponse.redirect(new URL("/secret-santa", request.url));
   }
 
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  if (!user) {
-    return NextResponse.redirect(new URL("/login", request.url));
-  }
-
-  const accessCheck = await canTrackWishlistAffiliateRedirect({
+  const redirectAccess = await requireWishlistAffiliateRedirectAccess({
+    accessFailureEventType: "affiliate.redirect.suggestion.access_lookup_failed",
+    auditDetails: { merchant },
     groupId,
-    userId: user.id,
+    path: "/go/suggestion",
+    rateLimitAction: "affiliate.redirect.suggestion",
+    rateLimitSubjectPrefix: merchant,
+    request,
     wishlistItemId,
   });
 
-  if (!accessCheck.allowed) {
-    if (accessCheck.error) {
-      await recordServerFailure({
-        actorUserId: user.id,
-        details: {
-          groupId,
-          merchant,
-          reason: accessCheck.reason,
-          wishlistItemId,
-        },
-        errorMessage: accessCheck.error,
-        eventType: "affiliate.redirect.suggestion.access_lookup_failed",
-        resourceId: wishlistItemId,
-        resourceType: "affiliate_redirect",
-      });
-    }
-
-    return NextResponse.redirect(new URL("/secret-santa", request.url));
-  }
-
-  const clientIp = extractRequestClientIp(request.headers) || "unknown";
-  const rateLimit = await enforceRateLimit({
-    action: "affiliate.redirect.suggestion",
-    actorUserId: user.id,
-    maxAttempts: 100,
-    resourceId: wishlistItemId,
-    resourceType: "affiliate_redirect",
-    subject: `${merchant}:${user.id}:${clientIp}`,
-    windowSeconds: 3600,
-  });
-
-  if (!rateLimit.allowed) {
-    return new NextResponse(rateLimit.message, {
-      status: 429,
-      headers: {
-        "Retry-After": String(Math.max(rateLimit.retryAfterSeconds, 1)),
-      },
-    });
+  if (!redirectAccess.allowed) {
+    return redirectAccess.response;
   }
 
   let targetUrl = buildMerchantDestinationUrl(merchant, searchQuery, region);
@@ -199,7 +150,7 @@ export async function GET(request: NextRequest) {
 
   try {
     await insertAffiliateClick({
-      user_id: user.id,
+      user_id: redirectAccess.userId,
       group_id: groupId,
       wishlist_item_id: wishlistItemId,
       merchant,
@@ -233,7 +184,7 @@ export async function GET(request: NextRequest) {
       error instanceof Error ? error.message : "Unknown affiliate suggestion click tracking error.";
 
     await recordServerFailure({
-      actorUserId: user.id,
+      actorUserId: redirectAccess.userId,
       details: {
         groupId,
         merchant,

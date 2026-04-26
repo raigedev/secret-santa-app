@@ -5,6 +5,7 @@ import { createNotification } from "@/lib/notifications";
 import { enforceRateLimit } from "@/lib/security/rate-limit";
 import { supabaseAdmin } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
+import { isUuid } from "@/lib/validation/common";
 
 const GIFT_PREP_STATUSES = [
   "planning",
@@ -19,13 +20,11 @@ function isGiftPrepStatus(value: string): value is GiftPrepStatus {
   return GIFT_PREP_STATUSES.includes(value as GiftPrepStatus);
 }
 
-const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-
 export async function updateGiftPrepStatus(
   groupId: string,
   status: string
 ): Promise<{ success: boolean; message: string }> {
-  if (!groupId || !UUID_PATTERN.test(groupId) || !status || !isGiftPrepStatus(status)) {
+  if (!isUuid(groupId) || !status || !isGiftPrepStatus(status)) {
     return { success: false, message: "Choose a valid gift progress option." };
   }
 
@@ -123,7 +122,7 @@ export async function updateGiftPrepStatus(
 export async function confirmGiftReceived(
   groupId: string
 ): Promise<{ success: boolean; message: string }> {
-  if (!groupId || !UUID_PATTERN.test(groupId)) {
+  if (!isUuid(groupId)) {
     return { success: false, message: "Invalid group ID." };
   }
 

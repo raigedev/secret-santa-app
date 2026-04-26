@@ -1,4 +1,5 @@
 import { getAnonymousGroupDisplayName } from "@/lib/groups/nickname";
+import { isNullableNumber, isNullableString, isRecord } from "@/lib/validation/common";
 
 export type Member = {
   id: string;
@@ -98,18 +99,6 @@ const GROUP_PAGE_SNAPSHOT_STORAGE_PREFIX = "ss_group_page_snapshot_v1:";
 
 function getGroupPageSnapshotStorageKey(groupId: string, userId: string): string {
   return `${GROUP_PAGE_SNAPSHOT_STORAGE_PREFIX}${groupId}:${userId}`;
-}
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === "object" && value !== null && !Array.isArray(value);
-}
-
-function isNullableString(value: unknown): value is string | null {
-  return typeof value === "string" || value === null;
-}
-
-function isNullableNumber(value: unknown): value is number | null {
-  return typeof value === "number" || value === null;
 }
 
 function isSnapshotGroupData(value: unknown): value is GroupData {

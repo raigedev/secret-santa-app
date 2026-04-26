@@ -14,13 +14,13 @@ import { createNotification, createNotifications } from "@/lib/notifications";
 import { enforceRateLimit } from "@/lib/security/rate-limit";
 import { supabaseAdmin } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
+import { isUuid } from "@/lib/validation/common";
 
 function sanitize(input: string, max: number): string {
   return input.replace(/<[^>]*>/g, "").replace(/[<>]/g, "").trim().slice(0, max);
 }
 
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const ALLOWED_CURRENCIES = new Set(["USD", "EUR", "GBP", "PHP", "JPY", "AUD", "CAD"]);
 
 function buildInviteToken(): string {
@@ -151,7 +151,7 @@ export async function inviteUser(
   const groupId = formData.get("id") as string;
   const email = formData.get("email") as string;
 
-  if (!groupId || !UUID_PATTERN.test(groupId) || !email) {
+  if (!isUuid(groupId) || !email) {
     return { message: "Missing group ID or email." };
   }
 
@@ -323,7 +323,7 @@ export async function updateNickname(
     return { success: false, message: "Nickname cannot be empty." };
   }
 
-  if (!groupId || !UUID_PATTERN.test(groupId)) {
+  if (!isUuid(groupId)) {
     return { success: false, message: "Invalid group ID." };
   }
 
@@ -423,7 +423,7 @@ export async function resendInvite(
   groupId: string,
   memberEmail: string
 ): Promise<{ message: string }> {
-  if (!groupId || !UUID_PATTERN.test(groupId) || !memberEmail) {
+  if (!isUuid(groupId) || !memberEmail) {
     return { message: "Missing group ID or email." };
   }
 
@@ -549,7 +549,7 @@ export async function resendInvite(
 export async function createInviteLink(
   groupId: string
 ): Promise<{ success: boolean; message: string; token?: string }> {
-  if (!groupId || !UUID_PATTERN.test(groupId)) {
+  if (!isUuid(groupId)) {
     return { success: false, message: "Missing group ID." };
   }
 
@@ -642,7 +642,7 @@ export async function createInviteLink(
 export async function revokeInviteLink(
   groupId: string
 ): Promise<{ success: boolean; message: string }> {
-  if (!groupId || !UUID_PATTERN.test(groupId)) {
+  if (!isUuid(groupId)) {
     return { success: false, message: "Missing group ID." };
   }
 
@@ -713,7 +713,7 @@ export async function revokeInviteLink(
 export async function getActiveInviteLink(
   groupId: string
 ): Promise<{ success: boolean; hasActiveLink?: boolean; message: string }> {
-  if (!groupId || !UUID_PATTERN.test(groupId)) {
+  if (!isUuid(groupId)) {
     return { success: false, message: "Missing group ID." };
   }
 
@@ -774,7 +774,7 @@ export async function revokePendingInvite(
   groupId: string,
   membershipId: string
 ): Promise<{ success: boolean; message: string }> {
-  if (!groupId || !UUID_PATTERN.test(groupId) || !membershipId || !UUID_PATTERN.test(membershipId)) {
+  if (!isUuid(groupId) || !isUuid(membershipId)) {
     return { success: false, message: "Missing invite details." };
   }
 
@@ -876,7 +876,7 @@ export async function getGroupOwnerInsights(groupId: string): Promise<{
     totalGiftCount: number;
   };
 }> {
-  if (!groupId || !UUID_PATTERN.test(groupId)) {
+  if (!isUuid(groupId)) {
     return { success: false, message: "Missing group ID." };
   }
 
@@ -1012,7 +1012,7 @@ export async function getGroupRecap(groupId: string): Promise<{
     wishlistReadyCount: number;
   };
 }> {
-  if (!groupId || !UUID_PATTERN.test(groupId)) {
+  if (!isUuid(groupId)) {
     return { success: false, message: "Missing group ID." };
   }
 
@@ -1159,7 +1159,7 @@ export async function editGroup(
   budget: number,
   currency: string
 ): Promise<{ success: boolean; message: string }> {
-  if (!groupId || !UUID_PATTERN.test(groupId)) {
+  if (!isUuid(groupId)) {
     return { success: false, message: "Invalid group ID." };
   }
 
@@ -1243,7 +1243,7 @@ export async function deleteGroup(
   groupId: string,
   confirmName: string
 ): Promise<{ success: boolean; message: string }> {
-  if (!groupId || !UUID_PATTERN.test(groupId)) {
+  if (!isUuid(groupId)) {
     return { success: false, message: "Invalid group ID." };
   }
 
@@ -1313,7 +1313,7 @@ export async function removeMember(
   groupId: string,
   memberId: string
 ): Promise<{ success: boolean; message: string }> {
-  if (!groupId || !UUID_PATTERN.test(groupId) || !memberId || !UUID_PATTERN.test(memberId)) {
+  if (!isUuid(groupId) || !isUuid(memberId)) {
     return { success: false, message: "Invalid group or member ID." };
   }
 
@@ -1386,7 +1386,7 @@ export async function removeMember(
 export async function leaveGroup(
   groupId: string
 ): Promise<{ success: boolean; message: string }> {
-  if (!groupId || !UUID_PATTERN.test(groupId)) {
+  if (!isUuid(groupId)) {
     return { success: false, message: "Invalid group ID." };
   }
 
@@ -1704,7 +1704,7 @@ export async function getRevealPresentationData(
     session: RevealSessionState;
   };
 }> {
-  if (!groupId || !UUID_PATTERN.test(groupId)) {
+  if (!isUuid(groupId)) {
     return { success: false, message: "Missing group ID." };
   }
 
@@ -1833,7 +1833,7 @@ export async function startRevealSession(
   message: string;
   session?: RevealSessionState;
 }> {
-  if (!groupId || !UUID_PATTERN.test(groupId)) {
+  if (!isUuid(groupId)) {
     return { success: false, message: "Missing group ID." };
   }
 

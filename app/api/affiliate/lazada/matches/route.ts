@@ -15,6 +15,11 @@ import {
 } from "@/lib/affiliate/lazada-recommendations";
 import { enforceRateLimit } from "@/lib/security/rate-limit";
 import { createClient } from "@/lib/supabase/server";
+import {
+  isSupportedShoppingRegion,
+  sanitizeOptionalNumber,
+  sanitizeTrimmedString,
+} from "@/lib/validation/common";
 import { formatPriceRange } from "@/lib/wishlist/pricing";
 import {
   buildTrackedSuggestionHref,
@@ -37,22 +42,16 @@ type MatchProductsBody = {
 
 type MatchCardRole = LazadaDirectMatchRole;
 
-function sanitizeString(value: unknown): string {
-  return typeof value === "string" ? value.trim() : "";
-}
-
-function sanitizeOptionalNumber(value: unknown): number | null {
-  if (typeof value === "number") {
-    return Number.isFinite(value) ? value : null;
-  }
-
-  if (typeof value === "string" && value.trim().length > 0) {
-    const parsed = Number(value);
-    return Number.isFinite(parsed) ? parsed : null;
-  }
-
-  return null;
-}
+type PriceSortableMatch = {
+  product: {
+    discountedPrice: number | null;
+    promoDeepLink?: string | null;
+    promoLink?: string | null;
+    promoShortLink?: string | null;
+    salePrice: number | null;
+  };
+  score?: number;
+};
 
 function normalizePriceBounds(input: {
   preferredPriceMin: number | null;
@@ -72,10 +71,6 @@ function normalizePriceBounds(input: {
   }
 
   return { preferredPriceMin, preferredPriceMax };
-}
-
-function isShoppingRegion(value: string): value is ShoppingRegion {
-  return ["AU", "CA", "GLOBAL", "JP", "PH", "UK", "US"].includes(value);
 }
 
 type SearchAngleIntent =
@@ -189,43 +184,36 @@ function filterMatchesByMaximumPrice<
   });
 }
 
-function sortMatchesByPriceAscending<
-  T extends {
-    product: {
-      discountedPrice: number | null;
-      promoDeepLink?: string | null;
-      promoLink?: string | null;
-      promoShortLink?: string | null;
-      salePrice: number | null;
-    };
-    score?: number;
-  },
->(matches: T[]): T[] {
-  return [...matches].sort((left, right) => {
-    const leftPrice = getLazadaFeedProductPrice(left.product) ?? Number.POSITIVE_INFINITY;
-    const rightPrice = getLazadaFeedProductPrice(right.product) ?? Number.POSITIVE_INFINITY;
+function hasAffiliatePromotionLink(product: PriceSortableMatch["product"]): boolean {
+  return Boolean(product.promoShortLink || product.promoLink || product.promoDeepLink);
+}
+
+function compareMatchesByPriceLane<T extends PriceSortableMatch>(options: {
+  closePriceGapFloor: number;
+  direction: "ascending" | "descending";
+}): (left: T, right: T) => number {
+  return (left, right) => {
+    const missingPrice =
+      options.direction === "ascending" ? Number.POSITIVE_INFINITY : Number.NEGATIVE_INFINITY;
+    const leftPrice = getLazadaFeedProductPrice(left.product) ?? missingPrice;
+    const rightPrice = getLazadaFeedProductPrice(right.product) ?? missingPrice;
     const priceGap = Math.abs(leftPrice - rightPrice);
     const lowerPrice = Math.min(leftPrice, rightPrice);
     const pricesAreClose =
       Number.isFinite(leftPrice) &&
       Number.isFinite(rightPrice) &&
-      priceGap <= Math.max(120, lowerPrice * 0.2);
-    const leftAffiliateReady = Boolean(
-      left.product.promoShortLink || left.product.promoLink || left.product.promoDeepLink
-    );
-    const rightAffiliateReady = Boolean(
-      right.product.promoShortLink || right.product.promoLink || right.product.promoDeepLink
-    );
+      priceGap <= Math.max(options.closePriceGapFloor, lowerPrice * 0.2);
+    const leftAffiliateReady = hasAffiliatePromotionLink(left.product);
+    const rightAffiliateReady = hasAffiliatePromotionLink(right.product);
 
-    // When two products land in roughly the same price lane, prefer the one
-    // that is already affiliate-ready so we improve monetization without
-    // sacrificing relevance.
     if (pricesAreClose && leftAffiliateReady !== rightAffiliateReady) {
       return leftAffiliateReady ? -1 : 1;
     }
 
     if (leftPrice !== rightPrice) {
-      return leftPrice - rightPrice;
+      return options.direction === "ascending"
+        ? leftPrice - rightPrice
+        : rightPrice - leftPrice;
     }
 
     if (leftAffiliateReady !== rightAffiliateReady) {
@@ -233,7 +221,15 @@ function sortMatchesByPriceAscending<
     }
 
     return (right.score ?? 0) - (left.score ?? 0);
-  });
+  };
+}
+
+function sortMatchesByPriceAscending<T extends PriceSortableMatch>(matches: T[]): T[] {
+  // When two products land in roughly the same price lane, prefer the one
+  // that is already affiliate-ready without sacrificing relevance.
+  return [...matches].sort(
+    compareMatchesByPriceLane({ closePriceGapFloor: 120, direction: "ascending" })
+  );
 }
 
 function buildRoleOrderedMatches<
@@ -289,39 +285,9 @@ function buildRoleOrderedMatches<
 
   if (stepUpPool.length > 0) {
     stepUp =
-      [...stepUpPool].sort((left, right) => {
-        const leftPrice = getLazadaFeedProductPrice(left.product) ?? Number.POSITIVE_INFINITY;
-        const rightPrice = getLazadaFeedProductPrice(right.product) ?? Number.POSITIVE_INFINITY;
-        const priceGap = Math.abs(leftPrice - rightPrice);
-        const lowerPrice = Math.min(leftPrice, rightPrice);
-        const pricesAreClose =
-          Number.isFinite(leftPrice) &&
-          Number.isFinite(rightPrice) &&
-          priceGap <= Math.max(120, lowerPrice * 0.2);
-        const leftAffiliateReady = Boolean(
-          left.product.promoShortLink || left.product.promoLink || left.product.promoDeepLink
-        );
-        const rightAffiliateReady = Boolean(
-          right.product.promoShortLink || right.product.promoLink || right.product.promoDeepLink
-        );
-
-        // Step-up picks should still feel like the next sensible option, so we
-        // only use affiliate-readiness as a tie-breaker when the prices are
-        // already close.
-        if (pricesAreClose && leftAffiliateReady !== rightAffiliateReady) {
-          return leftAffiliateReady ? -1 : 1;
-        }
-
-        if (leftPrice !== rightPrice) {
-          return leftPrice - rightPrice;
-        }
-
-        if (leftAffiliateReady !== rightAffiliateReady) {
-          return leftAffiliateReady ? -1 : 1;
-        }
-
-        return (right.score ?? 0) - (left.score ?? 0);
-      })[0] || null;
+      [...stepUpPool].sort(
+        compareMatchesByPriceLane({ closePriceGapFloor: 120, direction: "ascending" })
+      )[0] || null;
   }
 
   const premiumPool = premiumPoolSource.filter(
@@ -332,39 +298,9 @@ function buildRoleOrderedMatches<
 
   if (premiumPool.length > 0) {
     premium =
-      [...premiumPool].sort((left, right) => {
-        const leftPrice = getLazadaFeedProductPrice(left.product) ?? Number.NEGATIVE_INFINITY;
-        const rightPrice = getLazadaFeedProductPrice(right.product) ?? Number.NEGATIVE_INFINITY;
-        const priceGap = Math.abs(leftPrice - rightPrice);
-        const lowerPrice = Math.min(leftPrice, rightPrice);
-        const pricesAreClose =
-          Number.isFinite(leftPrice) &&
-          Number.isFinite(rightPrice) &&
-          priceGap <= Math.max(180, lowerPrice * 0.2);
-        const leftAffiliateReady = Boolean(
-          left.product.promoShortLink || left.product.promoLink || left.product.promoDeepLink
-        );
-        const rightAffiliateReady = Boolean(
-          right.product.promoShortLink || right.product.promoLink || right.product.promoDeepLink
-        );
-
-        // Premium cards intentionally sort high-to-low on price, but when two
-        // upgrade candidates are near each other we still lean toward the one
-        // that can resolve into the stronger Lazada affiliate path.
-        if (pricesAreClose && leftAffiliateReady !== rightAffiliateReady) {
-          return rightAffiliateReady ? 1 : -1;
-        }
-
-        if (rightPrice !== leftPrice) {
-          return rightPrice - leftPrice;
-        }
-
-        if (leftAffiliateReady !== rightAffiliateReady) {
-          return rightAffiliateReady ? 1 : -1;
-        }
-
-        return (right.score ?? 0) - (left.score ?? 0);
-      })[0] || null;
+      [...premiumPool].sort(
+        compareMatchesByPriceLane({ closePriceGapFloor: 180, direction: "descending" })
+      )[0] || null;
   }
 
   const ordered: Array<{ match: T; role: MatchCardRole }> = [
@@ -684,20 +620,20 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
   }
 
-  const groupId = sanitizeString(payload.groupId);
-  const wishlistItemId = sanitizeString(payload.wishlistItemId);
-  const itemName = sanitizeString(payload.itemName);
-  const itemCategory = sanitizeString(payload.itemCategory);
-  const itemNote = sanitizeString(payload.itemNote);
-  const searchQuery = sanitizeString(payload.searchQuery);
-  const region = sanitizeString(payload.region);
+  const groupId = sanitizeTrimmedString(payload.groupId);
+  const wishlistItemId = sanitizeTrimmedString(payload.wishlistItemId);
+  const itemName = sanitizeTrimmedString(payload.itemName);
+  const itemCategory = sanitizeTrimmedString(payload.itemCategory);
+  const itemNote = sanitizeTrimmedString(payload.itemNote);
+  const searchQuery = sanitizeTrimmedString(payload.searchQuery);
+  const region = sanitizeTrimmedString(payload.region);
 
   if (
     !groupId ||
     !wishlistItemId ||
     !itemName ||
     !searchQuery ||
-    !isShoppingRegion(region) ||
+    !isSupportedShoppingRegion(region) ||
     region !== "PH"
   ) {
     return NextResponse.json({ products: [] satisfies WishlistFeaturedProductCard[] });

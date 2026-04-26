@@ -13,6 +13,7 @@ const PRESET_AVATARS = [
 ];
 
 const BUDGET_OPTIONS = [10, 15, 25, 50, 100];
+const DEFAULT_AVATAR_EMOJI = PRESET_AVATARS[0] || "\u{1F385}";
 
 const CURRENCIES = [
   { code: "USD", label: "$ USD — US Dollar" },
@@ -39,6 +40,25 @@ type Profile = {
   profile_setup_complete: boolean;
 };
 
+type ProfileRecord = NonNullable<Awaited<ReturnType<typeof getProfile>>>;
+
+function normalizeProfile(data: ProfileRecord): Profile {
+  return {
+    display_name: data.display_name || "",
+    avatar_emoji: data.avatar_emoji || DEFAULT_AVATAR_EMOJI,
+    avatar_url: data.avatar_url || null,
+    bio: data.bio || "",
+    default_budget: data.default_budget || 25,
+    currency: data.currency || "USD",
+    notify_invites: data.notify_invites ?? true,
+    notify_draws: data.notify_draws ?? true,
+    notify_chat: data.notify_chat ?? true,
+    notify_wishlist: data.notify_wishlist ?? false,
+    notify_marketing: data.notify_marketing ?? false,
+    profile_setup_complete: data.profile_setup_complete ?? false,
+  };
+}
+
 export default function ProfilePage() {
   const router = useRouter();
   const [supabase] = useState(() => createClient());
@@ -53,7 +73,7 @@ export default function ProfilePage() {
 
   const [profile, setProfile] = useState<Profile>({
     display_name: "",
-    avatar_emoji: "🎅",
+    avatar_emoji: DEFAULT_AVATAR_EMOJI,
     avatar_url: null,
     bio: "",
     default_budget: 25,
@@ -85,20 +105,7 @@ export default function ProfilePage() {
       if (!isMounted) return;
 
       if (data) {
-        setProfile({
-          display_name: data.display_name || "",
-          avatar_emoji: data.avatar_emoji || "🎅",
-          avatar_url: data.avatar_url || null,
-          bio: data.bio || "",
-          default_budget: data.default_budget || 25,
-          currency: data.currency || "USD",
-          notify_invites: data.notify_invites ?? true,
-          notify_draws: data.notify_draws ?? true,
-          notify_chat: data.notify_chat ?? true,
-          notify_wishlist: data.notify_wishlist ?? false,
-          notify_marketing: data.notify_marketing ?? false,
-          profile_setup_complete: data.profile_setup_complete ?? false,
-        });
+        setProfile(normalizeProfile(data));
         setCustomBudget(!BUDGET_OPTIONS.includes(data.default_budget || 25));
       }
       setLoading(false);
@@ -139,20 +146,7 @@ export default function ProfilePage() {
                 return;
               }
 
-              setProfile({
-                display_name: data.display_name || "",
-                avatar_emoji: data.avatar_emoji || "🎅",
-                avatar_url: data.avatar_url || null,
-                bio: data.bio || "",
-                default_budget: data.default_budget || 25,
-                currency: data.currency || "USD",
-                notify_invites: data.notify_invites ?? true,
-                notify_draws: data.notify_draws ?? true,
-                notify_chat: data.notify_chat ?? true,
-                notify_wishlist: data.notify_wishlist ?? false,
-                notify_marketing: data.notify_marketing ?? false,
-                profile_setup_complete: data.profile_setup_complete ?? false,
-              });
+              setProfile(normalizeProfile(data));
               setCustomBudget(!BUDGET_OPTIONS.includes(data.default_budget || 25));
             });
           }, 120);

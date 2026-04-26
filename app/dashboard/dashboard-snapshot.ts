@@ -8,24 +8,13 @@ import type {
   GroupMember,
   PendingInvite,
 } from "./dashboard-types";
+import { isNullableNumber, isNullableString, isRecord } from "@/lib/validation/common";
 
 const DASHBOARD_SNAPSHOT_TTL_MS = 5 * 60 * 1000;
 const DASHBOARD_SNAPSHOT_STORAGE_PREFIX = "ss_dashboard_snapshot_v1:";
 
 function getDashboardSnapshotStorageKey(userId: string): string {
   return `${DASHBOARD_SNAPSHOT_STORAGE_PREFIX}${userId}`;
-}
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === "object" && value !== null && !Array.isArray(value);
-}
-
-function isNullableString(value: unknown): value is string | null {
-  return typeof value === "string" || value === null;
-}
-
-function isNullableNumber(value: unknown): value is number | null {
-  return typeof value === "number" || value === null;
 }
 
 function isDashboardTone(value: unknown): value is DashboardActivityItem["tone"] {

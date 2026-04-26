@@ -8,8 +8,7 @@ import { createNotifications } from "@/lib/notifications";
 import { enforceRateLimit } from "@/lib/security/rate-limit";
 import { supabaseAdmin } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
-
-const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+import { isUuid } from "@/lib/validation/common";
 
 const DRAW_MAX_ATTEMPTS = 5;
 const DRAW_WINDOW_SECONDS = 3600;
@@ -234,7 +233,7 @@ export async function getDrawExclusions(groupId: string): Promise<{
   message: string;
   success: boolean;
 }> {
-  if (!groupId || !UUID_PATTERN.test(groupId)) {
+  if (!isUuid(groupId)) {
     return { success: false, message: "Invalid group ID." };
   }
 
@@ -333,9 +332,9 @@ export async function addDrawExclusion(
   bidirectional: boolean
 ): Promise<{ success: boolean; message: string }> {
   if (
-    !groupId || !UUID_PATTERN.test(groupId) ||
-    !giverUserId || !UUID_PATTERN.test(giverUserId) ||
-    !receiverUserId || !UUID_PATTERN.test(receiverUserId)
+    !isUuid(groupId) ||
+    !isUuid(giverUserId) ||
+    !isUuid(receiverUserId)
   ) {
     return { success: false, message: "Invalid draw rule input." };
   }
@@ -458,8 +457,8 @@ export async function removeDrawExclusion(
   exclusionId: string
 ): Promise<{ success: boolean; message: string }> {
   if (
-    !groupId || !UUID_PATTERN.test(groupId) ||
-    !exclusionId || !UUID_PATTERN.test(exclusionId)
+    !isUuid(groupId) ||
+    !isUuid(exclusionId)
   ) {
     return { success: false, message: "Invalid draw rule ID." };
   }
@@ -534,7 +533,7 @@ export async function drawSecretSanta(
     avoidPreviousRecipient?: boolean;
   }
 ): Promise<{ success: boolean; message: string }> {
-  if (!groupId || !UUID_PATTERN.test(groupId)) {
+  if (!isUuid(groupId)) {
     return { success: false, message: "Invalid group ID." };
   }
 
@@ -830,7 +829,7 @@ export async function resetSecretSantaDraw(
   groupId: string,
   reason: string
 ): Promise<{ success: boolean; message: string }> {
-  if (!groupId || !UUID_PATTERN.test(groupId)) {
+  if (!isUuid(groupId)) {
     return { success: false, message: "Invalid group ID." };
   }
 
@@ -1073,7 +1072,7 @@ export async function getDrawRerollHistory(
   }>;
   success: boolean;
 }> {
-  if (!groupId || !UUID_PATTERN.test(groupId)) {
+  if (!isUuid(groupId)) {
     return { success: false, message: "Invalid group ID." };
   }
 

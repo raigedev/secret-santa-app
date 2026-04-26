@@ -2,6 +2,8 @@
 
 import { useRouter } from "next/navigation";
 
+import { ArrowRightIcon, GiftIcon } from "./dashboard-icons";
+
 type Props = {
   recipientNames: string[];
 };
@@ -27,55 +29,11 @@ function SantaHatIcon({ className = "h-4 w-4" }: { className?: string }) {
   );
 }
 
-function GiftIcon({ className = "h-8 w-8" }: { className?: string }) {
-  return (
-    <svg viewBox="0 0 24 24" fill="none" className={className} aria-hidden="true">
-      <rect
-        x="4"
-        y="10"
-        width="16"
-        height="10"
-        rx="2"
-        stroke="currentColor"
-        strokeWidth="1.8"
-      />
-      <path d="M12 10v10" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
-      <path d="M4 10h16" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
-      <path
-        d="M9.2 10c-1.6 0-2.7-1-2.7-2.3 0-1.1.8-2 1.9-2 1.7 0 2.9 2.1 3.6 4.3H9.2Z"
-        stroke="currentColor"
-        strokeWidth="1.8"
-        strokeLinejoin="round"
-      />
-      <path
-        d="M14.8 10c1.6 0 2.7-1 2.7-2.3 0-1.1-.8-2-1.9-2-1.7 0-2.9 2.1-3.6 4.3h2.8Z"
-        stroke="currentColor"
-        strokeWidth="1.8"
-        strokeLinejoin="round"
-      />
-    </svg>
-  );
-}
-
 function SnowflakeIcon({ className = "h-8 w-8" }: { className?: string }) {
   return (
     <svg viewBox="0 0 24 24" fill="none" className={className} aria-hidden="true">
       <path d="M12 3v18M4.5 7.5l15 9M4.5 16.5l15-9" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
       <path d="M9.5 5.5 12 3l2.5 2.5M9.5 18.5 12 21l2.5-2.5M6.5 9 4.5 7.5l.9-3M17.5 15 19.5 16.5l-.9 3M6.5 15 4.5 16.5l.9 3M17.5 9 19.5 7.5l-.9-3" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-    </svg>
-  );
-}
-
-function ArrowRightIcon({ className = "h-4 w-4" }: { className?: string }) {
-  return (
-    <svg viewBox="0 0 20 20" fill="none" className={className} aria-hidden="true">
-      <path
-        d="M4 10h12M11.5 5.5 16 10l-4.5 4.5"
-        stroke="currentColor"
-        strokeWidth="1.8"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
     </svg>
   );
 }
@@ -191,7 +149,7 @@ export default function SecretSantaCard({ recipientNames }: Props) {
         </div>
         <div className="mt-3 flex items-start gap-4">
           <div className="flex h-20 w-20 shrink-0 items-center justify-center rounded-[24px] bg-[linear-gradient(145deg,#fff7ed,#fee2e2)] text-rose-700 shadow-[0_18px_42px_rgba(148,163,184,0.2)]">
-            {hasAssignments ? <GiftIcon /> : <SnowflakeIcon />}
+            {hasAssignments ? <GiftIcon className="h-8 w-8" /> : <SnowflakeIcon />}
           </div>
           <div className="min-w-0 flex-1">
             <p className="text-sm font-semibold uppercase tracking-[0.18em] text-rose-500">

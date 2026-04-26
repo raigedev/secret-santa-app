@@ -3,13 +3,15 @@
 import { recordServerFailure } from "@/lib/security/audit";
 import { enforceRateLimit } from "@/lib/security/rate-limit";
 import { createClient } from "@/lib/supabase/server";
+import { isUuid } from "@/lib/validation/common";
 import {
   isWishlistCategory,
   WishlistCategory,
   WISHLIST_ITEMS_PER_GROUP_LIMIT,
 } from "@/lib/wishlist/options";
 
-const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+type SupabaseServerClient = Awaited<ReturnType<typeof createClient>>;
+type AuthenticatedWishlistUser = { id: string };
 
 function sanitizeText(input: string, maxLength: number): string {
   return input
@@ -52,6 +54,109 @@ function normalizeWishlistCategory(category: string): WishlistCategory | null {
   return isWishlistCategory(trimmed) ? trimmed : null;
 }
 
+type NormalizedWishlistItemInput =
+  | {
+      cleanCategory: WishlistCategory | null;
+      cleanImageUrl: string;
+      cleanLink: string;
+      cleanName: string;
+      cleanNote: string;
+      cleanPriority: number;
+      success: true;
+    }
+  | {
+      message: string;
+      success: false;
+    };
+
+type WishlistItemInputFields = {
+  itemCategory: string;
+  itemImageUrl: string;
+  itemLink: string;
+  itemName: string;
+  itemNote: string;
+  priority: number;
+};
+
+type PreparedWishlistItemAction =
+  | {
+      normalizedInput: Extract<NormalizedWishlistItemInput, { success: true }>;
+      success: true;
+      supabase: SupabaseServerClient;
+      user: AuthenticatedWishlistUser;
+    }
+  | {
+      message: string;
+      success: false;
+    };
+
+function normalizeWishlistItemInput(input: WishlistItemInputFields): NormalizedWishlistItemInput {
+  const cleanName = sanitizeText(input.itemName, 100);
+  const cleanNote = sanitizeText(input.itemNote, 200);
+  const cleanLink = normalizeOptionalUrl(input.itemLink);
+  const cleanImageUrl = normalizeOptionalUrl(input.itemImageUrl);
+  const cleanCategory = normalizeWishlistCategory(input.itemCategory);
+  const cleanPriority = Math.min(Math.max(Math.floor(input.priority || 0), 0), 10);
+
+  if (cleanName.length === 0) {
+    return { message: "Item name is required.", success: false };
+  }
+
+  if (input.itemCategory.trim() && !cleanCategory) {
+    return { message: "Choose a valid wishlist category.", success: false };
+  }
+
+  return {
+    cleanCategory,
+    cleanImageUrl,
+    cleanLink,
+    cleanName,
+    cleanNote,
+    cleanPriority,
+    success: true,
+  };
+}
+
+async function prepareWishlistItemAction(
+  input: WishlistItemInputFields,
+  rateLimitConfig: {
+    action: string;
+    maxAttempts: number;
+    resourceId: string;
+  }
+): Promise<PreparedWishlistItemAction> {
+  const normalizedInput = normalizeWishlistItemInput(input);
+
+  if (!normalizedInput.success) {
+    return normalizedInput;
+  }
+
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    return { success: false, message: "You must be logged in." };
+  }
+
+  const rateLimit = await enforceRateLimit({
+    action: rateLimitConfig.action,
+    actorUserId: user.id,
+    maxAttempts: rateLimitConfig.maxAttempts,
+    resourceId: rateLimitConfig.resourceId,
+    resourceType: "wishlist",
+    subject: user.id,
+    windowSeconds: 600,
+  });
+
+  if (!rateLimit.allowed) {
+    return { success: false, message: rateLimit.message };
+  }
+
+  return { normalizedInput, success: true, supabase, user };
+}
+
 async function requireAcceptedWishlistMember(groupId: string, userId: string) {
   const supabase = await createClient();
   const { data: membership } = await supabase
@@ -74,47 +179,31 @@ export async function addWishlistItem(
   itemCategory: string,
   itemImageUrl: string
 ): Promise<{ success: boolean; message: string }> {
-  if (!groupId || !UUID_PATTERN.test(groupId)) {
+  if (!isUuid(groupId)) {
     return { success: false, message: "Choose a valid group." };
   }
 
-  const cleanName = sanitizeText(itemName, 100);
-  const cleanNote = sanitizeText(itemNote, 200);
-  const cleanLink = normalizeOptionalUrl(itemLink);
-  const cleanImageUrl = normalizeOptionalUrl(itemImageUrl);
-  const cleanCategory = normalizeWishlistCategory(itemCategory);
-  const cleanPriority = Math.min(Math.max(Math.floor(priority || 0), 0), 10);
+  const preparedAction = await prepareWishlistItemAction(
+    {
+      itemCategory,
+      itemImageUrl,
+      itemLink,
+      itemName,
+      itemNote,
+      priority,
+    },
+    {
+      action: "wishlist.add_item",
+      maxAttempts: 20,
+      resourceId: groupId,
+    }
+  );
 
-  if (cleanName.length === 0) {
-    return { success: false, message: "Item name is required." };
+  if (!preparedAction.success) {
+    return { success: false, message: preparedAction.message };
   }
 
-  if (itemCategory.trim() && !cleanCategory) {
-    return { success: false, message: "Choose a valid wishlist category." };
-  }
-
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  if (!user) {
-    return { success: false, message: "You must be logged in." };
-  }
-
-  const addRateLimit = await enforceRateLimit({
-    action: "wishlist.add_item",
-    actorUserId: user.id,
-    maxAttempts: 20,
-    resourceId: groupId,
-    resourceType: "wishlist",
-    subject: user.id,
-    windowSeconds: 600,
-  });
-
-  if (!addRateLimit.allowed) {
-    return { success: false, message: addRateLimit.message };
-  }
+  const { normalizedInput, user } = preparedAction;
 
   const memberClient = await requireAcceptedWishlistMember(groupId, user.id);
 
@@ -153,12 +242,12 @@ export async function addWishlistItem(
   const { error } = await memberClient.from("wishlists").insert({
     group_id: groupId,
     user_id: user.id,
-    item_name: cleanName,
-    item_link: cleanLink,
-    item_note: cleanNote,
-    item_category: cleanCategory,
-    item_image_url: cleanImageUrl,
-    priority: cleanPriority,
+    item_name: normalizedInput.cleanName,
+    item_link: normalizedInput.cleanLink,
+    item_note: normalizedInput.cleanNote,
+    item_category: normalizedInput.cleanCategory,
+    item_image_url: normalizedInput.cleanImageUrl,
+    priority: normalizedInput.cleanPriority,
   });
 
   if (error) {
@@ -185,59 +274,43 @@ export async function editWishlistItem(
   itemCategory: string,
   itemImageUrl: string
 ): Promise<{ success: boolean; message: string }> {
-  if (!itemId || !UUID_PATTERN.test(itemId)) {
+  if (!isUuid(itemId)) {
     return { success: false, message: "Choose a valid wishlist item." };
   }
 
-  const cleanName = sanitizeText(itemName, 100);
-  const cleanNote = sanitizeText(itemNote, 200);
-  const cleanLink = normalizeOptionalUrl(itemLink);
-  const cleanImageUrl = normalizeOptionalUrl(itemImageUrl);
-  const cleanCategory = normalizeWishlistCategory(itemCategory);
-  const cleanPriority = Math.min(Math.max(Math.floor(priority || 0), 0), 10);
+  const preparedAction = await prepareWishlistItemAction(
+    {
+      itemCategory,
+      itemImageUrl,
+      itemLink,
+      itemName,
+      itemNote,
+      priority,
+    },
+    {
+      action: "wishlist.edit_item",
+      maxAttempts: 30,
+      resourceId: itemId,
+    }
+  );
 
-  if (cleanName.length === 0) {
-    return { success: false, message: "Item name is required." };
+  if (!preparedAction.success) {
+    return { success: false, message: preparedAction.message };
   }
 
-  if (itemCategory.trim() && !cleanCategory) {
-    return { success: false, message: "Choose a valid wishlist category." };
-  }
-
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  if (!user) {
-    return { success: false, message: "You must be logged in." };
-  }
-
-  const editRateLimit = await enforceRateLimit({
-    action: "wishlist.edit_item",
-    actorUserId: user.id,
-    maxAttempts: 30,
-    resourceId: itemId,
-    resourceType: "wishlist",
-    subject: user.id,
-    windowSeconds: 600,
-  });
-
-  if (!editRateLimit.allowed) {
-    return { success: false, message: editRateLimit.message };
-  }
+  const { normalizedInput, supabase, user } = preparedAction;
 
   // We keep the explicit `user_id` filter even with RLS in place so the intent
   // is obvious: wishlist edits only ever apply to the current user's own item.
   const { error } = await supabase
     .from("wishlists")
     .update({
-      item_name: cleanName,
-      item_link: cleanLink,
-      item_note: cleanNote,
-      item_category: cleanCategory,
-      item_image_url: cleanImageUrl,
-      priority: cleanPriority,
+      item_name: normalizedInput.cleanName,
+      item_link: normalizedInput.cleanLink,
+      item_note: normalizedInput.cleanNote,
+      item_category: normalizedInput.cleanCategory,
+      item_image_url: normalizedInput.cleanImageUrl,
+      priority: normalizedInput.cleanPriority,
     })
     .eq("id", itemId)
     .eq("user_id", user.id);
@@ -260,7 +333,7 @@ export async function editWishlistItem(
 export async function deleteWishlistItem(
   itemId: string
 ): Promise<{ success: boolean; message: string }> {
-  if (!itemId || !UUID_PATTERN.test(itemId)) {
+  if (!isUuid(itemId)) {
     return { success: false, message: "Choose a valid wishlist item." };
   }
 

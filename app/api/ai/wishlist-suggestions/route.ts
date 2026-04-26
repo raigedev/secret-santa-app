@@ -8,9 +8,13 @@ import {
 import { enforceRateLimit } from "@/lib/security/rate-limit";
 import { createClient } from "@/lib/supabase/server";
 import {
+  isSupportedShoppingRegion,
+  sanitizeCompactString,
+  sanitizeOptionalNumber,
+} from "@/lib/validation/common";
+import {
   buildAiWishlistSuggestionOptions,
   buildWishlistSuggestionOptions,
-  type ShoppingRegion,
   type SuggestionInput,
 } from "@/lib/wishlist/suggestions";
 
@@ -29,34 +33,13 @@ type WishlistSuggestionBody = {
 
 type WishlistAiProvider = "gemini" | "openrouter" | null;
 
-function sanitizeString(value: unknown, maxLength: number): string {
-  return typeof value === "string" ? value.replace(/\s+/g, " ").trim().slice(0, maxLength) : "";
-}
-
-function sanitizeOptionalNumber(value: unknown): number | null {
-  if (typeof value === "number") {
-    return Number.isFinite(value) ? value : null;
-  }
-
-  if (typeof value === "string" && value.trim().length > 0) {
-    const parsed = Number(value);
-    return Number.isFinite(parsed) ? parsed : null;
-  }
-
-  return null;
-}
-
-function isShoppingRegion(value: string): value is ShoppingRegion {
-  return ["AU", "CA", "GLOBAL", "JP", "PH", "UK", "US"].includes(value);
-}
-
 function buildSuggestionInput(body: WishlistSuggestionBody): SuggestionInput | null {
-  const groupId = sanitizeString(body.groupId, 120);
-  const wishlistItemId = sanitizeString(body.wishlistItemId, 120);
-  const itemName = sanitizeString(body.itemName, 120);
-  const itemCategory = sanitizeString(body.itemCategory, 60);
-  const itemNote = sanitizeString(body.itemNote, 240);
-  const currency = sanitizeString(body.currency, 12) || null;
+  const groupId = sanitizeCompactString(body.groupId, 120);
+  const wishlistItemId = sanitizeCompactString(body.wishlistItemId, 120);
+  const itemName = sanitizeCompactString(body.itemName, 120);
+  const itemCategory = sanitizeCompactString(body.itemCategory, 60);
+  const itemNote = sanitizeCompactString(body.itemNote, 240);
+  const currency = sanitizeCompactString(body.currency, 12) || null;
 
   if (!groupId || !wishlistItemId || !itemName) {
     return null;
@@ -139,10 +122,10 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Invalid JSON body", suggestions: [], usedAi: false }, { status: 400 });
   }
 
-  const region = sanitizeString(body.region, 12);
+  const region = sanitizeCompactString(body.region, 12);
   const suggestionInput = buildSuggestionInput(body);
 
-  if (!suggestionInput || !isShoppingRegion(region) || region !== "PH") {
+  if (!suggestionInput || !isSupportedShoppingRegion(region) || region !== "PH") {
     return NextResponse.json({ suggestions: [], usedAi: false });
   }
 

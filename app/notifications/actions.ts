@@ -10,8 +10,8 @@ import { enforceRateLimit } from "@/lib/security/rate-limit";
 import { supabaseAdmin } from "@/lib/supabase/admin";
 import { getProfile } from "@/app/profile/actions";
 import { createClient } from "@/lib/supabase/server";
+import { isUuid } from "@/lib/validation/common";
 
-const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const REMINDER_DELIVERY_MODES = new Set<ReminderDeliveryMode>([
   "immediate",
   "daily_digest",
@@ -105,7 +105,7 @@ export async function saveReminderPreferences(
 export async function markNotificationRead(
   notificationId: string
 ): Promise<{ success: boolean; message: string }> {
-  if (!notificationId || !UUID_PATTERN.test(notificationId)) {
+  if (!isUuid(notificationId)) {
     return { success: false, message: "Choose a notification first." };
   }
 

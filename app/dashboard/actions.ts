@@ -6,13 +6,63 @@ import { createNotification } from "@/lib/notifications";
 import { enforceRateLimit } from "@/lib/security/rate-limit";
 import { supabaseAdmin } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
+import { isUuid } from "@/lib/validation/common";
 
-const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+type SupabaseServerClient = Awaited<ReturnType<typeof createClient>>;
+type AuthenticatedInviteUser = {
+  email?: string | null;
+  id: string;
+};
 
 type MembershipActionResult = {
   success: boolean;
   message: string;
 };
+
+type PreparedInviteResponseAction =
+  | {
+      success: true;
+      supabase: SupabaseServerClient;
+      user: AuthenticatedInviteUser;
+    }
+  | {
+      message: string;
+      success: false;
+    };
+
+async function prepareInviteResponseAction(
+  groupId: string,
+  action: "dashboard.accept_invite" | "dashboard.decline_invite"
+): Promise<PreparedInviteResponseAction> {
+  if (!isUuid(groupId)) {
+    return { success: false, message: "Invalid group ID." };
+  }
+
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    return { success: false, message: "You must be logged in." };
+  }
+
+  const rateLimit = await enforceRateLimit({
+    action,
+    actorUserId: user.id,
+    maxAttempts: 20,
+    resourceId: groupId,
+    resourceType: "group_membership",
+    subject: user.id,
+    windowSeconds: 600,
+  });
+
+  if (!rateLimit.allowed) {
+    return { success: false, message: rateLimit.message };
+  }
+
+  return { success: true, supabase, user };
+}
 
 async function notifyOwnerAboutInviteResponse(options: {
   actorUserId: string;
@@ -145,33 +195,13 @@ export async function acceptInvite(
   groupId: string,
   nickname?: string
 ): Promise<MembershipActionResult> {
-  if (!groupId || !UUID_PATTERN.test(groupId)) {
-    return { success: false, message: "Invalid group ID." };
+  const preparedAction = await prepareInviteResponseAction(groupId, "dashboard.accept_invite");
+
+  if (!preparedAction.success) {
+    return { success: false, message: preparedAction.message };
   }
 
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  if (!user) {
-    return { success: false, message: "You must be logged in." };
-  }
-
-  const rateLimit = await enforceRateLimit({
-    action: "dashboard.accept_invite",
-    actorUserId: user.id,
-    maxAttempts: 20,
-    resourceId: groupId,
-    resourceType: "group_membership",
-    subject: user.id,
-    windowSeconds: 600,
-  });
-
-  if (!rateLimit.allowed) {
-    return { success: false, message: rateLimit.message };
-  }
-
+  const { supabase, user } = preparedAction;
   const normalizedEmail = (user.email || "").toLowerCase();
   const [membershipsResult, groupResult, profileResult] = await Promise.all([
     supabase
@@ -271,33 +301,13 @@ export async function acceptInvite(
 }
 
 export async function declineInvite(groupId: string): Promise<MembershipActionResult> {
-  if (!groupId || !UUID_PATTERN.test(groupId)) {
-    return { success: false, message: "Invalid group ID." };
+  const preparedAction = await prepareInviteResponseAction(groupId, "dashboard.decline_invite");
+
+  if (!preparedAction.success) {
+    return { success: false, message: preparedAction.message };
   }
 
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  if (!user) {
-    return { success: false, message: "You must be logged in." };
-  }
-
-  const rateLimit = await enforceRateLimit({
-    action: "dashboard.decline_invite",
-    actorUserId: user.id,
-    maxAttempts: 20,
-    resourceId: groupId,
-    resourceType: "group_membership",
-    subject: user.id,
-    windowSeconds: 600,
-  });
-
-  if (!rateLimit.allowed) {
-    return { success: false, message: rateLimit.message };
-  }
-
+  const { supabase, user } = preparedAction;
   const normalizedEmail = (user.email || "").toLowerCase();
   const { data: memberships, error: membershipError } = await supabase
     .from("group_members")
