@@ -6,7 +6,7 @@ export function AuthRouteSkeleton() {
   return (
     <main className="relative min-h-screen overflow-hidden bg-[#f9faf8] px-4 py-6 sm:px-6 lg:px-8">
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,_rgba(252,206,114,0.32),_transparent_34%),radial-gradient(circle_at_bottom_right,_rgba(164,60,63,0.16),_transparent_32%),linear-gradient(180deg,_#fbfcfa_0%,_#f2f4f2_100%)]" />
-      <div className="absolute inset-0 bg-[url('/snowflakes.svg')] bg-[length:320px_320px] bg-repeat opacity-10" />
+      <div className="absolute inset-0 bg-[url('/snowflakes.svg')] bg-size-[320px_320px] bg-repeat opacity-10" />
       <div className="relative mx-auto flex min-h-[calc(100vh-3rem)] max-w-6xl items-center">
         <div className="grid w-full gap-4 rounded-[2.25rem] bg-white/72 p-3 shadow-[0_32px_90px_rgba(46,52,50,0.08)] backdrop-blur-xl lg:grid-cols-[1.02fr_0.98fr] lg:p-4">
           <section className="rounded-[1.9rem] bg-[#ecefec] px-6 py-8 sm:px-8 sm:py-10 lg:px-10 lg:py-12">
