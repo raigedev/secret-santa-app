@@ -1,7 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState, type CSSProperties } from "react";
-import { createPortal } from "react-dom";
+import { useEffect, useRef, useState } from "react";
 import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
@@ -23,15 +22,13 @@ import {
 } from "./dashboard-formatters";
 import { DashboardActionCard } from "./DashboardActionCard";
 import { DashboardGroupBucket } from "./DashboardGroupCards";
+import { DashboardHeader } from "./DashboardHeader";
+import { DashboardProfileMenu } from "./DashboardProfileMenu";
 import {
   ArrowRightIcon,
-  BellIcon,
   ChatIcon,
   GiftIcon,
   PlusIcon,
-  SantaMarkIcon,
-  ThemeIcon,
-  UserOutlineIcon,
   WishlistIcon,
 } from "./dashboard-icons";
 import {
@@ -1152,9 +1149,6 @@ export default function DashboardPage() {
   const allDashboardGroups = [...ownedGroups, ...invitedGroups];
   const revealMessage = buildDashboardRevealMessage(allDashboardGroups, countdownNow);
   const utilityIconClass = isDarkTheme ? "text-slate-300" : "text-slate-500";
-  const utilityButtonClass = `relative inline-flex h-10 w-10 items-center justify-center rounded-full transition hover:-translate-y-0.5 ${
-    isDarkTheme ? "hover:bg-white/10" : "hover:bg-white/80"
-  }`;
   const dashboardShellClass = isDarkTheme
     ? "relative min-h-screen overflow-hidden bg-[linear-gradient(180deg,#08111f_0%,#0f172a_38%,#111827_100%)] text-slate-100"
     : "relative min-h-screen overflow-hidden bg-[linear-gradient(180deg,#edf6ff_0%,#f8fbff_45%,#eef5ff_100%)] text-slate-900";
@@ -1213,15 +1207,6 @@ export default function DashboardPage() {
     router.push(`/group/${groupId}`);
   };
 
-  const profileMenuStyle: CSSProperties | undefined = profileMenuPosition
-    ? {
-        position: "fixed",
-        top: profileMenuPosition.top,
-        left: profileMenuPosition.left,
-        width: profileMenuPosition.width,
-      }
-    : undefined;
-
   return (
     <main className={dashboardShellClass}>
       {showProfileSetup && (
@@ -1249,195 +1234,32 @@ export default function DashboardPage() {
           />
         ))}
       </div>
-      {profileMenuOpen && profileMenuPosition && typeof document !== "undefined"
-        ? createPortal(
-            <div
-              ref={profileMenuPanelRef}
-              role="menu"
-              aria-label="Profile options"
-              style={profileMenuStyle}
-              className={`z-[200] overflow-hidden rounded-[20px] border p-1.5 shadow-[0_22px_44px_rgba(15,23,42,0.20)] backdrop-blur-md ${
-                isDarkTheme
-                  ? "border-slate-700/80 bg-slate-900/94"
-                  : "border-white/80 bg-white/96"
-              }`}
-            >
-              <button
-                type="button"
-                role="menuitem"
-                onClick={() => {
-                  setProfileMenuOpen(false);
-                  router.push("/profile");
-                }}
-                className={`flex w-full items-center justify-between rounded-[18px] px-3 py-2.5 text-left transition ${
-                  isDarkTheme
-                    ? "text-slate-100 hover:bg-slate-800/80"
-                    : "text-slate-700 hover:bg-slate-50"
-                }`}
-              >
-                <div>
-                  <div className="text-sm font-semibold">Edit profile</div>
-                  <div className={`mt-0.5 hidden text-[11px] leading-4 sm:block ${isDarkTheme ? "text-slate-400" : "text-slate-500"}`}>
-                    Update your festive avatar and account details.
-                  </div>
-                </div>
-                <ArrowRightIcon className={`h-4 w-4 shrink-0 ${utilityIconClass}`} />
-              </button>
+      {profileMenuOpen && (
+        <DashboardProfileMenu
+          isDarkTheme={isDarkTheme}
+          menuRef={profileMenuPanelRef}
+          position={profileMenuPosition}
+          onClose={() => setProfileMenuOpen(false)}
+          onGoProfile={() => router.push("/profile")}
+          onLogout={() => void handleLogout()}
+        />
+      )}
 
-              <button
-                type="button"
-                role="menuitem"
-                onClick={() => {
-                  setProfileMenuOpen(false);
-                  void handleLogout();
-                }}
-                className={`mt-1.5 flex w-full items-center justify-between rounded-[18px] px-3 py-2.5 text-left transition ${
-                  isDarkTheme
-                    ? "text-rose-200 hover:bg-rose-500/10"
-                    : "text-rose-600 hover:bg-rose-50"
-                }`}
-              >
-                <div>
-                  <div className="text-sm font-semibold">Logout</div>
-                  <div className={`mt-0.5 hidden text-[11px] leading-4 sm:block ${isDarkTheme ? "text-slate-400" : "text-slate-500"}`}>
-                    Sign out and return to the login screen.
-                  </div>
-                </div>
-                <ArrowRightIcon className="h-4 w-4 shrink-0" />
-              </button>
-            </div>,
-            document.body
-          )
-        : null}
-
-      <header className={`sticky top-0 z-[80] w-full backdrop-blur-xl shadow-[0_8px_24px_rgba(45,51,55,0.06)] ${
-        isDarkTheme ? "bg-slate-950/70" : "bg-white/70"
-      }`}>
-        <div className="mx-auto flex w-full max-w-7xl items-center justify-between gap-4 px-4 py-3 sm:px-6 lg:px-8">
-          <div className="flex min-w-0 items-center gap-8">
-            <button
-              type="button"
-              onClick={() => router.push("/dashboard")}
-              className="inline-flex shrink-0 items-center gap-3 rounded-full text-left transition hover:-translate-y-0.5"
-              aria-label="Go to Secret Santa dashboard"
-            >
-              <span
-                className={`inline-flex h-11 w-11 items-center justify-center overflow-hidden rounded-full ring-1 ${
-                  isDarkTheme ? "bg-slate-900/80 ring-white/10" : "bg-white/85 ring-white/80"
-                }`}
-              >
-                <SantaMarkIcon size={32} />
-              </span>
-              <span className="hidden flex-col items-start leading-[0.94] sm:flex">
-                <span className={`text-[13px] font-extrabold tracking-[-0.01em] ${isDarkTheme ? "text-[#ff9b86]" : "text-[#c0392b]"}`}>
-                  My Secret
-                </span>
-                <span className={`mt-0.5 text-[25px] font-black tracking-[-0.045em] ${isDarkTheme ? "text-white" : "text-slate-950"}`}>
-                  Santa
-                </span>
-                <span className={`mt-1 text-[10px] font-semibold italic tracking-[-0.01em] ${isDarkTheme ? "text-[#ffb4a3]/80" : "text-[#c0392b]/85"}`}>
-                  shhh... it&apos;s a secret!
-                </span>
-              </span>
-            </button>
-            <nav className="hidden items-center gap-6 md:flex">
-              <button type="button" className={isDarkTheme ? "text-red-300 text-base font-bold" : "text-red-700 text-base font-bold"}>
-                Home
-              </button>
-              <button
-                type="button"
-                onClick={() => document.getElementById("dashboard-groups")?.scrollIntoView({ behavior: "smooth" })}
-                className={isDarkTheme ? "text-slate-400 text-base font-semibold hover:text-red-300" : "text-slate-500 text-base font-semibold hover:text-red-600"}
-              >
-                Groups
-              </button>
-              <button
-                type="button"
-                onClick={() => router.push("/wishlist")}
-                className={isDarkTheme ? "text-slate-400 text-base font-semibold hover:text-red-300" : "text-slate-500 text-base font-semibold hover:text-red-600"}
-              >
-                Wishlist
-              </button>
-              <button
-                type="button"
-                onClick={() => document.getElementById("dashboard-activity")?.scrollIntoView({ behavior: "smooth" })}
-                className={isDarkTheme ? "text-slate-400 text-base font-semibold hover:text-red-300" : "text-slate-500 text-base font-semibold hover:text-red-600"}
-              >
-                Activity
-              </button>
-              {canViewAffiliateReport && (
-                <button
-                  type="button"
-                  onClick={() => router.push("/dashboard/affiliate-report")}
-                  className={`inline-flex items-center gap-2 rounded-full px-3.5 py-2 text-sm font-extrabold transition hover:-translate-y-0.5 ${
-                    isDarkTheme
-                      ? "bg-amber-300/12 text-amber-100 ring-1 ring-amber-200/20 hover:bg-amber-300/18"
-                      : "bg-amber-50 text-amber-800 ring-1 ring-amber-200/70 hover:bg-amber-100"
-                  }`}
-                  aria-label="Open Lazada affiliate report"
-                  title="Open Lazada affiliate report"
-                >
-                  Affiliate report
-                </button>
-              )}
-            </nav>
-          </div>
-          <div className="flex shrink-0 items-center gap-2">
-            {canViewAffiliateReport && (
-              <button
-                type="button"
-                onClick={() => router.push("/dashboard/affiliate-report")}
-                className={`inline-flex items-center rounded-full px-3 py-2 text-xs font-extrabold transition hover:-translate-y-0.5 md:hidden ${
-                  isDarkTheme
-                    ? "bg-amber-300/12 text-amber-100 ring-1 ring-amber-200/20"
-                    : "bg-amber-50 text-amber-800 ring-1 ring-amber-200/70"
-                }`}
-                aria-label="Open Lazada affiliate report"
-                title="Open Lazada affiliate report"
-              >
-                Report
-              </button>
-            )}
-            <button
-              type="button"
-              onClick={() => router.push("/notifications")}
-              className={utilityButtonClass}
-              aria-label={unreadNotificationCount > 0 ? `Open notifications, ${unreadNotificationCount} unread` : "Open notifications"}
-              title="Open notifications"
-            >
-              <BellIcon className={`h-5 w-5 ${utilityIconClass}`} />
-              {unreadNotificationCount > 0 && (
-                <span className="absolute -right-0.5 -top-0.5 inline-flex min-h-[17px] min-w-[17px] items-center justify-center rounded-full bg-rose-500 px-1 text-[9px] font-bold text-white">
-                  {unreadNotificationCount > 99 ? "99+" : unreadNotificationCount}
-                </span>
-              )}
-            </button>
-            <button
-              type="button"
-              onClick={() => setDashboardTheme((current) => (current === "midnight" ? "default" : "midnight"))}
-              className={utilityButtonClass}
-              aria-pressed={isDarkTheme}
-              aria-label={isDarkTheme ? "Switch to default dashboard theme" : "Switch to midnight dashboard theme"}
-              title={isDarkTheme ? "Switch to default dashboard theme" : "Switch to midnight dashboard theme"}
-            >
-              <ThemeIcon dark={isDarkTheme} className={`h-5 w-5 ${utilityIconClass}`} />
-            </button>
-            <div ref={profileMenuRef} className="relative z-[90]">
-              <button
-                type="button"
-                onClick={() => setProfileMenuOpen((current) => !current)}
-                className={utilityButtonClass}
-                aria-haspopup="menu"
-                aria-expanded={profileMenuOpen}
-                aria-label="Open profile menu"
-                title="Open profile menu"
-              >
-                <UserOutlineIcon className={`h-5 w-5 ${utilityIconClass}`} />
-              </button>
-            </div>
-          </div>
-        </div>
-      </header>
+      <DashboardHeader
+        canViewAffiliateReport={canViewAffiliateReport}
+        isDarkTheme={isDarkTheme}
+        profileMenuOpen={profileMenuOpen}
+        profileMenuRef={profileMenuRef}
+        unreadNotificationCount={unreadNotificationCount}
+        onGoDashboard={() => router.push("/dashboard")}
+        onGoWishlist={() => router.push("/wishlist")}
+        onGoNotifications={() => router.push("/notifications")}
+        onGoAffiliateReport={() => router.push("/dashboard/affiliate-report")}
+        onScrollToActivity={() => document.getElementById("dashboard-activity")?.scrollIntoView({ behavior: "smooth" })}
+        onScrollToGroups={() => document.getElementById("dashboard-groups")?.scrollIntoView({ behavior: "smooth" })}
+        onToggleProfileMenu={() => setProfileMenuOpen((current) => !current)}
+        onToggleTheme={() => setDashboardTheme((current) => (current === "midnight" ? "default" : "midnight"))}
+      />
 
       <FadeIn className="relative z-10 mx-auto w-full max-w-7xl px-4 pb-24 pt-8 sm:px-6 lg:px-8">
         {actionMessage && (
