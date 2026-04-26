@@ -28,6 +28,8 @@ import {
 } from "./actions";
 import { GroupSkeleton } from "@/app/components/PageSkeleton";
 import FadeIn from "@/app/components/FadeIn";
+import { BUDGET_OPTIONS, CURRENCIES, HISTORY_PAGE_SIZE } from "./group-page-config";
+import { GroupPageModal, HistorySkeletonRows } from "./GroupPagePrimitives";
 import {
   clearGroupPageSnapshots,
   getVisibleGroupMemberName,
@@ -45,6 +47,7 @@ import {
   type OwnerInsights,
   type RevealMatch,
 } from "./group-page-state";
+import { useGroupRoutePrefetch } from "./useGroupRoutePrefetch";
 
 type ShareResultsCardProps = {
   codename: string;
@@ -56,75 +59,6 @@ type ShareResultsCardProps = {
 const ShareResultsCard = dynamic<ShareResultsCardProps>(() => import("./ShareResultsCard"), {
   loading: () => null,
 });
-
-const BUDGET_OPTIONS = [10, 15, 25, 50, 100];
-const HISTORY_PAGE_SIZE = 5;
-const CURRENCIES = [
-  { code: "USD", symbol: "$", label: "USD" },
-  { code: "EUR", symbol: "€", label: "EUR" },
-  { code: "GBP", symbol: "£", label: "GBP" },
-  { code: "PHP", symbol: "₱", label: "PHP" },
-  { code: "JPY", symbol: "¥", label: "JPY" },
-  { code: "AUD", symbol: "A$", label: "AUD" },
-  { code: "CAD", symbol: "C$", label: "CAD" },
-];
-
-function Modal({
-  children,
-  onClose,
-}: {
-  children: React.ReactNode;
-  onClose: () => void;
-}) {
-  return (
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-4"
-      style={{ background: "rgba(0,0,0,.45)", backdropFilter: "blur(6px)" }}
-      onClick={onClose}
-    >
-      <div
-        className="w-full max-w-[420px] rounded-[20px] p-7"
-        style={{ background: "#fff", boxShadow: "0 20px 60px rgba(0,0,0,.18)" }}
-        onClick={(e) => e.stopPropagation()}
-      >
-        {children}
-      </div>
-    </div>
-  );
-}
-
-function HistorySkeletonRows({
-  tone = "blue",
-}: {
-  tone?: "blue" | "orange";
-}) {
-  const border = tone === "orange" ? "rgba(249,115,22,.2)" : "rgba(37,99,235,.18)";
-  const base = tone === "orange" ? "rgba(255,247,237,.95)" : "rgba(248,250,252,.95)";
-
-  return (
-    <div className="space-y-2">
-      {[0, 1].map((item) => (
-        <div
-          key={item}
-          className="rounded-lg px-2.5 py-2"
-          style={{
-            background: base,
-            border: `1px solid ${border}`,
-          }}
-        >
-          <div
-            className="h-2.5 w-3/4 rounded"
-            style={{ background: "rgba(148,163,184,.28)" }}
-          />
-          <div
-            className="mt-2 h-2 w-1/2 rounded"
-            style={{ background: "rgba(148,163,184,.22)" }}
-          />
-        </div>
-      ))}
-    </div>
-  );
-}
 
 export default function GroupDetailsPage() {
   const router = useRouter();
@@ -546,13 +480,7 @@ export default function GroupDetailsPage() {
     };
   }, [id, router, supabase]);
 
-  useEffect(() => {
-    router.prefetch("/dashboard");
-    router.prefetch("/wishlist");
-    router.prefetch("/secret-santa");
-    router.prefetch("/secret-santa-chat");
-    router.prefetch(`/group/${id}/reveal`);
-  }, [router, id]);
+  useGroupRoutePrefetch({ groupId: id, router });
 
   const openEditModal = () => {
     if (!groupData) return;
@@ -914,7 +842,7 @@ export default function GroupDetailsPage() {
       `}</style>
 
       {showEditModal && (
-        <Modal onClose={() => setShowEditModal(false)}>
+        <GroupPageModal onClose={() => setShowEditModal(false)}>
           <h3
             className="text-[20px] font-bold mb-4 flex items-center gap-2"
             style={{ fontFamily: "'Fredoka', sans-serif", color: "#1a1a1a" }}
@@ -1125,11 +1053,11 @@ export default function GroupDetailsPage() {
               </button>
             </div>
           </div>
-        </Modal>
+        </GroupPageModal>
       )}
 
       {showDeleteModal && (
-        <Modal onClose={() => setShowDeleteModal(false)}>
+        <GroupPageModal onClose={() => setShowDeleteModal(false)}>
           <div className="text-center">
             <div className="text-[48px] mb-2">⚠️</div>
             <h3
@@ -1186,11 +1114,11 @@ export default function GroupDetailsPage() {
               </button>
             </div>
           </div>
-        </Modal>
+        </GroupPageModal>
       )}
 
       {showLeaveModal && (
-        <Modal onClose={() => setShowLeaveModal(false)}>
+        <GroupPageModal onClose={() => setShowLeaveModal(false)}>
           <div className="text-center">
             <div className="text-[48px] mb-2">🚪</div>
             <h3
@@ -1241,11 +1169,11 @@ export default function GroupDetailsPage() {
               </button>
             </div>
           </div>
-        </Modal>
+        </GroupPageModal>
       )}
 
       {removingMember && (
-        <Modal onClose={() => setRemovingMember(null)}>
+        <GroupPageModal onClose={() => setRemovingMember(null)}>
           <div className="text-center">
             <div className="text-[48px] mb-2">👋</div>
             <h3
@@ -1301,7 +1229,7 @@ export default function GroupDetailsPage() {
               </button>
             </div>
           </div>
-        </Modal>
+        </GroupPageModal>
       )}
 
       <FadeIn className="relative z-10 mx-auto max-w-[760px] px-4 py-5 sm:px-6 sm:py-6">
