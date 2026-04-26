@@ -1,0 +1,253 @@
+import { getAnonymousGroupDisplayName } from "@/lib/groups/nickname";
+
+export type Member = {
+  id: string;
+  user_id: string | null;
+  nickname: string | null;
+  email: string | null;
+  role: string;
+  status: string;
+};
+
+export type GroupData = {
+  name: string;
+  description: string | null;
+  event_date: string;
+  owner_id: string;
+  budget: number | null;
+  currency: string | null;
+  require_anonymous_nickname: boolean;
+  revealed: boolean;
+  revealed_at: string | null;
+};
+
+export type Assignment = {
+  receiver_nickname: string;
+};
+
+export type RevealMatch = {
+  giver: string;
+  receiver: string;
+};
+
+export type OwnerInsights = {
+  acceptedCount: number;
+  wishlistReadyCount: number;
+  missingWishlistMemberNames: string[];
+  activeChatThreadCount: number;
+  totalChatThreadCount: number;
+  confirmedGiftCount: number;
+  totalGiftCount: number;
+};
+
+export type GroupRecap = {
+  activeChatThreadCount: number;
+  aliasRoster: Array<{
+    alias: string;
+    avatarEmoji: string;
+    realName: string;
+  }>;
+  confirmedGiftCount: number;
+  participantCount: number;
+  totalChatThreadCount: number;
+  totalGiftCount: number;
+  wishlistMissingAliases: string[];
+  wishlistReadyCount: number;
+};
+
+export type DrawExclusionRule = {
+  createdAt: string;
+  giverNickname: string;
+  giverUserId: string;
+  id: string;
+  receiverNickname: string;
+  receiverUserId: string;
+};
+
+export type DrawCycleHistoryItem = {
+  assignmentCount: number;
+  avoidPreviousRecipient: boolean;
+  createdAt: string;
+  cycleNumber: number;
+  id: string;
+  repeatAvoidanceRelaxed: boolean;
+};
+
+export type DrawResetHistoryItem = {
+  assignmentCount: number;
+  confirmedGiftCount: number;
+  createdAt: string;
+  id: string;
+  reason: string;
+};
+
+export type GroupPageSnapshot = {
+  assignment: Assignment | null;
+  createdAt: number;
+  currentUserId: string;
+  drawDone: boolean;
+  groupData: GroupData;
+  groupId: string;
+  isOwner: boolean;
+  members: Member[];
+  userId: string;
+};
+
+const GROUP_PAGE_SNAPSHOT_TTL_MS = 5 * 60 * 1000;
+const GROUP_PAGE_SNAPSHOT_STORAGE_PREFIX = "ss_group_page_snapshot_v1:";
+
+function getGroupPageSnapshotStorageKey(groupId: string, userId: string): string {
+  return `${GROUP_PAGE_SNAPSHOT_STORAGE_PREFIX}${groupId}:${userId}`;
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+function isNullableString(value: unknown): value is string | null {
+  return typeof value === "string" || value === null;
+}
+
+function isNullableNumber(value: unknown): value is number | null {
+  return typeof value === "number" || value === null;
+}
+
+function isSnapshotGroupData(value: unknown): value is GroupData {
+  if (!isRecord(value)) {
+    return false;
+  }
+
+  return (
+    typeof value.name === "string" &&
+    isNullableString(value.description) &&
+    typeof value.event_date === "string" &&
+    typeof value.owner_id === "string" &&
+    isNullableNumber(value.budget) &&
+    isNullableString(value.currency) &&
+    typeof value.require_anonymous_nickname === "boolean" &&
+    typeof value.revealed === "boolean" &&
+    isNullableString(value.revealed_at)
+  );
+}
+
+function isSnapshotMember(value: unknown): value is Member {
+  if (!isRecord(value)) {
+    return false;
+  }
+
+  return (
+    typeof value.id === "string" &&
+    isNullableString(value.user_id) &&
+    isNullableString(value.nickname) &&
+    isNullableString(value.email) &&
+    typeof value.role === "string" &&
+    typeof value.status === "string"
+  );
+}
+
+function isSnapshotAssignment(value: unknown): value is Assignment {
+  return isRecord(value) && typeof value.receiver_nickname === "string";
+}
+
+function isGroupPageSnapshot(
+  value: unknown,
+  groupId: string,
+  userId: string
+): value is GroupPageSnapshot {
+  if (!isRecord(value)) {
+    return false;
+  }
+
+  return (
+    value.groupId === groupId &&
+    value.userId === userId &&
+    typeof value.createdAt === "number" &&
+    Date.now() - value.createdAt < GROUP_PAGE_SNAPSHOT_TTL_MS &&
+    typeof value.currentUserId === "string" &&
+    typeof value.isOwner === "boolean" &&
+    typeof value.drawDone === "boolean" &&
+    isSnapshotGroupData(value.groupData) &&
+    Array.isArray(value.members) &&
+    value.members.every(isSnapshotMember) &&
+    (value.assignment === null || isSnapshotAssignment(value.assignment))
+  );
+}
+
+export function readGroupPageSnapshot(groupId: string, userId: string): GroupPageSnapshot | null {
+  if (typeof sessionStorage === "undefined") {
+    return null;
+  }
+
+  const storageKey = getGroupPageSnapshotStorageKey(groupId, userId);
+  const rawSnapshot = sessionStorage.getItem(storageKey);
+
+  if (!rawSnapshot) {
+    return null;
+  }
+
+  try {
+    const parsedSnapshot = JSON.parse(rawSnapshot) as unknown;
+
+    if (isGroupPageSnapshot(parsedSnapshot, groupId, userId)) {
+      return parsedSnapshot;
+    }
+  } catch {
+    sessionStorage.removeItem(storageKey);
+    return null;
+  }
+
+  sessionStorage.removeItem(storageKey);
+  return null;
+}
+
+export function writeGroupPageSnapshot(snapshot: GroupPageSnapshot) {
+  if (typeof sessionStorage === "undefined") {
+    return;
+  }
+
+  sessionStorage.setItem(
+    getGroupPageSnapshotStorageKey(snapshot.groupId, snapshot.userId),
+    JSON.stringify(snapshot)
+  );
+}
+
+export function clearGroupPageSnapshots(groupId?: string) {
+  if (typeof sessionStorage === "undefined") {
+    return;
+  }
+
+  for (let index = sessionStorage.length - 1; index >= 0; index -= 1) {
+    const key = sessionStorage.key(index);
+
+    if (
+      key?.startsWith(GROUP_PAGE_SNAPSHOT_STORAGE_PREFIX) &&
+      (!groupId || key.startsWith(`${GROUP_PAGE_SNAPSHOT_STORAGE_PREFIX}${groupId}:`))
+    ) {
+      sessionStorage.removeItem(key);
+    }
+  }
+}
+
+export function sanitizeMembersForGroupPageSnapshot(
+  members: Member[],
+  currentUserId: string
+): Member[] {
+  return members.map((member) => ({
+    ...member,
+    email: null,
+    user_id: member.user_id === currentUserId ? member.user_id : null,
+  }));
+}
+
+export function getVisibleGroupMemberName(
+  member: Member,
+  index: number,
+  requireAnonymousNickname: boolean,
+  fallbackPrefix = "Member"
+): string {
+  if (requireAnonymousNickname) {
+    return getAnonymousGroupDisplayName(member.nickname, `${fallbackPrefix} ${index + 1}`);
+  }
+
+  return member.nickname || `${fallbackPrefix} ${index + 1}`;
+}
