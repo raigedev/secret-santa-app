@@ -122,8 +122,22 @@ type DrawResetHistoryItem = {
   reason: string;
 };
 
+type GroupPageSnapshot = {
+  assignment: Assignment | null;
+  createdAt: number;
+  currentUserId: string;
+  drawDone: boolean;
+  groupData: GroupData;
+  groupId: string;
+  isOwner: boolean;
+  members: Member[];
+  userId: string;
+};
+
 const BUDGET_OPTIONS = [10, 15, 25, 50, 100];
 const HISTORY_PAGE_SIZE = 5;
+const GROUP_PAGE_SNAPSHOT_TTL_MS = 5 * 60 * 1000;
+const GROUP_PAGE_SNAPSHOT_STORAGE_PREFIX = "ss_group_page_snapshot_v1:";
 const CURRENCIES = [
   { code: "USD", symbol: "$", label: "USD" },
   { code: "EUR", symbol: "€", label: "EUR" },
@@ -133,6 +147,149 @@ const CURRENCIES = [
   { code: "AUD", symbol: "A$", label: "AUD" },
   { code: "CAD", symbol: "C$", label: "CAD" },
 ];
+
+function getGroupPageSnapshotStorageKey(groupId: string, userId: string): string {
+  return `${GROUP_PAGE_SNAPSHOT_STORAGE_PREFIX}${groupId}:${userId}`;
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+function isNullableString(value: unknown): value is string | null {
+  return typeof value === "string" || value === null;
+}
+
+function isNullableNumber(value: unknown): value is number | null {
+  return typeof value === "number" || value === null;
+}
+
+function isSnapshotGroupData(value: unknown): value is GroupData {
+  if (!isRecord(value)) {
+    return false;
+  }
+
+  return (
+    typeof value.name === "string" &&
+    isNullableString(value.description) &&
+    typeof value.event_date === "string" &&
+    typeof value.owner_id === "string" &&
+    isNullableNumber(value.budget) &&
+    isNullableString(value.currency) &&
+    typeof value.require_anonymous_nickname === "boolean" &&
+    typeof value.revealed === "boolean" &&
+    isNullableString(value.revealed_at)
+  );
+}
+
+function isSnapshotMember(value: unknown): value is Member {
+  if (!isRecord(value)) {
+    return false;
+  }
+
+  return (
+    typeof value.id === "string" &&
+    isNullableString(value.user_id) &&
+    isNullableString(value.nickname) &&
+    isNullableString(value.email) &&
+    typeof value.role === "string" &&
+    typeof value.status === "string"
+  );
+}
+
+function isSnapshotAssignment(value: unknown): value is Assignment {
+  return isRecord(value) && typeof value.receiver_nickname === "string";
+}
+
+function isGroupPageSnapshot(
+  value: unknown,
+  groupId: string,
+  userId: string
+): value is GroupPageSnapshot {
+  if (!isRecord(value)) {
+    return false;
+  }
+
+  return (
+    value.groupId === groupId &&
+    value.userId === userId &&
+    typeof value.createdAt === "number" &&
+    Date.now() - value.createdAt < GROUP_PAGE_SNAPSHOT_TTL_MS &&
+    typeof value.currentUserId === "string" &&
+    typeof value.isOwner === "boolean" &&
+    typeof value.drawDone === "boolean" &&
+    isSnapshotGroupData(value.groupData) &&
+    Array.isArray(value.members) &&
+    value.members.every(isSnapshotMember) &&
+    (value.assignment === null || isSnapshotAssignment(value.assignment))
+  );
+}
+
+function readGroupPageSnapshot(groupId: string, userId: string): GroupPageSnapshot | null {
+  if (typeof sessionStorage === "undefined") {
+    return null;
+  }
+
+  const storageKey = getGroupPageSnapshotStorageKey(groupId, userId);
+  const rawSnapshot = sessionStorage.getItem(storageKey);
+
+  if (!rawSnapshot) {
+    return null;
+  }
+
+  try {
+    const parsedSnapshot = JSON.parse(rawSnapshot) as unknown;
+
+    if (isGroupPageSnapshot(parsedSnapshot, groupId, userId)) {
+      return parsedSnapshot;
+    }
+  } catch {
+    sessionStorage.removeItem(storageKey);
+    return null;
+  }
+
+  sessionStorage.removeItem(storageKey);
+  return null;
+}
+
+function writeGroupPageSnapshot(snapshot: GroupPageSnapshot) {
+  if (typeof sessionStorage === "undefined") {
+    return;
+  }
+
+  sessionStorage.setItem(
+    getGroupPageSnapshotStorageKey(snapshot.groupId, snapshot.userId),
+    JSON.stringify(snapshot)
+  );
+}
+
+function clearGroupPageSnapshots(groupId?: string) {
+  if (typeof sessionStorage === "undefined") {
+    return;
+  }
+
+  for (let index = sessionStorage.length - 1; index >= 0; index -= 1) {
+    const key = sessionStorage.key(index);
+
+    if (
+      key?.startsWith(GROUP_PAGE_SNAPSHOT_STORAGE_PREFIX) &&
+      (!groupId || key.startsWith(`${GROUP_PAGE_SNAPSHOT_STORAGE_PREFIX}${groupId}:`))
+    ) {
+      sessionStorage.removeItem(key);
+    }
+  }
+}
+
+function sanitizeMembersForGroupPageSnapshot(
+  members: Member[],
+  currentUserId: string
+): Member[] {
+  return members.map((member) => ({
+    ...member,
+    email: null,
+    user_id: member.user_id === currentUserId ? member.user_id : null,
+  }));
+}
 
 function getVisibleGroupMemberName(
   member: Member,
@@ -218,6 +375,7 @@ export default function GroupDetailsPage() {
 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [groupDataFresh, setGroupDataFresh] = useState(false);
 
   const [drawLoading, setDrawLoading] = useState(false);
   const [resetLoading, setResetLoading] = useState(false);
@@ -225,6 +383,7 @@ export default function GroupDetailsPage() {
   const [assignment, setAssignment] = useState<Assignment | null>(null);
   const [drawDone, setDrawDone] = useState(false);
   const [drawExclusions, setDrawExclusions] = useState<DrawExclusionRule[]>([]);
+  const [drawRulesReady, setDrawRulesReady] = useState(false);
   const [newExclusionGiver, setNewExclusionGiver] = useState("");
   const [newExclusionReceiver, setNewExclusionReceiver] = useState("");
   const [newExclusionBidirectional, setNewExclusionBidirectional] = useState(true);
@@ -267,6 +426,8 @@ export default function GroupDetailsPage() {
   const loadGroupDataRef = useRef<(() => Promise<void>) | null>(null);
 
   const notifyGroupRefresh = () => {
+    clearGroupPageSnapshots(id);
+
     try {
       localStorage.setItem(`group-refresh:${id}`, Date.now().toString());
     } catch {
@@ -306,6 +467,28 @@ export default function GroupDetailsPage() {
     let isMounted = true;
     let reloadTimer: ReturnType<typeof setTimeout> | null = null;
     let loadVersion = 0;
+    let hasAppliedSnapshot = false;
+
+    const applyGroupPageSnapshot = (snapshot: GroupPageSnapshot) => {
+      setCurrentUserId(snapshot.currentUserId);
+      setGroupData(snapshot.groupData);
+      setMembers(snapshot.members);
+      setIsOwner(snapshot.isOwner);
+      setAssignment(snapshot.assignment);
+      setDrawDone(snapshot.drawDone);
+      setDrawExclusions([]);
+      setDrawRulesReady(!snapshot.isOwner);
+      setGroupDataFresh(false);
+      setOwnerInsights(null);
+      setRevealMatches([]);
+      setGroupRecap(null);
+      setDrawCycleHistory([]);
+      setDrawResetHistory([]);
+      setHasMoreDrawCycles(false);
+      setHasMoreDrawResets(false);
+      setError(null);
+      setLoading(false);
+    };
 
     const loadGroupData = async () => {
       const currentLoadVersion = ++loadVersion;
@@ -314,6 +497,7 @@ export default function GroupDetailsPage() {
       } = await supabase.auth.getSession();
 
       if (!session) {
+        clearGroupPageSnapshots();
         router.push("/login");
         return;
       }
@@ -322,6 +506,15 @@ export default function GroupDetailsPage() {
 
       if (!isMounted) return;
       setCurrentUserId(user.id);
+
+      if (!hasAppliedSnapshot) {
+        hasAppliedSnapshot = true;
+        const cachedGroupPage = readGroupPageSnapshot(id, user.id);
+
+        if (cachedGroupPage) {
+          applyGroupPageSnapshot(cachedGroupPage);
+        }
+      }
 
       const [groupResult, membersResult] = await Promise.all([
         supabase
@@ -356,6 +549,8 @@ export default function GroupDetailsPage() {
       }
 
       const group = groupResult.data;
+      setError(null);
+      setGroupDataFresh(false);
       setOwnerInsights(null);
       setRevealMatches([]);
       setGroupRecap(null);
@@ -366,29 +561,19 @@ export default function GroupDetailsPage() {
       setGroupData(group);
       const isCurrentUserOwner = user.id === group.owner_id;
       setIsOwner(isCurrentUserOwner);
+      setDrawRulesReady(!isCurrentUserOwner);
 
       const safeMembers = (membersResult.data ?? []) as Member[];
       setMembers(safeMembers);
 
-      // Load assignment and draw-rule data before showing the page so draw actions
-      // never run with stale owner exclusions.
-      const [{ data: myAssignment }, exclusionResult] = await Promise.all([
-        supabase
-          .from("assignments")
-          .select("receiver_id")
-          .eq("group_id", id)
-          .eq("giver_id", user.id)
-          .maybeSingle(),
-        isCurrentUserOwner ? getDrawExclusions(id) : Promise.resolve(null),
-      ]);
+      const { data: myAssignment } = await supabase
+        .from("assignments")
+        .select("receiver_id")
+        .eq("group_id", id)
+        .eq("giver_id", user.id)
+        .maybeSingle();
 
       if (!isMounted || currentLoadVersion !== loadVersion) return;
-
-      if (exclusionResult?.success && exclusionResult.exclusions) {
-        setDrawExclusions(exclusionResult.exclusions);
-      } else {
-        setDrawExclusions([]);
-      }
 
       if (myAssignment) {
         setDrawDone(true);
@@ -401,10 +586,29 @@ export default function GroupDetailsPage() {
         setAssignment(null);
       }
 
+      setGroupDataFresh(true);
+      writeGroupPageSnapshot({
+        assignment: myAssignment
+          ? {
+              receiver_nickname:
+                safeMembers.find((member) => member.user_id === myAssignment.receiver_id)?.nickname ||
+                "Secret Member",
+            }
+          : null,
+        createdAt: Date.now(),
+        currentUserId: user.id,
+        drawDone: Boolean(myAssignment),
+        groupData: group,
+        groupId: id,
+        isOwner: isCurrentUserOwner,
+        members: sanitizeMembersForGroupPageSnapshot(safeMembers, user.id),
+        userId: user.id,
+      });
       setLoading(false);
 
       void (async () => {
-        const [insightsResult, revealResult, recapResult, rerollHistoryResult] = await Promise.all([
+        const [exclusionResult, insightsResult, revealResult, recapResult, rerollHistoryResult] = await Promise.all([
+          isCurrentUserOwner ? getDrawExclusions(id) : Promise.resolve(null),
           isCurrentUserOwner ? getGroupOwnerInsights(id) : Promise.resolve(null),
           group.revealed ? getRevealMatches(id) : Promise.resolve(null),
           group.revealed ? getGroupRecap(id) : Promise.resolve(null),
@@ -418,6 +622,20 @@ export default function GroupDetailsPage() {
         ]);
 
         if (!isMounted || currentLoadVersion !== loadVersion) return;
+
+        if (isCurrentUserOwner) {
+          if (exclusionResult?.success && exclusionResult.exclusions) {
+            setDrawExclusions(exclusionResult.exclusions);
+            setDrawRulesReady(true);
+          } else {
+            setDrawExclusions([]);
+            setDrawRulesReady(false);
+            setDrawRuleMessage("We could not load pairing rules. Refresh this page before drawing names.");
+          }
+        } else {
+          setDrawExclusions([]);
+          setDrawRulesReady(true);
+        }
 
         if (insightsResult?.success && insightsResult.insights) {
           setOwnerInsights(insightsResult.insights);
@@ -609,6 +827,7 @@ export default function GroupDetailsPage() {
     setDeleteSaving(false);
 
     if (result.success) {
+      clearGroupPageSnapshots(id);
       router.push("/dashboard");
     }
   };
@@ -653,11 +872,17 @@ export default function GroupDetailsPage() {
     setActionSaving(false);
 
     if (result.success) {
+      clearGroupPageSnapshots(id);
       router.push("/dashboard");
     }
   };
 
   const handleDraw = async () => {
+    if (!drawRulesReady) {
+      setDrawMessage("Pairing rules are still loading. Please wait a moment before drawing names.");
+      return;
+    }
+
     if (
       !confirm(
         "Draw names now? Everyone will get one recipient. If you reset later, the current recipients and private chat history for this group will be deleted."
@@ -888,6 +1113,8 @@ export default function GroupDetailsPage() {
 
   const allAccepted =
     pendingMembers.length === 0 && declinedMembers.length === 0 && acceptedMembers.length >= 3;
+  const drawRuleControlsDisabled = drawRuleSaving || drawLoading || resetLoading || !drawRulesReady;
+  const canDrawNames = allAccepted && drawRulesReady && !drawLoading && !resetLoading;
 
   const currencySymbol =
     CURRENCIES.find((item) => item.code === (groupData.currency || "USD"))?.symbol || "$";
@@ -1351,6 +1578,11 @@ export default function GroupDetailsPage() {
             <div className="text-[13px] mt-1" style={{ color: "rgba(255,255,255,.8)" }}>
               Manage members, invites, wishlists, and the name draw from here.
             </div>
+            {!groupDataFresh && (
+              <div className="mt-2 text-[11px] font-bold" style={{ color: "rgba(255,255,255,.72)" }}>
+                Updating event details...
+              </div>
+            )}
           </div>
 
           <div className="p-6">
@@ -1859,6 +2091,19 @@ export default function GroupDetailsPage() {
                         Use these when two members should not be paired. Rules apply only when names are drawn.
                       </p>
 
+                      {!drawRulesReady && (
+                        <div
+                          className="mb-3 rounded-xl px-3 py-2 text-[12px] font-bold"
+                          style={{
+                            background: "rgba(251,191,36,.14)",
+                            border: "1px solid rgba(245,158,11,.22)",
+                            color: "#92400e",
+                          }}
+                        >
+                          Loading pairing rules...
+                        </div>
+                      )}
+
                       <div className="grid gap-2 md:grid-cols-[1fr_1fr_auto]">
                         <select
                           value={newExclusionGiver}
@@ -1872,7 +2117,7 @@ export default function GroupDetailsPage() {
                             WebkitTextFillColor: newExclusionGiver ? "#0f172a" : "#475569",
                             boxShadow: "inset 0 1px 0 rgba(255,255,255,.65)",
                           }}
-                          disabled={drawRuleSaving || drawLoading || resetLoading}
+                          disabled={drawRuleControlsDisabled}
                         >
                           <option value="" style={{ color: "#475569", fontWeight: 700 }}>
                             Member A
@@ -1902,7 +2147,7 @@ export default function GroupDetailsPage() {
                             WebkitTextFillColor: newExclusionReceiver ? "#0f172a" : "#475569",
                             boxShadow: "inset 0 1px 0 rgba(255,255,255,.65)",
                           }}
-                          disabled={drawRuleSaving || drawLoading || resetLoading}
+                          disabled={drawRuleControlsDisabled}
                         >
                           <option value="" style={{ color: "#475569", fontWeight: 700 }}>
                             Member B
@@ -1923,16 +2168,16 @@ export default function GroupDetailsPage() {
                         <button
                           type="button"
                           onClick={handleAddDrawRule}
-                          disabled={drawRuleSaving || drawLoading || resetLoading}
+                          disabled={drawRuleControlsDisabled}
                           className="px-4 py-2.5 rounded-xl text-[13px] font-extrabold text-white"
                           style={{
                             background:
-                              drawRuleSaving || drawLoading || resetLoading
+                              drawRuleControlsDisabled
                                 ? "#9ca3af"
                                 : "linear-gradient(135deg,#b91c1c,#ef4444)",
                             border: "none",
                             cursor:
-                              drawRuleSaving || drawLoading || resetLoading
+                              drawRuleControlsDisabled
                                 ? "not-allowed"
                                 : "pointer",
                           }}
@@ -1949,7 +2194,7 @@ export default function GroupDetailsPage() {
                           type="checkbox"
                           checked={newExclusionBidirectional}
                           onChange={(event) => setNewExclusionBidirectional(event.target.checked)}
-                          disabled={drawRuleSaving || drawLoading || resetLoading}
+                          disabled={drawRuleControlsDisabled}
                         />
                         Block both directions
                       </label>
@@ -1981,14 +2226,14 @@ export default function GroupDetailsPage() {
                               <button
                                 type="button"
                                 onClick={() => handleRemoveDrawRule(rule.id)}
-                                disabled={drawRuleSaving || drawLoading || resetLoading}
+                                disabled={drawRuleControlsDisabled}
                                 className="px-2.5 py-1 rounded-lg text-[11px] font-extrabold"
                                 style={{
                                   background: "rgba(220,38,38,.08)",
                                   color: "#dc2626",
                                   border: "1px solid rgba(220,38,38,.2)",
                                   cursor:
-                                    drawRuleSaving || drawLoading || resetLoading
+                                    drawRuleControlsDisabled
                                       ? "not-allowed"
                                       : "pointer",
                                 }}
@@ -2022,7 +2267,7 @@ export default function GroupDetailsPage() {
                             type="checkbox"
                             checked={avoidPreviousRecipient}
                             onChange={(event) => setAvoidPreviousRecipient(event.target.checked)}
-                            disabled={drawRuleSaving || drawLoading || resetLoading}
+                            disabled={drawRuleControlsDisabled}
                           />
                           Try not to give members the same recipient as last time.
                         </label>
@@ -2140,26 +2385,30 @@ export default function GroupDetailsPage() {
 
                       <button
                         onClick={handleDraw}
-                        disabled={!allAccepted || drawLoading || resetLoading}
+                        disabled={!canDrawNames}
                         className="relative overflow-hidden px-8 py-3 rounded-xl text-base font-extrabold text-white transition"
                         style={{
                           background:
-                            allAccepted && !drawLoading && !resetLoading
+                            canDrawNames
                               ? "linear-gradient(135deg,#7f1d1d,#991b1b)"
                               : "#9ca3af",
                           boxShadow:
-                            allAccepted && !drawLoading && !resetLoading
+                            canDrawNames
                               ? "0 4px 20px rgba(127,29,29,.3)"
                               : "none",
                           cursor:
-                            allAccepted && !drawLoading && !resetLoading
+                            canDrawNames
                               ? "pointer"
                               : "not-allowed",
                           fontFamily: "inherit",
                         }}
                       >
-                        {drawLoading ? "🎰 Drawing..." : "🎲 Draw Names"}
-                        {allAccepted && !drawLoading && !resetLoading && (
+                        {drawLoading
+                          ? "🎰 Drawing..."
+                          : drawRulesReady
+                            ? "🎲 Draw Names"
+                            : "Loading draw rules..."}
+                        {canDrawNames && (
                           <span
                             className="absolute inset-0"
                             style={{
@@ -2763,7 +3012,7 @@ export default function GroupDetailsPage() {
                           </div>
 
                           <div className="flex items-center gap-2">
-                            {isOwner && !drawDone && (
+                            {isOwner && !drawDone && member.user_id && (
                               <button
                                 onClick={() => {
                                   setActionMsg("");
