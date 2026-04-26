@@ -40,6 +40,7 @@
 - 2026-04-26T22:07:23+08:00 [CODE] Group event page config, modal/skeleton primitives, and route prefetching moved to focused modules without changing group actions or Supabase/realtime flow.
 - 2026-04-26T22:39:42+08:00 [CODE] Group event members section moved to `GroupMembersSection.tsx`; page still owns member state, remove-member modal, refresh callbacks, Supabase, and realtime behavior.
 - 2026-04-26T23:13:39+08:00 [CODE] Group event owner insights panel moved to `GroupOwnerInsightsPanel.tsx`; page still owns owner-insight loading state and draw/reveal behavior.
+- 2026-04-26T23:41:40+08:00 [CODE] Group event edit/delete/leave/remove modals and event summary blocks moved into focused components; page still owns all handlers, route pushes, Supabase, realtime, draw, and reveal state.
 - 2026-04-25T00:55:00+08:00 [CODE] Affiliate report separates `Opened in Lazada` from `Lazada reported product`; search-link clicks show exact products only after a mapped Lazada conversion report supplies them.
 - 2026-04-23T23:47:58+08:00 [CODE] `/secret-santa-chat` keeps the recognizable dark festive layout with clearer privacy/identity panels, dashboard control, thread labels, and Winter Atelier palette alignment.
 - 2026-04-25T20:35:00+08:00 [CODE] Broad UX-writing pass rewrote public/auth/dashboard/group/wishlist/Secret Santa/chat/notification/profile/affiliate-report text toward simple terms: group, member, wishlist, recipient, gift progress, shopping option, affiliate link. Tests were updated only where assertions intentionally tracked old copy.

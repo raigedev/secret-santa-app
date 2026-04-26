@@ -24,10 +24,12 @@ import {
 } from "./actions";
 import { GroupSkeleton } from "@/app/components/PageSkeleton";
 import FadeIn from "@/app/components/FadeIn";
+import { GroupActionModals } from "./GroupActionModals";
+import { GroupEventSummaryPanel } from "./GroupEventSummaryPanel";
 import { GroupMembersSection } from "./GroupMembersSection";
 import { GroupOwnerInsightsPanel } from "./GroupOwnerInsightsPanel";
 import { BUDGET_OPTIONS, CURRENCIES, HISTORY_PAGE_SIZE } from "./group-page-config";
-import { GroupPageModal, HistorySkeletonRows } from "./GroupPagePrimitives";
+import { HistorySkeletonRows } from "./GroupPagePrimitives";
 import {
   clearGroupPageSnapshots,
   getVisibleGroupMemberName,
@@ -493,6 +495,17 @@ export default function GroupDetailsPage() {
     setShowEditModal(true);
   };
 
+  const openDeleteModal = () => {
+    setDeleteConfirm("");
+    setDeleteMsg("");
+    setShowDeleteModal(true);
+  };
+
+  const openLeaveModal = () => {
+    setActionMsg("");
+    setShowLeaveModal(true);
+  };
+
   const handleEditSave = async () => {
     setEditSaving(true);
     setEditMsg("");
@@ -846,396 +859,42 @@ export default function GroupDetailsPage() {
         }
       `}</style>
 
-      {showEditModal && (
-        <GroupPageModal onClose={() => setShowEditModal(false)}>
-          <h3
-            className="text-[20px] font-bold mb-4 flex items-center gap-2"
-            style={{ fontFamily: "'Fredoka', sans-serif", color: "#1a1a1a" }}
-          >
-            ✏️ Edit Group
-          </h3>
-
-          <div className="space-y-3">
-            <div>
-              <label
-                className="text-[12px] font-extrabold block mb-1"
-                style={{ color: "#374151" }}
-              >
-                Group Name
-              </label>
-              <input
-                value={editName}
-                onChange={(e) => setEditName(e.target.value)}
-                maxLength={100}
-                className="w-full px-3 py-2.5 rounded-xl text-[14px] outline-none"
-                style={{
-                  border: "2px solid #e5e7eb",
-                  fontFamily: "inherit",
-                  background: "#ffffff",
-                  color: "#0f172a",
-                  WebkitTextFillColor: "#0f172a",
-                }}
-              />
-            </div>
-
-            <div>
-              <label
-                className="text-[12px] font-extrabold block mb-1"
-                style={{ color: "#374151" }}
-              >
-                Description
-              </label>
-              <input
-                value={editDesc}
-                onChange={(e) => setEditDesc(e.target.value)}
-                maxLength={300}
-                className="w-full px-3 py-2.5 rounded-xl text-[14px] outline-none"
-                style={{
-                  border: "2px solid #e5e7eb",
-                  fontFamily: "inherit",
-                  background: "#ffffff",
-                  color: "#0f172a",
-                  WebkitTextFillColor: "#0f172a",
-                }}
-              />
-            </div>
-
-            <div>
-              <label
-                className="text-[12px] font-extrabold block mb-1"
-                style={{ color: "#374151" }}
-              >
-                Gift date
-              </label>
-              <input
-                type="date"
-                value={editDate}
-                onChange={(e) => setEditDate(e.target.value)}
-                className="w-full px-3 py-2.5 rounded-xl text-[14px] outline-none"
-                style={{
-                  border: "2px solid #e5e7eb",
-                  fontFamily: "inherit",
-                  background: "#ffffff",
-                  color: "#0f172a",
-                  WebkitTextFillColor: "#0f172a",
-                }}
-              />
-            </div>
-
-            <div>
-              <label
-                className="text-[12px] font-extrabold block mb-1"
-                style={{ color: "#374151" }}
-              >
-                Budget
-              </label>
-
-              <div className="flex gap-1.5 flex-wrap">
-                {BUDGET_OPTIONS.map((amount) => (
-                  <button
-                    key={amount}
-                    type="button"
-                    onClick={() => {
-                      setEditBudget(amount);
-                      setEditCustom(false);
-                    }}
-                    className="px-3 py-1.5 rounded-lg text-[12px] font-bold"
-                    style={{
-                      border: `2px solid ${
-                        !editCustom && editBudget === amount ? "#c0392b" : "#e5e7eb"
-                      }`,
-                      background: !editCustom && editBudget === amount ? "#fef2f2" : "#fff",
-                      color: !editCustom && editBudget === amount ? "#c0392b" : "#6b7280",
-                      cursor: "pointer",
-                      fontFamily: "inherit",
-                    }}
-                  >
-                    {editCurrencySymbol}
-                    {amount}
-                  </button>
-                ))}
-
-                <button
-                  type="button"
-                  onClick={() => setEditCustom(true)}
-                  className="px-3 py-1.5 rounded-lg text-[12px] font-bold"
-                  style={{
-                    border: `2px solid ${editCustom ? "#c0392b" : "#e5e7eb"}`,
-                    background: editCustom ? "#fef2f2" : "#fff",
-                    color: editCustom ? "#c0392b" : "#6b7280",
-                    cursor: "pointer",
-                    fontFamily: "inherit",
-                    borderStyle: "dashed",
-                  }}
-                >
-                  Custom
-                </button>
-              </div>
-
-              {editCustom && (
-                <input
-                  type="number"
-                  value={editBudget}
-                  onChange={(e) => setEditBudget(parseInt(e.target.value, 10) || 0)}
-                  className="mt-2 w-28 px-3 py-2 rounded-lg text-[13px] outline-none"
-                  style={{
-                    border: "2px solid #c0392b",
-                    fontFamily: "inherit",
-                    background: "#ffffff",
-                    color: "#0f172a",
-                    WebkitTextFillColor: "#0f172a",
-                  }}
-                />
-              )}
-            </div>
-
-            <div>
-              <label
-                className="text-[12px] font-extrabold block mb-1"
-                style={{ color: "#374151" }}
-              >
-                Currency
-              </label>
-              <select
-                value={editCurrency}
-                onChange={(e) => setEditCurrency(e.target.value)}
-                className="w-full px-3 py-2.5 rounded-xl text-[14px] outline-none"
-                style={{
-                  border: "2px solid #e5e7eb",
-                  fontFamily: "inherit",
-                  background: "#ffffff",
-                  color: "#0f172a",
-                  WebkitTextFillColor: "#0f172a",
-                }}
-              >
-                {CURRENCIES.map((currency) => (
-                  <option key={currency.code} value={currency.code}>
-                    {currency.label} ({currency.symbol})
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            {editMsg && (
-              <p
-                className={`text-[12px] font-bold ${
-                  editMsg.includes("updated") ? "text-green-600" : "text-red-600"
-                }`}
-              >
-                {editMsg}
-              </p>
-            )}
-
-            <div className="flex gap-2 justify-end pt-2">
-              <button
-                onClick={() => setShowEditModal(false)}
-                className="px-4 py-2 rounded-lg text-[13px] font-bold"
-                style={{
-                  background: "#f3f4f6",
-                  color: "#6b7280",
-                  border: "none",
-                  cursor: "pointer",
-                  fontFamily: "inherit",
-                }}
-              >
-                Cancel
-              </button>
-
-              <button
-                onClick={handleEditSave}
-                disabled={editSaving}
-                className="px-5 py-2 rounded-lg text-[13px] font-extrabold text-white"
-                style={{
-                  background: editSaving
-                    ? "#9ca3af"
-                    : "linear-gradient(135deg,#c0392b,#e74c3c)",
-                  border: "none",
-                  cursor: editSaving ? "not-allowed" : "pointer",
-                  fontFamily: "inherit",
-                }}
-              >
-                {editSaving ? "Saving..." : "Save Changes"}
-              </button>
-            </div>
-          </div>
-        </GroupPageModal>
-      )}
-
-      {showDeleteModal && (
-        <GroupPageModal onClose={() => setShowDeleteModal(false)}>
-          <div className="text-center">
-            <div className="text-[48px] mb-2">⚠️</div>
-            <h3
-              className="text-[20px] font-bold mb-2"
-              style={{ fontFamily: "'Fredoka', sans-serif", color: "#dc2626" }}
-            >
-              Delete this group?
-            </h3>
-
-            <p className="text-[13px] mb-4 leading-relaxed" style={{ color: "#6b7280" }}>
-              This will permanently delete{" "}
-              <strong style={{ color: "#1f2937" }}>&quot;{groupData.name}&quot;</strong>, all
-              recipients, wishlists, and messages. This cannot be undone.
-            </p>
-
-            <input
-              value={deleteConfirm}
-              onChange={(e) => setDeleteConfirm(e.target.value)}
-              placeholder={`Type "${groupData.name}" to confirm`}
-              className="w-full px-3 py-2.5 rounded-xl text-[13px] text-center outline-none mb-3"
-              style={{ border: "2px solid #e5e7eb", fontFamily: "inherit" }}
-            />
-
-            {deleteMsg && <p className="text-[12px] font-bold text-red-600 mb-2">{deleteMsg}</p>}
-
-            <div className="flex gap-2 justify-center">
-              <button
-                onClick={() => setShowDeleteModal(false)}
-                className="px-4 py-2 rounded-lg text-[13px] font-bold"
-                style={{
-                  background: "#f3f4f6",
-                  color: "#6b7280",
-                  border: "none",
-                  cursor: "pointer",
-                  fontFamily: "inherit",
-                }}
-              >
-                Cancel
-              </button>
-
-              <button
-                onClick={handleDelete}
-                disabled={deleteSaving}
-                className="px-5 py-2 rounded-lg text-[13px] font-extrabold"
-                style={{
-                  background: "rgba(220,38,38,.06)",
-                  color: "#dc2626",
-                  border: "1px solid rgba(220,38,38,.15)",
-                  cursor: deleteSaving ? "not-allowed" : "pointer",
-                  fontFamily: "inherit",
-                }}
-              >
-                {deleteSaving ? "Deleting..." : "🗑️ Delete Forever"}
-              </button>
-            </div>
-          </div>
-        </GroupPageModal>
-      )}
-
-      {showLeaveModal && (
-        <GroupPageModal onClose={() => setShowLeaveModal(false)}>
-          <div className="text-center">
-            <div className="text-[48px] mb-2">🚪</div>
-            <h3
-              className="text-[20px] font-bold mb-2"
-              style={{ fontFamily: "'Fredoka', sans-serif", color: "#f59e0b" }}
-            >
-              Leave this group?
-            </h3>
-
-            <p className="text-[13px] mb-4 leading-relaxed" style={{ color: "#6b7280" }}>
-              You&apos;ll be removed from{" "}
-              <strong style={{ color: "#1f2937" }}>&quot;{groupData.name}&quot;</strong>.
-              You&apos;ll lose access to recipients, wishlists, and chat. You can be
-              re-invited later.
-            </p>
-
-            {actionMsg && <p className="text-[12px] font-bold text-red-600 mb-2">{actionMsg}</p>}
-
-            <div className="flex gap-2 justify-center">
-              <button
-                onClick={() => setShowLeaveModal(false)}
-                className="px-4 py-2 rounded-lg text-[13px] font-bold"
-                style={{
-                  background: "#f3f4f6",
-                  color: "#6b7280",
-                  border: "none",
-                  cursor: "pointer",
-                  fontFamily: "inherit",
-                }}
-              >
-                Stay
-              </button>
-
-              <button
-                onClick={handleLeave}
-                disabled={actionSaving}
-                className="px-5 py-2 rounded-lg text-[13px] font-extrabold text-white"
-                style={{
-                  background: actionSaving
-                    ? "#9ca3af"
-                    : "linear-gradient(135deg,#b45309,#f59e0b)",
-                  border: "none",
-                  cursor: actionSaving ? "not-allowed" : "pointer",
-                  fontFamily: "inherit",
-                }}
-              >
-                {actionSaving ? "Leaving..." : "🚪 Leave Group"}
-              </button>
-            </div>
-          </div>
-        </GroupPageModal>
-      )}
-
-      {removingMember && (
-        <GroupPageModal onClose={() => setRemovingMember(null)}>
-          <div className="text-center">
-            <div className="text-[48px] mb-2">👋</div>
-            <h3
-              className="text-[20px] font-bold mb-2"
-              style={{ fontFamily: "'Fredoka', sans-serif", color: "#dc2626" }}
-            >
-              Remove {removingMember.nickname}?
-            </h3>
-
-            <p className="text-[13px] mb-4 leading-relaxed" style={{ color: "#6b7280" }}>
-              <strong style={{ color: "#1f2937" }}>{removingMember.nickname}</strong> will be
-              removed from the group. If names have already been drawn, the draw will need
-              to be redone.
-            </p>
-
-            {actionMsg && (
-              <p
-                className="text-[12px] font-bold mb-2"
-                style={{ color: actionMsg.includes("removed") ? "#16a34a" : "#dc2626" }}
-              >
-                {actionMsg}
-              </p>
-            )}
-
-            <div className="flex gap-2 justify-center">
-              <button
-                onClick={() => setRemovingMember(null)}
-                className="px-4 py-2 rounded-lg text-[13px] font-bold"
-                style={{
-                  background: "#f3f4f6",
-                  color: "#6b7280",
-                  border: "none",
-                  cursor: "pointer",
-                  fontFamily: "inherit",
-                }}
-              >
-                Cancel
-              </button>
-
-              <button
-                onClick={handleRemoveMember}
-                disabled={actionSaving}
-                className="px-5 py-2 rounded-lg text-[13px] font-extrabold"
-                style={{
-                  background: "rgba(220,38,38,.06)",
-                  color: "#dc2626",
-                  border: "1px solid rgba(220,38,38,.15)",
-                  cursor: actionSaving ? "not-allowed" : "pointer",
-                  fontFamily: "inherit",
-                }}
-              >
-                {actionSaving ? "Removing..." : "✕ Remove Member"}
-              </button>
-            </div>
-          </div>
-        </GroupPageModal>
-      )}
+      <GroupActionModals
+        actionMsg={actionMsg}
+        actionSaving={actionSaving}
+        deleteConfirm={deleteConfirm}
+        deleteMsg={deleteMsg}
+        deleteSaving={deleteSaving}
+        editBudget={editBudget}
+        editCurrency={editCurrency}
+        editCurrencySymbol={editCurrencySymbol}
+        editCustom={editCustom}
+        editDate={editDate}
+        editDesc={editDesc}
+        editMsg={editMsg}
+        editName={editName}
+        editSaving={editSaving}
+        groupData={groupData}
+        removingMember={removingMember}
+        showDeleteModal={showDeleteModal}
+        showEditModal={showEditModal}
+        showLeaveModal={showLeaveModal}
+        onCloseDelete={() => setShowDeleteModal(false)}
+        onCloseEdit={() => setShowEditModal(false)}
+        onCloseLeave={() => setShowLeaveModal(false)}
+        onCloseRemoveMember={() => setRemovingMember(null)}
+        onDelete={handleDelete}
+        onEditSave={handleEditSave}
+        onLeave={handleLeave}
+        onRemoveMember={handleRemoveMember}
+        setDeleteConfirm={setDeleteConfirm}
+        setEditBudget={setEditBudget}
+        setEditCurrency={setEditCurrency}
+        setEditCustom={setEditCustom}
+        setEditDate={setEditDate}
+        setEditDesc={setEditDesc}
+        setEditName={setEditName}
+      />
 
       <FadeIn className="relative z-10 mx-auto max-w-[760px] px-4 py-5 sm:px-6 sm:py-6">
         <button
@@ -1284,160 +943,20 @@ export default function GroupDetailsPage() {
           </div>
 
           <div className="p-6">
-            {groupData.description && (
-              <div
-                className="rounded-xl overflow-hidden mb-4"
-                style={{
-                  background: "rgba(127,29,29,.04)",
-                  border: "1px solid rgba(127,29,29,.08)",
-                }}
-              >
-                <div
-                  className="flex items-center gap-1.5 px-3.5 py-2"
-                  style={{
-                    background: "rgba(127,29,29,.04)",
-                    borderBottom: "1px solid rgba(127,29,29,.06)",
-                    fontSize: "10px",
-                    fontWeight: 800,
-                    color: "#991b1b",
-                    textTransform: "uppercase",
-                    letterSpacing: ".08em",
-                  }}
-                >
-                  📋 Group notes and rules
-                </div>
-
-                <div
-                  className="px-3.5 py-2.5"
-                  style={{ fontSize: "13px", color: "#4b5563", lineHeight: 1.6 }}
-                >
-                  {groupData.description}
-                </div>
-              </div>
-            )}
-
-            <div className="mb-5 grid grid-cols-1 gap-3 sm:grid-cols-2 md:grid-cols-4">
-              {[
-                { icon: "📅", value: groupData.event_date, label: "Gift date" },
-                {
-                  icon: "💰",
-                  value: groupData.budget ? `${currencySymbol}${groupData.budget}` : "No limit",
-                  label: "Budget",
-                },
-                { icon: "👥", value: `${members.length}`, label: "Members" },
-                  { icon: "🎲", value: drawStatusLabel, label: "Name draw" },
-              ].map((item, index) => (
-                <div
-                  key={index}
-                  className="rounded-[16px] px-4 py-4"
-                  style={{
-                    background: "rgba(255,255,255,.78)",
-                    border: "1px solid rgba(255,255,255,.92)",
-                  }}
-                >
-                  <div className="text-[18px] mb-1">{item.icon}</div>
-                  <div className="text-[16px] font-bold text-gray-800">{item.value}</div>
-                  <div className="text-[11px] font-semibold text-gray-500">{item.label}</div>
-                </div>
-              ))}
-            </div>
-
-            {isOwner && (
-              <div className="flex gap-2 justify-center mb-5 flex-wrap">
-                <button
-                  onClick={openEditModal}
-                  className="px-4 py-2 rounded-lg text-[11px] font-bold transition"
-                  style={{
-                    background: "rgba(59,130,246,.08)",
-                    color: "#3b82f6",
-                    border: "1px solid rgba(59,130,246,.15)",
-                    cursor: "pointer",
-                    fontFamily: "inherit",
-                  }}
-                >
-                  ✏️ Edit Group
-                </button>
-
-                <button
-                  onClick={() => {
-                    setDeleteConfirm("");
-                    setDeleteMsg("");
-                    setShowDeleteModal(true);
-                  }}
-                  className="px-4 py-2 rounded-lg text-[11px] font-bold transition"
-                  style={{
-                    background: "rgba(220,38,38,.06)",
-                    color: "#ef4444",
-                    border: "1px solid rgba(220,38,38,.12)",
-                    cursor: "pointer",
-                    fontFamily: "inherit",
-                  }}
-                >
-                  🗑️ Delete Group
-                </button>
-              </div>
-            )}
-
-            {!isOwner && (
-              <div className="flex flex-col items-center gap-2 mb-5">
-                <button
-                  onClick={() => {
-                    setActionMsg("");
-                    setShowLeaveModal(true);
-                  }}
-                  disabled={drawDone}
-                  className="px-4 py-2 rounded-lg text-[11px] font-bold transition"
-                  style={{
-                    background: "rgba(245,158,11,.08)",
-                    color: drawDone ? "#9ca3af" : "#f59e0b",
-                    border: "1px solid rgba(245,158,11,.12)",
-                    cursor: drawDone ? "not-allowed" : "pointer",
-                    fontFamily: "inherit",
-                    opacity: drawDone ? 0.7 : 1,
-                  }}
-                >
-                  {drawDone ? "Group locked" : "🚪 Leave Group"}
-                </button>
-
-                {drawDone && (
-                  <p className="text-center text-[11px]" style={{ color: "#6b7280" }}>
-                    Member changes are locked after names are drawn. Ask the owner to reset first.
-                  </p>
-                )}
-              </div>
-            )}
-
-            <div className="mb-5 grid grid-cols-1 gap-3 sm:grid-cols-2 md:grid-cols-4">
-              {[
-                { n: acceptedMembers.length, l: "Accepted", c: "#15803d", b: "#22c55e" },
-                { n: pendingMembers.length, l: "Pending", c: "#b45309", b: "#f59e0b" },
-                { n: declinedMembers.length, l: "Declined", c: "#dc2626", b: "#dc2626" },
-                { n: members.length, l: "Total", c: "#1d4ed8", b: "#2563eb" },
-              ].map((s, i) => (
-                <div
-                  key={i}
-                  className="rounded-[16px] py-4 px-3 text-center relative overflow-hidden"
-                  style={{
-                    background: "rgba(255,255,255,.78)",
-                    border: "1px solid rgba(255,255,255,.92)",
-                  }}
-                >
-                  <div
-                    className="absolute top-0 left-0 right-0 h-[3px]"
-                    style={{ background: s.b }}
-                  />
-                  <div
-                    className="text-2xl font-bold leading-none"
-                    style={{ fontFamily: "'Fredoka', sans-serif", color: s.c }}
-                  >
-                    {s.n}
-                  </div>
-                  <div className="text-[10px] font-bold text-gray-500 mt-1 uppercase tracking-wide">
-                    {s.l}
-                  </div>
-                </div>
-              ))}
-            </div>
+            <GroupEventSummaryPanel
+              acceptedCount={acceptedMembers.length}
+              currencySymbol={currencySymbol}
+              declinedCount={declinedMembers.length}
+              drawDone={drawDone}
+              drawStatusLabel={drawStatusLabel}
+              groupData={groupData}
+              isOwner={isOwner}
+              pendingCount={pendingMembers.length}
+              totalMemberCount={members.length}
+              onOpenDelete={openDeleteModal}
+              onOpenEdit={openEditModal}
+              onOpenLeave={openLeaveModal}
+            />
 
             {isOwner && ownerInsights && (
               <GroupOwnerInsightsPanel drawDone={drawDone} ownerInsights={ownerInsights} />
