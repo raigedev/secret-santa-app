@@ -13,6 +13,7 @@
 - 2026-04-27T04:18:00+08:00 [USER] Frontend UI work should use Stitch plus available UI skills; prefer `impeccable`/`tasteskill` when installed, explore variants when direction is unclear, and use 21st.dev/its MCP as inspiration when available and compatible.
 - 2026-04-27T04:37:00+08:00 [TOOL] Installed `impeccable` and Taste Skill family skills globally for Codex under `.agents/skills` and mirrored them into `.codex/skills`: `design-taste-frontend`, `stitch-design-taste`, `high-end-visual-design`, `redesign-existing-projects`, `minimalist-ui`, `industrial-brutalist-ui`, `gpt-taste`, `image-to-code`, `full-output-enforcement`.
 - 2026-04-27T05:22:00+08:00 [USER] For UI work, prefer Codex App Browser interaction flow when available: local dev server, built-in Browser on localhost, user screenshots/annotations on specific UI elements, then code patch plus Playwright verification.
+- 2026-04-27T21:45:06+08:00 [CODE] Root `DESIGN.md` is now the Stitch-style design source of truth; future UI work should read it before changing app screens.
 
 ## Security And Product Decisions
 - 2026-04-20T00:00:00+08:00 [USER] Use Stitch MCP for UI design context, design tokens, screen metadata, and Stitch implementation details.
