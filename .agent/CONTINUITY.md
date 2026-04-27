@@ -36,7 +36,7 @@
 - 2026-04-26T00:32:58+08:00 [CODE] `/secret-santa` shopping-option panel is sticky while viewing Shopping Picks so selected-option changes remain visible near curated cards.
 - 2026-04-26T00:45:44+08:00 [CODE] `/secret-santa` sticky shopping-option panel now uses an opaque surface and stronger elevation so card content does not show through while scrolling.
 - 2026-04-26T00:56:41+08:00 [CODE] `/secret-santa` sticky shopping-option panel is flush to the viewport top when active and is bounded to the pre-curated picks block so it stops before `Curated Shopping Ideas`.
-- 2026-04-26T10:21:35+08:00 [CODE] `/secret-santa` Lazada CTA uses a shared refined holiday-red pill with icon capsule instead of text arrows; authenticated Playwright now checks the CTA shape and arrow treatment.
+- 2026-04-28T00:55:00+08:00 [CODE] `/secret-santa` Lazada CTA uses a shared light evergreen shopping pill with a dark icon capsule instead of the previous heavy red gradient; authenticated Playwright checks CTA shape and arrow treatment.
 - 2026-04-26T11:20:17+08:00 [CODE] Public auth pages now share `AuthPageShell` primitives for the login/create-account/forgot-password frame, hero panel, form field styling, and matching route skeletons.
 - 2026-04-26T11:57:44+08:00 [CODE] Dashboard page support code was split into focused `dashboard-types`, `dashboard-snapshot`, `dashboard-formatters`, and `dashboard-visuals` modules; Supabase/auth/realtime behavior stayed in the page.
 - 2026-04-26T17:59:21+08:00 [CODE] Dashboard inline UI extraction moved action cards, group cards, and dashboard icons into focused components while keeping routing/delete/data behavior in the page.
