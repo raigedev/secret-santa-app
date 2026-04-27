@@ -10,6 +10,8 @@
     "lint": "eslint app lib utils scripts tests *.ts *.mjs --no-error-on-unmatched-pattern",
     "lint:security": "eslint app lib utils scripts tests *.ts *.mjs --max-warnings=0 --no-error-on-unmatched-pattern",
     "check:problems": "node ./scripts/check-vscode-problems.mjs",
+    "audit:unused": "knip --reporter compact --no-exit-code",
+    "analyze:bundle": "next experimental-analyze --output",
     "test:e2e": "playwright test",
     "test:e2e:ui": "playwright test --ui",
     "test:e2e:headed": "playwright test --headed",
@@ -24,7 +26,8 @@
     "@supabase/supabase-js": "^2.99.1",
     "next": "16.2.3",
     "react": "19.2.5",
-    "react-dom": "19.2.5"
+    "react-dom": "19.2.5",
+    "server-only": "^0.0.1"
   },
   "devDependencies": {
     "@axe-core/playwright": "^4.11.2",
@@ -37,6 +40,8 @@
     "eslint-config-next": "16.2.3",
     "eslint-plugin-no-secrets": "^2.3.3",
     "eslint-plugin-security": "^4.0.0",
+    "knip": "^6.7.0",
+    "postcss": "^8.5.10",
     "supabase": "^2.92.1",
     "tailwindcss": "^4.2.2",
     "typescript": "^5"

@@ -1,36 +1,62 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# My Secret Santa
 
-## Getting Started
+Next.js App Router app for Secret Santa groups, wishlists, assignments, notifications, and affiliate shopping suggestions.
 
-First, run the development server:
+## Stack
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+- Next.js 16 App Router
+- React 19
+- TypeScript strict mode
+- Tailwind CSS 4
+- Supabase auth and database
+- Vercel deployment and cron jobs
+- Playwright E2E tests
+
+## Local Development
+
+```powershell
+npm.cmd install
+npm.cmd run dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open `http://localhost:3000`.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+For local Google OAuth, Supabase Auth redirect URLs should include:
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+```text
+http://localhost:3000/**
+http://127.0.0.1:3000/**
+```
 
-## Learn More
+## Checks
 
-To learn more about Next.js, take a look at the following resources:
+```powershell
+npm.cmd run check:problems
+npm.cmd run typecheck
+npm.cmd run lint:security
+npm.cmd run build
+npm.cmd run test:e2e
+```
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+Useful audits:
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+```powershell
+npm.cmd run audit:unused
+npm.cmd run analyze:bundle
+```
 
-## Deploy on Vercel
+## Project Docs
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+- [Architecture](docs/ARCHITECTURE.md)
+- [Testing](docs/TESTING.md)
+- [Deployment](docs/DEPLOY.md)
+- [Known Issues](docs/KNOWN_ISSUES.md)
+- [Design System](DESIGN.md)
+- [CSS Style Guide](styles/STYLEGUIDE.md)
+- [Agent Instructions](AGENTS.md)
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## Security
+
+Do not commit secrets, `.env` files, provider keys, Supabase service-role keys, Lazada credentials, webhook secrets, private logs, or screenshots containing sensitive data.
+
+Security-sensitive routes include affiliate redirects, Lazada postbacks, cron/reminder processing, auth, invites, assignments, wishlist data, and owner-only reports.
