@@ -63,7 +63,7 @@ function AuthHeading({ description }: { description: string }) {
       <h1 className="font-[Plus_Jakarta_Sans] text-3xl font-black tracking-[-0.05em] text-[#2e3432] sm:text-4xl">
         My Secret Santa
       </h1>
-      <h2 className="mt-2 font-[Plus_Jakarta_Sans] text-2xl font-black tracking-[-0.04em] text-[#48664e] sm:text-[2rem]">
+      <h2 className="mt-2 text-center font-[Plus_Jakarta_Sans] text-2xl font-black tracking-[-0.04em] text-[#48664e] sm:text-[2rem] lg:text-left">
         Login
       </h2>
       <p className="mt-3 text-[15px] leading-7 text-[#5b605e] sm:text-base">{description}</p>

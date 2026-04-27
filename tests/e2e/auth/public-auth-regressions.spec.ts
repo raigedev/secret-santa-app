@@ -1,6 +1,17 @@
 import { expect, test } from "@playwright/test";
 
 test.describe("public auth regressions", () => {
+  test("login heading aligns with the responsive auth layout", async ({ page }) => {
+    await page.setViewportSize({ width: 610, height: 654 });
+    await page.goto("/login");
+
+    const loginHeading = page.getByRole("heading", { name: "Login" });
+    await expect(loginHeading).toHaveCSS("text-align", "center");
+
+    await page.setViewportSize({ width: 1280, height: 720 });
+    await expect(loginHeading).toHaveCSS("text-align", "left");
+  });
+
   test("login requires an email before submission", async ({ page }) => {
     await page.goto("/login");
     await page.getByRole("button", { name: /^login$/i }).click();
