@@ -613,13 +613,13 @@ export default function DashboardPage() {
           ownedGroups: sanitizeGroupsForDashboardSnapshot(nextOwnedGroups),
           invitedGroups: sanitizeGroupsForDashboardSnapshot(nextInvitedGroups),
           pendingInvites: nextPendingInvites,
-          recipientNames: [],
+          recipientNames: nextRecipientNames,
           unreadNotificationCount: 0,
           wishlistItemCount: wishlistSummary.length,
           wishlistGroupCount: nextWishlistGroupCount,
-          giftProgressSummary: null,
-          activityFeedItems: [],
-          notificationPreviewItems: [],
+          giftProgressSummary: nextGiftProgressSummary,
+          activityFeedItems: feedItems,
+          notificationPreviewItems: nextNotificationPreviewItems,
         });
       } catch {
         if (!isMounted) {

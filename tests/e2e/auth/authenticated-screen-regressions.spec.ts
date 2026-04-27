@@ -88,6 +88,73 @@ test.describe("authenticated screen regressions", () => {
     });
   }
 
+  test("dashboard refresh keeps the drawn recipient action stable", async ({ page }) => {
+    await loginWithTestCredentials(page, credentials!);
+    await page.goto("/dashboard");
+    await page.evaluate(() => {
+      for (let index = sessionStorage.length - 1; index >= 0; index -= 1) {
+        const key = sessionStorage.key(index);
+
+        if (key?.startsWith("ss_dashboard_snapshot_v1:")) {
+          sessionStorage.removeItem(key);
+        }
+      }
+    });
+    await page.reload();
+    await expect(page.getByText(/your groups/i)).toBeVisible();
+
+    const viewRecipientAction = page.getByRole("button", { name: /view recipient/i });
+    const hasDrawnRecipient = await viewRecipientAction
+      .isVisible({ timeout: 5000 })
+      .catch(() => false);
+
+    if (!hasDrawnRecipient) {
+      await page.reload();
+      await expect(page.getByRole("button", { name: /no recipient yet/i })).toBeVisible();
+      return;
+    }
+
+    await page.addInitScript(() => {
+      const dashboardWindow = window as Window & {
+        __dashboardSawNoRecipientYet?: boolean;
+      };
+      dashboardWindow.__dashboardSawNoRecipientYet = false;
+
+      const markWrongGiftMatchState = () => {
+        if (document.body?.innerText.includes("No Recipient Yet")) {
+          dashboardWindow.__dashboardSawNoRecipientYet = true;
+        }
+      };
+
+      const observer = new MutationObserver(markWrongGiftMatchState);
+      const startWatching = () => {
+        markWrongGiftMatchState();
+        observer.observe(document.documentElement, {
+          childList: true,
+          characterData: true,
+          subtree: true,
+        });
+      };
+
+      if (document.readyState === "loading") {
+        document.addEventListener("DOMContentLoaded", startWatching, { once: true });
+      } else {
+        startWatching();
+      }
+    });
+
+    await page.reload();
+    await expect(viewRecipientAction).toBeVisible();
+
+    const sawNoRecipientYet = await page.evaluate(() =>
+      Boolean(
+        (window as Window & { __dashboardSawNoRecipientYet?: boolean })
+          .__dashboardSawNoRecipientYet
+      )
+    );
+    expect(sawNoRecipientYet).toBe(false);
+  });
+
   test("secret-santa keeps shopping picks readable", async ({ page }) => {
     await loginWithTestCredentials(page, credentials!);
     await page.goto("/secret-santa");

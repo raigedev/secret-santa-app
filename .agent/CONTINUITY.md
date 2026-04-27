@@ -36,6 +36,7 @@
 - 2026-04-26T17:59:21+08:00 [CODE] Dashboard inline UI extraction moved action cards, group cards, and dashboard icons into focused components while keeping routing/delete/data behavior in the page.
 - 2026-04-26T20:39:36+08:00 [CODE] Dashboard chrome extraction moved the sticky header and profile menu portal into focused components while page state, refs, routing callbacks, and logout behavior stayed in `page.tsx`.
 - 2026-04-26T21:38:18+08:00 [CODE] Dashboard UI body, sidebar, profile-menu hook, and route-prefetch hook were extracted into focused files; Supabase/auth/realtime/delete behavior still stays in `page.tsx`.
+- 2026-04-27T03:05:57+08:00 [CODE] Dashboard refresh snapshot now keeps loaded recipient names, gift-progress summary, and activity previews so refresh no longer flashes `No Recipient Yet` before returning to `View Recipient`.
 - 2026-04-26T21:54:26+08:00 [CODE] Group event page snapshot validation/storage, shared data types, and member display-name helper moved to `group-page-state.ts`; page keeps Supabase/realtime/action flow.
 - 2026-04-26T22:07:23+08:00 [CODE] Group event page config, modal/skeleton primitives, and route prefetching moved to focused modules without changing group actions or Supabase/realtime flow.
 - 2026-04-26T22:39:42+08:00 [CODE] Group event members section moved to `GroupMembersSection.tsx`; page still owns member state, remove-member modal, refresh callbacks, Supabase, and realtime behavior.
