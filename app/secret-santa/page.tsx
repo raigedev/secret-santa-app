@@ -158,6 +158,7 @@ const HOLIDAY_GOLD = "#7b5902";
 const HOLIDAY_BLUE = "#58748e";
 const LAZADA_AFFILIATE_DISCLOSURE =
   "Some Lazada links are affiliate links.";
+const SHOPPING_REGION_STORAGE_KEY = "gift-shopping-region";
 
 function GiftMark({ className = "h-5 w-5" }: { className?: string }) {
   return (
@@ -1015,7 +1016,7 @@ export default function SecretSantaPage() {
   }, [router, availableGroups, assignments]);
 
   useEffect(() => {
-    const savedRegion = window.localStorage.getItem("secret-santa-shopping-region");
+    const savedRegion = window.localStorage.getItem(SHOPPING_REGION_STORAGE_KEY);
 
     if (savedRegion && SHOPPING_REGION_OPTIONS.some((option) => option.value === savedRegion)) {
       setShoppingRegion(savedRegion as ShoppingRegion);
@@ -1027,7 +1028,7 @@ export default function SecretSantaPage() {
   }, [availableGroups]);
 
   useEffect(() => {
-    window.localStorage.setItem("secret-santa-shopping-region", shoppingRegion);
+    window.localStorage.setItem(SHOPPING_REGION_STORAGE_KEY, shoppingRegion);
   }, [shoppingRegion]);
 
   useEffect(() => {

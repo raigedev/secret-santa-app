@@ -9,6 +9,7 @@ import { MAX_GROUP_CREATION_INVITES } from "@/lib/groups/capacity";
 import { enforceRateLimit } from "@/lib/security/rate-limit";
 import { supabaseAdmin } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
+import { sanitizePlainText } from "@/lib/validation/common";
 
 const GROUP_NAME_MAX_LENGTH = 100;
 const GROUP_DESCRIPTION_MAX_LENGTH = 300;
@@ -35,7 +36,7 @@ type CreateGroupResult = {
 };
 
 function sanitizeText(input: string, maxLength: number): string {
-  return input.replace(/<[^>]*>/g, "").replace(/[<>]/g, "").trim().slice(0, maxLength);
+  return sanitizePlainText(input, maxLength);
 }
 
 function isPastDate(value: string): boolean {

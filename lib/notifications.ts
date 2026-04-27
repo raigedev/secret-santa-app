@@ -1,5 +1,6 @@
 import { recordServerFailure } from "@/lib/security/audit";
 import { supabaseAdmin } from "@/lib/supabase/admin";
+import { sanitizePlainText } from "@/lib/validation/common";
 
 type NotificationPreferenceKey =
   | "notify_invites"
@@ -142,7 +143,7 @@ const REMINDER_TYPE_TO_PROFILE_KEY: Record<
 };
 
 function sanitizeNotificationText(value: string, maxLength: number): string {
-  return value.replace(/<[^>]*>/g, "").replace(/[<>]/g, "").trim().slice(0, maxLength);
+  return sanitizePlainText(value, maxLength);
 }
 
 function sanitizeMetadata(

@@ -3,6 +3,7 @@ import "server-only";
 import { readFileSync } from "fs";
 import path from "path";
 import { normalizeLazadaProductPageUrl } from "@/lib/affiliate/lazada-url";
+import { slugifyAsciiIdentifier } from "@/lib/validation/common";
 
 export type LazadaImportedFeedRow = {
   date: string;
@@ -622,11 +623,7 @@ const BAG_SUBTYPE_RULES: Array<{
 ];
 
 function normalizeFeedString(value: string | null | undefined): string {
-  return (value || "")
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, " ")
-    .replace(/\s+/g, " ")
-    .trim();
+  return slugifyAsciiIdentifier(value).split("-").join(" ");
 }
 
 function tokenizeFeedText(value: string): string[] {

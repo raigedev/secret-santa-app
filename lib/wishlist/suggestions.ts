@@ -4,6 +4,7 @@ import {
   getLazadaSuggestionPriceLabel,
 } from "@/lib/affiliate/lazada-recommendations";
 import { getLazadaStarterProducts } from "@/lib/affiliate/lazada-catalog";
+import { slugifyAsciiIdentifier } from "@/lib/validation/common";
 
 export type SuggestionMerchant =
   | "amazon"
@@ -327,10 +328,7 @@ const CATEGORY_TEMPLATES: Record<string, SuggestionTemplate[]> = {
 };
 
 function slugify(value: string): string {
-  return value
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-+|-+$/g, "");
+  return slugifyAsciiIdentifier(value);
 }
 
 function normalizeSuggestionQuery(value: string): string {

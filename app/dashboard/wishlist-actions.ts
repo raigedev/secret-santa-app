@@ -3,7 +3,7 @@
 import { recordServerFailure } from "@/lib/security/audit";
 import { enforceRateLimit } from "@/lib/security/rate-limit";
 import { createClient } from "@/lib/supabase/server";
-import { isUuid } from "@/lib/validation/common";
+import { isUuid, sanitizePlainText } from "@/lib/validation/common";
 import {
   isWishlistCategory,
   WishlistCategory,
@@ -14,14 +14,12 @@ type SupabaseServerClient = Awaited<ReturnType<typeof createClient>>;
 type AuthenticatedWishlistUser = { id: string };
 
 function sanitizeText(input: string, maxLength: number): string {
-  return input
-    .replace(/<[^>]*>/g, "")
+  const decodedInput = input
     .replace(/&lt;/g, "<")
     .replace(/&gt;/g, ">")
-    .replace(/&amp;/g, "&")
-    .replace(/[<>]/g, "")
-    .trim()
-    .slice(0, maxLength);
+    .replace(/&amp;/g, "&");
+
+  return sanitizePlainText(decodedInput, maxLength);
 }
 
 function normalizeOptionalUrl(url: string): string {

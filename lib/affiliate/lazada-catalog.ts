@@ -1,3 +1,5 @@
+import { slugifyAsciiIdentifier } from "@/lib/validation/common";
+
 export type LazadaStarterCatalogProduct = {
   id: string;
   title: string;
@@ -22,10 +24,7 @@ type LazadaStarterCatalogInput = {
 };
 
 function slugify(value: string): string {
-  return value
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-+|-+$/g, "");
+  return slugifyAsciiIdentifier(value);
 }
 
 function buildSearchBackedProduct(

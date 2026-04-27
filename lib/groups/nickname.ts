@@ -1,3 +1,5 @@
+import { sanitizePlainText } from "@/lib/validation/common";
+
 const NICKNAME_MAX_LENGTH = 30;
 const EMAIL_LIKE_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/i;
 const RESERVED_ROLE_LABELS = new Set(["organizer", "owner", "host"]);
@@ -7,7 +9,7 @@ function normalizeComparableValue(value: string | null | undefined): string {
 }
 
 export function sanitizeGroupNickname(input: string): string {
-  return input.replace(/<[^>]*>/g, "").replace(/[<>]/g, "").trim().slice(0, NICKNAME_MAX_LENGTH);
+  return sanitizePlainText(input, NICKNAME_MAX_LENGTH);
 }
 
 export function getAnonymousGroupDisplayName(

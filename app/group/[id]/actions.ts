@@ -14,10 +14,10 @@ import { createNotification, createNotifications } from "@/lib/notifications";
 import { enforceRateLimit } from "@/lib/security/rate-limit";
 import { supabaseAdmin } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
-import { isUuid } from "@/lib/validation/common";
+import { isUuid, sanitizePlainText } from "@/lib/validation/common";
 
 function sanitize(input: string, max: number): string {
-  return input.replace(/<[^>]*>/g, "").replace(/[<>]/g, "").trim().slice(0, max);
+  return sanitizePlainText(input, max);
 }
 
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;

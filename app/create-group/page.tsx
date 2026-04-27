@@ -6,6 +6,7 @@ import {
   sanitizeGroupNickname,
   validateAnonymousGroupNickname,
 } from "@/lib/groups/nickname";
+import { sanitizePlainText } from "@/lib/validation/common";
 import { createGroupWithInvites } from "./actions";
 
 const BUDGET_OPTIONS = [10, 15, 25, 50, 100];
@@ -20,7 +21,7 @@ const CURRENCIES = [
 ];
 
 function sanitize(input: string, max: number): string {
-  return input.replace(/<[^>]*>/g, "").replace(/[<>]/g, "").trim().slice(0, max);
+  return sanitizePlainText(input, max);
 }
 
 export default function CreateGroupPage() {

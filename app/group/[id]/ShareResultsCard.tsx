@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { slugifyAsciiIdentifier } from "@/lib/validation/common";
 
 type ShareResultsCardProps = {
   codename: string;
@@ -213,6 +214,10 @@ async function svgToPngFile(svgMarkup: string, fileName: string): Promise<File> 
 export default function ShareResultsCard(props: ShareResultsCardProps) {
   const [busyAction, setBusyAction] = useState<"download" | "share" | "copy" | null>(null);
   const [message, setMessage] = useState("");
+  const cardFileName = `${slugifyAsciiIdentifier(props.groupName, {
+    fallback: "gift-exchange",
+    maxLength: 80,
+  })}-result-card.png`;
   const cardCaption = useMemo(
     () => buildShareCaption(props.groupName, props.codename, props.recipientName),
     [props.codename, props.groupName, props.recipientName]
@@ -225,7 +230,7 @@ export default function ShareResultsCard(props: ShareResultsCardProps) {
     try {
       const file = await svgToPngFile(
         buildCardSvg(props),
-        `${props.groupName.replace(/[^a-z0-9]+/gi, "-").toLowerCase()}-result-card.png`
+        cardFileName
       );
       const url = URL.createObjectURL(file);
       const link = document.createElement("a");
@@ -249,7 +254,7 @@ export default function ShareResultsCard(props: ShareResultsCardProps) {
     try {
       const file = await svgToPngFile(
         buildCardSvg(props),
-        `${props.groupName.replace(/[^a-z0-9]+/gi, "-").toLowerCase()}-result-card.png`
+        cardFileName
       );
 
       if (

@@ -19,15 +19,11 @@ import { recordServerFailure } from "@/lib/security/audit";
 import { createNotification } from "@/lib/notifications";
 import { enforceRateLimit } from "@/lib/security/rate-limit";
 import { createClient } from "@/lib/supabase/server";
-import { isUuid } from "@/lib/validation/common";
+import { isUuid, sanitizePlainText } from "@/lib/validation/common";
 
 // Core#1: Strip HTML tags, trim, enforce max length
 function sanitizeMessage(input: string): string {
-  return input
-    .replace(/<[^>]*>/g, "")
-    .replace(/[<>]/g, "")
-    .trim()
-    .slice(0, 500);
+  return sanitizePlainText(input, 500);
 }
 
 export async function sendMessage(

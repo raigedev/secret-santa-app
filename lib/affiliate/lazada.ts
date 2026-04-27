@@ -7,6 +7,7 @@ import {
   findLazadaFeedProductByUrl,
 } from "@/lib/affiliate/lazada-feed";
 import { normalizeLazadaProductPageUrl } from "@/lib/affiliate/lazada-url";
+import { slugifyAsciiIdentifier } from "@/lib/validation/common";
 
 export const LAZADA_DEFAULT_API_BASE_URL = "https://api.lazada.com.ph/rest";
 export const LAZADA_GET_LINK_PATH = "/marketing/getlink";
@@ -253,13 +254,7 @@ export function createLazadaClickToken(): string {
 }
 
 function slugifyLazadaSubIdValue(value: string | null | undefined, fallback: string): string {
-  const slug = (value || "")
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-+|-+$/g, "")
-    .slice(0, 40);
-
-  return slug || fallback;
+  return slugifyAsciiIdentifier(value, { fallback, maxLength: 40 });
 }
 
 export function buildLazadaClickToken(context: LazadaAffiliateAttributionContext): string {

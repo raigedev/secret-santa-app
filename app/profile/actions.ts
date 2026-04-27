@@ -9,6 +9,7 @@ import {
 import { enforceRateLimit } from "@/lib/security/rate-limit";
 import { supabaseAdmin } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
+import { sanitizePlainText } from "@/lib/validation/common";
 
 // Profile actions stay on the server because they touch auth state and user-owned
 // records that should never rely on client-side validation alone.
@@ -35,7 +36,7 @@ const DEFAULT_REMINDER_PREFERENCES: ReminderPreferenceFormState = {
 };
 
 function sanitize(input: string, max: number): string {
-  return input.replace(/[<>]/g, "").trim().slice(0, max);
+  return sanitizePlainText(input, max);
 }
 
 function normalizeAvatarUrl(userId: string, avatarUrl: string | null): string | null {

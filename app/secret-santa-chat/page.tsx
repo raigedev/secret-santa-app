@@ -4,6 +4,7 @@ import { useCallback, useEffect, useId, useMemo, useRef, useState } from "react"
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { ChatSkeleton } from "@/app/components/PageSkeleton";
+import { sanitizePlainText } from "@/lib/validation/common";
 import { sendMessage } from "./chat-actions";
 
 type Thread = {
@@ -135,7 +136,7 @@ function DashboardIcon({ className = "h-4 w-4" }: { className?: string }) {
 }
 
 function sanitize(input: string): string {
-  return input.replace(/<[^>]*>/g, "").replace(/[<>]/g, "").trim().slice(0, 500);
+  return sanitizePlainText(input, 500);
 }
 
 function createThreadKey(groupId: string, giverId: string, receiverId: string): string {
