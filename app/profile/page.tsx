@@ -3,7 +3,14 @@
 import { useEffect, useState, type ChangeEvent } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
-import { deleteAccount, getProfile, updateProfile } from "./actions";
+import {
+  deleteAccount,
+  getProfile,
+  getReminderPreferences,
+  saveReminderPreferences,
+  updateProfile,
+  type ReminderPreferenceFormState,
+} from "./actions";
 import { ProfileSkeleton } from "@/app/components/PageSkeleton";
 import FadeIn from "@/app/components/FadeIn";
 
@@ -14,6 +21,12 @@ const PRESET_AVATARS = [
 
 const BUDGET_OPTIONS = [10, 15, 25, 50, 100];
 const DEFAULT_AVATAR_EMOJI = PRESET_AVATARS[0] || "\u{1F385}";
+const DEFAULT_REMINDER_PREFERENCES: ReminderPreferenceFormState = {
+  reminder_delivery_mode: "immediate",
+  reminder_event_tomorrow: true,
+  reminder_post_draw: true,
+  reminder_wishlist_incomplete: true,
+};
 
 const CURRENCIES = [
   { code: "USD", label: "$ USD — US Dollar" },
@@ -59,6 +72,59 @@ function normalizeProfile(data: ProfileRecord): Profile {
   };
 }
 
+function ReminderToggle({
+  checked,
+  description,
+  label,
+  onChange,
+}: {
+  checked: boolean;
+  description: string;
+  label: string;
+  onChange: () => void;
+}) {
+  return (
+    <div
+      className="flex items-center justify-between gap-3 rounded-[14px] px-4 py-3"
+      style={{ background: "rgba(0,0,0,.02)", border: "1px solid #f3f4f6" }}
+    >
+      <div className="min-w-0">
+        <div className="text-[14px] font-bold" style={{ color: "#1f2937" }}>
+          {label}
+        </div>
+        <div className="text-[12px] leading-5" style={{ color: "#9ca3af" }}>
+          {description}
+        </div>
+      </div>
+      <button
+        type="button"
+        onClick={onChange}
+        className="relative shrink-0 transition"
+        style={{
+          width: 48,
+          height: 26,
+          borderRadius: 13,
+          background: checked ? "#22c55e" : "#e5e7eb",
+          border: "none",
+          cursor: "pointer",
+        }}
+        aria-pressed={checked}
+      >
+        <span
+          className="absolute rounded-full bg-white transition-all"
+          style={{
+            width: 22,
+            height: 22,
+            top: 2,
+            left: checked ? 24 : 2,
+            boxShadow: "0 1px 4px rgba(0,0,0,.15)",
+          }}
+        />
+      </button>
+    </div>
+  );
+}
+
 export default function ProfilePage() {
   const router = useRouter();
   const [supabase] = useState(() => createClient());
@@ -70,6 +136,9 @@ export default function ProfilePage() {
   const [deletingAccount, setDeletingAccount] = useState(false);
   const [message, setMessage] = useState("");
   const [customBudget, setCustomBudget] = useState(false);
+  const [reminderPreferences, setReminderPreferences] = useState<ReminderPreferenceFormState>(
+    DEFAULT_REMINDER_PREFERENCES
+  );
 
   const [profile, setProfile] = useState<Profile>({
     display_name: "",
@@ -102,12 +171,14 @@ export default function ProfilePage() {
       setEmail(session.user.email || "");
 
       const data = await getProfile();
+      const loadedReminderPreferences = await getReminderPreferences();
       if (!isMounted) return;
 
       if (data) {
         setProfile(normalizeProfile(data));
         setCustomBudget(!BUDGET_OPTIONS.includes(data.default_budget || 25));
       }
+      setReminderPreferences(loadedReminderPreferences || DEFAULT_REMINDER_PREFERENCES);
       setLoading(false);
     };
 
@@ -141,14 +212,16 @@ export default function ProfilePage() {
           }
 
           reloadTimer = setTimeout(() => {
-            void getProfile().then((data) => {
-              if (!data) {
-                return;
-              }
+            void Promise.all([getProfile(), getReminderPreferences()]).then(
+              ([data, loadedReminderPreferences]) => {
+                if (data) {
+                  setProfile(normalizeProfile(data));
+                  setCustomBudget(!BUDGET_OPTIONS.includes(data.default_budget || 25));
+                }
 
-              setProfile(normalizeProfile(data));
-              setCustomBudget(!BUDGET_OPTIONS.includes(data.default_budget || 25));
-            });
+                setReminderPreferences(loadedReminderPreferences || DEFAULT_REMINDER_PREFERENCES);
+              }
+            );
           }, 120);
         }
       )
@@ -165,15 +238,28 @@ export default function ProfilePage() {
   const handleSave = async () => {
     setSaving(true);
     setMessage("");
-    const result = await updateProfile(
+    const profileResult = await updateProfile(
       profile.display_name, profile.avatar_emoji, profile.avatar_url, profile.bio,
       profile.default_budget, profile.currency,
       profile.notify_invites, profile.notify_draws, profile.notify_chat,
       profile.notify_wishlist, profile.notify_marketing, true
     );
-    setMessage(result.message);
+
+    if (!profileResult.success) {
+      setMessage(profileResult.message);
+      setSaving(false);
+      return;
+    }
+
+    const reminderResult = await saveReminderPreferences(reminderPreferences);
+
+    setMessage(
+      reminderResult.success
+        ? "Profile and reminder settings saved."
+        : reminderResult.message
+    );
     setSaving(false);
-    if (result.success) setTimeout(() => setMessage(""), 3000);
+    if (reminderResult.success) setTimeout(() => setMessage(""), 3000);
   };
 
   const update = (key: keyof Profile, value: Profile[keyof Profile]) => {
@@ -476,6 +562,103 @@ export default function ProfilePage() {
               </button>
             </div>
           ))}
+
+          <div
+            className="mt-5 border-t pt-5"
+            style={{ borderColor: "#f3f4f6" }}
+          >
+            <div className="mb-4">
+              <h3 className="text-[16px] font-bold" style={{ color: "#1a1a1a" }}>
+                Reminder settings
+              </h3>
+              <p className="mt-1 text-[12px] leading-5" style={{ color: "#9ca3af" }}>
+                Choose which gift reminders you receive and how they arrive.
+              </p>
+            </div>
+
+            <div className="grid gap-3">
+              <ReminderToggle
+                checked={reminderPreferences.reminder_wishlist_incomplete}
+                description="Tell me when an upcoming group still needs wishlist ideas."
+                label="Wishlist needed"
+                onChange={() =>
+                  setReminderPreferences((current) => ({
+                    ...current,
+                    reminder_wishlist_incomplete: !current.reminder_wishlist_incomplete,
+                  }))
+                }
+              />
+              <ReminderToggle
+                checked={reminderPreferences.reminder_event_tomorrow}
+                description="Send a heads-up the day before the gift exchange."
+                label="Gift date tomorrow"
+                onChange={() =>
+                  setReminderPreferences((current) => ({
+                    ...current,
+                    reminder_event_tomorrow: !current.reminder_event_tomorrow,
+                  }))
+                }
+              />
+              <ReminderToggle
+                checked={reminderPreferences.reminder_post_draw}
+                description="Remind me after names are drawn so I can check the wishlist or send a private message."
+                label="After names are drawn"
+                onChange={() =>
+                  setReminderPreferences((current) => ({
+                    ...current,
+                    reminder_post_draw: !current.reminder_post_draw,
+                  }))
+                }
+              />
+            </div>
+
+            <div className="mt-4 rounded-[14px] p-4" style={{ background: "rgba(0,0,0,.02)", border: "1px solid #f3f4f6" }}>
+              <div className="mb-3 text-[12px] font-extrabold uppercase tracking-[0.14em]" style={{ color: "#6b7280" }}>
+                Delivery mode
+              </div>
+              <div className="grid gap-2 sm:grid-cols-2">
+                {[
+                  {
+                    description: "Send each reminder as its own notification.",
+                    label: "Immediate",
+                    value: "immediate" as const,
+                  },
+                  {
+                    description: "Bundle due reminders into one daily in-app summary.",
+                    label: "Daily summary",
+                    value: "daily_digest" as const,
+                  },
+                ].map((option) => {
+                  const selected = reminderPreferences.reminder_delivery_mode === option.value;
+
+                  return (
+                    <button
+                      key={option.value}
+                      type="button"
+                      onClick={() =>
+                        setReminderPreferences((current) => ({
+                          ...current,
+                          reminder_delivery_mode: option.value,
+                        }))
+                      }
+                      className="rounded-[12px] px-4 py-3 text-left transition"
+                      style={{
+                        background: selected ? "#fef2f2" : "#fff",
+                        border: `2px solid ${selected ? "#c0392b" : "#e5e7eb"}`,
+                        color: selected ? "#c0392b" : "#6b7280",
+                        cursor: "pointer",
+                        fontFamily: "inherit",
+                      }}
+                      aria-pressed={selected}
+                    >
+                      <div className="text-[13px] font-extrabold">{option.label}</div>
+                      <div className="mt-1 text-[11px] leading-5">{option.description}</div>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
         </div>
 
         {/* ═══ SAVE ═══ */}

@@ -40,7 +40,8 @@ const AUTHENTICATED_SCREEN_CASES: ScreenCase[] = [
     path: "/notifications",
     assertVisible: async (page) => {
       await expect(page.getByText(/notifications/i).first()).toBeVisible();
-      await expect(page.getByRole("button", { name: /save reminder settings/i })).toBeVisible();
+      await expect(page.getByRole("button", { name: /mark all read/i })).toBeVisible();
+      await expect(page.getByText(/reminder settings/i)).toHaveCount(0);
     },
   },
   {
@@ -48,6 +49,7 @@ const AUTHENTICATED_SCREEN_CASES: ScreenCase[] = [
     path: "/profile",
     assertVisible: async (page) => {
       await expect(page.getByText(/my profile/i).first()).toBeVisible();
+      await expect(page.getByText(/reminder settings/i)).toBeVisible();
       await expect(page.getByRole("button", { name: /save changes/i })).toBeVisible();
     },
   },

@@ -5,11 +5,8 @@ import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { NotificationsSkeleton } from "@/app/components/PageSkeleton";
 import {
-  getReminderPreferences,
   markAllNotificationsRead,
   markNotificationRead,
-  saveReminderPreferences,
-  type ReminderPreferenceFormState,
 } from "./actions";
 import FadeIn from "@/app/components/FadeIn";
 
@@ -21,13 +18,6 @@ type NotificationItem = {
   link_path: string | null;
   read_at: string | null;
   created_at: string;
-};
-
-const DEFAULT_REMINDER_PREFERENCES: ReminderPreferenceFormState = {
-  reminder_delivery_mode: "immediate",
-  reminder_event_tomorrow: true,
-  reminder_post_draw: true,
-  reminder_wishlist_incomplete: true,
 };
 
 function formatNotificationTime(value: string): string {
@@ -163,54 +153,16 @@ function getNotificationActionLabel(notification: NotificationItem): string {
   }
 }
 
-function ReminderToggle({
-  checked,
-  description,
-  label,
-  onChange,
-}: {
-  checked: boolean;
-  description: string;
-  label: string;
-  onChange: () => void;
-}) {
-  return (
-    <div className="flex items-center justify-between gap-4 rounded-2xl border border-slate-200/80 bg-white/80 px-4 py-3">
-      <div className="min-w-0">
-        <div className="text-sm font-extrabold text-slate-800">{label}</div>
-        <div className="mt-1 text-xs leading-5 text-slate-500">{description}</div>
-      </div>
-      <button
-        type="button"
-        onClick={onChange}
-        className="relative h-7 w-13 shrink-0 rounded-full transition"
-        style={{ background: checked ? "#22c55e" : "#e2e8f0" }}
-        aria-pressed={checked}
-      >
-        <span
-          className="absolute top-0.5 h-6 w-6 rounded-full bg-white shadow-[0_2px_8px_rgba(15,23,42,0.18)] transition-all"
-          style={{ left: checked ? 26 : 2 }}
-        />
-      </button>
-    </div>
-  );
-}
-
 export default function NotificationsPage() {
   const router = useRouter();
   const [supabase] = useState(() => createClient());
   const prefetchedRoutesRef = useRef<Set<string>>(new Set());
   const [userId, setUserId] = useState<string | null>(null);
   const [notifications, setNotifications] = useState<NotificationItem[]>([]);
-  const [preferences, setPreferences] = useState<ReminderPreferenceFormState>(
-    DEFAULT_REMINDER_PREFERENCES
-  );
   const [loading, setLoading] = useState(true);
   const [message, setMessage] = useState("");
-  const [settingsMessage, setSettingsMessage] = useState("");
   const [processingId, setProcessingId] = useState<string | null>(null);
   const [markingAll, setMarkingAll] = useState(false);
-  const [savingPreferences, setSavingPreferences] = useState(false);
   const loadNotificationsRef = useRef<((targetUserId: string) => Promise<void>) | null>(null);
 
   useEffect(() => {
@@ -256,16 +208,7 @@ export default function NotificationsPage() {
 
       setUserId(session.user.id);
 
-      const [loadedPreferences] = await Promise.all([
-        getReminderPreferences(),
-        loadNotifications(session.user.id),
-      ]);
-
-      if (!isMounted) {
-        return;
-      }
-
-      setPreferences(loadedPreferences || DEFAULT_REMINDER_PREFERENCES);
+      await loadNotifications(session.user.id);
     };
 
     void bootstrap();
@@ -405,14 +348,6 @@ export default function NotificationsPage() {
     setMarkingAll(false);
   };
 
-  const handleSavePreferences = async () => {
-    setSavingPreferences(true);
-    setSettingsMessage("");
-    const result = await saveReminderPreferences(preferences);
-    setSettingsMessage(result.message);
-    setSavingPreferences(false);
-  };
-
   return (
     <main
       className="min-h-screen"
@@ -491,130 +426,6 @@ export default function NotificationsPage() {
           </div>
 
           <div className="space-y-6 p-6">
-            <section
-              className="rounded-[22px] border border-slate-200/80 bg-white/80 p-5 shadow-[0_10px_30px_rgba(15,23,42,0.05)]"
-            >
-              <div className="flex flex-wrap items-start justify-between gap-4">
-                <div>
-                  <div className="text-xs font-extrabold uppercase tracking-[0.16em] text-emerald-700">
-                    Reminder preferences
-                  </div>
-                  <h2 className="mt-2 text-[24px] font-bold text-slate-900">Smart reminders</h2>
-                  <p className="mt-2 max-w-[680px] text-sm leading-6 text-slate-600">
-                    Choose which reminders you want and whether they arrive one by one or as a
-                    daily summary.
-                  </p>
-                </div>
-                <button
-                  type="button"
-                  onClick={handleSavePreferences}
-                  disabled={savingPreferences}
-                  className="w-full rounded-full bg-[linear-gradient(135deg,#2563eb,#1d4ed8)] px-5 py-2.5 text-sm font-bold text-white shadow-[0_14px_35px_rgba(37,99,235,0.22)] transition sm:w-auto"
-                  style={{ cursor: savingPreferences ? "not-allowed" : "pointer", opacity: savingPreferences ? 0.7 : 1 }}
-                >
-                  {savingPreferences ? "Saving..." : "Save reminder settings"}
-                </button>
-              </div>
-
-              {settingsMessage && (
-                <div
-                  className="mt-4 rounded-xl px-4 py-3 text-sm font-bold"
-                  style={{
-                    background: settingsMessage.toLowerCase().includes("saved")
-                      ? "rgba(34,197,94,.08)"
-                      : "rgba(239,68,68,.08)",
-                    color: settingsMessage.toLowerCase().includes("saved") ? "#15803d" : "#b91c1c",
-                    border: settingsMessage.toLowerCase().includes("saved")
-                      ? "1px solid rgba(34,197,94,.18)"
-                      : "1px solid rgba(239,68,68,.14)",
-                  }}
-                >
-                  {settingsMessage}
-                </div>
-              )}
-
-              <div className="mt-5 grid gap-4 lg:grid-cols-[minmax(0,1.1fr)_320px]">
-                <div className="space-y-3">
-                  <ReminderToggle
-                    checked={preferences.reminder_wishlist_incomplete}
-                    description="Remind me when an upcoming group still needs wishlist ideas."
-                    label="Wishlist needed"
-                    onChange={() =>
-                      setPreferences((current) => ({
-                        ...current,
-                        reminder_wishlist_incomplete: !current.reminder_wishlist_incomplete,
-                      }))
-                    }
-                  />
-                  <ReminderToggle
-                    checked={preferences.reminder_event_tomorrow}
-                    description="Send a heads-up the day before the gift exchange."
-                    label="Gift date tomorrow"
-                    onChange={() =>
-                      setPreferences((current) => ({
-                        ...current,
-                        reminder_event_tomorrow: !current.reminder_event_tomorrow,
-                      }))
-                    }
-                  />
-                  <ReminderToggle
-                    checked={preferences.reminder_post_draw}
-                    description="Remind me after names are drawn so I can check the wishlist or send a private message."
-                    label="After names are drawn"
-                    onChange={() =>
-                      setPreferences((current) => ({
-                        ...current,
-                        reminder_post_draw: !current.reminder_post_draw,
-                      }))
-                    }
-                  />
-                </div>
-
-                <div className="rounded-2xl border border-slate-200/80 bg-slate-50/80 p-4">
-                  <div className="text-xs font-extrabold uppercase tracking-[0.16em] text-slate-500">
-                    Delivery mode
-                  </div>
-                  <div className="mt-3 grid gap-3">
-                    {[
-                      {
-                        description: "Send each reminder as its own notification.",
-                        label: "Immediate",
-                        value: "immediate" as const,
-                      },
-                      {
-                        description: "Bundle due reminders into one daily in-app summary.",
-                        label: "Daily summary",
-                        value: "daily_digest" as const,
-                      },
-                    ].map((option) => {
-                      const selected = preferences.reminder_delivery_mode === option.value;
-
-                      return (
-                        <button
-                          key={option.value}
-                          type="button"
-                          onClick={() =>
-                            setPreferences((current) => ({
-                              ...current,
-                              reminder_delivery_mode: option.value,
-                            }))
-                          }
-                          className="rounded-2xl border px-4 py-3 text-left transition"
-                          style={{
-                            background: selected ? "rgba(37,99,235,.08)" : "#fff",
-                            borderColor: selected ? "rgba(37,99,235,.35)" : "rgba(226,232,240,.9)",
-                          }}
-                        >
-                          <div className="text-sm font-extrabold text-slate-800">{option.label}</div>
-                          <div className="mt-1 text-xs leading-5 text-slate-500">{option.description}</div>
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
-              </div>
-            </section>
-
             {message && (
               <div
                 className="rounded-xl px-4 py-3 text-sm font-bold"

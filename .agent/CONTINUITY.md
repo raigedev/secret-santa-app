@@ -43,6 +43,7 @@
 - 2026-04-27T04:03:00+08:00 [CODE] Pre-launch privacy/security baseline added public `/privacy`, stronger global headers, audit-detail redaction, narrower profile reads, checklist/audit docs, and Playwright coverage.
 - 2026-04-27T05:05:00+08:00 [CODE] Added public `/cool-app` as an isolated interactive Gift Radar demo route; it uses only local state/assets and does not touch Supabase, auth data, affiliate, cron, or Secret Santa flows.
 - 2026-04-27T17:11:40+08:00 [CODE] Local dev CSP now adds `'unsafe-eval'` only in development and allows `127.0.0.1` dev origin for Playwright; production CSP remains strict without `'unsafe-eval'`.
+- 2026-04-27T17:48:46+08:00 [CODE] Reminder preferences moved out of `/notifications` inbox and into `/profile` account settings; profile save now persists reminder settings and reschedules pending reminder jobs.
 - 2026-04-26T21:54:26+08:00 [CODE] Group event page snapshot validation/storage, shared data types, and member display-name helper moved to `group-page-state.ts`; page keeps Supabase/realtime/action flow.
 - 2026-04-26T22:07:23+08:00 [CODE] Group event page config, modal/skeleton primitives, and route prefetching moved to focused modules without changing group actions or Supabase/realtime flow.
 - 2026-04-26T22:39:42+08:00 [CODE] Group event members section moved to `GroupMembersSection.tsx`; page still owns member state, remove-member modal, refresh callbacks, Supabase, and realtime behavior.
