@@ -284,6 +284,218 @@ function LazadaCtaLink({
   );
 }
 
+function SantaHelperMascot({ className = "h-20 w-20" }: { className?: string }) {
+  return (
+    <svg
+      aria-hidden="true"
+      className={`santa-helper-animated santa-helper-mascot ${className}`}
+      viewBox="0 0 96 96"
+      fill="none"
+    >
+      <circle cx="48" cy="52" r="33" fill="#fff8ef" />
+      <path
+        d="M22 43c1.8-17 13.7-28.5 28.3-28.5 11.8 0 21.7 7.6 24.6 18.5 2.1 7.8-3.9 13.9-11.3 11.4-11.4-3.8-22.1-3.9-34.5.6-4.2 1.5-7.6 1-7.1-2Z"
+        fill="#a43c3f"
+      />
+      <path
+        d="M34.5 19.8c6.1-12.6 22-10.2 26.9-.4-8.6-2.1-17.4-1.9-26.9.4Z"
+        fill="#c94c4f"
+      />
+      <circle cx="67.5" cy="21.5" r="6.2" fill="#fff7ed" />
+      <path
+        d="M24.5 41.2c14.7-5 29.9-5.5 46-.4"
+        stroke="#fff7ed"
+        strokeLinecap="round"
+        strokeWidth="6"
+      />
+      <circle cx="48" cy="49" r="21.5" fill="#ffd9be" />
+      <path
+        d="M24.5 56.3c5.9 20.8 40.4 20.9 47 0 2.3 3.3 3.3 7.2 2.7 11.2-1.8 13.1-12.3 22.4-26.2 22.4-13.6 0-24.4-9.3-26.2-22.4-.6-4 .3-7.9 2.7-11.2Z"
+        fill="#fff8ef"
+      />
+      <path
+        d="M35 63.5c5.9 4.7 19.7 4.7 25.7 0"
+        stroke="#48664e"
+        strokeLinecap="round"
+        strokeWidth="3"
+      />
+      <circle cx="40" cy="48" r="2.8" fill="#2e3432" />
+      <circle cx="56" cy="48" r="2.8" fill="#2e3432" />
+      <circle cx="31.5" cy="54" r="5" fill="#ffb0a6" opacity=".6" />
+      <circle cx="64.5" cy="54" r="5" fill="#ffb0a6" opacity=".6" />
+      <g className="santa-helper-animated santa-helper-wave">
+        <path
+          d="M72.5 55.5c8.7-.8 14.2-5.5 15.7-13.2"
+          stroke="#ffd9be"
+          strokeLinecap="round"
+          strokeWidth="7"
+        />
+        <circle cx="88.8" cy="40.2" r="5.2" fill="#ffd9be" />
+      </g>
+      <g className="santa-helper-animated santa-helper-list">
+        <rect x="8" y="56" width="24" height="28" rx="7" fill="#fffefa" />
+        <path
+          d="M15 65h10M15 71h8M15 77h11"
+          stroke="#48664e"
+          strokeLinecap="round"
+          strokeWidth="2.5"
+        />
+        <path d="m25 54 4 5-12 1 3-6h5Z" fill="#fcce72" />
+      </g>
+    </svg>
+  );
+}
+
+function SantaShoppingHelper({
+  budgetLabel,
+  itemName,
+  regionLabel,
+}: {
+  budgetLabel: string | null;
+  itemName: string | null;
+  regionLabel: string;
+}) {
+  const [isOpen, setIsOpen] = useState(true);
+  const itemLabel = itemName ? summarizeCardCopy(itemName, 36) : "this gift";
+
+  return (
+    <aside
+      data-testid="santa-helper"
+      className="fixed bottom-4 right-4 z-[80] flex w-[calc(100vw-2rem)] max-w-[22rem] flex-col items-end gap-3 sm:bottom-5 sm:right-5"
+      aria-label="Santa Helper"
+    >
+      {isOpen && (
+        <div
+          data-testid="santa-helper-panel"
+          className="santa-helper-animated santa-helper-pop w-full overflow-hidden rounded-[28px] p-4"
+          style={{
+            background:
+              "linear-gradient(180deg,rgba(255,254,250,.98),rgba(239,247,241,.96)), repeating-linear-gradient(135deg,rgba(72,102,78,.08) 0 1px,transparent 1px 30px)",
+            border: "2px solid rgba(72,102,78,.34)",
+            boxShadow:
+              "0 28px 72px rgba(46,52,50,.22), 0 0 0 6px rgba(255,255,255,.58), inset 0 1px 0 rgba(255,255,255,.9)",
+            color: PAGE_TEXT_COLOR,
+          }}
+        >
+          <div className="flex items-start gap-3">
+            <div className="relative shrink-0">
+              <SantaHelperMascot className="h-16 w-16" />
+              <span
+                data-testid="santa-helper-sparkles"
+                aria-hidden="true"
+                className="santa-helper-animated santa-helper-sparkle absolute -right-1 top-1 h-4 w-4 rounded-full"
+                style={{
+                  background: "rgba(252,206,114,.92)",
+                  boxShadow:
+                    "0 0 0 5px rgba(252,206,114,.2), 0 0 22px rgba(252,206,114,.7)",
+                }}
+              />
+            </div>
+            <div className="min-w-0 flex-1">
+              <div className="flex items-start justify-between gap-3">
+                <div>
+                  <h3
+                    className="text-[15px] font-black leading-tight"
+                    style={{
+                      color: HOLIDAY_GREEN,
+                      fontFamily: "'Plus Jakarta Sans', 'Fredoka', sans-serif",
+                    }}
+                  >
+                    Santa Helper
+                  </h3>
+                  <p className="mt-1 text-[12px] font-semibold leading-relaxed" style={{ color: TEXT_MUTED }}>
+                    Want help choosing for {itemLabel}?
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setIsOpen(false)}
+                  className="rounded-full px-2 py-1 text-[12px] font-black transition hover:-translate-y-0.5 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2"
+                  style={{
+                    background: "rgba(72,102,78,.1)",
+                    color: HOLIDAY_GREEN,
+                    border: "1px solid rgba(72,102,78,.16)",
+                    outlineColor: HOLIDAY_GREEN,
+                  }}
+                  aria-label="Close Santa Helper"
+                >
+                  x
+                </button>
+              </div>
+
+              <div className="mt-3 flex flex-wrap gap-2">
+                {["Safest pick", "Cheaper option", "Why it matches", "Gift note"].map(
+                  (label) => (
+                    <button
+                      key={label}
+                      type="button"
+                      className="santa-helper-animated santa-helper-chip rounded-full px-3 py-1.5 text-[11px] font-extrabold transition hover:-translate-y-0.5 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2"
+                      style={{
+                        background:
+                          label === "Safest pick"
+                            ? "rgba(72,102,78,.14)"
+                            : "rgba(255,255,255,.82)",
+                        border: "1px solid rgba(72,102,78,.2)",
+                        color: label === "Safest pick" ? HOLIDAY_GREEN : PAGE_TEXT_COLOR,
+                        outlineColor: HOLIDAY_GREEN,
+                      }}
+                    >
+                      {label}
+                    </button>
+                  )
+                )}
+              </div>
+
+              <div
+                className="mt-3 rounded-[18px] px-3 py-2 text-[11px] font-semibold leading-relaxed"
+                style={{
+                  background: "rgba(255,255,255,.72)",
+                  border: "1px solid rgba(72,102,78,.14)",
+                  color: TEXT_MUTED,
+                }}
+              >
+                Start with the closest match, then check reviews, size, and delivery date.
+                {budgetLabel ? ` Budget target: ${budgetLabel}.` : ""} Region: {regionLabel}.
+                <span className="santa-helper-animated santa-helper-dots" aria-hidden="true">
+                  {" "}
+                  ...
+                </span>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      <button
+        type="button"
+        data-testid="santa-helper-toggle"
+        aria-expanded={isOpen}
+        onClick={() => setIsOpen((current) => !current)}
+        className="santa-helper-animated santa-helper-button flex min-h-14 items-center gap-2 rounded-full px-3 py-2 text-left transition hover:-translate-y-1 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2"
+        style={{
+          background:
+            "linear-gradient(135deg,#fffefa 0%,#f0f8f1 58%,#ffeec0 100%)",
+          border: "2px solid rgba(72,102,78,.36)",
+          boxShadow:
+            "0 18px 42px rgba(46,52,50,.2), 0 0 0 6px rgba(255,255,255,.56)",
+          color: PAGE_TEXT_COLOR,
+          outlineColor: HOLIDAY_GREEN,
+        }}
+      >
+        <SantaHelperMascot className="h-12 w-12" />
+        <span className="pr-2">
+          <span className="block text-[12px] font-black" style={{ color: HOLIDAY_GREEN }}>
+            Santa Helper
+          </span>
+          <span className="block text-[10px] font-bold" style={{ color: TEXT_MUTED }}>
+            Tap for gift advice
+          </span>
+        </span>
+      </button>
+    </aside>
+  );
+}
+
 const GIFT_PREP_OPTIONS: Array<{
   value: GiftPrepStatus;
   label: string;
@@ -1789,6 +2001,26 @@ export default function SecretSantaPage() {
   const pageRegionLabel =
     SHOPPING_REGION_OPTIONS.find((option) => option.value === shoppingRegion)?.label ||
     shoppingRegion;
+  const helperAssignment =
+    assignments.find((assignment) => assignment.receiver_wishlist.length > 0) || null;
+  const helperItemId = helperAssignment
+    ? getActiveRecipientWishlistItemId(
+        helperAssignment,
+        activeRecipientItemByAssignment
+      )
+    : "";
+  const helperItem =
+    helperAssignment?.receiver_wishlist.find((item) => item.id === helperItemId) ||
+    helperAssignment?.receiver_wishlist[0] ||
+    null;
+  const helperBudgetLabel =
+    helperAssignment && helperAssignment.group_budget !== null
+      ? formatPriceRange(
+          helperAssignment.group_budget,
+          helperAssignment.group_budget,
+          helperAssignment.group_currency
+        )
+      : null;
 
   return (
     <main
@@ -1816,6 +2048,26 @@ export default function SecretSantaPage() {
       <style>{`
         .snowflake{position:absolute;background:rgba(72,102,78,.26);border-radius:50%;animation:fall linear infinite;}
         @keyframes fall{0%{transform:translateY(-10px) translateX(0);opacity:.36;}50%{transform:translateY(50vh) translateX(10px);}100%{transform:translateY(105vh) translateX(-5px);opacity:.08;}}
+        .santa-helper-button{animation:santa-helper-pulse 2.8s ease-in-out infinite;}
+        .santa-helper-mascot{animation:santa-helper-bob 2.6s ease-in-out infinite;transform-origin:50% 76%;}
+        .santa-helper-wave{animation:santa-helper-wave 1.2s ease-in-out infinite;transform-origin:75px 56px;}
+        .santa-helper-list{animation:santa-helper-list 1.9s ease-in-out infinite;transform-origin:20px 70px;}
+        .santa-helper-pop{animation:santa-helper-pop .28s cubic-bezier(.16,1,.3,1);}
+        .santa-helper-sparkle{animation:santa-helper-sparkle 1.15s ease-in-out infinite;}
+        .santa-helper-chip{animation:santa-helper-chip 3.4s ease-in-out infinite;}
+        .santa-helper-chip:nth-child(2){animation-delay:.22s;}
+        .santa-helper-chip:nth-child(3){animation-delay:.44s;}
+        .santa-helper-chip:nth-child(4){animation-delay:.66s;}
+        .santa-helper-dots{animation:santa-helper-dots 1.2s steps(4,end) infinite;}
+        @keyframes santa-helper-pulse{0%,100%{transform:translateY(0);box-shadow:0 18px 42px rgba(46,52,50,.2),0 0 0 6px rgba(255,255,255,.56);}50%{transform:translateY(-3px);box-shadow:0 24px 54px rgba(46,52,50,.24),0 0 0 9px rgba(252,206,114,.18);}}
+        @keyframes santa-helper-bob{0%,100%{transform:translateY(0) rotate(-1deg);}50%{transform:translateY(-5px) rotate(1.5deg);}}
+        @keyframes santa-helper-wave{0%,100%{transform:rotate(-4deg);}50%{transform:rotate(14deg);}}
+        @keyframes santa-helper-list{0%,100%{transform:rotate(-2deg) translateY(0);}50%{transform:rotate(3deg) translateY(-2px);}}
+        @keyframes santa-helper-pop{from{opacity:0;transform:translateY(12px) scale(.96);}to{opacity:1;transform:translateY(0) scale(1);}}
+        @keyframes santa-helper-sparkle{0%,100%{opacity:.68;transform:scale(.76);}50%{opacity:1;transform:scale(1.18);}}
+        @keyframes santa-helper-chip{0%,100%{transform:translateY(0);}50%{transform:translateY(-2px);}}
+        @keyframes santa-helper-dots{0%{opacity:.2;}50%{opacity:1;}100%{opacity:.2;}}
+        @media (prefers-reduced-motion: reduce){.santa-helper-animated,.snowflake{animation:none!important;transition:none!important;}}
       `}</style>
 
       <div className="relative z-10 mx-auto w-full max-w-7xl px-4 py-4 sm:px-6 sm:py-5">
@@ -3529,6 +3781,11 @@ export default function SecretSantaPage() {
 
       </div>
 
+      <SantaShoppingHelper
+        budgetLabel={helperBudgetLabel}
+        itemName={helperItem?.item_name || null}
+        regionLabel={pageRegionLabel}
+      />
       <SnowEffect />
     </main>
   );

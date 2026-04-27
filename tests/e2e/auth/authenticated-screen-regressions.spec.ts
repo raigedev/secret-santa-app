@@ -196,6 +196,20 @@ test.describe("authenticated screen regressions", () => {
     await page.goto("/secret-santa");
     await page.getByLabel(/online shop region/i).selectOption({ label: "Philippines" });
 
+    const santaHelper = page.getByTestId("santa-helper");
+    await expect(santaHelper).toBeVisible();
+    await expect(page.getByTestId("santa-helper-panel")).toBeVisible();
+    await expect(page.getByTestId("santa-helper-toggle")).toHaveAttribute(
+      "aria-expanded",
+      "true"
+    );
+    const santaHelperAnimation = await page
+      .getByTestId("santa-helper")
+      .locator(".santa-helper-mascot")
+      .first()
+      .evaluate((mascot) => window.getComputedStyle(mascot).animationName);
+    expect(santaHelperAnimation).toContain("santa-helper-bob");
+
     const shoppingOptionPanel = page.getByTestId("shopping-option-panel").first();
     const shoppingOptions = page.getByTestId("shopping-focus-options");
     const optionButtons = shoppingOptions.getByRole("button");
