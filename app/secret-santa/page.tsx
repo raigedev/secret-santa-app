@@ -151,14 +151,20 @@ const SURFACE_HEADER_BORDER = "1px solid rgba(72,102,78,.16)";
 const SURFACE_SHADOW =
   "0 34px 78px rgba(46,52,50,.1), 0 0 0 6px rgba(255,255,255,.42)";
 const FRAMED_SURFACE_BACKGROUND =
-  "linear-gradient(180deg,#fffefa 0%,#f5faf5 58%,#edf5ef 100%)";
+  "repeating-linear-gradient(135deg,rgba(72,102,78,.09) 0 1px,transparent 1px 34px), repeating-linear-gradient(45deg,rgba(252,206,114,.12) 0 1px,transparent 1px 58px), linear-gradient(180deg,#fffefa 0%,#f4faf4 58%,#edf5ef 100%)";
 const SHOPPING_CARD_BACKGROUND =
-  "linear-gradient(180deg,#fffefa 0%,#f8fbf7 62%,#f0f6f1 100%)";
+  "repeating-linear-gradient(135deg,rgba(72,102,78,.13) 0 1px,transparent 1px 30px), repeating-linear-gradient(45deg,rgba(164,60,63,.07) 0 1px,transparent 1px 44px), linear-gradient(180deg,#fffefa 0%,#f5fbf5 54%,#eaf4ec 100%)";
+const SHOPPING_CARD_CONTENT_BACKGROUND =
+  "repeating-linear-gradient(135deg,rgba(72,102,78,.075) 0 1px,transparent 1px 28px), linear-gradient(180deg,rgba(255,254,250,.86),rgba(239,247,241,.92))";
+const SHOPPING_MEDIA_WELL_BACKGROUND =
+  "repeating-linear-gradient(135deg,rgba(72,102,78,.12) 0 1px,transparent 1px 32px), repeating-linear-gradient(45deg,rgba(252,206,114,.18) 0 1px,transparent 1px 44px), linear-gradient(180deg,#fffefa 0%,#e8f3ea 100%)";
 const SHOPPING_CARD_BORDER = "2px solid rgba(72,102,78,.42)";
 const SHOPPING_CARD_SHADOW =
   "0 28px 62px rgba(46,52,50,.12), 0 0 0 6px rgba(255,255,255,.56), inset 0 1px 0 rgba(255,255,255,.94)";
 const SHOPPING_CARD_TOP_RULE =
   "linear-gradient(90deg,rgba(252,206,114,.95),rgba(72,102,78,.5) 48%,rgba(164,60,63,.56))";
+const SHOPPING_PANEL_BACKGROUND_IMAGE =
+  "linear-gradient(135deg,#e5f0e7 0%,#ffffff 46%,#fff5db 100%), repeating-linear-gradient(135deg,#d7e6da 0 1px,transparent 1px 34px), repeating-linear-gradient(45deg,#ffe7aa 0 1px,transparent 1px 54px)";
 const SHOPPING_PANEL_SHADOW =
   "0 30px 68px rgba(46,52,50,.2), 0 0 0 6px rgba(255,255,255,.62), inset 0 -1px 0 rgba(72,102,78,.18)";
 const INPUT_BACKGROUND = "rgba(255,255,255,.92)";
@@ -2638,8 +2644,7 @@ export default function SecretSantaPage() {
                                   className="sticky top-0 z-50 min-w-0 overflow-hidden rounded-b-[24px] p-3 sm:p-4"
                                   style={{
                                     backgroundColor: "#ffffff",
-                                    backgroundImage:
-                                      "linear-gradient(135deg,#e7f1e9 0%,#ffffff 48%,#fff8e7 100%)",
+                                    backgroundImage: SHOPPING_PANEL_BACKGROUND_IMAGE,
                                     border: "2px solid rgba(72,102,78,.42)",
                                     borderTop: "none",
                                     color: PAGE_TEXT_COLOR,
@@ -2755,9 +2760,10 @@ export default function SecretSantaPage() {
                                     <div
                                       className="relative flex min-h-[108px] min-w-0 items-center justify-center overflow-hidden p-2 text-[30px] sm:min-h-[116px] lg:min-h-[124px]"
                                       style={{
-                                        background:
-                                          "linear-gradient(180deg,#ffffff 0%,#f1f7f2 100%)",
+                                        background: SHOPPING_MEDIA_WELL_BACKGROUND,
                                         borderRight: "1px solid rgba(72,102,78,.18)",
+                                        boxShadow:
+                                          "inset 0 -1px 0 rgba(72,102,78,.14)",
                                       }}
                                     >
                                       {heroLazadaImageUrl ? (
@@ -2776,7 +2782,12 @@ export default function SecretSantaPage() {
                                         </div>
                                       )}
                                     </div>
-                                    <div className="flex min-w-0 flex-col justify-center p-3.5 sm:p-4">
+                                    <div
+                                      className="flex min-w-0 flex-col justify-center p-3.5 sm:p-4"
+                                      style={{
+                                        background: SHOPPING_CARD_CONTENT_BACKGROUND,
+                                      }}
+                                    >
                                       <div
                                         data-testid="featured-lazada-role-label"
                                         className="mb-2 flex w-fit self-start items-center gap-2 text-[12px] font-extrabold uppercase leading-none tracking-[0.04em] sm:text-[13px]"
@@ -3018,9 +3029,11 @@ export default function SecretSantaPage() {
                                                     className="flex aspect-[16/9] min-w-0 items-center justify-center overflow-hidden p-3"
                                                     style={{
                                                       background:
-                                                        "linear-gradient(180deg,#ffffff 0%,#f2f7f3 100%)",
+                                                        SHOPPING_MEDIA_WELL_BACKGROUND,
                                                       borderBottom:
                                                         "1px solid rgba(72,102,78,.2)",
+                                                      boxShadow:
+                                                        "inset 0 1px 0 rgba(255,255,255,.86), inset 0 -1px 0 rgba(72,102,78,.12)",
                                                     }}
                                                   >
                                                     {productImageUrl ? (
@@ -3040,7 +3053,11 @@ export default function SecretSantaPage() {
                                                     )}
                                                   </div>
                                                   <div
-                                                        className="flex flex-1 flex-col p-4"
+                                                    className="flex flex-1 flex-col p-4"
+                                                    style={{
+                                                      background:
+                                                        SHOPPING_CARD_CONTENT_BACKGROUND,
+                                                    }}
                                                   >
                                                     <div
                                                       className="text-[10px] font-extrabold uppercase tracking-[0.16em]"

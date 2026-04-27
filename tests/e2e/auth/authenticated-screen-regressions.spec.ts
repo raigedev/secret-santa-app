@@ -243,6 +243,12 @@ test.describe("authenticated screen regressions", () => {
     const curatedCards = page.getByTestId("curated-shopping-card");
     const curatedSection = page.getByTestId("curated-shopping-section").first();
     await expect(curatedCards.first()).toBeVisible();
+    const shoppingSurfaceTexture = await page
+      .getByTestId("featured-lazada-card")
+      .first()
+      .evaluate((card) => window.getComputedStyle(card).backgroundImage);
+    expect(shoppingSurfaceTexture).toContain("repeating-linear-gradient");
+
     const decoratedSurfaces = page.locator(
       [
         '[data-testid="recipient-wishlist-rail"]',
@@ -341,7 +347,7 @@ test.describe("authenticated screen regressions", () => {
       };
     });
     expect(stickyPanelSurface.backgroundColor).toBe("rgb(255, 255, 255)");
-    expect(stickyPanelSurface.backgroundImage).not.toContain("rgba");
+    expect(stickyPanelSurface.backgroundImage).toContain("repeating-linear-gradient");
     await curatedSection.scrollIntoViewIfNeeded();
 
     const stickyPanelBoundary = await shoppingOptionPanel.evaluate((panel) => {
