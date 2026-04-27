@@ -33,18 +33,61 @@ const AUTH_ERROR_MESSAGES: Record<string, string> = {
   no_code: "The sign-in link did not work. Please try again.",
 };
 
+const GENERIC_LOGIN_ERROR =
+  "We could not sign you in. Please check your email and password, then try again.";
+
+function getReadableAuthErrorMessage(message: string | null): string | null {
+  const trimmedMessage = message?.trim();
+
+  if (!trimmedMessage) {
+    return null;
+  }
+
+  const looksLikeRawJson =
+    (trimmedMessage.startsWith("{") && trimmedMessage.endsWith("}")) ||
+    (trimmedMessage.startsWith("[") && trimmedMessage.endsWith("]"));
+
+  if (!looksLikeRawJson) {
+    return trimmedMessage === "[object Object]" ? null : trimmedMessage;
+  }
+
+  try {
+    const parsedValue: unknown = JSON.parse(trimmedMessage);
+
+    if (parsedValue && typeof parsedValue === "object" && !Array.isArray(parsedValue)) {
+      const parsedRecord = parsedValue as Record<string, unknown>;
+      const parsedMessage =
+        parsedRecord.message || parsedRecord.error_description || parsedRecord.error;
+
+      return typeof parsedMessage === "string" && parsedMessage.trim()
+        ? parsedMessage.trim()
+        : null;
+    }
+  } catch {
+    return null;
+  }
+
+  return null;
+}
+
 function mapAuthErrorMessage(errorCode: string | null, message: string | null): string | null {
-  return message || (errorCode ? AUTH_ERROR_MESSAGES[errorCode] || null : null);
+  return getReadableAuthErrorMessage(message) || (errorCode ? AUTH_ERROR_MESSAGES[errorCode] || null : null);
 }
 
 function getFriendlyLoginError(message: string): string {
-  const normalized = message.toLowerCase();
+  const readableMessage = getReadableAuthErrorMessage(message);
+
+  if (!readableMessage) {
+    return GENERIC_LOGIN_ERROR;
+  }
+
+  const normalized = readableMessage.toLowerCase();
 
   return normalized.includes("invalid login credentials")
     ? "We could not match that email and password. Please try again."
     : normalized.includes("email not confirmed")
       ? "Please confirm your email before signing in."
-      : message || "We could not sign you in. Please try again.";
+      : readableMessage;
 }
 
 function getSupportingCopy(nextPath: string): string {

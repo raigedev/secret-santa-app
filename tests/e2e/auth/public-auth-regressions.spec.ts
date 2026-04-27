@@ -25,6 +25,30 @@ test.describe("public auth regressions", () => {
     await expect(page.getByText(/please enter your password/i)).toBeVisible();
   });
 
+  test("login replaces raw provider errors with a readable message", async ({ page }) => {
+    let interceptedPasswordLogin = false;
+
+    await page.route("**/auth/v1/token**", async (route) => {
+      interceptedPasswordLogin = true;
+
+      await route.fulfill({
+        status: 400,
+        contentType: "application/json",
+        body: JSON.stringify({ message: "{}" }),
+      });
+    });
+
+    await page.goto("/login");
+    await page.getByPlaceholder(/enter your email address/i).fill("tester@example.com");
+    await page.getByPlaceholder(/enter your password/i).fill("not-a-real-password");
+    await page.getByRole("button", { name: /^login$/i }).click();
+
+    const alert = page.locator("form [role='alert']");
+    await expect(alert).toContainText(/we could not sign you in/i);
+    await expect(alert).not.toHaveText("{}");
+    expect(interceptedPasswordLogin).toBe(true);
+  });
+
   test("login keeps an internal next path when navigating to create-account", async ({ page }) => {
     await page.goto("/login?next=%2Fsecret-santa");
     await page.getByRole("button", { name: /create account/i }).click();
