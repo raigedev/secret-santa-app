@@ -73,8 +73,7 @@
 
 ## Tooling
 - 2026-04-23T17:02:38+08:00 [TOOL] Installed skills/tools include `webapp-testing`, `create-plan`, `security-threat-model`, `jscpd@4.0.9`, and AuraKit `aura`, `aura-compact`, `aura-guard`.
-- 2026-04-23T17:02:38+08:00 [TOOL] Prior `jscpd` scan found 47 clone pairs and about 3.41% duplicated lines; best refactor targets are guarded affiliate redirects, auth layout duplication, group error UIs, AI provider wrappers, and repeated server-action patterns.
-- 2026-04-26T10:31:03+08:00 [CODE] Added root `cspell.json` so VS Code/cSpell accepts project vocabulary, ignores generated/private artifacts, and reports 0 workspace spell issues with `npx.cmd --yes cspell@8 --no-progress .`.
 - 2026-04-27T00:16:13+08:00 [CODE] jscpd duplicate pass reduced scanned clones from 15 groups / 0.98% duplicated lines to 0 groups / 0% by extracting shared validation, AI draft parsing, affiliate redirect guards, action-prep helpers, profile normalization, and shared icons.
 - 2026-04-27T23:41:22+08:00 [TOOL] Added official skills `playwright`, `playwright-interactive`, `security-best-practices`, `security-ownership-map`, and `sentry`; GitHub CI/security workflows; audit scripts; project docs/CSS guide; `docs/LAUNCH_BACKLOG.md`; and a cross-platform Playwright webServer command for Windows/local and Ubuntu CI.
 - 2026-04-28T00:28:22+08:00 [CODE] GitHub/npm PostCSS warning fixed by overriding Next's nested `postcss` to `8.5.10`; `npm audit --audit-level=moderate` reports 0 vulnerabilities.
+- 2026-04-28T02:03:50+08:00 [CODE] `docs/TESTING.md` now records layered web testing guidance from reviewed Playwright/manual-QA/sandbox planning sources: automate critical flows, use manual exploratory UI passes, expand cross-browser/mobile when risk warrants it, test slow states/security/a11y, and keep external side effects isolated.

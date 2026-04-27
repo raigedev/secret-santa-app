@@ -2,6 +2,55 @@
 
 Use this guide for local checks, Vercel preview checks, and future Playwright work.
 
+## Testing Strategy
+
+Use a layered approach. Automated checks catch repeat regressions, while manual and exploratory testing catches layout, wording, flow, and product-logic issues that scripts can miss.
+
+- Prefer durable Playwright specs for business-critical flows, auth boundaries, affiliate redirects, security headers, responsive behavior, accessibility smoke checks, and previous bugs.
+- Use the in-app Browser preview and Playwright CLI-style exploration for visual inspection, selector discovery, screenshots, traces, and quick debugging.
+- Add permanent tests only when they protect behavior we want to keep. Do not turn every manual observation into brittle automation.
+- Test user-visible behavior first. Prefer roles, labels, text, and stable `data-testid` contracts over CSS selectors or DOM structure.
+- Keep tests isolated. Control seeded data, local storage, cookies, and sessions so one test does not depend on another.
+- Do not test third-party sites directly. For Lazada, OAuth, email, AI providers, and future payment providers, test our routing, validation, fallback UI, and recorded contract shape; mock or use provider test environments for external behavior.
+
+## Manual And Exploratory Passes
+
+Use manual passes when changing screens, layouts, copy, loading states, or flows that depend on real user judgment.
+
+- Start from the user's most common path, then test the uncomfortable paths: empty states, long names, missing data, slow requests, invalid input, double clicks, refresh, back/forward, and session expiry.
+- Capture screenshots or short notes for bugs that need reproduction.
+- Verify error messages are readable and actionable, not raw JSON or provider internals.
+- When a bug is fixed, retest the exact reproduction first, then run a nearby regression path.
+
+## Cross-Browser And Device Coverage
+
+Run the focused Chromium test first for speed, then expand coverage when a change touches layout, navigation, browser APIs, auth, forms, or sticky/scroll behavior.
+
+- Desktop projects: `chromium`, `firefox`, and `webkit`.
+- Mobile projects: `mobile-chrome` and `mobile-safari`.
+- Always check at least one narrow viewport for UI work.
+- Real-device or cloud-device testing is a launch/backlog item for high-risk mobile flows; Playwright device profiles are useful, but they are not a complete substitute for actual hardware.
+
+## Performance And Slow-Network Checks
+
+Performance testing should focus on what normal users feel: first useful content, route transition time, button response time, and loading-state quality.
+
+- Use production builds for meaningful performance checks.
+- Keep screenshots or timing notes when a screen feels slow.
+- Simulate slow or flaky requests for loading and error-state behavior where practical.
+- Watch for repeated Supabase calls, unbounded lists, heavy client components, large images, and expensive effects.
+- Treat console errors and repeated warnings as regressions unless proven harmless.
+
+## Security, Accessibility, And Data Safety
+
+Every meaningful flow should be tested with the app's trust boundaries in mind.
+
+- Check unauthenticated, wrong-user, member-vs-owner, expired-token, invalid-route, and rate-limited paths when those areas are touched.
+- Verify forms with malformed input and confirm server-side validation still rejects unsafe data.
+- Run accessibility checks for public/auth pages and add focused checks for changed interactive UI.
+- Never use production secrets, live payment flows, real webhook side effects, or private user data in tests.
+- Keep test, preview, and production data separate. Any future sandbox mode should use explicit environment/provider separation or safe adapters so test actions cannot send real emails, payments, webhooks, affiliate exports, or notifications.
+
 ## Required Checks After Source Changes
 
 Run these before handing off meaningful code changes:
