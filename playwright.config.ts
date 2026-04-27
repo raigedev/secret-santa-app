@@ -3,6 +3,7 @@ import path from "node:path";
 import { defineConfig, devices } from "@playwright/test";
 
 const PORT = 3000;
+const npmExecutable = process.platform === "win32" ? "npm.cmd" : "npm";
 const LOCAL_PLAYWRIGHT_ENV_KEYS = new Set([
   "PLAYWRIGHT_E2E_EMAIL",
   "PLAYWRIGHT_E2E_PASSWORD",
@@ -88,7 +89,7 @@ export default defineConfig({
   webServer: process.env.PLAYWRIGHT_BASE_URL
     ? undefined
     : {
-        command: "npm.cmd run build && npm.cmd run start:e2e",
+        command: `${npmExecutable} run build && ${npmExecutable} run start:e2e`,
         reuseExistingServer: !process.env.CI,
         timeout: 180_000,
         url: baseURL,
