@@ -48,6 +48,7 @@ export async function proxy(req: NextRequest) {
   const pathname = req.nextUrl.pathname;
   const publicPages = [
     "/",
+    "/cool-app",
     "/login",
     "/create-account",
     "/forgot-password",
@@ -63,6 +64,7 @@ export async function proxy(req: NextRequest) {
   const isLandingPage = pathname === "/";
   const isVerificationSafePage =
     isAuthPage ||
+    pathname === "/cool-app" ||
     pathname === "/reset-password" ||
     pathname === "/privacy" ||
     pathname === "/auth/callback" ||

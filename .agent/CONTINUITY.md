@@ -40,6 +40,7 @@
 - 2026-04-26T21:38:18+08:00 [CODE] Dashboard UI body, sidebar, profile-menu hook, and route-prefetch hook were extracted into focused files; Supabase/auth/realtime/delete behavior still stays in `page.tsx`.
 - 2026-04-27T03:05:57+08:00 [CODE] Dashboard refresh snapshot now keeps loaded recipient names, gift-progress summary, and activity previews so refresh no longer flashes `No Recipient Yet` before returning to `View Recipient`.
 - 2026-04-27T04:03:00+08:00 [CODE] Pre-launch privacy/security baseline added public `/privacy`, stronger global headers, audit-detail redaction, narrower profile reads, checklist/audit docs, and Playwright coverage.
+- 2026-04-27T05:05:00+08:00 [CODE] Added public `/cool-app` as an isolated interactive Gift Radar demo route; it uses only local state/assets and does not touch Supabase, auth data, affiliate, cron, or Secret Santa flows.
 - 2026-04-26T21:54:26+08:00 [CODE] Group event page snapshot validation/storage, shared data types, and member display-name helper moved to `group-page-state.ts`; page keeps Supabase/realtime/action flow.
 - 2026-04-26T22:07:23+08:00 [CODE] Group event page config, modal/skeleton primitives, and route prefetching moved to focused modules without changing group actions or Supabase/realtime flow.
 - 2026-04-26T22:39:42+08:00 [CODE] Group event members section moved to `GroupMembersSection.tsx`; page still owns member state, remove-member modal, refresh callbacks, Supabase, and realtime behavior.

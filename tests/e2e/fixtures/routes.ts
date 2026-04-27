@@ -18,6 +18,7 @@ export const PROTECTED_PAGE_PATHS = [
 
 export const PUBLIC_PAGE_PATHS = [
   "/",
+  "/cool-app",
   "/login",
   "/create-account",
   "/forgot-password",

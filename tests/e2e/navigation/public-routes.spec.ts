@@ -18,6 +18,18 @@ test.describe("public route coverage", () => {
     await expect(page.getByRole("heading", { name: /create your account/i })).toBeVisible();
   });
 
+  test("cool-app route renders and updates its gift plan", async ({ page }) => {
+    await page.goto("/cool-app");
+    await expect(page.getByRole("heading", { name: /build a gift plan/i })).toBeVisible();
+    await expect(page.getByText(/clever gift route for kenneth/i)).toBeVisible();
+
+    await page.getByRole("button", { name: "Warm" }).click();
+    await expect(page.getByText(/warm gift route for kenneth/i)).toBeVisible();
+
+    await page.getByLabel("Recipient").fill("Jamie");
+    await expect(page.getByText(/warm gift route for jamie/i)).toBeVisible();
+  });
+
   test("forgot-password route renders", async ({ page }) => {
     await page.goto("/forgot-password");
     await expect(page.getByRole("heading", { name: /forgot password/i })).toBeVisible();
