@@ -27,9 +27,26 @@ const AUTHENTICATED_SCREEN_CASES: ScreenCase[] = [
       await expect(page.getByText(/your groups/i)).toBeVisible();
 
       await page.getByRole("button", { name: /open notifications/i }).click();
-      await expect(page.getByTestId("dashboard-notifications-panel")).toBeVisible();
+      const notificationsPanel = page.getByTestId("dashboard-notifications-panel");
+      await expect(notificationsPanel).toBeVisible();
       await expect(page.getByRole("button", { name: /^all$/i })).toBeVisible();
       await expect(page.getByRole("button", { name: /^unread$/i })).toBeVisible();
+      await expect(page.getByRole("button", { name: /view all notifications/i })).toBeVisible();
+
+      const panelMetrics = await notificationsPanel.evaluate((panel) => {
+        const panelRect = panel.getBoundingClientRect();
+        const list = panel.querySelector('[data-testid="dashboard-notifications-list"]');
+        const listStyle = list ? window.getComputedStyle(list) : null;
+
+        return {
+          height: panelRect.height,
+          listOverflowY: listStyle?.overflowY || "",
+          listMaxHeight: listStyle?.maxHeight || "",
+        };
+      });
+      expect(panelMetrics.height).toBeLessThanOrEqual(450);
+      expect(panelMetrics.listOverflowY).toBe("auto");
+      expect(parseFloat(panelMetrics.listMaxHeight)).toBeGreaterThanOrEqual(180);
       await expect(page).toHaveURL(/\/dashboard$/);
     },
   },

@@ -19,6 +19,7 @@ type PanelPosition = {
   top: number;
   left: number;
   width: number;
+  maxHeight: number;
 } | null;
 
 type DashboardNotificationsPanelProps = {
@@ -69,8 +70,10 @@ export function DashboardNotificationsPanel({
           )
         : Math.max(12, window.innerWidth - width - rightInset);
       const top = trigger ? trigger.getBoundingClientRect().bottom + 10 : 72;
+      const availableHeight = Math.max(260, window.innerHeight - top - 16);
+      const maxHeight = Math.min(window.innerWidth < 640 ? 420 : 440, availableHeight);
 
-      setPosition({ top, left, width });
+      setPosition({ top, left, width, maxHeight });
     };
 
     updatePosition();
@@ -184,10 +187,14 @@ export function DashboardNotificationsPanel({
   const panelStyle: CSSProperties | undefined = position
     ? {
         left: position.left,
+        maxHeight: position.maxHeight,
         position: "fixed",
         top: position.top,
         width: position.width,
       }
+    : undefined;
+  const listStyle: CSSProperties | undefined = position
+    ? { maxHeight: Math.max(180, position.maxHeight - 170) }
     : undefined;
   const surfaceClass = isDarkTheme
     ? "border-slate-700/80 bg-slate-950 text-slate-100 shadow-[0_24px_50px_rgba(0,0,0,0.42)]"
@@ -260,6 +267,11 @@ export function DashboardNotificationsPanel({
     }
   };
 
+  const handleOpenInbox = () => {
+    onClose();
+    router.push("/notifications");
+  };
+
   if (!open || !position || typeof document === "undefined") {
     return null;
   }
@@ -271,26 +283,28 @@ export function DashboardNotificationsPanel({
       aria-label="Notifications"
       data-testid="dashboard-notifications-panel"
       style={panelStyle}
-      className={`z-[210] overflow-hidden rounded-[24px] border ${surfaceClass}`}
+      className={`z-[210] flex flex-col overflow-hidden rounded-[24px] border ${surfaceClass}`}
     >
-      <div className="flex items-start justify-between gap-4 border-b border-slate-500/10 px-4 py-4">
-        <div>
-          <h2 className="text-xl font-black tracking-[-0.02em]">Notifications</h2>
-          <p className={`mt-0.5 text-xs font-semibold ${mutedTextClass}`}>
-            Updates from your groups, messages, and gift reminders.
-          </p>
+      <div className="shrink-0 border-b border-slate-500/10 px-4 py-3">
+        <div className="flex items-start justify-between gap-4">
+          <div>
+            <h2 className="text-lg font-black tracking-[-0.02em]">Notifications</h2>
+            <p className={`mt-0.5 text-xs font-semibold ${mutedTextClass}`}>
+              Updates from your groups, messages, and gift reminders.
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={onClose}
+            className={`inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-lg font-bold transition ${itemHoverClass}`}
+            aria-label="Close notifications"
+          >
+            x
+          </button>
         </div>
-        <button
-          type="button"
-          onClick={onClose}
-          className={`inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-lg font-bold transition ${itemHoverClass}`}
-          aria-label="Close notifications"
-        >
-          x
-        </button>
       </div>
 
-      <div className="flex items-center justify-between gap-3 px-4 py-3">
+      <div className="flex shrink-0 items-center justify-between gap-3 px-4 py-2.5">
         <div className="inline-flex rounded-full bg-slate-500/10 p-1">
           {(["all", "unread"] as NotificationFilter[]).map((filter) => {
             const isActive = activeFilter === filter;
@@ -347,7 +361,11 @@ export function DashboardNotificationsPanel({
         </div>
       )}
 
-      <div className="max-h-[min(560px,calc(100vh-190px))] overflow-y-auto px-2 pb-3">
+      <div
+        data-testid="dashboard-notifications-list"
+        style={listStyle}
+        className="min-h-0 overflow-y-auto px-2 pb-2"
+      >
         {loading ? (
           <div className="space-y-2 px-2 py-2" aria-label="Loading notifications">
             {[0, 1, 2].map((item) => (
@@ -365,9 +383,7 @@ export function DashboardNotificationsPanel({
               isDarkTheme ? "border-slate-700 text-slate-400" : "border-slate-200 text-slate-500"
             }`}
           >
-            <div className="text-3xl" aria-hidden="true">
-              {"\u{1F514}"}
-            </div>
+            <div className="mx-auto h-2.5 w-2.5 rounded-full bg-blue-500" aria-hidden="true" />
             <p className="mt-3 text-sm font-extrabold">
               {activeFilter === "unread" ? "No unread notifications" : "No notifications yet"}
             </p>
@@ -388,11 +404,11 @@ export function DashboardNotificationsPanel({
                   type="button"
                   onClick={() => void handleOpenNotification(notification)}
                   disabled={processingId === notification.id}
-                  className={`flex w-full items-start gap-3 rounded-[18px] px-3 py-3 text-left transition ${itemHoverClass}`}
+                  className={`flex w-full items-start gap-2.5 rounded-[18px] px-3 py-2.5 text-left transition ${itemHoverClass}`}
                   style={{ cursor: processingId === notification.id ? "wait" : "pointer" }}
                 >
                   <span
-                    className={`inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-lg ${
+                    className={`inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-base ${
                       isUnread
                         ? isDarkTheme
                           ? "bg-blue-500/20"
@@ -410,13 +426,13 @@ export function DashboardNotificationsPanel({
                     <span className="flex items-start justify-between gap-3">
                       <span className="min-w-0">
                         <span
-                          className="mb-1.5 inline-flex rounded-full px-2 py-0.5 text-[9px] font-extrabold uppercase tracking-[0.12em]"
+                          className="mb-1 inline-flex rounded-full px-2 py-0.5 text-[9px] font-extrabold uppercase tracking-[0.12em]"
                           style={getNotificationLabelStyles(notification.type)}
                         >
                           {getNotificationLabel(notification.type)}
                         </span>
                         <span
-                          className={`block text-sm leading-5 ${
+                          className={`line-clamp-2 break-words text-sm leading-5 ${
                             isUnread ? "font-black" : "font-bold"
                           }`}
                         >
@@ -450,6 +466,16 @@ export function DashboardNotificationsPanel({
             })}
           </div>
         )}
+      </div>
+
+      <div className="shrink-0 border-t border-slate-500/10 px-4 py-2.5">
+        <button
+          type="button"
+          onClick={handleOpenInbox}
+          className={`w-full rounded-full px-3 py-2 text-xs font-extrabold transition ${itemHoverClass}`}
+        >
+          View all notifications
+        </button>
       </div>
     </div>,
     document.body
