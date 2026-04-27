@@ -234,18 +234,18 @@ function LazadaCtaLink({
       target="_blank"
       rel="noopener noreferrer"
       data-testid="lazada-cta-link"
-      className={`group/lazada inline-flex min-h-11 min-w-[146px] items-center justify-center gap-2 rounded-full px-3 py-2 text-center text-[12px] font-extrabold leading-none transition duration-200 hover:-translate-y-0.5 active:translate-y-0 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 ${
+      className={`group/lazada inline-flex min-h-11 min-w-[154px] items-center justify-center gap-2 rounded-full px-4 py-2 text-center text-[13px] font-extrabold leading-none tracking-[0.01em] transition duration-200 hover:-translate-y-0.5 active:translate-y-0 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 ${
         fullWidth ? "w-full" : "w-full sm:w-auto"
       }`}
       style={{
         background:
-          "linear-gradient(180deg,rgba(255,255,255,.98),rgba(241,246,242,.96))",
-        color: HOLIDAY_GREEN,
+          "linear-gradient(135deg,#5d7d63 0%,#48664e 46%,#315741 100%)",
+        color: "#fffdf7",
         boxShadow:
-          "0 10px 22px rgba(46,52,50,.055), inset 0 1px 0 rgba(255,255,255,.72)",
-        border: "1px solid rgba(72,102,78,.24)",
+          "0 16px 30px rgba(72,102,78,.22), 0 5px 12px rgba(46,52,50,.08), inset 0 1px 0 rgba(255,255,255,.18)",
+        border: "1px solid rgba(49,87,65,.42)",
         textDecoration: "none",
-        outlineColor: "rgba(72,102,78,.46)",
+        outlineColor: "rgba(72,102,78,.56)",
       }}
     >
       <span className="min-w-0 truncate">{label}</span>
@@ -253,10 +253,10 @@ function LazadaCtaLink({
         aria-hidden="true"
         className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full transition group-hover/lazada:translate-x-0.5"
         style={{
-          background: HOLIDAY_GREEN,
-          border: "1px solid rgba(60,90,67,.24)",
-          boxShadow: "0 7px 16px rgba(72,102,78,.2)",
-          color: "#fbfcfa",
+          background: "rgba(255,253,247,.18)",
+          border: "1px solid rgba(255,253,247,.34)",
+          boxShadow: "inset 0 1px 0 rgba(255,253,247,.16)",
+          color: "#fffdf7",
         }}
       >
         <LazadaArrowIcon />

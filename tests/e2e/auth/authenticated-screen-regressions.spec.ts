@@ -261,9 +261,12 @@ test.describe("authenticated screen regressions", () => {
         height: linkRect.height,
         iconHeight: iconRect?.height || 0,
         iconWidth: iconRect?.width || 0,
+        textColor: linkStyle.color,
       };
     });
     expect(firstLazadaCtaShape.backgroundImage).toContain("linear-gradient");
+    expect(firstLazadaCtaShape.backgroundImage).toContain("rgb(72, 102, 78)");
+    expect(firstLazadaCtaShape.textColor).toBe("rgb(255, 253, 247)");
     expect(firstLazadaCtaShape.height).toBeGreaterThanOrEqual(42);
     expect(parseFloat(firstLazadaCtaShape.borderRadius)).toBeGreaterThanOrEqual(20);
     expect(firstLazadaCtaShape.iconHeight).toBeGreaterThanOrEqual(26);
