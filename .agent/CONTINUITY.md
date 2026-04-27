@@ -12,6 +12,7 @@
 - 2026-04-26T11:04:16+08:00 [CODE] `AGENTS.md` now requires inspect-first refactor reviews, behavior preservation, clear module boundaries, separated business/data/UI concerns, approval before major structural changes, and validation after refactors.
 - 2026-04-27T04:18:00+08:00 [USER] Frontend UI work should use Stitch plus available UI skills; prefer `impeccable`/`tasteskill` when installed, explore variants when direction is unclear, and use 21st.dev/its MCP as inspiration when available and compatible.
 - 2026-04-27T04:37:00+08:00 [TOOL] Installed `impeccable` and Taste Skill family skills globally for Codex under `.agents/skills` and mirrored them into `.codex/skills`: `design-taste-frontend`, `stitch-design-taste`, `high-end-visual-design`, `redesign-existing-projects`, `minimalist-ui`, `industrial-brutalist-ui`, `gpt-taste`, `image-to-code`, `full-output-enforcement`.
+- 2026-04-27T05:22:00+08:00 [USER] For UI work, prefer Codex App Browser interaction flow when available: local dev server, built-in Browser on localhost, user screenshots/annotations on specific UI elements, then code patch plus Playwright verification.
 
 ## Security And Product Decisions
 - 2026-04-20T00:00:00+08:00 [USER] Use Stitch MCP for UI design context, design tokens, screen metadata, and Stitch implementation details.
@@ -41,6 +42,7 @@
 - 2026-04-27T03:05:57+08:00 [CODE] Dashboard refresh snapshot now keeps loaded recipient names, gift-progress summary, and activity previews so refresh no longer flashes `No Recipient Yet` before returning to `View Recipient`.
 - 2026-04-27T04:03:00+08:00 [CODE] Pre-launch privacy/security baseline added public `/privacy`, stronger global headers, audit-detail redaction, narrower profile reads, checklist/audit docs, and Playwright coverage.
 - 2026-04-27T05:05:00+08:00 [CODE] Added public `/cool-app` as an isolated interactive Gift Radar demo route; it uses only local state/assets and does not touch Supabase, auth data, affiliate, cron, or Secret Santa flows.
+- 2026-04-27T17:11:40+08:00 [CODE] Local dev CSP now adds `'unsafe-eval'` only in development and allows `127.0.0.1` dev origin for Playwright; production CSP remains strict without `'unsafe-eval'`.
 - 2026-04-26T21:54:26+08:00 [CODE] Group event page snapshot validation/storage, shared data types, and member display-name helper moved to `group-page-state.ts`; page keeps Supabase/realtime/action flow.
 - 2026-04-26T22:07:23+08:00 [CODE] Group event page config, modal/skeleton primitives, and route prefetching moved to focused modules without changing group actions or Supabase/realtime flow.
 - 2026-04-26T22:39:42+08:00 [CODE] Group event members section moved to `GroupMembersSection.tsx`; page still owns member state, remove-member modal, refresh callbacks, Supabase, and realtime behavior.

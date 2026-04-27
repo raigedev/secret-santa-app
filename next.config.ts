@@ -1,6 +1,16 @@
 import type { NextConfig } from "next";
 
+const isDevelopment = process.env.NODE_ENV === "development";
+const scriptSource = [
+  "script-src",
+  "'self'",
+  "'unsafe-inline'",
+  // React and Next.js dev overlays use eval-based debugging helpers locally.
+  ...(isDevelopment ? ["'unsafe-eval'"] : []),
+].join(" ");
+
 const nextConfig: NextConfig = {
+  allowedDevOrigins: ["127.0.0.1"],
   async headers() {
     return [
       {
@@ -10,7 +20,7 @@ const nextConfig: NextConfig = {
             key: "Content-Security-Policy",
             value: [
               "default-src 'self'",
-              "script-src 'self' 'unsafe-inline'",
+              scriptSource,
               "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
               "font-src 'self' https://fonts.gstatic.com",
               "img-src 'self' data: blob: https:",
