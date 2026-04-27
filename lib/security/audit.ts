@@ -13,13 +13,83 @@ type AuditEvent = {
   resourceType: string;
 };
 
+const REDACTED_AUDIT_VALUE = "[redacted]";
+const TRUNCATED_AUDIT_VALUE = "[truncated]";
+const MAX_AUDIT_DETAIL_DEPTH = 4;
+const MAX_AUDIT_ARRAY_ITEMS = 50;
+const MAX_AUDIT_STRING_LENGTH = 1000;
+
+const SENSITIVE_DETAIL_KEY_PATTERN =
+  /(authorization|cookie|credential|password|postback|secret|service[_-]?role|session|token|api[_-]?key)/i;
+
+const SENSITIVE_STRING_PATTERNS = [
+  /\bBearer\s+[A-Za-z0-9._~+/=-]+/gi,
+  /\bsb_secret_[A-Za-z0-9._-]+/g,
+  /\bsk-[A-Za-z0-9._-]+/g,
+  /\bAIza[A-Za-z0-9_-]{20,}\b/g,
+  /\beyJ[A-Za-z0-9_-]{20,}\.[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}\b/g,
+] as const;
+
+function redactSensitiveString(value: string): string {
+  const redacted = SENSITIVE_STRING_PATTERNS.reduce(
+    (currentValue, pattern) => currentValue.replace(pattern, REDACTED_AUDIT_VALUE),
+    value
+  );
+
+  if (redacted.length <= MAX_AUDIT_STRING_LENGTH) {
+    return redacted;
+  }
+
+  return `${redacted.slice(0, MAX_AUDIT_STRING_LENGTH)}...`;
+}
+
+function sanitizeDetailValue(key: string, value: unknown, depth: number): unknown {
+  if (SENSITIVE_DETAIL_KEY_PATTERN.test(key)) {
+    return REDACTED_AUDIT_VALUE;
+  }
+
+  if (value === null || typeof value === "number" || typeof value === "boolean") {
+    return value;
+  }
+
+  if (typeof value === "string") {
+    return redactSensitiveString(value);
+  }
+
+  if (Array.isArray(value)) {
+    if (depth >= MAX_AUDIT_DETAIL_DEPTH) {
+      return TRUNCATED_AUDIT_VALUE;
+    }
+
+    return value
+      .slice(0, MAX_AUDIT_ARRAY_ITEMS)
+      .map((item, index) => sanitizeDetailValue(`${key}[${index}]`, item, depth + 1));
+  }
+
+  if (typeof value === "object") {
+    if (depth >= MAX_AUDIT_DETAIL_DEPTH) {
+      return TRUNCATED_AUDIT_VALUE;
+    }
+
+    return Object.fromEntries(
+      Object.entries(value as Record<string, unknown>).map(([entryKey, entryValue]) => [
+        entryKey,
+        sanitizeDetailValue(entryKey, entryValue, depth + 1),
+      ])
+    );
+  }
+
+  return String(value);
+}
+
 function sanitizeDetails(details?: Record<string, unknown>): Record<string, unknown> {
   if (!details) {
     return {};
   }
 
   try {
-    return JSON.parse(JSON.stringify(details)) as Record<string, unknown>;
+    const sanitized = sanitizeDetailValue("details", details, 0);
+    return JSON.parse(JSON.stringify(sanitized)) as Record<string, unknown>;
   } catch {
     return {};
   }

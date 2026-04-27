@@ -161,6 +161,13 @@ Act as a senior full-stack engineer and software architect. Code this project wi
 
 ### Launch, Backend, and Growth Guardrails
 
+- Before any production launch, run a privacy and security sanity review across the whole codebase. Confirm there is a public privacy policy, that it matches the app's actual data handling, and that user data collection, affiliate tracking, AI-provider use, retention, deletion, and support/contact paths are described plainly.
+- Treat privacy compliance as part of engineering risk. Check GDPR/CCPA-style basics before launch: what data is collected, why it is collected, where it is stored, which processors receive it, how users can request deletion, and whether any optional marketing or analytics data requires consent.
+- Review security posture against OWASP Top 10 and OWASP Cheat Sheet guidance before launch and after major feature work. Cover access control, injection, XSS, auth/session handling, security misconfiguration, vulnerable dependencies, logging/monitoring, SSRF/open redirects, and sensitive-data exposure.
+- Check credential and data leakage explicitly: no secrets in frontend bundles, public files, logs, screenshots, API JSON responses, route params, query strings, fixtures, generated docs, or committed environment files.
+- API keys belong server-side unless they are intentionally publishable keys with restricted permissions, such as Supabase anon/publishable keys protected by RLS. Any provider key that can spend money, read private data, mutate data, or access affiliate/API accounts must never appear in browser code or network calls.
+- When adding third-party APIs, prefer server-side proxy routes with allow-listed inputs, rate limits, auth checks, and minimal responses. Never expose raw provider payloads to the browser unless every field has been reviewed.
+- Keep strong security headers enabled and periodically re-check them: CSP, HSTS, `X-Content-Type-Options`, frame protections, `Referrer-Policy`, and restrictive `Permissions-Policy`.
 - Prefer token-based authentication and managed session flows for long-term web/mobile stability. Avoid password/session schemes that are hard to rotate, revoke, or audit.
 - Do not treat UI polish as a substitute for backend reliability. Before launch or major releases, verify login, database reads/writes, affiliate redirects, postbacks, cron jobs, and any payment flows that exist.
 - If payments are added later, fully test the provider flow in the correct test environment before launch, including idempotency and race-condition/double-charge protection. Do not touch live cards, live payments, or production fulfillment from test flows.

@@ -21,6 +21,7 @@ export const PUBLIC_PAGE_PATHS = [
   "/login",
   "/create-account",
   "/forgot-password",
+  "/privacy",
   "/reset-password",
   `/invite/${INVALID_INVITE_TOKEN}`,
 ];

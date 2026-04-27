@@ -246,6 +246,14 @@ function CreateAccountPageInner() {
               {isSubmitting ? "Sending confirmation..." : "Sign up"}
             </button>
 
+            <p className="text-center text-xs leading-5 text-[#6a706d]">
+              By creating an account, you agree to how My Secret Santa handles your data in the{" "}
+              <a href="/privacy" className="font-semibold text-[#a43c3f] transition hover:text-[#812227]">
+                Privacy Policy
+              </a>
+              .
+            </p>
+
             <p className="text-center text-sm leading-6 text-[#5b605e]">
               Already have an account?{" "}
               <button

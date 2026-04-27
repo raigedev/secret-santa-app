@@ -15,7 +15,7 @@
 - 2026-04-20T00:00:00+08:00 [USER] Use Stitch MCP for UI design context, design tokens, screen metadata, and Stitch implementation details.
 - 2026-04-20T00:00:00+08:00 [USER] Preserve Lazada affiliate backend/data wiring while polishing UI.
 - 2026-04-20T00:00:00+08:00 [USER] Treat security, auth, postback, affiliate tracking, public redirects, cron, and reminder routes as abuse-sensitive.
-- 2026-04-23T06:50:00+08:00 [USER] Security response milestones: cron/reminder/health secrets rotated, Supabase moved to `sb_secret_...`/`sb_publishable_...`, old JWT keys disabled, Lazada postback/user token rotated, OpenRouter/Gemini rotated, Vercel Sensitive Env policy enabled, Standard Deployment Protection enabled, `GEOAPIFY_API_KEY` removed, GitHub/Google accounts reviewed and hardened.
+- 2026-04-23T06:50:00+08:00 [USER] Security response milestones: cron/reminder/health secrets rotated, Supabase moved to secret/publishable key formats, old JWT keys disabled, Lazada postback/user token rotated, OpenRouter/Gemini rotated, Vercel Sensitive Env policy enabled, Standard Deployment Protection enabled, `GEOAPIFY_API_KEY` removed, GitHub/Google accounts reviewed and hardened.
 - 2026-04-23T07:10:00+08:00 [USER] Main unresolved credential follow-up remains Lazada `LAZADA_APP_SECRET` / LiteApp Secret rotation via support or deeper Open Platform access.
 - 2026-04-24T22:08:51+08:00 [TOOL] Lazada scraping/compliance review found no repo crawler deps, local `.xlsx` feed import, generated feed read from disk, user-click redirects, Lazada host allow-listing, signed Open API getlink calls, strict postback validation, and Lazada-as-source-of-truth reporting. Remaining follow-ups: approved-domain confirmation and eventual POST/header-only postback hardening.
 
@@ -37,6 +37,7 @@
 - 2026-04-26T20:39:36+08:00 [CODE] Dashboard chrome extraction moved the sticky header and profile menu portal into focused components while page state, refs, routing callbacks, and logout behavior stayed in `page.tsx`.
 - 2026-04-26T21:38:18+08:00 [CODE] Dashboard UI body, sidebar, profile-menu hook, and route-prefetch hook were extracted into focused files; Supabase/auth/realtime/delete behavior still stays in `page.tsx`.
 - 2026-04-27T03:05:57+08:00 [CODE] Dashboard refresh snapshot now keeps loaded recipient names, gift-progress summary, and activity previews so refresh no longer flashes `No Recipient Yet` before returning to `View Recipient`.
+- 2026-04-27T04:03:00+08:00 [CODE] Pre-launch privacy/security baseline added public `/privacy`, stronger global headers, audit-detail redaction, narrower profile reads, checklist/audit docs, and Playwright coverage.
 - 2026-04-26T21:54:26+08:00 [CODE] Group event page snapshot validation/storage, shared data types, and member display-name helper moved to `group-page-state.ts`; page keeps Supabase/realtime/action flow.
 - 2026-04-26T22:07:23+08:00 [CODE] Group event page config, modal/skeleton primitives, and route prefetching moved to focused modules without changing group actions or Supabase/realtime flow.
 - 2026-04-26T22:39:42+08:00 [CODE] Group event members section moved to `GroupMembersSection.tsx`; page still owns member state, remove-member modal, refresh callbacks, Supabase, and realtime behavior.

@@ -51,6 +51,7 @@ export async function proxy(req: NextRequest) {
     "/login",
     "/create-account",
     "/forgot-password",
+    "/privacy",
     "/reset-password",
     "/auth/callback",
   ];
@@ -63,6 +64,7 @@ export async function proxy(req: NextRequest) {
   const isVerificationSafePage =
     isAuthPage ||
     pathname === "/reset-password" ||
+    pathname === "/privacy" ||
     pathname === "/auth/callback" ||
     isInvitePage ||
     isLandingPage;

@@ -536,6 +536,7 @@ export default function Landing() {
             <a href="#">Secret Santa tips</a>
             <a href="#">Gift exchange guide</a>
             <a href="#">Wishlist ideas</a>
+            <a href="/privacy">Privacy Policy</a>
           </div>
           <div className="footer-col">
             <h4>Connect</h4>

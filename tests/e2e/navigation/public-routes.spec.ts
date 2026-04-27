@@ -28,6 +28,12 @@ test.describe("public route coverage", () => {
     await expect(page.getByRole("heading", { name: /reset password/i })).toBeVisible();
   });
 
+  test("privacy route renders", async ({ page }) => {
+    await page.goto("/privacy");
+    await expect(page.getByRole("heading", { name: /privacy policy/i })).toBeVisible();
+    await expect(page.getByRole("heading", { name: /shopping and affiliate links/i })).toBeVisible();
+  });
+
   test("invalid invite token route renders an unavailable state", async ({ page }) => {
     await page.goto(`/invite/${INVALID_INVITE_TOKEN}`);
     await expect(page.getByText(/join secret santa/i)).toBeVisible();

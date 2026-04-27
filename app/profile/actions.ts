@@ -8,6 +8,8 @@ import { createClient } from "@/lib/supabase/server";
 // Profile actions stay on the server because they touch auth state and user-owned
 // records that should never rely on client-side validation alone.
 const ALLOWED_CURRENCIES = new Set(["USD", "EUR", "GBP", "PHP", "JPY", "AUD", "CAD"]);
+const PROFILE_SELECT_FIELDS =
+  "user_id, display_name, avatar_emoji, avatar_url, bio, default_budget, currency, notify_invites, notify_draws, notify_chat, notify_wishlist, notify_marketing, profile_setup_complete";
 
 function sanitize(input: string, max: number): string {
   return input.replace(/[<>]/g, "").trim().slice(0, max);
@@ -50,7 +52,7 @@ export async function getProfile() {
 
   const { data: profile } = await supabase
     .from("profiles")
-    .select("*")
+    .select(PROFILE_SELECT_FIELDS)
     .eq("user_id", user.id)
     .maybeSingle();
 
@@ -67,7 +69,7 @@ export async function getProfile() {
       avatar_emoji: "🎅",
       profile_setup_complete: false,
     })
-    .select()
+    .select(PROFILE_SELECT_FIELDS)
     .single();
 
   if (error) {
