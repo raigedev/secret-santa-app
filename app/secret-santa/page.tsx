@@ -139,7 +139,7 @@ const MAX_GROUP_ROUTE_PREFETCH = 8;
 const AI_SUGGESTION_REQUEST_TIMEOUT_MS = 18000;
 const MAX_VISIBLE_RECIPIENT_WISHLIST_ITEMS = 3;
 const PAGE_BACKGROUND =
-  "linear-gradient(145deg,rgba(255,171,169,.24) 0%,rgba(255,171,169,0) 34%), linear-gradient(215deg,rgba(215,250,219,.46) 0%,rgba(215,250,219,0) 42%), linear-gradient(180deg,#f9faf8 0%,#f2f4f2 52%,#dfe4e1 100%)";
+  "repeating-linear-gradient(90deg,rgba(72,102,78,.075) 0 1px,transparent 1px 56px), repeating-linear-gradient(180deg,rgba(72,102,78,.055) 0 1px,transparent 1px 56px), repeating-linear-gradient(135deg,rgba(164,60,63,.045) 0 1px,transparent 1px 34px), linear-gradient(155deg,rgba(255,252,245,.92) 0%,rgba(255,252,245,0) 32%), linear-gradient(180deg,#f6faf6 0%,#edf3ef 52%,#dfe8e2 100%)";
 const PAGE_TEXT_COLOR = "#2e3432";
 const TEXT_MUTED = "#5b605e";
 const TEXT_SOFT = "#777c7a";
@@ -149,9 +149,9 @@ const SURFACE_HEADER_BACKGROUND =
   "linear-gradient(135deg,rgba(255,255,255,.9),rgba(236,239,236,.86))";
 const SURFACE_HEADER_BORDER = "1px solid rgba(174,179,177,.08)";
 const SURFACE_SHADOW = "0 28px 68px rgba(46,52,50,.07)";
-const SHOPPING_CARD_BORDER = "1px solid rgba(72,102,78,.14)";
+const SHOPPING_CARD_BORDER = "2px solid rgba(72,102,78,.3)";
 const SHOPPING_CARD_SHADOW =
-  "0 18px 42px rgba(46,52,50,.055), inset 0 1px 0 rgba(255,255,255,.82)";
+  "0 22px 48px rgba(46,52,50,.075), inset 0 1px 0 rgba(255,255,255,.86)";
 const INPUT_BACKGROUND = "rgba(255,255,255,.92)";
 const INPUT_BORDER = "1px solid rgba(174,179,177,.2)";
 const INPUT_TEXT = "#2e3432";
@@ -1777,6 +1777,7 @@ export default function SecretSantaPage() {
 
   return (
     <main
+      data-testid="secret-santa-page-shell"
       className="min-h-screen relative overflow-x-clip"
       style={{
         background: PAGE_BACKGROUND,
@@ -1786,11 +1787,19 @@ export default function SecretSantaPage() {
     >
       <div
         id="snowWrap"
-        className="fixed inset-0 pointer-events-none z-0 overflow-hidden"
+        className="fixed inset-0 pointer-events-none z-0 overflow-hidden opacity-70"
+      />
+      <div
+        aria-hidden="true"
+        className="pointer-events-none fixed inset-y-0 left-4 right-4 z-0 mx-auto hidden max-w-7xl border-x sm:block"
+        style={{
+          borderColor: "rgba(72,102,78,.12)",
+          boxShadow: "inset 1px 0 0 rgba(255,255,255,.56), inset -1px 0 0 rgba(255,255,255,.56)",
+        }}
       />
       <style>{`
-        .snowflake{position:absolute;background:rgba(255,255,255,.72);box-shadow:0 0 8px rgba(255,255,255,.55);border-radius:50%;animation:fall linear infinite;}
-        @keyframes fall{0%{transform:translateY(-10px) translateX(0);opacity:.6;}50%{transform:translateY(50vh) translateX(12px);}100%{transform:translateY(105vh) translateX(-6px);opacity:.1;}}
+        .snowflake{position:absolute;background:rgba(72,102,78,.26);border-radius:50%;animation:fall linear infinite;}
+        @keyframes fall{0%{transform:translateY(-10px) translateX(0);opacity:.36;}50%{transform:translateY(50vh) translateX(10px);}100%{transform:translateY(105vh) translateX(-5px);opacity:.08;}}
       `}</style>
 
       <div className="relative z-10 mx-auto w-full max-w-7xl px-4 py-4 sm:px-6 sm:py-5">
@@ -2044,15 +2053,19 @@ export default function SecretSantaPage() {
                 key={assignment.group_id}
                 className="overflow-visible rounded-[34px] transition"
                 style={{
-                  background: "rgba(249,250,248,.36)",
-                  boxShadow: "0 22px 58px rgba(46,52,50,.045)",
-                  backdropFilter: "blur(18px)",
+                  background:
+                    "linear-gradient(180deg,rgba(249,250,248,.82),rgba(238,243,239,.72))",
+                  border: "2px solid rgba(72,102,78,.16)",
+                  boxShadow:
+                    "0 24px 62px rgba(46,52,50,.07), inset 0 1px 0 rgba(255,255,255,.72)",
                 }}
               >
                 <div
                   className="flex flex-col gap-4 rounded-t-[34px] p-5 sm:flex-row sm:items-center sm:justify-between sm:p-6"
                   style={{
-                    background: "rgba(255,255,255,.66)",
+                    background:
+                      "linear-gradient(135deg,rgba(255,255,255,.86),rgba(248,250,248,.72))",
+                    borderBottom: "1px solid rgba(72,102,78,.09)",
                   }}
                 >
                   <div className="flex items-center gap-3">
@@ -2379,10 +2392,10 @@ export default function SecretSantaPage() {
                             className="self-start space-y-4 rounded-[44px] p-5 sm:p-7 lg:sticky lg:top-4"
                             style={{
                               background:
-                                "linear-gradient(180deg,rgba(248,250,248,.96),rgba(236,239,236,.92))",
-                              border: "1px solid rgba(72,102,78,.12)",
+                                "linear-gradient(180deg,rgba(249,251,249,.98),rgba(231,238,233,.96))",
+                              border: "2px solid rgba(72,102,78,.26)",
                               boxShadow:
-                                "0 24px 56px rgba(46,52,50,.06), inset 0 1px 0 rgba(255,255,255,.88)",
+                                "0 26px 60px rgba(46,52,50,.085), inset 0 1px 0 rgba(255,255,255,.9)",
                             }}
                           >
                             <div className="mb-4 flex items-center justify-between gap-4">
@@ -2465,14 +2478,14 @@ export default function SecretSantaPage() {
                                   className="w-full rounded-[30px] p-4 text-left transition hover:-translate-y-0.5 sm:p-5"
                                   style={{
                                     background: isActiveItem
-                                      ? "linear-gradient(135deg,#ffffff,rgba(255,250,250,.96))"
-                                      : "linear-gradient(135deg,rgba(255,255,255,.78),rgba(248,250,248,.62))",
+                                      ? "linear-gradient(135deg,#fffefd,rgba(255,247,247,.98))"
+                                      : "linear-gradient(135deg,rgba(255,255,255,.86),rgba(247,250,247,.72))",
                                     border: isActiveItem
-                                      ? "1px solid rgba(164,60,63,.28)"
-                                      : "1px solid rgba(72,102,78,.11)",
+                                      ? "2px solid rgba(164,60,63,.42)"
+                                      : "2px solid rgba(72,102,78,.22)",
                                     boxShadow: isActiveItem
-                                      ? "0 18px 38px rgba(164,60,63,.09), inset 0 1px 0 rgba(255,255,255,.9)"
-                                      : "0 8px 20px rgba(46,52,50,.025), inset 0 1px 0 rgba(255,255,255,.78)",
+                                      ? "0 20px 44px rgba(164,60,63,.13), inset 0 1px 0 rgba(255,255,255,.92)"
+                                      : "0 10px 24px rgba(46,52,50,.04), inset 0 1px 0 rgba(255,255,255,.82)",
                                     cursor: "pointer",
                                     fontFamily: "inherit",
                                   }}
@@ -2482,7 +2495,7 @@ export default function SecretSantaPage() {
                                       className="flex h-[68px] w-[68px] shrink-0 items-center justify-center overflow-hidden rounded-[10px] text-[19px] sm:h-[72px] sm:w-[72px]"
                                       style={{
                                         background: "rgba(255,255,255,.88)",
-                                        border: "1px solid rgba(174,179,177,.08)",
+                                        border: "1px solid rgba(72,102,78,.14)",
                                       }}
                                     >
                                       {resolvedWishlistImageUrl ? (
@@ -2607,12 +2620,12 @@ export default function SecretSantaPage() {
                                   style={{
                                     backgroundColor: "#ffffff",
                                     backgroundImage:
-                                      "linear-gradient(135deg,#f4f6f4 0%,#ffffff 100%)",
-                                    border: "1px solid rgba(72,102,78,.16)",
+                                      "linear-gradient(135deg,#eef4ef 0%,#ffffff 58%,#fbfcfa 100%)",
+                                    border: "2px solid rgba(72,102,78,.3)",
                                     borderTop: "none",
                                     color: PAGE_TEXT_COLOR,
                                     boxShadow:
-                                      "0 22px 54px rgba(46,52,50,.14), inset 0 -1px 0 rgba(72,102,78,.08)",
+                                      "0 24px 58px rgba(46,52,50,.16), inset 0 -1px 0 rgba(72,102,78,.12)",
                                   }}
                                 >
                                   <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
@@ -2706,7 +2719,7 @@ export default function SecretSantaPage() {
                                     className="group min-w-0 overflow-hidden rounded-[22px]"
                                     style={{
                                       background:
-                                        "linear-gradient(135deg,rgba(255,255,255,.98),rgba(247,249,247,.92))",
+                                        "linear-gradient(135deg,#fffefd,rgba(246,250,247,.96))",
                                       border: SHOPPING_CARD_BORDER,
                                       boxShadow: SHOPPING_CARD_SHADOW,
                                     }}
@@ -2925,11 +2938,11 @@ export default function SecretSantaPage() {
                                                   className="flex h-full min-w-0 flex-col overflow-hidden rounded-[24px] transition hover:-translate-y-0.5"
                                                   style={{
                                                     background:
-                                                      "linear-gradient(180deg,#ffffff 0%,rgba(251,252,250,.98) 100%)",
+                                                      "linear-gradient(180deg,#fffefd 0%,rgba(249,252,249,.98) 100%)",
                                                     border: SHOPPING_CARD_BORDER,
                                                     color: PAGE_TEXT_COLOR,
                                                     boxShadow:
-                                                      "0 16px 38px rgba(46,52,50,.05), inset 0 1px 0 rgba(255,255,255,.82)",
+                                                      SHOPPING_CARD_SHADOW,
                                                     cursor: "default",
                                                   }}
                                                 >
@@ -2970,7 +2983,7 @@ export default function SecretSantaPage() {
                                                     className="flex aspect-[16/9] min-w-0 items-center justify-center overflow-hidden bg-white p-3"
                                                     style={{
                                                       borderBottom:
-                                                        "1px solid rgba(174,179,177,.08)",
+                                                        "1px solid rgba(72,102,78,.14)",
                                                     }}
                                                   >
                                                     {productImageUrl ? (
@@ -3492,9 +3505,9 @@ function SnowEffect() {
       // Use a fragment so all snowflakes are appended in a single DOM write.
       const fragment = document.createDocumentFragment();
 
-      for (let index = 0; index < 50; index += 1) {
+      for (let index = 0; index < 32; index += 1) {
         const snowflake = document.createElement("div");
-        const size = 2 + Math.random() * 3;
+        const size = 1.5 + Math.random() * 2.2;
 
         snowflake.className = "snowflake";
         snowflake.style.cssText = [
@@ -3503,7 +3516,7 @@ function SnowEffect() {
           `left:${Math.random() * 100}%`,
           `animation-duration:${5 + Math.random() * 10}s`,
           `animation-delay:${Math.random() * 6}s`,
-          `opacity:${0.2 + Math.random() * 0.3}`,
+          `opacity:${0.16 + Math.random() * 0.22}`,
         ].join(";");
 
         fragment.appendChild(snowflake);

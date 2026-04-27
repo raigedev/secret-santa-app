@@ -207,6 +207,15 @@ test.describe("authenticated screen regressions", () => {
     await expect(selectedOption).toHaveCSS("background-color", "rgb(72, 102, 78)");
     await expect(selectedOption.locator("div").first()).toHaveCSS("color", "rgb(255, 255, 255)");
 
+    const pageBackdrop = await page.getByTestId("secret-santa-page-shell").evaluate((shell) => {
+      const style = window.getComputedStyle(shell);
+
+      return {
+        backgroundImage: style.backgroundImage,
+      };
+    });
+    expect(pageBackdrop.backgroundImage).toContain("repeating-linear-gradient");
+
     const clippedOptionLabels = await optionButtons.evaluateAll((buttons) =>
       buttons
         .map((button, index) => {
@@ -260,7 +269,7 @@ test.describe("authenticated screen regressions", () => {
             style.borderLeftStyle,
           ];
           const hasVisibleBorder = borderWidths.some(
-            (width, borderIndex) => width >= 1 && borderStyles[borderIndex] !== "none"
+            (width, borderIndex) => width >= 1.4 && borderStyles[borderIndex] !== "none"
           );
 
           return {
