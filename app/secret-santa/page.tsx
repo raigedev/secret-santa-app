@@ -149,6 +149,9 @@ const SURFACE_HEADER_BACKGROUND =
   "linear-gradient(135deg,rgba(255,255,255,.9),rgba(236,239,236,.86))";
 const SURFACE_HEADER_BORDER = "1px solid rgba(174,179,177,.08)";
 const SURFACE_SHADOW = "0 28px 68px rgba(46,52,50,.07)";
+const SHOPPING_CARD_BORDER = "1px solid rgba(72,102,78,.14)";
+const SHOPPING_CARD_SHADOW =
+  "0 18px 42px rgba(46,52,50,.055), inset 0 1px 0 rgba(255,255,255,.82)";
 const INPUT_BACKGROUND = "rgba(255,255,255,.92)";
 const INPUT_BORDER = "1px solid rgba(174,179,177,.2)";
 const INPUT_TEXT = "#2e3432";
@@ -2375,8 +2378,11 @@ export default function SecretSantaPage() {
                             data-testid="recipient-wishlist-rail"
                             className="self-start space-y-4 rounded-[44px] p-5 sm:p-7 lg:sticky lg:top-4"
                             style={{
-                              background: "rgba(236,239,236,.92)",
-                              boxShadow: "0 24px 56px rgba(46,52,50,.05)",
+                              background:
+                                "linear-gradient(180deg,rgba(248,250,248,.96),rgba(236,239,236,.92))",
+                              border: "1px solid rgba(72,102,78,.12)",
+                              boxShadow:
+                                "0 24px 56px rgba(46,52,50,.06), inset 0 1px 0 rgba(255,255,255,.88)",
                             }}
                           >
                             <div className="mb-4 flex items-center justify-between gap-4">
@@ -2448,6 +2454,7 @@ export default function SecretSantaPage() {
                               return (
                                 <button
                                   key={wishlistItem.id}
+                                  data-testid="recipient-wishlist-item-card"
                                   type="button"
                                   onClick={() =>
                                     selectRecipientWishlistItem(
@@ -2458,14 +2465,14 @@ export default function SecretSantaPage() {
                                   className="w-full rounded-[30px] p-4 text-left transition hover:-translate-y-0.5 sm:p-5"
                                   style={{
                                     background: isActiveItem
-                                      ? "#ffffff"
-                                      : "rgba(255,255,255,.48)",
-                                    outline: isActiveItem
-                                      ? "1px solid rgba(164,60,63,.2)"
-                                      : "1px solid rgba(255,255,255,.58)",
+                                      ? "linear-gradient(135deg,#ffffff,rgba(255,250,250,.96))"
+                                      : "linear-gradient(135deg,rgba(255,255,255,.78),rgba(248,250,248,.62))",
+                                    border: isActiveItem
+                                      ? "1px solid rgba(164,60,63,.28)"
+                                      : "1px solid rgba(72,102,78,.11)",
                                     boxShadow: isActiveItem
-                                      ? "0 18px 38px rgba(164,60,63,.08)"
-                                      : "none",
+                                      ? "0 18px 38px rgba(164,60,63,.09), inset 0 1px 0 rgba(255,255,255,.9)"
+                                      : "0 8px 20px rgba(46,52,50,.025), inset 0 1px 0 rgba(255,255,255,.78)",
                                     cursor: "pointer",
                                     fontFamily: "inherit",
                                   }}
@@ -2601,10 +2608,11 @@ export default function SecretSantaPage() {
                                     backgroundColor: "#ffffff",
                                     backgroundImage:
                                       "linear-gradient(135deg,#f4f6f4 0%,#ffffff 100%)",
-                                    border: "1px solid rgba(72,102,78,.12)",
+                                    border: "1px solid rgba(72,102,78,.16)",
                                     borderTop: "none",
                                     color: PAGE_TEXT_COLOR,
-                                    boxShadow: "0 22px 54px rgba(46,52,50,.14)",
+                                    boxShadow:
+                                      "0 22px 54px rgba(46,52,50,.14), inset 0 -1px 0 rgba(72,102,78,.08)",
                                   }}
                                 >
                                   <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
@@ -2699,7 +2707,8 @@ export default function SecretSantaPage() {
                                     style={{
                                       background:
                                         "linear-gradient(135deg,rgba(255,255,255,.98),rgba(247,249,247,.92))",
-                                      boxShadow: "0 14px 34px rgba(46,52,50,.04)",
+                                      border: SHOPPING_CARD_BORDER,
+                                      boxShadow: SHOPPING_CARD_SHADOW,
                                     }}
                                   >
                                     <div className="grid min-w-0 gap-0 md:grid-cols-[minmax(112px,140px)_minmax(0,1fr)]">
@@ -2915,10 +2924,12 @@ export default function SecretSantaPage() {
                                                   data-testid="curated-shopping-card"
                                                   className="flex h-full min-w-0 flex-col overflow-hidden rounded-[24px] transition hover:-translate-y-0.5"
                                                   style={{
-                                                    background: "#ffffff",
+                                                    background:
+                                                      "linear-gradient(180deg,#ffffff 0%,rgba(251,252,250,.98) 100%)",
+                                                    border: SHOPPING_CARD_BORDER,
                                                     color: PAGE_TEXT_COLOR,
                                                     boxShadow:
-                                                      "0 14px 34px rgba(46,52,50,.04)",
+                                                      "0 16px 38px rgba(46,52,50,.05), inset 0 1px 0 rgba(255,255,255,.82)",
                                                     cursor: "default",
                                                   }}
                                                 >

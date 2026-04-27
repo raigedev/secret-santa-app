@@ -234,6 +234,46 @@ test.describe("authenticated screen regressions", () => {
     const curatedCards = page.getByTestId("curated-shopping-card");
     const curatedSection = page.getByTestId("curated-shopping-section").first();
     await expect(curatedCards.first()).toBeVisible();
+    const decoratedSurfaces = page.locator(
+      [
+        '[data-testid="recipient-wishlist-rail"]',
+        '[data-testid="recipient-wishlist-item-card"]',
+        '[data-testid="shopping-option-panel"]',
+        '[data-testid="featured-lazada-card"]',
+        '[data-testid="curated-shopping-card"]',
+      ].join(",")
+    );
+    const undecoratedSurfaces = await decoratedSurfaces.evaluateAll((surfaces) =>
+      surfaces
+        .map((surface, index) => {
+          const style = window.getComputedStyle(surface);
+          const borderWidths = [
+            style.borderTopWidth,
+            style.borderRightWidth,
+            style.borderBottomWidth,
+            style.borderLeftWidth,
+          ].map((value) => parseFloat(value));
+          const borderStyles = [
+            style.borderTopStyle,
+            style.borderRightStyle,
+            style.borderBottomStyle,
+            style.borderLeftStyle,
+          ];
+          const hasVisibleBorder = borderWidths.some(
+            (width, borderIndex) => width >= 1 && borderStyles[borderIndex] !== "none"
+          );
+
+          return {
+            index,
+            borderWidths,
+            boxShadow: style.boxShadow,
+            hasVisibleBorder,
+            testId: surface.getAttribute("data-testid") || "",
+          };
+        })
+        .filter((surface) => !surface.hasVisibleBorder || surface.boxShadow === "none")
+    );
+    expect(undecoratedSurfaces).toEqual([]);
     const lazadaCtas = page.getByTestId("lazada-cta-link");
     await expect(lazadaCtas.first()).toBeVisible();
 
