@@ -11,6 +11,7 @@
 - 2026-04-26T10:58:27+08:00 [CODE] `npm.cmd run check:problems` now runs typecheck, security lint, cSpell, and a Tailwind VS Code Problems pattern scan for recurring canonical-class warnings.
 - 2026-04-26T11:04:16+08:00 [CODE] `AGENTS.md` now requires inspect-first refactor reviews, behavior preservation, clear module boundaries, separated business/data/UI concerns, approval before major structural changes, and validation after refactors.
 - 2026-04-27T04:18:00+08:00 [USER] Frontend UI work should use Stitch plus available UI skills; prefer `impeccable`/`tasteskill` when installed, explore variants when direction is unclear, and use 21st.dev/its MCP as inspiration when available and compatible.
+- 2026-04-27T04:37:00+08:00 [TOOL] Installed `impeccable` and Taste Skill family skills globally for Codex under `.agents/skills` and mirrored them into `.codex/skills`: `design-taste-frontend`, `stitch-design-taste`, `high-end-visual-design`, `redesign-existing-projects`, `minimalist-ui`, `industrial-brutalist-ui`, `gpt-taste`, `image-to-code`, `full-output-enforcement`.
 
 ## Security And Product Decisions
 - 2026-04-20T00:00:00+08:00 [USER] Use Stitch MCP for UI design context, design tokens, screen metadata, and Stitch implementation details.

@@ -95,7 +95,7 @@ Act as a senior full-stack engineer and software architect. Code this project wi
 
 ### Frontend UI Workflow
 
-- For front-end UI work, use available UI/design skills and tools alongside the repo's existing design patterns. The user's preferred UI skills are `impeccable` and `tasteskill` when those skills are installed or available in the active Codex session.
+- For front-end UI work, use available UI/design skills and tools alongside the repo's existing design patterns. The user's preferred UI skills are `impeccable` and the Taste Skill family, especially `design-taste-frontend`, `stitch-design-taste`, `high-end-visual-design`, and `redesign-existing-projects` when installed or available in the active Codex session.
 - Use Google Stitch as the starting point for UI design context, base screen direction, design tokens, screen metadata, or implementation details when the user asks for design help or Stitch context.
 - If the UI direction is unclear, create or compare a few variants for inspiration before settling on the simplest polished direction.
 - When a screen needs a more distinctive component treatment, review 21st.dev as an inspiration source for React/Tailwind components, screens, and themes. Use 21st.dev or its Magic MCP only when available and compatible with this Next.js/Tailwind stack; otherwise manually adapt ideas while preserving project style, accessibility, performance, and security.
