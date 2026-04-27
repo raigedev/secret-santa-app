@@ -22,7 +22,7 @@ Act as a senior full-stack engineer and software architect. Code this project wi
 ### Refactoring And Architecture Review
 
 - When asked to review or refactor the codebase, first inspect the current project structure, identify architectural/code-organization problems, propose a refactor plan, and ask before making major structural changes.
-- Use Oracle (`@steipete/oracle`) as the default second-opinion tool for meaningful coding, refactor, security, performance, architecture, and non-trivial UI/design changes when practical.
+- Proactively decide when to use Oracle (`@steipete/oracle`) as the default second-opinion tool for meaningful coding, refactor, security, performance, architecture, and non-trivial UI/design changes when practical; the user does not need to ask for it by name.
 - Preserve existing behavior unless the user explicitly asks for a behavior change.
 - Prefer clear module boundaries over large files, while avoiding unnecessary abstractions.
 - Keep functions small and focused.
@@ -230,7 +230,7 @@ Act as a senior full-stack engineer and software architect. Code this project wi
 
 ### Oracle Second Opinion
 
-- Use the installed `oracle` skill and `@steipete/oracle` CLI as a second-opinion reviewer for meaningful source changes, risky refactors, security-sensitive work, performance investigations, architecture decisions, and complex UI/design changes.
+- Use the installed `oracle` skill and `@steipete/oracle` CLI as a second-opinion reviewer for meaningful source changes, risky refactors, security-sensitive work, performance investigations, architecture decisions, and complex UI/design changes. Decide this automatically when the work meets those criteria; do not wait for the user to trigger Oracle explicitly.
 - Skip Oracle for documentation-only edits, tiny copy/style tweaks, mechanical formatting, or emergency fixes where it would add delay without reducing risk.
 - Always run a no-send preview first with `npx -y @steipete/oracle --dry-run summary --files-report ...` and attach the smallest safe file set.
 - Never attach `.env*`, secrets, tokens, cookies, private logs, database dumps, screenshots containing sensitive data, or user private data.

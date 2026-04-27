@@ -15,6 +15,7 @@
 - 2026-04-27T05:22:00+08:00 [USER] For UI work, prefer Codex App Browser interaction flow when available: local dev server, built-in Browser on localhost, user screenshots/annotations on specific UI elements, then code patch plus Playwright verification.
 - 2026-04-27T21:45:06+08:00 [CODE] Root `DESIGN.md` is now the Stitch-style design source of truth; future UI work should read it before changing app screens.
 - 2026-04-27T22:22:34+08:00 [TOOL] Installed Oracle skill in `.codex/skills/oracle` and `.agents/skills/oracle`; use `@steipete/oracle` as a second-opinion reviewer for meaningful/risky work with dry-run, minimal files, and no secrets.
+- 2026-04-27T22:28:40+08:00 [USER] Codex should decide automatically when to use Oracle; the user does not need to ask for Oracle by name.
 
 ## Security And Product Decisions
 - 2026-04-20T00:00:00+08:00 [USER] Use Stitch MCP for UI design context, design tokens, screen metadata, and Stitch implementation details.
