@@ -22,10 +22,27 @@ npm.cmd run test:e2e
 For dependency changes, also run:
 
 ```powershell
-npm.cmd audit
+npm.cmd run audit:security
 ```
 
 Do not run `npm audit fix --force` without reviewing the proposed dependency changes.
+
+Before larger refactors, run:
+
+```powershell
+npm.cmd run audit:architecture
+npm.cmd run audit:unused:production
+```
+
+## GitHub Workflows
+
+The repository has three GitHub workflow guardrails:
+
+- `CI`: installs with `npm ci`, runs project diagnostics, architecture checks, dependency/security audit, build, and Chromium public smoke tests.
+- `CodeQL`: runs JavaScript/TypeScript semantic security analysis and uploads findings to GitHub code scanning.
+- `Dependency Review`: checks pull-request dependency changes and blocks high-severity vulnerable additions.
+
+The CI workflow uses dummy non-secret Supabase values only so the app can compile. Real secrets stay in Vercel and local ignored `.env.local`.
 
 ## Environment Variables
 
@@ -89,4 +106,3 @@ http://127.0.0.1:3000/**
 ```
 
 Production OAuth URLs must stay scoped to approved production/preview domains.
-

@@ -88,10 +88,23 @@ Failure artifacts are written to ignored `test-results/` and `playwright-report/
 
 ## Maintenance Audits
 
+Security dependency audit:
+
+```powershell
+npm.cmd run audit:security
+```
+
+Architecture boundary audit:
+
+```powershell
+npm.cmd run audit:architecture
+```
+
 Dead-code audit:
 
 ```powershell
 npm.cmd run audit:unused
+npm.cmd run audit:unused:production
 ```
 
 This uses Knip in advisory mode. It intentionally does not fail the command yet because the repo has a small baseline of cleanup findings.
@@ -104,3 +117,16 @@ npm.cmd run analyze:bundle
 
 This uses the Next.js Turbopack analyzer and writes output under `.next/diagnostics/analyze`.
 
+## GitHub Checks
+
+The GitHub CI workflow runs:
+
+- `npm ci`
+- `npm run check:problems`
+- `npm run audit:architecture`
+- `npm run audit:unused:production`
+- `npm run audit:security`
+- `npm run build`
+- Chromium public smoke tests
+
+CodeQL and Dependency Review run separately as security-focused workflows.

@@ -92,6 +92,23 @@ Keep expensive authenticated panels deferred when possible, but do not defer sec
 
 Use `npm.cmd run analyze:bundle` when adding heavy UI libraries or large client components.
 
+## Architecture Guardrails
+
+Use dependency-cruiser before and after larger refactors:
+
+```powershell
+npm.cmd run audit:architecture
+```
+
+Current enforced boundaries:
+
+- imports must resolve
+- shared `lib/` and `utils/` code must not import route/UI modules from `app/`
+- production source and scripts must not import from `tests/`
+- circular dependencies are reported as warnings
+
+Keep this config focused on rules that catch real maintainability risk. Do not add noisy rules that developers learn to ignore.
+
 ## Adding New Features
 
 1. Decide the route/API owner.
@@ -100,4 +117,3 @@ Use `npm.cmd run analyze:bundle` when adding heavy UI libraries or large client 
 4. Add loading, empty, and error states.
 5. Add focused Playwright coverage for user-facing flows.
 6. Run the required checks before handoff.
-

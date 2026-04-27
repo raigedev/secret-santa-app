@@ -41,9 +41,14 @@ npm.cmd run test:e2e
 Useful audits:
 
 ```powershell
+npm.cmd run audit:security
+npm.cmd run audit:architecture
 npm.cmd run audit:unused
+npm.cmd run audit:unused:production
 npm.cmd run analyze:bundle
 ```
+
+GitHub also runs CI, CodeQL, and dependency review workflows for pushed branches and pull requests.
 
 ## Project Docs
 

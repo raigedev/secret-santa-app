@@ -1,5 +1,11 @@
 {
   "$schema": "https://unpkg.com/knip@6/schema-jsonc.json",
+  "ignore": [
+    "scripts/check-vscode-problems.mjs",
+    "scripts/prepare-husky.mjs",
+    "tests/e2e/fixtures/routes.ts",
+    "tests/e2e/helpers/*.ts"
+  ],
   "ignoreDependencies": [
     "supabase"
   ],

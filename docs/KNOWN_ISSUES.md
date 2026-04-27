@@ -25,7 +25,7 @@ http://127.0.0.1:3000/**
 
 ## Knip Cleanup Baseline
 
-`npm.cmd run audit:unused` is advisory. Current known cleanup findings include:
+`npm.cmd run audit:unused` and `npm.cmd run audit:unused:production` are advisory. Current known cleanup findings include:
 
 - `app/dashboard/SecretSantaCard.tsx` appears unused.
 - Some exported helpers/types are currently not referenced by static imports.
@@ -36,7 +36,13 @@ Review each finding before deleting files or removing exports. Some exported sym
 
 The Sentry skill is installed for future guidance, but the app is not wired to Sentry.
 
-Do not add Sentry runtime code until the project has chosen DSN, sampling, replay, source-map upload, PII, and privacy-policy settings.
+Sentry is an error-monitoring and performance-observability service. It can capture frontend/backend errors, stack traces, slow transactions, and optional session replay so production bugs are easier to diagnose.
+
+Do not add Sentry runtime code until the project has chosen DSN, sampling, replay, source-map upload, PII, and privacy-policy settings. If it is added later, update `/privacy` to describe the monitoring provider and data handling.
+
+## GitHub Security Workflows
+
+`CI`, `CodeQL`, and `Dependency Review` workflows are present. They improve pull-request and push checks but do not replace local checks, Vercel preview testing, or manual security review.
 
 ## Oracle Browser Sessions
 
