@@ -181,6 +181,17 @@ test.describe("authenticated screen regressions", () => {
   });
 
   test("secret-santa keeps shopping picks readable", async ({ page }) => {
+    const secretSantaConsoleErrors: string[] = [];
+
+    page.on("console", (message) => {
+      if (
+        message.type() === "error" &&
+        /maximum update depth exceeded/i.test(message.text())
+      ) {
+        secretSantaConsoleErrors.push(message.text());
+      }
+    });
+
     await loginWithTestCredentials(page, credentials!);
     await page.goto("/secret-santa");
     await page.getByLabel(/online shop region/i).selectOption({ label: "Philippines" });
@@ -356,6 +367,7 @@ test.describe("authenticated screen regressions", () => {
         .filter((overlap) => overlap !== null)
     );
     expect(overlappingCardHeaders).toEqual([]);
+    expect(secretSantaConsoleErrors).toEqual([]);
   });
 
   test("secret-santa wishlist rail does not trap page scrolling", async ({ page, isMobile }) => {

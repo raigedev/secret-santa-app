@@ -1356,7 +1356,7 @@ export default function SecretSantaPage() {
 
         const existingMatchState = matchedLazadaProductsByKeyRef.current[requestKey];
 
-        if (existingMatchState && !existingMatchState.loading) {
+        if (existingMatchState) {
           continue;
         }
 
