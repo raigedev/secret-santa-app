@@ -139,19 +139,28 @@ const MAX_GROUP_ROUTE_PREFETCH = 8;
 const AI_SUGGESTION_REQUEST_TIMEOUT_MS = 18000;
 const MAX_VISIBLE_RECIPIENT_WISHLIST_ITEMS = 3;
 const PAGE_BACKGROUND =
-  "repeating-linear-gradient(90deg,rgba(72,102,78,.075) 0 1px,transparent 1px 56px), repeating-linear-gradient(180deg,rgba(72,102,78,.055) 0 1px,transparent 1px 56px), repeating-linear-gradient(135deg,rgba(164,60,63,.045) 0 1px,transparent 1px 34px), linear-gradient(155deg,rgba(255,252,245,.92) 0%,rgba(255,252,245,0) 32%), linear-gradient(180deg,#f6faf6 0%,#edf3ef 52%,#dfe8e2 100%)";
+  "repeating-linear-gradient(90deg,rgba(72,102,78,.12) 0 1px,transparent 1px 44px), repeating-linear-gradient(180deg,rgba(72,102,78,.095) 0 1px,transparent 1px 44px), repeating-linear-gradient(135deg,rgba(164,60,63,.07) 0 2px,transparent 2px 38px), repeating-linear-gradient(45deg,rgba(252,206,114,.12) 0 1px,transparent 1px 64px), linear-gradient(180deg,#f7fbf6 0%,#edf4ee 52%,#dfe9e2 100%)";
 const PAGE_TEXT_COLOR = "#2e3432";
 const TEXT_MUTED = "#5b605e";
 const TEXT_SOFT = "#777c7a";
-const SURFACE_BACKGROUND = "rgba(255,255,255,.9)";
-const SURFACE_BORDER = "1px solid rgba(174,179,177,.1)";
+const SURFACE_BACKGROUND = "rgba(255,255,255,.94)";
+const SURFACE_BORDER = "2px solid rgba(72,102,78,.2)";
 const SURFACE_HEADER_BACKGROUND =
-  "linear-gradient(135deg,rgba(255,255,255,.9),rgba(236,239,236,.86))";
-const SURFACE_HEADER_BORDER = "1px solid rgba(174,179,177,.08)";
-const SURFACE_SHADOW = "0 28px 68px rgba(46,52,50,.07)";
-const SHOPPING_CARD_BORDER = "2px solid rgba(72,102,78,.3)";
+  "linear-gradient(135deg,rgba(255,255,255,.98),rgba(232,241,234,.92))";
+const SURFACE_HEADER_BORDER = "1px solid rgba(72,102,78,.16)";
+const SURFACE_SHADOW =
+  "0 34px 78px rgba(46,52,50,.1), 0 0 0 6px rgba(255,255,255,.42)";
+const FRAMED_SURFACE_BACKGROUND =
+  "linear-gradient(180deg,#fffefa 0%,#f5faf5 58%,#edf5ef 100%)";
+const SHOPPING_CARD_BACKGROUND =
+  "linear-gradient(180deg,#fffefa 0%,#f8fbf7 62%,#f0f6f1 100%)";
+const SHOPPING_CARD_BORDER = "2px solid rgba(72,102,78,.42)";
 const SHOPPING_CARD_SHADOW =
-  "0 22px 48px rgba(46,52,50,.075), inset 0 1px 0 rgba(255,255,255,.86)";
+  "0 28px 62px rgba(46,52,50,.12), 0 0 0 6px rgba(255,255,255,.56), inset 0 1px 0 rgba(255,255,255,.94)";
+const SHOPPING_CARD_TOP_RULE =
+  "linear-gradient(90deg,rgba(252,206,114,.95),rgba(72,102,78,.5) 48%,rgba(164,60,63,.56))";
+const SHOPPING_PANEL_SHADOW =
+  "0 30px 68px rgba(46,52,50,.2), 0 0 0 6px rgba(255,255,255,.62), inset 0 -1px 0 rgba(72,102,78,.18)";
 const INPUT_BACKGROUND = "rgba(255,255,255,.92)";
 const INPUT_BORDER = "1px solid rgba(174,179,177,.2)";
 const INPUT_TEXT = "#2e3432";
@@ -1793,8 +1802,9 @@ export default function SecretSantaPage() {
         aria-hidden="true"
         className="pointer-events-none fixed inset-y-0 left-4 right-4 z-0 mx-auto hidden max-w-7xl border-x sm:block"
         style={{
-          borderColor: "rgba(72,102,78,.12)",
-          boxShadow: "inset 1px 0 0 rgba(255,255,255,.56), inset -1px 0 0 rgba(255,255,255,.56)",
+          borderColor: "rgba(72,102,78,.22)",
+          boxShadow:
+            "inset 2px 0 0 rgba(255,255,255,.72), inset -2px 0 0 rgba(255,255,255,.72)",
         }}
       />
       <style>{`
@@ -1821,15 +1831,18 @@ export default function SecretSantaPage() {
         </button>
 
         <section
-          className="relative mb-4 overflow-hidden rounded-[30px] p-4 sm:p-5 lg:p-6"
+          className="relative mb-4 overflow-hidden rounded-[32px] p-4 sm:p-5 lg:p-6"
           style={{
-            background:
-              "linear-gradient(135deg,rgba(255,255,255,.94),rgba(236,239,236,.86) 48%,rgba(255,245,229,.74))",
-            border: "1px solid rgba(174,179,177,.09)",
-            boxShadow: "0 22px 54px rgba(46,52,50,.07)",
-            backdropFilter: "blur(20px)",
+            background: FRAMED_SURFACE_BACKGROUND,
+            border: "2px solid rgba(72,102,78,.28)",
+            boxShadow: SURFACE_SHADOW,
           }}
         >
+          <div
+            aria-hidden="true"
+            className="absolute inset-x-6 top-0 h-1.5 rounded-b-full"
+            style={{ background: SHOPPING_CARD_TOP_RULE }}
+          />
           <div className="relative grid gap-4 lg:grid-cols-[minmax(0,1fr)_260px] lg:items-center">
             <div>
               <div
@@ -2051,21 +2064,23 @@ export default function SecretSantaPage() {
             {assignments.map((assignment, index) => (
               <div
                 key={assignment.group_id}
-                className="overflow-visible rounded-[34px] transition"
+                className="relative overflow-visible rounded-[34px] transition"
                 style={{
-                  background:
-                    "linear-gradient(180deg,rgba(249,250,248,.82),rgba(238,243,239,.72))",
-                  border: "2px solid rgba(72,102,78,.16)",
-                  boxShadow:
-                    "0 24px 62px rgba(46,52,50,.07), inset 0 1px 0 rgba(255,255,255,.72)",
+                  background: FRAMED_SURFACE_BACKGROUND,
+                  border: "2px solid rgba(72,102,78,.26)",
+                  boxShadow: SURFACE_SHADOW,
                 }}
               >
                 <div
+                  aria-hidden="true"
+                  className="absolute inset-x-8 top-0 h-1.5 rounded-b-full"
+                  style={{ background: SHOPPING_CARD_TOP_RULE }}
+                />
+                <div
                   className="flex flex-col gap-4 rounded-t-[34px] p-5 sm:flex-row sm:items-center sm:justify-between sm:p-6"
                   style={{
-                    background:
-                      "linear-gradient(135deg,rgba(255,255,255,.86),rgba(248,250,248,.72))",
-                    borderBottom: "1px solid rgba(72,102,78,.09)",
+                    background: SURFACE_HEADER_BACKGROUND,
+                    borderBottom: SURFACE_HEADER_BORDER,
                   }}
                 >
                   <div className="flex items-center gap-3">
@@ -2389,15 +2404,19 @@ export default function SecretSantaPage() {
                           <div
                             id={`wishlist-${assignment.group_id}`}
                             data-testid="recipient-wishlist-rail"
-                            className="self-start space-y-4 rounded-[44px] p-5 sm:p-7 lg:sticky lg:top-4"
+                            className="relative self-start space-y-4 overflow-hidden rounded-[44px] p-5 sm:p-7 lg:sticky lg:top-4"
                             style={{
-                              background:
-                                "linear-gradient(180deg,rgba(249,251,249,.98),rgba(231,238,233,.96))",
-                              border: "2px solid rgba(72,102,78,.26)",
+                              background: FRAMED_SURFACE_BACKGROUND,
+                              border: "2px solid rgba(72,102,78,.36)",
                               boxShadow:
-                                "0 26px 60px rgba(46,52,50,.085), inset 0 1px 0 rgba(255,255,255,.9)",
+                                "0 28px 64px rgba(46,52,50,.12), 0 0 0 6px rgba(255,255,255,.42), inset 0 1px 0 rgba(255,255,255,.94)",
                             }}
                           >
+                            <div
+                              aria-hidden="true"
+                              className="absolute inset-x-7 top-0 h-1.5 rounded-b-full"
+                              style={{ background: SHOPPING_CARD_TOP_RULE }}
+                            />
                             <div className="mb-4 flex items-center justify-between gap-4">
                               <div className="flex min-w-0 items-center gap-3">
                                 <span
@@ -2478,14 +2497,14 @@ export default function SecretSantaPage() {
                                   className="w-full rounded-[30px] p-4 text-left transition hover:-translate-y-0.5 sm:p-5"
                                   style={{
                                     background: isActiveItem
-                                      ? "linear-gradient(135deg,#fffefd,rgba(255,247,247,.98))"
-                                      : "linear-gradient(135deg,rgba(255,255,255,.86),rgba(247,250,247,.72))",
+                                      ? "linear-gradient(135deg,#fffdf7 0%,rgba(255,238,238,.98) 100%)"
+                                      : "linear-gradient(135deg,#fffefa 0%,rgba(244,249,244,.9) 100%)",
                                     border: isActiveItem
-                                      ? "2px solid rgba(164,60,63,.42)"
-                                      : "2px solid rgba(72,102,78,.22)",
+                                      ? "2px solid rgba(164,60,63,.58)"
+                                      : "2px solid rgba(72,102,78,.28)",
                                     boxShadow: isActiveItem
-                                      ? "0 20px 44px rgba(164,60,63,.13), inset 0 1px 0 rgba(255,255,255,.92)"
-                                      : "0 10px 24px rgba(46,52,50,.04), inset 0 1px 0 rgba(255,255,255,.82)",
+                                      ? "0 22px 48px rgba(164,60,63,.16), 0 0 0 4px rgba(255,255,255,.54), inset 0 1px 0 rgba(255,255,255,.94)"
+                                      : "0 12px 28px rgba(46,52,50,.06), inset 0 1px 0 rgba(255,255,255,.86)",
                                     cursor: "pointer",
                                     fontFamily: "inherit",
                                   }}
@@ -2616,18 +2635,22 @@ export default function SecretSantaPage() {
                                 <section
                                   id={`direction-${assignment.group_id}`}
                                   data-testid="shopping-option-panel"
-                                  className="sticky top-0 z-50 min-w-0 overflow-hidden rounded-b-[22px] p-3 sm:p-4"
+                                  className="sticky top-0 z-50 min-w-0 overflow-hidden rounded-b-[24px] p-3 sm:p-4"
                                   style={{
                                     backgroundColor: "#ffffff",
                                     backgroundImage:
-                                      "linear-gradient(135deg,#eef4ef 0%,#ffffff 58%,#fbfcfa 100%)",
-                                    border: "2px solid rgba(72,102,78,.3)",
+                                      "linear-gradient(135deg,#e7f1e9 0%,#ffffff 48%,#fff8e7 100%)",
+                                    border: "2px solid rgba(72,102,78,.42)",
                                     borderTop: "none",
                                     color: PAGE_TEXT_COLOR,
-                                    boxShadow:
-                                      "0 24px 58px rgba(46,52,50,.16), inset 0 -1px 0 rgba(72,102,78,.12)",
+                                    boxShadow: SHOPPING_PANEL_SHADOW,
                                   }}
                                 >
+                                  <div
+                                    aria-hidden="true"
+                                    className="absolute inset-x-5 top-0 h-1.5 rounded-b-full"
+                                    style={{ background: SHOPPING_CARD_TOP_RULE }}
+                                  />
                                   <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                                     <div>
                                       <h3
@@ -2716,19 +2739,25 @@ export default function SecretSantaPage() {
                                 <div className="min-w-0 space-y-4">
                                   <div
                                     data-testid="featured-lazada-card"
-                                    className="group min-w-0 overflow-hidden rounded-[22px]"
+                                    className="group relative min-w-0 overflow-hidden rounded-[24px]"
                                     style={{
-                                      background:
-                                        "linear-gradient(135deg,#fffefd,rgba(246,250,247,.96))",
+                                      background: SHOPPING_CARD_BACKGROUND,
                                       border: SHOPPING_CARD_BORDER,
                                       boxShadow: SHOPPING_CARD_SHADOW,
                                     }}
                                   >
+                                    <div
+                                      aria-hidden="true"
+                                      className="absolute inset-x-6 top-0 h-1.5 rounded-b-full"
+                                      style={{ background: SHOPPING_CARD_TOP_RULE }}
+                                    />
                                     <div className="grid min-w-0 gap-0 md:grid-cols-[minmax(112px,140px)_minmax(0,1fr)]">
                                     <div
-                                      className="relative flex min-h-[108px] min-w-0 items-center justify-center overflow-hidden bg-white p-2 text-[30px] sm:min-h-[116px] lg:min-h-[124px]"
+                                      className="relative flex min-h-[108px] min-w-0 items-center justify-center overflow-hidden p-2 text-[30px] sm:min-h-[116px] lg:min-h-[124px]"
                                       style={{
-                                        borderRight: "1px solid rgba(174,179,177,.08)",
+                                        background:
+                                          "linear-gradient(180deg,#ffffff 0%,#f1f7f2 100%)",
+                                        borderRight: "1px solid rgba(72,102,78,.18)",
                                       }}
                                     >
                                       {heroLazadaImageUrl ? (
@@ -2935,10 +2964,9 @@ export default function SecretSantaPage() {
                                                 <div
                                                   key={product.id}
                                                   data-testid="curated-shopping-card"
-                                                  className="flex h-full min-w-0 flex-col overflow-hidden rounded-[24px] transition hover:-translate-y-0.5"
+                                                  className="relative flex h-full min-w-0 flex-col overflow-hidden rounded-[26px] transition hover:-translate-y-0.5"
                                                   style={{
-                                                    background:
-                                                      "linear-gradient(180deg,#fffefd 0%,rgba(249,252,249,.98) 100%)",
+                                                    background: SHOPPING_CARD_BACKGROUND,
                                                     border: SHOPPING_CARD_BORDER,
                                                     color: PAGE_TEXT_COLOR,
                                                     boxShadow:
@@ -2946,6 +2974,13 @@ export default function SecretSantaPage() {
                                                     cursor: "default",
                                                   }}
                                                 >
+                                                  <div
+                                                    aria-hidden="true"
+                                                    className="absolute inset-x-5 top-0 h-1.5 rounded-b-full"
+                                                    style={{
+                                                      background: SHOPPING_CARD_TOP_RULE,
+                                                    }}
+                                                  />
                                                   <div className="grid min-h-[44px] min-w-0 grid-cols-[minmax(5.5rem,1fr)_minmax(7rem,9rem)] items-start gap-2 px-4 pt-4">
                                                     <span
                                                       data-testid="curated-shopping-role-label"
@@ -2980,10 +3015,12 @@ export default function SecretSantaPage() {
                                                     </div>
                                                   </div>
                                                   <div
-                                                    className="flex aspect-[16/9] min-w-0 items-center justify-center overflow-hidden bg-white p-3"
+                                                    className="flex aspect-[16/9] min-w-0 items-center justify-center overflow-hidden p-3"
                                                     style={{
+                                                      background:
+                                                        "linear-gradient(180deg,#ffffff 0%,#f2f7f3 100%)",
                                                       borderBottom:
-                                                        "1px solid rgba(72,102,78,.14)",
+                                                        "1px solid rgba(72,102,78,.2)",
                                                     }}
                                                   >
                                                     {productImageUrl ? (

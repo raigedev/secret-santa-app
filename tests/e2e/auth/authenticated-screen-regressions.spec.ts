@@ -269,7 +269,7 @@ test.describe("authenticated screen regressions", () => {
             style.borderLeftStyle,
           ];
           const hasVisibleBorder = borderWidths.some(
-            (width, borderIndex) => width >= 1.4 && borderStyles[borderIndex] !== "none"
+            (width, borderIndex) => width >= 1.9 && borderStyles[borderIndex] !== "none"
           );
 
           return {
@@ -402,8 +402,13 @@ test.describe("authenticated screen regressions", () => {
     const overlappingCardHeaders = await curatedCards.evaluateAll((cards) =>
       cards
         .map((card, index) => {
-          const header = card.children.item(0);
-          const media = card.children.item(1);
+          const contentChildren = Array.from(card.children).filter(
+            (child): child is HTMLElement =>
+              child instanceof HTMLElement &&
+              child.getAttribute("aria-hidden") !== "true"
+          );
+          const header = contentChildren[0];
+          const media = contentChildren[1];
 
           if (!(header instanceof HTMLElement) || !(media instanceof HTMLElement)) {
             return { index, reason: "missing header or media" };
