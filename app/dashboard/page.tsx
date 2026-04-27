@@ -24,6 +24,7 @@ import { DashboardGroupsSection } from "./DashboardGroupsSection";
 import { DashboardHeader } from "./DashboardHeader";
 import { DashboardHero } from "./DashboardHero";
 import { DashboardInvitesSection } from "./DashboardInvitesSection";
+import { DashboardNotificationsPanel } from "./DashboardNotificationsPanel";
 import { DashboardProfileMenu } from "./DashboardProfileMenu";
 import { DashboardQuickActions } from "./DashboardQuickActions";
 import { DashboardSidebar } from "./DashboardSidebar";
@@ -99,8 +100,10 @@ export default function DashboardPage() {
   });
   const [loading, setLoading] = useState(true);
   const [showProfileSetup, setShowProfileSetup] = useState(false);
+  const [notificationsPanelOpen, setNotificationsPanelOpen] = useState(false);
   const [actionMessage, setActionMessage] = useState<ActionMessage>(null);
   const [deletingGroupId, setDeletingGroupId] = useState<string | null>(null);
+  const notificationButtonRef = useRef<HTMLButtonElement | null>(null);
   const {
     closeProfileMenu,
     profileMenuOpen,
@@ -993,6 +996,18 @@ export default function DashboardPage() {
   const handleOpenGroup = (groupId: string) => {
     router.push(`/group/${groupId}`);
   };
+  const openNotificationsPanel = () => {
+    closeProfileMenu();
+    setNotificationsPanelOpen(true);
+  };
+  const toggleNotificationsPanel = () => {
+    closeProfileMenu();
+    setNotificationsPanelOpen((current) => !current);
+  };
+  const toggleProfilePanel = () => {
+    setNotificationsPanelOpen(false);
+    toggleProfileMenu();
+  };
 
   return (
     <main className={dashboardShellClass}>
@@ -1015,20 +1030,29 @@ export default function DashboardPage() {
           onLogout={() => void handleLogout()}
         />
       )}
+      <DashboardNotificationsPanel
+        anchorRef={notificationButtonRef}
+        isDarkTheme={isDarkTheme}
+        open={notificationsPanelOpen}
+        onClose={() => setNotificationsPanelOpen(false)}
+        onUnreadCountChange={setUnreadNotificationCount}
+      />
 
       <DashboardHeader
         canViewAffiliateReport={canViewAffiliateReport}
         isDarkTheme={isDarkTheme}
+        notificationButtonRef={notificationButtonRef}
+        notificationsPanelOpen={notificationsPanelOpen}
         profileMenuOpen={profileMenuOpen}
         profileMenuRef={profileMenuRef}
         unreadNotificationCount={unreadNotificationCount}
         onGoDashboard={() => router.push("/dashboard")}
         onGoWishlist={() => router.push("/wishlist")}
-        onGoNotifications={() => router.push("/notifications")}
         onGoAffiliateReport={() => router.push("/dashboard/affiliate-report")}
         onScrollToActivity={() => document.getElementById("dashboard-activity")?.scrollIntoView({ behavior: "smooth" })}
         onScrollToGroups={() => document.getElementById("dashboard-groups")?.scrollIntoView({ behavior: "smooth" })}
-        onToggleProfileMenu={toggleProfileMenu}
+        onToggleNotifications={toggleNotificationsPanel}
+        onToggleProfileMenu={toggleProfilePanel}
         onToggleTheme={() => setDashboardTheme((current) => (current === "midnight" ? "default" : "midnight"))}
       />
 
@@ -1079,7 +1103,7 @@ export default function DashboardPage() {
             unreadNotificationCount={unreadNotificationCount}
             wishlistGroupCount={wishlistGroupCount}
             wishlistItemCount={wishlistItemCount}
-            onGoNotifications={() => router.push("/notifications")}
+            onGoNotifications={openNotificationsPanel}
             onGoSecretSanta={() => router.push("/secret-santa")}
             onGoWishlist={() => router.push("/wishlist")}
             onOpenPath={(path) => router.push(path)}

@@ -25,6 +25,12 @@ const AUTHENTICATED_SCREEN_CASES: ScreenCase[] = [
     assertVisible: async (page) => {
       await expect(page.getByRole("button", { name: /open profile menu/i })).toBeVisible();
       await expect(page.getByText(/your groups/i)).toBeVisible();
+
+      await page.getByRole("button", { name: /open notifications/i }).click();
+      await expect(page.getByTestId("dashboard-notifications-panel")).toBeVisible();
+      await expect(page.getByRole("button", { name: /^all$/i })).toBeVisible();
+      await expect(page.getByRole("button", { name: /^unread$/i })).toBeVisible();
+      await expect(page).toHaveURL(/\/dashboard$/);
     },
   },
   {

@@ -4,15 +4,17 @@ import { BellIcon, SantaMarkIcon, ThemeIcon, UserOutlineIcon } from "./dashboard
 type DashboardHeaderProps = {
   canViewAffiliateReport: boolean;
   isDarkTheme: boolean;
+  notificationButtonRef: RefObject<HTMLButtonElement | null>;
+  notificationsPanelOpen: boolean;
   profileMenuOpen: boolean;
   profileMenuRef: RefObject<HTMLDivElement | null>;
   unreadNotificationCount: number;
   onGoDashboard: () => void;
   onGoWishlist: () => void;
-  onGoNotifications: () => void;
   onGoAffiliateReport: () => void;
   onScrollToActivity: () => void;
   onScrollToGroups: () => void;
+  onToggleNotifications: () => void;
   onToggleProfileMenu: () => void;
   onToggleTheme: () => void;
 };
@@ -20,15 +22,17 @@ type DashboardHeaderProps = {
 export function DashboardHeader({
   canViewAffiliateReport,
   isDarkTheme,
+  notificationButtonRef,
+  notificationsPanelOpen,
   profileMenuOpen,
   profileMenuRef,
   unreadNotificationCount,
   onGoDashboard,
   onGoWishlist,
-  onGoNotifications,
   onGoAffiliateReport,
   onScrollToActivity,
   onScrollToGroups,
+  onToggleNotifications,
   onToggleProfileMenu,
   onToggleTheme,
 }: DashboardHeaderProps) {
@@ -123,9 +127,18 @@ export function DashboardHeader({
             </button>
           )}
           <button
+            ref={notificationButtonRef}
             type="button"
-            onClick={onGoNotifications}
-            className={utilityButtonClass}
+            onClick={onToggleNotifications}
+            className={`${utilityButtonClass} ${
+              notificationsPanelOpen
+                ? isDarkTheme
+                  ? "bg-blue-500/20"
+                  : "bg-blue-50"
+                : ""
+            }`}
+            aria-haspopup="dialog"
+            aria-expanded={notificationsPanelOpen}
             aria-label={unreadNotificationCount > 0 ? `Open notifications, ${unreadNotificationCount} unread` : "Open notifications"}
             title="Open notifications"
           >

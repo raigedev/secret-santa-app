@@ -152,7 +152,14 @@ export function DashboardSidebar({
                 <button
                   key={item.id}
                   type="button"
-                  onClick={() => onOpenPath(item.href || "/notifications")}
+                  onClick={() => {
+                    if (item.href) {
+                      onOpenPath(item.href);
+                      return;
+                    }
+
+                    onGoNotifications();
+                  }}
                   className="flex w-full items-center gap-3 rounded-[20px] p-3 text-left transition hover:bg-slate-500/5"
                 >
                   <span className={`inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-lg ${theme.iconShell}`}>
@@ -178,7 +185,7 @@ export function DashboardSidebar({
             isDarkTheme ? "bg-slate-800 text-slate-100" : "bg-slate-50 text-slate-700"
           }`}
         >
-          Go to Inbox
+          See notifications
           {unreadNotificationCount > 0 && (
             <span className="rounded-full bg-rose-500 px-2 py-0.5 text-[11px] text-white">
               {unreadNotificationCount}
