@@ -22,6 +22,7 @@ Act as a senior full-stack engineer and software architect. Code this project wi
 ### Refactoring And Architecture Review
 
 - When asked to review or refactor the codebase, first inspect the current project structure, identify architectural/code-organization problems, propose a refactor plan, and ask before making major structural changes.
+- Use Oracle (`@steipete/oracle`) as the default second-opinion tool for meaningful coding, refactor, security, performance, architecture, and non-trivial UI/design changes when practical.
 - Preserve existing behavior unless the user explicitly asks for a behavior change.
 - Prefer clear module boundaries over large files, while avoiding unnecessary abstractions.
 - Keep functions small and focused.
@@ -226,6 +227,16 @@ Act as a senior full-stack engineer and software architect. Code this project wi
 - External API and remote-service calls must be read-only unless the user explicitly requests a write operation.
 - For remote write operations, dry-run first when supported and present the expected outcome before executing.
 - Never execute destructive operations such as `DELETE`, `DROP`, overwrite, force-push, production data mutation, or live webhook/payment side effects without showing the exact command/action and getting confirmation.
+
+### Oracle Second Opinion
+
+- Use the installed `oracle` skill and `@steipete/oracle` CLI as a second-opinion reviewer for meaningful source changes, risky refactors, security-sensitive work, performance investigations, architecture decisions, and complex UI/design changes.
+- Skip Oracle for documentation-only edits, tiny copy/style tweaks, mechanical formatting, or emergency fixes where it would add delay without reducing risk.
+- Always run a no-send preview first with `npx -y @steipete/oracle --dry-run summary --files-report ...` and attach the smallest safe file set.
+- Never attach `.env*`, secrets, tokens, cookies, private logs, database dumps, screenshots containing sensitive data, or user private data.
+- Prefer browser or render/copy mode for routine second opinions. API mode can spend money and requires explicit user approval before use.
+- Treat Oracle output as advisory. Verify suggestions against the repo, existing security rules, tests, and the user’s requested behavior before applying changes.
+- If Oracle times out or detaches, reattach to the existing session instead of re-running the same prompt.
 
 ### Accuracy and Sourcing
 
