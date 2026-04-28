@@ -82,6 +82,7 @@ const AUTHENTICATED_SCREEN_CASES: ScreenCase[] = [
     assertVisible: async (page) => {
       await expect(page.getByText(/^my wishlist$/i)).toBeVisible();
       await expect(page.getByRole("button", { name: /open gift planning/i })).toBeVisible();
+      await expect(page.getByRole("button", { name: /back to dashboard/i })).toHaveCount(0);
     },
   },
   {

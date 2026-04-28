@@ -596,15 +596,7 @@ export default function WishlistPage() {
       </div>
 
       <div className="relative z-10 mx-auto flex w-full max-w-7xl flex-col gap-6">
-        <header className="flex flex-col gap-4 rounded-[32px] bg-white/75 p-3 shadow-[0_24px_70px_rgba(46,52,50,0.07)] backdrop-blur-xl sm:flex-row sm:items-center sm:justify-between">
-          <button
-            type="button"
-            onClick={() => router.push("/dashboard")}
-            className="inline-flex w-full items-center justify-center gap-2 rounded-full bg-[#f2f4f2] px-5 py-3 text-sm font-black text-[#48664e] transition hover:-translate-y-0.5 hover:bg-white sm:w-auto"
-          >
-            <span aria-hidden="true">{"<-"}</span>
-            Back to Dashboard
-          </button>
+        <header className="flex flex-col gap-4 rounded-[32px] bg-white/75 p-3 shadow-[0_24px_70px_rgba(46,52,50,0.07)] backdrop-blur-xl sm:flex-row sm:items-center sm:justify-end">
           <button
             type="button"
             onClick={() => router.push("/secret-santa")}
