@@ -265,6 +265,7 @@ test.describe("authenticated screen regressions", () => {
     const santaHelper = page.getByTestId("santa-helper");
     await expect(santaHelper).toBeVisible();
     await expect(page.getByTestId("santa-helper-panel").first()).toBeVisible();
+    await expect(page.getByTestId("santa-helper-action-strip")).toHaveCount(0);
     await expect(page.getByText(/safest pick/i).first()).toBeVisible();
     await expect(page.getByTestId("santa-helper-toggle")).toHaveAttribute(
       "aria-label",

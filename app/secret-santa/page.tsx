@@ -1105,83 +1105,6 @@ function SantaShoppingHelper() {
   );
 }
 
-function SantaHelperActionStrip() {
-  const actions = [
-    ["Idle bob", "0"],
-    ["Wave hello", "1"],
-    ["Sparkle magic", "2"],
-    ["Giving advice", "3"],
-  ] as const;
-
-  return (
-    <aside
-      data-testid="santa-helper-action-strip"
-      className="fixed bottom-3 left-[calc(17.5rem+2rem)] right-[23rem] z-20 hidden min-h-[86px] items-center justify-between gap-5 overflow-hidden rounded-[24px] px-6 py-3 2xl:flex"
-      style={{
-        background:
-          "linear-gradient(180deg,rgba(255,254,250,.98),rgba(248,251,247,.96))",
-        border: "1px solid rgba(72,102,78,.18)",
-        boxShadow:
-          "0 22px 54px rgba(46,52,50,.12), inset 0 1px 0 rgba(255,255,255,.94)",
-      }}
-      aria-label="Santa Helper motion states"
-    >
-      <div className="min-w-[11rem]">
-        <div
-          className="text-[15px] font-black"
-          style={{ color: HOLIDAY_GREEN }}
-        >
-          Santa Helper in action
-        </div>
-        <p className="mt-1 text-[11px] font-semibold" style={{ color: TEXT_MUTED }}>
-          A friendly guide for gift ideas and tips.
-        </p>
-      </div>
-      <div className="flex flex-1 items-center justify-center gap-6">
-        {actions.map(([label, delay], index) => (
-          <div key={label} className="flex items-center gap-4">
-            <div className="text-center">
-              <SantaHelperMascot
-                className="h-14 w-14"
-              />
-              <div
-                className="mt-1 text-[10px] font-bold"
-                style={{
-                  animationDelay: `${delay}s`,
-                  color: PAGE_TEXT_COLOR,
-                }}
-              >
-                {label}
-              </div>
-            </div>
-            {index < actions.length - 1 && (
-              <div
-                aria-hidden="true"
-                className="h-px w-16"
-                style={{
-                  background:
-                    "repeating-linear-gradient(90deg,rgba(164,60,63,.38) 0 8px,transparent 8px 14px)",
-                }}
-              />
-            )}
-          </div>
-        ))}
-      </div>
-      <div
-        className="min-w-[13rem] border-l pl-5"
-        style={{ borderColor: "rgba(72,102,78,.16)" }}
-      >
-        <div className="text-[13px] font-black" style={{ color: HOLIDAY_GREEN }}>
-          Always here to help
-        </div>
-        <p className="mt-1 text-[11px] font-semibold leading-snug" style={{ color: TEXT_MUTED }}>
-          Click the helper anytime for gift ideas and tips.
-        </p>
-      </div>
-    </aside>
-  );
-}
-
 function ShoppingIdeasSidebar({
   navItems,
   activeGroupName,
@@ -5389,7 +5312,6 @@ export default function SecretSantaPage() {
       </div>
 
       <SantaShoppingHelper />
-      <SantaHelperActionStrip />
       <SnowEffect />
     </main>
   );
