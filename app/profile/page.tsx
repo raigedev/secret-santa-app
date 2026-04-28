@@ -70,6 +70,9 @@ type ProfilePageSnapshot = ClientSnapshotMetadata & {
 };
 
 const PROFILE_PAGE_SNAPSHOT_STORAGE_PREFIX = "ss_profile_page_snapshot_v1:";
+const VIEWER_NAME_STORAGE_KEY = "ss_un";
+const VIEWER_AVATAR_STORAGE_KEY = "ss_uav";
+const VIEWER_PROFILE_CHANGED_EVENT = "ss-profile-updated";
 const DEFAULT_PROFILE: Profile = {
   display_name: "",
   avatar_emoji: DEFAULT_AVATAR_EMOJI,
@@ -149,6 +152,36 @@ function normalizeProfile(data: ProfileRecord): Profile {
     notify_marketing: data.notify_marketing ?? false,
     profile_setup_complete: data.profile_setup_complete ?? false,
   };
+}
+
+function notifyShellProfileChanged(profile: Profile) {
+  if (typeof window === "undefined") {
+    return;
+  }
+
+  const displayName = profile.display_name.replace(/\s+/g, " ").trim();
+  const avatarUrl = profile.avatar_url?.trim() || null;
+
+  if (typeof sessionStorage !== "undefined") {
+    if (displayName) {
+      sessionStorage.setItem(VIEWER_NAME_STORAGE_KEY, displayName);
+    }
+
+    if (avatarUrl) {
+      sessionStorage.setItem(VIEWER_AVATAR_STORAGE_KEY, avatarUrl);
+    } else {
+      sessionStorage.removeItem(VIEWER_AVATAR_STORAGE_KEY);
+    }
+  }
+
+  window.dispatchEvent(
+    new CustomEvent(VIEWER_PROFILE_CHANGED_EVENT, {
+      detail: {
+        avatarUrl,
+        displayName,
+      },
+    })
+  );
 }
 
 function ReminderToggle({
@@ -349,6 +382,12 @@ export default function ProfilePage() {
       return;
     }
 
+    const savedProfile = {
+      ...profile,
+      profile_setup_complete: true,
+    };
+    notifyShellProfileChanged(savedProfile);
+
     const reminderResult = await saveReminderPreferences(reminderPreferences);
 
     setMessage(
@@ -363,10 +402,7 @@ export default function ProfilePage() {
           createdAt: Date.now(),
           customBudget,
           email,
-          profile: {
-            ...profile,
-            profile_setup_complete: true,
-          },
+          profile: savedProfile,
           reminderPreferences,
           userId,
         });
@@ -418,8 +454,13 @@ export default function ProfilePage() {
       }
 
       const { data } = supabase.storage.from("profile-avatars").getPublicUrl(path);
-      update("avatar_url", `${data.publicUrl}?v=${Date.now()}`);
-      setMessage("Photo uploaded. Save changes to use it across the app.");
+      const nextAvatarUrl = `${data.publicUrl}?v=${Date.now()}`;
+      update("avatar_url", nextAvatarUrl);
+      notifyShellProfileChanged({
+        ...profile,
+        avatar_url: nextAvatarUrl,
+      });
+      setMessage("Photo uploaded. Save changes to keep it across the app.");
     } finally {
       setUploadingAvatar(false);
       event.target.value = "";
@@ -428,6 +469,10 @@ export default function ProfilePage() {
 
   const handleRemovePhoto = () => {
     update("avatar_url", null);
+    notifyShellProfileChanged({
+      ...profile,
+      avatar_url: null,
+    });
     setMessage("Photo removed. Save changes to use your festive avatar again.");
   };
 

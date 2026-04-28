@@ -16,6 +16,8 @@ const HOLIDAY_GREEN = "#48664e";
 const HOLIDAY_RED = "#a43c3f";
 const TEXT_MUTED = "#64748b";
 const VIEWER_NAME_STORAGE_KEY = "ss_un";
+const VIEWER_AVATAR_STORAGE_KEY = "ss_uav";
+const VIEWER_PROFILE_CHANGED_EVENT = "ss-profile-updated";
 
 type AppNavItem = {
   href: string;
@@ -53,6 +55,37 @@ function normalizeViewerName(value: string | null | undefined) {
   return (value || "").replace(/\s+/g, " ").trim();
 }
 
+function normalizeViewerAvatarUrl(value: string | null | undefined) {
+  const trimmed = (value || "").trim();
+
+  if (!trimmed) {
+    return "";
+  }
+
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+
+  if (!supabaseUrl) {
+    return "";
+  }
+
+  try {
+    const candidate = new URL(trimmed);
+    const allowedOrigin = new URL(supabaseUrl).origin;
+    const allowedPathPrefix = "/storage/v1/object/public/profile-avatars/";
+
+    if (
+      candidate.origin !== allowedOrigin ||
+      !candidate.pathname.startsWith(allowedPathPrefix)
+    ) {
+      return "";
+    }
+
+    return `${candidate.origin}${candidate.pathname}${candidate.search}`;
+  } catch {
+    return "";
+  }
+}
+
 function getEmailViewerName(email: string | null | undefined) {
   return normalizeViewerName(email?.split("@")[0]?.replace(/[._-]+/g, " "));
 }
@@ -65,12 +98,53 @@ function readStoredViewerName() {
   return normalizeViewerName(sessionStorage.getItem(VIEWER_NAME_STORAGE_KEY));
 }
 
+function readStoredViewerAvatarUrl() {
+  if (typeof sessionStorage === "undefined") {
+    return "";
+  }
+
+  return normalizeViewerAvatarUrl(sessionStorage.getItem(VIEWER_AVATAR_STORAGE_KEY));
+}
+
 function storeViewerName(value: string) {
   const normalized = normalizeViewerName(value);
 
   if (normalized && typeof sessionStorage !== "undefined") {
     sessionStorage.setItem(VIEWER_NAME_STORAGE_KEY, normalized);
   }
+}
+
+function storeViewerAvatarUrl(value: string | null | undefined) {
+  if (typeof sessionStorage === "undefined") {
+    return;
+  }
+
+  const normalized = normalizeViewerAvatarUrl(value);
+
+  if (normalized) {
+    sessionStorage.setItem(VIEWER_AVATAR_STORAGE_KEY, normalized);
+  } else {
+    sessionStorage.removeItem(VIEWER_AVATAR_STORAGE_KEY);
+  }
+}
+
+function readViewerProfileChangedDetail(event: Event) {
+  if (!(event instanceof CustomEvent) || !event.detail || typeof event.detail !== "object") {
+    return null;
+  }
+
+  const detail = event.detail as {
+    avatarUrl?: unknown;
+    displayName?: unknown;
+  };
+
+  return {
+    avatarUrl:
+      typeof detail.avatarUrl === "string" || detail.avatarUrl === null
+        ? detail.avatarUrl
+        : undefined,
+    displayName: typeof detail.displayName === "string" ? detail.displayName : undefined,
+  };
 }
 
 function createNavItems(pathname: string, canViewAffiliateReport: boolean): AppNavItem[] {
@@ -152,6 +226,7 @@ export default function AppRouteShell({ children }: { children: ReactNode }) {
   const router = useRouter();
   const [supabase] = useState(() => createClient());
   const [viewerName, setViewerName] = useState("");
+  const [viewerAvatarUrl, setViewerAvatarUrl] = useState("");
   const [canViewAffiliateReport, setCanViewAffiliateReport] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
   const [notificationsOpen, setNotificationsOpen] = useState(false);
@@ -172,9 +247,14 @@ export default function AppRouteShell({ children }: { children: ReactNode }) {
       const userId = sessionUser?.id || null;
       const emailName = getEmailViewerName(sessionUser?.email);
       const immediateViewerName = readStoredViewerName();
+      const immediateViewerAvatarUrl = readStoredViewerAvatarUrl();
 
       if (immediateViewerName) {
         setViewerName(immediateViewerName);
+      }
+
+      if (immediateViewerAvatarUrl) {
+        setViewerAvatarUrl(immediateViewerAvatarUrl);
       }
 
       if (!userId || loadedShellContextForUserRef.current === userId) {
@@ -191,11 +271,15 @@ export default function AppRouteShell({ children }: { children: ReactNode }) {
 
           const profileName = normalizeViewerName(profile?.display_name);
           const resolvedName = profileName || readStoredViewerName() || emailName;
+          const resolvedAvatarUrl = normalizeViewerAvatarUrl(profile?.avatar_url);
 
           if (resolvedName) {
             setViewerName(resolvedName);
             storeViewerName(resolvedName);
           }
+
+          setViewerAvatarUrl(resolvedAvatarUrl);
+          storeViewerAvatarUrl(resolvedAvatarUrl || null);
         })
         .catch(() => {
           // The shell can keep the cached/email name if the profile action is temporarily unavailable.
@@ -241,6 +325,41 @@ export default function AppRouteShell({ children }: { children: ReactNode }) {
       isMounted = false;
     };
   }, [pathname, supabase]);
+
+  useEffect(() => {
+    if (!shouldUseAppShell(pathname)) {
+      return;
+    }
+
+    const handleViewerProfileChanged = (event: Event) => {
+      const detail = readViewerProfileChangedDetail(event);
+
+      if (!detail) {
+        return;
+      }
+
+      if (detail.displayName !== undefined) {
+        const nextName = normalizeViewerName(detail.displayName);
+
+        if (nextName) {
+          setViewerName(nextName);
+          storeViewerName(nextName);
+        }
+      }
+
+      if (detail.avatarUrl !== undefined) {
+        const nextAvatarUrl = normalizeViewerAvatarUrl(detail.avatarUrl);
+        setViewerAvatarUrl(nextAvatarUrl);
+        storeViewerAvatarUrl(nextAvatarUrl || null);
+      }
+    };
+
+    window.addEventListener(VIEWER_PROFILE_CHANGED_EVENT, handleViewerProfileChanged);
+
+    return () => {
+      window.removeEventListener(VIEWER_PROFILE_CHANGED_EVENT, handleViewerProfileChanged);
+    };
+  }, [pathname]);
 
   useEffect(() => {
     if (!shouldUseAppShell(pathname)) {
@@ -396,7 +515,22 @@ export default function AppRouteShell({ children }: { children: ReactNode }) {
             </button>
             <div className="relative">
               <button type="button" onClick={() => setProfileOpen((open) => !open)} aria-haspopup="menu" aria-expanded={profileOpen} aria-label="Open profile menu" className="flex items-center gap-3 rounded-full py-1.5 pl-2 pr-4 transition hover:-translate-y-0.5" style={{ background: "rgba(255,255,255,.78)", border: "1px solid rgba(72,102,78,.12)", color: PAGE_TEXT_COLOR, boxShadow: "0 12px 26px rgba(46,52,50,.06)" }}>
-                <span className="flex h-12 w-12 items-center justify-center rounded-full text-[15px] font-black text-white" style={{ background: "linear-gradient(135deg,#48664e,#2e3432)" }}>{profileInitial}</span>
+                <span data-testid="app-shell-viewer-avatar" className="flex h-12 w-12 items-center justify-center overflow-hidden rounded-full text-[15px] font-black text-white" style={{ background: "linear-gradient(135deg,#48664e,#2e3432)" }}>
+                  {viewerAvatarUrl ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img
+                      src={viewerAvatarUrl}
+                      alt=""
+                      className="h-full w-full object-cover"
+                      onError={() => {
+                        setViewerAvatarUrl("");
+                        storeViewerAvatarUrl(null);
+                      }}
+                    />
+                  ) : (
+                    profileInitial
+                  )}
+                </span>
                 <span className="hidden min-w-0 lg:block">
                   <span data-testid="app-shell-viewer-name" className="block text-[13px] font-black leading-tight">{displayViewerName || "Profile"}</span>
                   <span className="block text-[11px] font-semibold" style={{ color: TEXT_MUTED }}>View profile</span>

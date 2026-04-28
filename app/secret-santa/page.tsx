@@ -156,6 +156,8 @@ const MAX_GROUP_ROUTE_PREFETCH = 8;
 const AI_SUGGESTION_REQUEST_TIMEOUT_MS = 18000;
 const MAX_VISIBLE_RECIPIENT_WISHLIST_ITEMS = 3;
 const VIEWER_NAME_STORAGE_KEY = "ss_un";
+const VIEWER_AVATAR_STORAGE_KEY = "ss_uav";
+const VIEWER_PROFILE_CHANGED_EVENT = "ss-profile-updated";
 const PAGE_BACKGROUND =
   "radial-gradient(circle at 92% 6%,rgba(72,102,78,.12),transparent 25rem), radial-gradient(circle at 8% 90%,rgba(252,206,114,.15),transparent 24rem), repeating-linear-gradient(135deg,rgba(72,102,78,.055) 0 1px,transparent 1px 34px), repeating-linear-gradient(45deg,rgba(252,206,114,.09) 0 1px,transparent 1px 54px), linear-gradient(180deg,#fffdf8 0%,#fbfaf4 45%,#f1f7ee 100%)";
 const PAGE_TEXT_COLOR = "#2e3432";
@@ -912,12 +914,84 @@ function readStoredViewerName(): string {
   return normalizeViewerName(sessionStorage.getItem(VIEWER_NAME_STORAGE_KEY));
 }
 
+function normalizeViewerAvatarUrl(value: string | null | undefined): string {
+  const trimmed = (value || "").trim();
+
+  if (!trimmed) {
+    return "";
+  }
+
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+
+  if (!supabaseUrl) {
+    return "";
+  }
+
+  try {
+    const candidate = new URL(trimmed);
+    const allowedOrigin = new URL(supabaseUrl).origin;
+    const allowedPathPrefix = "/storage/v1/object/public/profile-avatars/";
+
+    if (
+      candidate.origin !== allowedOrigin ||
+      !candidate.pathname.startsWith(allowedPathPrefix)
+    ) {
+      return "";
+    }
+
+    return `${candidate.origin}${candidate.pathname}${candidate.search}`;
+  } catch {
+    return "";
+  }
+}
+
+function readStoredViewerAvatarUrl(): string {
+  if (typeof sessionStorage === "undefined") {
+    return "";
+  }
+
+  return normalizeViewerAvatarUrl(sessionStorage.getItem(VIEWER_AVATAR_STORAGE_KEY));
+}
+
 function storeViewerName(value: string): void {
   const normalized = normalizeViewerName(value);
 
   if (normalized && typeof sessionStorage !== "undefined") {
     sessionStorage.setItem(VIEWER_NAME_STORAGE_KEY, normalized);
   }
+}
+
+function storeViewerAvatarUrl(value: string | null | undefined): void {
+  if (typeof sessionStorage === "undefined") {
+    return;
+  }
+
+  const normalized = normalizeViewerAvatarUrl(value);
+
+  if (normalized) {
+    sessionStorage.setItem(VIEWER_AVATAR_STORAGE_KEY, normalized);
+  } else {
+    sessionStorage.removeItem(VIEWER_AVATAR_STORAGE_KEY);
+  }
+}
+
+function readViewerProfileChangedDetail(event: Event) {
+  if (!(event instanceof CustomEvent) || !event.detail || typeof event.detail !== "object") {
+    return null;
+  }
+
+  const detail = event.detail as {
+    avatarUrl?: unknown;
+    displayName?: unknown;
+  };
+
+  return {
+    avatarUrl:
+      typeof detail.avatarUrl === "string" || detail.avatarUrl === null
+        ? detail.avatarUrl
+        : undefined,
+    displayName: typeof detail.displayName === "string" ? detail.displayName : undefined,
+  };
 }
 
 function getViewerDisplayName(
@@ -1310,14 +1384,18 @@ function ShoppingIdeasSidebar({
 function ShoppingIdeasHeader({
   notificationButtonRef,
   notificationsPanelOpen,
+  onViewerAvatarError,
   onToggleNotifications,
   unreadNotificationCount,
+  viewerAvatarUrl,
   viewerName,
 }: {
   notificationButtonRef: RefObject<HTMLButtonElement | null>;
   notificationsPanelOpen: boolean;
+  onViewerAvatarError: () => void;
   onToggleNotifications: () => void;
   unreadNotificationCount: number;
+  viewerAvatarUrl: string;
   viewerName: string;
 }) {
   const displayViewerName = normalizeViewerName(viewerName);
@@ -1404,13 +1482,24 @@ function ShoppingIdeasHeader({
           }}
         >
           <span
-            className="flex h-12 w-12 items-center justify-center rounded-full text-[15px] font-black text-white"
+            data-testid="shopping-ideas-viewer-avatar"
+            className="flex h-12 w-12 items-center justify-center overflow-hidden rounded-full text-[15px] font-black text-white"
             style={{
               background: "linear-gradient(135deg,#48664e,#2e3432)",
               boxShadow: "0 12px 24px rgba(46,52,50,.14)",
             }}
           >
-            {profileInitial}
+            {viewerAvatarUrl ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={viewerAvatarUrl}
+                alt=""
+                className="h-full w-full object-cover"
+                onError={onViewerAvatarError}
+              />
+            ) : (
+              profileInitial
+            )}
           </span>
           <span className="hidden min-w-0 lg:block">
             <span data-testid="shopping-ideas-viewer-name" className="block text-[13px] font-black leading-tight">{displayViewerName || "Profile"}</span>
@@ -2283,6 +2372,7 @@ export default function SecretSantaPage() {
   const [receivedGifts, setReceivedGifts] = useState<ReceivedGiftData[]>([]);
   const [loading, setLoading] = useState(true);
   const [viewerName, setViewerName] = useState(readStoredViewerName);
+  const [viewerAvatarUrl, setViewerAvatarUrl] = useState(readStoredViewerAvatarUrl);
   const [canViewAffiliateReport, setCanViewAffiliateReport] = useState(false);
 
   // Page-level feedback and action state.
@@ -2322,6 +2412,37 @@ export default function SecretSantaPage() {
   const lazadaPrimedKeysRef = useRef<Set<string>>(new Set());
   const matchedLazadaProductsByKeyRef = useRef(matchedLazadaProductsByKey);
   const hasAppliedPageSnapshotRef = useRef(false);
+
+  useEffect(() => {
+    const handleViewerProfileChanged = (event: Event) => {
+      const detail = readViewerProfileChangedDetail(event);
+
+      if (!detail) {
+        return;
+      }
+
+      if (detail.displayName !== undefined) {
+        const nextName = normalizeViewerName(detail.displayName);
+
+        if (nextName) {
+          setViewerName(nextName);
+          storeViewerName(nextName);
+        }
+      }
+
+      if (detail.avatarUrl !== undefined) {
+        const nextAvatarUrl = normalizeViewerAvatarUrl(detail.avatarUrl);
+        setViewerAvatarUrl(nextAvatarUrl);
+        storeViewerAvatarUrl(nextAvatarUrl || null);
+      }
+    };
+
+    window.addEventListener(VIEWER_PROFILE_CHANGED_EVENT, handleViewerProfileChanged);
+
+    return () => {
+      window.removeEventListener(VIEWER_PROFILE_CHANGED_EVENT, handleViewerProfileChanged);
+    };
+  }, []);
 
   useEffect(() => {
     for (const route of [
@@ -2887,6 +3008,10 @@ export default function SecretSantaPage() {
               setViewerName(profileViewerName);
               storeViewerName(profileViewerName);
             }
+
+            const profileAvatarUrl = normalizeViewerAvatarUrl(profile?.avatar_url);
+            setViewerAvatarUrl(profileAvatarUrl);
+            storeViewerAvatarUrl(profileAvatarUrl || null);
           })
           .catch(() => {
             // Name refresh is non-blocking; keep the cached/email name if the profile action is unavailable.
@@ -3343,7 +3468,12 @@ export default function SecretSantaPage() {
         <ShoppingIdeasHeader
           notificationButtonRef={notificationButtonRef}
           notificationsPanelOpen={notificationsPanelOpen}
+          onViewerAvatarError={() => {
+            setViewerAvatarUrl("");
+            storeViewerAvatarUrl(null);
+          }}
           unreadNotificationCount={unreadNotificationCount}
+          viewerAvatarUrl={viewerAvatarUrl}
           viewerName={viewerName}
           onToggleNotifications={() => setNotificationsPanelOpen((open) => !open)}
         />
