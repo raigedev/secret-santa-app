@@ -114,7 +114,7 @@ export async function claimInvitedMemberships(): Promise<{
 
   const normalizedEmail = user.email.toLowerCase();
 
-  const { data: memberships, error: membershipError } = await supabase
+  const { data: memberships, error: membershipError } = await supabaseAdmin
     .from("group_members")
     .select("id, group_id, status")
     .eq("email", normalizedEmail)

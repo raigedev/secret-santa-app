@@ -268,7 +268,7 @@ export default function DashboardPage() {
           supabase
             .from("group_members")
             .select("id, group_id, status, role")
-            .or(`user_id.eq.${user.id},email.eq.${email}`),
+            .eq("user_id", user.id),
           supabase.from("groups").select("id").eq("owner_id", user.id),
         ]);
 
@@ -819,7 +819,8 @@ export default function DashboardPage() {
         void loadAffiliateReportAccess();
         void loadNotificationCount(session.user.id);
 
-        await Promise.all([claimAction, loadDashboardData(session.user)]);
+        await claimAction;
+        await loadDashboardData(session.user);
 
         if (!isMounted) {
           return;

@@ -10,7 +10,6 @@ import {
   AuthPageFrame,
 } from "@/app/components/AuthPageShell";
 import { createClient } from "@/lib/supabase/client";
-import { linkUserToGroup } from "@/utils/linkUserToGroup";
 
 const TRUST_MARKERS = [
   {
@@ -229,7 +228,7 @@ function LoginPageInner() {
 
     setLoading(true);
 
-    const { data, error: signInError } = await supabase.auth.signInWithPassword({
+    const { error: signInError } = await supabase.auth.signInWithPassword({
       email: trimmedEmail,
       password,
     });
@@ -238,11 +237,6 @@ function LoginPageInner() {
       setError(getFriendlyLoginError(signInError.message));
       setLoading(false);
       return;
-    }
-
-    const { user } = data;
-    if (user) {
-      await linkUserToGroup(user);
     }
 
     router.replace(nextPath);
