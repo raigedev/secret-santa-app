@@ -159,6 +159,95 @@ test.describe("authenticated screen regressions", () => {
     await expect(page.getByTestId("secret-santa-page-shell")).toBeVisible();
   });
 
+  test("viewer name stays consistent between dashboard and shopping ideas refreshes", async ({ page }) => {
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await loginWithTestCredentials(page, credentials!);
+    await page.goto("/dashboard");
+
+    const dashboardViewerName = page.getByTestId("app-shell-viewer-name");
+    await expect(dashboardViewerName).toBeVisible();
+
+    let expectedViewerName = "";
+    await expect
+      .poll(
+        async () => {
+          expectedViewerName = (await dashboardViewerName.textContent())?.trim() || "";
+          return /^(profile|santa)$/i.test(expectedViewerName) ? "" : expectedViewerName;
+        },
+        { timeout: 20000 }
+      )
+      .not.toBe("");
+
+    await page.goto("/secret-santa");
+    await expect(page.getByTestId("secret-santa-page-shell")).toBeVisible({ timeout: 20000 });
+    const shoppingViewerName = page.getByTestId("shopping-ideas-viewer-name");
+    await expect(shoppingViewerName).toHaveText(expectedViewerName);
+
+    const changedSnapshots = await page.evaluate(() => {
+      let changedCount = 0;
+
+      for (let index = sessionStorage.length - 1; index >= 0; index -= 1) {
+        const key = sessionStorage.key(index);
+
+        if (!key?.startsWith("ss_secret_santa_page_snapshot_v1:")) {
+          continue;
+        }
+
+        const snapshot = JSON.parse(sessionStorage.getItem(key) || "{}") as {
+          viewerName?: string;
+        };
+        snapshot.viewerName = "Snapshot Santa";
+        sessionStorage.setItem(key, JSON.stringify(snapshot));
+        changedCount += 1;
+      }
+
+      return changedCount;
+    });
+    expect(changedSnapshots).toBeGreaterThan(0);
+
+    await page.addInitScript(() => {
+      const testWindow = window as Window & { __sawWrongViewerName?: boolean };
+      testWindow.__sawWrongViewerName = false;
+
+      const markWrongViewerName = () => {
+        const text = document.body?.innerText || "";
+
+        if (
+          /Snapshot Santa/i.test(text) ||
+          /Good (morning|afternoon|evening),\s*Santa\b/i.test(text)
+        ) {
+          testWindow.__sawWrongViewerName = true;
+        }
+      };
+
+      const startWatching = () => {
+        markWrongViewerName();
+        new MutationObserver(markWrongViewerName).observe(document.documentElement, {
+          childList: true,
+          characterData: true,
+          subtree: true,
+        });
+      };
+
+      if (document.readyState === "loading") {
+        document.addEventListener("DOMContentLoaded", startWatching, { once: true });
+      } else {
+        startWatching();
+      }
+    });
+
+    for (let reloadIndex = 0; reloadIndex < 3; reloadIndex += 1) {
+      await page.reload();
+      await expect(shoppingViewerName).toHaveText(expectedViewerName, { timeout: 10000 });
+      await expect(page.getByTestId("shopping-ideas-greeting")).not.toHaveText(/,\s*Santa\b/i);
+    }
+
+    const sawWrongViewerName = await page.evaluate(() =>
+      Boolean((window as Window & { __sawWrongViewerName?: boolean }).__sawWrongViewerName)
+    );
+    expect(sawWrongViewerName).toBe(false);
+  });
+
   test("login does not write group memberships from the browser", async ({ page }) => {
     const browserSideGroupMemberWrites: string[] = [];
 

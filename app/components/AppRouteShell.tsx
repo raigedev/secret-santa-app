@@ -7,6 +7,7 @@ import { createClient } from "@/lib/supabase/client";
 import { BellIcon, SantaMarkIcon, UserOutlineIcon } from "@/app/dashboard/dashboard-icons";
 import { DashboardNotificationsPanel } from "@/app/dashboard/DashboardNotificationsPanel";
 import { AppShellIcon, type AppNavIcon } from "@/app/components/AppShellIcons";
+import { getProfile } from "@/app/profile/actions";
 
 const APP_BACKGROUND =
   "repeating-linear-gradient(135deg,rgba(72,102,78,.045) 0 1px,transparent 1px 38px),radial-gradient(circle at 12% 8%,rgba(252,206,114,.16),transparent 24%),linear-gradient(180deg,#fffefa 0%,#f7faf5 42%,#eef4ef 100%)";
@@ -14,6 +15,7 @@ const PAGE_TEXT_COLOR = "#2e3432";
 const HOLIDAY_GREEN = "#48664e";
 const HOLIDAY_RED = "#a43c3f";
 const TEXT_MUTED = "#64748b";
+const VIEWER_NAME_STORAGE_KEY = "ss_un";
 
 type AppNavItem = {
   href: string;
@@ -45,6 +47,30 @@ function getTimeOfDayGreeting() {
   if (hour < 12) return "Good morning";
   if (hour < 18) return "Good afternoon";
   return "Good evening";
+}
+
+function normalizeViewerName(value: string | null | undefined) {
+  return (value || "").replace(/\s+/g, " ").trim();
+}
+
+function getEmailViewerName(email: string | null | undefined) {
+  return normalizeViewerName(email?.split("@")[0]?.replace(/[._-]+/g, " "));
+}
+
+function readStoredViewerName() {
+  if (typeof sessionStorage === "undefined") {
+    return "";
+  }
+
+  return normalizeViewerName(sessionStorage.getItem(VIEWER_NAME_STORAGE_KEY));
+}
+
+function storeViewerName(value: string) {
+  const normalized = normalizeViewerName(value);
+
+  if (normalized && typeof sessionStorage !== "undefined") {
+    sessionStorage.setItem(VIEWER_NAME_STORAGE_KEY, normalized);
+  }
 }
 
 function createNavItems(pathname: string, canViewAffiliateReport: boolean): AppNavItem[] {
@@ -125,7 +151,7 @@ export default function AppRouteShell({ children }: { children: ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
   const [supabase] = useState(() => createClient());
-  const [viewerName, setViewerName] = useState("Santa");
+  const [viewerName, setViewerName] = useState(readStoredViewerName);
   const [canViewAffiliateReport, setCanViewAffiliateReport] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
   const [notificationsOpen, setNotificationsOpen] = useState(false);
@@ -142,16 +168,38 @@ export default function AppRouteShell({ children }: { children: ReactNode }) {
     let isMounted = true;
     void supabase.auth.getSession().then(({ data }) => {
       if (!isMounted) return;
-      const userId = data.session?.user.id || null;
-      const emailName = data.session?.user.email?.split("@")[0]?.replace(/[._-]+/g, " ");
-      const savedName = typeof sessionStorage !== "undefined" ? sessionStorage.getItem("ss_un") : null;
-      setViewerName(savedName || emailName || "Santa");
+      const sessionUser = data.session?.user || null;
+      const userId = sessionUser?.id || null;
+      const emailName = getEmailViewerName(sessionUser?.email);
+      const immediateViewerName = readStoredViewerName();
+
+      if (immediateViewerName) {
+        setViewerName(immediateViewerName);
+      }
 
       if (!userId || loadedShellContextForUserRef.current === userId) {
         return;
       }
 
       loadedShellContextForUserRef.current = userId;
+
+      void getProfile()
+        .then((profile) => {
+          if (!isMounted || loadedShellContextForUserRef.current !== userId) {
+            return;
+          }
+
+          const profileName = normalizeViewerName(profile?.display_name);
+          const resolvedName = profileName || readStoredViewerName() || emailName;
+
+          if (resolvedName) {
+            setViewerName(resolvedName);
+            storeViewerName(resolvedName);
+          }
+        })
+        .catch(() => {
+          // The shell can keep the cached/email name if the profile action is temporarily unavailable.
+        });
 
       void fetch("/api/affiliate/report-access", { credentials: "same-origin" })
         .then(async (response) => {
@@ -233,7 +281,11 @@ export default function AppRouteShell({ children }: { children: ReactNode }) {
   }
 
   const navItems = createNavItems(pathname, canViewAffiliateReport);
-  const profileInitial = viewerName.trim().slice(0, 1).toUpperCase() || "S";
+  const displayViewerName = normalizeViewerName(viewerName);
+  const profileInitial = displayViewerName.slice(0, 1).toUpperCase() || "?";
+  const greetingText = displayViewerName
+    ? `${getTimeOfDayGreeting()}, ${displayViewerName}`
+    : getTimeOfDayGreeting();
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
@@ -317,7 +369,7 @@ export default function AppRouteShell({ children }: { children: ReactNode }) {
         <header className="sticky top-0 z-20 hidden h-[84px] items-center justify-between border-b px-7 xl:flex" style={{ background: "linear-gradient(180deg,rgba(255,254,250,.96),rgba(255,254,250,.9))", borderColor: "rgba(72,102,78,.14)", backdropFilter: "blur(16px)" }}>
           <div>
             <div className="flex items-center gap-2 text-[16px] font-black" style={{ color: PAGE_TEXT_COLOR }}>
-              <span>{getTimeOfDayGreeting()}, {viewerName}</span>
+              <span data-testid="app-shell-greeting">{greetingText}</span>
             </div>
             <div className="mt-0.5 text-[12px] font-semibold" style={{ color: TEXT_MUTED }}>
               Your group tools stay in one place.
@@ -346,7 +398,7 @@ export default function AppRouteShell({ children }: { children: ReactNode }) {
               <button type="button" onClick={() => setProfileOpen((open) => !open)} aria-haspopup="menu" aria-expanded={profileOpen} aria-label="Open profile menu" className="flex items-center gap-3 rounded-full py-1.5 pl-2 pr-4 transition hover:-translate-y-0.5" style={{ background: "rgba(255,255,255,.78)", border: "1px solid rgba(72,102,78,.12)", color: PAGE_TEXT_COLOR, boxShadow: "0 12px 26px rgba(46,52,50,.06)" }}>
                 <span className="flex h-12 w-12 items-center justify-center rounded-full text-[15px] font-black text-white" style={{ background: "linear-gradient(135deg,#48664e,#2e3432)" }}>{profileInitial}</span>
                 <span className="hidden min-w-0 lg:block">
-                  <span className="block text-[13px] font-black leading-tight">{viewerName}</span>
+                  <span data-testid="app-shell-viewer-name" className="block text-[13px] font-black leading-tight">{displayViewerName || "Profile"}</span>
                   <span className="block text-[11px] font-semibold" style={{ color: TEXT_MUTED }}>View profile</span>
                 </span>
                 <UserOutlineIcon className="hidden h-4 w-4 lg:block" />

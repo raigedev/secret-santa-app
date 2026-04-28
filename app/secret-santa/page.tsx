@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { DashboardNotificationsPanel } from "@/app/dashboard/DashboardNotificationsPanel";
 import { SantaMarkIcon } from "@/app/dashboard/dashboard-icons";
+import { getProfile } from "@/app/profile/actions";
 import { confirmGiftReceived, updateGiftPrepStatus } from "./actions";
 import { SecretSantaSkeleton } from "@/app/components/PageSkeleton";
 import {
@@ -154,6 +155,7 @@ const ITEM_LINK_MAX_LENGTH = 500;
 const MAX_GROUP_ROUTE_PREFETCH = 8;
 const AI_SUGGESTION_REQUEST_TIMEOUT_MS = 18000;
 const MAX_VISIBLE_RECIPIENT_WISHLIST_ITEMS = 3;
+const VIEWER_NAME_STORAGE_KEY = "ss_un";
 const PAGE_BACKGROUND =
   "radial-gradient(circle at 92% 6%,rgba(72,102,78,.12),transparent 25rem), radial-gradient(circle at 8% 90%,rgba(252,206,114,.15),transparent 24rem), repeating-linear-gradient(135deg,rgba(72,102,78,.055) 0 1px,transparent 1px 34px), repeating-linear-gradient(45deg,rgba(252,206,114,.09) 0 1px,transparent 1px 54px), linear-gradient(180deg,#fffdf8 0%,#fbfaf4 45%,#f1f7ee 100%)";
 const PAGE_TEXT_COLOR = "#2e3432";
@@ -898,10 +900,50 @@ function getMetadataString(
   return "";
 }
 
+function normalizeViewerName(value: string | null | undefined): string {
+  return (value || "").replace(/\s+/g, " ").trim();
+}
+
+function readStoredViewerName(): string {
+  if (typeof sessionStorage === "undefined") {
+    return "";
+  }
+
+  return normalizeViewerName(sessionStorage.getItem(VIEWER_NAME_STORAGE_KEY));
+}
+
+function storeViewerName(value: string): void {
+  const normalized = normalizeViewerName(value);
+
+  if (normalized && typeof sessionStorage !== "undefined") {
+    sessionStorage.setItem(VIEWER_NAME_STORAGE_KEY, normalized);
+  }
+}
+
 function getViewerDisplayName(
   email: string | null | undefined,
-  metadata: Record<string, unknown> | null | undefined
+  metadata: Record<string, unknown> | null | undefined,
+  profileName = "",
+  storedName = ""
 ): string {
+  const appProfileName = normalizeViewerName(profileName);
+
+  if (appProfileName) {
+    return appProfileName;
+  }
+
+  const cachedName = normalizeViewerName(storedName);
+
+  if (cachedName) {
+    return cachedName;
+  }
+
+  const emailName = normalizeViewerName(email?.split("@")[0]?.replace(/[._-]+/g, " "));
+
+  if (emailName) {
+    return emailName;
+  }
+
   const metadataName = getMetadataString(metadata, [
     "name",
     "full_name",
@@ -912,13 +954,7 @@ function getViewerDisplayName(
     return metadataName.split(/\s+/)[0] || metadataName;
   }
 
-  const emailName = email?.split("@")[0]?.replace(/[._-]+/g, " ").trim();
-
-  if (emailName) {
-    return toDisplayTitle(emailName).split(/\s+/)[0] || "Santa";
-  }
-
-  return "Santa";
+  return "";
 }
 
 function getTimeOfDayGreeting(): string {
@@ -1284,6 +1320,12 @@ function ShoppingIdeasHeader({
   unreadNotificationCount: number;
   viewerName: string;
 }) {
+  const displayViewerName = normalizeViewerName(viewerName);
+  const greetingText = displayViewerName
+    ? `${getTimeOfDayGreeting()}, ${displayViewerName}`
+    : getTimeOfDayGreeting();
+  const profileInitial = displayViewerName.slice(0, 1).toUpperCase() || "?";
+
   return (
     <header
       data-testid="shopping-ideas-header"
@@ -1300,7 +1342,7 @@ function ShoppingIdeasHeader({
           className="flex items-center gap-2 text-[16px] font-black"
           style={{ color: PAGE_TEXT_COLOR }}
         >
-          <span>{getTimeOfDayGreeting()}, {viewerName}</span>
+          <span data-testid="shopping-ideas-greeting">{greetingText}</span>
           <GiftMark className="h-4 w-4" />
         </div>
         <div className="mt-0.5 text-[12px] font-semibold" style={{ color: TEXT_MUTED }}>
@@ -1368,10 +1410,10 @@ function ShoppingIdeasHeader({
               boxShadow: "0 12px 24px rgba(46,52,50,.14)",
             }}
           >
-            {viewerName.slice(0, 1).toUpperCase()}
+            {profileInitial}
           </span>
           <span className="hidden min-w-0 lg:block">
-            <span className="block text-[13px] font-black leading-tight">{viewerName}</span>
+            <span data-testid="shopping-ideas-viewer-name" className="block text-[13px] font-black leading-tight">{displayViewerName || "Profile"}</span>
             <span className="block text-[11px] font-semibold" style={{ color: TEXT_MUTED }}>
               View profile
             </span>
@@ -2240,7 +2282,7 @@ export default function SecretSantaPage() {
   const [assignments, setAssignments] = useState<RecipientData[]>([]);
   const [receivedGifts, setReceivedGifts] = useState<ReceivedGiftData[]>([]);
   const [loading, setLoading] = useState(true);
-  const [viewerName, setViewerName] = useState("Santa");
+  const [viewerName, setViewerName] = useState(readStoredViewerName);
   const [canViewAffiliateReport, setCanViewAffiliateReport] = useState(false);
 
   // Page-level feedback and action state.
@@ -2823,11 +2865,32 @@ export default function SecretSantaPage() {
         }
 
         const user = session.user;
-        const resolvedViewerName = getViewerDisplayName(
-          user.email,
-          user.user_metadata as Record<string, unknown>
-        );
-        setViewerName(resolvedViewerName);
+        const resolvedViewerName = readStoredViewerName();
+        if (resolvedViewerName) {
+          setViewerName(resolvedViewerName);
+        }
+
+        void getProfile()
+          .then((profile) => {
+            if (!isMounted) {
+              return;
+            }
+
+            const profileViewerName = getViewerDisplayName(
+              user.email,
+              user.user_metadata as Record<string, unknown>,
+              profile?.display_name || "",
+              readStoredViewerName() || resolvedViewerName
+            );
+
+            if (profileViewerName) {
+              setViewerName(profileViewerName);
+              storeViewerName(profileViewerName);
+            }
+          })
+          .catch(() => {
+            // Name refresh is non-blocking; keep the cached/email name if the profile action is unavailable.
+          });
 
         if (!hasAppliedPageSnapshotRef.current) {
           const cachedSecretSanta = readClientSnapshot(
@@ -2838,7 +2901,6 @@ export default function SecretSantaPage() {
 
           if (cachedSecretSanta) {
             hasAppliedPageSnapshotRef.current = true;
-            setViewerName(cachedSecretSanta.viewerName);
             setAvailableGroups(cachedSecretSanta.availableGroups);
             setAssignments(cachedSecretSanta.assignments);
             setReceivedGifts(cachedSecretSanta.receivedGifts);
@@ -2904,7 +2966,7 @@ export default function SecretSantaPage() {
             createdAt: Date.now(),
             receivedGifts: [],
             userId: user.id,
-            viewerName: resolvedViewerName,
+            viewerName: readStoredViewerName() || resolvedViewerName,
           });
           hasAppliedPageSnapshotRef.current = true;
           setLoading(false);
@@ -2995,7 +3057,7 @@ export default function SecretSantaPage() {
           createdAt: Date.now(),
           receivedGifts: receivedGiftData,
           userId: user.id,
-          viewerName: resolvedViewerName,
+          viewerName: readStoredViewerName() || resolvedViewerName,
         });
         hasAppliedPageSnapshotRef.current = true;
       } catch {
