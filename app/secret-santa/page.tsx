@@ -2580,12 +2580,11 @@ export default function SecretSantaPage() {
     setSelectedRecipientSuggestionByItem((current) => {
       let changed = false;
       const nextState = { ...current };
+      const activeItemIds = new Set<string>();
 
       for (const assignment of assignments) {
         for (const wishlistItem of assignment.receiver_wishlist) {
-          if (nextState[wishlistItem.id]) {
-            continue;
-          }
+          activeItemIds.add(wishlistItem.id);
 
           const aiSuggestionState = aiSuggestionStateByItem[wishlistItem.id] || null;
 
@@ -2600,16 +2599,44 @@ export default function SecretSantaPage() {
           const suggestionOptions = applySuggestionDisplayOrder(
             mergeWishlistSuggestionOptions(
               buildWishlistSuggestionOptions(suggestionInput),
-              aiSuggestionState?.options || []
+              aiSuggestionState?.options || [],
+              nextState[wishlistItem.id] || ""
             ),
             suggestionDisplayOrderByItem[wishlistItem.id] || []
           );
-          const defaultSuggestion = suggestionOptions[0] || null;
+          const currentSuggestionId = nextState[wishlistItem.id] || "";
 
-          if (defaultSuggestion) {
-            nextState[wishlistItem.id] = defaultSuggestion.id;
+          if (
+            currentSuggestionId &&
+            suggestionOptions.some((suggestion) => suggestion.id === currentSuggestionId)
+          ) {
+            continue;
+          }
+
+          const defaultSuggestionId =
+            suggestionOptions.find((suggestion) => suggestion.id.trim().length > 0)?.id ||
+            "";
+
+          if (!defaultSuggestionId) {
+            if (Object.prototype.hasOwnProperty.call(nextState, wishlistItem.id)) {
+              delete nextState[wishlistItem.id];
+              changed = true;
+            }
+
+            continue;
+          }
+
+          if (nextState[wishlistItem.id] !== defaultSuggestionId) {
+            nextState[wishlistItem.id] = defaultSuggestionId;
             changed = true;
           }
+        }
+      }
+
+      for (const itemId of Object.keys(nextState)) {
+        if (!activeItemIds.has(itemId)) {
+          delete nextState[itemId];
+          changed = true;
         }
       }
 
@@ -3137,10 +3164,14 @@ export default function SecretSantaPage() {
   // We keep the selected option per item so switching between wishlist cards
   // does not throw away what the giver was comparing.
   const selectRecipientSuggestion = (itemId: string, suggestionId: string) => {
-    setSelectedRecipientSuggestionByItem((current) => ({
-      ...current,
-      [itemId]: suggestionId,
-    }));
+    setSelectedRecipientSuggestionByItem((current) =>
+      current[itemId] === suggestionId
+        ? current
+        : {
+            ...current,
+            [itemId]: suggestionId,
+          }
+    );
   };
 
   if (loading) {

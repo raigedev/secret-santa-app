@@ -331,6 +331,23 @@ function slugify(value: string): string {
   return slugifyAsciiIdentifier(value);
 }
 
+function createStableSuggestionId(value: string, fallbackPrefix: string): string {
+  const slug = slugify(value);
+  const fallbackSlug = slugify(fallbackPrefix) || "suggestion";
+
+  if (slug && slug !== fallbackSlug) {
+    return slug;
+  }
+
+  let hash = 0;
+
+  for (const character of value) {
+    hash = (hash * 31 + (character.codePointAt(0) ?? 0)) % 1_000_000_007;
+  }
+
+  return `${fallbackSlug}-${hash.toString(36)}`;
+}
+
 function normalizeSuggestionQuery(value: string): string {
   return value.trim().toLowerCase().replace(/\s+/g, " ");
 }
@@ -341,8 +358,11 @@ function createSuggestionOption(
   source: "ai" | "base",
   idPrefix = ""
 ): WishlistSuggestionOption {
+  const rawId = `${idPrefix}${template.searchQuery}`;
+  const fallbackPrefix = idPrefix.trim().length > 0 ? idPrefix : source;
+
   return {
-    id: slugify(`${idPrefix}${template.searchQuery}`),
+    id: createStableSuggestionId(rawId, fallbackPrefix),
     title: template.title,
     subtitle: template.subtitle,
     searchQuery: template.searchQuery,
