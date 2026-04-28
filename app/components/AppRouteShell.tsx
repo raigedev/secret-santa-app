@@ -131,6 +131,8 @@ export default function AppRouteShell({ children }: { children: ReactNode }) {
   const [notificationsOpen, setNotificationsOpen] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
   const notificationButtonRef = useRef<HTMLButtonElement | null>(null);
+  const loadedShellContextForUserRef = useRef<string | null>(null);
+  const prefetchedRoutesRef = useRef<Set<string>>(new Set());
 
   useEffect(() => {
     if (!shouldUseAppShell(pathname)) {
@@ -140,47 +142,91 @@ export default function AppRouteShell({ children }: { children: ReactNode }) {
     let isMounted = true;
     void supabase.auth.getSession().then(({ data }) => {
       if (!isMounted) return;
+      const userId = data.session?.user.id || null;
       const emailName = data.session?.user.email?.split("@")[0]?.replace(/[._-]+/g, " ");
       const savedName = typeof sessionStorage !== "undefined" ? sessionStorage.getItem("ss_un") : null;
       setViewerName(savedName || emailName || "Santa");
-    });
 
-    void fetch("/api/affiliate/report-access", { credentials: "same-origin" })
-      .then(async (response) => {
-        if (!isMounted) {
-          return;
-        }
+      if (!userId || loadedShellContextForUserRef.current === userId) {
+        return;
+      }
 
-        if (!response.ok) {
+      loadedShellContextForUserRef.current = userId;
+
+      void fetch("/api/affiliate/report-access", { credentials: "same-origin" })
+        .then(async (response) => {
+          if (!isMounted) {
+            return;
+          }
+
+          if (!response.ok) {
+            sessionStorage.removeItem("ss_ara");
+            setCanViewAffiliateReport(false);
+            return;
+          }
+
+          const payload = (await response.json()) as { allowed?: boolean };
+          const allowed = payload.allowed === true;
+
+          if (allowed) {
+            sessionStorage.setItem("ss_ara", "1");
+          } else {
+            sessionStorage.removeItem("ss_ara");
+          }
+
+          setCanViewAffiliateReport(allowed);
+        })
+        .catch(() => {
+          if (!isMounted) {
+            return;
+          }
+
+          if (loadedShellContextForUserRef.current === userId) {
+            loadedShellContextForUserRef.current = null;
+          }
           sessionStorage.removeItem("ss_ara");
           setCanViewAffiliateReport(false);
-          return;
-        }
-
-        const payload = (await response.json()) as { allowed?: boolean };
-        const allowed = payload.allowed === true;
-
-        if (allowed) {
-          sessionStorage.setItem("ss_ara", "1");
-        } else {
-          sessionStorage.removeItem("ss_ara");
-        }
-
-        setCanViewAffiliateReport(allowed);
-      })
-      .catch(() => {
-        if (!isMounted) {
-          return;
-        }
-
-        sessionStorage.removeItem("ss_ara");
-        setCanViewAffiliateReport(false);
-      });
+        });
+    });
 
     return () => {
       isMounted = false;
     };
   }, [pathname, supabase]);
+
+  useEffect(() => {
+    if (!shouldUseAppShell(pathname)) {
+      return;
+    }
+
+    for (const route of [
+      "/dashboard",
+      "/wishlist",
+      "/secret-santa",
+      "/secret-santa-chat",
+      "/notifications",
+      "/profile",
+      "/create-group",
+      "/dashboard/affiliate-report",
+    ]) {
+      if (!prefetchedRoutesRef.current.has(route)) {
+        prefetchedRoutesRef.current.add(route);
+        router.prefetch(route);
+      }
+    }
+
+    const pathParts = pathname.split("/").filter(Boolean);
+    const activeGroupId = pathParts[0] === "group" ? pathParts[1] : null;
+
+    if (activeGroupId) {
+      for (const route of [`/group/${activeGroupId}`, `/group/${activeGroupId}/reveal`]) {
+        if (!prefetchedRoutesRef.current.has(route)) {
+          prefetchedRoutesRef.current.add(route);
+          router.prefetch(route);
+        }
+      }
+    }
+  }, [pathname, router]);
 
   if (!shouldUseAppShell(pathname)) {
     return <>{children}</>;

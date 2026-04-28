@@ -7,7 +7,15 @@ import { DashboardNotificationsPanel } from "@/app/dashboard/DashboardNotificati
 import { SantaMarkIcon } from "@/app/dashboard/dashboard-icons";
 import { confirmGiftReceived, updateGiftPrepStatus } from "./actions";
 import { SecretSantaSkeleton } from "@/app/components/PageSkeleton";
+import {
+  clearClientSnapshots,
+  hasFreshClientSnapshotMetadata,
+  readClientSnapshot,
+  writeClientSnapshot,
+  type ClientSnapshotMetadata,
+} from "@/lib/client-snapshot";
 import { isLazadaProductPageUrl } from "@/lib/affiliate/lazada-url";
+import { isNullableNumber, isNullableString, isRecord } from "@/lib/validation/common";
 import { formatPriceRange } from "@/lib/wishlist/pricing";
 import {
   type SuggestionInput,
@@ -128,6 +136,12 @@ type GiftPrepStatus =
   | "wrapped"
   | "ready_to_give";
 type GuideTabId = "wishlist" | "direction" | "matches" | "prep";
+type SecretSantaPageSnapshot = ClientSnapshotMetadata & {
+  assignments: RecipientData[];
+  availableGroups: GroupOption[];
+  receivedGifts: ReceivedGiftData[];
+  viewerName: string;
+};
 
 const GUIDE_TABS: Array<{ id: GuideTabId; label: string }> = [
   { id: "wishlist", label: "Wishlist" },
@@ -184,6 +198,90 @@ const HOLIDAY_BLUE = "#58748e";
 const LAZADA_AFFILIATE_DISCLOSURE =
   "Some Lazada links are affiliate links.";
 const SHOPPING_REGION_STORAGE_KEY = "gift-shopping-region";
+const SECRET_SANTA_PAGE_SNAPSHOT_STORAGE_PREFIX = "ss_secret_santa_page_snapshot_v1:";
+
+function getSecretSantaPageSnapshotStorageKey(userId: string): string {
+  return `${SECRET_SANTA_PAGE_SNAPSHOT_STORAGE_PREFIX}${userId}`;
+}
+
+function isGiftPrepStatus(value: unknown): value is GiftPrepStatus {
+  return (
+    value === "planning" ||
+    value === "purchased" ||
+    value === "wrapped" ||
+    value === "ready_to_give"
+  );
+}
+
+function isSnapshotWishlistItem(value: unknown): value is WishlistItem {
+  return (
+    isRecord(value) &&
+    typeof value.id === "string" &&
+    typeof value.group_id === "string" &&
+    typeof value.item_name === "string" &&
+    typeof value.item_category === "string" &&
+    typeof value.item_image_url === "string" &&
+    typeof value.item_link === "string" &&
+    typeof value.item_note === "string" &&
+    typeof value.priority === "number"
+  );
+}
+
+function isSnapshotRecipientData(value: unknown): value is RecipientData {
+  return (
+    isRecord(value) &&
+    typeof value.group_id === "string" &&
+    typeof value.group_name === "string" &&
+    typeof value.group_event_date === "string" &&
+    isNullableNumber(value.group_budget) &&
+    isNullableString(value.group_currency) &&
+    typeof value.receiver_nickname === "string" &&
+    Array.isArray(value.receiver_wishlist) &&
+    value.receiver_wishlist.every(isSnapshotWishlistItem) &&
+    (value.gift_prep_status === null || isGiftPrepStatus(value.gift_prep_status)) &&
+    isNullableString(value.gift_prep_updated_at) &&
+    typeof value.gift_received === "boolean" &&
+    isNullableString(value.gift_received_at)
+  );
+}
+
+function isSnapshotReceivedGiftData(value: unknown): value is ReceivedGiftData {
+  return (
+    isRecord(value) &&
+    typeof value.group_id === "string" &&
+    typeof value.group_name === "string" &&
+    typeof value.group_event_date === "string" &&
+    typeof value.gift_received === "boolean" &&
+    isNullableString(value.gift_received_at)
+  );
+}
+
+function isSnapshotGroupOption(value: unknown): value is GroupOption {
+  return (
+    isRecord(value) &&
+    typeof value.id === "string" &&
+    typeof value.name === "string" &&
+    typeof value.eventDate === "string" &&
+    isNullableNumber(value.budget) &&
+    isNullableString(value.currency)
+  );
+}
+
+function isSecretSantaPageSnapshot(
+  value: unknown,
+  userId: string
+): value is SecretSantaPageSnapshot {
+  return (
+    hasFreshClientSnapshotMetadata(value, userId) &&
+    typeof value.viewerName === "string" &&
+    Array.isArray(value.availableGroups) &&
+    value.availableGroups.every(isSnapshotGroupOption) &&
+    Array.isArray(value.assignments) &&
+    value.assignments.every(isSnapshotRecipientData) &&
+    Array.isArray(value.receivedGifts) &&
+    value.receivedGifts.every(isSnapshotReceivedGiftData)
+  );
+}
 
 type ShoppingIdeasNavItem = {
   label: string;
@@ -2258,25 +2356,25 @@ export default function SecretSantaPage() {
   const prefetchedRoutesRef = useRef<Set<string>>(new Set());
   const lazadaPrimedKeysRef = useRef<Set<string>>(new Set());
   const matchedLazadaProductsByKeyRef = useRef(matchedLazadaProductsByKey);
+  const hasAppliedPageSnapshotRef = useRef(false);
 
   useEffect(() => {
-    if (!prefetchedRoutesRef.current.has("/dashboard")) {
-      prefetchedRoutesRef.current.add("/dashboard");
-      router.prefetch("/dashboard");
-    }
-
-    if (!prefetchedRoutesRef.current.has("/wishlist")) {
-      prefetchedRoutesRef.current.add("/wishlist");
-      router.prefetch("/wishlist");
+    for (const route of [
+      "/dashboard",
+      "/wishlist",
+      "/secret-santa-chat",
+      "/notifications",
+      "/profile",
+      "/create-group",
+    ]) {
+      if (!prefetchedRoutesRef.current.has(route)) {
+        prefetchedRoutesRef.current.add(route);
+        router.prefetch(route);
+      }
     }
   }, [router]);
 
   useEffect(() => {
-    if (!prefetchedRoutesRef.current.has("/secret-santa-chat")) {
-      prefetchedRoutesRef.current.add("/secret-santa-chat");
-      router.prefetch("/secret-santa-chat");
-    }
-
     const groupIds = new Set<string>();
 
     for (const group of availableGroups) {
@@ -2769,17 +2867,34 @@ export default function SecretSantaPage() {
         }
 
         if (!session) {
+          clearClientSnapshots(SECRET_SANTA_PAGE_SNAPSHOT_STORAGE_PREFIX);
           router.replace("/login");
           return;
         }
 
         const user = session.user;
-        setViewerName(
-          getViewerDisplayName(
-            user.email,
-            user.user_metadata as Record<string, unknown>
-          )
+        const resolvedViewerName = getViewerDisplayName(
+          user.email,
+          user.user_metadata as Record<string, unknown>
         );
+        setViewerName(resolvedViewerName);
+
+        if (!hasAppliedPageSnapshotRef.current) {
+          const cachedSecretSanta = readClientSnapshot(
+            getSecretSantaPageSnapshotStorageKey(user.id),
+            user.id,
+            isSecretSantaPageSnapshot
+          );
+
+          if (cachedSecretSanta) {
+            hasAppliedPageSnapshotRef.current = true;
+            setViewerName(cachedSecretSanta.viewerName);
+            setAvailableGroups(cachedSecretSanta.availableGroups);
+            setAssignments(cachedSecretSanta.assignments);
+            setReceivedGifts(cachedSecretSanta.receivedGifts);
+            setLoading(false);
+          }
+        }
 
         void fetch("/api/affiliate/report-access", { credentials: "same-origin" })
           .then(async (response) => {
@@ -2833,6 +2948,15 @@ export default function SecretSantaPage() {
           setAvailableGroups([]);
           setAssignments([]);
           setReceivedGifts([]);
+          writeClientSnapshot(getSecretSantaPageSnapshotStorageKey(user.id), {
+            assignments: [],
+            availableGroups: [],
+            createdAt: Date.now(),
+            receivedGifts: [],
+            userId: user.id,
+            viewerName: resolvedViewerName,
+          });
+          hasAppliedPageSnapshotRef.current = true;
           setLoading(false);
           return;
         }
@@ -2915,6 +3039,15 @@ export default function SecretSantaPage() {
         setAvailableGroups(groupOptions);
         setAssignments(recipientData);
         setReceivedGifts(receivedGiftData);
+        writeClientSnapshot(getSecretSantaPageSnapshotStorageKey(user.id), {
+          assignments: recipientData,
+          availableGroups: groupOptions,
+          createdAt: Date.now(),
+          receivedGifts: receivedGiftData,
+          userId: user.id,
+          viewerName: resolvedViewerName,
+        });
+        hasAppliedPageSnapshotRef.current = true;
       } catch {
         if (!isMounted) {
           return;

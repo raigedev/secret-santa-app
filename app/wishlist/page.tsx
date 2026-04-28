@@ -5,6 +5,14 @@ import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { ProfileSkeleton } from "@/app/components/PageSkeleton";
 import {
+  clearClientSnapshots,
+  hasFreshClientSnapshotMetadata,
+  readClientSnapshot,
+  writeClientSnapshot,
+  type ClientSnapshotMetadata,
+} from "@/lib/client-snapshot";
+import { isNullableNumber, isNullableString, isRecord } from "@/lib/validation/common";
+import {
   addWishlistItem,
   deleteWishlistItem,
   editWishlistItem,
@@ -55,10 +63,16 @@ type WishlistItem = {
 };
 
 type Message = { type: "success" | "error"; text: string } | null;
+type WishlistPageSnapshot = ClientSnapshotMetadata & {
+  addGroupId: string;
+  groups: GroupOption[];
+  items: WishlistItem[];
+};
 
 const ITEM_NAME_MAX = 100;
 const ITEM_NOTE_MAX = 200;
 const ITEM_URL_MAX = 500;
+const WISHLIST_PAGE_SNAPSHOT_STORAGE_PREFIX = "ss_wishlist_page_snapshot_v1:";
 const PRIORITY_OPTIONS: Array<{ value: WishlistPriority; label: string }> = [
   { value: 2, label: "Want most" },
   { value: 1, label: "Nice to have" },
@@ -70,6 +84,80 @@ function clampPriority(value: number | null | undefined): WishlistPriority {
   if (numeric >= 2) return 2;
   if (numeric >= 1) return 1;
   return 0;
+}
+
+function getWishlistPageSnapshotStorageKey(userId: string): string {
+  return `${WISHLIST_PAGE_SNAPSHOT_STORAGE_PREFIX}${userId}`;
+}
+
+function isWishlistPriority(value: unknown): value is WishlistPriority {
+  return value === 0 || value === 1 || value === 2;
+}
+
+function isWishlistSnapshotGroup(value: unknown): value is GroupOption {
+  return (
+    isRecord(value) &&
+    typeof value.id === "string" &&
+    typeof value.name === "string" &&
+    typeof value.eventDate === "string" &&
+    isNullableNumber(value.budget) &&
+    isNullableString(value.currency)
+  );
+}
+
+function isWishlistSnapshotItem(value: unknown): value is WishlistItem {
+  return (
+    isRecord(value) &&
+    typeof value.id === "string" &&
+    typeof value.group_id === "string" &&
+    typeof value.item_name === "string" &&
+    typeof value.item_category === "string" &&
+    typeof value.item_image_url === "string" &&
+    typeof value.item_link === "string" &&
+    typeof value.item_note === "string" &&
+    isWishlistPriority(value.priority)
+  );
+}
+
+function isWishlistPageSnapshot(
+  value: unknown,
+  userId: string
+): value is WishlistPageSnapshot {
+  return (
+    hasFreshClientSnapshotMetadata(value, userId) &&
+    typeof value.addGroupId === "string" &&
+    Array.isArray(value.groups) &&
+    value.groups.every(isWishlistSnapshotGroup) &&
+    Array.isArray(value.items) &&
+    value.items.every(isWishlistSnapshotItem)
+  );
+}
+
+function resolveAddGroupId(
+  currentGroupId: string,
+  nextGroups: GroupOption[],
+  nextItems: WishlistItem[]
+): string {
+  if (currentGroupId && nextGroups.some((group) => group.id === currentGroupId)) {
+    return currentGroupId;
+  }
+
+  const itemCountByGroup = new Map<string, number>();
+  for (const item of nextItems) {
+    itemCountByGroup.set(
+      item.group_id,
+      (itemCountByGroup.get(item.group_id) || 0) + 1
+    );
+  }
+
+  const firstGroupWithRoom =
+    nextGroups.find(
+      (group) =>
+        (itemCountByGroup.get(group.id) || 0) <
+        WISHLIST_ITEMS_PER_GROUP_LIMIT
+    ) || null;
+
+  return firstGroupWithRoom?.id || nextGroups[0]?.id || "";
 }
 
 function cleanText(value: string, max: number) {
@@ -236,12 +324,35 @@ export default function WishlistPage() {
 
       try {
         const {
-          data: { user },
-        } = await supabase.auth.getUser();
+          data: { session },
+          error: sessionError,
+        } = await supabase.auth.getSession();
 
+        if (sessionError) {
+          throw sessionError;
+        }
+
+        const user = session?.user || null;
         if (!user) {
+          clearClientSnapshots(WISHLIST_PAGE_SNAPSHOT_STORAGE_PREFIX);
           router.push("/login");
           return;
+        }
+
+        if (!hasLoadedOnceRef.current) {
+          const cachedWishlist = readClientSnapshot(
+            getWishlistPageSnapshotStorageKey(user.id),
+            user.id,
+            isWishlistPageSnapshot
+          );
+
+          if (cachedWishlist) {
+            setGroups(cachedWishlist.groups);
+            setItems(cachedWishlist.items);
+            setAddGroupId(cachedWishlist.addGroupId);
+            hasLoadedOnceRef.current = true;
+            setLoading(false);
+          }
         }
 
         const { data: memberships, error: membershipError } = await supabase
@@ -259,6 +370,13 @@ export default function WishlistPage() {
           setGroups([]);
           setItems([]);
           setAddGroupId("");
+          writeClientSnapshot(getWishlistPageSnapshotStorageKey(user.id), {
+            addGroupId: "",
+            createdAt: Date.now(),
+            groups: [],
+            items: [],
+            userId: user.id,
+          });
           return;
         }
 
@@ -291,26 +409,15 @@ export default function WishlistPage() {
         setGroups(nextGroups);
         setItems(nextItems);
         setAddGroupId((current) => {
-          if (current && nextGroups.some((group) => group.id === current)) {
-            return current;
-          }
-
-          const itemCountByGroup = new Map<string, number>();
-          for (const item of nextItems) {
-            itemCountByGroup.set(
-              item.group_id,
-              (itemCountByGroup.get(item.group_id) || 0) + 1
-            );
-          }
-
-          const firstGroupWithRoom =
-            nextGroups.find(
-              (group) =>
-                (itemCountByGroup.get(group.id) || 0) <
-                WISHLIST_ITEMS_PER_GROUP_LIMIT
-            ) || null;
-
-          return firstGroupWithRoom?.id || nextGroups[0]?.id || "";
+          const nextAddGroupId = resolveAddGroupId(current, nextGroups, nextItems);
+          writeClientSnapshot(getWishlistPageSnapshotStorageKey(user.id), {
+            addGroupId: nextAddGroupId,
+            createdAt: Date.now(),
+            groups: nextGroups,
+            items: nextItems,
+            userId: user.id,
+          });
+          return nextAddGroupId;
         });
       } catch {
         if (!active) return;

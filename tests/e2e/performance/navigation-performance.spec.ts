@@ -70,6 +70,7 @@ test.describe("navigation performance smoke coverage", () => {
   });
 
   test("authenticated major screens reach their core UI", async ({ page }, testInfo) => {
+    test.setTimeout(90_000);
     test.skip(!credentials, AUTH_BLOCKED_MESSAGE);
 
     const rows: TimingRow[] = [];
@@ -114,9 +115,45 @@ test.describe("navigation performance smoke coverage", () => {
       "secret santa ready",
       () => page.goto("/secret-santa"),
       async () => {
-        await expect(
-          page.getByRole("heading", { name: /find a secret santa gift they will like/i })
-        ).toBeVisible();
+        await expect(page.getByRole("heading", { name: /shopping ideas/i })).toBeVisible();
+      }
+    );
+
+    await recordTiming(
+      rows,
+      "secret santa chat ready",
+      () => page.goto("/secret-santa-chat"),
+      async () => {
+        await expect(page.getByRole("heading", { name: /private gift whispers/i })).toBeVisible();
+      }
+    );
+
+    await recordTiming(
+      rows,
+      "notifications ready",
+      () => page.goto("/notifications"),
+      async () => {
+        await expect(page.getByText(/notifications/i).first()).toBeVisible();
+        await expect(page.getByRole("button", { name: /mark all read/i })).toBeVisible();
+      }
+    );
+
+    await recordTiming(
+      rows,
+      "profile ready",
+      () => page.goto("/profile"),
+      async () => {
+        await expect(page.getByText(/my profile/i).first()).toBeVisible();
+        await expect(page.getByRole("button", { name: /save changes/i })).toBeVisible();
+      }
+    );
+
+    await recordTiming(
+      rows,
+      "create group ready",
+      () => page.goto("/create-group"),
+      async () => {
+        await expect(page.getByRole("heading", { name: /create a secret santa group/i })).toBeVisible();
       }
     );
 

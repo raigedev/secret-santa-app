@@ -804,22 +804,32 @@ export default function DashboardPage() {
           typeof sessionStorage !== "undefined" &&
           sessionStorage.getItem(CLAIM_KEY) === "1";
 
-        const claimAction = alreadyClaimed
-          ? Promise.resolve()
-          : claimInvitedMemberships().then(() => {
-              if (typeof sessionStorage !== "undefined") {
-                sessionStorage.setItem(CLAIM_KEY, "1");
-              }
-            });
+        if (!alreadyClaimed) {
+          void claimInvitedMemberships().then((claimResult) => {
+            if (claimResult.success && typeof sessionStorage !== "undefined") {
+              sessionStorage.setItem(CLAIM_KEY, "1");
+            }
+
+            if (
+              claimResult.success &&
+              claimResult.linkedCount > 0 &&
+              isMounted &&
+              sessionUser &&
+              loadDashboardDataRef.current
+            ) {
+              void loadDashboardDataRef.current(sessionUser);
+            }
+          });
+        }
 
         // The main dashboard content should not wait on secondary polish like
-        // the affiliate-report pill or the unread bell count. Kick those off in
-        // the background so the cards can render as soon as the core data is ready.
+        // invite claiming, the affiliate-report pill, or the unread bell count.
+        // Kick those off in the background so the cards can render as soon as
+        // the core data is ready.
         void loadProfileData();
         void loadAffiliateReportAccess();
         void loadNotificationCount(session.user.id);
 
-        await claimAction;
         await loadDashboardData(session.user);
 
         if (!isMounted) {

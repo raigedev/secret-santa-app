@@ -5,6 +5,14 @@ import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { NotificationsSkeleton } from "@/app/components/PageSkeleton";
 import {
+  clearClientSnapshots,
+  hasFreshClientSnapshotMetadata,
+  readClientSnapshot,
+  writeClientSnapshot,
+  type ClientSnapshotMetadata,
+} from "@/lib/client-snapshot";
+import { isNullableString, isRecord } from "@/lib/validation/common";
+import {
   markAllNotificationsRead,
   markNotificationRead,
 } from "./actions";
@@ -17,6 +25,40 @@ import {
   type NotificationItem,
 } from "./notification-display";
 import FadeIn from "@/app/components/FadeIn";
+
+type NotificationsPageSnapshot = ClientSnapshotMetadata & {
+  notifications: NotificationItem[];
+};
+
+const NOTIFICATIONS_PAGE_SNAPSHOT_STORAGE_PREFIX = "ss_notifications_page_snapshot_v1:";
+
+function getNotificationsPageSnapshotStorageKey(userId: string): string {
+  return `${NOTIFICATIONS_PAGE_SNAPSHOT_STORAGE_PREFIX}${userId}`;
+}
+
+function isNotificationSnapshot(value: unknown): value is NotificationItem {
+  return (
+    isRecord(value) &&
+    typeof value.id === "string" &&
+    typeof value.type === "string" &&
+    typeof value.title === "string" &&
+    isNullableString(value.body) &&
+    isNullableString(value.link_path) &&
+    isNullableString(value.read_at) &&
+    typeof value.created_at === "string"
+  );
+}
+
+function isNotificationsPageSnapshot(
+  value: unknown,
+  userId: string
+): value is NotificationsPageSnapshot {
+  return (
+    hasFreshClientSnapshotMetadata(value, userId) &&
+    Array.isArray(value.notifications) &&
+    value.notifications.every(isNotificationSnapshot)
+  );
+}
 
 function getNotificationTargetPath(notification: NotificationItem): string | null {
   if (notification.type === "reminder_wishlist_incomplete") {
@@ -37,6 +79,7 @@ export default function NotificationsPage() {
   const [processingId, setProcessingId] = useState<string | null>(null);
   const [markingAll, setMarkingAll] = useState(false);
   const loadNotificationsRef = useRef<((targetUserId: string) => Promise<void>) | null>(null);
+  const hasAppliedSnapshotRef = useRef(false);
 
   useEffect(() => {
     let isMounted = true;
@@ -60,6 +103,12 @@ export default function NotificationsPage() {
       }
 
       setNotifications((data || []) as NotificationItem[]);
+      writeClientSnapshot(getNotificationsPageSnapshotStorageKey(targetUserId), {
+        createdAt: Date.now(),
+        notifications: (data || []) as NotificationItem[],
+        userId: targetUserId,
+      });
+      hasAppliedSnapshotRef.current = true;
       setLoading(false);
     };
 
@@ -71,6 +120,7 @@ export default function NotificationsPage() {
       } = await supabase.auth.getSession();
 
       if (!session) {
+        clearClientSnapshots(NOTIFICATIONS_PAGE_SNAPSHOT_STORAGE_PREFIX);
         router.push("/login");
         return;
       }
@@ -80,6 +130,20 @@ export default function NotificationsPage() {
       }
 
       setUserId(session.user.id);
+
+      if (!hasAppliedSnapshotRef.current) {
+        const cachedNotifications = readClientSnapshot(
+          getNotificationsPageSnapshotStorageKey(session.user.id),
+          session.user.id,
+          isNotificationsPageSnapshot
+        );
+
+        if (cachedNotifications) {
+          hasAppliedSnapshotRef.current = true;
+          setNotifications(cachedNotifications.notifications);
+          setLoading(false);
+        }
+      }
 
       await loadNotifications(session.user.id);
     };
@@ -182,11 +246,23 @@ export default function NotificationsPage() {
 
     if (!notification.read_at) {
       setNotifications((currentNotifications) =>
-        currentNotifications.map((currentNotification) =>
+        {
+          const nextNotifications = currentNotifications.map((currentNotification) =>
           currentNotification.id === notification.id
             ? { ...currentNotification, read_at: new Date().toISOString() }
             : currentNotification
-        )
+          );
+
+          if (userId) {
+            writeClientSnapshot(getNotificationsPageSnapshotStorageKey(userId), {
+              createdAt: Date.now(),
+              notifications: nextNotifications,
+              userId,
+            });
+          }
+
+          return nextNotifications;
+        }
       );
 
       void markNotificationRead(notification.id).then((result) => {
@@ -209,11 +285,23 @@ export default function NotificationsPage() {
     setMarkingAll(true);
     setMessage("");
     setNotifications((currentNotifications) =>
-      currentNotifications.map((notification) =>
-        notification.read_at
-          ? notification
-          : { ...notification, read_at: new Date().toISOString() }
-      )
+      {
+        const nextNotifications = currentNotifications.map((notification) =>
+          notification.read_at
+            ? notification
+            : { ...notification, read_at: new Date().toISOString() }
+        );
+
+        if (userId) {
+          writeClientSnapshot(getNotificationsPageSnapshotStorageKey(userId), {
+            createdAt: Date.now(),
+            notifications: nextNotifications,
+            userId,
+          });
+        }
+
+        return nextNotifications;
+      }
     );
 
     const result = await markAllNotificationsRead();

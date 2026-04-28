@@ -13,6 +13,14 @@ import {
 } from "./actions";
 import { ProfileSkeleton } from "@/app/components/PageSkeleton";
 import FadeIn from "@/app/components/FadeIn";
+import {
+  clearClientSnapshots,
+  hasFreshClientSnapshotMetadata,
+  readClientSnapshot,
+  writeClientSnapshot,
+  type ClientSnapshotMetadata,
+} from "@/lib/client-snapshot";
+import { isNullableString, isRecord } from "@/lib/validation/common";
 
 const PRESET_AVATARS = [
   "🎅", "🧝", "🦌", "⛄", "🎄", "🎁", "🧑‍🎄", "❄️",
@@ -54,6 +62,77 @@ type Profile = {
 };
 
 type ProfileRecord = NonNullable<Awaited<ReturnType<typeof getProfile>>>;
+type ProfilePageSnapshot = ClientSnapshotMetadata & {
+  customBudget: boolean;
+  email: string;
+  profile: Profile;
+  reminderPreferences: ReminderPreferenceFormState;
+};
+
+const PROFILE_PAGE_SNAPSHOT_STORAGE_PREFIX = "ss_profile_page_snapshot_v1:";
+const DEFAULT_PROFILE: Profile = {
+  display_name: "",
+  avatar_emoji: DEFAULT_AVATAR_EMOJI,
+  avatar_url: null,
+  bio: "",
+  default_budget: 25,
+  currency: "USD",
+  notify_invites: true,
+  notify_draws: true,
+  notify_chat: true,
+  notify_wishlist: false,
+  notify_marketing: false,
+  profile_setup_complete: false,
+};
+
+function getProfilePageSnapshotStorageKey(userId: string): string {
+  return `${PROFILE_PAGE_SNAPSHOT_STORAGE_PREFIX}${userId}`;
+}
+
+function isReminderDeliveryMode(value: unknown): value is ReminderPreferenceFormState["reminder_delivery_mode"] {
+  return value === "immediate" || value === "daily_digest";
+}
+
+function isReminderPreferenceSnapshot(value: unknown): value is ReminderPreferenceFormState {
+  return (
+    isRecord(value) &&
+    isReminderDeliveryMode(value.reminder_delivery_mode) &&
+    typeof value.reminder_event_tomorrow === "boolean" &&
+    typeof value.reminder_post_draw === "boolean" &&
+    typeof value.reminder_wishlist_incomplete === "boolean"
+  );
+}
+
+function isProfileSnapshotValue(value: unknown): value is Profile {
+  return (
+    isRecord(value) &&
+    typeof value.display_name === "string" &&
+    typeof value.avatar_emoji === "string" &&
+    isNullableString(value.avatar_url) &&
+    typeof value.bio === "string" &&
+    typeof value.default_budget === "number" &&
+    typeof value.currency === "string" &&
+    typeof value.notify_invites === "boolean" &&
+    typeof value.notify_draws === "boolean" &&
+    typeof value.notify_chat === "boolean" &&
+    typeof value.notify_wishlist === "boolean" &&
+    typeof value.notify_marketing === "boolean" &&
+    typeof value.profile_setup_complete === "boolean"
+  );
+}
+
+function isProfilePageSnapshot(
+  value: unknown,
+  userId: string
+): value is ProfilePageSnapshot {
+  return (
+    hasFreshClientSnapshotMetadata(value, userId) &&
+    typeof value.email === "string" &&
+    typeof value.customBudget === "boolean" &&
+    isProfileSnapshotValue(value.profile) &&
+    isReminderPreferenceSnapshot(value.reminderPreferences)
+  );
+}
 
 function normalizeProfile(data: ProfileRecord): Profile {
   return {
@@ -139,21 +218,7 @@ export default function ProfilePage() {
   const [reminderPreferences, setReminderPreferences] = useState<ReminderPreferenceFormState>(
     DEFAULT_REMINDER_PREFERENCES
   );
-
-  const [profile, setProfile] = useState<Profile>({
-    display_name: "",
-    avatar_emoji: DEFAULT_AVATAR_EMOJI,
-    avatar_url: null,
-    bio: "",
-    default_budget: 25,
-    currency: "USD",
-    notify_invites: true,
-    notify_draws: true,
-    notify_chat: true,
-    notify_wishlist: false,
-    notify_marketing: false,
-    profile_setup_complete: false,
-  });
+  const [profile, setProfile] = useState<Profile>(DEFAULT_PROFILE);
 
   useEffect(() => {
     router.prefetch("/dashboard");
@@ -164,21 +229,54 @@ export default function ProfilePage() {
 
     const load = async () => {
       const { data: { session } } = await supabase.auth.getSession();
-      if (!session) { router.push("/login"); return; }
+      if (!session) {
+        clearClientSnapshots(PROFILE_PAGE_SNAPSHOT_STORAGE_PREFIX);
+        router.push("/login");
+        return;
+      }
       if (!isMounted) return;
 
       setUserId(session.user.id);
       setEmail(session.user.email || "");
 
-      const data = await getProfile();
-      const loadedReminderPreferences = await getReminderPreferences();
+      const cachedProfile = readClientSnapshot(
+        getProfilePageSnapshotStorageKey(session.user.id),
+        session.user.id,
+        isProfilePageSnapshot
+      );
+
+      if (cachedProfile) {
+        setProfile(cachedProfile.profile);
+        setCustomBudget(cachedProfile.customBudget);
+        setReminderPreferences(cachedProfile.reminderPreferences);
+        setEmail(cachedProfile.email);
+        setLoading(false);
+      }
+
+      const [data, loadedReminderPreferences] = await Promise.all([
+        getProfile(),
+        getReminderPreferences(),
+      ]);
       if (!isMounted) return;
 
-      if (data) {
-        setProfile(normalizeProfile(data));
-        setCustomBudget(!BUDGET_OPTIONS.includes(data.default_budget || 25));
-      }
-      setReminderPreferences(loadedReminderPreferences || DEFAULT_REMINDER_PREFERENCES);
+      const nextProfile = data ? normalizeProfile(data) : DEFAULT_PROFILE;
+      const nextCustomBudget = data
+        ? !BUDGET_OPTIONS.includes(data.default_budget || 25)
+        : false;
+      const nextReminderPreferences =
+        loadedReminderPreferences || DEFAULT_REMINDER_PREFERENCES;
+
+      setProfile(nextProfile);
+      setCustomBudget(nextCustomBudget);
+      setReminderPreferences(nextReminderPreferences);
+      writeClientSnapshot(getProfilePageSnapshotStorageKey(session.user.id), {
+        createdAt: Date.now(),
+        customBudget: nextCustomBudget,
+        email: session.user.email || "",
+        profile: nextProfile,
+        reminderPreferences: nextReminderPreferences,
+        userId: session.user.id,
+      });
       setLoading(false);
     };
 
@@ -259,7 +357,22 @@ export default function ProfilePage() {
         : reminderResult.message
     );
     setSaving(false);
-    if (reminderResult.success) setTimeout(() => setMessage(""), 3000);
+    if (reminderResult.success) {
+      if (userId) {
+        writeClientSnapshot(getProfilePageSnapshotStorageKey(userId), {
+          createdAt: Date.now(),
+          customBudget,
+          email,
+          profile: {
+            ...profile,
+            profile_setup_complete: true,
+          },
+          reminderPreferences,
+          userId,
+        });
+      }
+      setTimeout(() => setMessage(""), 3000);
+    }
   };
 
   const update = (key: keyof Profile, value: Profile[keyof Profile]) => {

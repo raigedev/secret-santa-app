@@ -4,7 +4,14 @@ import { useCallback, useEffect, useId, useMemo, useRef, useState } from "react"
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { ChatSkeleton } from "@/app/components/PageSkeleton";
-import { sanitizePlainText } from "@/lib/validation/common";
+import {
+  clearClientSnapshots,
+  hasFreshClientSnapshotMetadata,
+  readClientSnapshot,
+  writeClientSnapshot,
+  type ClientSnapshotMetadata,
+} from "@/lib/client-snapshot";
+import { isRecord, sanitizePlainText } from "@/lib/validation/common";
 import { sendMessage } from "./chat-actions";
 
 type Thread = {
@@ -64,7 +71,11 @@ type MemberNicknameRow = {
 };
 
 type FestiveTone = "gold" | "green" | "neutral";
+type ChatPageSnapshot = ClientSnapshotMetadata & {
+  threads: Thread[];
+};
 
+const CHAT_PAGE_SNAPSHOT_STORAGE_PREFIX = "ss_chat_page_snapshot_v1:";
 const CHAT_PAGE_BACKGROUND =
   "radial-gradient(circle at 14% 8%,rgba(252,206,114,.3),transparent 24%),radial-gradient(circle at 88% 18%,rgba(164,60,63,.28),transparent 30%),radial-gradient(circle at 78% 84%,rgba(72,102,78,.32),transparent 34%),linear-gradient(180deg,#13160d 0%,#261214 50%,#10150f 100%)";
 const CHAT_PANEL_BACKGROUND = "linear-gradient(145deg,rgba(255,248,240,.16),rgba(46,52,50,.74) 58%,rgba(72,102,78,.34))";
@@ -74,6 +85,40 @@ const CHAT_BORDER = "1px solid rgba(252,206,114,.2)";
 const CHAT_BORDER_SOFT = "1px solid rgba(255,248,240,.14)";
 const CHAT_TEXT_MUTED = "#d8ddd6";
 const CHAT_TEXT_SUBTLE = "#aeb8ae";
+
+function getChatPageSnapshotStorageKey(userId: string): string {
+  return `${CHAT_PAGE_SNAPSHOT_STORAGE_PREFIX}${userId}`;
+}
+
+function isThreadRole(value: unknown): value is Thread["role"] {
+  return value === "giver" || value === "receiver";
+}
+
+function isThreadSnapshot(value: unknown): value is Thread {
+  return (
+    isRecord(value) &&
+    typeof value.group_id === "string" &&
+    typeof value.group_name === "string" &&
+    typeof value.giver_id === "string" &&
+    typeof value.receiver_id === "string" &&
+    typeof value.other_name === "string" &&
+    isThreadRole(value.role) &&
+    typeof value.last_message === "string" &&
+    typeof value.last_time === "string" &&
+    typeof value.unread === "number"
+  );
+}
+
+function isChatPageSnapshot(
+  value: unknown,
+  userId: string
+): value is ChatPageSnapshot {
+  return (
+    hasFreshClientSnapshotMetadata(value, userId) &&
+    Array.isArray(value.threads) &&
+    value.threads.every(isThreadSnapshot)
+  );
+}
 
 function SantaMarkIcon({ className = "h-10 w-10" }: { className?: string }) {
   return (
@@ -703,6 +748,7 @@ export default function SecretSantaChatPage() {
   const activeThreadRef = useRef<Thread | null>(null);
   const userIdRef = useRef<string | null>(null);
   const loadThreadsRef = useRef<() => Promise<void>>(null);
+  const hasLoadedThreadsRef = useRef(false);
 
   useEffect(() => {
     router.prefetch("/dashboard");
@@ -746,9 +792,28 @@ export default function SecretSantaChatPage() {
       const {
         data: { session },
       } = await supabase.auth.getSession();
-      if (!session) { router.push("/login"); return; }
+      if (!session) {
+        clearClientSnapshots(CHAT_PAGE_SNAPSHOT_STORAGE_PREFIX);
+        router.push("/login");
+        return;
+      }
       const user = session.user;
       setUserId(user.id);
+
+      if (!hasLoadedThreadsRef.current) {
+        const cachedChat = readClientSnapshot(
+          getChatPageSnapshotStorageKey(user.id),
+          user.id,
+          isChatPageSnapshot
+        );
+
+        if (cachedChat) {
+          setThreads(cachedChat.threads);
+          setThreadListMessage(null);
+          hasLoadedThreadsRef.current = true;
+          setLoading(false);
+        }
+      }
 
       const { data: memberRows, error: membershipsError } = await supabase
         .from("group_members").select("group_id")
@@ -757,6 +822,7 @@ export default function SecretSantaChatPage() {
       if (membershipsError) {
         setThreadListMessage("We could not load your chats. Please refresh the page.");
         setThreads([]);
+        hasLoadedThreadsRef.current = true;
         setLoading(false);
         return;
       }
@@ -766,6 +832,12 @@ export default function SecretSantaChatPage() {
       if (groupIds.length === 0) {
         setThreadListMessage(null);
         setThreads([]);
+        writeClientSnapshot(getChatPageSnapshotStorageKey(user.id), {
+          createdAt: Date.now(),
+          threads: [],
+          userId: user.id,
+        });
+        hasLoadedThreadsRef.current = true;
         setLoading(false);
         return;
       }
@@ -793,6 +865,7 @@ export default function SecretSantaChatPage() {
       ) {
         setThreadListMessage("We could not load your chats. Please refresh the page.");
         setThreads([]);
+        hasLoadedThreadsRef.current = true;
         setLoading(false);
         return;
       }
@@ -887,6 +960,12 @@ export default function SecretSantaChatPage() {
 
       setThreads(buildThreads);
       setThreadListMessage(null);
+      hasLoadedThreadsRef.current = true;
+      writeClientSnapshot(getChatPageSnapshotStorageKey(user.id), {
+        createdAt: Date.now(),
+        threads: buildThreads,
+        userId: user.id,
+      });
 
       if (currentActiveThread && !nextActiveThread) {
         setActiveThread(null);
