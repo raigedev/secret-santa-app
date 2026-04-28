@@ -18,6 +18,14 @@ import {
 } from "./notification-display";
 import FadeIn from "@/app/components/FadeIn";
 
+function getNotificationTargetPath(notification: NotificationItem): string | null {
+  if (notification.type === "reminder_wishlist_incomplete") {
+    return "/wishlist";
+  }
+
+  return notification.link_path;
+}
+
 export default function NotificationsPage() {
   const router = useRouter();
   const [supabase] = useState(() => createClient());
@@ -154,8 +162,10 @@ export default function NotificationsPage() {
     prefetchOnce("/secret-santa");
 
     for (const notification of notifications.slice(0, 20)) {
-      if (notification.link_path) {
-        prefetchOnce(notification.link_path);
+      const targetPath = getNotificationTargetPath(notification);
+
+      if (targetPath) {
+        prefetchOnce(targetPath);
       }
     }
   }, [router, notifications]);
@@ -188,8 +198,10 @@ export default function NotificationsPage() {
 
     setProcessingId(null);
 
-    if (notification.link_path) {
-      router.push(notification.link_path);
+    const targetPath = getNotificationTargetPath(notification);
+
+    if (targetPath) {
+      router.push(targetPath);
     }
   };
 
@@ -392,7 +404,7 @@ export default function NotificationsPage() {
                             {notification.read_at ? "Read" : "Unread"}
                           </span>
 
-                          {notification.link_path && (
+                          {getNotificationTargetPath(notification) && (
                             <span className="text-[12px] font-bold text-blue-700">
                               {getNotificationActionLabel(notification)}
                             </span>

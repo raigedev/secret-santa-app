@@ -610,7 +610,7 @@ async function enqueueWishlistIncompleteReminderJobs(now: Date): Promise<number>
       delivery_mode_snapshot: preferences.reminder_delivery_mode,
       due_at: scheduledDueAt.toISOString(),
       group_id: group.id,
-      link_path: "/secret-santa",
+      link_path: "/wishlist",
       metadata: {
         eventDate: group.event_date,
         groupId: group.id,
