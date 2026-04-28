@@ -4362,7 +4362,7 @@ export default function SecretSantaPage() {
 
                                   <div
                                     data-testid="shopping-focus-options"
-                                    className="mt-3 flex max-w-full flex-nowrap items-stretch gap-2 overflow-x-auto pb-1 pr-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+                                    className="mt-3 grid max-w-full grid-cols-1 items-stretch gap-2 min-[560px]:grid-cols-2 xl:grid-cols-[minmax(14rem,1.35fr)_repeat(3,minmax(8rem,1fr))]"
                                   >
                                     {suggestionOptions.map((suggestion) => {
                                       const isSelected =
@@ -4384,7 +4384,7 @@ export default function SecretSantaPage() {
                                               suggestion.id
                                             )
                                           }
-                                          className="inline-flex min-h-[54px] w-max min-w-[7.25rem] max-w-[15rem] shrink-0 items-center justify-center gap-2 rounded-[16px] border px-4 py-2.5 text-center transition hover:-translate-y-0.5 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 sm:max-w-[17rem] sm:px-5"
+                                          className="inline-flex min-h-[54px] w-full min-w-0 items-center justify-center gap-2 rounded-[16px] border px-3 py-2.5 text-center transition hover:-translate-y-0.5 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 sm:px-4 xl:px-5"
                                           style={{
                                             background: isSelected
                                               ? HOLIDAY_GREEN

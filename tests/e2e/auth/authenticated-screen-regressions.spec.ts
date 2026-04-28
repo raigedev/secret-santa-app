@@ -534,6 +534,55 @@ test.describe("authenticated screen regressions", () => {
     expect(secretSantaConsoleErrors).toEqual([]);
   });
 
+  test("secret-santa shopping options fit narrow previews", async ({ page }) => {
+    await page.setViewportSize({ width: 733, height: 900 });
+    await loginWithTestCredentials(page, credentials!);
+    await page.goto("/secret-santa");
+
+    const shoppingOptionPanel = page.getByTestId("shopping-option-panel").first();
+    await shoppingOptionPanel.scrollIntoViewIfNeeded();
+    await expect(shoppingOptionPanel).toBeVisible();
+
+    const optionLayout = await page
+      .getByTestId("shopping-focus-options")
+      .first()
+      .evaluate((options) => {
+        const firstLabel = options.querySelector("button div");
+
+        if (firstLabel) {
+          firstLabel.textContent =
+            "Cosmo LADY | Summer Cotton Short Sleeve and Long Pants Men's Lounge wear Set";
+        }
+
+        const optionsRect = options.getBoundingClientRect();
+        const optionButtons = [...options.querySelectorAll("button")];
+
+        return {
+          display: window.getComputedStyle(options).display,
+          hasHorizontalOverflow: options.scrollWidth > options.clientWidth + 1,
+          overflowingButtons: optionButtons
+            .map((button, index) => {
+              const buttonRect = button.getBoundingClientRect();
+              const label = button.querySelector("div");
+
+              return {
+                index,
+                buttonOverflows:
+                  buttonRect.left < optionsRect.left - 1 ||
+                  buttonRect.right > optionsRect.right + 1,
+                labelClipped: label ? label.scrollWidth > label.clientWidth + 1 : true,
+                text: button.textContent?.replace(/\s+/g, " ").trim() || "",
+              };
+            })
+            .filter((button) => button.buttonOverflows || button.labelClipped),
+        };
+      });
+
+    expect(optionLayout.display).toBe("grid");
+    expect(optionLayout.hasHorizontalOverflow).toBe(false);
+    expect(optionLayout.overflowingButtons).toEqual([]);
+  });
+
   test("secret-santa wishlist rail does not trap page scrolling", async ({ page, isMobile }) => {
     await loginWithTestCredentials(page, credentials!);
     await page.goto("/secret-santa");
