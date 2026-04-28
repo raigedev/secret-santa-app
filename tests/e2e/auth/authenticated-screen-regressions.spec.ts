@@ -90,6 +90,13 @@ const AUTHENTICATED_SCREEN_CASES: ScreenCase[] = [
     assertVisible: async (page) => {
       await expect(page.getByRole("heading", { name: /shopping ideas/i })).toBeVisible();
       await expect(page.getByTestId("shopping-option-panel").first()).toBeVisible();
+
+      const notificationsButton = page.getByRole("button", { name: /open notifications/i });
+      await expect(notificationsButton).toBeVisible();
+      await notificationsButton.click();
+      await expect(page.getByTestId("dashboard-notifications-panel")).toBeVisible();
+      await expect(page).toHaveURL(/\/secret-santa$/);
+      await page.getByRole("button", { name: /close notifications/i }).click();
     },
   },
   {

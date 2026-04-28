@@ -1,8 +1,9 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type RefObject } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
+import { DashboardNotificationsPanel } from "@/app/dashboard/DashboardNotificationsPanel";
 import { SantaMarkIcon } from "@/app/dashboard/dashboard-icons";
 import { confirmGiftReceived, updateGiftPrepStatus } from "./actions";
 import { SecretSantaSkeleton } from "@/app/components/PageSkeleton";
@@ -1233,8 +1234,16 @@ function ShoppingIdeasSidebar({
 }
 
 function ShoppingIdeasHeader({
+  notificationButtonRef,
+  notificationsPanelOpen,
+  onToggleNotifications,
+  unreadNotificationCount,
   viewerName,
 }: {
+  notificationButtonRef: RefObject<HTMLButtonElement | null>;
+  notificationsPanelOpen: boolean;
+  onToggleNotifications: () => void;
+  unreadNotificationCount: number;
   viewerName: string;
 }) {
   return (
@@ -1261,26 +1270,35 @@ function ShoppingIdeasHeader({
         </div>
       </div>
       <div className="flex items-center gap-3">
-        <a
-          href="/notifications"
-          aria-label="Open notifications"
+        <button
+          ref={notificationButtonRef}
+          type="button"
+          onClick={onToggleNotifications}
+          aria-haspopup="dialog"
+          aria-expanded={notificationsPanelOpen}
+          aria-label={
+            unreadNotificationCount > 0
+              ? `Open notifications, ${unreadNotificationCount} unread`
+              : "Open notifications"
+          }
           className="relative flex h-12 w-12 items-center justify-center rounded-full transition hover:-translate-y-0.5"
           style={{
             background: "rgba(255,255,255,.82)",
             border: "1px solid rgba(72,102,78,.16)",
             color: PAGE_TEXT_COLOR,
-            textDecoration: "none",
           }}
         >
           <NotificationBellMark />
-          <span
-            aria-hidden="true"
-            className="absolute right-2 top-1.5 flex h-5 min-w-5 items-center justify-center rounded-full px-1 text-[10px] font-black text-white"
-            style={{ background: HOLIDAY_RED }}
-          >
-            3
-          </span>
-        </a>
+          {unreadNotificationCount > 0 && (
+            <span
+              aria-hidden="true"
+              className="absolute right-2 top-1.5 flex h-5 min-w-5 items-center justify-center rounded-full px-1 text-[10px] font-black text-white"
+              style={{ background: HOLIDAY_RED }}
+            >
+              {unreadNotificationCount > 99 ? "99+" : unreadNotificationCount}
+            </span>
+          )}
+        </button>
         <a
           href="/dashboard"
           aria-label="Open group dashboard"
@@ -2188,6 +2206,8 @@ export default function SecretSantaPage() {
 
   // Page-level feedback and action state.
   const [message, setMessage] = useState<ActionMessage>(null);
+  const [notificationsPanelOpen, setNotificationsPanelOpen] = useState(false);
+  const [unreadNotificationCount, setUnreadNotificationCount] = useState(0);
   const [updatingPrepGroup, setUpdatingPrepGroup] = useState<string | null>(null);
   const [confirmingGroup, setConfirmingGroup] = useState<string | null>(null);
   const [activeRecipientItemByAssignment, setActiveRecipientItemByAssignment] = useState<
@@ -2216,6 +2236,7 @@ export default function SecretSantaPage() {
   // These shopping preferences are page-level on purpose so the giver can set
   // them once and reuse them across every giftee item on the screen.
   const [shoppingRegion, setShoppingRegion] = useState<ShoppingRegion>("GLOBAL");
+  const notificationButtonRef = useRef<HTMLButtonElement | null>(null);
   const prefetchedRoutesRef = useRef<Set<string>>(new Set());
   const lazadaPrimedKeysRef = useRef<Set<string>>(new Set());
   const matchedLazadaProductsByKeyRef = useRef(matchedLazadaProductsByKey);
@@ -3111,7 +3132,20 @@ export default function SecretSantaPage() {
         onShoppingRegionChange={setShoppingRegion}
       />
       <div className="relative z-10 min-h-screen xl:pl-[17.5rem]">
-        <ShoppingIdeasHeader viewerName={viewerName} />
+        <ShoppingIdeasHeader
+          notificationButtonRef={notificationButtonRef}
+          notificationsPanelOpen={notificationsPanelOpen}
+          unreadNotificationCount={unreadNotificationCount}
+          viewerName={viewerName}
+          onToggleNotifications={() => setNotificationsPanelOpen((open) => !open)}
+        />
+        <DashboardNotificationsPanel
+          anchorRef={notificationButtonRef}
+          isDarkTheme={false}
+          open={notificationsPanelOpen}
+          onClose={() => setNotificationsPanelOpen(false)}
+          onUnreadCountChange={setUnreadNotificationCount}
+        />
         <div className="mx-auto w-full max-w-[94rem] px-4 py-4 sm:px-6 sm:py-6 xl:px-7 xl:py-3">
         {/* Primary navigation back to the dashboard. */}
         <button
