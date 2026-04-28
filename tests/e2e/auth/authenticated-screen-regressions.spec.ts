@@ -160,6 +160,98 @@ test.describe("authenticated screen regressions", () => {
     await expect(page.getByTestId("secret-santa-page-shell")).toBeVisible();
   });
 
+  test("dashboard keeps text readable with a stored midnight preference", async ({ page }) => {
+    const dashboardConsoleErrors: string[] = [];
+
+    page.on("console", (message) => {
+      if (
+        message.type() === "error" &&
+        /hydration failed|server rendered text/i.test(message.text())
+      ) {
+        dashboardConsoleErrors.push(message.text());
+      }
+    });
+
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await loginWithTestCredentials(page, credentials!);
+    await page.goto("/dashboard");
+    await page.evaluate(() => localStorage.setItem("ss_dashboard_theme", "midnight"));
+    await page.reload();
+
+    await expect(page.getByRole("heading", { name: /welcome back/i })).toBeVisible();
+    await expect(page.getByRole("heading", { name: /your groups/i })).toBeVisible();
+
+    const textSamples = await page.evaluate(() => {
+      const parseRgbColor = (color: string) => {
+        const match = /rgba?\((\d+),\s*(\d+),\s*(\d+)/i.exec(color);
+
+        if (!match) {
+          return null;
+        }
+
+        return [Number(match[1]), Number(match[2]), Number(match[3])];
+      };
+      const relativeLuminance = (color: string) => {
+        const labMatch = /lab\(([0-9.]+)%?/i.exec(color);
+
+        if (labMatch) {
+          return Number(labMatch[1]) / 100;
+        }
+
+        const modernColorMatch = new RegExp("ok" + "lch\\(([0-9.]+)", "i").exec(color);
+
+        if (modernColorMatch) {
+          return Number(modernColorMatch[1]);
+        }
+
+        const channels = parseRgbColor(color);
+
+        if (!channels) {
+          return 1;
+        }
+
+        const [red, green, blue] = channels.map((channel) => {
+          const normalized = channel / 255;
+
+          return normalized <= 0.03928
+            ? normalized / 12.92
+            : Math.pow((normalized + 0.055) / 1.055, 2.4);
+        });
+
+        return 0.2126 * red + 0.7152 * green + 0.0722 * blue;
+      };
+      const readSample = (label: string, selector: string, matcher: RegExp) => {
+        const element = Array.from(document.querySelectorAll(selector)).find((candidate) =>
+          matcher.test(candidate.textContent || "")
+        );
+
+        if (!(element instanceof HTMLElement)) {
+          return { color: "", found: false, label, luminance: 1 };
+        }
+
+        const color = window.getComputedStyle(element).color;
+        return { color, found: true, label, luminance: relativeLuminance(color) };
+      };
+
+      return [
+        readSample("welcome heading", "h1", /welcome back/i),
+        readSample("reveal message", "p", /reveal|manage your groups|wishlists/i),
+        readSample("groups heading", "h2", /your groups/i),
+        readSample("groups summary", "p", /groups you host and groups you joined/i),
+      ];
+    });
+
+    for (const sample of textSamples) {
+      expect(sample.found, `${sample.label} should be present`).toBe(true);
+      expect(sample.luminance, `${sample.label} uses ${sample.color}`).toBeLessThan(0.45);
+    }
+
+    await expect
+      .poll(() => page.evaluate(() => localStorage.getItem("ss_dashboard_theme")))
+      .toBe("default");
+    expect(dashboardConsoleErrors).toEqual([]);
+  });
+
   test("viewer name stays consistent between dashboard and shopping ideas refreshes", async ({ page }) => {
     await page.setViewportSize({ width: 1440, height: 900 });
     await loginWithTestCredentials(page, credentials!);

@@ -151,7 +151,7 @@ export default function AppRouteShell({ children }: { children: ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
   const [supabase] = useState(() => createClient());
-  const [viewerName, setViewerName] = useState(readStoredViewerName);
+  const [viewerName, setViewerName] = useState("");
   const [canViewAffiliateReport, setCanViewAffiliateReport] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
   const [notificationsOpen, setNotificationsOpen] = useState(false);

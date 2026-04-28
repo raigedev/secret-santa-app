@@ -123,6 +123,12 @@ export default function DashboardPage() {
       return;
     }
 
+    if (dashboardTheme !== "default") {
+      localStorage.setItem("ss_dashboard_theme", "default");
+      setDashboardTheme("default");
+      return;
+    }
+
     localStorage.setItem("ss_dashboard_theme", dashboardTheme);
   }, [dashboardTheme]);
 
@@ -997,7 +1003,9 @@ export default function DashboardPage() {
 
   const hasAssignments = recipientNames.length > 0;
   const displayFirstName = getDisplayFirstName(userName);
-  const isDarkTheme = dashboardTheme === "midnight";
+  // The shared authenticated shell owns the dashboard backdrop, so keep dashboard text in
+  // the light palette even if a browser still has the retired midnight preference stored.
+  const isDarkTheme = false;
   const totalDashboardGroupCount = ownedGroups.length + invitedGroups.length;
   const allDashboardGroups = [...ownedGroups, ...invitedGroups];
   const revealMessage = buildDashboardRevealMessage(allDashboardGroups, countdownNow);
