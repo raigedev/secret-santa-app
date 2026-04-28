@@ -107,11 +107,50 @@ test.describe("authenticated screen regressions", () => {
 
   for (const screen of AUTHENTICATED_SCREEN_CASES) {
     test(`${screen.name} renders its core authenticated UI`, async ({ page }) => {
+      await page.setViewportSize({ width: 1440, height: 900 });
       await loginWithTestCredentials(page, credentials!);
       await page.goto(screen.path);
       await screen.assertVisible(page);
+
+      if (screen.path === "/secret-santa") {
+        await expect(page.getByTestId("app-route-shell")).toHaveCount(0);
+        await expect(page.getByTestId("secret-santa-page-shell")).toBeVisible();
+        return;
+      }
+
+      await expect(page.getByTestId("app-route-shell")).toBeVisible();
+      await expect(page.getByTestId("app-shell-sidebar")).toBeVisible();
     });
   }
+
+  test("shared app shell keeps authenticated sections in one frame", async ({ page }) => {
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await loginWithTestCredentials(page, credentials!);
+    await page.goto("/dashboard");
+
+    const appShell = page.getByTestId("app-route-shell");
+    const sidebar = page.getByTestId("app-shell-sidebar");
+    await expect(appShell).toBeVisible();
+    await expect(sidebar).toBeVisible();
+    await expect(sidebar.getByRole("link", { name: /dashboard/i })).toHaveAttribute(
+      "aria-current",
+      "page"
+    );
+
+    await sidebar.getByRole("link", { name: /wishlist/i }).click();
+    await page.waitForURL(/\/wishlist$/);
+    await expect(appShell).toBeVisible();
+    await expect(page.getByText(/^my wishlist$/i)).toBeVisible();
+    await expect(sidebar.getByRole("link", { name: /wishlist/i })).toHaveAttribute(
+      "aria-current",
+      "page"
+    );
+
+    await sidebar.getByRole("link", { name: /shopping ideas/i }).click();
+    await page.waitForURL(/\/secret-santa/);
+    await expect(page.getByTestId("app-route-shell")).toHaveCount(0);
+    await expect(page.getByTestId("secret-santa-page-shell")).toBeVisible();
+  });
 
   test("login does not write group memberships from the browser", async ({ page }) => {
     const browserSideGroupMemberWrites: string[] = [];
