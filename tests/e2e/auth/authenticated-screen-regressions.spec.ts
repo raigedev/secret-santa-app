@@ -619,14 +619,44 @@ test.describe("owner-only affiliate route regressions", () => {
   test.skip(!credentials, AUTH_BLOCKED_MESSAGE);
 
   test("affiliate report enforces owner-only access", async ({ page }) => {
+    await page.setViewportSize({ width: 1440, height: 900 });
     await loginWithTestCredentials(page, credentials!);
-    await page.goto("/dashboard/affiliate-report");
+    await page.goto("/dashboard");
+
+    const sharedShellSidebar = page.getByTestId("app-shell-sidebar");
+    const sharedShellReportLink = sharedShellSidebar.getByRole("link", {
+      name: /affiliate report/i,
+    });
 
     if (canSeededUserOpenAffiliateReport(credentials!.email)) {
+      await expect(sharedShellReportLink).toBeVisible();
+      await sharedShellReportLink.click();
+      await page.waitForURL(/\/dashboard\/affiliate-report$/);
       await expect(page.getByRole("heading", { name: /lazada affiliate report/i })).toBeVisible();
-      await expect(page.getByRole("link", { name: /open shopping flow/i })).toBeVisible();
+
+      await page.goto("/secret-santa");
+      await expect(page.getByRole("heading", { name: /shopping ideas/i })).toBeVisible();
+      const shoppingShellReportLink = page
+        .getByTestId("shopping-ideas-sidebar")
+        .getByRole("link", { name: /affiliate report/i });
+      await expect(shoppingShellReportLink).toBeVisible();
+      await shoppingShellReportLink.click();
+      await page.waitForURL(/\/dashboard\/affiliate-report$/);
+      await expect(page.getByRole("heading", { name: /lazada affiliate report/i })).toBeVisible();
       return;
     }
+
+    await expect(sharedShellReportLink).toHaveCount(0);
+
+    await page.goto("/secret-santa");
+    await expect(page.getByRole("heading", { name: /shopping ideas/i })).toBeVisible();
+    await expect(
+      page.getByTestId("shopping-ideas-sidebar").getByRole("link", {
+        name: /affiliate report/i,
+      })
+    ).toHaveCount(0);
+
+    await page.goto("/dashboard/affiliate-report");
 
     await page.waitForURL(/\/dashboard$/);
     await expect(page).toHaveURL(/\/dashboard$/);

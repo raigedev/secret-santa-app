@@ -47,12 +47,11 @@ function getTimeOfDayGreeting() {
   return "Good evening";
 }
 
-function createNavItems(pathname: string): AppNavItem[] {
+function createNavItems(pathname: string, canViewAffiliateReport: boolean): AppNavItem[] {
   const groupHref = pathname.startsWith("/group/")
     ? pathname
     : "/dashboard#dashboard-groups";
-
-  return [
+  const navItems: AppNavItem[] = [
     {
       href: "/dashboard",
       icon: "dashboard",
@@ -101,6 +100,16 @@ function createNavItems(pathname: string): AppNavItem[] {
       label: "Gift Tracking",
       match: () => false,
     },
+    ...(canViewAffiliateReport
+      ? [
+          {
+            href: "/dashboard/affiliate-report",
+            icon: "report" as const,
+            label: "Affiliate Report",
+            match: (path: string) => path === "/dashboard/affiliate-report",
+          },
+        ]
+      : []),
     {
       href: "/profile#reminder-settings",
       icon: "reminders",
@@ -108,6 +117,8 @@ function createNavItems(pathname: string): AppNavItem[] {
       match: (path) => path === "/profile",
     },
   ];
+
+  return navItems;
 }
 
 export default function AppRouteShell({ children }: { children: ReactNode }) {
@@ -115,6 +126,7 @@ export default function AppRouteShell({ children }: { children: ReactNode }) {
   const router = useRouter();
   const [supabase] = useState(() => createClient());
   const [viewerName, setViewerName] = useState("Santa");
+  const [canViewAffiliateReport, setCanViewAffiliateReport] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
   const [notificationsOpen, setNotificationsOpen] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
@@ -132,6 +144,39 @@ export default function AppRouteShell({ children }: { children: ReactNode }) {
       const savedName = typeof sessionStorage !== "undefined" ? sessionStorage.getItem("ss_un") : null;
       setViewerName(savedName || emailName || "Santa");
     });
+
+    void fetch("/api/affiliate/report-access", { credentials: "same-origin" })
+      .then(async (response) => {
+        if (!isMounted) {
+          return;
+        }
+
+        if (!response.ok) {
+          sessionStorage.removeItem("ss_ara");
+          setCanViewAffiliateReport(false);
+          return;
+        }
+
+        const payload = (await response.json()) as { allowed?: boolean };
+        const allowed = payload.allowed === true;
+
+        if (allowed) {
+          sessionStorage.setItem("ss_ara", "1");
+        } else {
+          sessionStorage.removeItem("ss_ara");
+        }
+
+        setCanViewAffiliateReport(allowed);
+      })
+      .catch(() => {
+        if (!isMounted) {
+          return;
+        }
+
+        sessionStorage.removeItem("ss_ara");
+        setCanViewAffiliateReport(false);
+      });
+
     return () => {
       isMounted = false;
     };
@@ -141,7 +186,7 @@ export default function AppRouteShell({ children }: { children: ReactNode }) {
     return <>{children}</>;
   }
 
-  const navItems = createNavItems(pathname);
+  const navItems = createNavItems(pathname, canViewAffiliateReport);
   const profileInitial = viewerName.trim().slice(0, 1).toUpperCase() || "S";
 
   const handleLogout = async () => {
@@ -233,6 +278,20 @@ export default function AppRouteShell({ children }: { children: ReactNode }) {
             </div>
           </div>
           <div className="flex items-center gap-3">
+            {canViewAffiliateReport && (
+              <Link
+                href="/dashboard/affiliate-report"
+                className="inline-flex min-h-11 items-center rounded-full px-4 text-[13px] font-extrabold transition hover:-translate-y-0.5"
+                style={{
+                  background: "rgba(252,206,114,.18)",
+                  border: "1px solid rgba(123,89,2,.16)",
+                  color: "#7b5902",
+                  textDecoration: "none",
+                }}
+              >
+                Affiliate report
+              </Link>
+            )}
             <button ref={notificationButtonRef} type="button" onClick={() => setNotificationsOpen((open) => !open)} aria-label={unreadCount > 0 ? `Open notifications, ${unreadCount} unread` : "Open notifications"} className="relative flex h-12 w-12 items-center justify-center rounded-full transition hover:-translate-y-0.5" style={{ background: "rgba(255,255,255,.82)", border: "1px solid rgba(72,102,78,.16)", color: PAGE_TEXT_COLOR }}>
               <BellIcon className="h-5 w-5" />
               {unreadCount > 0 && <span className="absolute right-2 top-1.5 flex h-5 min-w-5 items-center justify-center rounded-full px-1 text-[10px] font-black text-white" style={{ background: HOLIDAY_RED }}>{unreadCount > 99 ? "99+" : unreadCount}</span>}

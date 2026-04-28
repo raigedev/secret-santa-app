@@ -189,7 +189,17 @@ type ShoppingIdeasNavItem = {
   label: string;
   href: string;
   active?: boolean;
-  icon: "dashboard" | "group" | "giftee" | "wishlist" | "assignments" | "messages" | "shopping" | "tracking" | "reminders";
+  icon:
+    | "dashboard"
+    | "group"
+    | "giftee"
+    | "wishlist"
+    | "assignments"
+    | "messages"
+    | "report"
+    | "shopping"
+    | "tracking"
+    | "reminders";
 };
 
 function GiftMark({ className = "h-5 w-5" }: { className?: string }) {
@@ -312,7 +322,10 @@ function ShoppingNavIcon({
     );
   }
 
-  const paths: Record<Exclude<ShoppingIdeasNavItem["icon"], "shopping" | "wishlist" | "reminders">, string[]> = {
+  const paths: Record<
+    Exclude<ShoppingIdeasNavItem["icon"], "shopping" | "wishlist" | "reminders">,
+    string[]
+  > = {
     assignments: [
       "M7 4.8h10A1.8 1.8 0 0 1 18.8 6.6v12A1.8 1.8 0 0 1 17 20.4H7a1.8 1.8 0 0 1-1.8-1.8v-12A1.8 1.8 0 0 1 7 4.8Z",
       "M9 8.2h6M9 12h6M9 15.8h3.8",
@@ -330,6 +343,10 @@ function ShoppingNavIcon({
     ],
     messages: [
       "M5.8 6.2h12.4a1.8 1.8 0 0 1 1.8 1.8v6.8a1.8 1.8 0 0 1-1.8 1.8h-6.7L7.6 20v-3.4H5.8A1.8 1.8 0 0 1 4 14.8V8a1.8 1.8 0 0 1 1.8-1.8Z",
+    ],
+    report: [
+      "M5.4 5.2h13.2v13.6H5.4V5.2Z",
+      "M8.8 15.4v-4.2M12 15.4V8.6M15.2 15.4v-5.1M8.8 7.7h6.4",
     ],
     tracking: [
       "M6.5 8.5h11l1.8 4.2v5.1H4.7v-5.1l1.8-4.2Z",
@@ -2203,6 +2220,7 @@ export default function SecretSantaPage() {
   const [receivedGifts, setReceivedGifts] = useState<ReceivedGiftData[]>([]);
   const [loading, setLoading] = useState(true);
   const [viewerName, setViewerName] = useState("Santa");
+  const [canViewAffiliateReport, setCanViewAffiliateReport] = useState(false);
 
   // Page-level feedback and action state.
   const [message, setMessage] = useState<ActionMessage>(null);
@@ -2763,6 +2781,38 @@ export default function SecretSantaPage() {
           )
         );
 
+        void fetch("/api/affiliate/report-access", { credentials: "same-origin" })
+          .then(async (response) => {
+            if (!isMounted) {
+              return;
+            }
+
+            if (!response.ok) {
+              sessionStorage.removeItem("ss_ara");
+              setCanViewAffiliateReport(false);
+              return;
+            }
+
+            const payload = (await response.json()) as { allowed?: boolean };
+            const allowed = payload.allowed === true;
+
+            if (allowed) {
+              sessionStorage.setItem("ss_ara", "1");
+            } else {
+              sessionStorage.removeItem("ss_ara");
+            }
+
+            setCanViewAffiliateReport(allowed);
+          })
+          .catch(() => {
+            if (!isMounted) {
+              return;
+            }
+
+            sessionStorage.removeItem("ss_ara");
+            setCanViewAffiliateReport(false);
+          });
+
         const { data: memberRows, error: memberRowsError } = await supabase
           .from("group_members")
           .select("group_id")
@@ -3076,6 +3126,15 @@ export default function SecretSantaPage() {
       active: true,
     },
     { label: "Gift Tracking", href: prepAnchorHref, icon: "tracking" },
+    ...(canViewAffiliateReport
+      ? [
+          {
+            label: "Affiliate Report",
+            href: "/dashboard/affiliate-report",
+            icon: "report" as const,
+          },
+        ]
+      : []),
     { label: "Reminders", href: "/profile", icon: "reminders" },
   ];
 

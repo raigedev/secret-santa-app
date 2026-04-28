@@ -7,6 +7,7 @@ export type AppNavIcon =
   | "wishlist"
   | "assignments"
   | "messages"
+  | "report"
   | "shopping"
   | "tracking"
   | "reminders";
@@ -45,6 +46,10 @@ export function AppShellIcon({ name, className = "h-5 w-5" }: AppShellIconProps)
 
   if (name === "shopping") {
     return <svg {...common}><path d="M6.5 9.5h11l-.7 10h-9.6l-.7-10Z" stroke="currentColor" strokeLinejoin="round" strokeWidth="1.7" /><path d="M9 9.5a3 3 0 0 1 6 0" stroke="currentColor" strokeLinecap="round" strokeWidth="1.7" /><path d="M9 5.5h6" stroke="currentColor" strokeLinecap="round" strokeWidth="1.7" /></svg>;
+  }
+
+  if (name === "report") {
+    return <svg {...common}><path d="M5 19V5h14v14H5Z" stroke="currentColor" strokeLinejoin="round" strokeWidth="1.7" /><path d="M8.5 15.5v-4M12 15.5V8.5M15.5 15.5v-5.2M8.5 7.5h7" stroke="currentColor" strokeLinecap="round" strokeWidth="1.7" /></svg>;
   }
 
   if (name === "tracking") {
