@@ -198,17 +198,30 @@ test.describe("authenticated screen regressions", () => {
 
     const santaHelper = page.getByTestId("santa-helper");
     await expect(santaHelper).toBeVisible();
-    await expect(page.getByTestId("santa-helper-panel")).toBeVisible();
+    await expect(page.getByTestId("santa-helper-panel")).toHaveCount(0);
     await expect(page.getByTestId("santa-helper-toggle")).toHaveAttribute(
-      "aria-expanded",
-      "true"
+      "aria-label",
+      /jump to top picks/i
     );
-    const santaHelperAnimation = await page
+    const santaHelperAnimations = await page
       .getByTestId("santa-helper")
-      .locator(".santa-helper-mascot")
-      .first()
-      .evaluate((mascot) => window.getComputedStyle(mascot).animationName);
-    expect(santaHelperAnimation).toContain("santa-helper-bob");
+      .evaluate((helper) => {
+        const button = helper.querySelector('[data-testid="santa-helper-toggle"]');
+        const mascot = helper.querySelector(".santa-helper-mascot");
+
+        return {
+          buttonAnimation:
+            button instanceof HTMLElement
+              ? window.getComputedStyle(button).animationName
+              : "",
+          mascotAnimation:
+            mascot instanceof SVGElement
+              ? window.getComputedStyle(mascot).animationName
+              : "",
+        };
+      });
+    expect(santaHelperAnimations.buttonAnimation).toContain("santa-helper-warp");
+    expect(santaHelperAnimations.mascotAnimation).toContain("santa-helper-bob");
 
     const shoppingOptionPanel = page.getByTestId("shopping-option-panel").first();
     const shoppingOptions = page.getByTestId("shopping-focus-options");
@@ -419,31 +432,26 @@ test.describe("authenticated screen regressions", () => {
       );
     expect(clippedRoleLabels).toEqual([]);
 
-    const overlappingCardHeaders = await curatedCards.evaluateAll((cards) =>
+    const overlappingCardMedia = await curatedCards.evaluateAll((cards) =>
       cards
         .map((card, index) => {
-          const contentChildren = Array.from(card.children).filter(
-            (child): child is HTMLElement =>
-              child instanceof HTMLElement &&
-              child.getAttribute("aria-hidden") !== "true"
-          );
-          const header = contentChildren[0];
-          const media = contentChildren[1];
+          const media = card.querySelector('[data-testid="curated-shopping-media"]');
+          const body = card.querySelector('[data-testid="curated-shopping-body"]');
 
-          if (!(header instanceof HTMLElement) || !(media instanceof HTMLElement)) {
-            return { index, reason: "missing header or media" };
+          if (!(media instanceof HTMLElement) || !(body instanceof HTMLElement)) {
+            return { index, reason: "missing media or body" };
           }
 
-          const headerRect = header.getBoundingClientRect();
           const mediaRect = media.getBoundingClientRect();
+          const bodyRect = body.getBoundingClientRect();
 
-          return headerRect.bottom <= mediaRect.top + 1
+          return mediaRect.bottom <= bodyRect.top + 1
             ? null
-            : { index, headerBottom: headerRect.bottom, mediaTop: mediaRect.top };
+            : { index, mediaBottom: mediaRect.bottom, bodyTop: bodyRect.top };
         })
         .filter((overlap) => overlap !== null)
     );
-    expect(overlappingCardHeaders).toEqual([]);
+    expect(overlappingCardMedia).toEqual([]);
     expect(secretSantaConsoleErrors).toEqual([]);
   });
 

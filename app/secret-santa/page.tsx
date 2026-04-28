@@ -219,6 +219,24 @@ function SparkleMark({ className = "h-5 w-5" }: { className?: string }) {
   );
 }
 
+function HeartMark({ className = "h-4 w-4" }: { className?: string }) {
+  return (
+    <svg
+      aria-hidden="true"
+      className={className}
+      viewBox="0 0 20 20"
+      fill="none"
+    >
+      <path
+        d="M10 16.6c-.4-.4-1.5-1.2-3.1-2.5C4.1 11.8 2.5 9.9 2.5 7.4c0-2.1 1.5-3.6 3.5-3.6 1.5 0 2.7.8 3.4 2 .7-1.2 1.9-2 3.4-2 2 0 3.5 1.5 3.5 3.6 0 2.5-1.6 4.4-4.4 6.7-1.6 1.3-2.6 2.1-3 2.5Z"
+        stroke="currentColor"
+        strokeLinejoin="round"
+        strokeWidth="1.7"
+      />
+    </svg>
+  );
+}
+
 function LazadaArrowIcon({ className = "h-3.5 w-3.5" }: { className?: string }) {
   return (
     <svg
@@ -253,7 +271,7 @@ function LazadaCtaLink({
       target="_blank"
       rel="noopener noreferrer"
       data-testid="lazada-cta-link"
-      className={`group/lazada inline-flex min-h-11 min-w-[154px] items-center justify-center gap-2 rounded-full px-4 py-2 text-center text-[13px] font-extrabold leading-none tracking-[0.01em] transition duration-200 hover:-translate-y-0.5 active:translate-y-0 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 ${
+      className={`group/lazada relative z-[45] inline-flex min-h-11 min-w-[154px] items-center justify-center gap-2 rounded-full px-4 py-2 text-center text-[13px] font-extrabold leading-none tracking-[0.01em] transition duration-200 hover:-translate-y-0.5 active:translate-y-0 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 ${
         fullWidth ? "w-full" : "w-full sm:w-auto"
       }`}
       style={{
@@ -346,151 +364,63 @@ function SantaHelperMascot({ className = "h-20 w-20" }: { className?: string }) 
   );
 }
 
-function SantaShoppingHelper({
-  budgetLabel,
-  itemName,
-  regionLabel,
-}: {
-  budgetLabel: string | null;
-  itemName: string | null;
-  regionLabel: string;
-}) {
-  const [isOpen, setIsOpen] = useState(true);
-  const itemLabel = itemName ? summarizeCardCopy(itemName, 36) : "this gift";
+function SantaShoppingHelper() {
+  const jumpToTopPicks = () => {
+    const topPicksSection = document.querySelector(
+      '[data-testid="curated-shopping-section"]'
+    );
+
+    if (topPicksSection instanceof HTMLElement) {
+      topPicksSection.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+  };
 
   return (
     <aside
       data-testid="santa-helper"
-      className="fixed bottom-4 right-4 z-[80] flex w-[calc(100vw-2rem)] max-w-[22rem] flex-col items-end gap-3 sm:bottom-5 sm:right-5"
+      className="pointer-events-none fixed right-2 top-1/2 z-[40] flex -translate-y-1/2 items-end justify-end sm:right-4"
       aria-label="Santa Helper"
     >
-      {isOpen && (
-        <div
-          data-testid="santa-helper-panel"
-          className="santa-helper-animated santa-helper-pop w-full overflow-hidden rounded-[28px] p-4"
-          style={{
-            background:
-              "linear-gradient(180deg,rgba(255,254,250,.98),rgba(239,247,241,.96)), repeating-linear-gradient(135deg,rgba(72,102,78,.08) 0 1px,transparent 1px 30px)",
-            border: "2px solid rgba(72,102,78,.34)",
-            boxShadow:
-              "0 28px 72px rgba(46,52,50,.22), 0 0 0 6px rgba(255,255,255,.58), inset 0 1px 0 rgba(255,255,255,.9)",
-            color: PAGE_TEXT_COLOR,
-          }}
-        >
-          <div className="flex items-start gap-3">
-            <div className="relative shrink-0">
-              <SantaHelperMascot className="h-16 w-16" />
-              <span
-                data-testid="santa-helper-sparkles"
-                aria-hidden="true"
-                className="santa-helper-animated santa-helper-sparkle absolute -right-1 top-1 h-4 w-4 rounded-full"
-                style={{
-                  background: "rgba(252,206,114,.92)",
-                  boxShadow:
-                    "0 0 0 5px rgba(252,206,114,.2), 0 0 22px rgba(252,206,114,.7)",
-                }}
-              />
-            </div>
-            <div className="min-w-0 flex-1">
-              <div className="flex items-start justify-between gap-3">
-                <div>
-                  <h3
-                    className="text-[15px] font-black leading-tight"
-                    style={{
-                      color: HOLIDAY_GREEN,
-                      fontFamily: "'Plus Jakarta Sans', 'Fredoka', sans-serif",
-                    }}
-                  >
-                    Santa Helper
-                  </h3>
-                  <p className="mt-1 text-[12px] font-semibold leading-relaxed" style={{ color: TEXT_MUTED }}>
-                    Want help choosing for {itemLabel}?
-                  </p>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => setIsOpen(false)}
-                  className="rounded-full px-2 py-1 text-[12px] font-black transition hover:-translate-y-0.5 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2"
-                  style={{
-                    background: "rgba(72,102,78,.1)",
-                    color: HOLIDAY_GREEN,
-                    border: "1px solid rgba(72,102,78,.16)",
-                    outlineColor: HOLIDAY_GREEN,
-                  }}
-                  aria-label="Close Santa Helper"
-                >
-                  x
-                </button>
-              </div>
-
-              <div className="mt-3 flex flex-wrap gap-2">
-                {["Safest pick", "Cheaper option", "Why it matches", "Gift note"].map(
-                  (label) => (
-                    <button
-                      key={label}
-                      type="button"
-                      className="santa-helper-animated santa-helper-chip rounded-full px-3 py-1.5 text-[11px] font-extrabold transition hover:-translate-y-0.5 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2"
-                      style={{
-                        background:
-                          label === "Safest pick"
-                            ? "rgba(72,102,78,.14)"
-                            : "rgba(255,255,255,.82)",
-                        border: "1px solid rgba(72,102,78,.2)",
-                        color: label === "Safest pick" ? HOLIDAY_GREEN : PAGE_TEXT_COLOR,
-                        outlineColor: HOLIDAY_GREEN,
-                      }}
-                    >
-                      {label}
-                    </button>
-                  )
-                )}
-              </div>
-
-              <div
-                className="mt-3 rounded-[18px] px-3 py-2 text-[11px] font-semibold leading-relaxed"
-                style={{
-                  background: "rgba(255,255,255,.72)",
-                  border: "1px solid rgba(72,102,78,.14)",
-                  color: TEXT_MUTED,
-                }}
-              >
-                Start with the closest match, then check reviews, size, and delivery date.
-                {budgetLabel ? ` Budget target: ${budgetLabel}.` : ""} Region: {regionLabel}.
-                <span className="santa-helper-animated santa-helper-dots" aria-hidden="true">
-                  {" "}
-                  ...
-                </span>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
       <button
         type="button"
         data-testid="santa-helper-toggle"
-        aria-expanded={isOpen}
-        onClick={() => setIsOpen((current) => !current)}
-        className="santa-helper-animated santa-helper-button flex min-h-14 items-center gap-2 rounded-full px-3 py-2 text-left transition hover:-translate-y-1 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2"
+        aria-label="Santa Helper, jump to top picks"
+        onClick={jumpToTopPicks}
+        className="santa-helper-animated santa-helper-button pointer-events-auto relative flex h-20 w-20 items-center justify-center rounded-full transition hover:-translate-y-1 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 sm:h-24 sm:w-24"
         style={{
           background:
-            "linear-gradient(135deg,#fffefa 0%,#f0f8f1 58%,#ffeec0 100%)",
-          border: "2px solid rgba(72,102,78,.36)",
+            "radial-gradient(circle at 36% 30%,rgba(255,255,255,.96),rgba(255,245,216,.82) 42%,rgba(232,243,234,.86) 72%,rgba(72,102,78,.12))",
+          border: "2px solid rgba(72,102,78,.32)",
           boxShadow:
-            "0 18px 42px rgba(46,52,50,.2), 0 0 0 6px rgba(255,255,255,.56)",
+            "0 18px 42px rgba(46,52,50,.2), 0 0 0 6px rgba(255,255,255,.56), inset 0 1px 0 rgba(255,255,255,.85)",
           color: PAGE_TEXT_COLOR,
           outlineColor: HOLIDAY_GREEN,
         }}
       >
-        <SantaHelperMascot className="h-12 w-12" />
-        <span className="pr-2">
-          <span className="block text-[12px] font-black" style={{ color: HOLIDAY_GREEN }}>
-            Santa Helper
-          </span>
-          <span className="block text-[10px] font-bold" style={{ color: TEXT_MUTED }}>
-            Tap for gift advice
-          </span>
-        </span>
+        <span
+          aria-hidden="true"
+          className="santa-helper-animated santa-helper-ring absolute inset-2 rounded-full"
+        />
+        <span
+          data-testid="santa-helper-sparkles"
+          aria-hidden="true"
+          className="santa-helper-animated santa-helper-sparkle absolute right-3 top-4 h-4 w-4 rounded-full"
+          style={{
+            background: "rgba(252,206,114,.92)",
+            boxShadow:
+              "0 0 0 5px rgba(252,206,114,.2), 0 0 22px rgba(252,206,114,.6)",
+          }}
+        />
+        <span
+          aria-hidden="true"
+          className="santa-helper-animated santa-helper-sparkle santa-helper-sparkle-small absolute bottom-5 left-4 h-2.5 w-2.5 rounded-full"
+          style={{
+            background: "rgba(164,60,63,.72)",
+            boxShadow: "0 0 0 4px rgba(164,60,63,.1)",
+          }}
+        />
+        <SantaHelperMascot className="h-16 w-16 sm:h-20 sm:w-20" />
+        <span className="sr-only">Jump to top picks</span>
       </button>
     </aside>
   );
@@ -2001,26 +1931,6 @@ export default function SecretSantaPage() {
   const pageRegionLabel =
     SHOPPING_REGION_OPTIONS.find((option) => option.value === shoppingRegion)?.label ||
     shoppingRegion;
-  const helperAssignment =
-    assignments.find((assignment) => assignment.receiver_wishlist.length > 0) || null;
-  const helperItemId = helperAssignment
-    ? getActiveRecipientWishlistItemId(
-        helperAssignment,
-        activeRecipientItemByAssignment
-      )
-    : "";
-  const helperItem =
-    helperAssignment?.receiver_wishlist.find((item) => item.id === helperItemId) ||
-    helperAssignment?.receiver_wishlist[0] ||
-    null;
-  const helperBudgetLabel =
-    helperAssignment && helperAssignment.group_budget !== null
-      ? formatPriceRange(
-          helperAssignment.group_budget,
-          helperAssignment.group_budget,
-          helperAssignment.group_currency
-        )
-      : null;
 
   return (
     <main
@@ -2048,25 +1958,20 @@ export default function SecretSantaPage() {
       <style>{`
         .snowflake{position:absolute;background:rgba(72,102,78,.26);border-radius:50%;animation:fall linear infinite;}
         @keyframes fall{0%{transform:translateY(-10px) translateX(0);opacity:.36;}50%{transform:translateY(50vh) translateX(10px);}100%{transform:translateY(105vh) translateX(-5px);opacity:.08;}}
-        .santa-helper-button{animation:santa-helper-pulse 2.8s ease-in-out infinite;}
+        .santa-helper-button{animation:santa-helper-warp 6.5s cubic-bezier(.16,1,.3,1) infinite,santa-helper-pulse 2.8s ease-in-out infinite;}
         .santa-helper-mascot{animation:santa-helper-bob 2.6s ease-in-out infinite;transform-origin:50% 76%;}
         .santa-helper-wave{animation:santa-helper-wave 1.2s ease-in-out infinite;transform-origin:75px 56px;}
         .santa-helper-list{animation:santa-helper-list 1.9s ease-in-out infinite;transform-origin:20px 70px;}
-        .santa-helper-pop{animation:santa-helper-pop .28s cubic-bezier(.16,1,.3,1);}
+        .santa-helper-ring{border:1px dashed rgba(72,102,78,.35);box-shadow:inset 0 0 0 5px rgba(255,255,255,.38);animation:santa-helper-ring 3.8s ease-in-out infinite;}
         .santa-helper-sparkle{animation:santa-helper-sparkle 1.15s ease-in-out infinite;}
-        .santa-helper-chip{animation:santa-helper-chip 3.4s ease-in-out infinite;}
-        .santa-helper-chip:nth-child(2){animation-delay:.22s;}
-        .santa-helper-chip:nth-child(3){animation-delay:.44s;}
-        .santa-helper-chip:nth-child(4){animation-delay:.66s;}
-        .santa-helper-dots{animation:santa-helper-dots 1.2s steps(4,end) infinite;}
-        @keyframes santa-helper-pulse{0%,100%{transform:translateY(0);box-shadow:0 18px 42px rgba(46,52,50,.2),0 0 0 6px rgba(255,255,255,.56);}50%{transform:translateY(-3px);box-shadow:0 24px 54px rgba(46,52,50,.24),0 0 0 9px rgba(252,206,114,.18);}}
+        .santa-helper-sparkle-small{animation-delay:.46s;}
+        @keyframes santa-helper-warp{0%,100%{transform:translate3d(0,0,0) scale(1) rotate(0);}21%{transform:translate3d(-4px,-8px,0) scale(1.03) rotate(-2deg);}23%{transform:translate3d(7px,-4px,0) scale(.92) rotate(3deg);}27%{transform:translate3d(0,0,0) scale(1.01) rotate(0);}66%{transform:translate3d(3px,-5px,0) scale(1.02) rotate(1.5deg);}69%{transform:translate3d(-5px,2px,0) scale(.96) rotate(-2deg);}73%{transform:translate3d(0,0,0) scale(1) rotate(0);}}
+        @keyframes santa-helper-pulse{0%,100%{box-shadow:0 18px 42px rgba(46,52,50,.2),0 0 0 6px rgba(255,255,255,.56),inset 0 1px 0 rgba(255,255,255,.85);}50%{box-shadow:0 24px 54px rgba(46,52,50,.24),0 0 0 9px rgba(252,206,114,.18),inset 0 1px 0 rgba(255,255,255,.9);}}
         @keyframes santa-helper-bob{0%,100%{transform:translateY(0) rotate(-1deg);}50%{transform:translateY(-5px) rotate(1.5deg);}}
         @keyframes santa-helper-wave{0%,100%{transform:rotate(-4deg);}50%{transform:rotate(14deg);}}
         @keyframes santa-helper-list{0%,100%{transform:rotate(-2deg) translateY(0);}50%{transform:rotate(3deg) translateY(-2px);}}
-        @keyframes santa-helper-pop{from{opacity:0;transform:translateY(12px) scale(.96);}to{opacity:1;transform:translateY(0) scale(1);}}
+        @keyframes santa-helper-ring{0%,100%{opacity:.58;transform:scale(.94) rotate(0);}50%{opacity:1;transform:scale(1.04) rotate(18deg);}}
         @keyframes santa-helper-sparkle{0%,100%{opacity:.68;transform:scale(.76);}50%{opacity:1;transform:scale(1.18);}}
-        @keyframes santa-helper-chip{0%,100%{transform:translateY(0);}50%{transform:translateY(-2px);}}
-        @keyframes santa-helper-dots{0%{opacity:.2;}50%{opacity:1;}100%{opacity:.2;}}
         @media (prefers-reduced-motion: reduce){.santa-helper-animated,.snowflake{animation:none!important;transition:none!important;}}
       `}</style>
 
@@ -3171,23 +3076,44 @@ export default function SecretSantaPage() {
                                           data-testid="curated-shopping-section"
                                           className="min-w-0"
                                         >
-                                          <div className="mb-3 flex flex-col gap-1">
-                                            <h3
-                                              className="text-[18px] font-extrabold leading-tight sm:text-[22px]"
-                                              style={{
-                                                color: PAGE_TEXT_COLOR,
-                                                fontFamily:
-                                                  "'Plus Jakarta Sans', 'Fredoka', sans-serif",
-                                              }}
-                                            >
-                                              Curated Shopping Ideas
-                                            </h3>
-                                            <p
-                                              className="text-[12px] font-medium leading-relaxed sm:text-[13px]"
-                                              style={{ color: TEXT_MUTED }}
-                                            >
-                                              Gift ideas based on their wishlist, your selected option, and the group budget.
-                                            </p>
+                                          <div className="mb-3 flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+                                            <div>
+                                              <h3
+                                                className="flex items-center gap-2 text-[18px] font-extrabold leading-tight sm:text-[22px]"
+                                                style={{
+                                                  color: HOLIDAY_GREEN,
+                                                  fontFamily:
+                                                    "'Plus Jakarta Sans', 'Fredoka', sans-serif",
+                                                }}
+                                              >
+                                                <SparkleMark className="h-4 w-4" />
+                                                Top picks for this wishlist
+                                              </h3>
+                                              <p
+                                                className="mt-1 text-[12px] font-medium leading-relaxed sm:text-[13px]"
+                                                style={{ color: TEXT_MUTED }}
+                                              >
+                                                Product-style picks based on the wishlist, selected shopping option, and group budget.
+                                              </p>
+                                            </div>
+                                            {heroLazadaHref && (
+                                              <a
+                                                href={heroLazadaHref}
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                                className="inline-flex w-fit items-center gap-1.5 rounded-full px-3 py-1.5 text-[11px] font-extrabold transition hover:-translate-y-0.5 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2"
+                                                style={{
+                                                  background: "rgba(255,255,255,.86)",
+                                                  border: "1px solid rgba(72,102,78,.18)",
+                                                  color: HOLIDAY_GREEN,
+                                                  textDecoration: "none",
+                                                  outlineColor: HOLIDAY_GREEN,
+                                                }}
+                                              >
+                                                View main pick on Lazada
+                                                <LazadaArrowIcon />
+                                              </a>
+                                            )}
                                           </div>
 
                                           <div
@@ -3208,10 +3134,6 @@ export default function SecretSantaPage() {
                                                 activeGroupBudgetLabel
                                                   ? `Budget target: ${activeGroupBudgetLabel}`
                                                   : null;
-                                              const headerPriceLabel =
-                                                budgetTargetLabel ||
-                                                product.priceLabel ||
-                                                cardTypeLabel;
                                               const productPriceLabel =
                                                 getCuratedProductPriceLabel(product);
                                               const buttonLabel =
@@ -3220,6 +3142,8 @@ export default function SecretSantaPage() {
                                                 product.imageUrl ||
                                                   curatedFallbackImageUrl
                                               );
+                                              const fallbackVisualLabel =
+                                                summarizeCardCopy(product.title, 46);
                                               const toneStyle =
                                                 getCuratedLazadaToneStyle(index);
 
@@ -3229,7 +3153,8 @@ export default function SecretSantaPage() {
                                                   data-testid="curated-shopping-card"
                                                   className="relative flex h-full min-w-0 flex-col overflow-hidden rounded-[26px] transition hover:-translate-y-0.5"
                                                   style={{
-                                                    background: SHOPPING_CARD_BACKGROUND,
+                                                    background:
+                                                      "linear-gradient(180deg,#fffefa 0%,#f7fbf6 100%)",
                                                     border: SHOPPING_CARD_BORDER,
                                                     color: PAGE_TEXT_COLOR,
                                                     boxShadow:
@@ -3244,67 +3169,119 @@ export default function SecretSantaPage() {
                                                       background: SHOPPING_CARD_TOP_RULE,
                                                     }}
                                                   />
-                                                  <div className="grid min-h-[44px] min-w-0 grid-cols-[minmax(5.5rem,1fr)_minmax(7rem,9rem)] items-start gap-2 px-4 pt-4">
+                                                  <div
+                                                    data-testid="curated-shopping-media"
+                                                    className="relative flex aspect-[1.08] min-w-0 items-center justify-center overflow-hidden p-4"
+                                                    style={{
+                                                      background:
+                                                        "repeating-linear-gradient(135deg,rgba(72,102,78,.08) 0 1px,transparent 1px 34px), linear-gradient(180deg,#fffefa 0%,#edf6ef 100%)",
+                                                      borderBottom:
+                                                        "1px solid rgba(72,102,78,.18)",
+                                                      boxShadow:
+                                                        "inset 0 1px 0 rgba(255,255,255,.9), inset 0 -1px 0 rgba(72,102,78,.1)",
+                                                    }}
+                                                  >
                                                     <span
                                                       data-testid="curated-shopping-role-label"
-                                                      className="w-fit max-w-full justify-self-start whitespace-normal rounded-full px-3 py-1.5 text-center text-[9px] font-extrabold uppercase leading-tight"
+                                                      className="absolute left-3 top-3 z-10 max-w-[calc(100%-4.25rem)] whitespace-normal rounded-full px-3 py-1.5 text-[9px] font-extrabold uppercase leading-tight"
                                                       style={{
                                                         color: toneStyle.badgeColor,
                                                         background:
                                                           toneStyle.badgeBackground,
                                                         boxShadow:
-                                                          "0 8px 18px rgba(46,52,50,.06)",
+                                                          "0 10px 22px rgba(46,52,50,.09), 0 0 0 1px rgba(255,255,255,.74)",
                                                         overflowWrap: "anywhere",
                                                       }}
                                                     >
                                                       {roleLabel}
                                                     </span>
-                                                    <div
-                                                      className="justify-self-end rounded-full px-3 py-1.5 text-right text-[13px] font-extrabold leading-tight"
+                                                    <span
+                                                      aria-hidden="true"
+                                                      className="absolute right-3 top-3 z-10 flex h-9 w-9 items-center justify-center rounded-full"
                                                       style={{
-                                                        color: budgetTargetLabel ||
-                                                          product.priceLabel
-                                                          ? PAGE_TEXT_COLOR
-                                                          : TEXT_MUTED,
                                                         background:
-                                                          "rgba(249,250,248,.94)",
+                                                          "rgba(255,255,255,.9)",
+                                                        border:
+                                                          "1px solid rgba(72,102,78,.14)",
+                                                        color: HOLIDAY_GREEN,
                                                         boxShadow:
-                                                          "0 8px 18px rgba(46,52,50,.06)",
-                                                        maxWidth: "9rem",
-                                                        overflowWrap: "break-word",
+                                                          "0 10px 20px rgba(46,52,50,.08)",
                                                       }}
                                                     >
-                                                      {headerPriceLabel}
-                                                    </div>
-                                                  </div>
-                                                  <div
-                                                    className="flex aspect-[16/9] min-w-0 items-center justify-center overflow-hidden p-3"
-                                                    style={{
-                                                      background:
-                                                        SHOPPING_MEDIA_WELL_BACKGROUND,
-                                                      borderBottom:
-                                                        "1px solid rgba(72,102,78,.2)",
-                                                      boxShadow:
-                                                        "inset 0 1px 0 rgba(255,255,255,.86), inset 0 -1px 0 rgba(72,102,78,.12)",
-                                                    }}
-                                                  >
+                                                      <HeartMark />
+                                                    </span>
                                                     {productImageUrl ? (
                                                       // eslint-disable-next-line @next/next/no-img-element
                                                       <img
                                                         src={productImageUrl}
                                                         alt={product.title}
-                                                        className="relative z-0 h-full max-h-[138px] w-full object-contain object-center transition duration-700 hover:scale-[1.03]"
+                                                        className="relative z-0 h-full max-h-[190px] w-full object-contain object-center transition duration-700 hover:scale-[1.03]"
                                                       />
                                                     ) : (
                                                       <div
-                                                        className="flex h-full w-full items-center justify-center"
-                                                        style={{ color: HOLIDAY_GOLD }}
+                                                        className="relative flex h-full w-full flex-col items-center justify-center gap-3 rounded-[24px] px-6 text-center"
+                                                        style={{
+                                                          background:
+                                                            "radial-gradient(circle at 50% 30%,rgba(252,206,114,.2),transparent 42%), linear-gradient(180deg,rgba(255,255,255,.74),rgba(232,243,234,.52))",
+                                                          border:
+                                                            "1px solid rgba(72,102,78,.12)",
+                                                          color: HOLIDAY_GREEN,
+                                                        }}
                                                       >
-                                                        <SparkleMark className="h-9 w-9" />
+                                                        <div
+                                                          className="flex h-16 w-16 items-center justify-center rounded-[22px]"
+                                                          style={{
+                                                            background:
+                                                              "rgba(255,255,255,.82)",
+                                                            boxShadow:
+                                                              "0 14px 28px rgba(46,52,50,.08)",
+                                                            color: HOLIDAY_GOLD,
+                                                          }}
+                                                        >
+                                                          <SparkleMark className="h-8 w-8" />
+                                                        </div>
+                                                        <div
+                                                          className="max-w-[13rem] text-[12px] font-extrabold leading-tight"
+                                                          style={{ color: PAGE_TEXT_COLOR }}
+                                                        >
+                                                          {fallbackVisualLabel}
+                                                        </div>
+                                                        <div
+                                                          className="rounded-full px-2.5 py-1 text-[9px] font-extrabold uppercase tracking-[0.12em]"
+                                                          style={{
+                                                            background:
+                                                              "rgba(72,102,78,.1)",
+                                                            color: HOLIDAY_GREEN,
+                                                          }}
+                                                        >
+                                                          Lazada search
+                                                        </div>
                                                       </div>
                                                     )}
+                                                    <span
+                                                      aria-hidden="true"
+                                                      className="absolute bottom-3 right-3 z-10 inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[9px] font-extrabold"
+                                                      style={{
+                                                        background:
+                                                          "rgba(255,255,255,.92)",
+                                                        border:
+                                                          "1px solid rgba(72,102,78,.14)",
+                                                        color: HOLIDAY_GREEN,
+                                                        boxShadow:
+                                                          "0 10px 18px rgba(46,52,50,.08)",
+                                                      }}
+                                                    >
+                                                      <span
+                                                        className="h-2 w-2 rounded-full"
+                                                        style={{
+                                                          background: HOLIDAY_RED,
+                                                        }}
+                                                      />
+                                                      Lazada
+                                                    </span>
                                                   </div>
                                                   <div
+                                                    data-testid="curated-shopping-body"
                                                     className="flex flex-1 flex-col p-4"
                                                     style={{
                                                       background:
@@ -3312,21 +3289,7 @@ export default function SecretSantaPage() {
                                                     }}
                                                   >
                                                     <div
-                                                      className="text-[10px] font-extrabold uppercase tracking-[0.16em]"
-                                                      style={{ color: toneStyle.badgeColor }}
-                                                    >
-                                                      {cardTypeLabel}
-                                                    </div>
-                                                    {productPriceLabel && (
-                                                      <div
-                                                        className="mt-1 text-[11px] font-bold leading-tight"
-                                                        style={{ color: TEXT_SOFT }}
-                                                      >
-                                                        Lazada price: {productPriceLabel}
-                                                      </div>
-                                                    )}
-                                                    <div
-                                                      className="mt-1.5 text-[16px] font-extrabold leading-tight"
+                                                      className="text-[15px] font-extrabold leading-tight"
                                                       style={{
                                                         color: PAGE_TEXT_COLOR,
                                                         display: "-webkit-box",
@@ -3338,7 +3301,38 @@ export default function SecretSantaPage() {
                                                     >
                                                       {product.title}
                                                     </div>
-
+                                                    <div className="mt-3 flex flex-wrap gap-2">
+                                                      <span
+                                                        className="rounded-full px-2.5 py-1 text-[10px] font-extrabold leading-tight"
+                                                        style={{
+                                                          background:
+                                                            toneStyle.chipBackground,
+                                                          color: toneStyle.chipColor,
+                                                        }}
+                                                      >
+                                                        {cardTypeLabel}
+                                                      </span>
+                                                      {budgetTargetLabel && (
+                                                        <span
+                                                          className="rounded-full px-2.5 py-1 text-[10px] font-extrabold leading-tight"
+                                                          style={{
+                                                            background:
+                                                              "rgba(255,255,255,.84)",
+                                                            border:
+                                                              "1px solid rgba(72,102,78,.12)",
+                                                            color: PAGE_TEXT_COLOR,
+                                                          }}
+                                                        >
+                                                          {budgetTargetLabel}
+                                                        </span>
+                                                      )}
+                                                    </div>
+                                                    <div
+                                                      className="mt-2 text-[15px] font-black leading-tight"
+                                                      style={{ color: PAGE_TEXT_COLOR }}
+                                                    >
+                                                      {productPriceLabel || "Check Lazada price"}
+                                                    </div>
                                                     <div
                                                       className="mt-2 flex-1 text-[12px] leading-relaxed"
                                                       style={{
@@ -3352,14 +3346,13 @@ export default function SecretSantaPage() {
                                                     >
                                                       {conciseSubtitle}
                                                     </div>
-                                                  </div>
-
-                                                  <div className="mt-4">
-                                                    <LazadaCtaLink
-                                                      href={product.href}
-                                                      label={buttonLabel}
-                                                      fullWidth
-                                                    />
+                                                    <div className="mt-4">
+                                                      <LazadaCtaLink
+                                                        href={product.href}
+                                                        label={buttonLabel}
+                                                        fullWidth
+                                                      />
+                                                    </div>
                                                   </div>
                                                 </div>
                                               );
@@ -3781,11 +3774,7 @@ export default function SecretSantaPage() {
 
       </div>
 
-      <SantaShoppingHelper
-        budgetLabel={helperBudgetLabel}
-        itemName={helperItem?.item_name || null}
-        regionLabel={pageRegionLabel}
-      />
+      <SantaShoppingHelper />
       <SnowEffect />
     </main>
   );
