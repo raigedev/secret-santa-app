@@ -211,6 +211,7 @@ test.describe("authenticated screen regressions", () => {
       }
     });
 
+    await page.setViewportSize({ width: 1440, height: 900 });
     await loginWithTestCredentials(page, credentials!);
     await page.goto("/secret-santa");
     await page.getByLabel(/online shop region/i).selectOption({ label: "Philippines" });
@@ -263,6 +264,15 @@ test.describe("authenticated screen regressions", () => {
     });
     expect(pageBackdrop.backgroundImage).toContain("repeating-linear-gradient");
 
+    const desktopWishlistStrip = page
+      .getByTestId("recipient-wishlist-desktop-strip")
+      .first();
+    await expect(desktopWishlistStrip).toBeVisible();
+    await expect(page.getByTestId("recipient-wishlist-desktop-card").first()).toBeVisible();
+    await expect(
+      desktopWishlistStrip.locator('button[aria-pressed="true"]').first()
+    ).toBeVisible();
+
     const clippedOptionLabels = await optionButtons.evaluateAll((buttons) =>
       buttons
         .map((button, index) => {
@@ -300,6 +310,8 @@ test.describe("authenticated screen regressions", () => {
       [
         '[data-testid="recipient-wishlist-rail"]',
         '[data-testid="recipient-wishlist-item-card"]',
+        '[data-testid="recipient-wishlist-desktop-strip"]',
+        '[data-testid="recipient-wishlist-desktop-card"]',
         '[data-testid="shopping-option-panel"]',
         '[data-testid="curated-shopping-section"]',
         '[data-testid="curated-shopping-card"]',

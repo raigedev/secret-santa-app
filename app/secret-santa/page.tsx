@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
+import { SantaMarkIcon } from "@/app/dashboard/dashboard-icons";
 import { confirmGiftReceived, updateGiftPrepStatus } from "./actions";
 import { SecretSantaSkeleton } from "@/app/components/PageSkeleton";
 import { isLazadaProductPageUrl } from "@/lib/affiliate/lazada-url";
@@ -1104,7 +1105,7 @@ function ShoppingIdeasSidebar({
             boxShadow: "0 12px 24px rgba(46,52,50,.06)",
           }}
         >
-          <GiftBoxIllustration className="h-11 w-11" />
+          <SantaMarkIcon size={42} />
         </span>
         <span className="min-w-0">
           <span
@@ -3917,6 +3918,219 @@ export default function SecretSantaPage() {
                               </div>
 
                               <div className="grid min-w-0 gap-3">
+                                <section
+                                  data-testid="recipient-wishlist-desktop-strip"
+                                  className="relative hidden min-w-0 overflow-hidden rounded-[24px] p-4 xl:block"
+                                  style={{
+                                    background: FRAMED_SURFACE_BACKGROUND,
+                                    border: "2px solid rgba(72,102,78,.34)",
+                                    boxShadow:
+                                      "0 22px 54px rgba(46,52,50,.1), 0 0 0 5px rgba(255,255,255,.4), inset 0 1px 0 rgba(255,255,255,.94)",
+                                  }}
+                                >
+                                  <div
+                                    aria-hidden="true"
+                                    className="absolute inset-x-5 top-0 h-1.5 rounded-b-full"
+                                    style={{ background: SHOPPING_CARD_TOP_RULE }}
+                                  />
+                                  <div className="flex items-start justify-between gap-4">
+                                    <div className="min-w-0">
+                                      <div className="flex items-center gap-2">
+                                        <span
+                                          className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl"
+                                          style={{
+                                            background: "rgba(72,102,78,.1)",
+                                            color: HOLIDAY_GREEN,
+                                          }}
+                                        >
+                                          <GiftMark className="h-5 w-5" />
+                                        </span>
+                                        <h3
+                                          className="min-w-0 text-[17px] font-black leading-tight"
+                                          style={{
+                                            color: HOLIDAY_GREEN,
+                                            fontFamily:
+                                              "'Plus Jakarta Sans', 'Fredoka', sans-serif",
+                                          }}
+                                        >
+                                          {assignment.receiver_nickname}&apos;s wishlist
+                                        </h3>
+                                      </div>
+                                      <p
+                                        className="mt-1 text-[12px] font-semibold leading-relaxed"
+                                        style={{ color: TEXT_MUTED }}
+                                      >
+                                        Pick one item here to update the shopping ideas below.
+                                      </p>
+                                    </div>
+                                    <div className="flex shrink-0 items-center gap-2">
+                                      <span
+                                        className="rounded-full px-3 py-1.5 text-[10px] font-extrabold"
+                                        style={{
+                                          background: "rgba(255,255,255,.78)",
+                                          color: HOLIDAY_GREEN,
+                                        }}
+                                      >
+                                        {assignment.receiver_wishlist.length} ideas
+                                      </span>
+                                      {assignment.receiver_wishlist.length >
+                                        MAX_VISIBLE_RECIPIENT_WISHLIST_ITEMS && (
+                                        <button
+                                          type="button"
+                                          data-testid="recipient-wishlist-desktop-toggle"
+                                          onClick={() =>
+                                            toggleRecipientWishlistExpansion(
+                                              assignment.group_id
+                                            )
+                                          }
+                                          className="rounded-full px-3 py-1.5 text-[10px] font-extrabold transition hover:-translate-y-0.5 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2"
+                                          style={{
+                                            background: HOLIDAY_GREEN,
+                                            color: "#fffdf7",
+                                            outlineColor: HOLIDAY_GREEN,
+                                          }}
+                                        >
+                                          {isWishlistExpanded ? "Show less" : "Show all"}
+                                        </button>
+                                      )}
+                                    </div>
+                                  </div>
+
+                                  <div className="mt-3 grid min-w-0 grid-cols-3 gap-3">
+                                    {visibleWishlistItems.map((wishlistItem) => {
+                                      const isActiveItem = wishlistItem.id === item.id;
+                                      const wishlistPriorityMeta =
+                                        getWishlistPriorityMeta(wishlistItem.priority);
+                                      const wishlistImageUrl = normalizeOptionalUrl(
+                                        wishlistItem.item_image_url
+                                      );
+                                      const wishlistSuggestionId =
+                                        selectedRecipientSuggestionByItem[
+                                          wishlistItem.id
+                                        ] || "";
+                                      const wishlistMatchKey = wishlistSuggestionId
+                                        ? createLazadaMatchRequestKey(
+                                            wishlistItem.id,
+                                            wishlistSuggestionId,
+                                            shoppingRegion
+                                          )
+                                        : "";
+                                      const wishlistMatchedState = wishlistMatchKey
+                                        ? matchedLazadaProductsByKey[
+                                            wishlistMatchKey
+                                          ] || null
+                                        : null;
+                                      const wishlistMatchedImageUrl =
+                                        getWishlistMatchedImageUrl({
+                                          itemId: wishlistItem.id,
+                                          matchedProductsByKey:
+                                            matchedLazadaProductsByKey,
+                                          preferredMatchKey: wishlistMatchKey,
+                                          region: shoppingRegion,
+                                        });
+                                      const wishlistAiSuggestionState =
+                                        aiSuggestionStateByItem[wishlistItem.id] ||
+                                        null;
+                                      const resolvedWishlistImageUrl =
+                                        wishlistImageUrl || wishlistMatchedImageUrl;
+                                      const wishlistImageLoading = Boolean(
+                                        !resolvedWishlistImageUrl &&
+                                          (wishlistMatchedState?.loading ||
+                                            wishlistAiSuggestionState?.loading)
+                                      );
+
+                                      return (
+                                        <button
+                                          key={wishlistItem.id}
+                                          type="button"
+                                          data-testid="recipient-wishlist-desktop-card"
+                                          aria-pressed={isActiveItem}
+                                          onClick={() =>
+                                            selectRecipientWishlistItem(
+                                              assignment.group_id,
+                                              wishlistItem.id
+                                            )
+                                          }
+                                          className="group min-w-0 rounded-[18px] p-2.5 text-left transition hover:-translate-y-0.5 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2"
+                                          style={{
+                                            background: isActiveItem
+                                              ? "linear-gradient(135deg,#fffdf7 0%,rgba(255,238,238,.98) 100%)"
+                                              : "rgba(255,255,255,.82)",
+                                            border: isActiveItem
+                                              ? "2px solid rgba(164,60,63,.58)"
+                                              : "1px solid rgba(72,102,78,.18)",
+                                            boxShadow: isActiveItem
+                                              ? "0 16px 34px rgba(164,60,63,.14), inset 0 1px 0 rgba(255,255,255,.94)"
+                                              : "0 8px 18px rgba(46,52,50,.05), inset 0 1px 0 rgba(255,255,255,.86)",
+                                            cursor: "pointer",
+                                            fontFamily: "inherit",
+                                            outlineColor: HOLIDAY_GREEN,
+                                          }}
+                                        >
+                                          <div className="flex min-w-0 gap-3">
+                                            <div
+                                              className="flex h-[58px] w-[58px] shrink-0 items-center justify-center overflow-hidden rounded-[14px]"
+                                              style={{
+                                                background: "rgba(255,255,255,.9)",
+                                                border:
+                                                  "1px solid rgba(72,102,78,.14)",
+                                                color: HOLIDAY_GREEN,
+                                              }}
+                                            >
+                                              {resolvedWishlistImageUrl ? (
+                                                // eslint-disable-next-line @next/next/no-img-element
+                                                <img
+                                                  src={resolvedWishlistImageUrl}
+                                                  alt={wishlistItem.item_name}
+                                                  className="h-full w-full object-contain p-1"
+                                                />
+                                              ) : wishlistImageLoading ? (
+                                                <span
+                                                  aria-label={`Finding image for ${wishlistItem.item_name}`}
+                                                  className="block h-full w-full animate-pulse rounded-[13px]"
+                                                  role="img"
+                                                  style={{
+                                                    background:
+                                                      "linear-gradient(135deg,rgba(255,255,255,.7),rgba(224,230,225,.9),rgba(255,255,255,.68))",
+                                                  }}
+                                                />
+                                              ) : (
+                                                <GiftMark className="h-6 w-6" />
+                                              )}
+                                            </div>
+                                            <div className="min-w-0 flex-1">
+                                              <div
+                                                className="text-[12px] font-black leading-snug"
+                                                style={{
+                                                  color: PAGE_TEXT_COLOR,
+                                                  display: "-webkit-box",
+                                                  WebkitLineClamp: 2,
+                                                  WebkitBoxOrient: "vertical",
+                                                  overflow: "hidden",
+                                                  overflowWrap: "anywhere",
+                                                }}
+                                              >
+                                                {wishlistItem.item_name}
+                                              </div>
+                                              <span
+                                                className="mt-2 inline-flex rounded-full px-2 py-1 text-[8px] font-extrabold uppercase tracking-[0.04em]"
+                                                style={{
+                                                  background:
+                                                    wishlistPriorityMeta.badgeBackground,
+                                                  color:
+                                                    wishlistPriorityMeta.badgeColor,
+                                                }}
+                                              >
+                                                {wishlistPriorityMeta.label}
+                                              </span>
+                                            </div>
+                                          </div>
+                                        </button>
+                                      );
+                                    })}
+                                  </div>
+                                </section>
+
                                 <div
                                   data-testid="shopping-option-sticky-region"
                                   className="grid min-w-0 gap-3"
