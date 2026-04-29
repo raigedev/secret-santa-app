@@ -110,7 +110,10 @@ export function DashboardHeader({
           >
             <BellIcon className={`h-5 w-5 ${utilityIconClass}`} />
             {unreadNotificationCount > 0 && (
-              <span className="absolute -right-0.5 -top-0.5 inline-flex min-h-[17px] min-w-[17px] items-center justify-center rounded-full bg-rose-500 px-1 text-[9px] font-bold text-white">
+              <span
+                data-testid="dashboard-notification-badge"
+                className="pointer-events-none absolute -right-2 -top-2.5 inline-flex h-5 min-w-5 items-center justify-center rounded-full border-2 border-white bg-rose-500 px-1 text-[9px] font-bold leading-none text-white shadow-[0_6px_14px_rgba(244,63,94,.22)]"
+              >
                 {unreadNotificationCount > 99 ? "99+" : unreadNotificationCount}
               </span>
             )}

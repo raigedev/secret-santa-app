@@ -70,6 +70,7 @@
 - 2026-04-28T01:08:00+08:00 [TOOL] Codex Web Preview Node REPL was fixed by adding `C:\Users\kenda\AppData\Local\Temp\package.json` with `{"type":"commonjs"}`; build warning still comes from parent `C:\Users\kenda\package-lock.json`. 2026-04-28T01:17:10+08:00 [TOOL] Current local preview account was seeded with `Codex Local Preview Gift Lab`, recipient `Mika`, 2 assignments, and 3 wishlist items.
 - 2026-04-27T02:45:37+08:00 [CODE] Supersedes 2026-04-27T01:48:43 skipped-test note: authenticated Playwright now covers mobile wishlist-rail scroll behavior and owner/non-owner affiliate-report access; full Playwright passed 370/370 with 0 skipped.
 - 2026-04-29T19:38:02+08:00 [CODE] Authenticated Playwright edge coverage now asserts sidebar destination contracts, blank/dark navigation regressions, notifications action routing, safe empty workflow validation, and Shopping Ideas/shared-shell nav consistency.
+- 2026-04-29T19:58:00+08:00 [CODE] Dashboard group countdowns now use human labels (`Today`, `Tomorrow`, `Reveal open`) instead of `0 days left`; header notification badges sit outside bell icons and Playwright checks for overlap.
 
 ## Tooling
 - 2026-04-29T06:45:00+08:00 [CODE] jscpd duplicate cleanup keeps the actionable scan at 0 clones / 0% (`min-lines 15`, `min-tokens 120`) after extracting shared profile/cache helpers, affiliate access/auth guards, group draw/action helpers, invite preview/error components, report metrics, and test assertions; broad 8-line scan remains intentionally noisy for small auth/SVG/TSX patterns.

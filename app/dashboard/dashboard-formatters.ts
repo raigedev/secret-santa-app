@@ -10,7 +10,6 @@ const CURRENCY_SYMBOLS: Record<string, string> = {
   PHP: "PHP",
   USD: "$",
 };
-
 export function createGroupUserKey(groupId: string, userId: string): string {
   return `${groupId}:${userId}`;
 }
@@ -20,7 +19,7 @@ export function createEmptyQueryResult<T>(data: T[] = []): Promise<{ data: T[]; 
 }
 
 export function formatDashboardDate(value: string): string {
-  const parsed = new Date(value);
+  const parsed = new Date(getDashboardEventTime(value));
 
   if (Number.isNaN(parsed.getTime())) {
     return value;
@@ -33,29 +32,100 @@ export function formatDashboardDate(value: string): string {
   });
 }
 
+function getDashboardEventTime(value: string): number {
+  const [datePart] = value.split("T");
+  const [yearPart, monthPart, dayPart] = datePart.split("-");
+  const year = Number(yearPart);
+  const month = Number(monthPart);
+  const day = Number(dayPart);
+
+  if (
+    Number.isInteger(year) &&
+    Number.isInteger(month) &&
+    Number.isInteger(day) &&
+    yearPart.length === 4 &&
+    month >= 1 &&
+    month <= 12 &&
+    day >= 1 &&
+    day <= 31
+  ) {
+    const parsedLocalDate = new Date(year, month - 1, day);
+
+    if (
+      parsedLocalDate.getFullYear() === year &&
+      parsedLocalDate.getMonth() === month - 1 &&
+      parsedLocalDate.getDate() === day
+    ) {
+      return parsedLocalDate.getTime();
+    }
+  }
+
+  return new Date(value).getTime();
+}
+
+function getLocalDayStart(timestamp: number): number {
+  const date = new Date(timestamp);
+  return new Date(date.getFullYear(), date.getMonth(), date.getDate()).getTime();
+}
+
+function getCalendarDayKey(timestamp: number): number {
+  const date = new Date(timestamp);
+  return Date.UTC(date.getFullYear(), date.getMonth(), date.getDate());
+}
+
+function getCalendarDayDifference(eventTime: number, now: number): number {
+  return Math.round((getCalendarDayKey(eventTime) - getCalendarDayKey(now)) / 86_400_000);
+}
+
 export function getDaysUntilEvent(value: string, now: number): number | null {
-  const eventTime = new Date(value).getTime();
+  const eventTime = getDashboardEventTime(value);
 
   if (Number.isNaN(eventTime)) {
     return null;
   }
 
-  return Math.max(0, Math.ceil((eventTime - now) / 86_400_000));
+  return Math.max(0, getCalendarDayDifference(eventTime, now));
+}
+
+export function formatDashboardEventCountdown(value: string, now: number): string {
+  const eventTime = getDashboardEventTime(value);
+
+  if (Number.isNaN(eventTime)) {
+    return "Open";
+  }
+
+  const dayDifference = getCalendarDayDifference(eventTime, now);
+
+  if (dayDifference < 0) {
+    return "Reveal open";
+  }
+
+  if (dayDifference === 0) {
+    return "Today";
+  }
+
+  if (dayDifference === 1) {
+    return "Tomorrow";
+  }
+
+  return `${dayDifference} days left`;
 }
 
 export function buildDashboardRevealMessage(groups: Group[], now: number): string {
+  const todayStart = getLocalDayStart(now);
   const events = groups
     .map((group) => {
-      const eventTime = new Date(group.event_date).getTime();
+      const eventTime = getDashboardEventTime(group.event_date);
+      const daysUntilEvent = getDaysUntilEvent(group.event_date, now);
 
-      if (Number.isNaN(eventTime)) {
+      if (Number.isNaN(eventTime) || daysUntilEvent === null) {
         return null;
       }
 
       return {
-        daysUntilEvent: Math.max(0, Math.ceil((eventTime - now) / 86_400_000)),
+        daysUntilEvent,
         groupName: group.name || "your exchange",
-        hasStarted: eventTime <= now,
+        hasStarted: getLocalDayStart(eventTime) <= todayStart,
         sortTime: eventTime,
       };
     })

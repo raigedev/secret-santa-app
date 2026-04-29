@@ -1379,7 +1379,8 @@ function ShoppingIdeasHeader({
           {unreadNotificationCount > 0 && (
             <span
               aria-hidden="true"
-              className="absolute right-2 top-1.5 flex h-5 min-w-5 items-center justify-center rounded-full px-1 text-[10px] font-black text-white"
+              data-testid="shopping-ideas-notification-badge"
+              className="pointer-events-none absolute -right-2 -top-2.5 flex h-5 min-w-5 items-center justify-center rounded-full border-2 border-white px-1.5 text-[9px] font-black leading-none text-white shadow-[0_6px_14px_rgba(164,60,63,.24)]"
               style={{ background: HOLIDAY_RED }}
             >
               {unreadNotificationCount > 99 ? "99+" : unreadNotificationCount}

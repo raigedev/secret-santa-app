@@ -478,7 +478,7 @@ export default function AppRouteShell({ children }: { children: ReactNode }) {
           <div className="flex items-center gap-3">
             <button ref={notificationButtonRef} type="button" onClick={() => setNotificationsOpen((open) => !open)} aria-label={unreadCount > 0 ? `Open notifications, ${unreadCount} unread` : "Open notifications"} className="relative flex h-12 w-12 items-center justify-center rounded-full transition hover:-translate-y-0.5" style={{ background: "rgba(255,255,255,.82)", border: "1px solid rgba(72,102,78,.16)", color: PAGE_TEXT_COLOR }}>
               <BellIcon className="h-5 w-5" />
-              {unreadCount > 0 && <span className="absolute right-2 top-1.5 flex h-5 min-w-5 items-center justify-center rounded-full px-1 text-[10px] font-black text-white" style={{ background: HOLIDAY_RED }}>{unreadCount > 99 ? "99+" : unreadCount}</span>}
+              {unreadCount > 0 && <span data-testid="app-shell-notification-badge" className="pointer-events-none absolute -right-2 -top-2.5 flex h-5 min-w-5 items-center justify-center rounded-full border-2 border-white px-1.5 text-[9px] font-black leading-none text-white shadow-[0_6px_14px_rgba(164,60,63,.24)]" style={{ background: HOLIDAY_RED }}>{unreadCount > 99 ? "99+" : unreadCount}</span>}
             </button>
             <div className="relative">
               <button type="button" onClick={() => setProfileOpen((open) => !open)} aria-haspopup="menu" aria-expanded={profileOpen} aria-label="Open profile menu" className="flex items-center gap-3 rounded-full py-1.5 pl-2 pr-4 transition hover:-translate-y-0.5" style={{ background: "rgba(255,255,255,.78)", border: "1px solid rgba(72,102,78,.12)", color: PAGE_TEXT_COLOR, boxShadow: "0 12px 26px rgba(46,52,50,.06)" }}>

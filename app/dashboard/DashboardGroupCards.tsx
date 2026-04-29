@@ -1,9 +1,9 @@
 import {
   formatDashboardBudget,
   formatDashboardDate,
+  formatDashboardEventCountdown,
   getAvatarLabel,
   getDashboardMemberLabel,
-  getDaysUntilEvent,
 } from "./dashboard-formatters";
 import { GiftIcon, UserOutlineIcon } from "./dashboard-icons";
 import type { Group } from "./dashboard-types";
@@ -43,7 +43,7 @@ function DashboardGroupCard({
 }: DashboardGroupCardProps) {
   const budgetLabel = formatDashboardBudget(group.budget, group.currency);
   const memberCountLabel = `${group.members.length} member${group.members.length === 1 ? "" : "s"}`;
-  const daysUntilEvent = getDaysUntilEvent(group.event_date, countdownNow);
+  const eventCountdownLabel = formatDashboardEventCountdown(group.event_date, countdownNow);
   const isOwnedGroup = type === "owned";
   const avatarShell = isDarkTheme
     ? "bg-slate-800 text-slate-100 ring-slate-900"
@@ -119,9 +119,7 @@ function DashboardGroupCard({
             className={`rounded-full px-4 py-2 text-sm font-extrabold ${datePillClass}`}
             title={`Event date: ${formatDashboardDate(group.event_date)}`}
           >
-            {daysUntilEvent === null
-              ? "Open"
-              : `${daysUntilEvent} day${daysUntilEvent === 1 ? "" : "s"} left`}
+            {eventCountdownLabel}
           </button>
           {type === "owned" && (
             <button

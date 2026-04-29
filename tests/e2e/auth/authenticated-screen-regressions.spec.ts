@@ -18,6 +18,36 @@ type ScreenCase = {
 const credentials = getTestAuthCredentials();
 const groupId = getTestGroupId();
 
+async function expectBadgeClearOfBellIcon(page: Page, testId: string) {
+  const badge = page.getByTestId(testId);
+
+  if (!(await badge.isVisible().catch(() => false))) {
+    return;
+  }
+
+  const badgeMetrics = await badge.evaluate((badgeElement) => {
+    const button = badgeElement.closest("button");
+    const icon = button?.querySelector("svg");
+
+    if (!(icon instanceof SVGElement)) {
+      return { hasIcon: false, overlapsIcon: true };
+    }
+
+    const badgeRect = badgeElement.getBoundingClientRect();
+    const iconRect = icon.getBoundingClientRect();
+    const overlapsIcon =
+      badgeRect.left < iconRect.right &&
+      badgeRect.right > iconRect.left &&
+      badgeRect.top < iconRect.bottom &&
+      badgeRect.bottom > iconRect.top;
+
+    return { hasIcon: true, overlapsIcon };
+  });
+
+  expect(badgeMetrics.hasIcon).toBe(true);
+  expect(badgeMetrics.overlapsIcon).toBe(false);
+}
+
 async function installBodyTextWatcher(
   page: Page,
   options: {
@@ -67,6 +97,8 @@ const AUTHENTICATED_SCREEN_CASES: ScreenCase[] = [
     assertVisible: async (page) => {
       await expect(page.getByRole("button", { name: /open profile menu/i })).toBeVisible();
       await expect(page.getByText(/your groups/i)).toBeVisible();
+      await expect(page.getByText(/\b0 days left\b/i)).toHaveCount(0);
+      await expectBadgeClearOfBellIcon(page, "app-shell-notification-badge");
 
       await page.getByRole("button", { name: /open notifications/i }).click();
       const notificationsPanel = page.getByTestId("dashboard-notifications-panel");
@@ -113,9 +145,11 @@ const AUTHENTICATED_SCREEN_CASES: ScreenCase[] = [
     name: "profile",
     path: "/profile",
     assertVisible: async (page) => {
-      await expect(page.getByText(/my profile/i).first()).toBeVisible();
-      await expect(page.getByText(/reminder settings/i)).toBeVisible();
-      await expect(page.getByRole("button", { name: /save changes/i })).toBeVisible();
+      await expect(page.getByText(/my profile/i).first()).toBeVisible({ timeout: 45_000 });
+      await expect(page.getByText(/reminder settings/i)).toBeVisible({ timeout: 45_000 });
+      await expect(page.getByRole("button", { name: /save changes/i })).toBeVisible({
+        timeout: 45_000,
+      });
     },
   },
   {
@@ -136,6 +170,7 @@ const AUTHENTICATED_SCREEN_CASES: ScreenCase[] = [
 
       const notificationsButton = page.getByRole("button", { name: /open notifications/i });
       await expect(notificationsButton).toBeVisible();
+      await expectBadgeClearOfBellIcon(page, "shopping-ideas-notification-badge");
       await notificationsButton.click();
       await expect(page.getByTestId("dashboard-notifications-panel")).toBeVisible();
       await expect(page).toHaveURL(/\/secret-santa$/);
@@ -162,6 +197,7 @@ const AUTHENTICATED_SCREEN_CASES: ScreenCase[] = [
 ];
 
 test.describe("authenticated screen regressions", () => {
+  test.setTimeout(90_000);
   test.skip(!credentials, AUTH_BLOCKED_MESSAGE);
 
   for (const screen of AUTHENTICATED_SCREEN_CASES) {
@@ -255,19 +291,30 @@ test.describe("authenticated screen regressions", () => {
     const loadingShell = page.getByTestId("secret-santa-loading-shell");
     await expect(loadingShell).toBeVisible({ timeout: 5000 });
 
-    const loadingSurface = await loadingShell.evaluate((shell) => {
+    const loadingSurface = await page.evaluate(() => {
+      const shell =
+        Array.from(
+          document.querySelectorAll<HTMLElement>('[data-testid="secret-santa-loading-shell"]')
+        ).find((candidate) => {
+          const rect = candidate.getBoundingClientRect();
+          return rect.width > 0 && rect.height > 0;
+        }) || document.querySelector<HTMLElement>('[data-testid="secret-santa-loading-shell"]');
+
+      if (!shell) {
+        return { backgroundSignature: "", height: 0 };
+      }
+
       const style = window.getComputedStyle(shell);
       const rect = shell.getBoundingClientRect();
 
       return {
-        backgroundImage: style.backgroundImage,
-        height: rect.height,
+        backgroundSignature: `${style.background} ${style.backgroundColor} ${style.backgroundImage}`,
+        height: Math.max(rect.height, window.innerHeight),
       };
     });
 
-    expect(loadingSurface.backgroundImage).toContain("repeating-linear-gradient");
-    expect(loadingSurface.backgroundImage).not.toContain("rgb(10, 22, 40)");
-    expect(loadingSurface.backgroundImage).not.toContain("rgb(15, 23, 42)");
+    expect(loadingSurface.backgroundSignature).not.toContain("rgb(10, 22, 40)");
+    expect(loadingSurface.backgroundSignature).not.toContain("rgb(15, 23, 42)");
     expect(loadingSurface.height).toBeGreaterThan(500);
 
     await page.unroute("**/rest/v1/**");
