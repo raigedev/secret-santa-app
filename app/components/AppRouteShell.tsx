@@ -11,12 +11,13 @@ import {
   type ReactNode,
 } from "react";
 import { createClient } from "@/lib/supabase/client";
-import { BellIcon, SantaMarkIcon, UserOutlineIcon } from "@/app/dashboard/dashboard-icons";
+import { BellIcon, SantaMarkIcon, ThemeIcon, UserOutlineIcon } from "@/app/dashboard/dashboard-icons";
 import { DashboardNotificationsPanel } from "@/app/dashboard/DashboardNotificationsPanel";
 import { AppShellIcon, type AppNavIcon } from "@/app/components/AppShellIcons";
 import {
   clearAffiliateReportAccess,
   fetchAffiliateReportAccess,
+  readStoredAffiliateReportAccess,
 } from "@/app/components/affiliate-report-access-client";
 import {
   useSupabaseRealtimeRefresh,
@@ -42,6 +43,10 @@ const PAGE_TEXT_COLOR = "#2e3432";
 const HOLIDAY_GREEN = "#48664e";
 const HOLIDAY_RED = "#a43c3f";
 const TEXT_MUTED = "#64748b";
+const DASHBOARD_THEME_STORAGE_KEY = "ss_dashboard_theme";
+const DASHBOARD_THEME_CHANGED_EVENT = "ss-dashboard-theme-changed";
+
+type DashboardTheme = "default" | "midnight";
 
 type AppNavItem = {
   href: string;
@@ -80,7 +85,17 @@ function getTimeOfDayGreeting() {
   return "Good evening";
 }
 
-function createNavItems(pathname: string, canViewAffiliateReport: boolean): AppNavItem[] {
+function readStoredDashboardTheme(): DashboardTheme {
+  if (typeof window === "undefined") {
+    return "default";
+  }
+
+  return window.localStorage.getItem(DASHBOARD_THEME_STORAGE_KEY) === "midnight"
+    ? "midnight"
+    : "default";
+}
+
+function createNavItems(canViewAffiliateReport: boolean): AppNavItem[] {
   const navItems: AppNavItem[] = [
     {
       href: "/dashboard",
@@ -136,14 +151,29 @@ function createNavItems(pathname: string, canViewAffiliateReport: boolean): AppN
         ]
       : []),
     {
-      href: "/profile#reminder-settings",
+      href: "/reminders",
       icon: "reminders",
       label: "Reminders",
-      match: (path) => path === "/profile",
+      match: (path) => path === "/reminders",
     },
   ];
 
   return navItems;
+}
+
+function getShellSubtitle(pathname: string): string {
+  if (pathname === "/dashboard") return "Your exchange snapshot, shortcuts, and activity.";
+  if (pathname === "/groups" || pathname.startsWith("/group/")) {
+    return "Groups, members, invites, and draw details.";
+  }
+  if (pathname === "/wishlist") return "Gift ideas your Santa can actually use.";
+  if (pathname === "/secret-santa-chat") return "Private messages without spoiling the surprise.";
+  if (pathname === "/notifications") return "Updates from your groups, messages, and reminders.";
+  if (pathname === "/profile") return "Your photo, avatar, account, and preferences.";
+  if (pathname === "/reminders") return "Choose when gift nudges should arrive.";
+  if (pathname === "/create-group") return "Set up a new Secret Santa exchange.";
+  if (pathname === "/dashboard/affiliate-report") return "Owner-only link and report activity.";
+  return "Your group tools stay in one place.";
 }
 
 export default function AppRouteShell({ children }: { children: ReactNode }) {
@@ -156,6 +186,7 @@ export default function AppRouteShell({ children }: { children: ReactNode }) {
   const [viewerAvatarEmoji, setViewerAvatarEmoji] = useState("");
   const [shellUserId, setShellUserId] = useState<string | null>(null);
   const [canViewAffiliateReport, setCanViewAffiliateReport] = useState(false);
+  const [dashboardTheme, setDashboardTheme] = useState<DashboardTheme>("default");
   const [unreadCount, setUnreadCount] = useState(0);
   const [notificationsOpen, setNotificationsOpen] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
@@ -177,6 +208,27 @@ export default function AppRouteShell({ children }: { children: ReactNode }) {
     return () => {
       window.removeEventListener("hashchange", syncHash);
       window.removeEventListener("popstate", syncHash);
+    };
+  }, [pathname]);
+
+  useEffect(() => {
+    if (!shouldUseAppShell(pathname)) {
+      return;
+    }
+
+    const syncDashboardTheme = () => setDashboardTheme(readStoredDashboardTheme());
+    const syncAffiliateAccess = () =>
+      setCanViewAffiliateReport(readStoredAffiliateReportAccess());
+
+    syncDashboardTheme();
+    const affiliateAccessSync = window.setTimeout(syncAffiliateAccess, 0);
+    window.addEventListener("storage", syncDashboardTheme);
+    window.addEventListener(DASHBOARD_THEME_CHANGED_EVENT, syncDashboardTheme);
+
+    return () => {
+      window.clearTimeout(affiliateAccessSync);
+      window.removeEventListener("storage", syncDashboardTheme);
+      window.removeEventListener(DASHBOARD_THEME_CHANGED_EVENT, syncDashboardTheme);
     };
   }, [pathname]);
 
@@ -380,6 +432,7 @@ export default function AppRouteShell({ children }: { children: ReactNode }) {
       "/secret-santa-chat",
       "/notifications",
       "/profile",
+      "/reminders",
       "/create-group",
       "/dashboard/affiliate-report",
     ]) {
@@ -406,7 +459,7 @@ export default function AppRouteShell({ children }: { children: ReactNode }) {
     return <>{children}</>;
   }
 
-  const navItems = createNavItems(pathname, canViewAffiliateReport);
+  const navItems = createNavItems(canViewAffiliateReport);
   const displayViewerName = normalizeViewerName(viewerName);
   const profileInitial = displayViewerName.slice(0, 1).toUpperCase() || "?";
   const fallbackAvatar = viewerAvatarEmoji || profileInitial;
@@ -414,10 +467,41 @@ export default function AppRouteShell({ children }: { children: ReactNode }) {
   const greetingText = displayViewerName
     ? `${getTimeOfDayGreeting()}, ${displayViewerName}`
     : getTimeOfDayGreeting();
+  const isDashboardRoute = pathname === "/dashboard";
+  const isDarkAppShell = isDashboardRoute && dashboardTheme === "midnight";
+  const shellSubtitle = getShellSubtitle(pathname);
+  const shellBackground = isDarkAppShell
+    ? "radial-gradient(circle at 14% 0%,rgba(252,206,114,.14),transparent 28%),linear-gradient(180deg,#08111f 0%,#0f172a 44%,#111827 100%)"
+    : APP_BACKGROUND;
+  const shellTextColor = isDarkAppShell ? "#f8fafc" : PAGE_TEXT_COLOR;
+  const shellMutedColor = isDarkAppShell ? "#cbd5e1" : TEXT_MUTED;
+  const shellSidebarBackground = isDarkAppShell
+    ? "linear-gradient(180deg,rgba(8,17,31,.97),rgba(15,23,42,.95))"
+    : "repeating-linear-gradient(135deg,rgba(72,102,78,.045) 0 1px,transparent 1px 38px),linear-gradient(180deg,rgba(255,254,250,.985),rgba(247,250,245,.965))";
+  const shellBorderColor = isDarkAppShell ? "rgba(148,163,184,.22)" : "rgba(72,102,78,.16)";
+  const shellHeaderBackground = isDarkAppShell
+    ? "linear-gradient(180deg,rgba(8,17,31,.92),rgba(15,23,42,.86))"
+    : "linear-gradient(180deg,rgba(255,254,250,.96),rgba(255,254,250,.9))";
+  const shellNavActiveBackground = isDarkAppShell
+    ? "rgba(252,206,114,.16)"
+    : "rgba(72,102,78,.12)";
+  const shellNavInactiveColor = isDarkAppShell ? "#e2e8f0" : PAGE_TEXT_COLOR;
+  const shellNavActiveColor = isDarkAppShell ? "#fffefa" : HOLIDAY_GREEN;
+  const shellControlBackground = isDarkAppShell
+    ? "rgba(15,23,42,.78)"
+    : "rgba(255,255,255,.82)";
+  const shellMenuBackground = isDarkAppShell ? "#0f172a" : "#ffffff";
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
     router.push("/login");
+  };
+
+  const handleToggleDashboardTheme = () => {
+    const nextTheme: DashboardTheme = dashboardTheme === "midnight" ? "default" : "midnight";
+    window.localStorage.setItem(DASHBOARD_THEME_STORAGE_KEY, nextTheme);
+    setDashboardTheme(nextTheme);
+    window.dispatchEvent(new CustomEvent(DASHBOARD_THEME_CHANGED_EVENT));
   };
 
   const handleNavItemClick = (item: AppNavItem) => {
@@ -430,7 +514,7 @@ export default function AppRouteShell({ children }: { children: ReactNode }) {
     <div
       data-testid="app-route-shell"
       className="relative min-h-screen overflow-x-clip"
-      style={{ background: APP_BACKGROUND, color: PAGE_TEXT_COLOR, fontFamily: "'Be Vietnam Pro','Nunito',sans-serif" }}
+      style={{ background: shellBackground, color: shellTextColor, fontFamily: "'Be Vietnam Pro','Nunito',sans-serif" }}
     >
       <style>{`
         [data-app-shell-content] > main {
@@ -450,13 +534,15 @@ export default function AppRouteShell({ children }: { children: ReactNode }) {
         data-testid="app-shell-sidebar"
         className="fixed inset-y-0 left-0 z-30 hidden w-[17.5rem] flex-col border-r px-5 py-5 xl:flex"
         style={{
-          background: "repeating-linear-gradient(135deg,rgba(72,102,78,.045) 0 1px,transparent 1px 38px),linear-gradient(180deg,rgba(255,254,250,.985),rgba(247,250,245,.965))",
-          borderColor: "rgba(72,102,78,.16)",
-          boxShadow: "18px 0 48px rgba(46,52,50,.07)",
+          background: shellSidebarBackground,
+          borderColor: shellBorderColor,
+          boxShadow: isDarkAppShell
+            ? "18px 0 48px rgba(0,0,0,.22)"
+            : "18px 0 48px rgba(46,52,50,.07)",
         }}
       >
-        <Link href="/dashboard" className="flex items-center gap-3 rounded-[22px] px-2 py-2" style={{ color: HOLIDAY_GREEN, textDecoration: "none" }}>
-          <span className="flex h-12 w-12 items-center justify-center rounded-[17px] bg-white/80 ring-1 ring-[rgba(72,102,78,.16)] shadow-[0_12px_24px_rgba(46,52,50,.06)]">
+        <Link href="/dashboard" className="flex items-center gap-3 rounded-[22px] px-2 py-2" style={{ color: isDarkAppShell ? "#f8fafc" : HOLIDAY_GREEN, textDecoration: "none" }}>
+          <span className="flex h-12 w-12 items-center justify-center rounded-[17px] shadow-[0_12px_24px_rgba(46,52,50,.06)] ring-1" style={{ background: isDarkAppShell ? "rgba(255,255,255,.08)" : "rgba(255,255,255,.8)", borderColor: shellBorderColor }}>
             <SantaMarkIcon size={42} />
           </span>
           <span className="min-w-0">
@@ -476,10 +562,10 @@ export default function AppRouteShell({ children }: { children: ReactNode }) {
                 aria-current={active ? "page" : undefined}
                 className="flex min-h-[46px] items-center gap-3 rounded-[12px] px-3 text-[14px] font-extrabold transition hover:-translate-y-0.5"
                 style={{
-                  background: active ? "rgba(72,102,78,.12)" : "transparent",
-                  color: active ? HOLIDAY_GREEN : PAGE_TEXT_COLOR,
+                  background: active ? shellNavActiveBackground : "transparent",
+                  color: active ? shellNavActiveColor : shellNavInactiveColor,
                   textDecoration: "none",
-                  boxShadow: active ? "inset 0 0 0 1px rgba(72,102,78,.08)" : "none",
+                  boxShadow: active ? `inset 0 0 0 1px ${shellBorderColor}` : "none",
                 }}
               >
                 <AppShellIcon name={item.icon} className="h-5 w-5 shrink-0" />
@@ -489,34 +575,47 @@ export default function AppRouteShell({ children }: { children: ReactNode }) {
           })}
         </nav>
 
-        <div className="mt-auto rounded-[24px] p-4" style={{ background: "rgba(255,255,255,.72)", border: "1px solid rgba(72,102,78,.14)" }}>
-          <div className="text-[15px] font-black" style={{ color: HOLIDAY_GREEN }}>Share the magic</div>
-          <p className="mt-2 text-[12px] font-semibold leading-relaxed" style={{ color: TEXT_MUTED }}>
+        <div className="mt-auto rounded-[24px] p-4" style={{ background: isDarkAppShell ? "rgba(255,255,255,.06)" : "rgba(255,255,255,.72)", border: `1px solid ${shellBorderColor}` }}>
+          <div className="text-[15px] font-black" style={{ color: isDarkAppShell ? "#fffefa" : HOLIDAY_GREEN }}>Share the magic</div>
+          <p className="mt-2 text-[12px] font-semibold leading-relaxed" style={{ color: shellMutedColor }}>
             Invite friends, add wishlists, and keep the exchange moving from one place.
           </p>
-          <Link href="/create-group" className="mt-4 inline-flex rounded-full px-4 py-2 text-[12px] font-extrabold" style={{ border: "1px solid rgba(72,102,78,.28)", color: HOLIDAY_GREEN, textDecoration: "none" }}>
+          <Link href="/create-group" className="mt-4 inline-flex rounded-full px-4 py-2 text-[12px] font-extrabold" style={{ border: `1px solid ${shellBorderColor}`, color: isDarkAppShell ? "#fde68a" : HOLIDAY_GREEN, textDecoration: "none" }}>
             Create group
           </Link>
         </div>
       </aside>
 
       <div className="relative z-10 min-h-screen xl:pl-[17.5rem]">
-        <header className="sticky top-0 z-20 hidden h-[84px] items-center justify-between border-b px-7 xl:flex" style={{ background: "linear-gradient(180deg,rgba(255,254,250,.96),rgba(255,254,250,.9))", borderColor: "rgba(72,102,78,.14)", backdropFilter: "blur(16px)" }}>
+        <header className="sticky top-0 z-20 hidden h-[84px] items-center justify-between border-b px-7 xl:flex" style={{ background: shellHeaderBackground, borderColor: shellBorderColor, backdropFilter: "blur(16px)" }}>
           <div>
-            <div className="flex items-center gap-2 text-[16px] font-black" style={{ color: PAGE_TEXT_COLOR }}>
+            <div className="flex items-center gap-2 text-[16px] font-black" style={{ color: shellTextColor }}>
               <span data-testid="app-shell-greeting">{greetingText}</span>
             </div>
-            <div className="mt-0.5 text-[12px] font-semibold" style={{ color: TEXT_MUTED }}>
-              Your group tools stay in one place.
+            <div className="mt-0.5 text-[12px] font-semibold" style={{ color: shellMutedColor }}>
+              {shellSubtitle}
             </div>
           </div>
           <div className="flex items-center gap-3">
-            <button ref={notificationButtonRef} type="button" onClick={() => setNotificationsOpen((open) => !open)} aria-label={unreadCount > 0 ? `Open notifications, ${unreadCount} unread` : "Open notifications"} className="relative flex h-12 w-12 items-center justify-center rounded-full transition hover:-translate-y-0.5" style={{ background: "rgba(255,255,255,.82)", border: "1px solid rgba(72,102,78,.16)", color: PAGE_TEXT_COLOR }}>
+            {isDashboardRoute && (
+              <button
+                type="button"
+                onClick={handleToggleDashboardTheme}
+                aria-pressed={isDarkAppShell}
+                aria-label={isDarkAppShell ? "Switch to light dashboard theme" : "Switch to midnight dashboard theme"}
+                className="flex h-12 w-12 items-center justify-center rounded-full transition hover:-translate-y-0.5"
+                style={{ background: shellControlBackground, border: `1px solid ${shellBorderColor}`, color: shellTextColor }}
+                title={isDarkAppShell ? "Light dashboard" : "Midnight dashboard"}
+              >
+                <ThemeIcon dark={isDarkAppShell} className="h-5 w-5" />
+              </button>
+            )}
+            <button ref={notificationButtonRef} type="button" onClick={() => setNotificationsOpen((open) => !open)} aria-label={unreadCount > 0 ? `Open notifications, ${unreadCount} unread` : "Open notifications"} className="relative flex h-12 w-12 items-center justify-center rounded-full transition hover:-translate-y-0.5" style={{ background: shellControlBackground, border: `1px solid ${shellBorderColor}`, color: shellTextColor }}>
               <BellIcon className="h-5 w-5" />
               {unreadCount > 0 && <span data-testid="app-shell-notification-badge" className="pointer-events-none absolute -right-2 -top-2.5 flex h-5 min-w-5 items-center justify-center rounded-full border-2 border-white px-1.5 text-[9px] font-black leading-none text-white shadow-[0_6px_14px_rgba(164,60,63,.24)]" style={{ background: HOLIDAY_RED }}>{unreadCount > 99 ? "99+" : unreadCount}</span>}
             </button>
             <div className="relative">
-              <button type="button" onClick={() => setProfileOpen((open) => !open)} aria-haspopup="menu" aria-expanded={profileOpen} aria-label="Open profile menu" className="flex items-center gap-3 rounded-full py-1.5 pl-2 pr-4 transition hover:-translate-y-0.5" style={{ background: "rgba(255,255,255,.78)", border: "1px solid rgba(72,102,78,.12)", color: PAGE_TEXT_COLOR, boxShadow: "0 12px 26px rgba(46,52,50,.06)" }}>
+              <button type="button" onClick={() => setProfileOpen((open) => !open)} aria-haspopup="menu" aria-expanded={profileOpen} aria-label="Open profile menu" className="flex items-center gap-3 rounded-full py-1.5 pl-2 pr-4 transition hover:-translate-y-0.5" style={{ background: shellControlBackground, border: `1px solid ${shellBorderColor}`, color: shellTextColor, boxShadow: isDarkAppShell ? "0 12px 26px rgba(0,0,0,.18)" : "0 12px 26px rgba(46,52,50,.06)" }}>
                 <span
                   data-testid="app-shell-viewer-avatar"
                   className={`flex h-12 w-12 items-center justify-center overflow-hidden rounded-full ${
@@ -548,13 +647,13 @@ export default function AppRouteShell({ children }: { children: ReactNode }) {
                 </span>
                 <span className="hidden min-w-0 lg:block">
                   <span data-testid="app-shell-viewer-name" className="block text-[13px] font-black leading-tight">{displayViewerName || "Profile"}</span>
-                  <span className="block text-[11px] font-semibold" style={{ color: TEXT_MUTED }}>View profile</span>
+                  <span className="block text-[11px] font-semibold" style={{ color: shellMutedColor }}>View profile</span>
                 </span>
                 <UserOutlineIcon className="hidden h-4 w-4 lg:block" />
               </button>
               {profileOpen && (
-                <div role="menu" className="absolute right-0 mt-2 w-48 rounded-[18px] bg-white p-2 shadow-[0_18px_42px_rgba(46,52,50,.16)] ring-1 ring-[rgba(72,102,78,.12)]">
-                  <Link role="menuitem" href="/profile" onClick={() => setProfileOpen(false)} className="block rounded-[12px] px-3 py-2 text-[13px] font-extrabold" style={{ color: PAGE_TEXT_COLOR, textDecoration: "none" }}>Profile settings</Link>
+                <div role="menu" className="absolute right-0 mt-2 w-48 rounded-[18px] p-2 shadow-[0_18px_42px_rgba(46,52,50,.16)] ring-1" style={{ background: shellMenuBackground, borderColor: shellBorderColor }}>
+                  <Link role="menuitem" href="/profile" onClick={() => setProfileOpen(false)} className="block rounded-[12px] px-3 py-2 text-[13px] font-extrabold" style={{ color: shellTextColor, textDecoration: "none" }}>Profile settings</Link>
                   <button type="button" role="menuitem" onClick={() => void handleLogout()} className="mt-1 block w-full rounded-[12px] px-3 py-2 text-left text-[13px] font-extrabold text-[#a43c3f]">
                     Logout
                   </button>
@@ -565,7 +664,7 @@ export default function AppRouteShell({ children }: { children: ReactNode }) {
         </header>
         <DashboardNotificationsPanel
           anchorRef={notificationButtonRef}
-          isDarkTheme={false}
+          isDarkTheme={isDarkAppShell}
           open={notificationsOpen}
           onClose={() => setNotificationsOpen(false)}
           onUnreadCountChange={setUnreadCount}

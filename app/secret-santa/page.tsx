@@ -9,6 +9,7 @@ import { getProfile } from "@/app/profile/actions";
 import {
   clearAffiliateReportAccess,
   fetchAffiliateReportAccess,
+  readStoredAffiliateReportAccess,
 } from "@/app/components/affiliate-report-access-client";
 import {
   addViewerProfileChangedListener,
@@ -528,6 +529,69 @@ function PineSprigMark({ className = "h-12 w-12" }: { className?: string }) {
       <circle cx="54" cy="14" r="2.2" fill="#a43c3f" />
     </svg>
   );
+}
+
+function GifteeHeroMark({ className = "h-12 w-12" }: { className?: string }) {
+  return (
+    <svg aria-hidden="true" className={className} viewBox="0 0 72 72" fill="none">
+      <circle cx="36" cy="25" r="12" fill="#fffefa" stroke="#48664e" strokeWidth="3" />
+      <path
+        d="M17 60c4.2-12.4 11-18.6 19-18.6S50.8 47.6 55 60"
+        stroke="#48664e"
+        strokeLinecap="round"
+        strokeWidth="3"
+      />
+      <path d="M20 54h32v11H20V54Z" fill="#a43c3f" />
+      <path d="M36 54v11M20 59.5h32" stroke="#fcce72" strokeWidth="3" />
+      <path
+        d="M29 53c-5-7 4-12 7-2 3-10 12-5 7 2"
+        stroke="#fcce72"
+        strokeLinecap="round"
+        strokeWidth="3"
+      />
+      <circle cx="30" cy="25" r="2" fill="#2e3432" />
+      <circle cx="42" cy="25" r="2" fill="#2e3432" />
+      <path d="M31 32c3.4 2.6 7.2 2.6 10 0" stroke="#a43c3f" strokeLinecap="round" strokeWidth="2.4" />
+    </svg>
+  );
+}
+
+function TrackingHeroMark({ className = "h-12 w-12" }: { className?: string }) {
+  return (
+    <svg aria-hidden="true" className={className} viewBox="0 0 72 72" fill="none">
+      <path
+        d="M11 25h34v25H11V25Zm34 8h9l7 8.2V50H45V33Z"
+        fill="#fffefa"
+        stroke="#48664e"
+        strokeLinejoin="round"
+        strokeWidth="3"
+      />
+      <path d="M23 25v25M11 37h34" stroke="#a43c3f" strokeWidth="3" />
+      <path d="M23 25c-5-8 5-13 8-2 4-11 14-6 8 2" stroke="#a43c3f" strokeLinecap="round" strokeWidth="3" />
+      <circle cx="23" cy="53" r="5" fill="#48664e" />
+      <circle cx="53" cy="53" r="5" fill="#48664e" />
+      <circle cx="23" cy="53" r="2" fill="#fcce72" />
+      <circle cx="53" cy="53" r="2" fill="#fcce72" />
+    </svg>
+  );
+}
+
+function HeroModeMark({
+  className = "h-14 w-14",
+  mode,
+}: {
+  className?: string;
+  mode: SecretSantaExperienceMode;
+}) {
+  if (mode === "giftee") {
+    return <GifteeHeroMark className={className} />;
+  }
+
+  if (mode === "tracking") {
+    return <TrackingHeroMark className={className} />;
+  }
+
+  return <PineSprigMark className={className} />;
 }
 
 function NotificationBellMark({ className = "h-5 w-5" }: { className?: string }) {
@@ -1246,6 +1310,7 @@ function ShoppingIdeasSidebar({
 }
 
 function ShoppingIdeasHeader({
+  mode,
   notificationButtonRef,
   notificationsPanelOpen,
   onViewerAvatarError,
@@ -1255,6 +1320,7 @@ function ShoppingIdeasHeader({
   viewerAvatarUrl,
   viewerName,
 }: {
+  mode: SecretSantaExperienceMode;
   notificationButtonRef: RefObject<HTMLButtonElement | null>;
   notificationsPanelOpen: boolean;
   onViewerAvatarError: () => void;
@@ -1268,6 +1334,12 @@ function ShoppingIdeasHeader({
   const greetingText = displayViewerName
     ? `${getTimeOfDayGreeting()}, ${displayViewerName}`
     : getTimeOfDayGreeting();
+  const subtitle =
+    mode === "giftee"
+      ? "Your recipient, wishlist clues, and group budget."
+      : mode === "tracking"
+        ? "Update your gift progress and arrival status."
+        : "Gift ideas for your recipient and group budget.";
   const profileInitial = displayViewerName.slice(0, 1).toUpperCase() || "?";
   const fallbackAvatar = viewerAvatarEmoji || profileInitial;
   const fallbackAvatarIsEmoji = Boolean(viewerAvatarEmoji);
@@ -1292,7 +1364,7 @@ function ShoppingIdeasHeader({
           <GiftMark className="h-4 w-4" />
         </div>
         <div className="mt-0.5 text-[12px] font-semibold" style={{ color: TEXT_MUTED }}>
-          Let&apos;s find the perfect gift for your giftee.
+          {subtitle}
         </div>
       </div>
       <div className="flex items-center gap-3">
@@ -3174,6 +3246,8 @@ export function SecretSantaExperience({ mode = "shopping" }: SecretSantaExperien
           }
         }
 
+        setCanViewAffiliateReport(readStoredAffiliateReportAccess());
+
         void fetchAffiliateReportAccess()
           .then((allowed) => {
             if (!isMounted) {
@@ -3591,7 +3665,7 @@ export function SecretSantaExperience({ mode = "shopping" }: SecretSantaExperien
           },
         ]
       : []),
-    { label: "Reminders", href: "/profile#reminder-settings", icon: "reminders" },
+    { label: "Reminders", href: "/reminders", icon: "reminders" },
   ];
 
   return (
@@ -3648,6 +3722,7 @@ export function SecretSantaExperience({ mode = "shopping" }: SecretSantaExperien
       />
       <div className="relative z-10 min-h-screen xl:pl-[17.5rem]">
         <ShoppingIdeasHeader
+          mode={mode}
           notificationButtonRef={notificationButtonRef}
           notificationsPanelOpen={notificationsPanelOpen}
           onViewerAvatarError={() => {
@@ -3701,7 +3776,7 @@ export function SecretSantaExperience({ mode = "shopping" }: SecretSantaExperien
           />
           <div className="relative grid gap-5 lg:grid-cols-[minmax(0,1fr)_minmax(260px,320px)] lg:items-center">
             <div className="flex min-w-0 gap-4">
-              <PineSprigMark className="mt-1 hidden h-14 w-14 shrink-0 sm:block" />
+              <HeroModeMark mode={mode} className="mt-1 hidden h-14 w-14 shrink-0 sm:block" />
               <div className="min-w-0">
               <div
                 className="hidden"

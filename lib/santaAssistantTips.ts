@@ -115,7 +115,20 @@ const PAGE_TIPS: Array<{
     tips: [
       {
         title: "Profile",
-        body: "Update your photo, festive avatar, and reminder preferences here.",
+        body: "Update your photo, festive avatar, and account details here.",
+      },
+    ],
+  },
+  {
+    match: (pathname) => pathname === "/reminders",
+    tips: [
+      {
+        title: "Reminders",
+        body: "Choose which gift nudges you receive and how they arrive.",
+      },
+      {
+        title: "Quiet workspace",
+        body: "You can hide Santa Buddy here whenever you want a calmer screen.",
       },
     ],
   },
@@ -188,6 +201,19 @@ export function getSantaAssistantAnswer(
       body: "Add wishlist ideas for your own Santa, and use Shopping Ideas when you are choosing a gift for your giftee.",
       actionLabel: "Open shopping ideas",
       href: "/secret-santa",
+    };
+  }
+
+  if (
+    normalizedQuestion.includes("hide") ||
+    normalizedQuestion.includes("assistant") ||
+    normalizedQuestion.includes("santa buddy")
+  ) {
+    return {
+      title: "Santa Buddy",
+      body: "Open Reminders to hide or show the floating assistant. Your choice stays saved on this browser.",
+      actionLabel: "Open reminders",
+      href: "/reminders",
     };
   }
 

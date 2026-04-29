@@ -68,6 +68,9 @@ const ProfileSetupModal = dynamic<ProfileSetupModalProps>(() => import("./Profil
   loading: () => null,
 });
 
+const DASHBOARD_THEME_STORAGE_KEY = "ss_dashboard_theme";
+const DASHBOARD_THEME_CHANGED_EVENT = "ss-dashboard-theme-changed";
+
 export default function DashboardPage() {
   const router = useRouter();
   const [supabase] = useState(() => createClient());
@@ -90,13 +93,8 @@ export default function DashboardPage() {
   const [notificationPreviewItems, setNotificationPreviewItems] = useState<
     DashboardNotificationPreviewItem[]
   >([]);
-  const [dashboardTheme, setDashboardTheme] = useState<DashboardTheme>(() => {
-    if (typeof window === "undefined") {
-      return "default";
-    }
-
-    return localStorage.getItem("ss_dashboard_theme") === "midnight" ? "midnight" : "default";
-  });
+  const [dashboardTheme, setDashboardTheme] = useState<DashboardTheme>("default");
+  const [dashboardThemeReady, setDashboardThemeReady] = useState(false);
   const [loading, setLoading] = useState(true);
   const [showProfileSetup, setShowProfileSetup] = useState(false);
   const [notificationsPanelOpen, setNotificationsPanelOpen] = useState(false);
@@ -121,14 +119,32 @@ export default function DashboardPage() {
       return;
     }
 
-    if (dashboardTheme !== "default") {
-      localStorage.setItem("ss_dashboard_theme", "default");
-      setDashboardTheme("default");
+    if (!dashboardThemeReady) {
       return;
     }
 
-    localStorage.setItem("ss_dashboard_theme", dashboardTheme);
-  }, [dashboardTheme]);
+    localStorage.setItem(DASHBOARD_THEME_STORAGE_KEY, dashboardTheme);
+  }, [dashboardTheme, dashboardThemeReady]);
+
+  useEffect(() => {
+    const syncStoredTheme = () => {
+      setDashboardTheme(
+        localStorage.getItem(DASHBOARD_THEME_STORAGE_KEY) === "midnight"
+          ? "midnight"
+          : "default"
+      );
+      setDashboardThemeReady(true);
+    };
+
+    syncStoredTheme();
+    window.addEventListener("storage", syncStoredTheme);
+    window.addEventListener(DASHBOARD_THEME_CHANGED_EVENT, syncStoredTheme);
+
+    return () => {
+      window.removeEventListener("storage", syncStoredTheme);
+      window.removeEventListener(DASHBOARD_THEME_CHANGED_EVENT, syncStoredTheme);
+    };
+  }, []);
 
   useEffect(() => {
     let intervalId: ReturnType<typeof setInterval> | null = null;
@@ -921,9 +937,7 @@ export default function DashboardPage() {
 
   const hasAssignments = recipientNames.length > 0;
   const displayFirstName = getDisplayFirstName(userName);
-  // The shared authenticated shell owns the dashboard backdrop, so keep dashboard text in
-  // the light palette even if a browser still has the retired midnight preference stored.
-  const isDarkTheme = false;
+  const isDarkTheme = dashboardTheme === "midnight";
   const allDashboardGroups = [...ownedGroups, ...invitedGroups];
   const revealMessage = buildDashboardRevealMessage(allDashboardGroups, countdownNow);
   const dashboardShellClass = isDarkTheme

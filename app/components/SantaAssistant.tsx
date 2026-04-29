@@ -95,6 +95,7 @@ function SantaBuddyCharacter({ isOpen }: { isOpen: boolean }) {
 export function SantaAssistant() {
   const {
     close,
+    hide,
     isMinimized,
     isOpen,
     lastAnswer,
@@ -156,6 +157,7 @@ export function SantaAssistant() {
         <SantaAssistantBubble
           answer={lastAnswer}
           onClose={close}
+          onHide={hide}
           onMinimize={minimize}
           onNext={nextTip}
           onPrevious={previousTip}

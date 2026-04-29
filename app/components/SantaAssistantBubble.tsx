@@ -7,6 +7,7 @@ import type { SantaAssistantAnswer, SantaAssistantTip } from "@/lib/santaAssista
 type SantaAssistantBubbleProps = {
   answer: SantaAssistantAnswer | null;
   onClose: () => void;
+  onHide: () => void;
   onMinimize: () => void;
   onNext: () => void;
   onPrevious: () => void;
@@ -19,6 +20,7 @@ type SantaAssistantBubbleProps = {
 export function SantaAssistantBubble({
   answer,
   onClose,
+  onHide,
   onMinimize,
   onNext,
   onPrevious,
@@ -129,6 +131,19 @@ export function SantaAssistantBubble({
           {activeMessage.actionLabel}
         </Link>
       )}
+
+      <div className="mt-3 flex items-center justify-between gap-3 border-t border-[rgba(72,102,78,.12)] pt-3">
+        <span className="text-[11px] font-semibold leading-4 text-[#64748b]">
+          Prefer a quieter app?
+        </span>
+        <button
+          type="button"
+          onClick={onHide}
+          className="rounded-full border border-[rgba(72,102,78,.16)] bg-white px-3 py-2 text-[11px] font-extrabold text-[#48664e] transition hover:-translate-y-0.5 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#48664e]"
+        >
+          Hide Santa Buddy
+        </button>
+      </div>
     </section>
   );
 }

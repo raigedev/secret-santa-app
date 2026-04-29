@@ -161,6 +161,16 @@ const AUTHENTICATED_SCREEN_CASES: ScreenCase[] = [
     },
   },
   {
+    name: "reminders",
+    path: "/reminders",
+    assertVisible: async (page) => {
+      await expect(page.getByTestId("reminders-workspace")).toBeVisible();
+      await expect(page.getByRole("heading", { name: /keep the exchange moving/i })).toBeVisible();
+      await expect(page.getByRole("button", { name: /save reminders/i })).toBeVisible();
+      await expect(page.getByTestId("santa-assistant-preference-toggle")).toBeVisible();
+    },
+  },
+  {
     name: "wishlist",
     path: "/wishlist",
     assertVisible: async (page) => {
@@ -375,7 +385,10 @@ test.describe("authenticated screen regressions", () => {
     await page.setViewportSize({ width: 1440, height: 900 });
     await loginWithTestCredentials(page, credentials!);
     await page.goto("/dashboard");
-    await page.evaluate(() => localStorage.setItem("ss_dashboard_theme", "midnight"));
+    await page.getByRole("button", { name: /switch to midnight dashboard theme/i }).click();
+    await expect
+      .poll(() => page.evaluate(() => localStorage.getItem("ss_dashboard_theme")))
+      .toBe("midnight");
     await page.reload();
 
     await expect(page.getByRole("heading", { name: /welcome back/i })).toBeVisible();
@@ -443,12 +456,17 @@ test.describe("authenticated screen regressions", () => {
 
     for (const sample of textSamples) {
       expect(sample.found, `${sample.label} should be present`).toBe(true);
-      expect(sample.luminance, `${sample.label} uses ${sample.color}`).toBeLessThan(0.45);
+      expect(sample.luminance, `${sample.label} uses ${sample.color}`).toBeGreaterThan(0.45);
     }
+
+    const shellBackground = await page
+      .getByTestId("app-route-shell")
+      .evaluate((shell) => window.getComputedStyle(shell).backgroundImage);
+    expect(shellBackground).toContain("rgb(8, 17, 31)");
 
     await expect
       .poll(() => page.evaluate(() => localStorage.getItem("ss_dashboard_theme")))
-      .toBe("default");
+      .toBe("midnight");
     expect(dashboardConsoleErrors).toEqual([]);
   });
 
@@ -666,6 +684,8 @@ test.describe("authenticated screen regressions", () => {
     await page.getByLabel(/ask santa buddy/i).fill("What is the budget?");
     await page.getByRole("button", { name: /^ask$/i }).click();
     await expect(page.getByTestId("santa-assistant-bubble")).toContainText(/group budget/i);
+    await page.getByRole("button", { name: /hide santa buddy/i }).click();
+    await expect(page.getByTestId("santa-assistant")).toHaveCount(0);
     await expect(page.getByTestId("santa-helper-panel").first()).toBeVisible();
     await expect(page.getByTestId("santa-helper-action-strip")).toHaveCount(0);
     await expect(page.getByText(/safest pick/i).first()).toBeVisible();

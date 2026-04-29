@@ -87,10 +87,10 @@ const SHARED_NAVIGATION_CASES: NavigationCase[] = [
   },
   {
     label: /^reminders$/i,
-    expectedHref: /\/profile#reminder-settings$/,
-    expectedUrl: /\/profile#reminder-settings$/,
+    expectedHref: /\/reminders$/,
+    expectedUrl: /\/reminders$/,
     ready: async (page) => {
-      await expect(page.getByText(/reminder settings/i)).toBeVisible();
+      await expect(page.getByTestId("reminders-workspace")).toBeVisible();
     },
   },
 ];
@@ -210,7 +210,7 @@ test.describe("authenticated workflow edge cases", () => {
     await expectOnlyCurrentSidebarLink(sharedSidebar, /^messages$/i);
 
     await sharedSidebar.getByRole("link", { name: /^reminders$/i }).click();
-    await expect(page).toHaveURL(/\/profile#reminder-settings$/);
+    await expect(page).toHaveURL(/\/reminders$/);
     await expectOnlyCurrentSidebarLink(sharedSidebar, /^reminders$/i);
 
     await page.goto("/secret-santa");
@@ -295,7 +295,7 @@ test.describe("authenticated workflow edge cases", () => {
     );
     await expect(sidebar.getByRole("link", { name: /^reminders$/i })).toHaveAttribute(
       "href",
-      /\/profile#reminder-settings$/
+      /\/reminders$/
     );
     await expect(shoppingIdeasLink).toHaveAttribute("aria-current", "page");
 
