@@ -7,6 +7,22 @@ import { createClient } from "@/lib/supabase/client";
 import { BellIcon, SantaMarkIcon, UserOutlineIcon } from "@/app/dashboard/dashboard-icons";
 import { DashboardNotificationsPanel } from "@/app/dashboard/DashboardNotificationsPanel";
 import { AppShellIcon, type AppNavIcon } from "@/app/components/AppShellIcons";
+import {
+  clearAffiliateReportAccess,
+  fetchAffiliateReportAccess,
+} from "@/app/components/affiliate-report-access-client";
+import {
+  addViewerProfileChangedListener,
+  applyViewerProfileChangedEvent,
+  getEmailViewerName,
+  normalizeViewerAvatarEmoji,
+  normalizeViewerAvatarUrl,
+  normalizeViewerName,
+  readStoredViewerProfile,
+  storeViewerAvatarEmoji,
+  storeViewerAvatarUrl,
+  storeViewerName,
+} from "@/app/components/viewer-profile-client";
 import { getProfile } from "@/app/profile/actions";
 
 const APP_BACKGROUND =
@@ -15,10 +31,6 @@ const PAGE_TEXT_COLOR = "#2e3432";
 const HOLIDAY_GREEN = "#48664e";
 const HOLIDAY_RED = "#a43c3f";
 const TEXT_MUTED = "#64748b";
-const VIEWER_NAME_STORAGE_KEY = "ss_un";
-const VIEWER_AVATAR_STORAGE_KEY = "ss_uav";
-const VIEWER_AVATAR_EMOJI_STORAGE_KEY = "ss_uae";
-const VIEWER_PROFILE_CHANGED_EVENT = "ss-profile-updated";
 
 type AppNavItem = {
   href: string;
@@ -50,133 +62,6 @@ function getTimeOfDayGreeting() {
   if (hour < 12) return "Good morning";
   if (hour < 18) return "Good afternoon";
   return "Good evening";
-}
-
-function normalizeViewerName(value: string | null | undefined) {
-  return (value || "").replace(/\s+/g, " ").trim();
-}
-
-function normalizeViewerAvatarUrl(value: string | null | undefined) {
-  const trimmed = (value || "").trim();
-
-  if (!trimmed) {
-    return "";
-  }
-
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-
-  if (!supabaseUrl) {
-    return "";
-  }
-
-  try {
-    const candidate = new URL(trimmed);
-    const allowedOrigin = new URL(supabaseUrl).origin;
-    const allowedPathPrefix = "/storage/v1/object/public/profile-avatars/";
-
-    if (
-      candidate.origin !== allowedOrigin ||
-      !candidate.pathname.startsWith(allowedPathPrefix)
-    ) {
-      return "";
-    }
-
-    return `${candidate.origin}${candidate.pathname}${candidate.search}`;
-  } catch {
-    return "";
-  }
-}
-
-function normalizeViewerAvatarEmoji(value: string | null | undefined) {
-  return (value || "").trim().slice(0, 10);
-}
-
-function getEmailViewerName(email: string | null | undefined) {
-  return normalizeViewerName(email?.split("@")[0]?.replace(/[._-]+/g, " "));
-}
-
-function readStoredViewerName() {
-  if (typeof sessionStorage === "undefined") {
-    return "";
-  }
-
-  return normalizeViewerName(sessionStorage.getItem(VIEWER_NAME_STORAGE_KEY));
-}
-
-function readStoredViewerAvatarUrl() {
-  if (typeof sessionStorage === "undefined") {
-    return "";
-  }
-
-  return normalizeViewerAvatarUrl(sessionStorage.getItem(VIEWER_AVATAR_STORAGE_KEY));
-}
-
-function readStoredViewerAvatarEmoji() {
-  if (typeof sessionStorage === "undefined") {
-    return "";
-  }
-
-  return normalizeViewerAvatarEmoji(sessionStorage.getItem(VIEWER_AVATAR_EMOJI_STORAGE_KEY));
-}
-
-function storeViewerName(value: string) {
-  const normalized = normalizeViewerName(value);
-
-  if (normalized && typeof sessionStorage !== "undefined") {
-    sessionStorage.setItem(VIEWER_NAME_STORAGE_KEY, normalized);
-  }
-}
-
-function storeViewerAvatarUrl(value: string | null | undefined) {
-  if (typeof sessionStorage === "undefined") {
-    return;
-  }
-
-  const normalized = normalizeViewerAvatarUrl(value);
-
-  if (normalized) {
-    sessionStorage.setItem(VIEWER_AVATAR_STORAGE_KEY, normalized);
-  } else {
-    sessionStorage.removeItem(VIEWER_AVATAR_STORAGE_KEY);
-  }
-}
-
-function storeViewerAvatarEmoji(value: string | null | undefined) {
-  if (typeof sessionStorage === "undefined") {
-    return;
-  }
-
-  const normalized = normalizeViewerAvatarEmoji(value);
-
-  if (normalized) {
-    sessionStorage.setItem(VIEWER_AVATAR_EMOJI_STORAGE_KEY, normalized);
-  } else {
-    sessionStorage.removeItem(VIEWER_AVATAR_EMOJI_STORAGE_KEY);
-  }
-}
-
-function readViewerProfileChangedDetail(event: Event) {
-  if (!(event instanceof CustomEvent) || !event.detail || typeof event.detail !== "object") {
-    return null;
-  }
-
-  const detail = event.detail as {
-    avatarEmoji?: unknown;
-    avatarUrl?: unknown;
-    displayName?: unknown;
-  };
-
-  return {
-    avatarEmoji:
-      typeof detail.avatarEmoji === "string" || detail.avatarEmoji === null
-        ? detail.avatarEmoji
-        : undefined,
-    avatarUrl:
-      typeof detail.avatarUrl === "string" || detail.avatarUrl === null
-        ? detail.avatarUrl
-        : undefined,
-    displayName: typeof detail.displayName === "string" ? detail.displayName : undefined,
-  };
 }
 
 function createNavItems(pathname: string, canViewAffiliateReport: boolean): AppNavItem[] {
@@ -279,20 +164,18 @@ export default function AppRouteShell({ children }: { children: ReactNode }) {
       const sessionUser = data.session?.user || null;
       const userId = sessionUser?.id || null;
       const emailName = getEmailViewerName(sessionUser?.email);
-      const immediateViewerName = readStoredViewerName();
-      const immediateViewerAvatarUrl = readStoredViewerAvatarUrl();
-      const immediateViewerAvatarEmoji = readStoredViewerAvatarEmoji();
+      const storedViewerProfile = readStoredViewerProfile();
 
-      if (immediateViewerName) {
-        setViewerName(immediateViewerName);
+      if (storedViewerProfile.displayName) {
+        setViewerName(storedViewerProfile.displayName);
       }
 
-      if (immediateViewerAvatarUrl) {
-        setViewerAvatarUrl(immediateViewerAvatarUrl);
+      if (storedViewerProfile.avatarUrl) {
+        setViewerAvatarUrl(storedViewerProfile.avatarUrl);
       }
 
-      if (immediateViewerAvatarEmoji) {
-        setViewerAvatarEmoji(immediateViewerAvatarEmoji);
+      if (storedViewerProfile.avatarEmoji) {
+        setViewerAvatarEmoji(storedViewerProfile.avatarEmoji);
       }
 
       if (!userId || loadedShellContextForUserRef.current === userId) {
@@ -308,7 +191,7 @@ export default function AppRouteShell({ children }: { children: ReactNode }) {
           }
 
           const profileName = normalizeViewerName(profile?.display_name);
-          const resolvedName = profileName || readStoredViewerName() || emailName;
+          const resolvedName = profileName || storedViewerProfile.displayName || emailName;
           const resolvedAvatarUrl = normalizeViewerAvatarUrl(profile?.avatar_url);
           const resolvedAvatarEmoji = normalizeViewerAvatarEmoji(profile?.avatar_emoji);
 
@@ -326,25 +209,10 @@ export default function AppRouteShell({ children }: { children: ReactNode }) {
           // The shell can keep the cached/email name if the profile action is temporarily unavailable.
         });
 
-      void fetch("/api/affiliate/report-access", { credentials: "same-origin" })
-        .then(async (response) => {
+      void fetchAffiliateReportAccess()
+        .then((allowed) => {
           if (!isMounted) {
             return;
-          }
-
-          if (!response.ok) {
-            sessionStorage.removeItem("ss_ara");
-            setCanViewAffiliateReport(false);
-            return;
-          }
-
-          const payload = (await response.json()) as { allowed?: boolean };
-          const allowed = payload.allowed === true;
-
-          if (allowed) {
-            sessionStorage.setItem("ss_ara", "1");
-          } else {
-            sessionStorage.removeItem("ss_ara");
           }
 
           setCanViewAffiliateReport(allowed);
@@ -357,7 +225,7 @@ export default function AppRouteShell({ children }: { children: ReactNode }) {
           if (loadedShellContextForUserRef.current === userId) {
             loadedShellContextForUserRef.current = null;
           }
-          sessionStorage.removeItem("ss_ara");
+          clearAffiliateReportAccess();
           setCanViewAffiliateReport(false);
         });
     });
@@ -373,39 +241,14 @@ export default function AppRouteShell({ children }: { children: ReactNode }) {
     }
 
     const handleViewerProfileChanged = (event: Event) => {
-      const detail = readViewerProfileChangedDetail(event);
-
-      if (!detail) {
-        return;
-      }
-
-      if (detail.displayName !== undefined) {
-        const nextName = normalizeViewerName(detail.displayName);
-
-        if (nextName) {
-          setViewerName(nextName);
-          storeViewerName(nextName);
-        }
-      }
-
-      if (detail.avatarUrl !== undefined) {
-        const nextAvatarUrl = normalizeViewerAvatarUrl(detail.avatarUrl);
-        setViewerAvatarUrl(nextAvatarUrl);
-        storeViewerAvatarUrl(nextAvatarUrl || null);
-      }
-
-      if (detail.avatarEmoji !== undefined) {
-        const nextAvatarEmoji = normalizeViewerAvatarEmoji(detail.avatarEmoji);
-        setViewerAvatarEmoji(nextAvatarEmoji);
-        storeViewerAvatarEmoji(nextAvatarEmoji || null);
-      }
+      applyViewerProfileChangedEvent(event, {
+        setViewerAvatarEmoji,
+        setViewerAvatarUrl,
+        setViewerName,
+      });
     };
 
-    window.addEventListener(VIEWER_PROFILE_CHANGED_EVENT, handleViewerProfileChanged);
-
-    return () => {
-      window.removeEventListener(VIEWER_PROFILE_CHANGED_EVENT, handleViewerProfileChanged);
-    };
+    return addViewerProfileChangedListener(handleViewerProfileChanged);
   }, [pathname]);
 
   useEffect(() => {

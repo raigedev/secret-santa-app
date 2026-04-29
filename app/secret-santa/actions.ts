@@ -2,9 +2,8 @@
 
 import { recordAuditEvent, recordServerFailure } from "@/lib/security/audit";
 import { createNotification } from "@/lib/notifications";
-import { enforceRateLimit } from "@/lib/security/rate-limit";
+import { requireRateLimitedAction } from "@/lib/auth/server-action-context";
 import { supabaseAdmin } from "@/lib/supabase/admin";
-import { createClient } from "@/lib/supabase/server";
 import { isUuid } from "@/lib/validation/common";
 
 const GIFT_PREP_STATUSES = [
@@ -28,29 +27,20 @@ export async function updateGiftPrepStatus(
     return { success: false, message: "Choose a valid gift progress option." };
   }
 
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  if (!user) {
-    return { success: false, message: "You must be logged in." };
-  }
-
-  const rateLimit = await enforceRateLimit({
+  const context = await requireRateLimitedAction({
     action: "secret_santa.update_gift_prep_status",
-    actorUserId: user.id,
     maxAttempts: 20,
     resourceId: groupId,
     resourceType: "assignment",
-    subject: user.id,
+    subject: (userId) => userId,
     windowSeconds: 3600,
   });
 
-  if (!rateLimit.allowed) {
-    return { success: false, message: rateLimit.message };
+  if (!context.ok) {
+    return { success: false, message: context.message };
   }
 
+  const { user } = context;
   const { data: assignment, error: assignmentError } = await supabaseAdmin
     .from("assignments")
     .select("group_id, gift_received, gift_prep_status")
@@ -126,29 +116,20 @@ export async function confirmGiftReceived(
     return { success: false, message: "Invalid group ID." };
   }
 
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  if (!user) {
-    return { success: false, message: "You must be logged in." };
-  }
-
-  const rateLimit = await enforceRateLimit({
+  const context = await requireRateLimitedAction({
     action: "secret_santa.confirm_gift_received",
-    actorUserId: user.id,
     maxAttempts: 10,
     resourceId: groupId,
     resourceType: "assignment",
-    subject: user.id,
+    subject: (userId) => userId,
     windowSeconds: 3600,
   });
 
-  if (!rateLimit.allowed) {
-    return { success: false, message: rateLimit.message };
+  if (!context.ok) {
+    return { success: false, message: context.message };
   }
 
+  const { user } = context;
   const { data: assignment, error: assignmentError } = await supabaseAdmin
     .from("assignments")
     .select("group_id, giver_id, gift_received")

@@ -185,6 +185,30 @@ function appendLazadaSubIdsToPromotionLink(
   }
 }
 
+function buildLazadaPromotionLinkResolution({
+  fallbackProductId,
+  fallbackTitle,
+  link,
+  subIds,
+}: {
+  fallbackProductId: string | null;
+  fallbackTitle: string | null;
+  link: LazadaNormalizedPromotionLink | null | undefined;
+  subIds: LazadaSubIds;
+}): LazadaPromotionLinkResolution | null {
+  if (!link?.promotionLink) {
+    return null;
+  }
+
+  return {
+    mode: "promotion-link",
+    reason: "promotion-link-ready",
+    resolvedProductId: link.productId || fallbackProductId,
+    resolvedTitle: link.productName || link.offerName || fallbackTitle,
+    targetUrl: appendLazadaSubIdsToPromotionLink(link.promotionLink, subIds),
+  };
+}
+
 function isResolvableLazadaUrl(value: string): boolean {
   try {
     const parsed = new URL(value);
@@ -648,18 +672,15 @@ export async function resolveLazadaPromotionLinkTarget(options: {
   const cacheKey = buildGenericLazadaPromotionCacheKey("productId", [options.productId]);
   const cachedLinks = readCachedLazadaPromotionLinks(cacheKey);
   const cachedPromotionLink = cachedLinks?.find((link) => link.productId === options.productId);
+  const cachedPromotionResolution = buildLazadaPromotionLinkResolution({
+    fallbackProductId: options.productId,
+    fallbackTitle: null,
+    link: cachedPromotionLink,
+    subIds: wishlistSubIds,
+  });
 
-  if (cachedPromotionLink?.promotionLink) {
-    return {
-      mode: "promotion-link",
-      reason: "promotion-link-ready",
-      resolvedProductId: cachedPromotionLink.productId || options.productId,
-      resolvedTitle: cachedPromotionLink.productName || cachedPromotionLink.offerName || null,
-      targetUrl: appendLazadaSubIdsToPromotionLink(
-        cachedPromotionLink.promotionLink,
-        wishlistSubIds
-      ),
-    };
+  if (cachedPromotionResolution) {
+    return cachedPromotionResolution;
   }
 
   try {
@@ -672,18 +693,15 @@ export async function resolveLazadaPromotionLinkTarget(options: {
       inputValues: [options.productId],
     });
     const livePromotionLink = links.find((link) => link.productId === options.productId);
+    const livePromotionResolution = buildLazadaPromotionLinkResolution({
+      fallbackProductId: options.productId,
+      fallbackTitle: null,
+      link: livePromotionLink,
+      subIds: wishlistSubIds,
+    });
 
-    if (livePromotionLink?.promotionLink) {
-      return {
-        mode: "promotion-link",
-        reason: "promotion-link-ready",
-        resolvedProductId: livePromotionLink.productId || options.productId,
-        resolvedTitle: livePromotionLink.productName || livePromotionLink.offerName || null,
-        targetUrl: appendLazadaSubIdsToPromotionLink(
-          livePromotionLink.promotionLink,
-          wishlistSubIds
-        ),
-      };
+    if (livePromotionResolution) {
+      return livePromotionResolution;
     }
   } catch {
     return {
@@ -832,22 +850,15 @@ export async function resolveLazadaWishlistItemLinkTarget(options: {
   const cachedPromotionLink = cachedLinks?.find(
     (link) => normalizeLazadaProductPageUrl(link.originalUrl || "") === normalizedItemUrl
   );
+  const cachedPromotionResolution = buildLazadaPromotionLinkResolution({
+    fallbackProductId: feedProduct?.itemId || null,
+    fallbackTitle: feedProduct?.productName || options.itemName,
+    link: cachedPromotionLink,
+    subIds: wishlistSubIds,
+  });
 
-  if (cachedPromotionLink?.promotionLink) {
-    return {
-      mode: "promotion-link",
-      reason: "promotion-link-ready",
-      resolvedProductId: cachedPromotionLink.productId || feedProduct?.itemId || null,
-      resolvedTitle:
-        cachedPromotionLink.productName ||
-        cachedPromotionLink.offerName ||
-        feedProduct?.productName ||
-        options.itemName,
-      targetUrl: appendLazadaSubIdsToPromotionLink(
-        cachedPromotionLink.promotionLink,
-        wishlistSubIds
-      ),
-    };
+  if (cachedPromotionResolution) {
+    return cachedPromotionResolution;
   }
 
   try {
@@ -862,22 +873,15 @@ export async function resolveLazadaWishlistItemLinkTarget(options: {
     const livePromotionLink = links.find(
       (link) => normalizeLazadaProductPageUrl(link.originalUrl || "") === normalizedItemUrl
     );
+    const livePromotionResolution = buildLazadaPromotionLinkResolution({
+      fallbackProductId: feedProduct?.itemId || null,
+      fallbackTitle: feedProduct?.productName || options.itemName,
+      link: livePromotionLink,
+      subIds: wishlistSubIds,
+    });
 
-    if (livePromotionLink?.promotionLink) {
-      return {
-        mode: "promotion-link",
-        reason: "promotion-link-ready",
-        resolvedProductId: livePromotionLink.productId || feedProduct?.itemId || null,
-        resolvedTitle:
-          livePromotionLink.productName ||
-          livePromotionLink.offerName ||
-          feedProduct?.productName ||
-          options.itemName,
-        targetUrl: appendLazadaSubIdsToPromotionLink(
-          livePromotionLink.promotionLink,
-          wishlistSubIds
-        ),
-      };
+    if (livePromotionResolution) {
+      return livePromotionResolution;
     }
   } catch {
     return {
@@ -967,18 +971,15 @@ export async function resolveLazadaSearchRouteLinkTarget(options: {
   const cachedPromotionLink = cachedLinks?.find(
     (link) => (link.originalUrl || link.inputValue || "") === options.fallbackUrl
   );
+  const cachedPromotionResolution = buildLazadaPromotionLinkResolution({
+    fallbackProductId: null,
+    fallbackTitle: null,
+    link: cachedPromotionLink,
+    subIds: wishlistSubIds,
+  });
 
-  if (cachedPromotionLink?.promotionLink) {
-    return {
-      mode: "promotion-link",
-      reason: "promotion-link-ready",
-      resolvedProductId: cachedPromotionLink.productId || null,
-      resolvedTitle: cachedPromotionLink.productName || cachedPromotionLink.offerName || null,
-      targetUrl: appendLazadaSubIdsToPromotionLink(
-        cachedPromotionLink.promotionLink,
-        wishlistSubIds
-      ),
-    };
+  if (cachedPromotionResolution) {
+    return cachedPromotionResolution;
   }
 
   try {
@@ -993,18 +994,15 @@ export async function resolveLazadaSearchRouteLinkTarget(options: {
     const livePromotionLink = links.find(
       (link) => (link.originalUrl || link.inputValue || "") === options.fallbackUrl
     );
+    const livePromotionResolution = buildLazadaPromotionLinkResolution({
+      fallbackProductId: null,
+      fallbackTitle: null,
+      link: livePromotionLink,
+      subIds: wishlistSubIds,
+    });
 
-    if (livePromotionLink?.promotionLink) {
-      return {
-        mode: "promotion-link",
-        reason: "promotion-link-ready",
-        resolvedProductId: livePromotionLink.productId || null,
-        resolvedTitle: livePromotionLink.productName || livePromotionLink.offerName || null,
-        targetUrl: appendLazadaSubIdsToPromotionLink(
-          livePromotionLink.promotionLink,
-          wishlistSubIds
-        ),
-      };
+    if (livePromotionResolution) {
+      return livePromotionResolution;
     }
   } catch {
     return {

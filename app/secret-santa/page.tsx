@@ -6,6 +6,22 @@ import { createClient } from "@/lib/supabase/client";
 import { DashboardNotificationsPanel } from "@/app/dashboard/DashboardNotificationsPanel";
 import { SantaMarkIcon } from "@/app/dashboard/dashboard-icons";
 import { getProfile } from "@/app/profile/actions";
+import {
+  clearAffiliateReportAccess,
+  fetchAffiliateReportAccess,
+} from "@/app/components/affiliate-report-access-client";
+import {
+  addViewerProfileChangedListener,
+  applyViewerProfileChangedEvent,
+  normalizeViewerAvatarEmoji,
+  normalizeViewerAvatarUrl,
+  normalizeViewerName,
+  readStoredViewerName,
+  readStoredViewerProfile,
+  storeViewerAvatarEmoji,
+  storeViewerAvatarUrl,
+  storeViewerName,
+} from "@/app/components/viewer-profile-client";
 import { confirmGiftReceived, updateGiftPrepStatus } from "./actions";
 import { SecretSantaSkeleton } from "@/app/components/PageSkeleton";
 import {
@@ -155,10 +171,6 @@ const ITEM_LINK_MAX_LENGTH = 500;
 const MAX_GROUP_ROUTE_PREFETCH = 8;
 const AI_SUGGESTION_REQUEST_TIMEOUT_MS = 18000;
 const MAX_VISIBLE_RECIPIENT_WISHLIST_ITEMS = 3;
-const VIEWER_NAME_STORAGE_KEY = "ss_un";
-const VIEWER_AVATAR_STORAGE_KEY = "ss_uav";
-const VIEWER_AVATAR_EMOJI_STORAGE_KEY = "ss_uae";
-const VIEWER_PROFILE_CHANGED_EVENT = "ss-profile-updated";
 const PAGE_BACKGROUND =
   "radial-gradient(circle at 92% 6%,rgba(72,102,78,.12),transparent 25rem), radial-gradient(circle at 8% 90%,rgba(252,206,114,.15),transparent 24rem), repeating-linear-gradient(135deg,rgba(72,102,78,.055) 0 1px,transparent 1px 34px), repeating-linear-gradient(45deg,rgba(252,206,114,.09) 0 1px,transparent 1px 54px), linear-gradient(180deg,#fffdf8 0%,#fbfaf4 45%,#f1f7ee 100%)";
 const PAGE_TEXT_COLOR = "#2e3432";
@@ -901,129 +913,6 @@ function getMetadataString(
   }
 
   return "";
-}
-
-function normalizeViewerName(value: string | null | undefined): string {
-  return (value || "").replace(/\s+/g, " ").trim();
-}
-
-function normalizeViewerAvatarEmoji(value: string | null | undefined): string {
-  return (value || "").trim().slice(0, 10);
-}
-
-function readStoredViewerName(): string {
-  if (typeof sessionStorage === "undefined") {
-    return "";
-  }
-
-  return normalizeViewerName(sessionStorage.getItem(VIEWER_NAME_STORAGE_KEY));
-}
-
-function normalizeViewerAvatarUrl(value: string | null | undefined): string {
-  const trimmed = (value || "").trim();
-
-  if (!trimmed) {
-    return "";
-  }
-
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-
-  if (!supabaseUrl) {
-    return "";
-  }
-
-  try {
-    const candidate = new URL(trimmed);
-    const allowedOrigin = new URL(supabaseUrl).origin;
-    const allowedPathPrefix = "/storage/v1/object/public/profile-avatars/";
-
-    if (
-      candidate.origin !== allowedOrigin ||
-      !candidate.pathname.startsWith(allowedPathPrefix)
-    ) {
-      return "";
-    }
-
-    return `${candidate.origin}${candidate.pathname}${candidate.search}`;
-  } catch {
-    return "";
-  }
-}
-
-function readStoredViewerAvatarUrl(): string {
-  if (typeof sessionStorage === "undefined") {
-    return "";
-  }
-
-  return normalizeViewerAvatarUrl(sessionStorage.getItem(VIEWER_AVATAR_STORAGE_KEY));
-}
-
-function readStoredViewerAvatarEmoji(): string {
-  if (typeof sessionStorage === "undefined") {
-    return "";
-  }
-
-  return normalizeViewerAvatarEmoji(sessionStorage.getItem(VIEWER_AVATAR_EMOJI_STORAGE_KEY));
-}
-
-function storeViewerName(value: string): void {
-  const normalized = normalizeViewerName(value);
-
-  if (normalized && typeof sessionStorage !== "undefined") {
-    sessionStorage.setItem(VIEWER_NAME_STORAGE_KEY, normalized);
-  }
-}
-
-function storeViewerAvatarUrl(value: string | null | undefined): void {
-  if (typeof sessionStorage === "undefined") {
-    return;
-  }
-
-  const normalized = normalizeViewerAvatarUrl(value);
-
-  if (normalized) {
-    sessionStorage.setItem(VIEWER_AVATAR_STORAGE_KEY, normalized);
-  } else {
-    sessionStorage.removeItem(VIEWER_AVATAR_STORAGE_KEY);
-  }
-}
-
-function storeViewerAvatarEmoji(value: string | null | undefined): void {
-  if (typeof sessionStorage === "undefined") {
-    return;
-  }
-
-  const normalized = normalizeViewerAvatarEmoji(value);
-
-  if (normalized) {
-    sessionStorage.setItem(VIEWER_AVATAR_EMOJI_STORAGE_KEY, normalized);
-  } else {
-    sessionStorage.removeItem(VIEWER_AVATAR_EMOJI_STORAGE_KEY);
-  }
-}
-
-function readViewerProfileChangedDetail(event: Event) {
-  if (!(event instanceof CustomEvent) || !event.detail || typeof event.detail !== "object") {
-    return null;
-  }
-
-  const detail = event.detail as {
-    avatarEmoji?: unknown;
-    avatarUrl?: unknown;
-    displayName?: unknown;
-  };
-
-  return {
-    avatarEmoji:
-      typeof detail.avatarEmoji === "string" || detail.avatarEmoji === null
-        ? detail.avatarEmoji
-        : undefined,
-    avatarUrl:
-      typeof detail.avatarUrl === "string" || detail.avatarUrl === null
-        ? detail.avatarUrl
-        : undefined,
-    displayName: typeof detail.displayName === "string" ? detail.displayName : undefined,
-  };
 }
 
 function getViewerDisplayName(
@@ -2364,6 +2253,49 @@ function getWishlistMatchedImageUrl(input: {
   return "";
 }
 
+function getRecipientWishlistCardModel(input: {
+  activeItemId: string;
+  aiSuggestionStateByItem: Record<string, AiSuggestionState>;
+  matchedProductsByKey: Record<string, LazadaFeaturedProductsState>;
+  selectedSuggestionByItem: Record<string, string>;
+  shoppingRegion: ShoppingRegion;
+  wishlistItem: WishlistItem;
+}) {
+  const wishlistPriorityMeta = getWishlistPriorityMeta(input.wishlistItem.priority);
+  const wishlistImageUrl = normalizeOptionalUrl(input.wishlistItem.item_image_url);
+  const wishlistSuggestionId = input.selectedSuggestionByItem[input.wishlistItem.id] || "";
+  const wishlistMatchKey = wishlistSuggestionId
+    ? createLazadaMatchRequestKey(
+        input.wishlistItem.id,
+        wishlistSuggestionId,
+        input.shoppingRegion
+      )
+    : "";
+  const wishlistMatchedState = wishlistMatchKey
+    ? input.matchedProductsByKey[wishlistMatchKey] || null
+    : null;
+  const wishlistMatchedImageUrl = getWishlistMatchedImageUrl({
+    itemId: input.wishlistItem.id,
+    matchedProductsByKey: input.matchedProductsByKey,
+    preferredMatchKey: wishlistMatchKey,
+    region: input.shoppingRegion,
+  });
+  const wishlistAiSuggestionState =
+    input.aiSuggestionStateByItem[input.wishlistItem.id] || null;
+  const resolvedWishlistImageUrl = wishlistImageUrl || wishlistMatchedImageUrl;
+  const wishlistImageLoading = Boolean(
+    !resolvedWishlistImageUrl &&
+      (wishlistMatchedState?.loading || wishlistAiSuggestionState?.loading)
+  );
+
+  return {
+    isActiveItem: input.wishlistItem.id === input.activeItemId,
+    resolvedWishlistImageUrl,
+    wishlistImageLoading,
+    wishlistPriorityMeta,
+  };
+}
+
 function getMerchantBadgeStyle(
   merchant: string,
   isPartnerLink: boolean
@@ -2414,9 +2346,13 @@ export default function SecretSantaPage() {
   const [assignments, setAssignments] = useState<RecipientData[]>([]);
   const [receivedGifts, setReceivedGifts] = useState<ReceivedGiftData[]>([]);
   const [loading, setLoading] = useState(true);
-  const [viewerName, setViewerName] = useState(readStoredViewerName);
-  const [viewerAvatarUrl, setViewerAvatarUrl] = useState(readStoredViewerAvatarUrl);
-  const [viewerAvatarEmoji, setViewerAvatarEmoji] = useState(readStoredViewerAvatarEmoji);
+  const [viewerName, setViewerName] = useState(() => readStoredViewerProfile().displayName);
+  const [viewerAvatarUrl, setViewerAvatarUrl] = useState(
+    () => readStoredViewerProfile().avatarUrl
+  );
+  const [viewerAvatarEmoji, setViewerAvatarEmoji] = useState(
+    () => readStoredViewerProfile().avatarEmoji
+  );
   const [canViewAffiliateReport, setCanViewAffiliateReport] = useState(false);
 
   // Page-level feedback and action state.
@@ -2459,39 +2395,14 @@ export default function SecretSantaPage() {
 
   useEffect(() => {
     const handleViewerProfileChanged = (event: Event) => {
-      const detail = readViewerProfileChangedDetail(event);
-
-      if (!detail) {
-        return;
-      }
-
-      if (detail.displayName !== undefined) {
-        const nextName = normalizeViewerName(detail.displayName);
-
-        if (nextName) {
-          setViewerName(nextName);
-          storeViewerName(nextName);
-        }
-      }
-
-      if (detail.avatarUrl !== undefined) {
-        const nextAvatarUrl = normalizeViewerAvatarUrl(detail.avatarUrl);
-        setViewerAvatarUrl(nextAvatarUrl);
-        storeViewerAvatarUrl(nextAvatarUrl || null);
-      }
-
-      if (detail.avatarEmoji !== undefined) {
-        const nextAvatarEmoji = normalizeViewerAvatarEmoji(detail.avatarEmoji);
-        setViewerAvatarEmoji(nextAvatarEmoji);
-        storeViewerAvatarEmoji(nextAvatarEmoji || null);
-      }
+      applyViewerProfileChangedEvent(event, {
+        setViewerAvatarEmoji,
+        setViewerAvatarUrl,
+        setViewerName,
+      });
     };
 
-    window.addEventListener(VIEWER_PROFILE_CHANGED_EVENT, handleViewerProfileChanged);
-
-    return () => {
-      window.removeEventListener(VIEWER_PROFILE_CHANGED_EVENT, handleViewerProfileChanged);
-    };
+    return addViewerProfileChangedListener(handleViewerProfileChanged);
   }, []);
 
   useEffect(() => {
@@ -3086,25 +2997,10 @@ export default function SecretSantaPage() {
           }
         }
 
-        void fetch("/api/affiliate/report-access", { credentials: "same-origin" })
-          .then(async (response) => {
+        void fetchAffiliateReportAccess()
+          .then((allowed) => {
             if (!isMounted) {
               return;
-            }
-
-            if (!response.ok) {
-              sessionStorage.removeItem("ss_ara");
-              setCanViewAffiliateReport(false);
-              return;
-            }
-
-            const payload = (await response.json()) as { allowed?: boolean };
-            const allowed = payload.allowed === true;
-
-            if (allowed) {
-              sessionStorage.setItem("ss_ara", "1");
-            } else {
-              sessionStorage.removeItem("ss_ara");
             }
 
             setCanViewAffiliateReport(allowed);
@@ -3114,7 +3010,7 @@ export default function SecretSantaPage() {
               return;
             }
 
-            sessionStorage.removeItem("ss_ara");
+            clearAffiliateReportAccess();
             setCanViewAffiliateReport(false);
           });
 
@@ -4164,40 +4060,19 @@ export default function SecretSantaPage() {
                             </div>
 
                             {visibleWishlistItems.map((wishlistItem) => {
-                              const isActiveItem = wishlistItem.id === item.id;
-                              const wishlistPriorityMeta =
-                                getWishlistPriorityMeta(wishlistItem.priority);
-                              const wishlistImageUrl = normalizeOptionalUrl(
-                                wishlistItem.item_image_url
-                              );
-                              const wishlistSuggestionId =
-                                selectedRecipientSuggestionByItem[wishlistItem.id] || "";
-                              const wishlistMatchKey = wishlistSuggestionId
-                                ? createLazadaMatchRequestKey(
-                                    wishlistItem.id,
-                                    wishlistSuggestionId,
-                                    shoppingRegion
-                                  )
-                                : "";
-                              const wishlistMatchedState = wishlistMatchKey
-                                ? matchedLazadaProductsByKey[wishlistMatchKey] || null
-                                : null;
-                              const wishlistMatchedImageUrl =
-                                getWishlistMatchedImageUrl({
-                                  itemId: wishlistItem.id,
-                                  matchedProductsByKey: matchedLazadaProductsByKey,
-                                  preferredMatchKey: wishlistMatchKey,
-                                  region: shoppingRegion,
-                                });
-                              const wishlistAiSuggestionState =
-                                aiSuggestionStateByItem[wishlistItem.id] || null;
-                              const resolvedWishlistImageUrl =
-                                wishlistImageUrl || wishlistMatchedImageUrl;
-                              const wishlistImageLoading = Boolean(
-                                !resolvedWishlistImageUrl &&
-                                  (wishlistMatchedState?.loading ||
-                                    wishlistAiSuggestionState?.loading)
-                              );
+                              const {
+                                isActiveItem,
+                                resolvedWishlistImageUrl,
+                                wishlistImageLoading,
+                                wishlistPriorityMeta,
+                              } = getRecipientWishlistCardModel({
+                                activeItemId: item.id,
+                                aiSuggestionStateByItem,
+                                matchedProductsByKey: matchedLazadaProductsByKey,
+                                selectedSuggestionByItem: selectedRecipientSuggestionByItem,
+                                shoppingRegion,
+                                wishlistItem,
+                              });
 
                               return (
                                 <button
@@ -4424,46 +4299,20 @@ export default function SecretSantaPage() {
 
                                   <div className="mt-3 grid min-w-0 grid-cols-3 gap-3">
                                     {visibleWishlistItems.map((wishlistItem) => {
-                                      const isActiveItem = wishlistItem.id === item.id;
-                                      const wishlistPriorityMeta =
-                                        getWishlistPriorityMeta(wishlistItem.priority);
-                                      const wishlistImageUrl = normalizeOptionalUrl(
-                                        wishlistItem.item_image_url
-                                      );
-                                      const wishlistSuggestionId =
-                                        selectedRecipientSuggestionByItem[
-                                          wishlistItem.id
-                                        ] || "";
-                                      const wishlistMatchKey = wishlistSuggestionId
-                                        ? createLazadaMatchRequestKey(
-                                            wishlistItem.id,
-                                            wishlistSuggestionId,
-                                            shoppingRegion
-                                          )
-                                        : "";
-                                      const wishlistMatchedState = wishlistMatchKey
-                                        ? matchedLazadaProductsByKey[
-                                            wishlistMatchKey
-                                          ] || null
-                                        : null;
-                                      const wishlistMatchedImageUrl =
-                                        getWishlistMatchedImageUrl({
-                                          itemId: wishlistItem.id,
-                                          matchedProductsByKey:
-                                            matchedLazadaProductsByKey,
-                                          preferredMatchKey: wishlistMatchKey,
-                                          region: shoppingRegion,
-                                        });
-                                      const wishlistAiSuggestionState =
-                                        aiSuggestionStateByItem[wishlistItem.id] ||
-                                        null;
-                                      const resolvedWishlistImageUrl =
-                                        wishlistImageUrl || wishlistMatchedImageUrl;
-                                      const wishlistImageLoading = Boolean(
-                                        !resolvedWishlistImageUrl &&
-                                          (wishlistMatchedState?.loading ||
-                                            wishlistAiSuggestionState?.loading)
-                                      );
+                                      const {
+                                        isActiveItem,
+                                        resolvedWishlistImageUrl,
+                                        wishlistImageLoading,
+                                        wishlistPriorityMeta,
+                                      } = getRecipientWishlistCardModel({
+                                        activeItemId: item.id,
+                                        aiSuggestionStateByItem,
+                                        matchedProductsByKey: matchedLazadaProductsByKey,
+                                        selectedSuggestionByItem:
+                                          selectedRecipientSuggestionByItem,
+                                        shoppingRegion,
+                                        wishlistItem,
+                                      });
 
                                       return (
                                         <button

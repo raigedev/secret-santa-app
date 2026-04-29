@@ -1,5 +1,7 @@
 import { expect, test } from "@playwright/test";
 
+import { expectUnauthorizedJson } from "./e2e/helpers/assertions";
+
 const TEST_GROUP_ID = "11111111-1111-1111-1111-111111111111";
 const TEST_ITEM_ID = "22222222-2222-2222-2222-222222222222";
 
@@ -30,15 +32,13 @@ test.describe("public smoke coverage", () => {
   test("reminder processing route rejects unauthenticated requests", async ({ request }) => {
     const response = await request.get("/api/notifications/process-reminders");
 
-    expect(response.status()).toBe(401);
-    expect(await response.json()).toEqual({ error: "Unauthorized" });
+    await expectUnauthorizedJson(response);
   });
 
   test("lazada health route rejects unauthenticated requests", async ({ request }) => {
     const response = await request.get("/api/affiliate/lazada/health-check");
 
-    expect(response.status()).toBe(401);
-    expect(await response.json()).toEqual({ error: "Unauthorized" });
+    await expectUnauthorizedJson(response);
   });
 
   test("suggestion redirect requires an authenticated session", async ({ page }) => {
@@ -76,7 +76,6 @@ test.describe("public smoke coverage", () => {
       data: { productIds: ["1234567890"] },
     });
 
-    expect(response.status()).toBe(401);
-    expect(await response.json()).toEqual({ error: "Unauthorized" });
+    await expectUnauthorizedJson(response);
   });
 });

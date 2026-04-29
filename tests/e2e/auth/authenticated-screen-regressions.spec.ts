@@ -18,6 +18,48 @@ type ScreenCase = {
 const credentials = getTestAuthCredentials();
 const groupId = getTestGroupId();
 
+async function installBodyTextWatcher(
+  page: Page,
+  options: {
+    flagName: string;
+    includedText?: string[];
+    matchSantaGreeting?: boolean;
+  }
+) {
+  await page.addInitScript((watchOptions) => {
+    const testWindow = window as unknown as Window & Record<string, boolean | undefined>;
+    testWindow[watchOptions.flagName] = false;
+
+    const markIfMatched = () => {
+      const text = document.body?.innerText || "";
+      const matchedIncludedText =
+        watchOptions.includedText?.some((value) => text.includes(value)) || false;
+      const matchedSantaGreeting = watchOptions.matchSantaGreeting
+        ? /Good (morning|afternoon|evening),\s*Santa\b/i.test(text)
+        : false;
+
+      if (matchedIncludedText || matchedSantaGreeting) {
+        testWindow[watchOptions.flagName] = true;
+      }
+    };
+
+    const startWatching = () => {
+      markIfMatched();
+      new MutationObserver(markIfMatched).observe(document.documentElement, {
+        childList: true,
+        characterData: true,
+        subtree: true,
+      });
+    };
+
+    if (document.readyState === "loading") {
+      document.addEventListener("DOMContentLoaded", startWatching, { once: true });
+    } else {
+      startWatching();
+    }
+  }, options);
+}
+
 const AUTHENTICATED_SCREEN_CASES: ScreenCase[] = [
   {
     name: "dashboard",
@@ -298,35 +340,10 @@ test.describe("authenticated screen regressions", () => {
     });
     expect(changedSnapshots).toBeGreaterThan(0);
 
-    await page.addInitScript(() => {
-      const testWindow = window as Window & { __sawWrongViewerName?: boolean };
-      testWindow.__sawWrongViewerName = false;
-
-      const markWrongViewerName = () => {
-        const text = document.body?.innerText || "";
-
-        if (
-          /Snapshot Santa/i.test(text) ||
-          /Good (morning|afternoon|evening),\s*Santa\b/i.test(text)
-        ) {
-          testWindow.__sawWrongViewerName = true;
-        }
-      };
-
-      const startWatching = () => {
-        markWrongViewerName();
-        new MutationObserver(markWrongViewerName).observe(document.documentElement, {
-          childList: true,
-          characterData: true,
-          subtree: true,
-        });
-      };
-
-      if (document.readyState === "loading") {
-        document.addEventListener("DOMContentLoaded", startWatching, { once: true });
-      } else {
-        startWatching();
-      }
+    await installBodyTextWatcher(page, {
+      flagName: "__sawWrongViewerName",
+      includedText: ["Snapshot Santa"],
+      matchSantaGreeting: true,
     });
 
     for (let reloadIndex = 0; reloadIndex < 3; reloadIndex += 1) {
@@ -440,33 +457,9 @@ test.describe("authenticated screen regressions", () => {
       return;
     }
 
-    await page.addInitScript(() => {
-      const dashboardWindow = window as Window & {
-        __dashboardSawNoRecipientYet?: boolean;
-      };
-      dashboardWindow.__dashboardSawNoRecipientYet = false;
-
-      const markWrongGiftMatchState = () => {
-        if (document.body?.innerText.includes("No Recipient Yet")) {
-          dashboardWindow.__dashboardSawNoRecipientYet = true;
-        }
-      };
-
-      const observer = new MutationObserver(markWrongGiftMatchState);
-      const startWatching = () => {
-        markWrongGiftMatchState();
-        observer.observe(document.documentElement, {
-          childList: true,
-          characterData: true,
-          subtree: true,
-        });
-      };
-
-      if (document.readyState === "loading") {
-        document.addEventListener("DOMContentLoaded", startWatching, { once: true });
-      } else {
-        startWatching();
-      }
+    await installBodyTextWatcher(page, {
+      flagName: "__dashboardSawNoRecipientYet",
+      includedText: ["No Recipient Yet"],
     });
 
     await page.reload();

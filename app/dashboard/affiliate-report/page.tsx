@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
+import type { ReactNode } from "react";
 
 import {
   extractConversionProductSummary,
@@ -1384,6 +1385,31 @@ function LazadaHealthCheckCard({
   );
 }
 
+function InsightMetric({
+  children,
+  label,
+}: {
+  children: ReactNode;
+  label: string;
+}) {
+  return (
+    <div>
+      <p className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-500">{label}</p>
+      <p className="mt-1 text-lg font-semibold text-slate-900">{children}</p>
+    </div>
+  );
+}
+
+function InsightMetricGrid({
+  children,
+  columns = "sm:grid-cols-3",
+}: {
+  children: ReactNode;
+  columns?: string;
+}) {
+  return <div className={`mt-4 grid gap-3 text-sm text-slate-600 ${columns}`}>{children}</div>;
+}
+
 function InsightCard({ insight }: { insight: TopItemInsight }) {
   const conversionRate =
     insight.click_count > 0
@@ -1394,26 +1420,12 @@ function InsightCard({ insight }: { insight: TopItemInsight }) {
     <section className="rounded-[28px] border border-white/70 bg-white/88 p-5 shadow-[0_20px_60px_rgba(148,163,184,0.14)] backdrop-blur-md">
       <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">Item signal</p>
       <h3 className="mt-2 text-xl font-bold text-slate-900">{insight.suggestion_title}</h3>
-      <div className="mt-4 grid gap-3 text-sm text-slate-600 sm:grid-cols-2">
-        <div>
-          <p className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-500">Clicks</p>
-          <p className="mt-1 text-lg font-semibold text-slate-900">{insight.click_count}</p>
-        </div>
-        <div>
-          <p className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-500">Conversions</p>
-          <p className="mt-1 text-lg font-semibold text-slate-900">{insight.conversion_count}</p>
-        </div>
-        <div>
-          <p className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-500">Conversion rate</p>
-          <p className="mt-1 text-lg font-semibold text-slate-900">{conversionRate}</p>
-        </div>
-        <div>
-          <p className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-500">Payout</p>
-          <p className="mt-1 text-lg font-semibold text-slate-900">
-            {formatPesoAmount(insight.payout_total)}
-          </p>
-        </div>
-      </div>
+      <InsightMetricGrid columns="sm:grid-cols-2">
+        <InsightMetric label="Clicks">{insight.click_count}</InsightMetric>
+        <InsightMetric label="Conversions">{insight.conversion_count}</InsightMetric>
+        <InsightMetric label="Conversion rate">{conversionRate}</InsightMetric>
+        <InsightMetric label="Payout">{formatPesoAmount(insight.payout_total)}</InsightMetric>
+      </InsightMetricGrid>
       <p className="mt-4 text-sm leading-6 text-slate-600">
         Main link type: <span className={`font-semibold ${DominantLabelTone(insight.dominant_route)}`}>{insight.dominant_route}</span>
       </p>
@@ -1431,20 +1443,11 @@ function AngleInsightCard({ insight }: { insight: TopAngleInsight }) {
     <section className="rounded-3xl border border-white/70 bg-white/88 p-4 shadow-[0_18px_50px_rgba(148,163,184,0.12)] backdrop-blur-md">
       <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">Shopping option</p>
       <h3 className="mt-2 text-lg font-bold text-slate-900">{insight.label}</h3>
-      <div className="mt-4 grid gap-3 text-sm text-slate-600 sm:grid-cols-3">
-        <div>
-          <p className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-500">Clicks</p>
-          <p className="mt-1 text-lg font-semibold text-slate-900">{insight.click_count}</p>
-        </div>
-        <div>
-          <p className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-500">Conversions</p>
-          <p className="mt-1 text-lg font-semibold text-slate-900">{insight.conversion_count}</p>
-        </div>
-        <div>
-          <p className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-500">Rate</p>
-          <p className="mt-1 text-lg font-semibold text-slate-900">{conversionRate}</p>
-        </div>
-      </div>
+      <InsightMetricGrid>
+        <InsightMetric label="Clicks">{insight.click_count}</InsightMetric>
+        <InsightMetric label="Conversions">{insight.conversion_count}</InsightMetric>
+        <InsightMetric label="Rate">{conversionRate}</InsightMetric>
+      </InsightMetricGrid>
     </section>
   );
 }
@@ -1454,22 +1457,11 @@ function RouteQualityCard({ insight }: { insight: RouteQualityInsight }) {
     <section className="rounded-3xl border border-white/70 bg-white/88 p-4 shadow-[0_18px_50px_rgba(148,163,184,0.12)] backdrop-blur-md">
       <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">Link quality</p>
       <h3 className="mt-2 text-lg font-bold text-slate-900">{insight.label}</h3>
-      <div className="mt-4 grid gap-3 text-sm text-slate-600 sm:grid-cols-3">
-        <div>
-          <p className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-500">Coverage</p>
-          <p className="mt-1 text-lg font-semibold text-slate-900">
-            {formatPercentValue(insight.coverage)}
-          </p>
-        </div>
-        <div>
-          <p className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-500">Promotion links</p>
-          <p className="mt-1 text-lg font-semibold text-slate-900">{insight.promotion_link_clicks}</p>
-        </div>
-        <div>
-          <p className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-500">Total clicks</p>
-          <p className="mt-1 text-lg font-semibold text-slate-900">{insight.total_clicks}</p>
-        </div>
-      </div>
+      <InsightMetricGrid>
+        <InsightMetric label="Coverage">{formatPercentValue(insight.coverage)}</InsightMetric>
+        <InsightMetric label="Promotion links">{insight.promotion_link_clicks}</InsightMetric>
+        <InsightMetric label="Total clicks">{insight.total_clicks}</InsightMetric>
+      </InsightMetricGrid>
     </section>
   );
 }
@@ -1479,22 +1471,11 @@ function FamilyQualityCard({ insight }: { insight: FamilyQualityInsight }) {
     <section className="rounded-3xl border border-white/70 bg-white/88 p-4 shadow-[0_18px_50px_rgba(148,163,184,0.12)] backdrop-blur-md">
       <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">Item family</p>
       <h3 className="mt-2 text-lg font-bold text-slate-900">{insight.family}</h3>
-      <div className="mt-4 grid gap-3 text-sm text-slate-600 sm:grid-cols-3">
-        <div>
-          <p className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-500">Coverage</p>
-          <p className="mt-1 text-lg font-semibold text-slate-900">
-            {formatPercentValue(insight.coverage)}
-          </p>
-        </div>
-        <div>
-          <p className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-500">Fallback clicks</p>
-          <p className="mt-1 text-lg font-semibold text-slate-900">{insight.fallback_clicks}</p>
-        </div>
-        <div>
-          <p className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-500">Total clicks</p>
-          <p className="mt-1 text-lg font-semibold text-slate-900">{insight.click_count}</p>
-        </div>
-      </div>
+      <InsightMetricGrid>
+        <InsightMetric label="Coverage">{formatPercentValue(insight.coverage)}</InsightMetric>
+        <InsightMetric label="Fallback clicks">{insight.fallback_clicks}</InsightMetric>
+        <InsightMetric label="Total clicks">{insight.click_count}</InsightMetric>
+      </InsightMetricGrid>
       {insight.click_count < 3 && (
         <p className="mt-4 text-xs font-medium text-slate-500">Low sample. Treat this as directional, not final.</p>
       )}

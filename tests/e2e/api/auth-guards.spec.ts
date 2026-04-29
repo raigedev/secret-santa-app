@@ -1,5 +1,7 @@
 import { expect, test } from "@playwright/test";
 
+import { expectUnauthorizedJson } from "../helpers/assertions";
+
 test.describe("API auth and guard coverage", () => {
   test("affiliate report access returns a safe false value when logged out", async ({ request }) => {
     const response = await request.get("/api/affiliate/report-access");
@@ -37,8 +39,7 @@ test.describe("API auth and guard coverage", () => {
       },
     });
 
-    expect(response.status()).toBe(401);
-    expect(await response.json()).toEqual({ error: "Unauthorized" });
+    await expectUnauthorizedJson(response);
   });
 
   test("lazada prime-links reject unauthenticated requests", async ({ request }) => {
@@ -46,22 +47,19 @@ test.describe("API auth and guard coverage", () => {
       data: { productIds: ["1234567890"] },
     });
 
-    expect(response.status()).toBe(401);
-    expect(await response.json()).toEqual({ error: "Unauthorized" });
+    await expectUnauthorizedJson(response);
   });
 
   test("lazada health check rejects unauthenticated requests", async ({ request }) => {
     const response = await request.get("/api/affiliate/lazada/health-check");
 
-    expect(response.status()).toBe(401);
-    expect(await response.json()).toEqual({ error: "Unauthorized" });
+    await expectUnauthorizedJson(response);
   });
 
   test("reminder processor rejects unauthenticated requests", async ({ request }) => {
     const response = await request.get("/api/notifications/process-reminders");
 
-    expect(response.status()).toBe(401);
-    expect(await response.json()).toEqual({ error: "Unauthorized" });
+    await expectUnauthorizedJson(response);
   });
 
   test("test postback endpoint rejects unauthenticated requests", async ({ request }) => {

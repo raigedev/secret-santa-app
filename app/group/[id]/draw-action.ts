@@ -2,10 +2,11 @@
 
 import { randomInt } from "crypto";
 import { isAssignmentAlreadyDrawnError } from "@/lib/groups/draw.mjs";
+import { groupHasDrawStarted } from "@/lib/groups/draw-state";
 import { validateAnonymousGroupNickname } from "@/lib/groups/nickname";
+import { getServerActionContext, requireRateLimitedAction } from "@/lib/auth/server-action-context";
 import { recordAuditEvent, recordServerFailure } from "@/lib/security/audit";
 import { createNotifications } from "@/lib/notifications";
-import { enforceRateLimit } from "@/lib/security/rate-limit";
 import { supabaseAdmin } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 import { isUuid } from "@/lib/validation/common";
@@ -186,16 +187,6 @@ async function getNextDrawCycleNumber(groupId: string): Promise<number> {
   return (latestCycle?.cycle_number || 0) + 1;
 }
 
-async function groupHasDrawStarted(groupId: string): Promise<boolean> {
-  const { data: existingDraw } = await supabaseAdmin
-    .from("assignments")
-    .select("id")
-    .eq("group_id", groupId)
-    .limit(1);
-
-  return Boolean(existingDraw && existingDraw.length > 0);
-}
-
 async function assertOwnerCanManageDrawRules(
   groupId: string,
   actorUserId: string
@@ -237,29 +228,20 @@ export async function getDrawExclusions(groupId: string): Promise<{
     return { success: false, message: "Invalid group ID." };
   }
 
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  if (!user) {
-    return { success: false, message: "You must be logged in." };
-  }
-
-  const rateLimit = await enforceRateLimit({
+  const context = await requireRateLimitedAction({
     action: "group.get_draw_exclusions",
-    actorUserId: user.id,
     maxAttempts: 300,
     resourceId: groupId,
     resourceType: "group",
-    subject: user.id,
+    subject: (userId) => userId,
     windowSeconds: 3600,
   });
 
-  if (!rateLimit.allowed) {
-    return { success: false, message: rateLimit.message };
+  if (!context.ok) {
+    return { success: false, message: context.message };
   }
 
+  const { supabase, user } = context;
   const { data: group } = await supabase
     .from("groups")
     .select("owner_id")
@@ -343,29 +325,20 @@ export async function addDrawExclusion(
     return { success: false, message: "A member cannot be excluded from themselves." };
   }
 
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  if (!user) {
-    return { success: false, message: "You must be logged in." };
-  }
-
-  const rateLimit = await enforceRateLimit({
+  const context = await requireRateLimitedAction({
     action: "group.add_draw_exclusion",
-    actorUserId: user.id,
     maxAttempts: 60,
     resourceId: groupId,
     resourceType: "group",
-    subject: `${user.id}:${groupId}`,
+    subject: (userId) => `${userId}:${groupId}`,
     windowSeconds: 3600,
   });
 
-  if (!rateLimit.allowed) {
-    return { success: false, message: rateLimit.message };
+  if (!context.ok) {
+    return { success: false, message: context.message };
   }
 
+  const { user } = context;
   const permission = await assertOwnerCanManageDrawRules(groupId, user.id);
   if (!permission.ok) {
     return { success: false, message: permission.message || "Cannot update draw rules." };
@@ -463,29 +436,20 @@ export async function removeDrawExclusion(
     return { success: false, message: "Invalid draw rule ID." };
   }
 
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  if (!user) {
-    return { success: false, message: "You must be logged in." };
-  }
-
-  const rateLimit = await enforceRateLimit({
+  const context = await requireRateLimitedAction({
     action: "group.remove_draw_exclusion",
-    actorUserId: user.id,
     maxAttempts: 60,
     resourceId: groupId,
     resourceType: "group",
-    subject: `${user.id}:${groupId}`,
+    subject: (userId) => `${userId}:${groupId}`,
     windowSeconds: 3600,
   });
 
-  if (!rateLimit.allowed) {
-    return { success: false, message: rateLimit.message };
+  if (!context.ok) {
+    return { success: false, message: context.message };
   }
 
+  const { user } = context;
   const permission = await assertOwnerCanManageDrawRules(groupId, user.id);
   if (!permission.ok) {
     return { success: false, message: permission.message || "Cannot update draw rules." };
@@ -537,29 +501,20 @@ export async function drawSecretSanta(
     return { success: false, message: "Invalid group ID." };
   }
 
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  if (!user) {
-    return { success: false, message: "You must be logged in." };
-  }
-
-  const rateLimit = await enforceRateLimit({
+  const context = await requireRateLimitedAction({
     action: "group.draw_secret_santa",
-    actorUserId: user.id,
     maxAttempts: DRAW_MAX_ATTEMPTS,
     resourceId: groupId,
     resourceType: "group",
-    subject: user.id,
+    subject: (userId) => userId,
     windowSeconds: DRAW_WINDOW_SECONDS,
   });
 
-  if (!rateLimit.allowed) {
-    return { success: false, message: rateLimit.message };
+  if (!context.ok) {
+    return { success: false, message: context.message };
   }
 
+  const { supabase, user } = context;
   const { data: group } = await supabase
     .from("groups")
     .select("owner_id, name, require_anonymous_nickname")
@@ -833,15 +788,6 @@ export async function resetSecretSantaDraw(
     return { success: false, message: "Invalid group ID." };
   }
 
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  if (!user) {
-    return { success: false, message: "You must be logged in." };
-  }
-
   const trimmedReason = reason.trim();
   if (trimmedReason.length < 8) {
     return {
@@ -857,20 +803,20 @@ export async function resetSecretSantaDraw(
     };
   }
 
-  const rateLimit = await enforceRateLimit({
+  const context = await requireRateLimitedAction({
     action: "group.reset_secret_santa",
-    actorUserId: user.id,
     maxAttempts: RESET_DRAW_MAX_ATTEMPTS,
     resourceId: groupId,
     resourceType: "group",
-    subject: user.id,
+    subject: (userId) => userId,
     windowSeconds: RESET_DRAW_WINDOW_SECONDS,
   });
 
-  if (!rateLimit.allowed) {
-    return { success: false, message: rateLimit.message };
+  if (!context.ok) {
+    return { success: false, message: context.message };
   }
 
+  const { supabase, user } = context;
   const { data: group } = await supabase
     .from("groups")
     .select("owner_id, revealed")
@@ -1080,15 +1026,13 @@ export async function getDrawRerollHistory(
   const resetOffset = Math.max(0, Math.floor(options?.resetOffset || 0));
   const pageSize = Math.min(25, Math.max(1, Math.floor(options?.pageSize || 5)));
 
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const context = await getServerActionContext();
 
-  if (!user) {
-    return { success: false, message: "You must be logged in." };
+  if (!context.ok) {
+    return { success: false, message: context.message };
   }
 
+  const { supabase, user } = context;
   const { data: group } = await supabase
     .from("groups")
     .select("owner_id")

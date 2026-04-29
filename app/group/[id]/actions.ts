@@ -6,6 +6,8 @@ import {
   getGroupCapacityMessage,
   MAX_GROUP_MEMBERS,
 } from "@/lib/groups/capacity";
+import { getServerActionContext, requireRateLimitedAction } from "@/lib/auth/server-action-context";
+import { groupHasDrawStarted } from "@/lib/groups/draw-state";
 import { buildInviteLinkExpiresAt } from "@/lib/groups/invite-links.mjs";
 import { sanitizeGroupNickname, validateAnonymousGroupNickname } from "@/lib/groups/nickname";
 import { hasDeclinedInviteResendTarget } from "@/lib/groups/resend-invite.mjs";
@@ -109,16 +111,6 @@ async function notifyInvitedUser(options: {
   });
 }
 
-async function groupHasDrawStarted(groupId: string): Promise<boolean> {
-  const { data: existingDraw } = await supabaseAdmin
-    .from("assignments")
-    .select("id")
-    .eq("group_id", groupId)
-    .limit(1);
-
-  return Boolean(existingDraw && existingDraw.length > 0);
-}
-
 async function assertOwnerCanManageInvites(
   supabase: Awaited<ReturnType<typeof createClient>>,
   groupId: string,
@@ -142,6 +134,43 @@ async function assertOwnerCanManageInvites(
   }
 
   return { ok: true };
+}
+
+async function prepareInviteLinkAction(
+  groupId: string,
+  action: "group.create_invite_link" | "group.revoke_invite_link"
+) {
+  const context = await requireRateLimitedAction({
+    action,
+    maxAttempts: 20,
+    resourceId: groupId,
+    resourceType: "group",
+    subject: (userId) => `${userId}:${groupId}`,
+    windowSeconds: 3600,
+  });
+
+  if (!context.ok) {
+    return { success: false as const, message: context.message };
+  }
+
+  const permission = await assertOwnerCanManageInvites(
+    context.supabase,
+    groupId,
+    context.user.id
+  );
+
+  if (!permission.ok) {
+    return {
+      success: false as const,
+      message: permission.message || "Invite link unavailable.",
+    };
+  }
+
+  return {
+    success: true as const,
+    supabase: context.supabase,
+    user: context.user,
+  };
 }
 
 export async function inviteUser(
@@ -553,34 +582,13 @@ export async function createInviteLink(
     return { success: false, message: "Missing group ID." };
   }
 
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const preparedAction = await prepareInviteLinkAction(groupId, "group.create_invite_link");
 
-  if (!user) {
-    return { success: false, message: "You must be logged in." };
+  if (!preparedAction.success) {
+    return { success: false, message: preparedAction.message };
   }
 
-  const rateLimit = await enforceRateLimit({
-    action: "group.create_invite_link",
-    actorUserId: user.id,
-    maxAttempts: 20,
-    resourceId: groupId,
-    resourceType: "group",
-    subject: `${user.id}:${groupId}`,
-    windowSeconds: 3600,
-  });
-
-  if (!rateLimit.allowed) {
-    return { success: false, message: rateLimit.message };
-  }
-
-  const permission = await assertOwnerCanManageInvites(supabase, groupId, user.id);
-  if (!permission.ok) {
-    return { success: false, message: permission.message || "Invite link unavailable." };
-  }
-
+  const { user } = preparedAction;
   const revokedAt = new Date().toISOString();
   const { error: revokeExistingError } = await supabaseAdmin
     .from("group_invite_links")
@@ -646,34 +654,13 @@ export async function revokeInviteLink(
     return { success: false, message: "Missing group ID." };
   }
 
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const preparedAction = await prepareInviteLinkAction(groupId, "group.revoke_invite_link");
 
-  if (!user) {
-    return { success: false, message: "You must be logged in." };
+  if (!preparedAction.success) {
+    return { success: false, message: preparedAction.message };
   }
 
-  const rateLimit = await enforceRateLimit({
-    action: "group.revoke_invite_link",
-    actorUserId: user.id,
-    maxAttempts: 20,
-    resourceId: groupId,
-    resourceType: "group",
-    subject: `${user.id}:${groupId}`,
-    windowSeconds: 3600,
-  });
-
-  if (!rateLimit.allowed) {
-    return { success: false, message: rateLimit.message };
-  }
-
-  const permission = await assertOwnerCanManageInvites(supabase, groupId, user.id);
-  if (!permission.ok) {
-    return { success: false, message: permission.message || "Invite link unavailable." };
-  }
-
+  const { user } = preparedAction;
   const revokedAt = new Date().toISOString();
   const { data: revokedRows, error: revokeError } = await supabaseAdmin
     .from("group_invite_links")
@@ -717,15 +704,13 @@ export async function getActiveInviteLink(
     return { success: false, message: "Missing group ID." };
   }
 
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const context = await getServerActionContext();
 
-  if (!user) {
-    return { success: false, message: "You must be logged in." };
+  if (!context.ok) {
+    return { success: false, message: context.message };
   }
 
+  const { supabase, user } = context;
   const { data: group } = await supabase
     .from("groups")
     .select("owner_id")
@@ -880,29 +865,20 @@ export async function getGroupOwnerInsights(groupId: string): Promise<{
     return { success: false, message: "Missing group ID." };
   }
 
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  if (!user) {
-    return { success: false, message: "You must be logged in." };
-  }
-
-  const rateLimit = await enforceRateLimit({
+  const context = await requireRateLimitedAction({
     action: "group.get_owner_insights",
-    actorUserId: user.id,
     maxAttempts: 1000,
     resourceId: groupId,
     resourceType: "group",
-    subject: user.id,
+    subject: (userId) => userId,
     windowSeconds: 3600,
   });
 
-  if (!rateLimit.allowed) {
-    return { success: false, message: rateLimit.message };
+  if (!context.ok) {
+    return { success: false, message: context.message };
   }
 
+  const { supabase, user } = context;
   const { data: group } = await supabase
     .from("groups")
     .select("owner_id")
@@ -1016,29 +992,20 @@ export async function getGroupRecap(groupId: string): Promise<{
     return { success: false, message: "Missing group ID." };
   }
 
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  if (!user) {
-    return { success: false, message: "You must be logged in." };
-  }
-
-  const rateLimit = await enforceRateLimit({
+  const context = await requireRateLimitedAction({
     action: "group.get_recap",
-    actorUserId: user.id,
     maxAttempts: 500,
     resourceId: groupId,
     resourceType: "group",
-    subject: user.id,
+    subject: (userId) => userId,
     windowSeconds: 3600,
   });
 
-  if (!rateLimit.allowed) {
-    return { success: false, message: rateLimit.message };
+  if (!context.ok) {
+    return { success: false, message: context.message };
   }
 
+  const { supabase, user } = context;
   const { data: group } = await supabase
     .from("groups")
     .select("owner_id, revealed")
@@ -1163,29 +1130,20 @@ export async function editGroup(
     return { success: false, message: "Invalid group ID." };
   }
 
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  if (!user) {
-    return { success: false, message: "You must be logged in." };
-  }
-
-  const rateLimit = await enforceRateLimit({
+  const context = await requireRateLimitedAction({
     action: "group.edit",
-    actorUserId: user.id,
     maxAttempts: 15,
     resourceId: groupId,
     resourceType: "group",
-    subject: user.id,
+    subject: (userId) => userId,
     windowSeconds: 900,
   });
 
-  if (!rateLimit.allowed) {
-    return { success: false, message: rateLimit.message };
+  if (!context.ok) {
+    return { success: false, message: context.message };
   }
 
+  const { supabase, user } = context;
   const cleanName = sanitize(name, 100);
   const cleanDesc = sanitize(description, 300);
   const cleanCurrency = sanitize(currency, 5).toUpperCase();
@@ -1247,29 +1205,20 @@ export async function deleteGroup(
     return { success: false, message: "Invalid group ID." };
   }
 
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  if (!user) {
-    return { success: false, message: "You must be logged in." };
-  }
-
-  const rateLimit = await enforceRateLimit({
+  const context = await requireRateLimitedAction({
     action: "group.delete",
-    actorUserId: user.id,
     maxAttempts: 5,
     resourceId: groupId,
     resourceType: "group",
-    subject: user.id,
+    subject: (userId) => userId,
     windowSeconds: 3600,
   });
 
-  if (!rateLimit.allowed) {
-    return { success: false, message: rateLimit.message };
+  if (!context.ok) {
+    return { success: false, message: context.message };
   }
 
+  const { supabase, user } = context;
   const { data: group } = await supabase
     .from("groups")
     .select("owner_id, name")
@@ -1390,29 +1339,20 @@ export async function leaveGroup(
     return { success: false, message: "Invalid group ID." };
   }
 
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  if (!user) {
-    return { success: false, message: "You must be logged in." };
-  }
-
-  const rateLimit = await enforceRateLimit({
+  const context = await requireRateLimitedAction({
     action: "group.leave",
-    actorUserId: user.id,
     maxAttempts: 10,
     resourceId: groupId,
     resourceType: "group_membership",
-    subject: user.id,
+    subject: (userId) => userId,
     windowSeconds: 3600,
   });
 
-  if (!rateLimit.allowed) {
-    return { success: false, message: rateLimit.message };
+  if (!context.ok) {
+    return { success: false, message: context.message };
   }
 
+  const { supabase, user } = context;
   const { data: group } = await supabase
     .from("groups")
     .select("owner_id")

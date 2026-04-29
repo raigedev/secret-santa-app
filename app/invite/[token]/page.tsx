@@ -32,12 +32,47 @@ type InvitePreview = {
   message: string;
 };
 
+type InvitePreviewGroup = {
+  id: string;
+  name: string;
+  description: string | null;
+  event_date: string | null;
+  require_anonymous_nickname: boolean | null;
+};
+
 function normalizeToken(token: string): string {
   return token.trim();
 }
 
 function hashInviteToken(token: string): string {
   return createHash("sha256").update(normalizeToken(token)).digest("hex");
+}
+
+function buildGroupInvitePreview({
+  group,
+  isClosed,
+  memberCount,
+  message,
+  membershipStatus,
+}: {
+  group: InvitePreviewGroup;
+  isClosed: boolean;
+  memberCount: number | null;
+  message: string;
+  membershipStatus: InvitePreview["membershipStatus"];
+}): InvitePreview {
+  return {
+    groupId: group.id,
+    name: group.name,
+    description: group.description,
+    eventDate: group.event_date || "",
+    memberCount: memberCount || 0,
+    requireAnonymousNickname: Boolean(group.require_anonymous_nickname),
+    isValid: true,
+    isClosed,
+    membershipStatus,
+    message,
+  };
 }
 
 async function loadInvitePreview(
@@ -154,18 +189,13 @@ async function loadInvitePreview(
     ) || null;
 
   if (hasDrawStarted) {
-    return {
-      groupId: group.id,
-      name: group.name,
-      description: group.description,
-      eventDate: group.event_date,
-      memberCount: memberCount || 0,
-      requireAnonymousNickname: Boolean(group.require_anonymous_nickname),
-      isValid: true,
+    return buildGroupInvitePreview({
+      group,
       isClosed: true,
+      memberCount,
       membershipStatus: matchingMembership?.status || null,
       message: "This group has already drawn names, so new joins are closed.",
-    };
+    });
   }
 
   if (
@@ -173,32 +203,22 @@ async function loadInvitePreview(
     matchingMembership?.status !== "accepted" &&
     matchingMembership?.status !== "pending"
   ) {
-    return {
-      groupId: group.id,
-      name: group.name,
-      description: group.description,
-      eventDate: group.event_date,
-      memberCount: memberCount || 0,
-      requireAnonymousNickname: Boolean(group.require_anonymous_nickname),
-      isValid: true,
+    return buildGroupInvitePreview({
+      group,
       isClosed: true,
+      memberCount,
       membershipStatus: matchingMembership?.status || null,
       message: getGroupCapacityMessage(),
-    };
+    });
   }
 
-  return {
-    groupId: group.id,
-    name: group.name,
-    description: group.description,
-    eventDate: group.event_date,
-    memberCount: memberCount || 0,
-    requireAnonymousNickname: Boolean(group.require_anonymous_nickname),
-    isValid: true,
+  return buildGroupInvitePreview({
+    group,
     isClosed: false,
+    memberCount,
     membershipStatus: matchingMembership?.status || null,
     message: matchingMembership?.status === "accepted" ? "You're already in this group." : "",
-  };
+  });
 }
 
 async function joinGroupViaInviteToken(

@@ -13,8 +13,6 @@ import {
   getDirectMatchRecommendationMetadata,
   type LazadaDirectMatchRole,
 } from "@/lib/affiliate/lazada-recommendations";
-import { enforceRateLimit } from "@/lib/security/rate-limit";
-import { createClient } from "@/lib/supabase/server";
 import {
   isSupportedShoppingRegion,
   sanitizeOptionalNumber,
@@ -26,6 +24,7 @@ import {
   type ShoppingRegion,
   type WishlistFeaturedProductCard,
 } from "@/lib/wishlist/suggestions";
+import { requireAuthenticatedAffiliateRoute } from "../_shared/authenticated-affiliate-route";
 
 type MatchProductsBody = {
   groupBudget?: unknown;
@@ -590,26 +589,17 @@ function addRepresentativeImagesToSearchFallbackCards(input: {
 }
 
 export async function POST(request: NextRequest) {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  if (!user) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
-
-  const rateLimit = await enforceRateLimit({
+  const auth = await requireAuthenticatedAffiliateRoute({
     action: "affiliate.lazada.matches",
-    actorUserId: user.id,
     maxAttempts: 120,
     resourceType: "affiliate_match",
-    subject: user.id,
+    rateLimitedBody: (message) => ({ error: message, products: [] }),
+    retryAfterHeader: false,
     windowSeconds: 300,
   });
 
-  if (!rateLimit.allowed) {
-    return NextResponse.json({ error: rateLimit.message, products: [] }, { status: 429 });
+  if (!auth.ok) {
+    return auth.response;
   }
 
   let payload: MatchProductsBody;

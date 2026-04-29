@@ -1,9 +1,8 @@
 "use server";
 
 import { recordServerFailure } from "@/lib/security/audit";
-import { enforceRateLimit } from "@/lib/security/rate-limit";
+import { requireRateLimitedAction } from "@/lib/auth/server-action-context";
 import { supabaseAdmin } from "@/lib/supabase/admin";
-import { createClient } from "@/lib/supabase/server";
 import { isUuid } from "@/lib/validation/common";
 
 export async function markNotificationRead(
@@ -13,29 +12,20 @@ export async function markNotificationRead(
     return { success: false, message: "Choose a notification first." };
   }
 
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  if (!user) {
-    return { success: false, message: "You must be logged in." };
-  }
-
-  const rateLimit = await enforceRateLimit({
+  const context = await requireRateLimitedAction({
     action: "notifications.mark_read",
-    actorUserId: user.id,
     maxAttempts: 200,
     resourceId: notificationId,
     resourceType: "notification",
-    subject: user.id,
+    subject: (userId) => userId,
     windowSeconds: 3600,
   });
 
-  if (!rateLimit.allowed) {
-    return { success: false, message: rateLimit.message };
+  if (!context.ok) {
+    return { success: false, message: context.message };
   }
 
+  const { user } = context;
   const { error } = await supabaseAdmin
     .from("notifications")
     .update({ read_at: new Date().toISOString() })
@@ -62,29 +52,20 @@ export async function markAllNotificationsRead(): Promise<{
   success: boolean;
   message: string;
 }> {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  if (!user) {
-    return { success: false, message: "You must be logged in." };
-  }
-
-  const rateLimit = await enforceRateLimit({
+  const context = await requireRateLimitedAction({
     action: "notifications.mark_all_read",
-    actorUserId: user.id,
     maxAttempts: 40,
-    resourceId: user.id,
+    resourceId: (userId) => userId,
     resourceType: "notification",
-    subject: user.id,
+    subject: (userId) => userId,
     windowSeconds: 3600,
   });
 
-  if (!rateLimit.allowed) {
-    return { success: false, message: rateLimit.message };
+  if (!context.ok) {
+    return { success: false, message: context.message };
   }
 
+  const { user } = context;
   const { error } = await supabaseAdmin
     .from("notifications")
     .update({ read_at: new Date().toISOString() })

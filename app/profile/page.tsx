@@ -20,6 +20,7 @@ import {
   writeClientSnapshot,
   type ClientSnapshotMetadata,
 } from "@/lib/client-snapshot";
+import { publishViewerProfileChanged } from "@/app/components/viewer-profile-client";
 import { isNullableString, isRecord } from "@/lib/validation/common";
 
 const PRESET_AVATARS = [
@@ -70,10 +71,6 @@ type ProfilePageSnapshot = ClientSnapshotMetadata & {
 };
 
 const PROFILE_PAGE_SNAPSHOT_STORAGE_PREFIX = "ss_profile_page_snapshot_v1:";
-const VIEWER_NAME_STORAGE_KEY = "ss_un";
-const VIEWER_AVATAR_STORAGE_KEY = "ss_uav";
-const VIEWER_AVATAR_EMOJI_STORAGE_KEY = "ss_uae";
-const VIEWER_PROFILE_CHANGED_EVENT = "ss-profile-updated";
 const DEFAULT_PROFILE: Profile = {
   display_name: "",
   avatar_emoji: DEFAULT_AVATAR_EMOJI,
@@ -156,41 +153,11 @@ function normalizeProfile(data: ProfileRecord): Profile {
 }
 
 function notifyShellProfileChanged(profile: Profile) {
-  if (typeof window === "undefined") {
-    return;
-  }
-
-  const displayName = profile.display_name.replace(/\s+/g, " ").trim();
-  const avatarEmoji = profile.avatar_emoji.trim() || DEFAULT_AVATAR_EMOJI;
-  const avatarUrl = profile.avatar_url?.trim() || null;
-
-  if (typeof sessionStorage !== "undefined") {
-    if (displayName) {
-      sessionStorage.setItem(VIEWER_NAME_STORAGE_KEY, displayName);
-    }
-
-    if (avatarUrl) {
-      sessionStorage.setItem(VIEWER_AVATAR_STORAGE_KEY, avatarUrl);
-    } else {
-      sessionStorage.removeItem(VIEWER_AVATAR_STORAGE_KEY);
-    }
-
-    if (avatarEmoji) {
-      sessionStorage.setItem(VIEWER_AVATAR_EMOJI_STORAGE_KEY, avatarEmoji);
-    } else {
-      sessionStorage.removeItem(VIEWER_AVATAR_EMOJI_STORAGE_KEY);
-    }
-  }
-
-  window.dispatchEvent(
-    new CustomEvent(VIEWER_PROFILE_CHANGED_EVENT, {
-      detail: {
-        avatarEmoji,
-        avatarUrl,
-        displayName,
-      },
-    })
-  );
+  publishViewerProfileChanged({
+    avatarEmoji: profile.avatar_emoji.trim() || DEFAULT_AVATAR_EMOJI,
+    avatarUrl: profile.avatar_url?.trim() || null,
+    displayName: profile.display_name,
+  });
 }
 
 function ReminderToggle({

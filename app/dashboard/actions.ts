@@ -3,16 +3,14 @@
 import { recordServerFailure } from "@/lib/security/audit";
 import { sanitizeGroupNickname, validateAnonymousGroupNickname } from "@/lib/groups/nickname";
 import { createNotification } from "@/lib/notifications";
-import { enforceRateLimit } from "@/lib/security/rate-limit";
+import {
+  requireRateLimitedAction,
+  type ServerActionUser,
+  type ServerSupabaseClient,
+} from "@/lib/auth/server-action-context";
 import { supabaseAdmin } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 import { isUuid } from "@/lib/validation/common";
-
-type SupabaseServerClient = Awaited<ReturnType<typeof createClient>>;
-type AuthenticatedInviteUser = {
-  email?: string | null;
-  id: string;
-};
 
 type MembershipActionResult = {
   success: boolean;
@@ -22,8 +20,8 @@ type MembershipActionResult = {
 type PreparedInviteResponseAction =
   | {
       success: true;
-      supabase: SupabaseServerClient;
-      user: AuthenticatedInviteUser;
+      supabase: ServerSupabaseClient;
+      user: ServerActionUser;
     }
   | {
       message: string;
@@ -38,30 +36,20 @@ async function prepareInviteResponseAction(
     return { success: false, message: "Invalid group ID." };
   }
 
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  if (!user) {
-    return { success: false, message: "You must be logged in." };
-  }
-
-  const rateLimit = await enforceRateLimit({
+  const context = await requireRateLimitedAction({
     action,
-    actorUserId: user.id,
     maxAttempts: 20,
     resourceId: groupId,
     resourceType: "group_membership",
-    subject: user.id,
+    subject: (userId) => userId,
     windowSeconds: 600,
   });
 
-  if (!rateLimit.allowed) {
-    return { success: false, message: rateLimit.message };
+  if (!context.ok) {
+    return { success: false, message: context.message };
   }
 
-  return { success: true, supabase, user };
+  return { success: true, supabase: context.supabase, user: context.user };
 }
 
 async function notifyOwnerAboutInviteResponse(options: {

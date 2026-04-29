@@ -853,28 +853,31 @@ function filterLazadaFeedProductsByBudgetWindow(
   });
 }
 
-function filterLazadaFeedProductsBySubtype(
+type LazadaFeedTermRule = {
+  exclude: readonly string[];
+  include: readonly string[];
+};
+
+type LazadaFeedContextRule = LazadaFeedTermRule & {
+  test: RegExp;
+};
+
+type LazadaFeedIntentInput = {
+  itemCategory: string;
+  itemName: string;
+  itemNote: string;
+  searchQuery: string;
+};
+
+type LazadaFeedFilterOptions = {
+  allowFallbackToOriginal?: boolean;
+};
+
+function filterLazadaFeedProductsByTermRule(
   products: LazadaFeedProduct[],
-  input: {
-    itemCategory: string;
-    itemName: string;
-    itemNote: string;
-    searchQuery: string;
-  },
-  options?: {
-    allowFallbackToOriginal?: boolean;
-  }
+  matchedRule: LazadaFeedTermRule
 ): LazadaFeedProduct[] {
-  const searchContext = normalizeFeedString(
-    `${input.itemName} ${input.itemCategory} ${input.itemNote} ${input.searchQuery}`
-  );
-  const matchedRule = BAG_SUBTYPE_RULES.find((rule) => rule.test.test(searchContext));
-
-  if (!matchedRule) {
-    return products;
-  }
-
-  const subtypeMatches = products.filter((product) => {
+  return products.filter((product) => {
     const productText = normalizeFeedString(
       `${product.productName} ${product.brand} ${product.categoryLv1}`
     );
@@ -883,12 +886,48 @@ function filterLazadaFeedProductsBySubtype(
 
     return hasInclude && !hasExclude;
   });
+}
 
-  return subtypeMatches.length > 0
-    ? subtypeMatches
+function resolveFilteredFeedProducts(
+  products: LazadaFeedProduct[],
+  matches: LazadaFeedProduct[],
+  options?: LazadaFeedFilterOptions
+): LazadaFeedProduct[] {
+  return matches.length > 0
+    ? matches
     : options?.allowFallbackToOriginal
       ? products
       : [];
+}
+
+function filterLazadaFeedProductsByContextRule(
+  products: LazadaFeedProduct[],
+  input: LazadaFeedIntentInput,
+  rules: readonly LazadaFeedContextRule[],
+  options?: LazadaFeedFilterOptions
+): LazadaFeedProduct[] {
+  const searchContext = normalizeFeedString(
+    `${input.itemName} ${input.itemCategory} ${input.itemNote} ${input.searchQuery}`
+  );
+  const matchedRule = rules.find((rule) => rule.test.test(searchContext));
+
+  if (!matchedRule) {
+    return products;
+  }
+
+  return resolveFilteredFeedProducts(
+    products,
+    filterLazadaFeedProductsByTermRule(products, matchedRule),
+    options
+  );
+}
+
+function filterLazadaFeedProductsBySubtype(
+  products: LazadaFeedProduct[],
+  input: LazadaFeedIntentInput,
+  options?: LazadaFeedFilterOptions
+): LazadaFeedProduct[] {
+  return filterLazadaFeedProductsByContextRule(products, input, BAG_SUBTYPE_RULES, options);
 }
 
 function getCoreIntentTokens(input: {
@@ -910,15 +949,8 @@ function getCoreIntentTokens(input: {
 
 function filterLazadaFeedProductsByCoreIntent(
   products: LazadaFeedProduct[],
-  input: {
-    itemCategory: string;
-    itemName: string;
-    itemNote: string;
-    searchQuery: string;
-  },
-  options?: {
-    allowFallbackToOriginal?: boolean;
-  }
+  input: LazadaFeedIntentInput,
+  options?: LazadaFeedFilterOptions
 ): LazadaFeedProduct[] {
   const coreTokens = getCoreIntentTokens(input);
 
@@ -940,11 +972,7 @@ function filterLazadaFeedProductsByCoreIntent(
     return overlapCount >= minimumOverlap;
   });
 
-  return strongMatches.length > 0
-    ? strongMatches
-    : options?.allowFallbackToOriginal
-      ? products
-      : [];
+  return resolveFilteredFeedProducts(products, strongMatches, options);
 }
 
 function isAccessoryIntent(searchContext: string): boolean {
@@ -953,15 +981,8 @@ function isAccessoryIntent(searchContext: string): boolean {
 
 function filterLazadaFeedProductsByStrictDeviceIntent(
   products: LazadaFeedProduct[],
-  input: {
-    itemCategory: string;
-    itemName: string;
-    itemNote: string;
-    searchQuery: string;
-  },
-  options?: {
-    allowFallbackToOriginal?: boolean;
-  }
+  input: LazadaFeedIntentInput,
+  options?: LazadaFeedFilterOptions
 ): LazadaFeedProduct[] {
   const searchContext = normalizeFeedString(
     `${input.itemName} ${input.itemCategory} ${input.itemNote} ${input.searchQuery}`
@@ -971,29 +992,12 @@ function filterLazadaFeedProductsByStrictDeviceIntent(
     return products;
   }
 
-  const matchedRule = STRICT_DEVICE_MATCH_RULES.find((rule) =>
-    rule.test.test(searchContext)
+  return filterLazadaFeedProductsByContextRule(
+    products,
+    input,
+    STRICT_DEVICE_MATCH_RULES,
+    options
   );
-
-  if (!matchedRule) {
-    return products;
-  }
-
-  const strictMatches = products.filter((product) => {
-    const productText = normalizeFeedString(
-      `${product.productName} ${product.brand} ${product.categoryLv1}`
-    );
-    const hasInclude = matchedRule.include.some((term) => productText.includes(term));
-    const hasExclude = matchedRule.exclude.some((term) => productText.includes(term));
-
-    return hasInclude && !hasExclude;
-  });
-
-  return strictMatches.length > 0
-    ? strictMatches
-    : options?.allowFallbackToOriginal
-      ? products
-      : [];
 }
 
 function getRelevantLazadaSourceCategories(input: {

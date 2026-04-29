@@ -6,6 +6,7 @@ import {
   reschedulePendingReminderJobsForUser,
   type ReminderDeliveryMode,
 } from "@/lib/notifications";
+import { requireRateLimitedAction } from "@/lib/auth/server-action-context";
 import { enforceRateLimit } from "@/lib/security/rate-limit";
 import { supabaseAdmin } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
@@ -195,27 +196,20 @@ export async function updateProfile(
   notifyMarketing: boolean,
   markSetupComplete: boolean
 ): Promise<{ success: boolean; message: string }> {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  if (!user) return { success: false, message: "You must be logged in." };
-
-  const rateLimit = await enforceRateLimit({
+  const context = await requireRateLimitedAction({
     action: "profile.update",
-    actorUserId: user.id,
     maxAttempts: 15,
-    resourceId: user.id,
+    resourceId: (userId) => userId,
     resourceType: "profile",
-    subject: user.id,
+    subject: (userId) => userId,
     windowSeconds: 900,
   });
 
-  if (!rateLimit.allowed) {
-    return { success: false, message: rateLimit.message };
+  if (!context.ok) {
+    return { success: false, message: context.message };
   }
 
+  const { supabase, user } = context;
   const cleanName = sanitize(displayName, 50);
   const cleanBio = sanitize(bio, 200);
   const cleanEmoji = sanitize(avatarEmoji, 10);
@@ -268,27 +262,20 @@ export async function quickSetup(
   displayName: string,
   avatarEmoji: string
 ): Promise<{ success: boolean; message: string }> {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  if (!user) return { success: false, message: "You must be logged in." };
-
-  const rateLimit = await enforceRateLimit({
+  const context = await requireRateLimitedAction({
     action: "profile.quick_setup",
-    actorUserId: user.id,
     maxAttempts: 10,
-    resourceId: user.id,
+    resourceId: (userId) => userId,
     resourceType: "profile",
-    subject: user.id,
+    subject: (userId) => userId,
     windowSeconds: 900,
   });
 
-  if (!rateLimit.allowed) {
-    return { success: false, message: rateLimit.message };
+  if (!context.ok) {
+    return { success: false, message: context.message };
   }
 
+  const { supabase, user } = context;
   const cleanName = sanitize(displayName, 50);
   const cleanEmoji = sanitize(avatarEmoji, 10);
 
@@ -321,29 +308,20 @@ export async function quickSetup(
 }
 
 export async function deleteAccount(): Promise<{ success: boolean; message: string }> {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  if (!user) {
-    return { success: false, message: "You must be logged in." };
-  }
-
-  const rateLimit = await enforceRateLimit({
+  const context = await requireRateLimitedAction({
     action: "profile.delete_account",
-    actorUserId: user.id,
     maxAttempts: 3,
-    resourceId: user.id,
+    resourceId: (userId) => userId,
     resourceType: "profile",
-    subject: user.id,
+    subject: (userId) => userId,
     windowSeconds: 3600,
   });
 
-  if (!rateLimit.allowed) {
-    return { success: false, message: rateLimit.message };
+  if (!context.ok) {
+    return { success: false, message: context.message };
   }
 
+  const { user } = context;
   const normalizedEmail = (user.email || "").toLowerCase();
   const [ownedGroupsResult, membershipsByUserResult, membershipsByEmailResult] = await Promise.all([
     supabaseAdmin.from("groups").select("id, name").eq("owner_id", user.id),
