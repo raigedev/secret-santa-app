@@ -37,6 +37,7 @@ import {
   sanitizeGroupsForDashboardSnapshot,
   writeDashboardSnapshot,
 } from "./dashboard-snapshot";
+import { enhanceDashboardGroupsWithPeerProfiles } from "./dashboard-groups-data";
 import type {
   ActionMessage,
   AssignmentRow,
@@ -52,7 +53,6 @@ import type {
   MembershipRow,
   MyAssignmentRow,
   NotificationFeedRow,
-  PeerProfileRow,
   PendingGroupRow,
   PendingInvite,
   WishlistSummaryRow,
@@ -192,73 +192,19 @@ export default function DashboardPage() {
         return;
       }
 
-      const profileEntries = await Promise.all(
-        groups.map(async (group) => {
-          const result = await supabase.rpc("list_group_peer_profiles", {
-            p_group_id: group.id,
-          });
-
-          return {
-            groupId: group.id,
-            // Avatar strips are a visual enhancement. If the profile helper
-            // fails for one group, keep the dashboard working with initials.
-            profiles: result.error ? [] : ((result.data || []) as PeerProfileRow[]),
-          };
-        })
-      );
-
+      const enhancedGroups = await enhanceDashboardGroupsWithPeerProfiles(supabase, groups);
       if (!isMounted || loadVersion !== dashboardLoadVersion) {
         return;
       }
 
-      const profileMapByGroup = new Map<
-        string,
-        Map<string, { avatarEmoji: string | null; displayName: string | null; avatarUrl: string | null }>
-      >();
+      const enhancedGroupById = new Map(enhancedGroups.map((group) => [group.id, group]));
 
-      for (const entry of profileEntries) {
-        const profileMap = new Map<
-          string,
-          { avatarEmoji: string | null; displayName: string | null; avatarUrl: string | null }
-        >();
-
-        for (const profile of entry.profiles) {
-          if (profile.user_id) {
-            profileMap.set(profile.user_id, {
-              avatarEmoji: profile.avatar_emoji || null,
-              displayName: profile.display_name || null,
-              avatarUrl: profile.avatar_url || null,
-            });
-          }
-        }
-
-        profileMapByGroup.set(entry.groupId, profileMap);
-      }
-
-      const enhanceGroup = (group: Group): Group => {
-        const groupProfileMap = profileMapByGroup.get(group.id);
-
-        if (!groupProfileMap) {
-          return group;
-        }
-
-        return {
-          ...group,
-          members: group.members.map((member) => {
-            const profile = member.userId ? groupProfileMap.get(member.userId) : null;
-
-            return {
-              ...member,
-              displayName: group.require_anonymous_nickname ? null : profile?.displayName || member.displayName,
-              avatarEmoji: profile?.avatarEmoji || member.avatarEmoji,
-              avatarUrl: group.require_anonymous_nickname ? null : profile?.avatarUrl || member.avatarUrl,
-            };
-          }),
-        };
-      };
-
-      setOwnedGroups((currentGroups) => currentGroups.map(enhanceGroup));
-      setInvitedGroups((currentGroups) => currentGroups.map(enhanceGroup));
+      setOwnedGroups((currentGroups) =>
+        currentGroups.map((group) => enhancedGroupById.get(group.id) || group)
+      );
+      setInvitedGroups((currentGroups) =>
+        currentGroups.map((group) => enhancedGroupById.get(group.id) || group)
+      );
     };
 
     // Reload the dashboard cards and lists without repeating one-time setup like

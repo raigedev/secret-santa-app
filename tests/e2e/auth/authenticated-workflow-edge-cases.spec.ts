@@ -36,8 +36,8 @@ const SHARED_NAVIGATION_CASES: NavigationCase[] = [
   },
   {
     label: /^my groups$/i,
-    expectedHref: /\/dashboard#dashboard-groups$/,
-    expectedUrl: /\/dashboard#dashboard-groups$/,
+    expectedHref: /\/groups$/,
+    expectedUrl: /\/groups$/,
     ready: async (page) => {
       await expect(page.getByRole("heading", { name: /your groups/i })).toBeVisible();
     },
@@ -201,7 +201,7 @@ test.describe("authenticated workflow edge cases", () => {
 
     const myGroupsLink = sharedSidebar.getByRole("link", { name: /^my groups$/i });
     await myGroupsLink.click();
-    await expect(page).toHaveURL(/\/dashboard#dashboard-groups$/);
+    await expect(page).toHaveURL(/\/groups$/);
     await expectOnlyCurrentSidebarLink(sharedSidebar, /^my groups$/i);
 
     await sharedSidebar.getByRole("link", { name: /^dashboard$/i }).click();
@@ -293,7 +293,7 @@ test.describe("authenticated workflow edge cases", () => {
     );
     await expect(sidebar.getByRole("link", { name: /^my groups$/i })).toHaveAttribute(
       "href",
-      /\/dashboard#dashboard-groups$/
+      /\/groups$/
     );
     await expect(myGifteeLink).toHaveAttribute("href", /^#matches/);
     await expect(sidebar.getByRole("link", { name: /^wishlist$/i })).toHaveAttribute(
@@ -322,7 +322,7 @@ test.describe("authenticated workflow edge cases", () => {
     await expect(myGifteeLink).not.toHaveAttribute("aria-current", "page");
 
     await sidebar.getByRole("link", { name: /^my groups$/i }).click();
-    await expect(page).toHaveURL(/\/dashboard#dashboard-groups$/);
+    await expect(page).toHaveURL(/\/groups$/);
     await expect(page.getByRole("heading", { name: /your groups/i })).toBeVisible();
   });
 

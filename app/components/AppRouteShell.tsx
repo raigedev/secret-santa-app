@@ -8,7 +8,6 @@ import {
   useMemo,
   useRef,
   useState,
-  type MouseEvent,
   type ReactNode,
 } from "react";
 import { createClient } from "@/lib/supabase/client";
@@ -76,25 +75,20 @@ function getTimeOfDayGreeting() {
   return "Good evening";
 }
 
-function isDashboardGroupsHash(hash: string) {
-  return hash.includes("dashboard-groups");
-}
-
 function createNavItems(pathname: string, canViewAffiliateReport: boolean): AppNavItem[] {
   const navItems: AppNavItem[] = [
     {
       href: "/dashboard",
       icon: "dashboard",
       label: "Dashboard",
-      match: (path, hash) => path === "/dashboard" && !isDashboardGroupsHash(hash),
+      match: (path) => path === "/dashboard",
     },
     {
-      href: "/dashboard#dashboard-groups",
+      href: "/groups",
       icon: "group",
       label: "My Groups",
-      match: (path, hash) =>
-        (path === "/dashboard" && isDashboardGroupsHash(hash)) ||
-        (path.startsWith("/group/") && !path.endsWith("/reveal")),
+      match: (path) =>
+        path === "/groups" || (path.startsWith("/group/") && !path.endsWith("/reveal")),
     },
     {
       href: "/secret-santa#matches",
@@ -379,6 +373,7 @@ export default function AppRouteShell({ children }: { children: ReactNode }) {
 
     for (const route of [
       "/dashboard",
+      "/groups",
       "/wishlist",
       "/secret-santa",
       "/secret-santa-chat",
@@ -424,29 +419,10 @@ export default function AppRouteShell({ children }: { children: ReactNode }) {
     router.push("/login");
   };
 
-  const handleNavItemClick = (event: MouseEvent<HTMLAnchorElement>, item: AppNavItem) => {
+  const handleNavItemClick = (item: AppNavItem) => {
     if (!item.href.includes("#")) {
       setCurrentHash("");
-      return;
     }
-
-    if (item.href !== "/dashboard#dashboard-groups") {
-      return;
-    }
-
-    event.preventDefault();
-    setCurrentHash("#dashboard-groups");
-
-    if (pathname !== "/dashboard") {
-      router.push(item.href);
-      return;
-    }
-
-    window.history.pushState(null, "", item.href);
-    document.getElementById("dashboard-groups")?.scrollIntoView({
-      behavior: "smooth",
-      block: "start",
-    });
   };
 
   return (
@@ -457,7 +433,7 @@ export default function AppRouteShell({ children }: { children: ReactNode }) {
     >
       <style>{`
         [data-app-shell-content] > main {
-          min-height: auto !important;
+          min-height: calc(100vh - 84px) !important;
           background: transparent !important;
           overflow: visible !important;
         }
@@ -495,7 +471,7 @@ export default function AppRouteShell({ children }: { children: ReactNode }) {
               <Link
                 key={item.label}
                 href={item.href}
-                onClick={(event) => handleNavItemClick(event, item)}
+                onClick={() => handleNavItemClick(item)}
                 aria-current={active ? "page" : undefined}
                 className="flex min-h-[46px] items-center gap-3 rounded-[12px] px-3 text-[14px] font-extrabold transition hover:-translate-y-0.5"
                 style={{

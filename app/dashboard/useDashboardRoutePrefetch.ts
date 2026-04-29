@@ -2,6 +2,7 @@ import { useEffect, useRef } from "react";
 import type { Group } from "./dashboard-types";
 
 const CORE_PREFETCH_ROUTES = [
+  "/groups",
   "/secret-santa",
   "/secret-santa-chat",
   "/wishlist",

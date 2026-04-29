@@ -2487,6 +2487,7 @@ export default function SecretSantaPage() {
   useEffect(() => {
     for (const route of [
       "/dashboard",
+      "/groups",
       "/wishlist",
       "/secret-santa-chat",
       "/notifications",
@@ -3437,7 +3438,7 @@ export default function SecretSantaPage() {
   const activeShoppingSection = getShoppingIdeasHashSection(currentHash);
   const sidebarNavItems: ShoppingIdeasNavItem[] = [
     { label: "Dashboard", href: "/dashboard", icon: "dashboard" },
-    { label: "My Groups", href: "/dashboard#dashboard-groups", icon: "group" },
+    { label: "My Groups", href: "/groups", icon: "group" },
     {
       label: "My Giftee",
       href: shoppingAnchorHref,
