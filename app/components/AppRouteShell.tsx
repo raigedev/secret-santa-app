@@ -2,7 +2,15 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type MouseEvent,
+  type ReactNode,
+} from "react";
 import { createClient } from "@/lib/supabase/client";
 import { BellIcon, SantaMarkIcon, UserOutlineIcon } from "@/app/dashboard/dashboard-icons";
 import { DashboardNotificationsPanel } from "@/app/dashboard/DashboardNotificationsPanel";
@@ -40,7 +48,7 @@ type AppNavItem = {
   href: string;
   icon: AppNavIcon;
   label: string;
-  match: (pathname: string) => boolean;
+  match: (pathname: string, hash: string) => boolean;
 };
 
 const PUBLIC_ROUTE_PREFIXES = [
@@ -68,19 +76,25 @@ function getTimeOfDayGreeting() {
   return "Good evening";
 }
 
+function isDashboardGroupsHash(hash: string) {
+  return hash.includes("dashboard-groups");
+}
+
 function createNavItems(pathname: string, canViewAffiliateReport: boolean): AppNavItem[] {
   const navItems: AppNavItem[] = [
     {
       href: "/dashboard",
       icon: "dashboard",
       label: "Dashboard",
-      match: (path) => path === "/dashboard",
+      match: (path, hash) => path === "/dashboard" && !isDashboardGroupsHash(hash),
     },
     {
       href: "/dashboard#dashboard-groups",
       icon: "group",
       label: "My Groups",
-      match: (path) => path.startsWith("/group/") && !path.endsWith("/reveal"),
+      match: (path, hash) =>
+        (path === "/dashboard" && isDashboardGroupsHash(hash)) ||
+        (path.startsWith("/group/") && !path.endsWith("/reveal")),
     },
     {
       href: "/secret-santa#matches",
@@ -143,6 +157,7 @@ export default function AppRouteShell({ children }: { children: ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
   const [supabase] = useState(() => createClient());
+  const [currentHash, setCurrentHash] = useState("");
   const [viewerName, setViewerName] = useState("");
   const [viewerAvatarUrl, setViewerAvatarUrl] = useState("");
   const [viewerAvatarEmoji, setViewerAvatarEmoji] = useState("");
@@ -154,6 +169,23 @@ export default function AppRouteShell({ children }: { children: ReactNode }) {
   const notificationButtonRef = useRef<HTMLButtonElement | null>(null);
   const loadedShellContextForUserRef = useRef<string | null>(null);
   const prefetchedRoutesRef = useRef<Set<string>>(new Set());
+
+  useEffect(() => {
+    if (!shouldUseAppShell(pathname)) {
+      return;
+    }
+
+    const syncHash = () => setCurrentHash(window.location.hash);
+    syncHash();
+
+    window.addEventListener("hashchange", syncHash);
+    window.addEventListener("popstate", syncHash);
+
+    return () => {
+      window.removeEventListener("hashchange", syncHash);
+      window.removeEventListener("popstate", syncHash);
+    };
+  }, [pathname]);
 
   const loadShellUnreadCount = useCallback(
     async (userId: string) => {
@@ -392,6 +424,26 @@ export default function AppRouteShell({ children }: { children: ReactNode }) {
     router.push("/login");
   };
 
+  const handleNavItemClick = (event: MouseEvent<HTMLAnchorElement>, item: AppNavItem) => {
+    if (item.href !== "/dashboard#dashboard-groups") {
+      return;
+    }
+
+    event.preventDefault();
+    setCurrentHash("#dashboard-groups");
+
+    if (pathname !== "/dashboard") {
+      router.push(item.href);
+      return;
+    }
+
+    window.history.pushState(null, "", item.href);
+    document.getElementById("dashboard-groups")?.scrollIntoView({
+      behavior: "smooth",
+      block: "start",
+    });
+  };
+
   return (
     <div
       data-testid="app-route-shell"
@@ -433,11 +485,12 @@ export default function AppRouteShell({ children }: { children: ReactNode }) {
 
         <nav aria-label="Main app navigation" className="mt-9 space-y-2">
           {navItems.map((item) => {
-            const active = item.match(pathname);
+            const active = item.match(pathname, currentHash);
             return (
               <Link
                 key={item.label}
                 href={item.href}
+                onClick={(event) => handleNavItemClick(event, item)}
                 aria-current={active ? "page" : undefined}
                 className="flex min-h-[46px] items-center gap-3 rounded-[12px] px-3 text-[14px] font-extrabold transition hover:-translate-y-0.5"
                 style={{

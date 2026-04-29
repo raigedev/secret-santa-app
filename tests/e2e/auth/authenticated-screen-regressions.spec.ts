@@ -225,20 +225,22 @@ test.describe("authenticated screen regressions", () => {
 
     const appShell = page.getByTestId("app-route-shell");
     const sidebar = page.getByTestId("app-shell-sidebar");
+    const dashboardLink = sidebar.getByRole("link", { name: /^dashboard$/i });
+    const myGroupsLink = sidebar.getByRole("link", { name: /my groups?/i });
     await expect(appShell).toBeVisible();
     await expect(sidebar).toBeVisible();
-    await expect(sidebar.getByRole("link", { name: /dashboard/i })).toHaveAttribute(
-      "aria-current",
-      "page"
-    );
-    await expect(sidebar.getByRole("link", { name: /my groups?/i })).toHaveAttribute(
-      "href",
-      /\/dashboard#dashboard-groups$/
-    );
+    await expect(dashboardLink).toHaveAttribute("aria-current", "page");
+    await expect(myGroupsLink).toHaveAttribute("href", /\/dashboard#dashboard-groups$/);
 
-    await sidebar.getByRole("link", { name: /my groups?/i }).click();
+    await myGroupsLink.click();
     await expect(page).toHaveURL(/\/dashboard#dashboard-groups$/);
     await expect(page.getByRole("heading", { name: /your groups/i })).toBeVisible();
+    await expect(myGroupsLink).toHaveAttribute("aria-current", "page");
+    await expect(dashboardLink).not.toHaveAttribute("aria-current", "page");
+
+    await myGroupsLink.click();
+    await expect(page).toHaveURL(/\/dashboard#dashboard-groups$/);
+    await expect(myGroupsLink).toHaveAttribute("aria-current", "page");
 
     await sidebar.getByRole("link", { name: /wishlist/i }).click();
     await page.waitForURL(/\/wishlist$/);
