@@ -1,5 +1,5 @@
-import { SecretSantaExperience } from "@/app/secret-santa/page";
+import { redirect } from "next/navigation";
 
 export default function AssignmentsPage() {
-  return <SecretSantaExperience mode="assignments" />;
+  redirect("/my-giftee");
 }

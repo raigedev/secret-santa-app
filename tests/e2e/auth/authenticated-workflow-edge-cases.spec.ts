@@ -60,15 +60,6 @@ const SHARED_NAVIGATION_CASES: NavigationCase[] = [
     },
   },
   {
-    label: /^assignments$/i,
-    expectedHref: /\/assignments$/,
-    expectedUrl: /\/assignments$/,
-    ready: async (page) => {
-      await expect(page.getByTestId("secret-santa-page-shell")).toBeVisible();
-      await expect(page.getByTestId("secret-santa-assignments-overview")).toBeVisible();
-    },
-  },
-  {
     label: /^messages$/i,
     expectedHref: /\/secret-santa-chat$/,
     expectedUrl: /\/secret-santa-chat$/,
@@ -159,6 +150,8 @@ async function expectSharedNavigationContract(page: Page) {
       navItem.expectedHref
     );
   }
+
+  await expect(sidebar.getByRole("link", { name: /^assignments$/i })).toHaveCount(0);
 }
 
 async function expectOnlyCurrentSidebarLink(sidebar: Locator, label: RegExp) {
@@ -228,10 +221,6 @@ test.describe("authenticated workflow edge cases", () => {
     await expect(page).toHaveURL(/\/my-giftee$/);
     await expectOnlyCurrentSidebarLink(page.getByTestId("shopping-ideas-sidebar"), /^my giftee$/i);
 
-    await page.getByTestId("shopping-ideas-sidebar").getByRole("link", { name: /^assignments$/i }).click();
-    await expect(page).toHaveURL(/\/assignments$/);
-    await expectOnlyCurrentSidebarLink(page.getByTestId("shopping-ideas-sidebar"), /^assignments$/i);
-
     await page.getByTestId("shopping-ideas-sidebar").getByRole("link", { name: /^gift tracking$/i }).click();
     await expect(page).toHaveURL(/\/gift-tracking$/);
     await expectOnlyCurrentSidebarLink(page.getByTestId("shopping-ideas-sidebar"), /^gift tracking$/i);
@@ -250,7 +239,7 @@ test.describe("authenticated workflow edge cases", () => {
 
     await page.goto(`/group/${groupId}/reveal`);
     await expect(page.getByText(/one event\. two reveal moments\./i)).toBeVisible();
-    await expectOnlyCurrentSidebarLink(sidebar, /^assignments$/i);
+    await expectOnlyCurrentSidebarLink(sidebar, /^my giftee$/i);
   });
 
   test("shared sidebar navigation reaches each destination without blank or dark-page flashes", async ({
@@ -285,7 +274,6 @@ test.describe("authenticated workflow edge cases", () => {
     const sidebar = page.getByTestId("shopping-ideas-sidebar");
     const shoppingIdeasLink = sidebar.getByRole("link", { name: /^shopping ideas$/i });
     const myGifteeLink = sidebar.getByRole("link", { name: /^my giftee$/i });
-    const assignmentsLink = sidebar.getByRole("link", { name: /^assignments$/i });
     await expect(sidebar).toBeVisible();
     await expect(sidebar.getByRole("link", { name: /^dashboard$/i })).toHaveAttribute(
       "href",
@@ -300,7 +288,7 @@ test.describe("authenticated workflow edge cases", () => {
       "href",
       /\/wishlist$/
     );
-    await expect(assignmentsLink).toHaveAttribute("href", /\/assignments$/);
+    await expect(sidebar.getByRole("link", { name: /^assignments$/i })).toHaveCount(0);
     await expect(sidebar.getByRole("link", { name: /^gift tracking$/i })).toHaveAttribute(
       "href",
       /\/gift-tracking$/
@@ -314,10 +302,6 @@ test.describe("authenticated workflow edge cases", () => {
     await myGifteeLink.click();
     await expect(page).toHaveURL(/\/my-giftee$/);
     await expectOnlyCurrentSidebarLink(page.getByTestId("shopping-ideas-sidebar"), /^my giftee$/i);
-
-    await page.getByTestId("shopping-ideas-sidebar").getByRole("link", { name: /^assignments$/i }).click();
-    await expect(page).toHaveURL(/\/assignments$/);
-    await expectOnlyCurrentSidebarLink(page.getByTestId("shopping-ideas-sidebar"), /^assignments$/i);
 
     await sidebar.getByRole("link", { name: /^my groups$/i }).click();
     await expect(page).toHaveURL(/\/groups$/);

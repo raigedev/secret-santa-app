@@ -194,14 +194,6 @@ const AUTHENTICATED_SCREEN_CASES: ScreenCase[] = [
     },
   },
   {
-    name: "assignments",
-    path: "/assignments",
-    assertVisible: async (page) => {
-      await expect(page.getByRole("heading", { name: /^assignments$/i })).toBeVisible();
-      await expect(page.getByTestId("secret-santa-assignments-overview")).toBeVisible();
-    },
-  },
-  {
     name: "gift-tracking",
     path: "/gift-tracking",
     assertVisible: async (page) => {
@@ -242,7 +234,6 @@ test.describe("authenticated screen regressions", () => {
       if (
         screen.path === "/secret-santa" ||
         screen.path === "/my-giftee" ||
-        screen.path === "/assignments" ||
         screen.path === "/gift-tracking"
       ) {
         await expect(page.getByTestId("app-route-shell")).toHaveCount(0);
@@ -294,7 +285,7 @@ test.describe("authenticated screen regressions", () => {
     await expect(page.getByTestId("secret-santa-page-shell")).toBeVisible();
   });
 
-  test("sidebar assignments navigation keeps a light loading surface", async ({ page }) => {
+  test("sidebar my giftee navigation keeps a light loading surface", async ({ page }) => {
     await page.setViewportSize({ width: 1440, height: 900 });
     await loginWithTestCredentials(page, credentials!);
     await page.goto("/dashboard");
@@ -323,9 +314,9 @@ test.describe("authenticated screen regressions", () => {
 
     await page
       .getByTestId("app-shell-sidebar")
-      .getByRole("link", { name: /assignments/i })
+      .getByRole("link", { name: /my giftee/i })
       .click();
-    await page.waitForURL(/\/assignments/);
+    await page.waitForURL(/\/my-giftee/);
 
     const loadingShell = page.getByTestId("secret-santa-loading-shell");
     await expect(loadingShell).toBeVisible({ timeout: 5000 });
@@ -358,6 +349,15 @@ test.describe("authenticated screen regressions", () => {
 
     await page.unroute("**/rest/v1/**");
     await expect(page.getByTestId("secret-santa-page-shell")).toBeVisible({ timeout: 20000 });
+  });
+
+  test("legacy assignments route redirects to my giftee", async ({ page }) => {
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await loginWithTestCredentials(page, credentials!);
+    await page.goto("/assignments");
+    await expect(page).toHaveURL(/\/my-giftee$/);
+    await expect(page.getByRole("heading", { name: /my giftee/i })).toBeVisible();
+    await expect(page.getByTestId("my-giftee-workspace")).toBeVisible();
   });
 
   test("dashboard keeps text readable with a stored midnight preference", async ({ page }) => {
@@ -651,15 +651,21 @@ test.describe("authenticated screen regressions", () => {
 
     const santaAssistant = page.getByTestId("santa-assistant");
     await expect(santaAssistant).toBeVisible();
-    await expect(page.getByTestId("santa-assistant-toggle")).toHaveAttribute(
+    const santaAssistantToggle = page.getByTestId("santa-assistant-toggle");
+    await expect(santaAssistantToggle).toHaveAttribute(
       "aria-label",
       /santa buddy assistant/i
     );
+    await expect(santaAssistantToggle).toHaveCSS("background-color", "rgba(0, 0, 0, 0)");
     const assistantAnimation = await page
       .getByTestId("santa-assistant")
       .locator(".santa-assistant-avatar")
       .evaluate((avatar) => window.getComputedStyle(avatar).animationName);
     expect(assistantAnimation).toContain("santa-assistant-float");
+    await santaAssistantToggle.click();
+    await page.getByLabel(/ask santa buddy/i).fill("What is the budget?");
+    await page.getByRole("button", { name: /^ask$/i }).click();
+    await expect(page.getByTestId("santa-assistant-bubble")).toContainText(/group budget/i);
     await expect(page.getByTestId("santa-helper-panel").first()).toBeVisible();
     await expect(page.getByTestId("santa-helper-action-strip")).toHaveCount(0);
     await expect(page.getByText(/safest pick/i).first()).toBeVisible();

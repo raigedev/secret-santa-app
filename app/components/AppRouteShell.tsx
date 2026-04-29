@@ -65,7 +65,6 @@ function shouldUseAppShell(pathname: string) {
     pathname === "/" ||
     pathname === "/secret-santa" ||
     pathname === "/my-giftee" ||
-    pathname === "/assignments" ||
     pathname === "/gift-tracking"
   ) {
     return false;
@@ -100,21 +99,13 @@ function createNavItems(pathname: string, canViewAffiliateReport: boolean): AppN
       href: "/my-giftee",
       icon: "giftee",
       label: "My Giftee",
-      match: (path) => path === "/my-giftee",
+      match: (path) => path === "/my-giftee" || path.endsWith("/reveal"),
     },
     {
       href: "/wishlist",
       icon: "wishlist",
       label: "Wishlist",
       match: (path) => path === "/wishlist",
-    },
-    {
-      href: pathname.startsWith("/group/")
-        ? `${pathname.split("/reveal")[0]}/reveal`
-        : "/assignments",
-      icon: "assignments",
-      label: "Assignments",
-      match: (path) => path === "/assignments" || path.endsWith("/reveal"),
     },
     {
       href: "/secret-santa-chat",
@@ -384,7 +375,6 @@ export default function AppRouteShell({ children }: { children: ReactNode }) {
       "/groups",
       "/my-giftee",
       "/wishlist",
-      "/assignments",
       "/secret-santa",
       "/gift-tracking",
       "/secret-santa-chat",

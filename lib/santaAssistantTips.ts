@@ -5,6 +5,13 @@ export type SantaAssistantTip = {
   href?: string;
 };
 
+export type SantaAssistantAnswer = {
+  title: string;
+  body: string;
+  actionLabel?: string;
+  href?: string;
+};
+
 const DEFAULT_TIPS: SantaAssistantTip[] = [
   {
     title: "Need a hand?",
@@ -14,7 +21,7 @@ const DEFAULT_TIPS: SantaAssistantTip[] = [
   },
   {
     title: "Keep the surprise",
-    body: "Private messages and assignments are separated so names stay secret until the right moment.",
+    body: "My Giftee shows who you are gifting. Keep that name private until the exchange.",
     actionLabel: "Open messages",
     href: "/secret-santa-chat",
   },
@@ -60,15 +67,6 @@ const PAGE_TIPS: Array<{
         body: "This is the person you are gifting. Keep it private and use their wishlist for ideas.",
         actionLabel: "Open shopping ideas",
         href: "/secret-santa",
-      },
-    ],
-  },
-  {
-    match: (pathname) => pathname === "/assignments",
-    tips: [
-      {
-        title: "Assignments",
-        body: "Use this page to review each match. Shopping and gift progress are kept separate.",
       },
     ],
   },
@@ -125,4 +123,91 @@ const PAGE_TIPS: Array<{
 
 export function getSantaAssistantTips(pathname: string): SantaAssistantTip[] {
   return PAGE_TIPS.find((entry) => entry.match(pathname))?.tips || DEFAULT_TIPS;
+}
+
+export function getSantaAssistantAnswer(
+  question: string,
+  pathname: string
+): SantaAssistantAnswer {
+  const normalizedQuestion = question.trim().toLowerCase();
+  const pageTip = getSantaAssistantTips(pathname)[0];
+
+  if (!normalizedQuestion) {
+    return {
+      title: "Ask me anything here",
+      body: pageTip.body,
+      actionLabel: pageTip.actionLabel,
+      href: pageTip.href,
+    };
+  }
+
+  if (normalizedQuestion.includes("budget") || normalizedQuestion.includes("price")) {
+    return {
+      title: "Group budget",
+      body: "Use the group budget as your spending guide. If you have more than one group, each giftee card follows its own group budget.",
+      actionLabel: "Open shopping ideas",
+      href: "/secret-santa",
+    };
+  }
+
+  if (
+    normalizedQuestion.includes("giftee") ||
+    normalizedQuestion.includes("recipient") ||
+    normalizedQuestion.includes("assignment") ||
+    normalizedQuestion.includes("match")
+  ) {
+    return {
+      title: "Your giftee",
+      body: "My Giftee is the place to see who you are gifting. Keep that page for recipient details, wishlist clues, and gift ideas.",
+      actionLabel: "Open My Giftee",
+      href: "/my-giftee",
+    };
+  }
+
+  if (
+    normalizedQuestion.includes("gift track") ||
+    normalizedQuestion.includes("progress") ||
+    normalizedQuestion.includes("received") ||
+    normalizedQuestion.includes("sent")
+  ) {
+    return {
+      title: "Gift tracking",
+      body: "Use Gift Tracking to update your gift progress. A gift should only be confirmed after it actually arrives.",
+      actionLabel: "Open Gift Tracking",
+      href: "/gift-tracking",
+    };
+  }
+
+  if (
+    normalizedQuestion.includes("wishlist") ||
+    normalizedQuestion.includes("idea") ||
+    normalizedQuestion.includes("shopping")
+  ) {
+    return {
+      title: "Gift ideas",
+      body: "Add wishlist ideas for your own Santa, and use Shopping Ideas when you are choosing a gift for your giftee.",
+      actionLabel: "Open shopping ideas",
+      href: "/secret-santa",
+    };
+  }
+
+  if (
+    normalizedQuestion.includes("group") ||
+    normalizedQuestion.includes("invite") ||
+    normalizedQuestion.includes("draw")
+  ) {
+    return {
+      title: "Group setup",
+      body: "Open My Groups to manage members, invites, wishlists, and the name draw for each exchange.",
+      actionLabel: "Open My Groups",
+      href: "/groups",
+    };
+  }
+
+  return {
+    title: "Santa Buddy tip",
+    body: pageTip.body,
+    actionLabel: pageTip.actionLabel,
+    href: pageTip.href,
+  };
 }

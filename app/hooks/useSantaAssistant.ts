@@ -3,7 +3,9 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { usePathname } from "next/navigation";
 import {
+  getSantaAssistantAnswer,
   getSantaAssistantTips,
+  type SantaAssistantAnswer,
   type SantaAssistantTip,
 } from "@/lib/santaAssistantTips";
 
@@ -32,11 +34,13 @@ export type SantaAssistantState = {
   close: () => void;
   isMinimized: boolean;
   isOpen: boolean;
+  lastAnswer: SantaAssistantAnswer | null;
   minimize: () => void;
   nextTip: () => void;
   open: () => void;
   pathname: string;
   previousTip: () => void;
+  submitQuestion: (question: string) => void;
   shouldRender: boolean;
   tip: SantaAssistantTip;
   tipCount: number;
@@ -51,6 +55,7 @@ export function useSantaAssistant(): SantaAssistantState {
   const tipIndex = tipState.pathname === pathname ? Math.min(tipState.index, tips.length - 1) : 0;
   const [isOpen, setIsOpen] = useState(false);
   const [isMinimized, setIsMinimized] = useState(false);
+  const [lastAnswer, setLastAnswer] = useState<SantaAssistantAnswer | null>(null);
 
   useEffect(() => {
     const timeoutId = window.setTimeout(() => {
@@ -96,6 +101,7 @@ export function useSantaAssistant(): SantaAssistantState {
 
   const close = useCallback(() => {
     setIsOpen(false);
+    setLastAnswer(null);
   }, []);
 
   const minimize = useCallback(() => {
@@ -105,6 +111,7 @@ export function useSantaAssistant(): SantaAssistantState {
   }, []);
 
   const nextTip = useCallback(() => {
+    setLastAnswer(null);
     setTipState((current) => ({
       index: ((current.pathname === pathname ? current.index : 0) + 1) % tips.length,
       pathname,
@@ -112,21 +119,32 @@ export function useSantaAssistant(): SantaAssistantState {
   }, [pathname, tips.length]);
 
   const previousTip = useCallback(() => {
+    setLastAnswer(null);
     setTipState((current) => ({
       index: ((current.pathname === pathname ? current.index : 0) - 1 + tips.length) % tips.length,
       pathname,
     }));
   }, [pathname, tips.length]);
 
+  const submitQuestion = useCallback(
+    (question: string) => {
+      setLastAnswer(getSantaAssistantAnswer(question, pathname));
+      setIsOpen(true);
+    },
+    [pathname]
+  );
+
   return {
     close,
     isMinimized,
     isOpen,
+    lastAnswer,
     minimize,
     nextTip,
     open,
     pathname,
     previousTip,
+    submitQuestion,
     shouldRender,
     tip: tips[tipIndex] || tips[0],
     tipCount: tips.length,
