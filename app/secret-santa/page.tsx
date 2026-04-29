@@ -3404,7 +3404,7 @@ export default function SecretSantaPage() {
   const prepAnchorHref = activeGroupId ? `#prep-${activeGroupId}` : "#prep";
   const sidebarNavItems: ShoppingIdeasNavItem[] = [
     { label: "Dashboard", href: "/dashboard", icon: "dashboard" },
-    { label: "My Group", href: activeGroupHref, icon: "group" },
+    { label: "My Groups", href: "/dashboard#dashboard-groups", icon: "group" },
     { label: "My Giftee", href: shoppingAnchorHref, icon: "giftee" },
     { label: "Wishlist", href: "/wishlist", icon: "wishlist" },
     { label: "Assignments", href: prepAnchorHref, icon: "assignments" },

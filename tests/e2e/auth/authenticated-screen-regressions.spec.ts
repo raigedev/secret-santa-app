@@ -195,6 +195,14 @@ test.describe("authenticated screen regressions", () => {
       "aria-current",
       "page"
     );
+    await expect(sidebar.getByRole("link", { name: /my groups?/i })).toHaveAttribute(
+      "href",
+      /\/dashboard#dashboard-groups$/
+    );
+
+    await sidebar.getByRole("link", { name: /my groups?/i }).click();
+    await expect(page).toHaveURL(/\/dashboard#dashboard-groups$/);
+    await expect(page.getByRole("heading", { name: /your groups/i })).toBeVisible();
 
     await sidebar.getByRole("link", { name: /wishlist/i }).click();
     await page.waitForURL(/\/wishlist$/);
@@ -948,6 +956,20 @@ test.describe("group-scoped authenticated regressions", () => {
     await page.goto(`/group/${groupId}`);
     await expect(page.getByRole("button", { name: /back to dashboard/i })).toBeVisible();
     await expect(page.getByText(/manage members, invites, wishlists, and the name draw from here/i)).toBeVisible();
+  });
+
+  test("my groups sidebar link returns to the dashboard groups list", async ({ page }) => {
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await loginWithTestCredentials(page, credentials!);
+    await page.goto(`/group/${groupId}`);
+
+    const sidebar = page.getByTestId("app-shell-sidebar");
+    const myGroupsLink = sidebar.getByRole("link", { name: /my groups?/i });
+
+    await expect(myGroupsLink).toHaveAttribute("href", /\/dashboard#dashboard-groups$/);
+    await myGroupsLink.click();
+    await expect(page).toHaveURL(/\/dashboard#dashboard-groups$/);
+    await expect(page.getByRole("heading", { name: /your groups/i })).toBeVisible();
   });
 
   test("group reveal route renders for a seeded member", async ({ page }) => {

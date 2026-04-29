@@ -69,9 +69,6 @@ function getTimeOfDayGreeting() {
 }
 
 function createNavItems(pathname: string, canViewAffiliateReport: boolean): AppNavItem[] {
-  const groupHref = pathname.startsWith("/group/")
-    ? pathname
-    : "/dashboard#dashboard-groups";
   const navItems: AppNavItem[] = [
     {
       href: "/dashboard",
@@ -80,9 +77,9 @@ function createNavItems(pathname: string, canViewAffiliateReport: boolean): AppN
       match: (path) => path === "/dashboard",
     },
     {
-      href: groupHref,
+      href: "/dashboard#dashboard-groups",
       icon: "group",
-      label: "My Group",
+      label: "My Groups",
       match: (path) => path.startsWith("/group/") && !path.endsWith("/reveal"),
     },
     {
