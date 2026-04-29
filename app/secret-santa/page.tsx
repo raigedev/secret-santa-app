@@ -321,6 +321,18 @@ type ShoppingIdeasNavItem = {
     | "reminders";
 };
 
+function getShoppingIdeasHashSection(hash: string): "matches" | "prep" | null {
+  if (hash.startsWith("#matches")) {
+    return "matches";
+  }
+
+  if (hash.startsWith("#prep")) {
+    return "prep";
+  }
+
+  return null;
+}
+
 function GiftMark({ className = "h-5 w-5" }: { className?: string }) {
   return (
     <svg
@@ -2360,6 +2372,7 @@ export default function SecretSantaPage() {
   );
   const [viewerUserId, setViewerUserId] = useState<string | null>(null);
   const [canViewAffiliateReport, setCanViewAffiliateReport] = useState(false);
+  const [currentHash, setCurrentHash] = useState("");
 
   // Page-level feedback and action state.
   const [message, setMessage] = useState<ActionMessage>(null);
@@ -2398,6 +2411,19 @@ export default function SecretSantaPage() {
   const lazadaPrimedKeysRef = useRef<Set<string>>(new Set());
   const matchedLazadaProductsByKeyRef = useRef(matchedLazadaProductsByKey);
   const hasAppliedPageSnapshotRef = useRef(false);
+
+  useEffect(() => {
+    const syncHash = () => setCurrentHash(window.location.hash);
+    syncHash();
+
+    window.addEventListener("hashchange", syncHash);
+    window.addEventListener("popstate", syncHash);
+
+    return () => {
+      window.removeEventListener("hashchange", syncHash);
+      window.removeEventListener("popstate", syncHash);
+    };
+  }, []);
 
   useEffect(() => {
     const handleViewerProfileChanged = (event: Event) => {
@@ -3403,18 +3429,29 @@ export default function SecretSantaPage() {
   const firstRecipientName = primaryAssignment?.receiver_nickname || "your giftee";
   const shoppingAnchorHref = activeGroupId ? `#matches-${activeGroupId}` : "#matches";
   const prepAnchorHref = activeGroupId ? `#prep-${activeGroupId}` : "#prep";
+  const activeShoppingSection = getShoppingIdeasHashSection(currentHash);
   const sidebarNavItems: ShoppingIdeasNavItem[] = [
     { label: "Dashboard", href: "/dashboard", icon: "dashboard" },
     { label: "My Groups", href: "/dashboard#dashboard-groups", icon: "group" },
-    { label: "My Giftee", href: shoppingAnchorHref, icon: "giftee" },
+    {
+      label: "My Giftee",
+      href: shoppingAnchorHref,
+      icon: "giftee",
+      active: activeShoppingSection === "matches",
+    },
     { label: "Wishlist", href: "/wishlist", icon: "wishlist" },
-    { label: "Assignments", href: prepAnchorHref, icon: "assignments" },
+    {
+      label: "Assignments",
+      href: prepAnchorHref,
+      icon: "assignments",
+      active: activeShoppingSection === "prep",
+    },
     { label: "Messages", href: "/secret-santa-chat", icon: "messages" },
     {
       label: "Shopping Ideas",
       href: "/secret-santa",
       icon: "shopping",
-      active: true,
+      active: activeShoppingSection === null,
     },
     { label: "Gift Tracking", href: prepAnchorHref, icon: "tracking" },
     ...(canViewAffiliateReport

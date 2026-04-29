@@ -1,9 +1,11 @@
-import { expect, test, type Page } from "@playwright/test";
+import { expect, test, type Locator, type Page } from "@playwright/test";
 
 import {
   AUTH_BLOCKED_MESSAGE,
+  GROUP_BLOCKED_MESSAGE,
   canSeededUserOpenAffiliateReport,
   getTestAuthCredentials,
+  getTestGroupId,
   loginWithTestCredentials,
 } from "../helpers/auth";
 
@@ -15,6 +17,7 @@ type NavigationCase = {
 };
 
 const credentials = getTestAuthCredentials();
+const groupId = getTestGroupId();
 const CRITICAL_CONSOLE_PATTERNS = [
   /maximum update depth exceeded/i,
   /hydration failed/i,
@@ -158,6 +161,14 @@ async function expectSharedNavigationContract(page: Page) {
   }
 }
 
+async function expectOnlyCurrentSidebarLink(sidebar: Locator, label: RegExp) {
+  await expect(sidebar.locator('a[aria-current="page"]')).toHaveCount(1);
+  await expect(sidebar.getByRole("link", { name: label })).toHaveAttribute(
+    "aria-current",
+    "page"
+  );
+}
+
 test.describe("authenticated workflow edge cases", () => {
   test.setTimeout(90_000);
   test.skip(!credentials, AUTH_BLOCKED_MESSAGE);
@@ -178,6 +189,64 @@ test.describe("authenticated workflow edge cases", () => {
     } else {
       await expect(affiliateReportLink).toHaveCount(0);
     }
+  });
+
+  test("sidebars keep one correct active item across app sections", async ({ page }) => {
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await loginWithTestCredentials(page, credentials!);
+    await page.goto("/dashboard");
+
+    const sharedSidebar = page.getByTestId("app-shell-sidebar");
+    await expectOnlyCurrentSidebarLink(sharedSidebar, /^dashboard$/i);
+
+    const myGroupsLink = sharedSidebar.getByRole("link", { name: /^my groups$/i });
+    await myGroupsLink.click();
+    await expect(page).toHaveURL(/\/dashboard#dashboard-groups$/);
+    await expectOnlyCurrentSidebarLink(sharedSidebar, /^my groups$/i);
+
+    await sharedSidebar.getByRole("link", { name: /^dashboard$/i }).click();
+    await expect(page).toHaveURL(/\/dashboard$/);
+    await expectOnlyCurrentSidebarLink(sharedSidebar, /^dashboard$/i);
+
+    await sharedSidebar.getByRole("link", { name: /^wishlist$/i }).click();
+    await expect(page).toHaveURL(/\/wishlist$/);
+    await expectOnlyCurrentSidebarLink(sharedSidebar, /^wishlist$/i);
+
+    await sharedSidebar.getByRole("link", { name: /^messages$/i }).click();
+    await expect(page).toHaveURL(/\/secret-santa-chat$/);
+    await expectOnlyCurrentSidebarLink(sharedSidebar, /^messages$/i);
+
+    await sharedSidebar.getByRole("link", { name: /^reminders$/i }).click();
+    await expect(page).toHaveURL(/\/profile#reminder-settings$/);
+    await expectOnlyCurrentSidebarLink(sharedSidebar, /^reminders$/i);
+
+    await page.goto("/secret-santa");
+    const shoppingSidebar = page.getByTestId("shopping-ideas-sidebar");
+    await expectOnlyCurrentSidebarLink(shoppingSidebar, /^shopping ideas$/i);
+
+    await shoppingSidebar.getByRole("link", { name: /^my giftee$/i }).click();
+    await expect(page).toHaveURL(/\/secret-santa#matches/);
+    await expectOnlyCurrentSidebarLink(shoppingSidebar, /^my giftee$/i);
+
+    await shoppingSidebar.getByRole("link", { name: /^assignments$/i }).click();
+    await expect(page).toHaveURL(/\/secret-santa#prep/);
+    await expectOnlyCurrentSidebarLink(shoppingSidebar, /^assignments$/i);
+  });
+
+  test("group scoped routes select their matching shared sidebar item", async ({ page }) => {
+    test.skip(!groupId, GROUP_BLOCKED_MESSAGE);
+
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await loginWithTestCredentials(page, credentials!);
+    await page.goto(`/group/${groupId}`);
+
+    const sidebar = page.getByTestId("app-shell-sidebar");
+    await expect(page.getByText(/manage members, invites, wishlists, and the name draw from here/i)).toBeVisible();
+    await expectOnlyCurrentSidebarLink(sidebar, /^my groups$/i);
+
+    await page.goto(`/group/${groupId}/reveal`);
+    await expect(page.getByText(/one event\. two reveal moments\./i)).toBeVisible();
+    await expectOnlyCurrentSidebarLink(sidebar, /^assignments$/i);
   });
 
   test("shared sidebar navigation reaches each destination without blank or dark-page flashes", async ({
@@ -210,6 +279,9 @@ test.describe("authenticated workflow edge cases", () => {
     await expect(page.getByTestId("secret-santa-page-shell")).toBeVisible();
 
     const sidebar = page.getByTestId("shopping-ideas-sidebar");
+    const shoppingIdeasLink = sidebar.getByRole("link", { name: /^shopping ideas$/i });
+    const myGifteeLink = sidebar.getByRole("link", { name: /^my giftee$/i });
+    const assignmentsLink = sidebar.getByRole("link", { name: /^assignments$/i });
     await expect(sidebar).toBeVisible();
     await expect(sidebar.getByRole("link", { name: /^dashboard$/i })).toHaveAttribute(
       "href",
@@ -219,18 +291,12 @@ test.describe("authenticated workflow edge cases", () => {
       "href",
       /\/dashboard#dashboard-groups$/
     );
-    await expect(sidebar.getByRole("link", { name: /^my giftee$/i })).toHaveAttribute(
-      "href",
-      /^#matches/
-    );
+    await expect(myGifteeLink).toHaveAttribute("href", /^#matches/);
     await expect(sidebar.getByRole("link", { name: /^wishlist$/i })).toHaveAttribute(
       "href",
       /\/wishlist$/
     );
-    await expect(sidebar.getByRole("link", { name: /^assignments$/i })).toHaveAttribute(
-      "href",
-      /^#prep/
-    );
+    await expect(assignmentsLink).toHaveAttribute("href", /^#prep/);
     await expect(sidebar.getByRole("link", { name: /^gift tracking$/i })).toHaveAttribute(
       "href",
       /^#prep/
@@ -239,6 +305,17 @@ test.describe("authenticated workflow edge cases", () => {
       "href",
       /\/profile#reminder-settings$/
     );
+    await expect(shoppingIdeasLink).toHaveAttribute("aria-current", "page");
+
+    await myGifteeLink.click();
+    await expect(page).toHaveURL(/\/secret-santa#matches/);
+    await expect(myGifteeLink).toHaveAttribute("aria-current", "page");
+    await expect(shoppingIdeasLink).not.toHaveAttribute("aria-current", "page");
+
+    await assignmentsLink.click();
+    await expect(page).toHaveURL(/\/secret-santa#prep/);
+    await expect(assignmentsLink).toHaveAttribute("aria-current", "page");
+    await expect(myGifteeLink).not.toHaveAttribute("aria-current", "page");
 
     await sidebar.getByRole("link", { name: /^my groups$/i }).click();
     await expect(page).toHaveURL(/\/dashboard#dashboard-groups$/);

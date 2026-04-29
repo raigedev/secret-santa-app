@@ -425,6 +425,11 @@ export default function AppRouteShell({ children }: { children: ReactNode }) {
   };
 
   const handleNavItemClick = (event: MouseEvent<HTMLAnchorElement>, item: AppNavItem) => {
+    if (!item.href.includes("#")) {
+      setCurrentHash("");
+      return;
+    }
+
     if (item.href !== "/dashboard#dashboard-groups") {
       return;
     }
