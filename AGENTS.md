@@ -12,6 +12,8 @@ When the user asks for frontend UI, visual polish, responsive layout fixes, app 
 
 When the user asks about Codex setup, installing helper tools, CI/PR workflow, changelogs, Sentry triage, GitHub automation, or remembering agent methods, use the repo `codex-workflow-stack` skill. Prefer already installed, free, repo-safe tools; treat account-bound remote-action tools as opt-in.
 
+Graphify is installed as a global Codex skill for large codebase-map and architecture-discovery tasks. Use it when the user asks for `/graphify`, repository maps, dependency neighborhoods, or persistent codebase graphs; otherwise prefer normal `rg`/file inspection for focused edits. Keep `.graphifyignore` in place, do not commit `graphify-out/`, and do not use Graphify URL fetch, Neo4j push, watch hooks, or broad semantic extraction over sensitive/unreviewed files unless explicitly needed.
+
 ## Project Stack
 
 - Next.js `16.2.3` App Router on Vercel.

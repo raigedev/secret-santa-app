@@ -18,6 +18,7 @@ Prefer the tools already installed and trusted in this workspace:
 - `playwright`, `playwright-interactive`, and `webapp-testing` for app and UI verification.
 - `frontend-product-ui`, `DESIGN.md`, Stitch, and Taste skills for UI work.
 - `security-best-practices`, `security-threat-model`, and repo checks for security work.
+- `graphify` for large codebase maps, architecture discovery, dependency neighborhoods, or persistent graph queries when normal file inspection is too narrow.
 - Git history plus the release-note rules below for changelogs.
 
 ## Decision Rules
@@ -37,6 +38,7 @@ Prefer the tools already installed and trusted in this workspace:
 - Changelog/release notes: use `git log`, group changes by user impact, filter internal noise, and write normal user-facing copy.
 - Frontend work: use `frontend-product-ui`, Stitch when relevant, Playwright/browser verification, and `DESIGN.md`.
 - Performance/security/architecture work: use `code-improvement`; add Oracle dry-run for meaningful risk.
+- Large codebase map or persistent graph request: use `graphify` after checking `.graphifyignore`; do not commit `graphify-out/`.
 - Multi-agent or worktree orchestration: use local subagents only when the user explicitly asks for parallel agent work. Do not install external orchestrators by default.
 - App connector work: use existing Codex app plugins first. Do not install Composio Connect or similar account-bound tools without a specific user request and setup confirmation.
 

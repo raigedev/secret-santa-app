@@ -1,0 +1,44 @@
+# Secrets and local machine state
+.env*
+*.pem
+*.key
+*.crt
+*.p12
+*.pfx
+
+# Dependencies and generated output
+node_modules/
+.next/
+out/
+build/
+dist/
+coverage/
+playwright-report/
+test-results/
+blob-report/
+.vercel/
+.turbo/
+.cache/
+
+# Graphify output
+graphify-out/
+
+# Local agent/runtime logs and long archived transcripts
+.agent/*.log
+.agent/*.err.log
+docs/archived-codex-thread-*.md
+
+# Binary/media assets are opt-in for graph runs to avoid unnecessary model/API cost.
+*.png
+*.jpg
+*.jpeg
+*.gif
+*.webp
+*.ico
+*.mp4
+*.mov
+*.mkv
+*.webm
+*.mp3
+*.wav
+*.m4a
