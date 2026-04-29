@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import FadeIn from "@/app/components/FadeIn";
+import { GroupSkeleton } from "@/app/components/PageSkeleton";
 import { createClient } from "@/lib/supabase/client";
 import {
   getRevealPresentationData,
@@ -596,14 +597,7 @@ export default function GroupRevealPage() {
   };
 
   if (loading && !presentation) {
-    return (
-      <main
-        className="min-h-screen flex items-center justify-center"
-        style={{ background: "linear-gradient(180deg,#0f172a,#15384d 55%,#123226 100%)" }}
-      >
-        <p className="text-white text-lg font-semibold">Loading reveal screen...</p>
-      </main>
-    );
+    return <GroupSkeleton />;
   }
 
   if (error || !presentation) {

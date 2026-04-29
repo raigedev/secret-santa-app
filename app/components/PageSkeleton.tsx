@@ -10,8 +10,9 @@
 function Bone({ w, h, r = 8, className = "" }: { w: string; h: string; r?: number; className?: string }) {
   return (
     <div className={className} style={{
-      width: w, height: h, borderRadius: r,
-      background: "linear-gradient(90deg,#e5e7eb 25%,#f3f4f6 50%,#e5e7eb 75%)",
+      width: w, maxWidth: "100%", height: h, borderRadius: r,
+      background:
+        "linear-gradient(90deg,rgba(72,102,78,.12) 25%,rgba(255,255,255,.92) 50%,rgba(252,206,114,.18) 75%)",
       backgroundSize: "200% 100%",
       animation: "shimmer 1.5s infinite",
     }} />
@@ -19,11 +20,15 @@ function Bone({ w, h, r = 8, className = "" }: { w: string; h: string; r?: numbe
 }
 
 const shimmerCSS = `@keyframes shimmer{0%{background-position:-200% 0;}100%{background-position:200% 0;}}`;
+const appShellBackground =
+  "repeating-linear-gradient(135deg,rgba(72,102,78,.045) 0 1px,transparent 1px 38px),radial-gradient(circle at 12% 8%,rgba(252,206,114,.16),transparent 24%),linear-gradient(180deg,#fffefa 0%,#f7faf5 42%,#eef4ef 100%)";
+const panelSurface = "linear-gradient(135deg,rgba(255,255,255,.92),rgba(251,252,250,.84))";
+const quietBorder = "1px solid rgba(72,102,78,.14)";
 
 // ─── Dashboard Skeleton ───
 export function DashboardSkeleton() {
   return (
-    <main className="min-h-screen bg-[linear-gradient(180deg,#edf6ff_0%,#f8fbff_45%,#eef5ff_100%)]">
+    <main data-testid="dashboard-loading-shell" className="min-h-screen" style={{ background: appShellBackground }}>
       <style>{shimmerCSS}</style>
       <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
         <div className="mb-8 flex justify-end gap-3">
@@ -69,22 +74,22 @@ export function DashboardSkeleton() {
 // ─── Group Page Skeleton ───
 export function GroupSkeleton() {
   return (
-    <main className="min-h-screen" style={{ background: "linear-gradient(180deg,#0a1628,#162d50,#0a1628)" }}>
+    <main data-testid="group-loading-shell" className="min-h-screen" style={{ background: appShellBackground }}>
       <style>{shimmerCSS}</style>
-      <div className="max-w-3xl mx-auto px-4 py-6">
+      <div className="mx-auto max-w-4xl px-4 py-6">
         <Bone w="100px" h="32px" className="mb-5" />
-        <div className="rounded-2xl p-8" style={{ background: "rgba(255,255,255,.04)", border: "1px solid rgba(255,255,255,.06)" }}>
+        <div className="rounded-[28px] p-8 shadow-[0_18px_46px_rgba(46,52,50,.06)]" style={{ background: panelSurface, border: quietBorder }}>
           <div className="flex flex-col items-center">
-            <div style={{ opacity: .15 }}><Bone w="200px" h="32px" /></div>
-            <div style={{ opacity: .1 }} className="mt-3"><Bone w="140px" h="16px" /></div>
-            <div style={{ opacity: .1 }} className="mt-4"><Bone w="260px" h="44px" r={12} /></div>
+            <Bone w="200px" h="32px" />
+            <Bone w="140px" h="16px" className="mt-3" />
+            <Bone w="260px" h="44px" r={14} className="mt-4" />
           </div>
         </div>
-        <div style={{ opacity: .15 }} className="mt-6"><Bone w="120px" h="20px" /></div>
+        <div className="mt-6"><Bone w="120px" h="20px" /></div>
         <div className="flex gap-2 mt-3">
-          <div style={{ opacity: .1 }}><Bone w="80px" h="32px" r={16} /></div>
-          <div style={{ opacity: .1 }}><Bone w="80px" h="32px" r={16} /></div>
-          <div style={{ opacity: .1 }}><Bone w="80px" h="32px" r={16} /></div>
+          <Bone w="80px" h="32px" r={16} />
+          <Bone w="80px" h="32px" r={16} />
+          <Bone w="80px" h="32px" r={16} />
         </div>
       </div>
     </main>
@@ -94,23 +99,23 @@ export function GroupSkeleton() {
 // ─── Chat Skeleton ───
 export function ChatSkeleton() {
   return (
-    <main className="min-h-screen" style={{ background: "linear-gradient(180deg,#0a1628,#162d50,#0a1628)" }}>
+    <main data-testid="chat-loading-shell" className="min-h-screen" style={{ background: appShellBackground }}>
       <style>{shimmerCSS}</style>
       <div className="max-w-[720px] mx-auto px-4 py-6">
-        <div style={{ opacity: .2 }}><Bone w="100px" h="32px" /></div>
+        <Bone w="100px" h="32px" />
         <div className="flex flex-col items-center mt-5 mb-6">
-          <div style={{ opacity: .15 }}><Bone w="240px" h="28px" /></div>
-          <div style={{ opacity: .1 }} className="mt-2"><Bone w="180px" h="14px" /></div>
+          <Bone w="240px" h="28px" />
+          <Bone w="180px" h="14px" className="mt-2" />
         </div>
         <div className="flex gap-3 mb-6">
-          <div style={{ opacity: .08 }}><Bone w="100%" h="80px" r={12} /></div>
-          <div style={{ opacity: .08 }}><Bone w="100%" h="80px" r={12} /></div>
+          <Bone w="100%" h="80px" r={16} />
+          <Bone w="100%" h="80px" r={16} />
         </div>
-        <div style={{ opacity: .12 }}><Bone w="180px" h="20px" /></div>
-        <div style={{ opacity: .06 }} className="mt-3"><Bone w="100%" h="64px" r={12} /></div>
-        <div style={{ opacity: .06 }} className="mt-2"><Bone w="100%" h="64px" r={12} /></div>
-        <div style={{ opacity: .12 }} className="mt-5"><Bone w="160px" h="20px" /></div>
-        <div style={{ opacity: .06 }} className="mt-3"><Bone w="100%" h="64px" r={12} /></div>
+        <Bone w="180px" h="20px" />
+        <Bone w="100%" h="64px" r={16} className="mt-3" />
+        <Bone w="100%" h="64px" r={16} className="mt-2" />
+        <Bone w="160px" h="20px" className="mt-5" />
+        <Bone w="100%" h="64px" r={16} className="mt-3" />
       </div>
     </main>
   );
@@ -119,7 +124,7 @@ export function ChatSkeleton() {
 // ─── Profile Skeleton ───
 export function ProfileSkeleton() {
   return (
-    <main className="min-h-screen" style={{ background: "linear-gradient(180deg,#eef4fb,#dce8f5,#e8dce0)" }}>
+    <main data-testid="profile-loading-shell" className="min-h-screen" style={{ background: appShellBackground }}>
       <style>{shimmerCSS}</style>
       <div className="max-w-[640px] mx-auto px-4 py-6">
         <Bone w="100px" h="32px" className="mb-5" />
@@ -164,18 +169,72 @@ export function ProfileSkeleton() {
 // ─── Secret Santa Page Skeleton ───
 export function SecretSantaSkeleton() {
   return (
-    <main className="min-h-screen" style={{ background: "linear-gradient(180deg,#0a1628,#162d50,#0a1628)" }}>
+    <main data-testid="secret-santa-loading-shell" className="min-h-screen" style={{ background: appShellBackground }}>
       <style>{shimmerCSS}</style>
-      <div className="max-w-[720px] mx-auto px-4 py-6">
-        <div style={{ opacity: .2 }}><Bone w="100px" h="32px" /></div>
-        <div className="flex flex-col items-center mt-5 mb-6">
-          <div style={{ opacity: .15 }}><Bone w="260px" h="32px" /></div>
-          <div style={{ opacity: .1 }} className="mt-2"><Bone w="200px" h="14px" /></div>
+      <aside
+        className="fixed inset-y-0 left-0 z-10 hidden w-[17.5rem] border-r px-5 py-5 xl:block"
+        style={{
+          background:
+            "repeating-linear-gradient(135deg,rgba(72,102,78,.045) 0 1px,transparent 1px 38px),linear-gradient(180deg,rgba(255,254,250,.985),rgba(247,250,245,.965))",
+          borderColor: "rgba(72,102,78,.16)",
+        }}
+      >
+        <div className="flex items-center gap-3">
+          <Bone w="48px" h="48px" r={17} />
+          <div className="min-w-0 flex-1">
+            <Bone w="150px" h="24px" />
+            <Bone w="90px" h="10px" className="mt-2" />
+          </div>
         </div>
-        <div style={{ opacity: .08 }} className="mb-4"><Bone w="100%" h="160px" r={16} /></div>
-        <div style={{ opacity: .08 }} className="mb-4"><Bone w="100%" h="160px" r={16} /></div>
-        <div style={{ opacity: .12 }} className="mt-5"><Bone w="140px" h="22px" /></div>
-        <div style={{ opacity: .08 }} className="mt-3"><Bone w="100%" h="200px" r={16} /></div>
+        <div className="mt-10 space-y-3">
+          {Array.from({ length: 8 }).map((_, index) => (
+            <Bone key={index} w="100%" h="42px" r={14} />
+          ))}
+        </div>
+      </aside>
+      <div className="relative z-20 min-h-screen xl:pl-[17.5rem]">
+        <header className="hidden h-[84px] items-center justify-between border-b px-7 xl:flex" style={{ background: "rgba(255,254,250,.92)", borderColor: "rgba(72,102,78,.14)" }}>
+          <div>
+            <Bone w="180px" h="18px" />
+            <Bone w="220px" h="12px" className="mt-2" />
+          </div>
+          <div className="flex items-center gap-3">
+            <Bone w="126px" h="44px" r={999} />
+            <Bone w="48px" h="48px" r={999} />
+            <Bone w="160px" h="56px" r={999} />
+          </div>
+        </header>
+        <div className="mx-auto w-full max-w-[94rem] px-4 py-4 sm:px-6 sm:py-6 xl:px-7 xl:py-6">
+          <div className="mb-5 grid gap-5 lg:grid-cols-[minmax(0,1fr)_minmax(260px,320px)]">
+            <div>
+              <Bone w="260px" h="52px" r={18} />
+              <Bone w="420px" h="18px" r={10} className="mt-4 max-w-full" />
+              <Bone w="260px" h="14px" r={10} className="mt-3 max-w-full" />
+            </div>
+            <div className="rounded-[22px] p-4 shadow-[0_18px_42px_rgba(46,52,50,.06)]" style={{ background: panelSurface, border: quietBorder }}>
+              <Bone w="110px" h="14px" />
+              <Bone w="180px" h="30px" className="mt-3" />
+              <Bone w="160px" h="12px" className="mt-2" />
+            </div>
+          </div>
+          <div className="rounded-[28px] p-5 shadow-[0_18px_42px_rgba(46,52,50,.06)]" style={{ background: panelSurface, border: quietBorder }}>
+            <Bone w="190px" h="22px" />
+            <Bone w="460px" h="14px" className="mt-3 max-w-full" />
+            <div className="mt-5 grid gap-3 md:grid-cols-3">
+              <Bone w="100%" h="110px" r={20} />
+              <Bone w="100%" h="110px" r={20} />
+              <Bone w="100%" h="110px" r={20} />
+            </div>
+          </div>
+          <div className="mt-5 rounded-[28px] p-5 shadow-[0_18px_42px_rgba(46,52,50,.05)]" style={{ background: panelSurface, border: quietBorder }}>
+            <Bone w="230px" h="24px" />
+            <div className="mt-5 grid gap-4 lg:grid-cols-3">
+              <Bone w="100%" h="260px" r={24} />
+              <Bone w="100%" h="260px" r={24} />
+              <Bone w="100%" h="260px" r={24} />
+            </div>
+          </div>
+        </div>
       </div>
     </main>
   );
@@ -183,7 +242,7 @@ export function SecretSantaSkeleton() {
 
 export function NotificationsSkeleton() {
   return (
-    <main className="min-h-screen bg-[linear-gradient(180deg,#edf6ff_0%,#f8fbff_45%,#eef5ff_100%)]">
+    <main data-testid="notifications-loading-shell" className="min-h-screen" style={{ background: appShellBackground }}>
       <style>{shimmerCSS}</style>
       <div className="mx-auto max-w-4xl px-4 py-8 sm:px-6">
         <Bone w="120px" h="32px" r={999} className="mb-6" />
@@ -201,7 +260,7 @@ export function NotificationsSkeleton() {
 
 export function CreateGroupSkeleton() {
   return (
-    <main className="min-h-screen bg-[linear-gradient(180deg,#eef4fb,#dce8f5,#e8dce0)]">
+    <main data-testid="create-group-loading-shell" className="min-h-screen" style={{ background: appShellBackground }}>
       <style>{shimmerCSS}</style>
       <div className="mx-auto flex min-h-screen max-w-3xl items-center justify-center px-4 py-8">
         <div className="w-full max-w-lg rounded-[24px] bg-white/80 p-8 shadow-[0_24px_70px_rgba(148,163,184,0.18)] backdrop-blur-md">

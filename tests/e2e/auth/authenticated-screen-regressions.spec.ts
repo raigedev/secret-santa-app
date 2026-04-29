@@ -202,6 +202,55 @@ test.describe("authenticated screen regressions", () => {
     await expect(page.getByTestId("secret-santa-page-shell")).toBeVisible();
   });
 
+  test("sidebar assignments navigation keeps a light loading surface", async ({ page }) => {
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await loginWithTestCredentials(page, credentials!);
+    await page.goto("/dashboard");
+    await expect(page.getByTestId("app-shell-sidebar")).toBeVisible();
+
+    await page.evaluate(() => {
+      for (let index = sessionStorage.length - 1; index >= 0; index -= 1) {
+        const key = sessionStorage.key(index);
+
+        if (key?.startsWith("ss_secret_santa_page_snapshot_v1:")) {
+          sessionStorage.removeItem(key);
+        }
+      }
+    });
+
+    await page.route("**/rest/v1/**", async (route) => {
+      await new Promise((resolve) => setTimeout(resolve, 700));
+      await route.continue();
+    });
+
+    await page
+      .getByTestId("app-shell-sidebar")
+      .getByRole("link", { name: /assignments/i })
+      .click();
+    await page.waitForURL(/\/secret-santa/);
+
+    const loadingShell = page.getByTestId("secret-santa-loading-shell");
+    await expect(loadingShell).toBeVisible({ timeout: 5000 });
+
+    const loadingSurface = await loadingShell.evaluate((shell) => {
+      const style = window.getComputedStyle(shell);
+      const rect = shell.getBoundingClientRect();
+
+      return {
+        backgroundImage: style.backgroundImage,
+        height: rect.height,
+      };
+    });
+
+    expect(loadingSurface.backgroundImage).toContain("repeating-linear-gradient");
+    expect(loadingSurface.backgroundImage).not.toContain("rgb(10, 22, 40)");
+    expect(loadingSurface.backgroundImage).not.toContain("rgb(15, 23, 42)");
+    expect(loadingSurface.height).toBeGreaterThan(500);
+
+    await page.unroute("**/rest/v1/**");
+    await expect(page.getByTestId("secret-santa-page-shell")).toBeVisible({ timeout: 20000 });
+  });
+
   test("dashboard keeps text readable with a stored midnight preference", async ({ page }) => {
     const dashboardConsoleErrors: string[] = [];
 
