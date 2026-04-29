@@ -96,7 +96,7 @@ const AUTHENTICATED_SCREEN_CASES: ScreenCase[] = [
     path: "/dashboard",
     assertVisible: async (page) => {
       await expect(page.getByRole("button", { name: /open profile menu/i })).toBeVisible();
-      await expect(page.getByText(/your groups/i)).toBeVisible();
+      await expect(page.getByRole("heading", { name: /group snapshot/i })).toBeVisible();
       await expect(page.getByText(/\b0 days left\b/i)).toHaveCount(0);
       await expectBadgeClearOfBellIcon(page, "app-shell-notification-badge");
 
@@ -350,7 +350,7 @@ test.describe("authenticated screen regressions", () => {
     await page.reload();
 
     await expect(page.getByRole("heading", { name: /welcome back/i })).toBeVisible();
-    await expect(page.getByRole("heading", { name: /your groups/i })).toBeVisible();
+    await expect(page.getByRole("heading", { name: /group snapshot/i })).toBeVisible();
 
     const textSamples = await page.evaluate(() => {
       const parseRgbColor = (color: string) => {
@@ -407,8 +407,8 @@ test.describe("authenticated screen regressions", () => {
       return [
         readSample("welcome heading", "h1", /welcome back/i),
         readSample("reveal message", "p", /reveal|manage your groups|wishlists/i),
-        readSample("groups heading", "h2", /your groups/i),
-        readSample("groups summary", "p", /groups you host and groups you joined/i),
+        readSample("group overview heading", "h2", /group snapshot/i),
+        readSample("group overview summary", "p", /quick status for your exchanges/i),
       ];
     });
 
@@ -573,7 +573,7 @@ test.describe("authenticated screen regressions", () => {
       }
     });
     await page.reload();
-    await expect(page.getByText(/your groups/i)).toBeVisible();
+    await expect(page.getByRole("heading", { name: /group snapshot/i })).toBeVisible();
 
     const viewRecipientAction = page.getByRole("button", { name: /view recipient/i });
     const hasDrawnRecipient = await viewRecipientAction
@@ -1088,6 +1088,6 @@ test.describe("owner-only affiliate route regressions", () => {
 
     await page.waitForURL(/\/dashboard$/);
     await expect(page).toHaveURL(/\/dashboard$/);
-    await expect(page.getByText(/your groups/i)).toBeVisible();
+    await expect(page.getByRole("heading", { name: /group snapshot/i })).toBeVisible();
   });
 });

@@ -6,7 +6,6 @@ import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { getProfile } from "@/app/profile/actions";
 import { claimInvitedMemberships } from "./actions";
-import { deleteGroup } from "@/app/group/[id]/actions";
 import { DashboardSkeleton } from "@/app/components/PageSkeleton";
 import FadeIn from "@/app/components/FadeIn";
 import {
@@ -20,7 +19,7 @@ import {
 } from "./dashboard-formatters";
 import { DashboardActivitySection } from "./DashboardActivitySection";
 import { DashboardBackdrop } from "./DashboardBackdrop";
-import { DashboardGroupsSection } from "./DashboardGroupsSection";
+import { DashboardGroupsOverview } from "./DashboardGroupsOverview";
 import { DashboardHeader } from "./DashboardHeader";
 import { DashboardHero } from "./DashboardHero";
 import { DashboardInvitesSection } from "./DashboardInvitesSection";
@@ -102,7 +101,6 @@ export default function DashboardPage() {
   const [showProfileSetup, setShowProfileSetup] = useState(false);
   const [notificationsPanelOpen, setNotificationsPanelOpen] = useState(false);
   const [actionMessage, setActionMessage] = useState<ActionMessage>(null);
-  const [deletingGroupId, setDeletingGroupId] = useState<string | null>(null);
   const notificationButtonRef = useRef<HTMLButtonElement | null>(null);
   const {
     closeProfileMenu,
@@ -917,48 +915,6 @@ export default function DashboardPage() {
     router.push("/login");
   };
 
-  // Only the owner can delete a group.
-  // Requiring the exact group name adds another deliberate confirmation step.
-  const handleDeleteGroup = async (groupId: string, groupName: string) => {
-    const confirmed = confirm(
-      `Delete "${groupName}"?\n\nThis permanently removes the group, members, wishlists, messages, and draw details.`
-    );
-
-    if (!confirmed) {
-      return;
-    }
-
-    const typedName = prompt(
-      `Type the group name exactly to confirm deletion:\n\n${groupName}`,
-      ""
-    );
-
-    if (typedName === null) {
-      return;
-    }
-
-    setDeletingGroupId(groupId);
-    setActionMessage(null);
-
-    try {
-      const result = await deleteGroup(groupId, typedName);
-      setActionMessage({
-        type: result.success ? "success" : "error",
-        text: result.message,
-      });
-      if (result.success) {
-        clearDashboardSnapshots();
-      }
-    } catch {
-      setActionMessage({
-        type: "error",
-        text: "Failed to delete the group. Please try again.",
-      });
-    } finally {
-      setDeletingGroupId(null);
-    }
-  };
-
   if (loading) {
     return <DashboardSkeleton />;
   }
@@ -968,7 +924,6 @@ export default function DashboardPage() {
   // The shared authenticated shell owns the dashboard backdrop, so keep dashboard text in
   // the light palette even if a browser still has the retired midnight preference stored.
   const isDarkTheme = false;
-  const totalDashboardGroupCount = ownedGroups.length + invitedGroups.length;
   const allDashboardGroups = [...ownedGroups, ...invitedGroups];
   const revealMessage = buildDashboardRevealMessage(allDashboardGroups, countdownNow);
   const dashboardShellClass = isDarkTheme
@@ -1056,16 +1011,14 @@ export default function DashboardPage() {
 
         <section data-fade className="grid items-start gap-10 lg:grid-cols-[minmax(0,1fr)_360px]">
           <div className="space-y-12">
-            <DashboardGroupsSection
+            <DashboardGroupsOverview
               countdownNow={countdownNow}
-              deletingGroupId={deletingGroupId}
               invitedGroups={invitedGroups}
               isDarkTheme={isDarkTheme}
               ownedGroups={ownedGroups}
-              totalDashboardGroupCount={totalDashboardGroupCount}
               onCreateGroup={() => router.push("/create-group")}
-              onDeleteGroup={handleDeleteGroup}
               onOpenGroup={handleOpenGroup}
+              onOpenGroups={() => router.push("/groups")}
             />
 
             <DashboardActivitySection
