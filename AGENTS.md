@@ -8,6 +8,8 @@ When the user asks to fix, improve, refactor, optimize, secure, clean up, remove
 
 Follow the skill before editing source code.
 
+When the user asks for frontend UI, visual polish, responsive layout fixes, app screen redesigns, or frontend readability improvements, use the repo `frontend-product-ui` skill automatically alongside `DESIGN.md`, Stitch when relevant, browser preview, and Playwright verification.
+
 ## Project Stack
 
 - Next.js `16.2.3` App Router on Vercel.
@@ -111,6 +113,7 @@ Act as a senior full-stack engineer and software architect. Code this project wi
 ### Frontend UI Workflow
 
 - Before front-end UI work, read root `DESIGN.md` when present and preserve its design tokens, component rules, accessibility constraints, and anti-patterns.
+- For front-end UI work, use the repo `frontend-product-ui` skill first so OpenAI frontend guidance, Reddit field reports, and this app's design system are applied consistently.
 - For front-end UI work, use available UI/design skills and tools alongside the repo's existing design patterns. The user's preferred UI skills are `impeccable` and the Taste Skill family, especially `design-taste-frontend`, `stitch-design-taste`, `high-end-visual-design`, and `redesign-existing-projects` when installed or available in the active Codex session.
 - Use Google Stitch as the starting point for UI design context, base screen direction, design tokens, screen metadata, or implementation details when the user asks for design help or Stitch context.
 - If the UI direction is unclear, create or compare a few variants for inspiration before settling on the simplest polished direction.
