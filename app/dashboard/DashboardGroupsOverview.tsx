@@ -2,6 +2,7 @@ import {
   formatDashboardBudget,
   formatDashboardDate,
   formatDashboardEventCountdown,
+  isDashboardEventReadyToReveal,
 } from "./dashboard-formatters";
 import { ArrowRightIcon, GiftIcon, UserOutlineIcon } from "./dashboard-icons";
 import type { Group } from "./dashboard-types";
@@ -44,7 +45,7 @@ export function DashboardGroupsOverview({
   const nextGroups = allGroups.slice(0, 3);
   const hasGroups = allGroups.length > 0;
   const revealedGroups = allGroups.filter((group) =>
-    formatDashboardEventCountdown(group.event_date, countdownNow).toLowerCase().includes("reveal")
+    isDashboardEventReadyToReveal(group.event_date, countdownNow)
   ).length;
   const panelClass = isDarkTheme
     ? "border border-slate-700/70 bg-slate-900/82 text-slate-100"
@@ -61,7 +62,7 @@ export function DashboardGroupsOverview({
   return (
     <section id="dashboard-groups" className="scroll-mt-24">
       <div className={`overflow-hidden rounded-[30px] p-5 shadow-[0_14px_32px_rgba(45,51,55,0.05)] sm:p-6 ${panelClass}`}>
-        <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-start">
+        <div className="grid gap-5 2xl:grid-cols-[minmax(0,1fr)_auto] 2xl:items-start">
           <div>
             <p className={`text-[11px] font-black uppercase tracking-[0.18em] ${quietTextClass}`}>
               Today at a glance
@@ -75,7 +76,7 @@ export function DashboardGroupsOverview({
             </p>
           </div>
 
-          <div className="flex flex-wrap gap-2 lg:justify-end">
+          <div className="flex flex-wrap gap-2 2xl:justify-end">
             <button
               type="button"
               onClick={onOpenGroups}
@@ -107,7 +108,9 @@ export function DashboardGroupsOverview({
             <p className="mt-2 text-3xl font-black">{invitedGroups.length}</p>
           </div>
           <div className={`rounded-[20px] border p-4 ${statClass}`}>
-            <p className={`text-xs font-black uppercase tracking-[0.16em] ${quietTextClass}`}>Reveal open</p>
+            <p className={`text-xs font-black uppercase tracking-[0.16em] ${quietTextClass}`}>
+              Names ready
+            </p>
             <p className="mt-2 text-3xl font-black">{revealedGroups}</p>
           </div>
         </div>

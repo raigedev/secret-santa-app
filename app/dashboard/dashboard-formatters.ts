@@ -87,6 +87,16 @@ export function getDaysUntilEvent(value: string, now: number): number | null {
   return Math.max(0, getCalendarDayDifference(eventTime, now));
 }
 
+export function isDashboardEventReadyToReveal(value: string, now: number): boolean {
+  const eventTime = getDashboardEventTime(value);
+
+  if (Number.isNaN(eventTime)) {
+    return false;
+  }
+
+  return getCalendarDayDifference(eventTime, now) < 0;
+}
+
 export function formatDashboardEventCountdown(value: string, now: number): string {
   const eventTime = getDashboardEventTime(value);
 
@@ -97,7 +107,7 @@ export function formatDashboardEventCountdown(value: string, now: number): strin
   const dayDifference = getCalendarDayDifference(eventTime, now);
 
   if (dayDifference < 0) {
-    return "Reveal open";
+    return "Names ready";
   }
 
   if (dayDifference === 0) {
@@ -154,14 +164,14 @@ export function buildDashboardRevealMessage(groups: Group[], now: number): strin
     const nextFutureEvent = futureEvents[0];
 
     if (!nextFutureEvent) {
-      return `Reveal day is open for ${openEventName}.`;
+      return `Names are ready for ${openEventName}.`;
     }
 
     const futureDayLabel = `${nextFutureEvent.daysUntilEvent} day${
       nextFutureEvent.daysUntilEvent === 1 ? "" : "s"
     }`;
 
-    return `Reveal is open for ${openEventName}. Next: ${nextFutureEvent.groupName} in ${futureDayLabel}.`;
+    return `Names are ready for ${openEventName}. Next exchange: ${nextFutureEvent.groupName} in ${futureDayLabel}.`;
   }
 
   const nextEvent = futureEvents[0];
