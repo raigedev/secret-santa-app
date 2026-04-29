@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { useEffect, useRef, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { BellIcon, SantaMarkIcon, UserOutlineIcon } from "@/app/dashboard/dashboard-icons";
 import { DashboardNotificationsPanel } from "@/app/dashboard/DashboardNotificationsPanel";
@@ -11,6 +11,10 @@ import {
   clearAffiliateReportAccess,
   fetchAffiliateReportAccess,
 } from "@/app/components/affiliate-report-access-client";
+import {
+  useSupabaseRealtimeRefresh,
+  type RealtimeRefreshRule,
+} from "@/lib/supabase/realtime-refresh";
 import {
   addViewerProfileChangedListener,
   applyViewerProfileChangedEvent,
@@ -145,6 +149,7 @@ export default function AppRouteShell({ children }: { children: ReactNode }) {
   const [viewerName, setViewerName] = useState("");
   const [viewerAvatarUrl, setViewerAvatarUrl] = useState("");
   const [viewerAvatarEmoji, setViewerAvatarEmoji] = useState("");
+  const [shellUserId, setShellUserId] = useState<string | null>(null);
   const [canViewAffiliateReport, setCanViewAffiliateReport] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
   const [notificationsOpen, setNotificationsOpen] = useState(false);
@@ -152,6 +157,21 @@ export default function AppRouteShell({ children }: { children: ReactNode }) {
   const notificationButtonRef = useRef<HTMLButtonElement | null>(null);
   const loadedShellContextForUserRef = useRef<string | null>(null);
   const prefetchedRoutesRef = useRef<Set<string>>(new Set());
+
+  const loadShellUnreadCount = useCallback(
+    async (userId: string) => {
+      const { count, error } = await supabase
+        .from("notifications")
+        .select("id", { count: "exact", head: true })
+        .eq("user_id", userId)
+        .is("read_at", null);
+
+      if (!error) {
+        setUnreadCount(count || 0);
+      }
+    },
+    [supabase]
+  );
 
   useEffect(() => {
     if (!shouldUseAppShell(pathname)) {
@@ -165,6 +185,7 @@ export default function AppRouteShell({ children }: { children: ReactNode }) {
       const userId = sessionUser?.id || null;
       const emailName = getEmailViewerName(sessionUser?.email);
       const storedViewerProfile = readStoredViewerProfile();
+      setShellUserId(userId);
 
       if (storedViewerProfile.displayName) {
         setViewerName(storedViewerProfile.displayName);
@@ -182,6 +203,7 @@ export default function AppRouteShell({ children }: { children: ReactNode }) {
         return;
       }
 
+      void loadShellUnreadCount(userId);
       loadedShellContextForUserRef.current = userId;
 
       void getProfile()
@@ -233,7 +255,77 @@ export default function AppRouteShell({ children }: { children: ReactNode }) {
     return () => {
       isMounted = false;
     };
-  }, [pathname, supabase]);
+  }, [loadShellUnreadCount, pathname, supabase]);
+
+  const shellProfileRealtimeRules = useMemo<readonly RealtimeRefreshRule[]>(() => {
+    if (!shellUserId) {
+      return [];
+    }
+
+    return [
+      {
+        table: "profiles",
+        filter: `user_id=eq.${shellUserId}`,
+      },
+    ];
+  }, [shellUserId]);
+
+  useSupabaseRealtimeRefresh({
+    channelName: shellUserId ? `app-shell-profile-${shellUserId}` : "app-shell-profile-disabled",
+    enabled: shouldUseAppShell(pathname) && Boolean(shellUserId),
+    onRefresh: () => {
+      void getProfile()
+        .then((profile) => {
+          const profileName = normalizeViewerName(profile?.display_name);
+          const resolvedAvatarUrl = normalizeViewerAvatarUrl(profile?.avatar_url);
+          const resolvedAvatarEmoji = normalizeViewerAvatarEmoji(profile?.avatar_emoji);
+
+          if (profileName) {
+            setViewerName(profileName);
+            storeViewerName(profileName);
+          }
+
+          setViewerAvatarUrl(resolvedAvatarUrl);
+          storeViewerAvatarUrl(resolvedAvatarUrl || null);
+          setViewerAvatarEmoji(resolvedAvatarEmoji);
+          storeViewerAvatarEmoji(resolvedAvatarEmoji || null);
+        })
+        .catch(() => {
+          // Keep the cached shell profile if the background refresh is unavailable.
+        });
+    },
+    pollMs: 60000,
+    rules: shellProfileRealtimeRules,
+    supabase,
+  });
+
+  const shellNotificationsRealtimeRules = useMemo<readonly RealtimeRefreshRule[]>(() => {
+    if (!shellUserId) {
+      return [];
+    }
+
+    return [
+      {
+        table: "notifications",
+        filter: `user_id=eq.${shellUserId}`,
+      },
+    ];
+  }, [shellUserId]);
+
+  useSupabaseRealtimeRefresh({
+    channelName: shellUserId
+      ? `app-shell-notifications-${shellUserId}`
+      : "app-shell-notifications-disabled",
+    enabled: shouldUseAppShell(pathname) && Boolean(shellUserId),
+    onRefresh: () => {
+      if (shellUserId) {
+        void loadShellUnreadCount(shellUserId);
+      }
+    },
+    pollMs: 30000,
+    rules: shellNotificationsRealtimeRules,
+    supabase,
+  });
 
   useEffect(() => {
     if (!shouldUseAppShell(pathname)) {

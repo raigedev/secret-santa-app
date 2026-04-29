@@ -157,6 +157,7 @@ export default function DashboardPage() {
     let dashboardReloadTimer: ReturnType<typeof setTimeout> | null = null;
     let profileReloadTimer: ReturnType<typeof setTimeout> | null = null;
     let notificationPollInterval: ReturnType<typeof setInterval> | null = null;
+    let dashboardPollInterval: ReturnType<typeof setInterval> | null = null;
     let dashboardLoadVersion = 0;
     let sessionUser:
       | {
@@ -773,6 +774,15 @@ export default function DashboardPage() {
       scheduleNotificationsReload();
     };
 
+    const refreshDashboardIfVisible = () => {
+      if (document.visibilityState !== "visible") {
+        return;
+      }
+
+      scheduleDashboardReload();
+      scheduleNotificationsReload();
+    };
+
     const bootstrapDashboard = async () => {
       try {
         const {
@@ -851,6 +861,9 @@ export default function DashboardPage() {
         notificationPollInterval = setInterval(() => {
           refreshNotificationsIfVisible();
         }, 30000);
+        dashboardPollInterval = setInterval(() => {
+          refreshDashboardIfVisible();
+        }, 60000);
       } catch {
         if (!isMounted) {
           return;
@@ -866,8 +879,8 @@ export default function DashboardPage() {
 
     void bootstrapDashboard();
 
-    window.addEventListener("focus", refreshNotificationsIfVisible);
-    document.addEventListener("visibilitychange", refreshNotificationsIfVisible);
+    window.addEventListener("focus", refreshDashboardIfVisible);
+    document.addEventListener("visibilitychange", refreshDashboardIfVisible);
 
     const channel = supabase
       .channel("dashboard-realtime")
@@ -935,8 +948,11 @@ export default function DashboardPage() {
       if (notificationPollInterval) {
         clearInterval(notificationPollInterval);
       }
-      window.removeEventListener("focus", refreshNotificationsIfVisible);
-      document.removeEventListener("visibilitychange", refreshNotificationsIfVisible);
+      if (dashboardPollInterval) {
+        clearInterval(dashboardPollInterval);
+      }
+      window.removeEventListener("focus", refreshDashboardIfVisible);
+      document.removeEventListener("visibilitychange", refreshDashboardIfVisible);
       void supabase.removeChannel(channel);
       subscription.unsubscribe();
     };

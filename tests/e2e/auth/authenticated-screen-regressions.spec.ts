@@ -229,7 +229,13 @@ test.describe("authenticated screen regressions", () => {
 
     await page.route("**/rest/v1/**", async (route) => {
       await new Promise((resolve) => setTimeout(resolve, 700));
-      await route.continue();
+      try {
+        await route.continue();
+      } catch (error) {
+        if (!String(error).includes("Route is already handled")) {
+          throw error;
+        }
+      }
     });
 
     await page

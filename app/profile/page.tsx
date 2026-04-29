@@ -301,7 +301,55 @@ export default function ProfilePage() {
       return;
     }
 
+    let isActive = true;
     let reloadTimer: ReturnType<typeof setTimeout> | null = null;
+    let pollInterval: ReturnType<typeof setInterval> | null = null;
+
+    const reloadProfile = () => {
+      void Promise.all([getProfile(), getReminderPreferences()])
+        .then(([data, loadedReminderPreferences]) => {
+          if (!isActive) {
+            return;
+          }
+
+          const nextProfile = data ? normalizeProfile(data) : DEFAULT_PROFILE;
+          const nextCustomBudget = data
+            ? !BUDGET_OPTIONS.includes(data.default_budget || 25)
+            : false;
+          const nextReminderPreferences =
+            loadedReminderPreferences || DEFAULT_REMINDER_PREFERENCES;
+
+          setProfile(nextProfile);
+          setCustomBudget(nextCustomBudget);
+          setReminderPreferences(nextReminderPreferences);
+          notifyShellProfileChanged(nextProfile);
+          writeClientSnapshot(getProfilePageSnapshotStorageKey(userId), {
+            createdAt: Date.now(),
+            customBudget: nextCustomBudget,
+            email,
+            profile: nextProfile,
+            reminderPreferences: nextReminderPreferences,
+            userId,
+          });
+        })
+        .catch(() => {
+          // Keep the current form state if a background refresh is unavailable.
+        });
+    };
+
+    const scheduleReload = () => {
+      if (reloadTimer) {
+        clearTimeout(reloadTimer);
+      }
+
+      reloadTimer = setTimeout(reloadProfile, 120);
+    };
+
+    const refreshIfVisible = () => {
+      if (document.visibilityState === "visible") {
+        scheduleReload();
+      }
+    };
 
     const channel = supabase
       .channel(`profile-${userId}-realtime`)
@@ -313,34 +361,27 @@ export default function ProfilePage() {
           table: "profiles",
           filter: `user_id=eq.${userId}`,
         },
-        () => {
-          if (reloadTimer) {
-            clearTimeout(reloadTimer);
-          }
-
-          reloadTimer = setTimeout(() => {
-            void Promise.all([getProfile(), getReminderPreferences()]).then(
-              ([data, loadedReminderPreferences]) => {
-                if (data) {
-                  setProfile(normalizeProfile(data));
-                  setCustomBudget(!BUDGET_OPTIONS.includes(data.default_budget || 25));
-                }
-
-                setReminderPreferences(loadedReminderPreferences || DEFAULT_REMINDER_PREFERENCES);
-              }
-            );
-          }, 120);
-        }
+        () => scheduleReload()
       )
       .subscribe();
 
+    window.addEventListener("focus", refreshIfVisible);
+    document.addEventListener("visibilitychange", refreshIfVisible);
+    pollInterval = setInterval(refreshIfVisible, 60000);
+
     return () => {
+      isActive = false;
       if (reloadTimer) {
         clearTimeout(reloadTimer);
       }
+      if (pollInterval) {
+        clearInterval(pollInterval);
+      }
+      window.removeEventListener("focus", refreshIfVisible);
+      document.removeEventListener("visibilitychange", refreshIfVisible);
       void supabase.removeChannel(channel);
     };
-  }, [supabase, userId]);
+  }, [email, supabase, userId]);
 
   const handleSave = async () => {
     setSaving(true);

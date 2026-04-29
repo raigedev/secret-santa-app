@@ -984,6 +984,14 @@ export default function SecretSantaChatPage() {
       }, 120);
     };
 
+    let pollInterval: ReturnType<typeof setInterval> | null = null;
+
+    const refreshThreadsIfVisible = () => {
+      if (document.visibilityState === "visible") {
+        scheduleThreadsReload();
+      }
+    };
+
     const channel = supabase
       .channel("chat-threads-realtime")
       .on(
@@ -1051,10 +1059,19 @@ export default function SecretSantaChatPage() {
       )
       .subscribe();
 
+    window.addEventListener("focus", refreshThreadsIfVisible);
+    document.addEventListener("visibilitychange", refreshThreadsIfVisible);
+    pollInterval = setInterval(refreshThreadsIfVisible, 60000);
+
     return () => {
       if (reloadTimer) {
         clearTimeout(reloadTimer);
       }
+      if (pollInterval) {
+        clearInterval(pollInterval);
+      }
+      window.removeEventListener("focus", refreshThreadsIfVisible);
+      document.removeEventListener("visibilitychange", refreshThreadsIfVisible);
       supabase.removeChannel(channel);
     };
   }, [supabase, router]);
@@ -1089,6 +1106,17 @@ export default function SecretSantaChatPage() {
     };
 
     void loadMessages();
+
+    let pollInterval: ReturnType<typeof setInterval> | null = null;
+
+    const refreshMessagesIfVisible = () => {
+      if (document.visibilityState !== "visible") {
+        return;
+      }
+
+      void loadMessages();
+      void loadThreadsRef.current?.();
+    };
 
     const channel = supabase
       .channel(`chat-live-${activeThread.group_id}-${activeThread.giver_id}-${activeThread.receiver_id}`)
@@ -1168,7 +1196,19 @@ export default function SecretSantaChatPage() {
       )
       .subscribe();
 
-    return () => { isMounted = false; supabase.removeChannel(channel); };
+    window.addEventListener("focus", refreshMessagesIfVisible);
+    document.addEventListener("visibilitychange", refreshMessagesIfVisible);
+    pollInterval = setInterval(refreshMessagesIfVisible, 30000);
+
+    return () => {
+      isMounted = false;
+      if (pollInterval) {
+        clearInterval(pollInterval);
+      }
+      window.removeEventListener("focus", refreshMessagesIfVisible);
+      document.removeEventListener("visibilitychange", refreshMessagesIfVisible);
+      supabase.removeChannel(channel);
+    };
   }, [activeThread, supabase, scrollToBottom, markAsRead, userId]);
 
   const handleSend = async () => {

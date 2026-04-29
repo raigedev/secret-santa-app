@@ -165,6 +165,7 @@ export default function GroupDetailsPage() {
     // not overwrite newer state from the next page load.
     let isMounted = true;
     let reloadTimer: ReturnType<typeof setTimeout> | null = null;
+    let pollInterval: ReturnType<typeof setInterval> | null = null;
     let loadVersion = 0;
     let hasAppliedSnapshot = false;
 
@@ -388,6 +389,12 @@ export default function GroupDetailsPage() {
       }
     };
 
+    const refreshIfVisible = () => {
+      if (document.visibilityState === "visible") {
+        scheduleReload();
+      }
+    };
+
     const matchesGroupChange = (
       payload: {
         new: Record<string, string | null | undefined>;
@@ -469,13 +476,21 @@ export default function GroupDetailsPage() {
       .subscribe();
 
     window.addEventListener("storage", handleStorageRefresh);
+    window.addEventListener("focus", refreshIfVisible);
+    document.addEventListener("visibilitychange", refreshIfVisible);
+    pollInterval = setInterval(refreshIfVisible, 60000);
 
     return () => {
       isMounted = false;
       if (reloadTimer) {
         clearTimeout(reloadTimer);
       }
+      if (pollInterval) {
+        clearInterval(pollInterval);
+      }
       window.removeEventListener("storage", handleStorageRefresh);
+      window.removeEventListener("focus", refreshIfVisible);
+      document.removeEventListener("visibilitychange", refreshIfVisible);
       supabase.removeChannel(channel);
     };
   }, [id, router, supabase]);

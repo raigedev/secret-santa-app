@@ -21,6 +21,11 @@ import {
   WISHLIST_CATEGORIES,
   WISHLIST_ITEMS_PER_GROUP_LIMIT,
 } from "@/lib/wishlist/options";
+import {
+  realtimePayloadMatchesAnyValue,
+  useSupabaseRealtimeRefresh,
+  type RealtimeRefreshRule,
+} from "@/lib/supabase/realtime-refresh";
 
 type WishlistPriority = 0 | 1 | 2;
 
@@ -304,6 +309,32 @@ export default function WishlistPage() {
   const [editPriority, setEditPriority] = useState<WishlistPriority>(0);
   const [savingEditId, setSavingEditId] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [userId, setUserId] = useState<string | null>(null);
+  const groupIdsRef = useRef<Set<string>>(new Set());
+
+  const realtimeRules = useMemo<readonly RealtimeRefreshRule[]>(() => {
+    if (!userId) {
+      return [];
+    }
+
+    return [
+      {
+        table: "wishlists",
+        filter: `user_id=eq.${userId}`,
+      },
+      {
+        table: "group_members",
+        filter: `user_id=eq.${userId}`,
+      },
+      {
+        table: "groups",
+        shouldRefresh: (payload) =>
+          realtimePayloadMatchesAnyValue(payload, "id", groupIdsRef.current, {
+            refreshWhenUnknown: true,
+          }),
+      },
+    ];
+  }, [userId]);
 
   useEffect(() => {
     for (const route of ["/dashboard", "/secret-santa", "/secret-santa-chat"]) {
@@ -334,10 +365,14 @@ export default function WishlistPage() {
 
         const user = session?.user || null;
         if (!user) {
+          setUserId(null);
+          groupIdsRef.current = new Set();
           clearClientSnapshots(WISHLIST_PAGE_SNAPSHOT_STORAGE_PREFIX);
           router.push("/login");
           return;
         }
+
+        setUserId(user.id);
 
         if (!hasLoadedOnceRef.current) {
           const cachedWishlist = readClientSnapshot(
@@ -367,6 +402,7 @@ export default function WishlistPage() {
 
         if (groupIds.length === 0) {
           if (!active) return;
+          groupIdsRef.current = new Set();
           setGroups([]);
           setItems([]);
           setAddGroupId("");
@@ -396,6 +432,7 @@ export default function WishlistPage() {
         const nextGroups = ((groupRows || []) as GroupRow[]).map(toGroupOption).sort((a, b) =>
           a.name.localeCompare(b.name)
         );
+        groupIdsRef.current = new Set(nextGroups.map((group) => group.id));
         const groupNames = new Map(nextGroups.map((group) => [group.id, group.name]));
         const nextItems = ((wishlistRows || []) as WishlistRow[])
           .map(toWishlistItem)
@@ -437,6 +474,15 @@ export default function WishlistPage() {
       loadDataRef.current = null;
     };
   }, [router, supabase]);
+
+  useSupabaseRealtimeRefresh({
+    channelName: userId ? `wishlist-page-${userId}` : "wishlist-page-disabled",
+    enabled: Boolean(userId),
+    onRefresh: () => loadDataRef.current?.(),
+    pollMs: 30000,
+    rules: realtimeRules,
+    supabase,
+  });
 
   const handleAdd = async () => {
     const cleanName = cleanText(addName, ITEM_NAME_MAX);

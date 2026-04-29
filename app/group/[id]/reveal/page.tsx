@@ -169,6 +169,7 @@ export default function GroupRevealPage() {
   useEffect(() => {
     let isMounted = true;
     let reloadTimer: ReturnType<typeof setTimeout> | null = null;
+    let pollInterval: ReturnType<typeof setInterval> | null = null;
 
     const loadPresentation = async (options?: { blocking?: boolean }) => {
       const shouldBlock = options?.blocking ?? !hasLoadedPresentationRef.current;
@@ -225,6 +226,12 @@ export default function GroupRevealPage() {
       }, 120);
     };
 
+    const refreshIfVisible = () => {
+      if (document.visibilityState === "visible") {
+        scheduleReload();
+      }
+    };
+
     const channel = supabase
       .channel(`group-reveal-${id}`)
       .on(
@@ -243,11 +250,20 @@ export default function GroupRevealPage() {
       )
       .subscribe();
 
+    window.addEventListener("focus", refreshIfVisible);
+    document.addEventListener("visibilitychange", refreshIfVisible);
+    pollInterval = setInterval(refreshIfVisible, 30000);
+
     return () => {
       isMounted = false;
       if (reloadTimer) {
         clearTimeout(reloadTimer);
       }
+      if (pollInterval) {
+        clearInterval(pollInterval);
+      }
+      window.removeEventListener("focus", refreshIfVisible);
+      document.removeEventListener("visibilitychange", refreshIfVisible);
       supabase.removeChannel(channel);
     };
   }, [id, supabase]);

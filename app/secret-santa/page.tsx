@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState, type RefObject } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type RefObject } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { DashboardNotificationsPanel } from "@/app/dashboard/DashboardNotificationsPanel";
@@ -22,6 +22,10 @@ import {
   storeViewerAvatarUrl,
   storeViewerName,
 } from "@/app/components/viewer-profile-client";
+import {
+  useSupabaseRealtimeRefresh,
+  type RealtimeRefreshRule,
+} from "@/lib/supabase/realtime-refresh";
 import { confirmGiftReceived, updateGiftPrepStatus } from "./actions";
 import { SecretSantaSkeleton } from "@/app/components/PageSkeleton";
 import {
@@ -2353,6 +2357,7 @@ export default function SecretSantaPage() {
   const [viewerAvatarEmoji, setViewerAvatarEmoji] = useState(
     () => readStoredViewerProfile().avatarEmoji
   );
+  const [viewerUserId, setViewerUserId] = useState<string | null>(null);
   const [canViewAffiliateReport, setCanViewAffiliateReport] = useState(false);
 
   // Page-level feedback and action state.
@@ -2404,6 +2409,49 @@ export default function SecretSantaPage() {
 
     return addViewerProfileChangedListener(handleViewerProfileChanged);
   }, []);
+
+  const loadUnreadNotificationCount = useCallback(
+    async (userId: string) => {
+      const { count, error } = await supabase
+        .from("notifications")
+        .select("id", { count: "exact", head: true })
+        .eq("user_id", userId)
+        .is("read_at", null);
+
+      if (!error) {
+        setUnreadNotificationCount(count || 0);
+      }
+    },
+    [supabase]
+  );
+
+  const notificationRealtimeRules = useMemo<readonly RealtimeRefreshRule[]>(() => {
+    if (!viewerUserId) {
+      return [];
+    }
+
+    return [
+      {
+        table: "notifications",
+        filter: `user_id=eq.${viewerUserId}`,
+      },
+    ];
+  }, [viewerUserId]);
+
+  useSupabaseRealtimeRefresh({
+    channelName: viewerUserId
+      ? `secret-santa-notifications-${viewerUserId}`
+      : "secret-santa-notifications-disabled",
+    enabled: Boolean(viewerUserId),
+    onRefresh: () => {
+      if (viewerUserId) {
+        void loadUnreadNotificationCount(viewerUserId);
+      }
+    },
+    pollMs: 30000,
+    rules: notificationRealtimeRules,
+    supabase,
+  });
 
   useEffect(() => {
     for (const route of [
@@ -2926,6 +2974,7 @@ export default function SecretSantaPage() {
   useEffect(() => {
     let isMounted = true;
     let reloadTimer: ReturnType<typeof setTimeout> | null = null;
+    let pollInterval: ReturnType<typeof setInterval> | null = null;
 
     // Load every dataset needed by the page in one place.
     // This centralizes error handling and prevents duplicated state sync logic.
@@ -2941,12 +2990,15 @@ export default function SecretSantaPage() {
         }
 
         if (!session) {
+          setViewerUserId(null);
           clearClientSnapshots(SECRET_SANTA_PAGE_SNAPSHOT_STORAGE_PREFIX);
           router.replace("/login");
           return;
         }
 
         const user = session.user;
+        setViewerUserId(user.id);
+        void loadUnreadNotificationCount(user.id);
         const resolvedViewerName = readStoredViewerName();
         if (resolvedViewerName) {
           setViewerName(resolvedViewerName);
@@ -3165,6 +3217,12 @@ export default function SecretSantaPage() {
       }, 120);
     };
 
+    const refreshIfVisible = () => {
+      if (document.visibilityState === "visible") {
+        scheduleReload();
+      }
+    };
+
     void loadData();
 
     // Refresh visible data when related rows change in Supabase.
@@ -3192,14 +3250,23 @@ export default function SecretSantaPage() {
       )
       .subscribe();
 
+    window.addEventListener("focus", refreshIfVisible);
+    document.addEventListener("visibilitychange", refreshIfVisible);
+    pollInterval = setInterval(refreshIfVisible, 60000);
+
     return () => {
       isMounted = false;
       if (reloadTimer) {
         clearTimeout(reloadTimer);
       }
+      if (pollInterval) {
+        clearInterval(pollInterval);
+      }
+      window.removeEventListener("focus", refreshIfVisible);
+      document.removeEventListener("visibilitychange", refreshIfVisible);
       void supabase.removeChannel(channel);
     };
-  }, [supabase, router]);
+  }, [loadUnreadNotificationCount, supabase, router]);
 
   const handleUpdateGiftPrep = async (
     groupId: string,
