@@ -341,6 +341,60 @@ test.describe("authenticated screen regressions", () => {
     expect(sawWrongViewerName).toBe(false);
   });
 
+  test("viewer avatar falls back to the selected festive avatar", async ({ page }) => {
+    const festiveAvatar = "\u{1F384}";
+
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await loginWithTestCredentials(page, credentials!);
+    await page.goto("/dashboard");
+
+    await expect(page.getByTestId("app-shell-viewer-avatar")).toBeVisible();
+    await expect
+      .poll(async () => (await page.getByTestId("app-shell-viewer-name").textContent())?.trim() || "")
+      .not.toMatch(/^(profile|santa)$/i);
+
+    await page.evaluate((avatarEmoji) => {
+      window.dispatchEvent(
+        new CustomEvent("ss-profile-updated", {
+          detail: {
+            avatarEmoji,
+            avatarUrl: null,
+            displayName: "Avatar Tester",
+          },
+        })
+      );
+    }, festiveAvatar);
+
+    const dashboardAvatar = page.getByTestId("app-shell-viewer-avatar");
+    await expect(dashboardAvatar).toHaveText(festiveAvatar);
+    await expect(dashboardAvatar.locator("img")).toHaveCount(0);
+
+    await page.goto("/secret-santa");
+    await expect(page.getByTestId("secret-santa-page-shell")).toBeVisible({ timeout: 20000 });
+    await expect
+      .poll(
+        async () => (await page.getByTestId("shopping-ideas-viewer-name").textContent())?.trim() || "",
+        { timeout: 20000 }
+      )
+      .not.toMatch(/^(profile|santa)$/i);
+
+    await page.evaluate((avatarEmoji) => {
+      window.dispatchEvent(
+        new CustomEvent("ss-profile-updated", {
+          detail: {
+            avatarEmoji,
+            avatarUrl: null,
+            displayName: "Avatar Tester",
+          },
+        })
+      );
+    }, festiveAvatar);
+
+    const shoppingAvatar = page.getByTestId("shopping-ideas-viewer-avatar");
+    await expect(shoppingAvatar).toHaveText(festiveAvatar);
+    await expect(shoppingAvatar.locator("img")).toHaveCount(0);
+  });
+
   test("login does not write group memberships from the browser", async ({ page }) => {
     const browserSideGroupMemberWrites: string[] = [];
 

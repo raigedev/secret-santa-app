@@ -157,6 +157,7 @@ const AI_SUGGESTION_REQUEST_TIMEOUT_MS = 18000;
 const MAX_VISIBLE_RECIPIENT_WISHLIST_ITEMS = 3;
 const VIEWER_NAME_STORAGE_KEY = "ss_un";
 const VIEWER_AVATAR_STORAGE_KEY = "ss_uav";
+const VIEWER_AVATAR_EMOJI_STORAGE_KEY = "ss_uae";
 const VIEWER_PROFILE_CHANGED_EVENT = "ss-profile-updated";
 const PAGE_BACKGROUND =
   "radial-gradient(circle at 92% 6%,rgba(72,102,78,.12),transparent 25rem), radial-gradient(circle at 8% 90%,rgba(252,206,114,.15),transparent 24rem), repeating-linear-gradient(135deg,rgba(72,102,78,.055) 0 1px,transparent 1px 34px), repeating-linear-gradient(45deg,rgba(252,206,114,.09) 0 1px,transparent 1px 54px), linear-gradient(180deg,#fffdf8 0%,#fbfaf4 45%,#f1f7ee 100%)";
@@ -906,6 +907,10 @@ function normalizeViewerName(value: string | null | undefined): string {
   return (value || "").replace(/\s+/g, " ").trim();
 }
 
+function normalizeViewerAvatarEmoji(value: string | null | undefined): string {
+  return (value || "").trim().slice(0, 10);
+}
+
 function readStoredViewerName(): string {
   if (typeof sessionStorage === "undefined") {
     return "";
@@ -953,6 +958,14 @@ function readStoredViewerAvatarUrl(): string {
   return normalizeViewerAvatarUrl(sessionStorage.getItem(VIEWER_AVATAR_STORAGE_KEY));
 }
 
+function readStoredViewerAvatarEmoji(): string {
+  if (typeof sessionStorage === "undefined") {
+    return "";
+  }
+
+  return normalizeViewerAvatarEmoji(sessionStorage.getItem(VIEWER_AVATAR_EMOJI_STORAGE_KEY));
+}
+
 function storeViewerName(value: string): void {
   const normalized = normalizeViewerName(value);
 
@@ -975,17 +988,36 @@ function storeViewerAvatarUrl(value: string | null | undefined): void {
   }
 }
 
+function storeViewerAvatarEmoji(value: string | null | undefined): void {
+  if (typeof sessionStorage === "undefined") {
+    return;
+  }
+
+  const normalized = normalizeViewerAvatarEmoji(value);
+
+  if (normalized) {
+    sessionStorage.setItem(VIEWER_AVATAR_EMOJI_STORAGE_KEY, normalized);
+  } else {
+    sessionStorage.removeItem(VIEWER_AVATAR_EMOJI_STORAGE_KEY);
+  }
+}
+
 function readViewerProfileChangedDetail(event: Event) {
   if (!(event instanceof CustomEvent) || !event.detail || typeof event.detail !== "object") {
     return null;
   }
 
   const detail = event.detail as {
+    avatarEmoji?: unknown;
     avatarUrl?: unknown;
     displayName?: unknown;
   };
 
   return {
+    avatarEmoji:
+      typeof detail.avatarEmoji === "string" || detail.avatarEmoji === null
+        ? detail.avatarEmoji
+        : undefined,
     avatarUrl:
       typeof detail.avatarUrl === "string" || detail.avatarUrl === null
         ? detail.avatarUrl
@@ -1387,6 +1419,7 @@ function ShoppingIdeasHeader({
   onViewerAvatarError,
   onToggleNotifications,
   unreadNotificationCount,
+  viewerAvatarEmoji,
   viewerAvatarUrl,
   viewerName,
 }: {
@@ -1395,6 +1428,7 @@ function ShoppingIdeasHeader({
   onViewerAvatarError: () => void;
   onToggleNotifications: () => void;
   unreadNotificationCount: number;
+  viewerAvatarEmoji: string;
   viewerAvatarUrl: string;
   viewerName: string;
 }) {
@@ -1403,6 +1437,8 @@ function ShoppingIdeasHeader({
     ? `${getTimeOfDayGreeting()}, ${displayViewerName}`
     : getTimeOfDayGreeting();
   const profileInitial = displayViewerName.slice(0, 1).toUpperCase() || "?";
+  const fallbackAvatar = viewerAvatarEmoji || profileInitial;
+  const fallbackAvatarIsEmoji = Boolean(viewerAvatarEmoji);
 
   return (
     <header
@@ -1483,9 +1519,16 @@ function ShoppingIdeasHeader({
         >
           <span
             data-testid="shopping-ideas-viewer-avatar"
-            className="flex h-12 w-12 items-center justify-center overflow-hidden rounded-full text-[15px] font-black text-white"
+            className={`flex h-12 w-12 items-center justify-center overflow-hidden rounded-full ${
+              fallbackAvatarIsEmoji && !viewerAvatarUrl
+                ? "text-[24px]"
+                : "text-[15px] font-black text-white"
+            }`}
             style={{
-              background: "linear-gradient(135deg,#48664e,#2e3432)",
+              background:
+                fallbackAvatarIsEmoji && !viewerAvatarUrl
+                  ? "linear-gradient(135deg,#fff7ed,#fee2e2)"
+                  : "linear-gradient(135deg,#48664e,#2e3432)",
               boxShadow: "0 12px 24px rgba(46,52,50,.14)",
             }}
           >
@@ -1498,7 +1541,7 @@ function ShoppingIdeasHeader({
                 onError={onViewerAvatarError}
               />
             ) : (
-              profileInitial
+              fallbackAvatar
             )}
           </span>
           <span className="hidden min-w-0 lg:block">
@@ -2373,6 +2416,7 @@ export default function SecretSantaPage() {
   const [loading, setLoading] = useState(true);
   const [viewerName, setViewerName] = useState(readStoredViewerName);
   const [viewerAvatarUrl, setViewerAvatarUrl] = useState(readStoredViewerAvatarUrl);
+  const [viewerAvatarEmoji, setViewerAvatarEmoji] = useState(readStoredViewerAvatarEmoji);
   const [canViewAffiliateReport, setCanViewAffiliateReport] = useState(false);
 
   // Page-level feedback and action state.
@@ -2434,6 +2478,12 @@ export default function SecretSantaPage() {
         const nextAvatarUrl = normalizeViewerAvatarUrl(detail.avatarUrl);
         setViewerAvatarUrl(nextAvatarUrl);
         storeViewerAvatarUrl(nextAvatarUrl || null);
+      }
+
+      if (detail.avatarEmoji !== undefined) {
+        const nextAvatarEmoji = normalizeViewerAvatarEmoji(detail.avatarEmoji);
+        setViewerAvatarEmoji(nextAvatarEmoji);
+        storeViewerAvatarEmoji(nextAvatarEmoji || null);
       }
     };
 
@@ -3010,8 +3060,11 @@ export default function SecretSantaPage() {
             }
 
             const profileAvatarUrl = normalizeViewerAvatarUrl(profile?.avatar_url);
+            const profileAvatarEmoji = normalizeViewerAvatarEmoji(profile?.avatar_emoji);
             setViewerAvatarUrl(profileAvatarUrl);
             storeViewerAvatarUrl(profileAvatarUrl || null);
+            setViewerAvatarEmoji(profileAvatarEmoji);
+            storeViewerAvatarEmoji(profileAvatarEmoji || null);
           })
           .catch(() => {
             // Name refresh is non-blocking; keep the cached/email name if the profile action is unavailable.
@@ -3473,6 +3526,7 @@ export default function SecretSantaPage() {
             storeViewerAvatarUrl(null);
           }}
           unreadNotificationCount={unreadNotificationCount}
+          viewerAvatarEmoji={viewerAvatarEmoji}
           viewerAvatarUrl={viewerAvatarUrl}
           viewerName={viewerName}
           onToggleNotifications={() => setNotificationsPanelOpen((open) => !open)}

@@ -72,6 +72,7 @@ type ProfilePageSnapshot = ClientSnapshotMetadata & {
 const PROFILE_PAGE_SNAPSHOT_STORAGE_PREFIX = "ss_profile_page_snapshot_v1:";
 const VIEWER_NAME_STORAGE_KEY = "ss_un";
 const VIEWER_AVATAR_STORAGE_KEY = "ss_uav";
+const VIEWER_AVATAR_EMOJI_STORAGE_KEY = "ss_uae";
 const VIEWER_PROFILE_CHANGED_EVENT = "ss-profile-updated";
 const DEFAULT_PROFILE: Profile = {
   display_name: "",
@@ -160,6 +161,7 @@ function notifyShellProfileChanged(profile: Profile) {
   }
 
   const displayName = profile.display_name.replace(/\s+/g, " ").trim();
+  const avatarEmoji = profile.avatar_emoji.trim() || DEFAULT_AVATAR_EMOJI;
   const avatarUrl = profile.avatar_url?.trim() || null;
 
   if (typeof sessionStorage !== "undefined") {
@@ -172,11 +174,18 @@ function notifyShellProfileChanged(profile: Profile) {
     } else {
       sessionStorage.removeItem(VIEWER_AVATAR_STORAGE_KEY);
     }
+
+    if (avatarEmoji) {
+      sessionStorage.setItem(VIEWER_AVATAR_EMOJI_STORAGE_KEY, avatarEmoji);
+    } else {
+      sessionStorage.removeItem(VIEWER_AVATAR_EMOJI_STORAGE_KEY);
+    }
   }
 
   window.dispatchEvent(
     new CustomEvent(VIEWER_PROFILE_CHANGED_EVENT, {
       detail: {
+        avatarEmoji,
         avatarUrl,
         displayName,
       },
@@ -415,6 +424,16 @@ export default function ProfilePage() {
     setProfile((prev) => ({ ...prev, [key]: value }));
   };
 
+  const handleFestiveAvatarSelect = (emoji: string) => {
+    const nextProfile = {
+      ...profile,
+      avatar_emoji: emoji,
+    };
+
+    setProfile(nextProfile);
+    notifyShellProfileChanged(nextProfile);
+  };
+
   const handleAvatarUpload = async (event: ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
 
@@ -586,7 +605,7 @@ export default function ProfilePage() {
           <p className="text-[13px] font-extrabold mt-5 mb-3 text-left" style={{ color: "#374151" }}>Choose a festive avatar</p>
           <div className="grid grid-cols-4 gap-2 sm:grid-cols-6 md:grid-cols-8 md:gap-2.5">
             {PRESET_AVATARS.map((emoji) => (
-              <button key={emoji} onClick={() => update("avatar_emoji", emoji)}
+              <button key={emoji} onClick={() => handleFestiveAvatarSelect(emoji)}
                 className="aspect-square rounded-full flex items-center justify-center text-[26px] transition"
                 style={{
                   background: profile.avatar_emoji === emoji ? "#fef2f2" : "rgba(0,0,0,.02)",

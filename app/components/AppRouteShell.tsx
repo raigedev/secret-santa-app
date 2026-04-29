@@ -17,6 +17,7 @@ const HOLIDAY_RED = "#a43c3f";
 const TEXT_MUTED = "#64748b";
 const VIEWER_NAME_STORAGE_KEY = "ss_un";
 const VIEWER_AVATAR_STORAGE_KEY = "ss_uav";
+const VIEWER_AVATAR_EMOJI_STORAGE_KEY = "ss_uae";
 const VIEWER_PROFILE_CHANGED_EVENT = "ss-profile-updated";
 
 type AppNavItem = {
@@ -86,6 +87,10 @@ function normalizeViewerAvatarUrl(value: string | null | undefined) {
   }
 }
 
+function normalizeViewerAvatarEmoji(value: string | null | undefined) {
+  return (value || "").trim().slice(0, 10);
+}
+
 function getEmailViewerName(email: string | null | undefined) {
   return normalizeViewerName(email?.split("@")[0]?.replace(/[._-]+/g, " "));
 }
@@ -104,6 +109,14 @@ function readStoredViewerAvatarUrl() {
   }
 
   return normalizeViewerAvatarUrl(sessionStorage.getItem(VIEWER_AVATAR_STORAGE_KEY));
+}
+
+function readStoredViewerAvatarEmoji() {
+  if (typeof sessionStorage === "undefined") {
+    return "";
+  }
+
+  return normalizeViewerAvatarEmoji(sessionStorage.getItem(VIEWER_AVATAR_EMOJI_STORAGE_KEY));
 }
 
 function storeViewerName(value: string) {
@@ -128,17 +141,36 @@ function storeViewerAvatarUrl(value: string | null | undefined) {
   }
 }
 
+function storeViewerAvatarEmoji(value: string | null | undefined) {
+  if (typeof sessionStorage === "undefined") {
+    return;
+  }
+
+  const normalized = normalizeViewerAvatarEmoji(value);
+
+  if (normalized) {
+    sessionStorage.setItem(VIEWER_AVATAR_EMOJI_STORAGE_KEY, normalized);
+  } else {
+    sessionStorage.removeItem(VIEWER_AVATAR_EMOJI_STORAGE_KEY);
+  }
+}
+
 function readViewerProfileChangedDetail(event: Event) {
   if (!(event instanceof CustomEvent) || !event.detail || typeof event.detail !== "object") {
     return null;
   }
 
   const detail = event.detail as {
+    avatarEmoji?: unknown;
     avatarUrl?: unknown;
     displayName?: unknown;
   };
 
   return {
+    avatarEmoji:
+      typeof detail.avatarEmoji === "string" || detail.avatarEmoji === null
+        ? detail.avatarEmoji
+        : undefined,
     avatarUrl:
       typeof detail.avatarUrl === "string" || detail.avatarUrl === null
         ? detail.avatarUrl
@@ -227,6 +259,7 @@ export default function AppRouteShell({ children }: { children: ReactNode }) {
   const [supabase] = useState(() => createClient());
   const [viewerName, setViewerName] = useState("");
   const [viewerAvatarUrl, setViewerAvatarUrl] = useState("");
+  const [viewerAvatarEmoji, setViewerAvatarEmoji] = useState("");
   const [canViewAffiliateReport, setCanViewAffiliateReport] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
   const [notificationsOpen, setNotificationsOpen] = useState(false);
@@ -248,6 +281,7 @@ export default function AppRouteShell({ children }: { children: ReactNode }) {
       const emailName = getEmailViewerName(sessionUser?.email);
       const immediateViewerName = readStoredViewerName();
       const immediateViewerAvatarUrl = readStoredViewerAvatarUrl();
+      const immediateViewerAvatarEmoji = readStoredViewerAvatarEmoji();
 
       if (immediateViewerName) {
         setViewerName(immediateViewerName);
@@ -255,6 +289,10 @@ export default function AppRouteShell({ children }: { children: ReactNode }) {
 
       if (immediateViewerAvatarUrl) {
         setViewerAvatarUrl(immediateViewerAvatarUrl);
+      }
+
+      if (immediateViewerAvatarEmoji) {
+        setViewerAvatarEmoji(immediateViewerAvatarEmoji);
       }
 
       if (!userId || loadedShellContextForUserRef.current === userId) {
@@ -272,6 +310,7 @@ export default function AppRouteShell({ children }: { children: ReactNode }) {
           const profileName = normalizeViewerName(profile?.display_name);
           const resolvedName = profileName || readStoredViewerName() || emailName;
           const resolvedAvatarUrl = normalizeViewerAvatarUrl(profile?.avatar_url);
+          const resolvedAvatarEmoji = normalizeViewerAvatarEmoji(profile?.avatar_emoji);
 
           if (resolvedName) {
             setViewerName(resolvedName);
@@ -280,6 +319,8 @@ export default function AppRouteShell({ children }: { children: ReactNode }) {
 
           setViewerAvatarUrl(resolvedAvatarUrl);
           storeViewerAvatarUrl(resolvedAvatarUrl || null);
+          setViewerAvatarEmoji(resolvedAvatarEmoji);
+          storeViewerAvatarEmoji(resolvedAvatarEmoji || null);
         })
         .catch(() => {
           // The shell can keep the cached/email name if the profile action is temporarily unavailable.
@@ -352,6 +393,12 @@ export default function AppRouteShell({ children }: { children: ReactNode }) {
         setViewerAvatarUrl(nextAvatarUrl);
         storeViewerAvatarUrl(nextAvatarUrl || null);
       }
+
+      if (detail.avatarEmoji !== undefined) {
+        const nextAvatarEmoji = normalizeViewerAvatarEmoji(detail.avatarEmoji);
+        setViewerAvatarEmoji(nextAvatarEmoji);
+        storeViewerAvatarEmoji(nextAvatarEmoji || null);
+      }
     };
 
     window.addEventListener(VIEWER_PROFILE_CHANGED_EVENT, handleViewerProfileChanged);
@@ -402,6 +449,8 @@ export default function AppRouteShell({ children }: { children: ReactNode }) {
   const navItems = createNavItems(pathname, canViewAffiliateReport);
   const displayViewerName = normalizeViewerName(viewerName);
   const profileInitial = displayViewerName.slice(0, 1).toUpperCase() || "?";
+  const fallbackAvatar = viewerAvatarEmoji || profileInitial;
+  const fallbackAvatarIsEmoji = Boolean(viewerAvatarEmoji);
   const greetingText = displayViewerName
     ? `${getTimeOfDayGreeting()}, ${displayViewerName}`
     : getTimeOfDayGreeting();
@@ -515,7 +564,20 @@ export default function AppRouteShell({ children }: { children: ReactNode }) {
             </button>
             <div className="relative">
               <button type="button" onClick={() => setProfileOpen((open) => !open)} aria-haspopup="menu" aria-expanded={profileOpen} aria-label="Open profile menu" className="flex items-center gap-3 rounded-full py-1.5 pl-2 pr-4 transition hover:-translate-y-0.5" style={{ background: "rgba(255,255,255,.78)", border: "1px solid rgba(72,102,78,.12)", color: PAGE_TEXT_COLOR, boxShadow: "0 12px 26px rgba(46,52,50,.06)" }}>
-                <span data-testid="app-shell-viewer-avatar" className="flex h-12 w-12 items-center justify-center overflow-hidden rounded-full text-[15px] font-black text-white" style={{ background: "linear-gradient(135deg,#48664e,#2e3432)" }}>
+                <span
+                  data-testid="app-shell-viewer-avatar"
+                  className={`flex h-12 w-12 items-center justify-center overflow-hidden rounded-full ${
+                    fallbackAvatarIsEmoji && !viewerAvatarUrl
+                      ? "text-[24px]"
+                      : "text-[15px] font-black text-white"
+                  }`}
+                  style={{
+                    background:
+                      fallbackAvatarIsEmoji && !viewerAvatarUrl
+                        ? "linear-gradient(135deg,#fff7ed,#fee2e2)"
+                        : "linear-gradient(135deg,#48664e,#2e3432)",
+                  }}
+                >
                   {viewerAvatarUrl ? (
                     // eslint-disable-next-line @next/next/no-img-element
                     <img
@@ -528,7 +590,7 @@ export default function AppRouteShell({ children }: { children: ReactNode }) {
                       }}
                     />
                   ) : (
-                    profileInitial
+                    fallbackAvatar
                   )}
                 </span>
                 <span className="hidden min-w-0 lg:block">
