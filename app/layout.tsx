@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import AppRouteShell from "@/app/components/AppRouteShell";
+import { SantaAssistant } from "@/app/components/SantaAssistant";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -28,6 +29,7 @@ export default function RootLayout({
     <html lang="en">
       <body className="antialiased">
         <AppRouteShell>{children}</AppRouteShell>
+        <SantaAssistant />
       </body>
     </html>
   );

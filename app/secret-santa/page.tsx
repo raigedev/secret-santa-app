@@ -321,21 +321,11 @@ type ShoppingIdeasNavItem = {
     | "reminders";
 };
 
-function getShoppingIdeasHashSection(hash: string): "assignments" | "matches" | "prep" | null {
-  if (hash.startsWith("#assignments")) {
-    return "assignments";
-  }
+type SecretSantaExperienceMode = "shopping" | "giftee" | "assignments" | "tracking";
 
-  if (hash.startsWith("#matches")) {
-    return "matches";
-  }
-
-  if (hash.startsWith("#prep")) {
-    return "prep";
-  }
-
-  return null;
-}
+type SecretSantaExperienceProps = {
+  mode?: SecretSantaExperienceMode;
+};
 
 function GiftMark({ className = "h-5 w-5" }: { className?: string }) {
   return (
@@ -1094,68 +1084,6 @@ function SantaHelperMascot({ className = "h-20 w-20" }: { className?: string }) 
   );
 }
 
-function SantaShoppingHelper() {
-  const jumpToTopPicks = () => {
-    const topPicksSection = document.querySelector(
-      '[data-testid="curated-shopping-section"]'
-    );
-
-    if (topPicksSection instanceof HTMLElement) {
-      topPicksSection.scrollIntoView({ behavior: "smooth", block: "start" });
-    }
-  };
-
-  return (
-    <aside
-      data-testid="santa-helper"
-      className="pointer-events-none fixed bottom-4 right-3 z-[40] flex items-end justify-end sm:right-5"
-      aria-label="Santa Helper"
-    >
-      <button
-        type="button"
-        data-testid="santa-helper-toggle"
-        aria-label="Santa Helper, jump to top picks"
-        onClick={jumpToTopPicks}
-        className="santa-helper-animated santa-helper-button pointer-events-auto relative flex h-20 w-20 items-center justify-center rounded-full transition hover:-translate-y-1 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 sm:h-24 sm:w-24"
-        style={{
-          background:
-            "radial-gradient(circle at 36% 30%,rgba(255,255,255,.96),rgba(255,245,216,.82) 42%,rgba(232,243,234,.86) 72%,rgba(72,102,78,.12))",
-          border: "2px solid rgba(72,102,78,.32)",
-          boxShadow:
-            "0 18px 42px rgba(46,52,50,.2), 0 0 0 6px rgba(255,255,255,.56), inset 0 1px 0 rgba(255,255,255,.85)",
-          color: PAGE_TEXT_COLOR,
-          outlineColor: HOLIDAY_GREEN,
-        }}
-      >
-        <span
-          aria-hidden="true"
-          className="santa-helper-animated santa-helper-ring absolute inset-2 rounded-full"
-        />
-        <span
-          data-testid="santa-helper-sparkles"
-          aria-hidden="true"
-          className="santa-helper-animated santa-helper-sparkle absolute right-3 top-4 h-4 w-4 rounded-full"
-          style={{
-            background: "rgba(252,206,114,.92)",
-            boxShadow:
-              "0 0 0 5px rgba(252,206,114,.2), 0 0 22px rgba(252,206,114,.6)",
-          }}
-        />
-        <span
-          aria-hidden="true"
-          className="santa-helper-animated santa-helper-sparkle santa-helper-sparkle-small absolute bottom-5 left-4 h-2.5 w-2.5 rounded-full"
-          style={{
-            background: "rgba(164,60,63,.72)",
-            boxShadow: "0 0 0 4px rgba(164,60,63,.1)",
-          }}
-        />
-        <SantaHelperMascot className="h-16 w-16 sm:h-20 sm:w-20" />
-        <span className="sr-only">Jump to top picks</span>
-      </button>
-    </aside>
-  );
-}
-
 function ShoppingIdeasSidebar({
   navItems,
   activeGroupName,
@@ -1606,7 +1534,7 @@ function SantaHelperSidecar({
         }}
       >
         Start with <span className="font-black" style={{ color: PAGE_TEXT_COLOR }}>{activeItemName}</span>.
-        {budgetLabel ? ` Budget target: ${budgetLabel}.` : ""} Region: {regionLabel}.
+        {budgetLabel ? ` Group budget: ${budgetLabel}.` : ""} Region: {regionLabel}.
       </div>
 
       <div className="relative mt-3 min-h-[250px] overflow-hidden">
@@ -1997,6 +1925,279 @@ function getGiftPrepLabel(status: GiftPrepStatus | null): string {
   return GIFT_PREP_LABELS[status];
 }
 
+function MyGifteeWorkspace({ assignments }: { assignments: RecipientData[] }) {
+  return (
+    <section
+      data-testid="my-giftee-workspace"
+      className="mb-8 rounded-[30px] p-4 sm:p-6"
+      style={{
+        background: "linear-gradient(135deg,rgba(255,255,255,.96),rgba(239,247,241,.92))",
+        border: "1px solid rgba(72,102,78,.18)",
+        boxShadow: "0 22px 54px rgba(46,52,50,.07)",
+      }}
+    >
+      <div className="grid gap-5 lg:grid-cols-[minmax(0,0.8fr)_minmax(0,1.2fr)]">
+        <div>
+          <p
+            className="text-[10px] font-extrabold uppercase tracking-[0.16em]"
+            style={{ color: HOLIDAY_GOLD }}
+          >
+            Your secret matches
+          </p>
+          <h2
+            className="mt-2 text-[28px] font-black leading-tight"
+            style={{
+              color: PAGE_TEXT_COLOR,
+              fontFamily: "'Plus Jakarta Sans', 'Fredoka', sans-serif",
+            }}
+          >
+            People you are gifting
+          </h2>
+          <p className="mt-3 max-w-md text-[13px] leading-relaxed" style={{ color: TEXT_MUTED }}>
+            Keep each match private. Open a giftee to see their wishlist, group date, and budget.
+          </p>
+        </div>
+
+        <div className="space-y-3">
+          {assignments.map((assignment) => {
+            const budgetLabel =
+              assignment.group_budget !== null
+                ? formatPriceRange(
+                    assignment.group_budget,
+                    assignment.group_budget,
+                    assignment.group_currency
+                  )
+                : "Set in group";
+            const wishlistPreview = assignment.receiver_wishlist
+              .slice(0, 3)
+              .map((item) => item.item_name)
+              .join(", ");
+
+            return (
+              <article
+                key={`giftee-${assignment.group_id}`}
+                className="rounded-[24px] border border-[rgba(72,102,78,.14)] bg-white/90 p-4"
+              >
+                <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                  <div className="min-w-0">
+                    <p
+                      className="text-[10px] font-extrabold uppercase tracking-[0.14em]"
+                      style={{ color: TEXT_MUTED }}
+                    >
+                      {assignment.group_name}
+                    </p>
+                    <h3 className="mt-1 text-[20px] font-black leading-tight text-slate-950">
+                      {assignment.receiver_nickname}
+                    </h3>
+                    <p className="mt-1 text-[12px] font-semibold" style={{ color: TEXT_MUTED }}>
+                      Gift day: {formatDisplayDate(assignment.group_event_date)} / Group budget:{" "}
+                      {budgetLabel}
+                    </p>
+                  </div>
+                  <a
+                    href="/secret-santa"
+                    className="inline-flex min-h-11 shrink-0 items-center justify-center rounded-full px-5 text-[12px] font-extrabold transition hover:-translate-y-0.5"
+                    style={{
+                      background: HOLIDAY_GREEN,
+                      color: "#fff",
+                      textDecoration: "none",
+                    }}
+                  >
+                    Open gift ideas
+                  </a>
+                </div>
+                <div
+                  className="mt-4 rounded-[18px] p-3 text-[12px] leading-relaxed"
+                  style={{
+                    background: "rgba(72,102,78,.07)",
+                    color: PAGE_TEXT_COLOR,
+                  }}
+                >
+                  <span className="font-extrabold" style={{ color: HOLIDAY_GREEN }}>
+                    Wishlist:
+                  </span>{" "}
+                  {wishlistPreview || "No wishlist ideas yet."}
+                </div>
+              </article>
+            );
+          })}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function AssignmentsWorkspace({ assignments }: { assignments: RecipientData[] }) {
+  return (
+    <section
+      id="assignments"
+      data-testid="secret-santa-assignments-overview"
+      className="mb-8 rounded-[30px] p-4 sm:p-6"
+      style={{
+        background: "linear-gradient(135deg,rgba(255,255,255,.97),rgba(247,250,247,.94))",
+        border: "1px solid rgba(72,102,78,.18)",
+        boxShadow: "0 22px 54px rgba(46,52,50,.07)",
+      }}
+    >
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+        <div>
+          <p
+            className="text-[10px] font-extrabold uppercase tracking-[0.16em]"
+            style={{ color: HOLIDAY_GOLD }}
+          >
+            Match list
+          </p>
+          <h2
+            className="mt-2 text-[28px] font-black leading-tight"
+            style={{
+              color: PAGE_TEXT_COLOR,
+              fontFamily: "'Plus Jakarta Sans', 'Fredoka', sans-serif",
+            }}
+          >
+            All assignments
+          </h2>
+          <p className="mt-2 max-w-2xl text-[13px] leading-relaxed" style={{ color: TEXT_MUTED }}>
+            Review every group match in one simple list. Shopping and gift progress have their own pages.
+          </p>
+        </div>
+        <span
+          className="inline-flex w-fit rounded-full px-3 py-1.5 text-[11px] font-extrabold"
+          style={{ background: "rgba(72,102,78,.1)", color: HOLIDAY_GREEN }}
+        >
+          {assignments.length} assignment{assignments.length === 1 ? "" : "s"}
+        </span>
+      </div>
+
+      <div className="mt-5 divide-y divide-[rgba(72,102,78,.12)] overflow-hidden rounded-[24px] border border-[rgba(72,102,78,.12)] bg-white/90">
+        {assignments.map((assignment) => {
+          const budgetLabel =
+            assignment.group_budget !== null
+              ? formatPriceRange(
+                  assignment.group_budget,
+                  assignment.group_budget,
+                  assignment.group_currency
+                )
+              : "Set in group";
+
+          return (
+            <article
+              key={`assignment-${assignment.group_id}`}
+              data-testid="assignment-route-row"
+              className="grid gap-4 p-4 md:grid-cols-[minmax(0,1.2fr)_minmax(0,0.8fr)_auto] md:items-center"
+            >
+              <div className="min-w-0">
+                <p className="text-[10px] font-extrabold uppercase tracking-[0.14em]" style={{ color: TEXT_MUTED }}>
+                  {assignment.group_name}
+                </p>
+                <h3 className="mt-1 text-[18px] font-black text-slate-950">
+                  You gift {assignment.receiver_nickname}
+                </h3>
+              </div>
+              <div className="grid gap-1 text-[12px] font-semibold" style={{ color: TEXT_MUTED }}>
+                <span>Gift day: {formatDisplayDate(assignment.group_event_date)}</span>
+                <span>Group budget: {budgetLabel}</span>
+              </div>
+              <a
+                href={`/group/${assignment.group_id}`}
+                className="inline-flex min-h-10 items-center justify-center rounded-full px-4 text-[12px] font-extrabold transition hover:-translate-y-0.5"
+                style={{
+                  background: "rgba(72,102,78,.1)",
+                  color: HOLIDAY_GREEN,
+                  textDecoration: "none",
+                }}
+              >
+                Open group
+              </a>
+            </article>
+          );
+        })}
+      </div>
+    </section>
+  );
+}
+
+function GiftTrackingWorkspace({
+  assignments,
+  onUpdateGiftPrep,
+  updatingPrepGroup,
+}: {
+  assignments: RecipientData[];
+  onUpdateGiftPrep: (groupId: string, status: GiftPrepStatus) => void;
+  updatingPrepGroup: string | null;
+}) {
+  return (
+    <section
+      data-testid="gift-tracking-workspace"
+      className="mb-8 space-y-4"
+    >
+      {assignments.map((assignment) => (
+        <article
+          key={`tracking-${assignment.group_id}`}
+          data-testid="secret-santa-gift-progress-section"
+          className="rounded-[28px] border border-[rgba(72,102,78,.16)] bg-white/90 p-4"
+        >
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+            <div>
+              <p className="text-[10px] font-extrabold uppercase tracking-[0.14em]" style={{ color: TEXT_MUTED }}>
+                {assignment.group_name}
+              </p>
+              <h2 className="mt-1 text-[20px] font-black text-slate-950">
+                Gift for {assignment.receiver_nickname}
+              </h2>
+              <p className="mt-1 text-[12px] font-semibold" style={{ color: TEXT_MUTED }}>
+                Current: {getGiftPrepLabel(assignment.gift_prep_status)}
+              </p>
+            </div>
+            <span
+              className="w-fit rounded-full px-3 py-1.5 text-[11px] font-extrabold"
+              style={{
+                background: assignment.gift_received
+                  ? "rgba(31,122,77,.12)"
+                  : "rgba(252,206,114,.22)",
+                color: assignment.gift_received ? HOLIDAY_GREEN : HOLIDAY_GOLD,
+              }}
+            >
+              {assignment.gift_received ? "Recipient confirmed" : "Waiting for recipient"}
+            </span>
+          </div>
+
+          <div className="mt-4 grid gap-2 sm:grid-cols-4">
+            {GIFT_PREP_OPTIONS.map((option) => {
+              const isActive = assignment.gift_prep_status === option.value;
+              const isDisabled =
+                assignment.gift_received || updatingPrepGroup === assignment.group_id;
+
+              return (
+                <button
+                  key={option.value}
+                  type="button"
+                  onClick={() => onUpdateGiftPrep(assignment.group_id, option.value)}
+                  disabled={isDisabled}
+                  className="min-h-11 rounded-2xl px-3 py-3 text-[11px] font-extrabold transition hover:-translate-y-0.5 disabled:hover:translate-y-0"
+                  style={{
+                    background: isActive
+                      ? "linear-gradient(135deg,#48664e,#3c5a43)"
+                      : "rgba(72,102,78,.07)",
+                    border: `1px solid ${
+                      isActive ? "rgba(72,102,78,.34)" : "rgba(72,102,78,.12)"
+                    }`,
+                    color: isActive ? "#fff" : PAGE_TEXT_COLOR,
+                    cursor: isDisabled ? "not-allowed" : "pointer",
+                    opacity: isDisabled && !isActive ? 0.65 : 1,
+                  }}
+                  title={option.helper}
+                >
+                  {option.label}
+                </button>
+              );
+            })}
+          </div>
+        </article>
+      ))}
+    </section>
+  );
+}
+
 // Make success and error messages explicit instead of inferring them from punctuation.
 function createActionMessage(result: {
   success: boolean;
@@ -2086,7 +2287,7 @@ function getFriendlyLazadaLabel(value: string | null | undefined): string {
     return "Lazada search";
   }
 
-  if (normalized === "use your budget target") {
+  if (normalized === "use your budget target" || normalized === "use your group budget") {
     return "Budget guided";
   }
 
@@ -2135,7 +2336,7 @@ function getCuratedProductPriceLabel(
 ): string | null {
   const label = product.priceLabel?.trim();
 
-  if (!label || /^(budget target|target|typical spend):/i.test(label)) {
+  if (!label || /^(budget target|group budget|target|typical spend):/i.test(label)) {
     return null;
   }
 
@@ -2355,7 +2556,7 @@ function getMerchantBadgeStyle(
   }
 }
 
-export default function SecretSantaPage() {
+export function SecretSantaExperience({ mode = "shopping" }: SecretSantaExperienceProps) {
   const router = useRouter();
 
   // The Supabase client is created once for the lifetime of this page.
@@ -2376,7 +2577,6 @@ export default function SecretSantaPage() {
   );
   const [viewerUserId, setViewerUserId] = useState<string | null>(null);
   const [canViewAffiliateReport, setCanViewAffiliateReport] = useState(false);
-  const [currentHash, setCurrentHash] = useState("");
 
   // Page-level feedback and action state.
   const [message, setMessage] = useState<ActionMessage>(null);
@@ -2415,19 +2615,6 @@ export default function SecretSantaPage() {
   const lazadaPrimedKeysRef = useRef<Set<string>>(new Set());
   const matchedLazadaProductsByKeyRef = useRef(matchedLazadaProductsByKey);
   const hasAppliedPageSnapshotRef = useRef(false);
-
-  useEffect(() => {
-    const syncHash = () => setCurrentHash(window.location.hash);
-    syncHash();
-
-    window.addEventListener("hashchange", syncHash);
-    window.addEventListener("popstate", syncHash);
-
-    return () => {
-      window.removeEventListener("hashchange", syncHash);
-      window.removeEventListener("popstate", syncHash);
-    };
-  }, []);
 
   useEffect(() => {
     const handleViewerProfileChanged = (event: Event) => {
@@ -3429,41 +3616,78 @@ export default function SecretSantaPage() {
           primaryAssignment.group_budget,
           primaryAssignment.group_budget,
           primaryAssignment.group_currency
-        )
+        ) || "Set in group"
       : "Set in group";
   const firstRecipientName = primaryAssignment?.receiver_nickname || "your giftee";
-  const shoppingAnchorHref = activeGroupId ? `#matches-${activeGroupId}` : "#matches";
-  const assignmentsAnchorHref = "#assignments";
-  const prepAnchorHref = activeGroupId ? `#prep-${activeGroupId}` : "#prep";
-  const activeShoppingSection = getShoppingIdeasHashSection(currentHash);
+  const isShoppingMode = mode === "shopping";
+  const groupBudgetValue =
+    isShoppingMode && assignmentGroupCount > 1 ? "Varies by group" : dashboardBudgetLabel;
+  const groupBudgetHelper =
+    isShoppingMode && assignmentGroupCount > 1
+      ? "Each recipient card uses its own group budget."
+      : `For ${activeGroupName}`;
+  const modeHeroText: Record<
+    SecretSantaExperienceMode,
+    { title: string; description: string; cardLabel: string; cardValue: string; cardHelper: string }
+  > = {
+    shopping: {
+      title: "Shopping Ideas",
+      description: `Gift ideas for ${firstRecipientName}, based on their wishlist and group budget.`,
+      cardLabel: "Group budget",
+      cardValue: groupBudgetValue,
+      cardHelper: groupBudgetHelper,
+    },
+    giftee: {
+      title: "My Giftee",
+      description: "See who you are gifting, their wishlist, gift day, and group budget without shopping clutter.",
+      cardLabel: "Your matches",
+      cardValue: `${assignments.length}`,
+      cardHelper: `${assignmentGroupCount} group${assignmentGroupCount === 1 ? "" : "s"}`,
+    },
+    assignments: {
+      title: "Assignments",
+      description: "Review every Secret Santa match. Shopping ideas and gift progress stay on their own pages.",
+      cardLabel: "Assignments",
+      cardValue: `${assignments.length}`,
+      cardHelper: "One row per group match",
+    },
+    tracking: {
+      title: "Gift Tracking",
+      description: "Update your gift progress and confirm gifts only after they arrive.",
+      cardLabel: "Gift progress",
+      cardValue: `${assignments.length}`,
+      cardHelper: "Private to you",
+    },
+  };
+  const heroText = modeHeroText[mode];
   const sidebarNavItems: ShoppingIdeasNavItem[] = [
     { label: "Dashboard", href: "/dashboard", icon: "dashboard" },
     { label: "My Groups", href: "/groups", icon: "group" },
     {
       label: "My Giftee",
-      href: shoppingAnchorHref,
+      href: "/my-giftee",
       icon: "giftee",
-      active: activeShoppingSection === "matches",
+      active: mode === "giftee",
     },
     { label: "Wishlist", href: "/wishlist", icon: "wishlist" },
     {
       label: "Assignments",
-      href: assignmentsAnchorHref,
+      href: "/assignments",
       icon: "assignments",
-      active: activeShoppingSection === "assignments",
+      active: mode === "assignments",
     },
     { label: "Messages", href: "/secret-santa-chat", icon: "messages" },
     {
       label: "Shopping Ideas",
       href: "/secret-santa",
       icon: "shopping",
-      active: activeShoppingSection === null,
+      active: isShoppingMode,
     },
     {
       label: "Gift Tracking",
-      href: prepAnchorHref,
+      href: "/gift-tracking",
       icon: "tracking",
-      active: activeShoppingSection === "prep",
+      active: mode === "tracking",
     },
     ...(canViewAffiliateReport
       ? [
@@ -3604,14 +3828,13 @@ export default function SecretSantaPage() {
                   textWrap: "balance",
                 }}
               >
-                Shopping Ideas
+                {heroText.title}
               </h1>
               <p
                 className="mt-3 max-w-2xl text-[14px] font-semibold leading-relaxed sm:text-[16px]"
                 style={{ color: TEXT_MUTED }}
               >
-                Curated gift ideas from Lazada based on {firstRecipientName}&apos;s
-                wishlist and your budget.
+                {heroText.description}
               </p>
               </div>
             </div>
@@ -3632,16 +3855,16 @@ export default function SecretSantaPage() {
               </div>
               <div className="flex items-center justify-between gap-3">
                 <span className="text-[12px] font-black" style={{ color: PAGE_TEXT_COLOR }}>
-                  Budget target
+                  {heroText.cardLabel}
                 </span>
               </div>
               <div className="relative mt-2 grid grid-cols-[minmax(0,1fr)_88px] gap-3">
                 <div>
                   <div className="text-[25px] font-black leading-none">
-                    {dashboardBudgetLabel}
+                    {heroText.cardValue}
                   </div>
                   <div className="mt-1 text-[11px] font-bold" style={{ color: TEXT_MUTED }}>
-                    You can still adjust anytime
+                    {heroText.cardHelper}
                   </div>
                 </div>
                 <span aria-hidden="true" />
@@ -3771,123 +3994,23 @@ export default function SecretSantaPage() {
           </div>
         </div>
 
-        {assignments.length > 0 && (
-          <section
-            id="assignments"
-            data-testid="secret-santa-assignments-overview"
-            className="mb-7 scroll-mt-28 rounded-[30px] p-4 sm:p-5"
-            style={{
-              background:
-                "linear-gradient(135deg,rgba(255,255,255,.96),rgba(238,247,240,.9))",
-              border: "1px solid rgba(72,102,78,.18)",
-              boxShadow: "0 24px 58px rgba(46,52,50,.08)",
-            }}
-          >
-            <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
-              <div>
-                <div
-                  className="text-[10px] font-extrabold uppercase tracking-[0.16em]"
-                  style={{ color: HOLIDAY_GOLD }}
-                >
-                  Assignments
-                </div>
-                <h2
-                  className="mt-1 text-[24px] font-black leading-tight sm:text-[30px]"
-                  style={{
-                    color: PAGE_TEXT_COLOR,
-                    fontFamily: "'Plus Jakarta Sans', 'Fredoka', sans-serif",
-                  }}
-                >
-                  Who you gift
-                </h2>
-                <p className="mt-1 max-w-2xl text-[13px] leading-relaxed" style={{ color: TEXT_MUTED }}>
-                  A quick view of each group, your giftee, and where gift planning stands.
-                </p>
-              </div>
-              <span
-                className="inline-flex w-fit rounded-full px-3 py-1.5 text-[11px] font-extrabold"
-                style={{ background: "rgba(72,102,78,.1)", color: HOLIDAY_GREEN }}
-              >
-                {assignments.length} recipient{assignments.length === 1 ? "" : "s"}
-              </span>
-            </div>
-
-            <div className="mt-4 grid gap-3 lg:grid-cols-2">
-              {assignments.map((assignment) => (
-                <article
-                  key={`summary-${assignment.group_id}`}
-                  data-testid="secret-santa-assignment-summary-card"
-                  className="rounded-[24px] p-4"
-                  style={{
-                    background: "rgba(255,255,255,.86)",
-                    border: "1px solid rgba(72,102,78,.14)",
-                    boxShadow: "0 12px 28px rgba(46,52,50,.04)",
-                  }}
-                >
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="min-w-0">
-                      <div
-                        className="text-[10px] font-extrabold uppercase tracking-[0.12em]"
-                        style={{ color: TEXT_MUTED }}
-                      >
-                        {assignment.group_name}
-                      </div>
-                      <div
-                        className="mt-1 text-[18px] font-black leading-tight"
-                        style={{ color: PAGE_TEXT_COLOR }}
-                      >
-                        You gift {assignment.receiver_nickname}
-                      </div>
-                    </div>
-                    <span
-                      className="shrink-0 rounded-full px-3 py-1 text-[10px] font-extrabold"
-                      style={{
-                        background: assignment.gift_received
-                          ? "rgba(31,122,77,.12)"
-                          : "rgba(252,206,114,.22)",
-                        color: assignment.gift_received ? HOLIDAY_GREEN : HOLIDAY_GOLD,
-                      }}
-                    >
-                      {assignment.gift_received ? "Received" : getGiftPrepLabel(assignment.gift_prep_status)}
-                    </span>
-                  </div>
-
-                  <div className="mt-3 grid gap-2 text-[12px] font-semibold sm:grid-cols-2" style={{ color: TEXT_MUTED }}>
-                    <div>Event: {formatDisplayDate(assignment.group_event_date)}</div>
-                    <div>Wishlist items: {assignment.receiver_wishlist.length}</div>
-                  </div>
-
-                  <div className="mt-4 flex flex-wrap gap-2">
-                    <a
-                      href={`#matches-${assignment.group_id}`}
-                      className="inline-flex min-h-10 items-center rounded-full px-4 text-[12px] font-extrabold transition hover:-translate-y-0.5"
-                      style={{
-                        background: "rgba(72,102,78,.12)",
-                        color: HOLIDAY_GREEN,
-                        textDecoration: "none",
-                      }}
-                    >
-                      Gift ideas
-                    </a>
-                    <a
-                      href={`#prep-${assignment.group_id}`}
-                      className="inline-flex min-h-10 items-center rounded-full px-4 text-[12px] font-extrabold transition hover:-translate-y-0.5"
-                      style={{
-                        background: "rgba(164,60,63,.1)",
-                        color: HOLIDAY_RED,
-                        textDecoration: "none",
-                      }}
-                    >
-                      Gift progress
-                    </a>
-                  </div>
-                </article>
-              ))}
-            </div>
-          </section>
+        {mode === "giftee" && assignments.length > 0 && (
+          <MyGifteeWorkspace assignments={assignments} />
         )}
 
-        {/* Recipient cards show assigned recipients, their wishlist items, and gift confirmation state. */}
+        {mode === "assignments" && assignments.length > 0 && (
+          <AssignmentsWorkspace assignments={assignments} />
+        )}
+
+        {mode === "tracking" && assignments.length > 0 && (
+          <GiftTrackingWorkspace
+            assignments={assignments}
+            onUpdateGiftPrep={handleUpdateGiftPrep}
+            updatingPrepGroup={updatingPrepGroup}
+          />
+        )}
+
+        {/* Shopping cards show assigned recipients, their wishlist items, and gift ideas only. */}
         {assignments.length === 0 ? (
           <div
             className="text-center py-12 mb-7 rounded-[18px]"
@@ -3914,7 +4037,7 @@ export default function SecretSantaPage() {
               When a group owner draws names, the people you are gifting will appear here.
             </p>
           </div>
-        ) : (
+        ) : isShoppingMode ? (
           <div className="mb-8 flex flex-col gap-10">
             {assignments.map((assignment, index) => (
               <div
@@ -5002,9 +5125,9 @@ export default function SecretSantaPage() {
                                               const roleLabel = getFeaturedLazadaRoleLabel(
                                                 index
                                               );
-                                              const budgetTargetLabel =
+                                              const groupBudgetLabel =
                                                 activeGroupBudgetLabel
-                                                  ? `Budget target: ${activeGroupBudgetLabel}`
+                                                  ? `Group budget: ${activeGroupBudgetLabel}`
                                                   : null;
                                               const productPriceLabel =
                                                 getCuratedProductPriceLabel(product);
@@ -5186,7 +5309,7 @@ export default function SecretSantaPage() {
                                                       >
                                                         {cardTypeLabel}
                                                       </span>
-                                                      {budgetTargetLabel && (
+                                                      {groupBudgetLabel && (
                                                         <span
                                                           className="rounded-full px-2.5 py-1 text-[10px] font-extrabold leading-tight"
                                                           style={{
@@ -5197,7 +5320,7 @@ export default function SecretSantaPage() {
                                                             color: PAGE_TEXT_COLOR,
                                                           }}
                                                         >
-                                                          {budgetTargetLabel}
+                                                          {groupBudgetLabel}
                                                         </span>
                                                       )}
                                                     </div>
@@ -5363,6 +5486,8 @@ export default function SecretSantaPage() {
 
                   )}
 
+                  {!isShoppingMode && (
+                    <>
                   <div
                     id={`prep-${assignment.group_id}`}
                     data-testid="secret-santa-gift-progress-section"
@@ -5520,13 +5645,15 @@ export default function SecretSantaPage() {
                   >
                     View group →
                   </button>
+                    </>
+                  )}
                 </div>
               </div>
             ))}
           </div>
-        )}
+        ) : null}
 
-        {receivedGifts.length > 0 && (
+        {mode === "tracking" && receivedGifts.length > 0 && (
           <div className="mb-7">
             <div className="text-center mb-4">
               <h2
@@ -5670,10 +5797,13 @@ export default function SecretSantaPage() {
         </div>
       </div>
 
-      <SantaShoppingHelper />
       <SnowEffect />
     </main>
   );
+}
+
+export default function SecretSantaPage() {
+  return <SecretSantaExperience mode="shopping" />;
 }
 
 function SnowEffect() {

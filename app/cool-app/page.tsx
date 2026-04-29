@@ -239,7 +239,7 @@ export default function CoolAppPage() {
           </select>
 
           <label className="mt-6 flex items-center justify-between gap-4 text-sm font-bold text-[#243229]" htmlFor="budget">
-            <span>Budget target</span>
+            <span>Gift budget</span>
             <span>{peso(budget)}</span>
           </label>
           <input

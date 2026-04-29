@@ -63,11 +63,6 @@ function getDashboardEventTime(value: string): number {
   return new Date(value).getTime();
 }
 
-function getLocalDayStart(timestamp: number): number {
-  const date = new Date(timestamp);
-  return new Date(date.getFullYear(), date.getMonth(), date.getDate()).getTime();
-}
-
 function getCalendarDayKey(timestamp: number): number {
   const date = new Date(timestamp);
   return Date.UTC(date.getFullYear(), date.getMonth(), date.getDate());
@@ -87,7 +82,7 @@ export function getDaysUntilEvent(value: string, now: number): number | null {
   return Math.max(0, getCalendarDayDifference(eventTime, now));
 }
 
-export function isDashboardEventReadyToReveal(value: string, now: number): boolean {
+export function isDashboardEventPast(value: string, now: number): boolean {
   const eventTime = getDashboardEventTime(value);
 
   if (Number.isNaN(eventTime)) {
@@ -107,11 +102,11 @@ export function formatDashboardEventCountdown(value: string, now: number): strin
   const dayDifference = getCalendarDayDifference(eventTime, now);
 
   if (dayDifference < 0) {
-    return "Names ready";
+    return "Gift day passed";
   }
 
   if (dayDifference === 0) {
-    return "Today";
+    return "Gift day today";
   }
 
   if (dayDifference === 1) {
@@ -122,27 +117,24 @@ export function formatDashboardEventCountdown(value: string, now: number): strin
 }
 
 export function buildDashboardRevealMessage(groups: Group[], now: number): string {
-  const todayStart = getLocalDayStart(now);
   const events = groups
     .map((group) => {
       const eventTime = getDashboardEventTime(group.event_date);
-      const daysUntilEvent = getDaysUntilEvent(group.event_date, now);
 
-      if (Number.isNaN(eventTime) || daysUntilEvent === null) {
+      if (Number.isNaN(eventTime)) {
         return null;
       }
 
       return {
-        daysUntilEvent,
+        dayDifference: getCalendarDayDifference(eventTime, now),
         groupName: group.name || "your exchange",
-        hasStarted: getLocalDayStart(eventTime) <= todayStart,
         sortTime: eventTime,
       };
     })
     .filter((event): event is NonNullable<typeof event> => event !== null)
     .sort((left, right) => {
-      if (left.daysUntilEvent !== right.daysUntilEvent) {
-        return left.daysUntilEvent - right.daysUntilEvent;
+      if (left.dayDifference !== right.dayDifference) {
+        return left.dayDifference - right.dayDifference;
       }
 
       return left.sortTime - right.sortTime;
@@ -152,41 +144,65 @@ export function buildDashboardRevealMessage(groups: Group[], now: number): strin
     return "Manage your groups, name draws, wishlists, and private messages in one place.";
   }
 
-  const openEvents = events.filter((event) => event.hasStarted);
-  const futureEvents = events.filter((event) => !event.hasStarted);
+  const pastEvents = events.filter((event) => event.dayDifference < 0);
+  const todayEvents = events.filter((event) => event.dayDifference === 0);
+  const futureEvents = events.filter((event) => event.dayDifference > 0);
 
-  if (openEvents.length > 0) {
-    const [openEvent] = openEvents;
-    const openEventName =
-      openEvents.length > 1
-        ? `${openEvent.groupName} and ${openEvents.length - 1} more`
-        : openEvent.groupName;
+  if (todayEvents.length > 0) {
+    const [todayEvent] = todayEvents;
+    const todayEventName =
+      todayEvents.length > 1
+        ? `${todayEvent.groupName} and ${todayEvents.length - 1} more`
+        : todayEvent.groupName;
     const nextFutureEvent = futureEvents[0];
 
     if (!nextFutureEvent) {
-      return `Names are ready for ${openEventName}.`;
+      return `Gift day is today for ${todayEventName}.`;
     }
 
-    const futureDayLabel = `${nextFutureEvent.daysUntilEvent} day${
-      nextFutureEvent.daysUntilEvent === 1 ? "" : "s"
+    const futureDayLabel = `${nextFutureEvent.dayDifference} day${
+      nextFutureEvent.dayDifference === 1 ? "" : "s"
     }`;
 
-    return `Names are ready for ${openEventName}. Next exchange: ${nextFutureEvent.groupName} in ${futureDayLabel}.`;
+    return `Gift day is today for ${todayEventName}. Next exchange: ${nextFutureEvent.groupName} in ${futureDayLabel}.`;
+  }
+
+  if (pastEvents.length > 0) {
+    const latestPastEvents = pastEvents.sort((left, right) => right.sortTime - left.sortTime);
+    const [pastEvent] = latestPastEvents;
+    const pastEventName =
+      latestPastEvents.length > 1
+        ? `${pastEvent.groupName} and ${latestPastEvents.length - 1} more`
+        : pastEvent.groupName;
+    const nextFutureEvent = futureEvents[0];
+
+    if (!nextFutureEvent) {
+      return `Gift day passed for ${pastEventName}.`;
+    }
+
+    const futureDayLabel = `${nextFutureEvent.dayDifference} day${
+      nextFutureEvent.dayDifference === 1 ? "" : "s"
+    }`;
+
+    return `Gift day passed for ${pastEventName}. Next exchange: ${nextFutureEvent.groupName} in ${futureDayLabel}.`;
   }
 
   const nextEvent = futureEvents[0];
   const sameDayEvents = futureEvents.filter(
-    (event) => event.daysUntilEvent === nextEvent.daysUntilEvent
+    (event) => event.dayDifference === nextEvent.dayDifference
   );
   const extraSameDayCount = sameDayEvents.length - 1;
   const extraUpcomingCount = futureEvents.length - sameDayEvents.length;
-  const dayLabel = `${nextEvent.daysUntilEvent} day${nextEvent.daysUntilEvent === 1 ? "" : "s"}`;
+  const dayLabel =
+    nextEvent.dayDifference === 1
+      ? "tomorrow"
+      : `in ${nextEvent.dayDifference} days`;
 
   if (extraSameDayCount > 0) {
-    return `${sameDayEvents.length} reveals are ${dayLabel} away. First up: ${nextEvent.groupName}.`;
+    return `${sameDayEvents.length} gift days are ${dayLabel}. First up: ${nextEvent.groupName}.`;
   }
 
-  return `Next reveal: ${nextEvent.groupName} in ${dayLabel}.${
+  return `Next gift day: ${nextEvent.groupName} ${dayLabel}.${
     extraUpcomingCount > 0 ? ` ${extraUpcomingCount} more upcoming.` : ""
   }`;
 }

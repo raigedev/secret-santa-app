@@ -2,7 +2,7 @@ import {
   formatDashboardBudget,
   formatDashboardDate,
   formatDashboardEventCountdown,
-  isDashboardEventReadyToReveal,
+  isDashboardEventPast,
 } from "./dashboard-formatters";
 import { ArrowRightIcon, GiftIcon, UserOutlineIcon } from "./dashboard-icons";
 import type { Group } from "./dashboard-types";
@@ -44,8 +44,8 @@ export function DashboardGroupsOverview({
   );
   const nextGroups = allGroups.slice(0, 3);
   const hasGroups = allGroups.length > 0;
-  const revealedGroups = allGroups.filter((group) =>
-    isDashboardEventReadyToReveal(group.event_date, countdownNow)
+  const pastGroups = allGroups.filter((group) =>
+    isDashboardEventPast(group.event_date, countdownNow)
   ).length;
   const panelClass = isDarkTheme
     ? "border border-slate-700/70 bg-slate-900/82 text-slate-100"
@@ -109,9 +109,9 @@ export function DashboardGroupsOverview({
           </div>
           <div className={`rounded-[20px] border p-4 ${statClass}`}>
             <p className={`text-xs font-black uppercase tracking-[0.16em] ${quietTextClass}`}>
-              Names ready
+              Past events
             </p>
-            <p className="mt-2 text-3xl font-black">{revealedGroups}</p>
+            <p className="mt-2 text-3xl font-black">{pastGroups}</p>
           </div>
         </div>
 

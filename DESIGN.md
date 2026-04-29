@@ -133,7 +133,7 @@ Elevation:
 ### Affiliate And Shopping UI
 
 - Shopping cards must use a uniform provider-neutral structure so Lazada, Shopee, and Amazon can share the same layout later.
-- Use shopper-facing wording: shopping option, budget target, open in Lazada, browse similar items.
+- Use shopper-facing wording: shopping option, group budget, open in Lazada, browse similar items.
 - Do not claim an exact product for search-style affiliate links until a provider report/postback maps the conversion.
 - Affiliate disclosure should be short and visible without overwhelming the shopping flow.
 

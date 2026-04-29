@@ -61,7 +61,13 @@ const PUBLIC_ROUTE_PREFIXES = [
 ] as const;
 
 function shouldUseAppShell(pathname: string) {
-  if (pathname === "/" || pathname === "/secret-santa") {
+  if (
+    pathname === "/" ||
+    pathname === "/secret-santa" ||
+    pathname === "/my-giftee" ||
+    pathname === "/assignments" ||
+    pathname === "/gift-tracking"
+  ) {
     return false;
   }
 
@@ -91,10 +97,10 @@ function createNavItems(pathname: string, canViewAffiliateReport: boolean): AppN
         path === "/groups" || (path.startsWith("/group/") && !path.endsWith("/reveal")),
     },
     {
-      href: "/secret-santa#matches",
+      href: "/my-giftee",
       icon: "giftee",
       label: "My Giftee",
-      match: (path) => path === "/secret-santa",
+      match: (path) => path === "/my-giftee",
     },
     {
       href: "/wishlist",
@@ -103,10 +109,12 @@ function createNavItems(pathname: string, canViewAffiliateReport: boolean): AppN
       match: (path) => path === "/wishlist",
     },
     {
-      href: pathname.startsWith("/group/") ? `${pathname.split("/reveal")[0]}/reveal` : "/secret-santa#assignments",
+      href: pathname.startsWith("/group/")
+        ? `${pathname.split("/reveal")[0]}/reveal`
+        : "/assignments",
       icon: "assignments",
       label: "Assignments",
-      match: (path) => path.endsWith("/reveal"),
+      match: (path) => path === "/assignments" || path.endsWith("/reveal"),
     },
     {
       href: "/secret-santa-chat",
@@ -121,10 +129,10 @@ function createNavItems(pathname: string, canViewAffiliateReport: boolean): AppN
       match: (path) => path === "/secret-santa",
     },
     {
-      href: "/secret-santa#prep",
+      href: "/gift-tracking",
       icon: "tracking",
       label: "Gift Tracking",
-      match: () => false,
+      match: (path) => path === "/gift-tracking",
     },
     ...(canViewAffiliateReport
       ? [
@@ -374,8 +382,11 @@ export default function AppRouteShell({ children }: { children: ReactNode }) {
     for (const route of [
       "/dashboard",
       "/groups",
+      "/my-giftee",
       "/wishlist",
+      "/assignments",
       "/secret-santa",
+      "/gift-tracking",
       "/secret-santa-chat",
       "/notifications",
       "/profile",

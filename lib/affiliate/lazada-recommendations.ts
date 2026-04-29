@@ -70,7 +70,7 @@ export function getLazadaBudgetFitLabel(
   const effectiveMax = preferredMax ?? groupBudget;
 
   if (template.typicalMin === null && template.typicalMax === null) {
-    return effectiveMax !== null ? "Budget target" : "Flexible price";
+    return effectiveMax !== null ? "Budget guided" : "Flexible price";
   }
 
   if (effectiveMax !== null && template.typicalMin !== null && template.typicalMin > effectiveMax) {
@@ -106,7 +106,7 @@ export function getLazadaSuggestionPriceLabel(
 
   if (groupBudget !== null) {
     const groupBudgetLabel = formatPriceRange(groupBudget, groupBudget, currency);
-    return groupBudgetLabel ? `Budget target: ${groupBudgetLabel}` : null;
+    return groupBudgetLabel ? `Group budget: ${groupBudgetLabel}` : null;
   }
 
   const typicalLabel = formatPriceRange(template.typicalMin, template.typicalMax, currency);

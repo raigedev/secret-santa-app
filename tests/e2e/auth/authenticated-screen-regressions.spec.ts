@@ -186,6 +186,30 @@ const AUTHENTICATED_SCREEN_CASES: ScreenCase[] = [
     },
   },
   {
+    name: "my-giftee",
+    path: "/my-giftee",
+    assertVisible: async (page) => {
+      await expect(page.getByRole("heading", { name: /my giftee/i })).toBeVisible();
+      await expect(page.getByTestId("my-giftee-workspace")).toBeVisible();
+    },
+  },
+  {
+    name: "assignments",
+    path: "/assignments",
+    assertVisible: async (page) => {
+      await expect(page.getByRole("heading", { name: /^assignments$/i })).toBeVisible();
+      await expect(page.getByTestId("secret-santa-assignments-overview")).toBeVisible();
+    },
+  },
+  {
+    name: "gift-tracking",
+    path: "/gift-tracking",
+    assertVisible: async (page) => {
+      await expect(page.getByRole("heading", { name: /gift tracking/i })).toBeVisible();
+      await expect(page.getByTestId("gift-tracking-workspace")).toBeVisible();
+    },
+  },
+  {
     name: "secret-santa-chat",
     path: "/secret-santa-chat",
     assertVisible: async (page) => {
@@ -215,7 +239,12 @@ test.describe("authenticated screen regressions", () => {
       await page.goto(screen.path);
       await screen.assertVisible(page);
 
-      if (screen.path === "/secret-santa") {
+      if (
+        screen.path === "/secret-santa" ||
+        screen.path === "/my-giftee" ||
+        screen.path === "/assignments" ||
+        screen.path === "/gift-tracking"
+      ) {
         await expect(page.getByTestId("app-route-shell")).toHaveCount(0);
         await expect(page.getByTestId("secret-santa-page-shell")).toBeVisible();
         return;
@@ -296,7 +325,7 @@ test.describe("authenticated screen regressions", () => {
       .getByTestId("app-shell-sidebar")
       .getByRole("link", { name: /assignments/i })
       .click();
-    await page.waitForURL(/\/secret-santa/);
+    await page.waitForURL(/\/assignments/);
 
     const loadingShell = page.getByTestId("secret-santa-loading-shell");
     await expect(loadingShell).toBeVisible({ timeout: 5000 });
@@ -620,34 +649,20 @@ test.describe("authenticated screen regressions", () => {
     await page.goto("/secret-santa");
     await page.getByLabel(/online shop region/i).selectOption({ label: "Philippines" });
 
-    const santaHelper = page.getByTestId("santa-helper");
-    await expect(santaHelper).toBeVisible();
+    const santaAssistant = page.getByTestId("santa-assistant");
+    await expect(santaAssistant).toBeVisible();
+    await expect(page.getByTestId("santa-assistant-toggle")).toHaveAttribute(
+      "aria-label",
+      /santa buddy assistant/i
+    );
+    const assistantAnimation = await page
+      .getByTestId("santa-assistant")
+      .locator(".santa-assistant-avatar")
+      .evaluate((avatar) => window.getComputedStyle(avatar).animationName);
+    expect(assistantAnimation).toContain("santa-assistant-float");
     await expect(page.getByTestId("santa-helper-panel").first()).toBeVisible();
     await expect(page.getByTestId("santa-helper-action-strip")).toHaveCount(0);
     await expect(page.getByText(/safest pick/i).first()).toBeVisible();
-    await expect(page.getByTestId("santa-helper-toggle")).toHaveAttribute(
-      "aria-label",
-      /jump to top picks/i
-    );
-    const santaHelperAnimations = await page
-      .getByTestId("santa-helper")
-      .evaluate((helper) => {
-        const button = helper.querySelector('[data-testid="santa-helper-toggle"]');
-        const mascot = helper.querySelector(".santa-helper-mascot");
-
-        return {
-          buttonAnimation:
-            button instanceof HTMLElement
-              ? window.getComputedStyle(button).animationName
-              : "",
-          mascotAnimation:
-            mascot instanceof SVGElement
-              ? window.getComputedStyle(mascot).animationName
-              : "",
-        };
-      });
-    expect(santaHelperAnimations.buttonAnimation).toContain("santa-helper-warp");
-    expect(santaHelperAnimations.mascotAnimation).toContain("santa-helper-bob");
 
     const shoppingOptionPanel = page.getByTestId("shopping-option-panel").first();
     const shoppingOptions = page.getByTestId("shopping-focus-options");
@@ -835,15 +850,15 @@ test.describe("authenticated screen regressions", () => {
       stickyPanelBoundary.curatedTop + 1
     );
 
-    const cardsMissingBudgetTarget = await curatedCards.evaluateAll((cards) =>
+    const cardsMissingGroupBudget = await curatedCards.evaluateAll((cards) =>
       cards
         .map((card, index) => ({
           index,
           text: card.textContent?.replace(/\s+/g, " ").trim() || "",
         }))
-        .filter((card) => !/Budget target:/i.test(card.text))
+        .filter((card) => !/Group budget:/i.test(card.text))
     );
-    expect(cardsMissingBudgetTarget).toEqual([]);
+    expect(cardsMissingGroupBudget).toEqual([]);
 
     const clippedRoleLabels = await page
       .getByTestId("curated-shopping-role-label")

@@ -10,10 +10,10 @@ export function buildWishlistBudgetContext(input: SuggestionInput): string {
   }
 
   if (input.groupBudget !== null) {
-    return `Budget target: ${input.groupBudget} ${input.currency || "PHP"}.`;
+    return `Group budget: ${input.groupBudget} ${input.currency || "PHP"}.`;
   }
 
-  return "No strict budget target was provided.";
+  return "No strict group budget was provided.";
 }
 
 function sanitizeDraftValue(value: unknown, maxLength: number): string {
