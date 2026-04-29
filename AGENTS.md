@@ -10,6 +10,8 @@ Follow the skill before editing source code.
 
 When the user asks for frontend UI, visual polish, responsive layout fixes, app screen redesigns, or frontend readability improvements, use the repo `frontend-product-ui` skill automatically alongside `DESIGN.md`, Stitch when relevant, browser preview, and Playwright verification.
 
+When the user asks about Codex setup, installing helper tools, CI/PR workflow, changelogs, Sentry triage, GitHub automation, or remembering agent methods, use the repo `codex-workflow-stack` skill. Prefer already installed, free, repo-safe tools; treat account-bound remote-action tools as opt-in.
+
 ## Project Stack
 
 - Next.js `16.2.3` App Router on Vercel.

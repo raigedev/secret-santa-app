@@ -1,0 +1,4 @@
+interface:
+  display_name: "Codex Workflow Stack"
+  short_description: "Choose safe Codex helper workflows"
+  default_prompt: "Review the Codex helper setup and choose safe repo tools or skills for this task."
