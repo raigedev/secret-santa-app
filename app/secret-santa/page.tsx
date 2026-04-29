@@ -3425,7 +3425,7 @@ export default function SecretSantaPage() {
           },
         ]
       : []),
-    { label: "Reminders", href: "/profile", icon: "reminders" },
+    { label: "Reminders", href: "/profile#reminder-settings", icon: "reminders" },
   ];
 
   return (

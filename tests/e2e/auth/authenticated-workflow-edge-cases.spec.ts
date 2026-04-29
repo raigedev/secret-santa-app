@@ -1,0 +1,326 @@
+import { expect, test, type Page } from "@playwright/test";
+
+import {
+  AUTH_BLOCKED_MESSAGE,
+  canSeededUserOpenAffiliateReport,
+  getTestAuthCredentials,
+  loginWithTestCredentials,
+} from "../helpers/auth";
+
+type NavigationCase = {
+  label: RegExp;
+  expectedHref: RegExp;
+  expectedUrl: RegExp;
+  ready: (page: Page) => Promise<void>;
+};
+
+const credentials = getTestAuthCredentials();
+const CRITICAL_CONSOLE_PATTERNS = [
+  /maximum update depth exceeded/i,
+  /hydration failed/i,
+  /cannot read properties/i,
+  /uncaught/i,
+];
+
+const SHARED_NAVIGATION_CASES: NavigationCase[] = [
+  {
+    label: /^dashboard$/i,
+    expectedHref: /\/dashboard$/,
+    expectedUrl: /\/dashboard$/,
+    ready: async (page) => {
+      await expect(page.getByRole("heading", { name: /your groups/i })).toBeVisible();
+    },
+  },
+  {
+    label: /^my groups$/i,
+    expectedHref: /\/dashboard#dashboard-groups$/,
+    expectedUrl: /\/dashboard#dashboard-groups$/,
+    ready: async (page) => {
+      await expect(page.getByRole("heading", { name: /your groups/i })).toBeVisible();
+    },
+  },
+  {
+    label: /^my giftee$/i,
+    expectedHref: /\/secret-santa#matches$/,
+    expectedUrl: /\/secret-santa#matches$/,
+    ready: async (page) => {
+      await expect(page.getByTestId("secret-santa-page-shell")).toBeVisible();
+      await expect(page.getByRole("heading", { name: /shopping ideas/i })).toBeVisible();
+    },
+  },
+  {
+    label: /^wishlist$/i,
+    expectedHref: /\/wishlist$/,
+    expectedUrl: /\/wishlist$/,
+    ready: async (page) => {
+      await expect(page.getByText(/^my wishlist$/i)).toBeVisible();
+    },
+  },
+  {
+    label: /^assignments$/i,
+    expectedHref: /\/secret-santa#prep$/,
+    expectedUrl: /\/secret-santa#prep$/,
+    ready: async (page) => {
+      await expect(page.getByTestId("secret-santa-page-shell")).toBeVisible();
+      await expect(page.getByRole("heading", { name: /shopping ideas/i })).toBeVisible();
+    },
+  },
+  {
+    label: /^messages$/i,
+    expectedHref: /\/secret-santa-chat$/,
+    expectedUrl: /\/secret-santa-chat$/,
+    ready: async (page) => {
+      await expect(page.getByRole("heading", { name: /private gift whispers/i })).toBeVisible();
+    },
+  },
+  {
+    label: /^shopping ideas$/i,
+    expectedHref: /\/secret-santa$/,
+    expectedUrl: /\/secret-santa$/,
+    ready: async (page) => {
+      await expect(page.getByTestId("secret-santa-page-shell")).toBeVisible();
+      await expect(page.getByRole("heading", { name: /shopping ideas/i })).toBeVisible();
+    },
+  },
+  {
+    label: /^gift tracking$/i,
+    expectedHref: /\/secret-santa#prep$/,
+    expectedUrl: /\/secret-santa#prep$/,
+    ready: async (page) => {
+      await expect(page.getByTestId("secret-santa-page-shell")).toBeVisible();
+      await expect(page.getByRole("heading", { name: /shopping ideas/i })).toBeVisible();
+    },
+  },
+  {
+    label: /^reminders$/i,
+    expectedHref: /\/profile#reminder-settings$/,
+    expectedUrl: /\/profile#reminder-settings$/,
+    ready: async (page) => {
+      await expect(page.getByText(/reminder settings/i)).toBeVisible();
+    },
+  },
+];
+
+function monitorCriticalPageErrors(page: Page) {
+  const issues: string[] = [];
+
+  page.on("console", (message) => {
+    if (message.type() !== "error") {
+      return;
+    }
+
+    const text = message.text();
+    if (CRITICAL_CONSOLE_PATTERNS.some((pattern) => pattern.test(text))) {
+      issues.push(text);
+    }
+  });
+
+  page.on("pageerror", (error) => {
+    issues.push(error.message);
+  });
+
+  return {
+    expectClean() {
+      expect(issues, "Expected no critical console or page errors").toEqual([]);
+    },
+  };
+}
+
+async function expectVisibleNonDarkSurface(page: Page) {
+  const surface = await page.evaluate(() => {
+    const main = document.querySelector("main");
+    const target = main instanceof HTMLElement ? main : document.body;
+    const style = window.getComputedStyle(target);
+    const rect = target.getBoundingClientRect();
+
+    return {
+      background: `${style.background} ${style.backgroundColor} ${style.backgroundImage}`,
+      height: rect.height,
+      textLength: (target.innerText || "").trim().length,
+    };
+  });
+
+  expect(surface.textLength, "The destination should not be a blank page").toBeGreaterThan(12);
+  expect(surface.height, "The destination should own the viewport surface").toBeGreaterThan(360);
+  expect(surface.background).not.toContain("rgb(10, 22, 40)");
+  expect(surface.background).not.toContain("rgb(15, 23, 42)");
+}
+
+async function expectSharedNavigationContract(page: Page) {
+  const sidebar = page.getByTestId("app-shell-sidebar");
+  await expect(sidebar).toBeVisible();
+
+  for (const navItem of SHARED_NAVIGATION_CASES) {
+    await expect(sidebar.getByRole("link", { name: navItem.label })).toHaveAttribute(
+      "href",
+      navItem.expectedHref
+    );
+  }
+}
+
+test.describe("authenticated workflow edge cases", () => {
+  test.setTimeout(90_000);
+  test.skip(!credentials, AUTH_BLOCKED_MESSAGE);
+
+  test("shared sidebar has a stable route contract for every primary tool", async ({ page }) => {
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await loginWithTestCredentials(page, credentials!);
+    await page.goto("/dashboard");
+
+    await expectSharedNavigationContract(page);
+
+    const affiliateReportLink = page
+      .getByTestId("app-shell-sidebar")
+      .getByRole("link", { name: /^affiliate report$/i });
+
+    if (canSeededUserOpenAffiliateReport(credentials!.email)) {
+      await expect(affiliateReportLink).toHaveAttribute("href", /\/dashboard\/affiliate-report$/);
+    } else {
+      await expect(affiliateReportLink).toHaveCount(0);
+    }
+  });
+
+  test("shared sidebar navigation reaches each destination without blank or dark-page flashes", async ({
+    page,
+  }) => {
+    const pageHealth = monitorCriticalPageErrors(page);
+
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await loginWithTestCredentials(page, credentials!);
+
+    for (const navItem of SHARED_NAVIGATION_CASES) {
+      await page.goto("/dashboard");
+      await expectSharedNavigationContract(page);
+
+      await page.getByTestId("app-shell-sidebar").getByRole("link", { name: navItem.label }).click();
+      await expect(page).toHaveURL(navItem.expectedUrl);
+      await navItem.ready(page);
+      await expectVisibleNonDarkSurface(page);
+    }
+
+    pageHealth.expectClean();
+  });
+
+  test("shopping ideas sidebar keeps the same destination intent as the shared shell", async ({
+    page,
+  }) => {
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await loginWithTestCredentials(page, credentials!);
+    await page.goto("/secret-santa");
+    await expect(page.getByTestId("secret-santa-page-shell")).toBeVisible();
+
+    const sidebar = page.getByTestId("shopping-ideas-sidebar");
+    await expect(sidebar).toBeVisible();
+    await expect(sidebar.getByRole("link", { name: /^dashboard$/i })).toHaveAttribute(
+      "href",
+      /\/dashboard$/
+    );
+    await expect(sidebar.getByRole("link", { name: /^my groups$/i })).toHaveAttribute(
+      "href",
+      /\/dashboard#dashboard-groups$/
+    );
+    await expect(sidebar.getByRole("link", { name: /^my giftee$/i })).toHaveAttribute(
+      "href",
+      /^#matches/
+    );
+    await expect(sidebar.getByRole("link", { name: /^wishlist$/i })).toHaveAttribute(
+      "href",
+      /\/wishlist$/
+    );
+    await expect(sidebar.getByRole("link", { name: /^assignments$/i })).toHaveAttribute(
+      "href",
+      /^#prep/
+    );
+    await expect(sidebar.getByRole("link", { name: /^gift tracking$/i })).toHaveAttribute(
+      "href",
+      /^#prep/
+    );
+    await expect(sidebar.getByRole("link", { name: /^reminders$/i })).toHaveAttribute(
+      "href",
+      /\/profile#reminder-settings$/
+    );
+
+    await sidebar.getByRole("link", { name: /^my groups$/i }).click();
+    await expect(page).toHaveURL(/\/dashboard#dashboard-groups$/);
+    await expect(page.getByRole("heading", { name: /your groups/i })).toBeVisible();
+  });
+
+  test("notification actions leave the inbox for their target screen instead of staying nested", async ({
+    page,
+  }, testInfo) => {
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await loginWithTestCredentials(page, credentials!);
+    await page.goto("/notifications");
+    await expect(page.getByText(/notifications/i).first()).toBeVisible();
+
+    const addWishlistNotification = page
+      .getByRole("button")
+      .filter({ hasText: /add wishlist/i })
+      .first();
+
+    if (!(await addWishlistNotification.isVisible({ timeout: 5000 }).catch(() => false))) {
+      testInfo.annotations.push({
+        type: "edge-case-note",
+        description:
+          "Seeded account has no visible Add wishlist notification right now; route-action click was not applicable.",
+      });
+      return;
+    }
+
+    await addWishlistNotification.click();
+    await expect(page).toHaveURL(/\/wishlist$/);
+    await expect(page.getByText(/^my wishlist$/i)).toBeVisible();
+  });
+
+  test("safe validation blocks empty workflow submissions before writes", async ({
+    page,
+  }, testInfo) => {
+    const dataWriteRequests: string[] = [];
+    page.on("request", (request) => {
+      const requestUrl = request.url();
+
+      if (
+        request.method().toUpperCase() !== "GET" &&
+        /\/rest\/v1\/(wishlist_items|groups|group_members|group_invites|invitations)\b/.test(
+          requestUrl
+        )
+      ) {
+        dataWriteRequests.push(`${request.method()} ${requestUrl}`);
+      }
+    });
+
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await loginWithTestCredentials(page, credentials!);
+    await page.goto("/wishlist");
+    await expect(page.getByText(/^my wishlist$/i)).toBeVisible();
+
+    const addWishlistButton = page.getByRole("button", { name: /add to wishlist/i });
+    if (await addWishlistButton.isVisible().catch(() => false)) {
+      await page.getByPlaceholder(/item name, brand, or model/i).fill("");
+      await addWishlistButton.click();
+      await expect(page.getByText(/item name is required/i)).toBeVisible();
+    } else {
+      testInfo.annotations.push({
+        type: "edge-case-note",
+        description: "Seeded account has no writable wishlist group right now.",
+      });
+    }
+
+    await page.goto("/create-group");
+    await expect(page.getByRole("heading", { name: /create a secret santa group/i })).toBeVisible();
+    await page.getByRole("button", { name: /^create group$/i }).click();
+    await expect(page.locator("input:invalid")).toHaveCount(2);
+
+    const futureDate = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
+      .toISOString()
+      .slice(0, 10);
+    await page.getByPlaceholder(/office holiday party/i).fill("Playwright validation check");
+    await page.locator('input[type="date"]').fill(futureDate);
+    await page.locator('button[aria-pressed="false"]').click();
+    await page.getByRole("button", { name: /^create group$/i }).click();
+
+    await expect(page.getByText(/enter a group nickname to continue/i)).toBeVisible();
+    await expect(page).toHaveURL(/\/create-group$/);
+    expect(dataWriteRequests).toEqual([]);
+  });
+});
