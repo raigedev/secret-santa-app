@@ -146,8 +146,17 @@ const AUTHENTICATED_SCREEN_CASES: ScreenCase[] = [
     name: "secret-santa-chat",
     path: "/secret-santa-chat",
     assertVisible: async (page) => {
-      await expect(page.getByRole("heading", { name: /private gift whispers/i })).toBeVisible();
+      const chatPage = page.getByTestId("secret-santa-chat-page");
+      const pageHeading = page.getByRole("heading", { name: /private gift whispers/i });
+      await expect(chatPage).toBeVisible();
+      await expect(pageHeading).toBeVisible();
       await expect(page.getByText(/one private thread for each secret santa match/i)).toBeVisible();
+      await expect(page.getByRole("button", { name: /^dashboard$/i })).toHaveCount(0);
+
+      const headingColor = await pageHeading.evaluate(
+        (heading) => window.getComputedStyle(heading).color
+      );
+      expect(headingColor).toBe("rgb(46, 52, 50)");
     },
   },
 ];
@@ -955,6 +964,12 @@ test.describe("owner-only affiliate route regressions", () => {
     const sharedShellReportLink = sharedShellSidebar.getByRole("link", {
       name: /affiliate report/i,
     });
+    const sharedShellHeaderReportLink = page
+      .getByTestId("app-route-shell")
+      .locator("header")
+      .first()
+      .getByRole("link", { name: /affiliate report/i });
+    await expect(sharedShellHeaderReportLink).toHaveCount(0);
 
     if (canSeededUserOpenAffiliateReport(credentials!.email)) {
       await expect(sharedShellReportLink).toBeVisible();

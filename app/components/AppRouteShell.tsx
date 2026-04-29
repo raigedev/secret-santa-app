@@ -387,20 +387,6 @@ export default function AppRouteShell({ children }: { children: ReactNode }) {
             </div>
           </div>
           <div className="flex items-center gap-3">
-            {canViewAffiliateReport && (
-              <Link
-                href="/dashboard/affiliate-report"
-                className="inline-flex min-h-11 items-center rounded-full px-4 text-[13px] font-extrabold transition hover:-translate-y-0.5"
-                style={{
-                  background: "rgba(252,206,114,.18)",
-                  border: "1px solid rgba(123,89,2,.16)",
-                  color: "#7b5902",
-                  textDecoration: "none",
-                }}
-              >
-                Affiliate report
-              </Link>
-            )}
             <button ref={notificationButtonRef} type="button" onClick={() => setNotificationsOpen((open) => !open)} aria-label={unreadCount > 0 ? `Open notifications, ${unreadCount} unread` : "Open notifications"} className="relative flex h-12 w-12 items-center justify-center rounded-full transition hover:-translate-y-0.5" style={{ background: "rgba(255,255,255,.82)", border: "1px solid rgba(72,102,78,.16)", color: PAGE_TEXT_COLOR }}>
               <BellIcon className="h-5 w-5" />
               {unreadCount > 0 && <span className="absolute right-2 top-1.5 flex h-5 min-w-5 items-center justify-center rounded-full px-1 text-[10px] font-black text-white" style={{ background: HOLIDAY_RED }}>{unreadCount > 99 ? "99+" : unreadCount}</span>}

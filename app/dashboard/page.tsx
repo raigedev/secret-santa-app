@@ -829,7 +829,7 @@ export default function DashboardPage() {
         }
 
         // The main dashboard content should not wait on secondary polish like
-        // invite claiming, the affiliate-report pill, or the unread bell count.
+        // invite claiming, owner report access, or the unread bell count.
         // Kick those off in the background so the cards can render as soon as
         // the core data is ready.
         void loadProfileData();
@@ -1058,7 +1058,6 @@ export default function DashboardPage() {
       />
 
       <DashboardHeader
-        canViewAffiliateReport={canViewAffiliateReport}
         isDarkTheme={isDarkTheme}
         notificationButtonRef={notificationButtonRef}
         notificationsPanelOpen={notificationsPanelOpen}
@@ -1067,7 +1066,6 @@ export default function DashboardPage() {
         unreadNotificationCount={unreadNotificationCount}
         onGoDashboard={() => router.push("/dashboard")}
         onGoWishlist={() => router.push("/wishlist")}
-        onGoAffiliateReport={() => router.push("/dashboard/affiliate-report")}
         onScrollToActivity={() => document.getElementById("dashboard-activity")?.scrollIntoView({ behavior: "smooth" })}
         onScrollToGroups={() => document.getElementById("dashboard-groups")?.scrollIntoView({ behavior: "smooth" })}
         onToggleNotifications={toggleNotificationsPanel}

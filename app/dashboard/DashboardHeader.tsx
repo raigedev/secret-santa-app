@@ -2,7 +2,6 @@ import type { RefObject } from "react";
 import { BellIcon, SantaMarkIcon, ThemeIcon, UserOutlineIcon } from "./dashboard-icons";
 
 type DashboardHeaderProps = {
-  canViewAffiliateReport: boolean;
   isDarkTheme: boolean;
   notificationButtonRef: RefObject<HTMLButtonElement | null>;
   notificationsPanelOpen: boolean;
@@ -11,7 +10,6 @@ type DashboardHeaderProps = {
   unreadNotificationCount: number;
   onGoDashboard: () => void;
   onGoWishlist: () => void;
-  onGoAffiliateReport: () => void;
   onScrollToActivity: () => void;
   onScrollToGroups: () => void;
   onToggleNotifications: () => void;
@@ -20,7 +18,6 @@ type DashboardHeaderProps = {
 };
 
 export function DashboardHeader({
-  canViewAffiliateReport,
   isDarkTheme,
   notificationButtonRef,
   notificationsPanelOpen,
@@ -29,7 +26,6 @@ export function DashboardHeader({
   unreadNotificationCount,
   onGoDashboard,
   onGoWishlist,
-  onGoAffiliateReport,
   onScrollToActivity,
   onScrollToGroups,
   onToggleNotifications,
@@ -93,39 +89,9 @@ export function DashboardHeader({
             <button type="button" onClick={onScrollToActivity} className={inactiveNavClass}>
               Activity
             </button>
-            {canViewAffiliateReport && (
-              <button
-                type="button"
-                onClick={onGoAffiliateReport}
-                className={`inline-flex items-center gap-2 rounded-full px-3.5 py-2 text-sm font-extrabold transition hover:-translate-y-0.5 ${
-                  isDarkTheme
-                    ? "bg-amber-300/12 text-amber-100 ring-1 ring-amber-200/20 hover:bg-amber-300/18"
-                    : "bg-amber-50 text-amber-800 ring-1 ring-amber-200/70 hover:bg-amber-100"
-                }`}
-                aria-label="Open Lazada affiliate report"
-                title="Open Lazada affiliate report"
-              >
-                Affiliate report
-              </button>
-            )}
           </nav>
         </div>
         <div className="flex shrink-0 items-center gap-2">
-          {canViewAffiliateReport && (
-            <button
-              type="button"
-              onClick={onGoAffiliateReport}
-              className={`inline-flex items-center rounded-full px-3 py-2 text-xs font-extrabold transition hover:-translate-y-0.5 md:hidden ${
-                isDarkTheme
-                  ? "bg-amber-300/12 text-amber-100 ring-1 ring-amber-200/20"
-                  : "bg-amber-50 text-amber-800 ring-1 ring-amber-200/70"
-              }`}
-              aria-label="Open Lazada affiliate report"
-              title="Open Lazada affiliate report"
-            >
-              Report
-            </button>
-          )}
           <button
             ref={notificationButtonRef}
             type="button"

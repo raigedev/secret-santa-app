@@ -78,13 +78,14 @@ type ChatPageSnapshot = ClientSnapshotMetadata & {
 const CHAT_PAGE_SNAPSHOT_STORAGE_PREFIX = "ss_chat_page_snapshot_v1:";
 const CHAT_PAGE_BACKGROUND =
   "radial-gradient(circle at 14% 8%,rgba(252,206,114,.3),transparent 24%),radial-gradient(circle at 88% 18%,rgba(164,60,63,.28),transparent 30%),radial-gradient(circle at 78% 84%,rgba(72,102,78,.32),transparent 34%),linear-gradient(180deg,#13160d 0%,#261214 50%,#10150f 100%)";
-const CHAT_PANEL_BACKGROUND = "linear-gradient(145deg,rgba(255,248,240,.16),rgba(46,52,50,.74) 58%,rgba(72,102,78,.34))";
-const CHAT_SURFACE_STRONG = "linear-gradient(180deg,rgba(255,248,240,.11),rgba(46,52,50,.66))";
-const CHAT_SURFACE_MUTED = "rgba(46,52,50,.58)";
-const CHAT_BORDER = "1px solid rgba(252,206,114,.2)";
-const CHAT_BORDER_SOFT = "1px solid rgba(255,248,240,.14)";
-const CHAT_TEXT_MUTED = "#d8ddd6";
-const CHAT_TEXT_SUBTLE = "#aeb8ae";
+const CHAT_PANEL_BACKGROUND = "linear-gradient(145deg,rgba(46,52,50,.96),rgba(32,40,35,.98) 58%,rgba(61,83,64,.95))";
+const CHAT_SURFACE_STRONG = "linear-gradient(180deg,rgba(42,50,44,.97),rgba(25,32,27,.99))";
+const CHAT_SURFACE_MUTED = "rgba(22,29,25,.9)";
+const CHAT_BORDER = "1px solid rgba(252,206,114,.34)";
+const CHAT_BORDER_SOFT = "1px solid rgba(255,248,240,.22)";
+const CHAT_TEXT_MUTED = "#edf4ec";
+const CHAT_TEXT_SUBTLE = "#d5ded4";
+const CHAT_HEADER_TEXT = "#2e3432";
 
 function getChatPageSnapshotStorageKey(userId: string): string {
   return `${CHAT_PAGE_SNAPSHOT_STORAGE_PREFIX}${userId}`;
@@ -166,16 +167,6 @@ function ArrowRightIcon({ className = "h-4 w-4" }: { className?: string }) {
   return (
     <svg viewBox="0 0 20 20" fill="none" className={className} aria-hidden="true">
       <path d="M4 10h11M11 5.5 15.5 10 11 14.5" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
-    </svg>
-  );
-}
-
-function DashboardIcon({ className = "h-4 w-4" }: { className?: string }) {
-  return (
-    <svg viewBox="0 0 20 20" fill="none" className={className} aria-hidden="true">
-      <path d="M3.5 8.4 10 3.2l6.5 5.2" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
-      <path d="M5.4 8.2v7.1h9.2V8.2" stroke="currentColor" strokeWidth="1.8" strokeLinejoin="round" />
-      <path d="M8.4 15.3v-4.1h3.2v4.1" stroke="currentColor" strokeWidth="1.8" strokeLinejoin="round" />
     </svg>
   );
 }
@@ -1301,6 +1292,7 @@ export default function SecretSantaChatPage() {
 
     return (
       <main
+        data-testid="secret-santa-chat-thread"
         className="relative min-h-screen overflow-hidden"
         style={{
           background: CHAT_PAGE_BACKGROUND,
@@ -1385,19 +1377,20 @@ export default function SecretSantaChatPage() {
                     >
                       {roleLabel}
                     </div>
-                    <h1 className="truncate text-2xl font-black tracking-[-0.04em] sm:text-3xl">
+                    <h1 className="truncate text-2xl font-black tracking-normal sm:text-3xl">
                       {recipientLabel}
                     </h1>
-                    <p className="mt-1 text-sm font-semibold text-slate-300">
+                    <p className="mt-1 text-sm font-semibold" style={{ color: CHAT_TEXT_MUTED }}>
                       {activeThread.group_name}
                     </p>
                   </div>
                 </div>
                 <div
-                  className="rounded-[22px] px-4 py-3 text-sm font-bold leading-6 text-slate-200"
+                  className="rounded-[22px] px-4 py-3 text-sm font-bold leading-6"
                   style={{
                     background: CHAT_SURFACE_MUTED,
                     border: CHAT_BORDER_SOFT,
+                    color: CHAT_TEXT_MUTED,
                   }}
                 >
                   {privacyCopy}
@@ -1437,7 +1430,7 @@ export default function SecretSantaChatPage() {
                       >
                         <ChatLineIcon className="h-8 w-8 text-[#d8ddd6]" />
                       </div>
-                      <p className="text-xl font-black tracking-[-0.03em]">No messages yet</p>
+                      <p className="text-xl font-black tracking-normal">No messages yet</p>
                       <p className="mt-2 text-sm leading-6" style={{ color: CHAT_TEXT_SUBTLE }}>
                         Start with a simple hint, size question, or delivery note.
                       </p>
@@ -1547,15 +1540,15 @@ export default function SecretSantaChatPage() {
                     <p className="text-xs font-black uppercase tracking-[0.2em]" style={{ color: accent }}>
                       Identity rules
                     </p>
-                    <h2 className="text-xl font-black tracking-[-0.04em]">Keep it secret</h2>
+                    <h2 className="text-xl font-black tracking-normal">Keep it secret</h2>
                   </div>
                 </div>
                 <div className="space-y-3 text-sm leading-6" style={{ color: CHAT_TEXT_MUTED }}>
                   <p>
-                    <strong className="text-white">You -&gt; Giftee:</strong> ask questions without showing your name.
+                    <strong style={{ color: "#ffffff" }}>You -&gt; Giftee:</strong> ask questions without showing your name.
                   </p>
                   <p>
-                    <strong className="text-white">Santa -&gt; You:</strong> reply while their name stays hidden.
+                    <strong style={{ color: "#ffffff" }}>Santa -&gt; You:</strong> reply while their name stays hidden.
                   </p>
                 </div>
                 <div className="mt-5 grid gap-2">
@@ -1571,15 +1564,16 @@ export default function SecretSantaChatPage() {
                       <p className="text-[10px] font-black uppercase tracking-[0.18em]" style={{ color: CHAT_TEXT_SUBTLE }}>
                         {detail.label}
                       </p>
-                      <p className="mt-1 truncate text-sm font-black text-white">{detail.value}</p>
+                      <p className="mt-1 truncate text-sm font-black" style={{ color: "#ffffff" }}>{detail.value}</p>
                     </div>
                   ))}
                 </div>
                 <div
-                  className="mt-5 rounded-[22px] px-4 py-3 text-sm leading-6 text-slate-300"
+                  className="mt-5 rounded-[22px] px-4 py-3 text-sm leading-6"
                   style={{
                     background: "rgba(46,52,50,.46)",
                     border: "1px solid rgba(252,206,114,.12)",
+                    color: CHAT_TEXT_MUTED,
                   }}
                 >
                   Ask about size, color, delivery timing, or what they already own. Short questions are easier to answer.
@@ -1641,6 +1635,7 @@ export default function SecretSantaChatPage() {
 
     return (
       <main
+        data-testid="secret-santa-chat-page"
         className="relative min-h-screen overflow-x-hidden"
         style={{
           background: CHAT_PAGE_BACKGROUND,
@@ -1666,30 +1661,19 @@ export default function SecretSantaChatPage() {
         `}</style>
 
         <div className="relative z-10 mx-auto flex w-full max-w-7xl flex-col gap-6 px-4 py-6 sm:px-6 lg:px-8">
-          <header className="flex flex-col gap-4 rounded-[32px] sm:flex-row sm:items-start sm:justify-between">
-            <button
-              onClick={() => router.push("/dashboard")}
-              className="group inline-flex w-fit items-center gap-2 rounded-full py-2 pl-2 pr-4 text-sm font-black text-[#f9faf8] transition hover:-translate-y-0.5 hover:text-white"
-              style={{
-                background: "linear-gradient(135deg,rgba(164,60,63,.34),rgba(46,52,50,.68))",
-                border: "1px solid rgba(252,206,114,.24)",
-                boxShadow: "0 18px 36px rgba(10,14,10,.22)",
-              }}
-            >
-              <span className="grid h-7 w-7 place-items-center rounded-full" style={{ background: "rgba(252,206,114,.2)", color: "#fcce72" }}>
-                <DashboardIcon className="h-4 w-4" />
-              </span>
-              Dashboard
-            </button>
-            <div className="flex items-center gap-3 self-end sm:self-auto">
+          <header className="flex items-center gap-3 rounded-[32px]">
+            <div className="flex items-center gap-3">
               <div className="grid h-12 w-12 place-items-center rounded-full bg-white/95 shadow-xl shadow-black/15">
                 <SantaMarkIcon className="h-9 w-9" />
               </div>
               <div>
-                <p className="text-[10px] font-black uppercase tracking-[0.28em]" style={{ color: "#fcce72" }}>
+                <p className="text-[10px] font-black uppercase tracking-[0.28em]" style={{ color: "#a43c3f" }}>
                   My Secret Santa
                 </p>
-                <h1 className="font-[Plus_Jakarta_Sans] text-[2rem] font-black tracking-[-0.05em] sm:text-[2.35rem]">
+                <h1
+                  className="font-[Plus_Jakarta_Sans] text-[2rem] font-black tracking-normal sm:text-[2.35rem]"
+                  style={{ color: CHAT_HEADER_TEXT }}
+                >
                   Private gift whispers
                 </h1>
               </div>
@@ -1709,7 +1693,7 @@ export default function SecretSantaChatPage() {
                 <p className="mb-3 text-[11px] font-black uppercase tracking-[0.22em]" style={{ color: "#d7fadb" }}>
                   Not a group chat
                 </p>
-                <h2 className="font-[Plus_Jakarta_Sans] text-[2.25rem] font-black tracking-[-0.06em] sm:text-[3.4rem]">
+                <h2 className="font-[Plus_Jakarta_Sans] text-[2.25rem] font-black tracking-normal sm:text-[3.4rem]">
                   One private thread for each Secret Santa match.
                 </h2>
                 <p className="mt-4 max-w-2xl text-base leading-7 sm:text-lg sm:leading-8" style={{ color: CHAT_TEXT_MUTED }}>
@@ -1836,7 +1820,7 @@ export default function SecretSantaChatPage() {
                       <p className="text-[11px] font-black uppercase tracking-[0.22em]" style={{ color: group.accent }}>
                         {group.eyebrow}
                       </p>
-                      <h2 className="mt-1 text-[1.85rem] font-black tracking-[-0.04em]">{group.title}</h2>
+                      <h2 className="mt-1 text-[1.85rem] font-black tracking-normal">{group.title}</h2>
                       <p className="mt-2 max-w-md text-sm leading-6" style={{ color: CHAT_TEXT_MUTED }}>{group.description}</p>
                     </div>
                     <span className="shrink-0 rounded-full px-3 py-1 text-xs font-black text-slate-100" style={{ background: "rgba(46,52,50,.5)" }}>
