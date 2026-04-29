@@ -321,7 +321,11 @@ type ShoppingIdeasNavItem = {
     | "reminders";
 };
 
-function getShoppingIdeasHashSection(hash: string): "matches" | "prep" | null {
+function getShoppingIdeasHashSection(hash: string): "assignments" | "matches" | "prep" | null {
+  if (hash.startsWith("#assignments")) {
+    return "assignments";
+  }
+
   if (hash.startsWith("#matches")) {
     return "matches";
   }
@@ -3428,6 +3432,7 @@ export default function SecretSantaPage() {
       : "Set in group";
   const firstRecipientName = primaryAssignment?.receiver_nickname || "your giftee";
   const shoppingAnchorHref = activeGroupId ? `#matches-${activeGroupId}` : "#matches";
+  const assignmentsAnchorHref = "#assignments";
   const prepAnchorHref = activeGroupId ? `#prep-${activeGroupId}` : "#prep";
   const activeShoppingSection = getShoppingIdeasHashSection(currentHash);
   const sidebarNavItems: ShoppingIdeasNavItem[] = [
@@ -3442,9 +3447,9 @@ export default function SecretSantaPage() {
     { label: "Wishlist", href: "/wishlist", icon: "wishlist" },
     {
       label: "Assignments",
-      href: prepAnchorHref,
+      href: assignmentsAnchorHref,
       icon: "assignments",
-      active: activeShoppingSection === "prep",
+      active: activeShoppingSection === "assignments",
     },
     { label: "Messages", href: "/secret-santa-chat", icon: "messages" },
     {
@@ -3453,7 +3458,12 @@ export default function SecretSantaPage() {
       icon: "shopping",
       active: activeShoppingSection === null,
     },
-    { label: "Gift Tracking", href: prepAnchorHref, icon: "tracking" },
+    {
+      label: "Gift Tracking",
+      href: prepAnchorHref,
+      icon: "tracking",
+      active: activeShoppingSection === "prep",
+    },
     ...(canViewAffiliateReport
       ? [
           {
@@ -3759,6 +3769,122 @@ export default function SecretSantaPage() {
             </label>
           </div>
         </div>
+
+        {assignments.length > 0 && (
+          <section
+            id="assignments"
+            data-testid="secret-santa-assignments-overview"
+            className="mb-7 scroll-mt-28 rounded-[30px] p-4 sm:p-5"
+            style={{
+              background:
+                "linear-gradient(135deg,rgba(255,255,255,.96),rgba(238,247,240,.9))",
+              border: "1px solid rgba(72,102,78,.18)",
+              boxShadow: "0 24px 58px rgba(46,52,50,.08)",
+            }}
+          >
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+              <div>
+                <div
+                  className="text-[10px] font-extrabold uppercase tracking-[0.16em]"
+                  style={{ color: HOLIDAY_GOLD }}
+                >
+                  Assignments
+                </div>
+                <h2
+                  className="mt-1 text-[24px] font-black leading-tight sm:text-[30px]"
+                  style={{
+                    color: PAGE_TEXT_COLOR,
+                    fontFamily: "'Plus Jakarta Sans', 'Fredoka', sans-serif",
+                  }}
+                >
+                  Who you gift
+                </h2>
+                <p className="mt-1 max-w-2xl text-[13px] leading-relaxed" style={{ color: TEXT_MUTED }}>
+                  A quick view of each group, your giftee, and where gift planning stands.
+                </p>
+              </div>
+              <span
+                className="inline-flex w-fit rounded-full px-3 py-1.5 text-[11px] font-extrabold"
+                style={{ background: "rgba(72,102,78,.1)", color: HOLIDAY_GREEN }}
+              >
+                {assignments.length} recipient{assignments.length === 1 ? "" : "s"}
+              </span>
+            </div>
+
+            <div className="mt-4 grid gap-3 lg:grid-cols-2">
+              {assignments.map((assignment) => (
+                <article
+                  key={`summary-${assignment.group_id}`}
+                  data-testid="secret-santa-assignment-summary-card"
+                  className="rounded-[24px] p-4"
+                  style={{
+                    background: "rgba(255,255,255,.86)",
+                    border: "1px solid rgba(72,102,78,.14)",
+                    boxShadow: "0 12px 28px rgba(46,52,50,.04)",
+                  }}
+                >
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <div
+                        className="text-[10px] font-extrabold uppercase tracking-[0.12em]"
+                        style={{ color: TEXT_MUTED }}
+                      >
+                        {assignment.group_name}
+                      </div>
+                      <div
+                        className="mt-1 text-[18px] font-black leading-tight"
+                        style={{ color: PAGE_TEXT_COLOR }}
+                      >
+                        You gift {assignment.receiver_nickname}
+                      </div>
+                    </div>
+                    <span
+                      className="shrink-0 rounded-full px-3 py-1 text-[10px] font-extrabold"
+                      style={{
+                        background: assignment.gift_received
+                          ? "rgba(31,122,77,.12)"
+                          : "rgba(252,206,114,.22)",
+                        color: assignment.gift_received ? HOLIDAY_GREEN : HOLIDAY_GOLD,
+                      }}
+                    >
+                      {assignment.gift_received ? "Received" : getGiftPrepLabel(assignment.gift_prep_status)}
+                    </span>
+                  </div>
+
+                  <div className="mt-3 grid gap-2 text-[12px] font-semibold sm:grid-cols-2" style={{ color: TEXT_MUTED }}>
+                    <div>Event: {formatDisplayDate(assignment.group_event_date)}</div>
+                    <div>Wishlist items: {assignment.receiver_wishlist.length}</div>
+                  </div>
+
+                  <div className="mt-4 flex flex-wrap gap-2">
+                    <a
+                      href={`#matches-${assignment.group_id}`}
+                      className="inline-flex min-h-10 items-center rounded-full px-4 text-[12px] font-extrabold transition hover:-translate-y-0.5"
+                      style={{
+                        background: "rgba(72,102,78,.12)",
+                        color: HOLIDAY_GREEN,
+                        textDecoration: "none",
+                      }}
+                    >
+                      Gift ideas
+                    </a>
+                    <a
+                      href={`#prep-${assignment.group_id}`}
+                      className="inline-flex min-h-10 items-center rounded-full px-4 text-[12px] font-extrabold transition hover:-translate-y-0.5"
+                      style={{
+                        background: "rgba(164,60,63,.1)",
+                        color: HOLIDAY_RED,
+                        textDecoration: "none",
+                      }}
+                    >
+                      Gift progress
+                    </a>
+                  </div>
+                </article>
+              ))}
+            </div>
+          </section>
+        )}
 
         {/* Recipient cards show assigned recipients, their wishlist items, and gift confirmation state. */}
         {assignments.length === 0 ? (
@@ -5238,6 +5364,7 @@ export default function SecretSantaPage() {
 
                   <div
                     id={`prep-${assignment.group_id}`}
+                    data-testid="secret-santa-gift-progress-section"
                     className="mt-4 rounded-[28px] p-4"
                     style={{
                       background:

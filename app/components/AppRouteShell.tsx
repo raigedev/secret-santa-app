@@ -109,7 +109,7 @@ function createNavItems(pathname: string, canViewAffiliateReport: boolean): AppN
       match: (path) => path === "/wishlist",
     },
     {
-      href: pathname.startsWith("/group/") ? `${pathname.split("/reveal")[0]}/reveal` : "/secret-santa#prep",
+      href: pathname.startsWith("/group/") ? `${pathname.split("/reveal")[0]}/reveal` : "/secret-santa#assignments",
       icon: "assignments",
       label: "Assignments",
       match: (path) => path.endsWith("/reveal"),
