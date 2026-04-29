@@ -2,6 +2,12 @@
 
 - Always use the Stitch MCP server when the user asks for UI design context, design tokens, screen metadata, or implementation details from the user's Stitch project.
 
+## Codex Skills
+
+When the user asks to fix, improve, refactor, optimize, secure, clean up, remove duplicated code, or improve responsive design, use the `code-improvement` skill automatically whenever it is relevant. The user should not need to manually invoke it.
+
+Follow the skill before editing source code.
+
 ## Project Stack
 
 - Next.js `16.2.3` App Router on Vercel.
@@ -93,6 +99,14 @@ Act as a senior full-stack engineer and software architect. Code this project wi
 - Use semantic HTML where possible.
 - Keep forms accessible with labels and validation messages.
 - Make the app responsive for mobile, tablet, and desktop.
+
+### User-Facing Copy Rules
+
+- Treat all user-facing text as production content unless the screen is explicitly for developers or maintainers.
+- Keep backend, database, source, provider, AI, fallback, postback, RLS, Supabase, deterministic, taxonomy, and other implementation terms out of customer-facing UI copy.
+- Use normal product language instead: gift ideas, wishlist, shopping option, reminder, report, private message, recipient, group, and gift progress.
+- Prefer short factual sentences over explanatory "X so Y" scaffolding when the explanation would expose internal reasoning.
+- Keep data-source, normalization, and matching logic in utilities, services, server actions, or API routes. React UI components should receive display-ready labels and actions instead of assembling backend concepts for the user.
 
 ### Frontend UI Workflow
 

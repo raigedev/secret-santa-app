@@ -5,6 +5,7 @@ import {
 } from "@/lib/affiliate/lazada-recommendations";
 import { getLazadaStarterProducts } from "@/lib/affiliate/lazada-catalog";
 import { slugifyAsciiIdentifier } from "@/lib/validation/common";
+import { buildGiftTaxonomySuggestionTemplates } from "@/lib/wishlist/gift-taxonomy";
 
 export type SuggestionMerchant =
   | "amazon"
@@ -802,6 +803,7 @@ export function buildWishlistSuggestionOptions(
   const baseQuery = input.itemName.trim();
   const categoryTemplates = CATEGORY_TEMPLATES[input.itemCategory] || CATEGORY_TEMPLATES.Other;
   const keywordTemplates = getKeywordTemplates(input.itemName, input.itemNote);
+  const taxonomyTemplates = buildGiftTaxonomySuggestionTemplates(input.itemName, input.itemNote);
   const starterTemplates = buildStarterSuggestionTemplates(input);
 
   const templates = dedupeTemplates(
@@ -816,6 +818,7 @@ export function buildWishlistSuggestionOptions(
         typicalMax: null,
       },
       ...keywordTemplates,
+      ...taxonomyTemplates,
       ...starterTemplates,
       ...categoryTemplates,
     ].filter((template) => template.searchQuery.trim().length > 0)
