@@ -1,6 +1,6 @@
 # Agent Instructions
 
-- Always use the Stitch MCP server when the user asks for UI design context, design tokens, screen metadata, or implementation details from the user's Stitch project.
+- Always use the Stitch MCP server when the user asks for UI design context, design tokens, screen metadata, or implementation details from the user's Stitch project. For this app's current Secret Santa Stitch source, use project `3072957204541081703` (`Process Explainer`, despite the generic title) after confirming with `list_projects`/`list_screens` when needed; do not call `list_design_systems` without a `projectId`.
 
 ## Codex Skills
 
@@ -121,7 +121,7 @@ Act as a senior full-stack engineer and software architect. Code this project wi
 - Before front-end UI work, read root `DESIGN.md` when present and preserve its design tokens, component rules, accessibility constraints, and anti-patterns.
 - For front-end UI work, use the repo `frontend-product-ui` skill first so OpenAI frontend guidance, Reddit field reports, and this app's design system are applied consistently.
 - For front-end UI work, use available UI/design skills and tools alongside the repo's existing design patterns. The user's preferred UI skills are `impeccable` and the Taste Skill family, especially `design-taste-frontend`, `stitch-design-taste`, `high-end-visual-design`, and `redesign-existing-projects` when installed or available in the active Codex session.
-- Use Google Stitch as the starting point for UI design context, base screen direction, design tokens, screen metadata, or implementation details when the user asks for design help or Stitch context.
+- Use Google Stitch as the starting point for UI design context, base screen direction, design tokens, screen metadata, or implementation details when the user asks for design help or Stitch context. Start from `list_projects`, then call project-scoped tools such as `list_design_systems` or `list_screens`; the known Secret Santa Stitch source is project `3072957204541081703`, currently titled `Process Explainer`.
 - If the UI direction is unclear, create or compare a few variants for inspiration before settling on the simplest polished direction.
 - When a screen needs a more distinctive component treatment, review 21st.dev as an inspiration source for React/Tailwind components, screens, and themes. Use 21st.dev or its Magic MCP only when available and compatible with this Next.js/Tailwind stack; otherwise manually adapt ideas while preserving project style, accessibility, performance, and security.
 - For visual UI iteration, use the Codex App Browser interaction flow when available: start the local dev server, open the built-in Browser to localhost, let the user point at UI elements with screenshots/annotations, and treat those annotations as high-signal visual context for the next patch.
@@ -257,9 +257,9 @@ Act as a senior full-stack engineer and software architect. Code this project wi
 
 - Use the installed `oracle` skill and `@steipete/oracle` CLI as a second-opinion reviewer for meaningful source changes, risky refactors, security-sensitive work, performance investigations, architecture decisions, and complex UI/design changes. Decide this automatically when the work meets those criteria; do not wait for the user to trigger Oracle explicitly.
 - Skip Oracle for documentation-only edits, tiny copy/style tweaks, mechanical formatting, or emergency fixes where it would add delay without reducing risk.
-- Always run a no-send preview first with `npx -y @steipete/oracle --dry-run summary --files-report ...` and attach the smallest safe file set.
-- Never attach `.env*`, secrets, tokens, cookies, private logs, database dumps, screenshots containing sensitive data, or user private data.
-- Prefer browser or render/copy mode for routine second opinions. API mode can spend money and requires explicit user approval before use.
+- Always run a no-send preview first with `npx -y @steipete/oracle@0.9.0 --dry-run summary --files-report ...` and attach the smallest safe file set.
+- Never attach `.env*`, secrets, tokens, cookies, private logs, database dumps, screenshots containing sensitive data, or user private data. Prefer manual login over cookie extraction; never paste cookies into prompts, docs, logs, or committed files.
+- Prefer browser or render/copy mode for routine second opinions. API mode can spend money and requires explicit user approval before use. On this Windows machine, Oracle browser mode is configured in `%USERPROFILE%\.oracle\config.json` with a persistent manual-login profile and `browser.modelStrategy: "ignore"`; if the model selector error returns, check that config before falling back.
 - Treat Oracle output as advisory. Verify suggestions against the repo, existing security rules, tests, and the user’s requested behavior before applying changes.
 - If Oracle times out or detaches, reattach to the existing session instead of re-running the same prompt.
 

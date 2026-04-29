@@ -17,6 +17,7 @@ Prefer the tools already installed and trusted in this workspace:
 - `sentry` for production error investigation when Sentry access is available.
 - `playwright`, `playwright-interactive`, and `webapp-testing` for app and UI verification.
 - `frontend-product-ui`, `DESIGN.md`, Stitch, and Taste skills for UI work.
+- Oracle browser mode for second opinions after a dry run; this machine uses a persistent manual-login browser profile and skips ChatGPT's fragile model selector.
 - `security-best-practices`, `security-threat-model`, and repo checks for security work.
 - `graphify` automatically for large codebase maps, architecture discovery, dependency neighborhoods, or persistent graph queries when normal file inspection is too narrow.
 - `ao.cmd` for Agent Orchestrator when parallel worktrees or agent-session management would materially help a task.
@@ -42,6 +43,12 @@ Prefer the tools already installed and trusted in this workspace:
 - Large codebase map, architecture discovery, or persistent graph need: use `graphify` automatically after checking `.graphifyignore`; do not commit `graphify-out/`.
 - Multi-agent or worktree orchestration: use `ao.cmd` automatically when the task truly benefits from branch-per-agent work, CI session tracking, or parallel coding sessions. Keep generated branches/worktrees reviewable and avoid remote-write flows unless the user task calls for them.
 - App connector work: use existing Codex app plugins first. Do not install Composio Connect or similar account-bound tools without a specific user request and setup confirmation.
+
+## Oracle And Stitch Notes
+
+- Oracle `0.9.0` browser mode is configured locally at `%USERPROFILE%\.oracle\config.json` with `engine: "browser"`, `browser.manualLogin: true`, `browser.keepBrowser: true`, and `browser.modelStrategy: "ignore"`. Use `npx -y @steipete/oracle@0.9.0` for the tested path, dry-run first, then browser mode; do not switch to API mode without explicit approval.
+- If Oracle reports that the ChatGPT model selector is missing, keep `modelStrategy: "ignore"` and prefer manual login. Avoid cookie extraction or inline cookie files unless the user specifically chooses that secret-handling path; never paste cookies into prompts, docs, logs, or committed files.
+- For Stitch, do not call `list_design_systems` with an empty request. First call `list_projects`, then use project-scoped calls. The current Secret Santa design source is project `3072957204541081703` (`Process Explainer`, despite the generic title; its screens include Secret Santa shopping/chat/auth designs).
 
 ## Installed Orchestrator
 
