@@ -289,14 +289,14 @@ function buildLazadaProductDisplayDetail(row: AffiliatePerformanceRow): string {
       .filter(Boolean)
       .join(" | ");
 
-    return identifiers || "Product details came from Lazada conversion postback.";
+    return identifiers || "Product details came from the Lazada sales report.";
   }
 
   if (row.catalog_source === "search-backed") {
     return "For search links, the exact product appears only after Lazada reports a matching conversion.";
   }
 
-  return "Shown here when Lazada sends product details in the conversion postback.";
+  return "Shown here when Lazada sends product details in the sales report.";
 }
 
 function inferItemFamily(value: string): string {
@@ -752,7 +752,7 @@ function buildOptimizationRecommendations(input: {
 
   if (weakestFamily) {
     recommendations.push({
-      description: `${weakestFamily.fallback_clicks} of ${weakestFamily.click_count} clicks in this family still need a stronger affiliate link.`,
+      description: `${weakestFamily.fallback_clicks} of ${weakestFamily.click_count} clicks in this family still need a stronger shopping link.`,
       label: "Weakest family",
       title: weakestFamily.family,
     });
@@ -1039,10 +1039,10 @@ function TestPostbackMessage({ status }: { status: string | undefined }) {
   }
 
   const copy: Record<string, string> = {
-    click_lookup_failed: "Test postback could not find the latest Lazada click.",
-    created: "Test postback created and mapped to the latest Lazada click.",
-    missing_click: "Test postback skipped because there is no Lazada click token yet.",
-    write_failed: "Test postback could not be written. Check Vercel logs for the exact error.",
+    click_lookup_failed: "Test report could not find the latest Lazada click.",
+    created: "Test report created and mapped to the latest Lazada click.",
+    missing_click: "Test report skipped because there is no Lazada click token yet.",
+    write_failed: "Test report could not be saved. Check Vercel logs for the exact error.",
   };
   const isSuccess = status === "created";
 
@@ -1054,7 +1054,7 @@ function TestPostbackMessage({ status }: { status: string | undefined }) {
           : "border-amber-200 bg-amber-50 text-amber-900"
       }`}
     >
-      {copy[status] || "Test postback finished."}
+      {copy[status] || "Test report finished."}
     </div>
   );
 }
@@ -1149,8 +1149,8 @@ function buildLazadaHealthActions(health: LazadaHealthStatus): LazadaHealthActio
 
   if (!health.postbackSecretConfigured) {
     actions.push({
-      body: "Add LAZADA_POSTBACK_SECRET in Vercel before sharing the postback URL with Lazada.",
-      label: "Secure postback",
+      body: "Add the Lazada report key in Vercel before sharing the reporting URL with Lazada.",
+      label: "Secure Lazada reports",
       tone: "attention",
     });
   }
@@ -1200,17 +1200,17 @@ function buildLazadaHealthActions(health: LazadaHealthStatus): LazadaHealthActio
 
   if (!health.openApiReady) {
     actions.push({
-      body: `Add missing Lazada Open API env vars: ${health.openApiMissingEnvVars.join(", ") || "unknown"}.`,
-      label: "Complete API env",
+      body: `Add the missing Lazada app settings in Vercel: ${health.openApiMissingEnvVars.join(", ") || "unknown"}.`,
+      label: "Complete Lazada setup",
       tone: "watch",
     });
   }
 
   return actions.length > 0
     ? actions
-    : [
+      : [
         {
-          body: "Clicks, token matching, sale mapping, postback security, and API credentials all look usable.",
+          body: "Clicks, token matching, sale mapping, report security, and Lazada app settings all look usable.",
           label: "No action needed",
           tone: "good",
         },
@@ -1259,7 +1259,7 @@ function LazadaHealthCheckCard({
           <h2 className="mt-2 text-2xl font-bold text-slate-900">Tracking check</h2>
           <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-600">
             This checks whether recent Lazada clicks use affiliate links, whether click tracking
-            can match Lazada reports, and whether postback security is configured.
+            can match Lazada reports, and whether report security is configured.
           </p>
           <p className="mt-2 text-xs font-semibold uppercase tracking-[0.14em] text-slate-400">
             Checked {formatDateTime(health.checkedAt)}
@@ -1312,29 +1312,29 @@ function LazadaHealthCheckCard({
       <div className="mt-4 grid gap-4 md:grid-cols-2">
         <div className="rounded-[22px] border border-slate-200 bg-slate-50/80 p-4">
           <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">
-            Postback secret
+            Lazada report key
           </p>
           <p className="mt-2 text-sm font-semibold text-slate-900">
             {health.postbackSecretConfigured ? "Configured" : "Missing"}
           </p>
           <p className="mt-1 text-sm leading-5 text-slate-600">
             {health.postbackSecretConfigured
-              ? "Lazada reports must include your shared secret."
-              : "Add LAZADA_POSTBACK_SECRET in Vercel before opening the postback URL publicly."}
+              ? "Lazada reports must include your shared report key."
+              : "Add the Lazada report key in Vercel before opening the reporting URL publicly."}
           </p>
         </div>
 
         <div className="rounded-[22px] border border-slate-200 bg-slate-50/80 p-4">
           <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">
-            Lazada Open API
+            Lazada app connection
           </p>
           <p className="mt-2 text-sm font-semibold text-slate-900">
-            {health.openApiReady ? "Ready" : "Needs env"}
+            {health.openApiReady ? "Ready" : "Needs settings"}
           </p>
           <p className="mt-1 text-sm leading-5 text-slate-600">
             {health.openApiReady
-              ? "Product URL conversion can use the configured Lazada credentials."
-              : `Missing: ${health.openApiMissingEnvVars.join(", ") || "unknown env vars"}.`}
+              ? "Product links can use the configured Lazada app settings."
+              : `Missing: ${health.openApiMissingEnvVars.join(", ") || "unknown settings"}.`}
           </p>
         </div>
       </div>
@@ -1344,11 +1344,11 @@ function LazadaHealthCheckCard({
           <div className="flex flex-wrap items-start justify-between gap-3">
             <div>
               <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">
-                Lazada postback URL
+                Lazada reporting URL
               </p>
               <p className="mt-2 text-sm leading-5 text-slate-600">
-                Use this format in Lazada, then replace the placeholder with the secret saved only
-                in Vercel.
+                Use this format in Lazada, then replace the placeholder with the report key saved
+                only in Vercel.
               </p>
             </div>
             <CopyPostbackUrlButton value={postbackUrl} />
@@ -1473,7 +1473,7 @@ function FamilyQualityCard({ insight }: { insight: FamilyQualityInsight }) {
       <h3 className="mt-2 text-lg font-bold text-slate-900">{insight.family}</h3>
       <InsightMetricGrid>
         <InsightMetric label="Coverage">{formatPercentValue(insight.coverage)}</InsightMetric>
-        <InsightMetric label="Fallback clicks">{insight.fallback_clicks}</InsightMetric>
+        <InsightMetric label="Weaker links">{insight.fallback_clicks}</InsightMetric>
         <InsightMetric label="Total clicks">{insight.click_count}</InsightMetric>
       </InsightMetricGrid>
       {insight.click_count < 3 && (
@@ -1848,9 +1848,7 @@ export default async function AffiliateReportPage({
               </p>
               <h2 className="mt-1 text-2xl font-bold text-slate-900">Top item signals</h2>
             </div>
-            <p className="text-sm text-slate-500">
-              The Supabase view name is <span className="font-semibold text-slate-700">affiliate_performance</span>.
-            </p>
+            <p className="text-sm text-slate-500">Built from the affiliate performance summary.</p>
           </div>
 
           <div className="mb-6">
@@ -1931,7 +1929,7 @@ export default async function AffiliateReportPage({
                 <p className="text-sm font-semibold uppercase tracking-[0.18em] text-slate-500">
                   Weak-path signals
                 </p>
-                <h3 className="mt-1 text-xl font-bold text-slate-900">Fallback reasons</h3>
+                <h3 className="mt-1 text-xl font-bold text-slate-900">Link quality notes</h3>
               </div>
               <p className="text-sm text-slate-500">
                 These are the most common non-promotion outcomes in the current filtered sample.
@@ -1940,7 +1938,7 @@ export default async function AffiliateReportPage({
 
             {fallbackReasonInsights.length === 0 ? (
               <div className="rounded-3xl border border-dashed border-slate-300 bg-slate-50/70 px-6 py-8 text-center text-sm font-medium text-slate-500">
-                No fallback reasons in this sample. The current filtered clicks all resolved to promotion links.
+                No link quality notes in this sample. The current filtered clicks all resolved to promotion links.
               </div>
             ) : (
               <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
