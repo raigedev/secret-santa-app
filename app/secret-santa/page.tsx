@@ -2591,6 +2591,8 @@ export function SecretSantaExperience({ mode = "shopping" }: SecretSantaExperien
   const notificationButtonRef = useRef<HTMLButtonElement | null>(null);
   const prefetchedRoutesRef = useRef<Set<string>>(new Set());
   const lazadaPrimedKeysRef = useRef<Set<string>>(new Set());
+  const selectedRecipientSuggestionByItemRef = useRef(selectedRecipientSuggestionByItem);
+  const suggestionDisplayOrderByItemRef = useRef(suggestionDisplayOrderByItem);
   const matchedLazadaProductsByKeyRef = useRef(matchedLazadaProductsByKey);
   const hasAppliedPageSnapshotRef = useRef(false);
 
@@ -2693,19 +2695,25 @@ export function SecretSantaExperience({ mode = "shopping" }: SecretSantaExperien
 
   useEffect(() => {
     const savedRegion = window.localStorage.getItem(SHOPPING_REGION_STORAGE_KEY);
+    const nextRegion =
+      savedRegion && SHOPPING_REGION_OPTIONS.some((option) => option.value === savedRegion)
+        ? (savedRegion as ShoppingRegion)
+        : detectShoppingRegionFromLocale(navigator.language, availableGroups[0]?.currency || null);
 
-    if (savedRegion && SHOPPING_REGION_OPTIONS.some((option) => option.value === savedRegion)) {
-      setShoppingRegion(savedRegion as ShoppingRegion);
-    } else {
-      setShoppingRegion(
-        detectShoppingRegionFromLocale(navigator.language, availableGroups[0]?.currency || null)
-      );
-    }
+    setShoppingRegion((current) => (current === nextRegion ? current : nextRegion));
   }, [availableGroups]);
 
   useEffect(() => {
     window.localStorage.setItem(SHOPPING_REGION_STORAGE_KEY, shoppingRegion);
   }, [shoppingRegion]);
+
+  useEffect(() => {
+    selectedRecipientSuggestionByItemRef.current = selectedRecipientSuggestionByItem;
+  }, [selectedRecipientSuggestionByItem]);
+
+  useEffect(() => {
+    suggestionDisplayOrderByItemRef.current = suggestionDisplayOrderByItem;
+  }, [suggestionDisplayOrderByItem]);
 
   useEffect(() => {
     matchedLazadaProductsByKeyRef.current = matchedLazadaProductsByKey;
@@ -2896,121 +2904,126 @@ export function SecretSantaExperience({ mode = "shopping" }: SecretSantaExperien
   }, [activeRecipientItemByAssignment, assignments, shoppingRegion]);
 
   useEffect(() => {
-    setSuggestionDisplayOrderByItem((current) => {
-      let changed = false;
-      const nextState = { ...current };
-      const activeItemIds = new Set<string>();
+    let changed = false;
+    const current = suggestionDisplayOrderByItemRef.current;
+    const nextState = { ...current };
+    const activeItemIds = new Set<string>();
 
-      for (const assignment of assignments) {
-        for (const item of assignment.receiver_wishlist) {
-          activeItemIds.add(item.id);
+    for (const assignment of assignments) {
+      for (const item of assignment.receiver_wishlist) {
+        activeItemIds.add(item.id);
 
-          const aiSuggestionState = aiSuggestionStateByItem[item.id] || null;
+        const aiSuggestionState = aiSuggestionStateByItem[item.id] || null;
 
-          if (shoppingRegion === "PH" && aiSuggestionState?.loading) {
-            continue;
-          }
-
-          const suggestionInput = buildRecipientSuggestionInput(assignment, item);
-          const nextOrder = mergeWishlistSuggestionOptions(
-            buildWishlistSuggestionOptions(suggestionInput),
-            aiSuggestionState?.options || []
-          ).map((suggestion) => suggestion.id);
-
-          if (nextOrder.length === 0) {
-            continue;
-          }
-
-          const currentOrder = current[item.id] || [];
-          const mergedOrder = mergeSuggestionDisplayOrder(currentOrder, nextOrder);
-
-          if (
-            currentOrder.length !== mergedOrder.length ||
-            currentOrder.some((id, index) => id !== mergedOrder[index])
-          ) {
-            nextState[item.id] = mergedOrder;
-            changed = true;
-          }
+        if (shoppingRegion === "PH" && aiSuggestionState?.loading) {
+          continue;
         }
-      }
 
-      for (const itemId of Object.keys(nextState)) {
-        if (!activeItemIds.has(itemId)) {
-          delete nextState[itemId];
+        const suggestionInput = buildRecipientSuggestionInput(assignment, item);
+        const nextOrder = mergeWishlistSuggestionOptions(
+          buildWishlistSuggestionOptions(suggestionInput),
+          aiSuggestionState?.options || []
+        ).map((suggestion) => suggestion.id);
+
+        if (nextOrder.length === 0) {
+          continue;
+        }
+
+        const currentOrder = current[item.id] || [];
+        const mergedOrder = mergeSuggestionDisplayOrder(currentOrder, nextOrder);
+
+        if (
+          currentOrder.length !== mergedOrder.length ||
+          currentOrder.some((id, index) => id !== mergedOrder[index])
+        ) {
+          nextState[item.id] = mergedOrder;
           changed = true;
         }
       }
+    }
 
-      return changed ? nextState : current;
-    });
+    for (const itemId of Object.keys(nextState)) {
+      if (!activeItemIds.has(itemId)) {
+        delete nextState[itemId];
+        changed = true;
+      }
+    }
+
+    if (changed) {
+      suggestionDisplayOrderByItemRef.current = nextState;
+      setSuggestionDisplayOrderByItem(nextState);
+    }
   }, [aiSuggestionStateByItem, assignments, shoppingRegion]);
 
   useEffect(() => {
-    setSelectedRecipientSuggestionByItem((current) => {
-      let changed = false;
-      const nextState = { ...current };
-      const activeItemIds = new Set<string>();
+    let changed = false;
+    const current = selectedRecipientSuggestionByItemRef.current;
+    const nextState = { ...current };
+    const displayOrderByItem = suggestionDisplayOrderByItemRef.current;
+    const activeItemIds = new Set<string>();
 
-      for (const assignment of assignments) {
-        for (const wishlistItem of assignment.receiver_wishlist) {
-          activeItemIds.add(wishlistItem.id);
+    for (const assignment of assignments) {
+      for (const wishlistItem of assignment.receiver_wishlist) {
+        activeItemIds.add(wishlistItem.id);
 
-          const aiSuggestionState = aiSuggestionStateByItem[wishlistItem.id] || null;
+        const aiSuggestionState = aiSuggestionStateByItem[wishlistItem.id] || null;
 
-          if (shoppingRegion === "PH" && aiSuggestionState?.loading) {
-            continue;
-          }
+        if (shoppingRegion === "PH" && aiSuggestionState?.loading) {
+          continue;
+        }
 
-          const suggestionInput = buildRecipientSuggestionInput(
-            assignment,
-            wishlistItem
-          );
-          const suggestionOptions = applySuggestionDisplayOrder(
-            mergeWishlistSuggestionOptions(
-              buildWishlistSuggestionOptions(suggestionInput),
-              aiSuggestionState?.options || [],
-              nextState[wishlistItem.id] || ""
-            ),
-            suggestionDisplayOrderByItem[wishlistItem.id] || []
-          );
-          const currentSuggestionId = nextState[wishlistItem.id] || "";
+        const suggestionInput = buildRecipientSuggestionInput(
+          assignment,
+          wishlistItem
+        );
+        const suggestionOptions = applySuggestionDisplayOrder(
+          mergeWishlistSuggestionOptions(
+            buildWishlistSuggestionOptions(suggestionInput),
+            aiSuggestionState?.options || [],
+            nextState[wishlistItem.id] || ""
+          ),
+          displayOrderByItem[wishlistItem.id] || []
+        );
+        const currentSuggestionId = nextState[wishlistItem.id] || "";
 
-          if (
-            currentSuggestionId &&
-            suggestionOptions.some((suggestion) => suggestion.id === currentSuggestionId)
-          ) {
-            continue;
-          }
+        if (
+          currentSuggestionId &&
+          suggestionOptions.some((suggestion) => suggestion.id === currentSuggestionId)
+        ) {
+          continue;
+        }
 
-          const defaultSuggestionId =
-            suggestionOptions.find((suggestion) => suggestion.id.trim().length > 0)?.id ||
-            "";
+        const defaultSuggestionId =
+          suggestionOptions.find((suggestion) => suggestion.id.trim().length > 0)?.id ||
+          "";
 
-          if (!defaultSuggestionId) {
-            if (Object.prototype.hasOwnProperty.call(nextState, wishlistItem.id)) {
-              delete nextState[wishlistItem.id];
-              changed = true;
-            }
-
-            continue;
-          }
-
-          if (nextState[wishlistItem.id] !== defaultSuggestionId) {
-            nextState[wishlistItem.id] = defaultSuggestionId;
+        if (!defaultSuggestionId) {
+          if (Object.prototype.hasOwnProperty.call(nextState, wishlistItem.id)) {
+            delete nextState[wishlistItem.id];
             changed = true;
           }
-        }
-      }
 
-      for (const itemId of Object.keys(nextState)) {
-        if (!activeItemIds.has(itemId)) {
-          delete nextState[itemId];
+          continue;
+        }
+
+        if (nextState[wishlistItem.id] !== defaultSuggestionId) {
+          nextState[wishlistItem.id] = defaultSuggestionId;
           changed = true;
         }
       }
+    }
 
-      return changed ? nextState : current;
-    });
+    for (const itemId of Object.keys(nextState)) {
+      if (!activeItemIds.has(itemId)) {
+        delete nextState[itemId];
+        changed = true;
+      }
+    }
+
+    if (changed) {
+      selectedRecipientSuggestionByItemRef.current = nextState;
+      setSelectedRecipientSuggestionByItem(nextState);
+    }
   }, [
     aiSuggestionStateByItem,
     assignments,
@@ -3088,20 +3101,24 @@ export function SecretSantaExperience({ mode = "shopping" }: SecretSantaExperien
 
     let cancelled = false;
 
-    setMatchedLazadaProductsByKey((current) => {
-      const nextState = { ...current };
+    const currentMatchedState = matchedLazadaProductsByKeyRef.current;
+    let matchedStateChanged = false;
+    const nextMatchedState = { ...currentMatchedState };
 
-      for (const request of pendingRequests) {
-        if (!nextState[request.requestKey]) {
-          nextState[request.requestKey] = {
-            loading: true,
-            products: [],
-          };
-        }
+    for (const request of pendingRequests) {
+      if (!nextMatchedState[request.requestKey]) {
+        nextMatchedState[request.requestKey] = {
+          loading: true,
+          products: [],
+        };
+        matchedStateChanged = true;
       }
+    }
 
-      return nextState;
-    });
+    if (matchedStateChanged) {
+      matchedLazadaProductsByKeyRef.current = nextMatchedState;
+      setMatchedLazadaProductsByKey(nextMatchedState);
+    }
 
     const loadLazadaMatches = async () => {
       await Promise.all(
@@ -3129,25 +3146,35 @@ export function SecretSantaExperience({ mode = "shopping" }: SecretSantaExperien
               return;
             }
 
-            setMatchedLazadaProductsByKey((current) => ({
-              ...current,
-              [requestEntry.requestKey]: {
-                loading: false,
-                products: Array.isArray(payload.products) ? payload.products : [],
-              },
-            }));
+            setMatchedLazadaProductsByKey((current) => {
+              const nextState = {
+                ...current,
+                [requestEntry.requestKey]: {
+                  loading: false,
+                  products: Array.isArray(payload.products) ? payload.products : [],
+                },
+              };
+
+              matchedLazadaProductsByKeyRef.current = nextState;
+              return nextState;
+            });
           } catch {
             if (cancelled) {
               return;
             }
 
-            setMatchedLazadaProductsByKey((current) => ({
-              ...current,
-              [requestEntry.requestKey]: {
-                loading: false,
-                products: [],
-              },
-            }));
+            setMatchedLazadaProductsByKey((current) => {
+              const nextState = {
+                ...current,
+                [requestEntry.requestKey]: {
+                  loading: false,
+                  products: [],
+                },
+              };
+
+              matchedLazadaProductsByKeyRef.current = nextState;
+              return nextState;
+            });
           } finally {
             window.clearTimeout(timeoutId);
           }
@@ -3566,14 +3593,23 @@ export function SecretSantaExperience({ mode = "shopping" }: SecretSantaExperien
   // We keep the selected option per item so switching between wishlist cards
   // does not throw away what the giver was comparing.
   const selectRecipientSuggestion = (itemId: string, suggestionId: string) => {
-    setSelectedRecipientSuggestionByItem((current) =>
-      current[itemId] === suggestionId
-        ? current
-        : {
-            ...current,
-            [itemId]: suggestionId,
-          }
-    );
+    setSelectedRecipientSuggestionByItem((current) => {
+      if (current[itemId] === suggestionId) {
+        return current;
+      }
+
+      const nextState = {
+        ...current,
+        [itemId]: suggestionId,
+      };
+
+      selectedRecipientSuggestionByItemRef.current = nextState;
+      return nextState;
+    });
+  };
+
+  const handleShoppingRegionChange = (nextRegion: ShoppingRegion) => {
+    setShoppingRegion((current) => (current === nextRegion ? current : nextRegion));
   };
 
   if (loading) {
@@ -3718,7 +3754,7 @@ export function SecretSantaExperience({ mode = "shopping" }: SecretSantaExperien
         activeGroupHref={activeGroupHref}
         pageRegionLabel={pageRegionLabel}
         shoppingRegion={shoppingRegion}
-        onShoppingRegionChange={setShoppingRegion}
+        onShoppingRegionChange={handleShoppingRegionChange}
       />
       <div className="relative z-10 min-h-screen xl:pl-[17.5rem]">
         <ShoppingIdeasHeader
@@ -3934,7 +3970,7 @@ export function SecretSantaExperience({ mode = "shopping" }: SecretSantaExperien
                 aria-label="Shop region"
                 value={shoppingRegion}
                 onChange={(event) =>
-                  setShoppingRegion(event.target.value as ShoppingRegion)
+                  handleShoppingRegionChange(event.target.value as ShoppingRegion)
                 }
                 className="w-full rounded-full px-4 py-3 text-[13px] font-extrabold"
                 style={{

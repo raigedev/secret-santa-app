@@ -195,7 +195,9 @@ export default function NotificationsPage() {
       )
       .subscribe();
 
-    pollInterval = setInterval(refreshIfVisible, 8000);
+    // Realtime is the primary path; this fallback is intentionally light to avoid
+    // repeated notification reads while the database is already under I/O pressure.
+    pollInterval = setInterval(refreshIfVisible, 30000);
     window.addEventListener("focus", refreshIfVisible);
     document.addEventListener("visibilitychange", refreshIfVisible);
 

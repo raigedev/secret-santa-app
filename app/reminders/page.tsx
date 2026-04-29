@@ -25,16 +25,24 @@ const DEFAULT_REMINDER_PREFERENCES: ReminderPreferenceFormState = {
 type ReminderToggleProps = {
   checked: boolean;
   description: string;
+  disabled?: boolean;
   label: string;
   onChange: () => void;
 };
 
-function ReminderToggle({ checked, description, label, onChange }: ReminderToggleProps) {
+function ReminderToggle({
+  checked,
+  description,
+  disabled = false,
+  label,
+  onChange,
+}: ReminderToggleProps) {
   return (
     <button
       type="button"
+      disabled={disabled}
       onClick={onChange}
-      className="group flex min-h-[104px] w-full items-center justify-between gap-4 rounded-[22px] border bg-white/86 px-4 py-4 text-left shadow-[0_14px_32px_rgba(46,52,50,.05)] transition hover:-translate-y-0.5 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#48664e] sm:px-5"
+      className="group flex min-h-[104px] w-full items-center justify-between gap-4 rounded-[22px] border bg-white/86 px-4 py-4 text-left shadow-[0_14px_32px_rgba(46,52,50,.05)] transition hover:-translate-y-0.5 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#48664e] disabled:cursor-wait disabled:opacity-70 disabled:hover:translate-y-0 sm:px-5"
       style={{
         borderColor: checked ? "rgba(72,102,78,.28)" : "rgba(148,163,184,.18)",
       }}
@@ -62,11 +70,13 @@ function ReminderToggle({ checked, description, label, onChange }: ReminderToggl
 
 function DeliveryOption({
   description,
+  disabled = false,
   label,
   selected,
   onSelect,
 }: {
   description: string;
+  disabled?: boolean;
   label: string;
   selected: boolean;
   onSelect: () => void;
@@ -74,9 +84,10 @@ function DeliveryOption({
   return (
     <button
       type="button"
+      disabled={disabled}
       onClick={onSelect}
       aria-pressed={selected}
-      className="rounded-[20px] border px-5 py-4 text-left transition hover:-translate-y-0.5 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#48664e]"
+      className="rounded-[20px] border px-5 py-4 text-left transition hover:-translate-y-0.5 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#48664e] disabled:cursor-wait disabled:opacity-70 disabled:hover:translate-y-0"
       style={{
         background: selected ? "rgba(72,102,78,.1)" : "#fff",
         borderColor: selected ? "rgba(72,102,78,.32)" : "rgba(148,163,184,.18)",
@@ -93,7 +104,7 @@ function DeliveryOption({
 export default function RemindersPage() {
   const router = useRouter();
   const [supabase] = useState(() => createClient());
-  const [loading, setLoading] = useState(true);
+  const [loadingPreferences, setLoadingPreferences] = useState(true);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState("");
   const [preferences, setPreferences] = useState<ReminderPreferenceFormState>(
@@ -121,23 +132,32 @@ export default function RemindersPage() {
     let mounted = true;
 
     const load = async () => {
-      const {
-        data: { session },
-      } = await supabase.auth.getSession();
+      try {
+        const {
+          data: { session },
+        } = await supabase.auth.getSession();
 
-      if (!session) {
-        router.push("/login");
-        return;
+        if (!session) {
+          router.push("/login");
+          return;
+        }
+
+        const loadedPreferences = await getReminderPreferences();
+
+        if (!mounted) {
+          return;
+        }
+
+        setPreferences(loadedPreferences || DEFAULT_REMINDER_PREFERENCES);
+      } catch {
+        if (mounted) {
+          setMessage("We could not load your saved reminder choices. Review the defaults and try again.");
+        }
+      } finally {
+        if (mounted) {
+          setLoadingPreferences(false);
+        }
       }
-
-      const loadedPreferences = await getReminderPreferences();
-
-      if (!mounted) {
-        return;
-      }
-
-      setPreferences(loadedPreferences || DEFAULT_REMINDER_PREFERENCES);
-      setLoading(false);
     };
 
     void load();
@@ -158,33 +178,23 @@ export default function RemindersPage() {
     setSaving(true);
     setMessage("");
 
-    const result = await saveReminderPreferences(preferences);
-    setMessage(result.message);
-    setSaving(false);
+    try {
+      const result = await saveReminderPreferences(preferences);
+      setMessage(result.message);
 
-    if (result.success) {
-      setTimeout(() => setMessage(""), 3000);
+      if (result.success) {
+        setTimeout(() => setMessage(""), 3000);
+      }
+    } catch {
+      setMessage("We could not save reminder settings. Please try again.");
+    } finally {
+      setSaving(false);
     }
   };
 
   const toggleAssistant = () => {
     setSantaAssistantHiddenPreference(!assistantHidden);
   };
-
-  if (loading) {
-    return (
-      <main className="min-h-screen px-4 py-8 sm:px-6 lg:px-8">
-        <div className="mx-auto max-w-5xl">
-          <div className="h-32 animate-pulse rounded-[28px] bg-white/70" />
-          <div className="mt-5 grid gap-4 md:grid-cols-3">
-            <div className="h-28 animate-pulse rounded-[24px] bg-white/70" />
-            <div className="h-28 animate-pulse rounded-[24px] bg-white/70" />
-            <div className="h-28 animate-pulse rounded-[24px] bg-white/70" />
-          </div>
-        </div>
-      </main>
-    );
-  }
 
   return (
     <main data-testid="reminders-workspace" className="min-h-screen px-4 py-8 sm:px-6 lg:px-8">
@@ -207,16 +217,28 @@ export default function RemindersPage() {
             <button
               type="button"
               onClick={handleSave}
-              disabled={saving}
+              disabled={saving || loadingPreferences}
               className="inline-flex min-h-12 items-center justify-center rounded-full bg-[#48664e] px-6 text-[14px] font-black text-white shadow-[0_18px_34px_rgba(72,102,78,.18)] transition hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-60"
             >
-              {saving ? "Saving..." : "Save reminders"}
+              {loadingPreferences ? "Loading choices..." : saving ? "Saving..." : "Save reminders"}
             </button>
           </div>
         </section>
 
+        {loadingPreferences && (
+          <div
+            role="status"
+            className="mt-5 rounded-[18px] border border-[rgba(72,102,78,.16)] bg-white/88 px-4 py-3 text-[13px] font-extrabold text-[#48664e]"
+          >
+            Loading your saved reminder choices...
+          </div>
+        )}
+
         {message && (
-          <div className="mt-5 rounded-[18px] border border-[rgba(72,102,78,.16)] bg-white/88 px-4 py-3 text-[13px] font-extrabold text-[#48664e]">
+          <div
+            role={message.includes("could not") ? "alert" : "status"}
+            className="mt-5 rounded-[18px] border border-[rgba(72,102,78,.16)] bg-white/88 px-4 py-3 text-[13px] font-extrabold text-[#48664e]"
+          >
             {message}
           </div>
         )}
@@ -225,6 +247,7 @@ export default function RemindersPage() {
           <ReminderToggle
             checked={preferences.reminder_wishlist_incomplete}
             description="Tell me when an upcoming group still needs wishlist ideas."
+            disabled={loadingPreferences}
             label="Wishlist ideas needed"
             onChange={() =>
               updatePreference(
@@ -236,6 +259,7 @@ export default function RemindersPage() {
           <ReminderToggle
             checked={preferences.reminder_event_tomorrow}
             description="Send a heads-up the day before the gift exchange."
+            disabled={loadingPreferences}
             label="Gift date heads-up"
             onChange={() =>
               updatePreference("reminder_event_tomorrow", !preferences.reminder_event_tomorrow)
@@ -244,6 +268,7 @@ export default function RemindersPage() {
           <ReminderToggle
             checked={preferences.reminder_post_draw}
             description="Remind me after names are drawn to check the wishlist and plan."
+            disabled={loadingPreferences}
             label="After names are drawn"
             onChange={() =>
               updatePreference("reminder_post_draw", !preferences.reminder_post_draw)
@@ -261,12 +286,14 @@ export default function RemindersPage() {
             <div className="mt-5 grid gap-3 sm:grid-cols-2">
               <DeliveryOption
                 description="Send each reminder as its own notification."
+                disabled={loadingPreferences}
                 label="Right away"
                 selected={preferences.reminder_delivery_mode === "immediate"}
                 onSelect={() => updatePreference("reminder_delivery_mode", "immediate")}
               />
               <DeliveryOption
                 description="Bundle due reminders into one daily in-app summary."
+                disabled={loadingPreferences}
                 label="Daily summary"
                 selected={preferences.reminder_delivery_mode === "daily_digest"}
                 onSelect={() => updatePreference("reminder_delivery_mode", "daily_digest")}

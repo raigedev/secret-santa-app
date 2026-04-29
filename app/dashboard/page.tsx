@@ -71,6 +71,16 @@ const ProfileSetupModal = dynamic<ProfileSetupModalProps>(() => import("./Profil
 const DASHBOARD_THEME_STORAGE_KEY = "ss_dashboard_theme";
 const DASHBOARD_THEME_CHANGED_EVENT = "ss-dashboard-theme-changed";
 
+function readStoredDashboardTheme(): DashboardTheme {
+  if (typeof window === "undefined") {
+    return "default";
+  }
+
+  return localStorage.getItem(DASHBOARD_THEME_STORAGE_KEY) === "midnight"
+    ? "midnight"
+    : "default";
+}
+
 export default function DashboardPage() {
   const router = useRouter();
   const [supabase] = useState(() => createClient());
@@ -93,8 +103,12 @@ export default function DashboardPage() {
   const [notificationPreviewItems, setNotificationPreviewItems] = useState<
     DashboardNotificationPreviewItem[]
   >([]);
-  const [dashboardTheme, setDashboardTheme] = useState<DashboardTheme>("default");
-  const [dashboardThemeReady, setDashboardThemeReady] = useState(false);
+  const [dashboardTheme, setDashboardTheme] = useState<DashboardTheme>(() =>
+    readStoredDashboardTheme()
+  );
+  const [dashboardThemeReady, setDashboardThemeReady] = useState(
+    () => typeof window !== "undefined"
+  );
   const [loading, setLoading] = useState(true);
   const [showProfileSetup, setShowProfileSetup] = useState(false);
   const [notificationsPanelOpen, setNotificationsPanelOpen] = useState(false);
@@ -128,11 +142,7 @@ export default function DashboardPage() {
 
   useEffect(() => {
     const syncStoredTheme = () => {
-      setDashboardTheme(
-        localStorage.getItem(DASHBOARD_THEME_STORAGE_KEY) === "midnight"
-          ? "midnight"
-          : "default"
-      );
+      setDashboardTheme(readStoredDashboardTheme());
       setDashboardThemeReady(true);
     };
 

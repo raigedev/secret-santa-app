@@ -672,14 +672,19 @@ test.describe("authenticated screen regressions", () => {
     const santaAssistantToggle = page.getByTestId("santa-assistant-toggle");
     await expect(santaAssistantToggle).toHaveAttribute(
       "aria-label",
-      /santa buddy assistant/i
+      /secret santa assistant/i
     );
     await expect(santaAssistantToggle).toHaveCSS("background-color", "rgba(0, 0, 0, 0)");
+    await expect(page.getByTestId("santa-assistant-logo-face")).toBeVisible();
     const assistantAnimation = await page
       .getByTestId("santa-assistant")
       .locator(".santa-assistant-avatar")
       .evaluate((avatar) => window.getComputedStyle(avatar).animationName);
     expect(assistantAnimation).toContain("santa-assistant-float");
+    const faceAnimation = await page
+      .getByTestId("santa-assistant-logo-face")
+      .evaluate((face) => window.getComputedStyle(face).animationName);
+    expect(faceAnimation).toContain("santa-assistant-face-breathe");
     await santaAssistantToggle.click();
     await page.getByLabel(/ask santa buddy/i).fill("What is the budget?");
     await page.getByRole("button", { name: /^ask$/i }).click();
