@@ -2,6 +2,7 @@
 
 import { SantaAssistantBubble } from "@/app/components/SantaAssistantBubble";
 import { useSantaAssistant } from "@/app/hooks/useSantaAssistant";
+import { usePathname } from "next/navigation";
 
 function SantaBuddyCharacter({ isOpen }: { isOpen: boolean }) {
   return (
@@ -98,6 +99,7 @@ function SantaBuddyCharacter({ isOpen }: { isOpen: boolean }) {
 }
 
 export function SantaAssistant() {
+  const pathname = usePathname();
   const {
     close,
     hide,
@@ -114,6 +116,7 @@ export function SantaAssistant() {
     tipCount,
     tipIndex,
   } = useSantaAssistant();
+  const useShoppingHelperRail = pathname === "/secret-santa";
 
   if (!shouldRender) {
     return null;
@@ -122,7 +125,9 @@ export function SantaAssistant() {
   return (
     <aside
       data-testid="santa-assistant"
-      className="pointer-events-none fixed bottom-[calc(env(safe-area-inset-bottom)+7rem)] right-2 z-[55] flex max-w-[calc(100vw-1rem)] flex-col items-end gap-2 sm:right-5 sm:bottom-4"
+      className={`pointer-events-none fixed bottom-[calc(env(safe-area-inset-bottom)+7rem)] right-2 z-[55] flex max-w-[calc(100vw-1rem)] flex-col items-end gap-2 sm:right-5 sm:bottom-4 ${
+        useShoppingHelperRail ? "xl:hidden" : ""
+      }`}
       aria-label="Secret Santa assistant"
     >
       <style>{`

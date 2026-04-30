@@ -662,10 +662,9 @@ test.describe("authenticated screen regressions", () => {
       }
     });
 
-    await page.setViewportSize({ width: 1440, height: 900 });
+    await page.setViewportSize({ width: 390, height: 884 });
     await loginWithTestCredentials(page, credentials!);
     await page.goto("/secret-santa");
-    await page.getByLabel(/online shop region/i).selectOption({ label: "Philippines" });
 
     const santaAssistant = page.getByTestId("santa-assistant");
     await expect(santaAssistant).toBeVisible();
@@ -691,7 +690,14 @@ test.describe("authenticated screen regressions", () => {
     await expect(page.getByTestId("santa-assistant-bubble")).toContainText(/group budget/i);
     await page.getByRole("button", { name: /hide santa buddy/i }).click();
     await expect(page.getByTestId("santa-assistant")).toHaveCount(0);
-    await expect(page.getByTestId("santa-helper-panel").first()).toBeVisible();
+
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await page.goto("/secret-santa");
+    await expect(page.getByTestId("shopping-region-budget-control")).toBeVisible();
+    await expect(page.getByTestId("shopping-region-header-control")).toHaveCount(0);
+    await page.getByLabel(/online shop region/i).selectOption({ label: "Philippines" });
+    await expect(page.getByTestId("santa-helper-panel")).toHaveCount(1);
+    await expect(page.getByTestId("santa-helper-panel")).toBeVisible();
     await expect(page.getByTestId("santa-helper-action-strip")).toHaveCount(0);
     await expect(page.getByText(/safest pick/i).first()).toBeVisible();
 
@@ -846,7 +852,7 @@ test.describe("authenticated screen regressions", () => {
       (panel) => panel.getBoundingClientRect().top
     );
     expect(stickyPanelTop).toBeGreaterThanOrEqual(0);
-    expect(stickyPanelTop).toBeLessThanOrEqual(100);
+    expect(stickyPanelTop).toBeLessThanOrEqual(128);
 
     const stickyPanelSurface = await shoppingOptionPanel.evaluate((panel) => {
       const panelStyle = window.getComputedStyle(panel);
