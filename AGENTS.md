@@ -100,6 +100,14 @@ Act as a senior full-stack engineer and software architect. Code this project wi
 - Prefer durable migration files for database changes. If a manual SQL Editor fix is needed as a surgical recovery, mirror the durable change back into `supabase/migrations/` and reconcile migration history before relying on future CLI pushes.
 - Never ask the user to paste database passwords or secrets into chat. If the CLI needs a database password, tell the user to set `SUPABASE_DB_PASSWORD` locally or use the Supabase dashboard safely.
 
+### Production Database Safety
+
+- Future agents may execute safe, scoped Supabase Advisor or verification SQL from Codex/VS Code when the SQL is prepared in a local file, the linked project has been checked, and the action is limited to reviewed grants, policies, function settings, indexes, or read-only diagnostics.
+- Never run destructive production database actions automatically. This includes `DROP DATABASE`, `DROP SCHEMA`, `DROP TABLE`, `TRUNCATE`, broad `DELETE` or `UPDATE`, `supabase db reset`, drifted `supabase db push`, data-loss `ALTER TABLE` changes such as dropping columns or constraints, or migrations that rewrite/delete production data unless the exact SQL or command, target project, expected impact, and rollback notes have been shown to the user and the user explicitly confirms.
+- Prefer idempotent and reversible SQL: `CREATE INDEX IF NOT EXISTS`, `DROP POLICY IF EXISTS` followed by reviewed replacement policies, explicit `REVOKE`/`GRANT`, explicit function signatures, and tight `WHERE` clauses for any data-touching fix. Use transactions for policy/grant/function changes when supported; avoid forcing unsafe workarounds when Supabase wraps execution.
+- Before any production DB write, inspect the relevant schema/advisor output, prepare the smallest SQL file needed, avoid secrets and private data, and verify the command targets the intended linked Supabase project.
+- After any production DB write, run verification/advisor checks, mirror the durable change into `supabase/migrations/` when it affects schema/security/performance, update `.agent/CONTINUITY.md`, and keep local scratch SQL/schema dumps in `.agent/` uncommitted unless the user explicitly asks.
+
 ### 6. Security
 
 - Never hardcode secrets.
