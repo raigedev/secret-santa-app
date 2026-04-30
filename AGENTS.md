@@ -91,6 +91,15 @@ Act as a senior full-stack engineer and software architect. Code this project wi
 - Handle empty states, errors, and loading states properly.
 - Keep auth logic safe, explicit, and easy to reason about.
 
+### Supabase Migration Discipline
+
+- GitHub and Vercel pushes deploy app code only; they do not apply Supabase migrations.
+- Before database, schema, RLS, Supabase Advisor, or PostgREST fixes, check migration state with `npx.cmd supabase migration list` when credentials allow.
+- Before applying Supabase migrations, run `npx.cmd supabase db push --dry-run` and review the exact migration list. Do not run `supabase db push` if the dry-run includes unrelated old migrations or shows migration-history drift.
+- Treat production migration-history drift as a release blocker until it is understood. Repair history only after verifying the live schema matches the migration, using `supabase migration repair --status applied <version>` as appropriate.
+- Prefer durable migration files for database changes. If a manual SQL Editor fix is needed as a surgical recovery, mirror the durable change back into `supabase/migrations/` and reconcile migration history before relying on future CLI pushes.
+- Never ask the user to paste database passwords or secrets into chat. If the CLI needs a database password, tell the user to set `SUPABASE_DB_PASSWORD` locally or use the Supabase dashboard safely.
+
 ### 6. Security
 
 - Never hardcode secrets.
