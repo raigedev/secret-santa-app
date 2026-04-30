@@ -75,7 +75,7 @@ const PAGE_TIPS: Array<{
     tips: [
       {
         title: "Shopping ideas",
-        body: "Pick a wishlist item, then compare gift ideas using that group's budget.",
+        body: "Pick a wishlist item, then find gift ideas that fit that group's budget.",
       },
       {
         title: "Group budget",

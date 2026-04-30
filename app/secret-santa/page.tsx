@@ -723,24 +723,6 @@ function ChevronRightMark({ className = "h-4 w-4" }: { className?: string }) {
   );
 }
 
-function CloseMark({ className = "h-4 w-4" }: { className?: string }) {
-  return (
-    <svg
-      aria-hidden="true"
-      className={className}
-      viewBox="0 0 16 16"
-      fill="none"
-    >
-      <path
-        d="m4.2 4.2 7.6 7.6M11.8 4.2l-7.6 7.6"
-        stroke="currentColor"
-        strokeLinecap="round"
-        strokeWidth="1.9"
-      />
-    </svg>
-  );
-}
-
 function CheckCircleMark({ className = "h-5 w-5" }: { className?: string }) {
   return (
     <svg
@@ -1272,7 +1254,7 @@ function ShoppingIdeasHeader({
       ? "Your recipient, wishlist clues, and group budget."
       : mode === "tracking"
         ? "Update your gift progress and arrival status."
-        : "Compare gift ideas, wishlist clues, and budgets.";
+        : "Find gifts from wishlists, budgets, and shopping links.";
   const profileInitial = displayViewerName.slice(0, 1).toUpperCase() || "?";
   const fallbackAvatar = viewerAvatarEmoji || profileInitial;
   const fallbackAvatarIsEmoji = Boolean(viewerAvatarEmoji);
@@ -1395,14 +1377,16 @@ function ShoppingIdeasHeader({
   );
 }
 
-function ShoppingRegionBudgetControl({
+function ShoppingRegionHelperControl({
   onShoppingRegionChange,
   pageRegionLabel,
   shoppingRegion,
+  testId = "shopping-region-helper-control",
 }: {
   onShoppingRegionChange: (region: ShoppingRegion) => void;
   pageRegionLabel: string;
   shoppingRegion: ShoppingRegion;
+  testId?: string;
 }) {
   const helperText =
     SHOPPING_REGION_OPTIONS.find((option) => option.value === shoppingRegion)?.helper ||
@@ -1410,10 +1394,10 @@ function ShoppingRegionBudgetControl({
 
   return (
     <label
-      data-testid="shopping-region-budget-control"
-      className="relative mt-4 block rounded-[18px] px-3 py-3"
+      data-testid={testId}
+      className="relative block rounded-[20px] px-4 py-3"
       style={{
-        background: "rgba(255,255,255,.78)",
+        background: "rgba(255,255,255,.72)",
         border: "1px solid rgba(72,102,78,.14)",
       }}
       title={`Shopping links use ${pageRegionLabel}`}
@@ -1429,7 +1413,7 @@ function ShoppingRegionBudgetControl({
           aria-label="Online shop region"
           value={shoppingRegion}
           onChange={(event) => onShoppingRegionChange(event.target.value as ShoppingRegion)}
-          className="min-h-10 min-w-[148px] rounded-full bg-transparent px-3 py-1.5 text-right text-[12px] font-extrabold outline-none"
+          className="min-h-10 min-w-[132px] rounded-full bg-transparent px-3 py-1.5 text-right text-[12px] font-extrabold outline-none"
           style={{ color: INPUT_TEXT, fontFamily: "inherit" }}
         >
           {SHOPPING_REGION_OPTIONS.map((option) => (
@@ -1452,13 +1436,17 @@ function ShoppingRegionBudgetControl({
 function SantaHelperSidecar({
   activeItemName,
   budgetLabel,
+  onShoppingRegionChange,
+  pageRegionLabel,
   recipientCount,
-  regionLabel,
+  shoppingRegion,
 }: {
   activeItemName: string;
   budgetLabel: string | null;
+  onShoppingRegionChange: (region: ShoppingRegion) => void;
+  pageRegionLabel: string;
   recipientCount: number;
-  regionLabel: string;
+  shoppingRegion: ShoppingRegion;
 }) {
   const jumpToTopPicks = () => {
     const topPicksSection = document.querySelector(
@@ -1471,18 +1459,20 @@ function SantaHelperSidecar({
   };
 
   const helperActions = [
-    ["Safest pick", "Best match with low risk", "shield"],
-    ["Cheaper option", "Great gifts under budget", "coin"],
-    ["Why it matches", "See why this fits them", "search"],
+    ["Best fit", "Matches wishlist and budget", "shield"],
+    ["Under budget", "Lower-cost shopping options", "coin"],
+    ["Why this gift", "Read the wishlist match", "search"],
     ["Gift note", "Help me write a note", "note"],
   ] as const;
   const helperScope =
     recipientCount > 1 ? `${recipientCount} recipients` : "this recipient";
   const helperContext = [
-    `Watching ${helperScope}`,
-    `Focus: ${activeItemName}`,
+    `Helping with ${helperScope}`,
+    recipientCount > 1
+      ? "Choose a wishlist item inside each recipient card"
+      : `Selected item: ${activeItemName}`,
     budgetLabel ? `Budget: ${budgetLabel}` : "Budget: set by group",
-    `Region: ${regionLabel}`,
+    `Shopping region: ${pageRegionLabel}`,
   ].join(". ");
 
   return (
@@ -1518,10 +1508,10 @@ function SantaHelperSidecar({
             <SparkleMark className="h-4 w-4" />
           </div>
           <p className="mt-2 text-[12px] font-semibold leading-relaxed" style={{ color: TEXT_MUTED }}>
-            One helper for the whole shopping list.
+            Gift support for every recipient.
           </p>
           <p className="mt-1 text-[11px] font-medium leading-relaxed" style={{ color: TEXT_SOFT }}>
-            I can compare notes, budget, and links while you scroll.
+            I can help choose a useful gift, keep budgets visible, and open shopping links in the right region.
           </p>
         </div>
         <button
@@ -1535,9 +1525,9 @@ function SantaHelperSidecar({
             fontFamily: "inherit",
             outlineColor: HOLIDAY_GREEN,
           }}
-          aria-label="Jump to top picks"
+          aria-label="Jump to gift ideas"
         >
-          <CloseMark />
+          <ShoppingBagMark className="h-4 w-4" />
         </button>
       </div>
 
@@ -1587,6 +1577,14 @@ function SantaHelperSidecar({
             <ChevronRightMark className="h-3.5 w-3.5 shrink-0" />
           </button>
         ))}
+      </div>
+
+      <div className="mt-4">
+        <ShoppingRegionHelperControl
+          pageRegionLabel={pageRegionLabel}
+          shoppingRegion={shoppingRegion}
+          onShoppingRegionChange={onShoppingRegionChange}
+        />
       </div>
 
       <div
@@ -2544,6 +2542,7 @@ export function SecretSantaExperience({ mode = "shopping" }: SecretSantaExperien
   // These shopping preferences are page-level on purpose so the giver can set
   // them once and reuse them across every giftee item on the screen.
   const [shoppingRegion, setShoppingRegion] = useState<ShoppingRegion>("GLOBAL");
+  const [shoppingRegionInitialized, setShoppingRegionInitialized] = useState(false);
   const notificationButtonRef = useRef<HTMLButtonElement | null>(null);
   const prefetchedRoutesRef = useRef<Set<string>>(new Set());
   const lazadaPrimedKeysRef = useRef<Set<string>>(new Set());
@@ -2657,11 +2656,16 @@ export function SecretSantaExperience({ mode = "shopping" }: SecretSantaExperien
         : detectShoppingRegionFromLocale(navigator.language, availableGroups[0]?.currency || null);
 
     setShoppingRegion((current) => (current === nextRegion ? current : nextRegion));
+    setShoppingRegionInitialized(true);
   }, [availableGroups]);
 
   useEffect(() => {
+    if (!shoppingRegionInitialized) {
+      return;
+    }
+
     window.localStorage.setItem(SHOPPING_REGION_STORAGE_KEY, shoppingRegion);
-  }, [shoppingRegion]);
+  }, [shoppingRegion, shoppingRegionInitialized]);
 
   useEffect(() => {
     selectedRecipientSuggestionByItemRef.current = selectedRecipientSuggestionByItem;
@@ -3565,6 +3569,7 @@ export function SecretSantaExperience({ mode = "shopping" }: SecretSantaExperien
   };
 
   const handleShoppingRegionChange = (nextRegion: ShoppingRegion) => {
+    setShoppingRegionInitialized(true);
     setShoppingRegion((current) => (current === nextRegion ? current : nextRegion));
   };
 
@@ -3596,6 +3601,16 @@ export function SecretSantaExperience({ mode = "shopping" }: SecretSantaExperien
     assignments.length > 1
       ? `${assignments.length} recipients`
       : firstRecipientName;
+  const heroEyebrow =
+    mode === "shopping"
+      ? "Gift shopping"
+      : mode === "giftee"
+        ? "Recipient details"
+        : "Gift progress";
+  const heroCountLabel =
+    mode === "shopping"
+      ? `${assignments.length} recipient${assignments.length === 1 ? "" : "s"}`
+      : `${assignmentGroupCount} group${assignmentGroupCount === 1 ? "" : "s"}`;
   const groupBudgetValue =
     isShoppingMode && assignmentGroupCount > 1 ? "Varies by group" : dashboardBudgetLabel;
   const groupBudgetHelper =
@@ -3627,8 +3642,8 @@ export function SecretSantaExperience({ mode = "shopping" }: SecretSantaExperien
       title: "Shopping Ideas",
       description:
         assignments.length > 1
-          ? `Compare gift ideas for ${shoppingRecipientLabel}, each with their own wishlist and budget.`
-          : `Gift ideas for ${firstRecipientName}, based on their wishlist and group budget.`,
+          ? `Gift ideas for ${shoppingRecipientLabel}, based on their wishlists, group budgets, and available shopping links.`
+          : `Gift ideas for ${firstRecipientName}, based on their wishlist, group budget, and available shopping links.`,
       cardLabel: "Group budget",
       cardValue: groupBudgetValue,
       cardHelper: groupBudgetHelper,
@@ -3761,11 +3776,12 @@ export function SecretSantaExperience({ mode = "shopping" }: SecretSantaExperien
 
         <section
           data-testid="shopping-ideas-hero"
-          className="relative mb-3 overflow-hidden rounded-[32px] px-1 py-4 sm:px-2 lg:px-3 xl:py-4"
+          className="relative mb-4 overflow-hidden rounded-[28px] px-4 py-4 sm:px-5 sm:py-5 xl:px-5 xl:py-5"
           style={{
-            background: "transparent",
-            border: "none",
-            boxShadow: "none",
+            background:
+              "linear-gradient(135deg,rgba(255,254,250,.82),rgba(242,244,242,.54))",
+            border: "1px solid rgba(72,102,78,.1)",
+            boxShadow: "0 18px 42px rgba(46,52,50,.04)",
           }}
         >
           <div
@@ -3773,41 +3789,66 @@ export function SecretSantaExperience({ mode = "shopping" }: SecretSantaExperien
             className="hidden"
             style={{ background: SHOPPING_CARD_TOP_RULE }}
           />
-          <div className="relative grid gap-5 lg:grid-cols-[minmax(0,1fr)_minmax(260px,320px)] lg:items-center">
-            <div className="flex min-w-0 gap-4">
-              <HeroModeMark mode={mode} className="mt-1 hidden h-14 w-14 shrink-0 sm:block" />
+          <div className="relative grid gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(220px,280px)] lg:items-center">
+            <div className="flex min-w-0 items-center gap-4">
+              <span
+                className="hidden h-16 w-16 shrink-0 items-center justify-center rounded-[24px] sm:flex"
+                style={{
+                  background: "rgba(255,255,255,.76)",
+                  border: "1px solid rgba(72,102,78,.12)",
+                }}
+              >
+                <HeroModeMark mode={mode} className="h-12 w-12" />
+              </span>
               <div className="min-w-0">
-              <div
-                className="hidden"
-                style={{
-                  background: "rgba(215,250,219,.72)",
-                  color: HOLIDAY_GREEN,
-                }}
-              >
-                <GiftMark className="h-4 w-4" />
-                Gift room
-              </div>
-              <h1
-                className="max-w-none text-[38px] font-black leading-none sm:text-[48px] xl:text-[52px]"
-                style={{
-                  fontFamily: "'Fredoka', 'Plus Jakarta Sans', sans-serif",
-                  color: HOLIDAY_GREEN,
-                  textWrap: "balance",
-                }}
-              >
-                {heroText.title}
-              </h1>
-              <p
-                className="mt-3 max-w-2xl text-[14px] font-semibold leading-relaxed sm:text-[16px]"
-                style={{ color: TEXT_MUTED }}
-              >
-                {heroText.description}
-              </p>
+                <div
+                  className="mb-2 flex flex-wrap items-center gap-2"
+                  style={{
+                    color: TEXT_MUTED,
+                  }}
+                >
+                  <span
+                    className="inline-flex min-h-7 items-center gap-1.5 rounded-full px-3 text-[10px] font-black uppercase tracking-[0.12em]"
+                    style={{
+                      background: "rgba(215,250,219,.58)",
+                      color: HOLIDAY_GREEN,
+                    }}
+                  >
+                    <GiftMark className="h-3.5 w-3.5" />
+                    {heroEyebrow}
+                  </span>
+                  <span
+                    className="inline-flex min-h-7 items-center rounded-full px-3 text-[10px] font-black uppercase tracking-[0.12em]"
+                    style={{
+                      background: "rgba(255,255,255,.72)",
+                      border: "1px solid rgba(72,102,78,.1)",
+                      color: TEXT_MUTED,
+                    }}
+                  >
+                    {heroCountLabel}
+                  </span>
+                </div>
+                <h1
+                  className="max-w-none text-[34px] font-black leading-none sm:text-[42px] xl:text-[44px]"
+                  style={{
+                    fontFamily: "'Fredoka', 'Plus Jakarta Sans', sans-serif",
+                    color: HOLIDAY_GREEN,
+                    textWrap: "balance",
+                  }}
+                >
+                  {heroText.title}
+                </h1>
+                <p
+                  className="mt-2 max-w-2xl text-[13px] font-semibold leading-relaxed sm:text-[15px]"
+                  style={{ color: TEXT_MUTED }}
+                >
+                  {heroText.description}
+                </p>
               </div>
             </div>
 
             <div
-              className="relative overflow-hidden rounded-[22px] p-4"
+              className="relative overflow-hidden rounded-[24px] p-4 sm:p-5"
               style={{
                 background: SHOPPING_SHELL_BACKGROUND,
                 border: SHOPPING_SHELL_BORDER,
@@ -3816,18 +3857,18 @@ export function SecretSantaExperience({ mode = "shopping" }: SecretSantaExperien
             >
               <div
                 aria-hidden="true"
-                className="absolute -right-2 -top-3 opacity-95"
+                className="absolute -right-3 -top-4 opacity-95"
               >
-                <GiftBoxIllustration className="h-24 w-24" />
+                <GiftBoxIllustration className="h-20 w-20" />
               </div>
               <div className="flex items-center justify-between gap-3">
                 <span className="text-[12px] font-black" style={{ color: PAGE_TEXT_COLOR }}>
                   {heroText.cardLabel}
                 </span>
               </div>
-              <div className="relative mt-2 grid grid-cols-[minmax(0,1fr)_88px] gap-3">
+              <div className="relative mt-2 grid grid-cols-[minmax(0,1fr)_72px] gap-3">
                 <div>
-                  <div className="text-[25px] font-black leading-none">
+                  <div className="text-[24px] font-black leading-none">
                     {heroText.cardValue}
                   </div>
                   <div className="mt-1 text-[11px] font-bold" style={{ color: TEXT_MUTED }}>
@@ -3836,16 +3877,20 @@ export function SecretSantaExperience({ mode = "shopping" }: SecretSantaExperien
                 </div>
                 <span aria-hidden="true" />
               </div>
-              {isShoppingMode && (
-                <ShoppingRegionBudgetControl
-                  pageRegionLabel={pageRegionLabel}
-                  shoppingRegion={shoppingRegion}
-                  onShoppingRegionChange={handleShoppingRegionChange}
-                />
-              )}
             </div>
           </div>
         </section>
+
+        {isShoppingMode && (
+          <div className="mb-4 xl:hidden">
+            <ShoppingRegionHelperControl
+              testId="shopping-region-mobile-control"
+              pageRegionLabel={pageRegionLabel}
+              shoppingRegion={shoppingRegion}
+              onShoppingRegionChange={handleShoppingRegionChange}
+            />
+          </div>
+        )}
 
         {/* Header content and recipient summary. */}
         <div className="hidden">
@@ -5533,8 +5578,10 @@ export function SecretSantaExperience({ mode = "shopping" }: SecretSantaExperien
             <SantaHelperSidecar
               activeItemName={shoppingHelperActiveItemName}
               budgetLabel={shoppingHelperBudgetLabel}
+              onShoppingRegionChange={handleShoppingRegionChange}
+              pageRegionLabel={pageRegionLabel}
               recipientCount={assignments.length}
-              regionLabel={pageRegionLabel}
+              shoppingRegion={shoppingRegion}
             />
           </div>
         ) : null}

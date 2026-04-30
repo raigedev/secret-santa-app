@@ -4,11 +4,21 @@ import { SantaAssistantBubble } from "@/app/components/SantaAssistantBubble";
 import { useSantaAssistant } from "@/app/hooks/useSantaAssistant";
 import { usePathname } from "next/navigation";
 
-function SantaBuddyCharacter({ isOpen }: { isOpen: boolean }) {
+function SantaBuddyCharacter({
+  compactOnDesktop = false,
+  isOpen,
+}: {
+  compactOnDesktop?: boolean;
+  isOpen: boolean;
+}) {
+  const sizeClass = compactOnDesktop
+    ? "h-12 w-12 min-[420px]:h-16 min-[420px]:w-16 sm:h-24 sm:w-24 xl:h-20 xl:w-20"
+    : "h-12 w-12 min-[420px]:h-16 min-[420px]:w-16 sm:h-32 sm:w-32";
+
   return (
     <svg
       aria-hidden="true"
-      className="h-12 w-12 min-[420px]:h-16 min-[420px]:w-16 sm:h-32 sm:w-32"
+      className={sizeClass}
       data-testid="santa-assistant-character"
       viewBox="0 0 160 170"
       fill="none"
@@ -116,7 +126,25 @@ export function SantaAssistant() {
     tipCount,
     tipIndex,
   } = useSantaAssistant();
-  const useShoppingHelperRail = pathname === "/secret-santa";
+  const useShoppingIdeasOffset = pathname === "/secret-santa";
+
+  const handleToggle = () => {
+    const hasShoppingHelperRail =
+      useShoppingIdeasOffset &&
+      window.matchMedia("(min-width: 1280px)").matches;
+
+    if (hasShoppingHelperRail) {
+      close();
+      return;
+    }
+
+    if (isOpen) {
+      close();
+      return;
+    }
+
+    open();
+  };
 
   if (!shouldRender) {
     return null;
@@ -126,7 +154,7 @@ export function SantaAssistant() {
     <aside
       data-testid="santa-assistant"
       className={`pointer-events-none fixed bottom-[calc(env(safe-area-inset-bottom)+7rem)] right-2 z-[55] flex max-w-[calc(100vw-1rem)] flex-col items-end gap-2 sm:right-5 sm:bottom-4 ${
-        useShoppingHelperRail ? "xl:hidden" : ""
+        useShoppingIdeasOffset ? "xl:right-1 2xl:right-1" : ""
       }`}
       aria-label="Secret Santa assistant"
     >
@@ -192,24 +220,26 @@ export function SantaAssistant() {
       `}</style>
 
       {isOpen && (
-        <SantaAssistantBubble
-          answer={lastAnswer}
-          onClose={close}
-          onHide={hide}
-          onMinimize={minimize}
-          onNext={nextTip}
-          onPrevious={previousTip}
-          onSubmitQuestion={submitQuestion}
-          tip={tip}
-          tipCount={tipCount}
-          tipIndex={tipIndex}
-        />
+        <div className={useShoppingIdeasOffset ? "xl:hidden" : undefined}>
+          <SantaAssistantBubble
+            answer={lastAnswer}
+            onClose={close}
+            onHide={hide}
+            onMinimize={minimize}
+            onNext={nextTip}
+            onPrevious={previousTip}
+            onSubmitQuestion={submitQuestion}
+            tip={tip}
+            tipCount={tipCount}
+            tipIndex={tipIndex}
+          />
+        </div>
       )}
 
       <button
         type="button"
         data-testid="santa-assistant-toggle"
-        onClick={isOpen ? close : open}
+        onClick={handleToggle}
         aria-expanded={isOpen}
         aria-label={
           isOpen
@@ -221,7 +251,7 @@ export function SantaAssistant() {
         className="santa-assistant-button pointer-events-auto rounded-[28px] bg-transparent p-0 transition hover:-translate-y-1 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#48664e]"
       >
         <span className="santa-assistant-avatar block">
-          <SantaBuddyCharacter isOpen={isOpen} />
+          <SantaBuddyCharacter compactOnDesktop={useShoppingIdeasOffset} isOpen={isOpen} />
         </span>
       </button>
     </aside>

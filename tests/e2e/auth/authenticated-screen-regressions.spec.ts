@@ -666,6 +666,7 @@ test.describe("authenticated screen regressions", () => {
     await loginWithTestCredentials(page, credentials!);
     await page.goto("/secret-santa");
 
+    await expect(page.getByTestId("shopping-region-mobile-control")).toBeVisible();
     const santaAssistant = page.getByTestId("santa-assistant");
     await expect(santaAssistant).toBeVisible();
     const santaAssistantToggle = page.getByTestId("santa-assistant-toggle");
@@ -688,18 +689,50 @@ test.describe("authenticated screen regressions", () => {
     await page.getByLabel(/ask santa buddy/i).fill("What is the budget?");
     await page.getByRole("button", { name: /^ask$/i }).click();
     await expect(page.getByTestId("santa-assistant-bubble")).toContainText(/group budget/i);
-    await page.getByRole("button", { name: /hide santa buddy/i }).click();
-    await expect(page.getByTestId("santa-assistant")).toHaveCount(0);
+    await page.getByRole("button", { name: /close santa buddy tip/i }).click();
+    await expect(page.getByTestId("santa-assistant-toggle")).toBeVisible();
 
     await page.setViewportSize({ width: 1440, height: 900 });
     await page.goto("/secret-santa");
-    await expect(page.getByTestId("shopping-region-budget-control")).toBeVisible();
+    await expect(page.getByTestId("santa-assistant")).toBeVisible();
+    await expect(page.getByTestId("shopping-region-helper-control")).toBeVisible();
+    await expect(page.getByTestId("shopping-region-mobile-control")).toHaveCount(1);
+    await expect(page.getByTestId("shopping-region-budget-control")).toHaveCount(0);
     await expect(page.getByTestId("shopping-region-header-control")).toHaveCount(0);
-    await page.getByLabel(/online shop region/i).selectOption({ label: "Philippines" });
+    const helperPanel = page.getByTestId("santa-helper-panel");
+    await helperPanel.getByLabel(/online shop region/i).selectOption({ label: "Philippines" });
     await expect(page.getByTestId("santa-helper-panel")).toHaveCount(1);
-    await expect(page.getByTestId("santa-helper-panel")).toBeVisible();
+    await expect(helperPanel).toBeVisible();
     await expect(page.getByTestId("santa-helper-action-strip")).toHaveCount(0);
-    await expect(page.getByText(/safest pick/i).first()).toBeVisible();
+    await expect(page.getByText(/best fit/i).first()).toBeVisible();
+    await expect(page.getByText(/compare gift ideas/i)).toHaveCount(0);
+
+    const assistantMainOverlap = await page.evaluate(() => {
+      const assistant = document.querySelector<HTMLElement>('[data-testid="santa-assistant"]');
+      const shoppingPanel = document.querySelector<HTMLElement>(
+        '[data-testid="shopping-option-panel"]'
+      );
+
+      if (!assistant || !shoppingPanel) {
+        return { hasBoth: false, overlaps: true };
+      }
+
+      const assistantRect = assistant.getBoundingClientRect();
+      const shoppingPanelRect = shoppingPanel.getBoundingClientRect();
+      const overlaps =
+        assistantRect.left < shoppingPanelRect.right &&
+        assistantRect.right > shoppingPanelRect.left &&
+        assistantRect.top < shoppingPanelRect.bottom &&
+        assistantRect.bottom > shoppingPanelRect.top;
+
+      return { hasBoth: true, overlaps };
+    });
+    expect(assistantMainOverlap.hasBoth).toBe(true);
+    expect(assistantMainOverlap.overlaps).toBe(false);
+
+    await page.getByTestId("santa-assistant-toggle").click();
+    await expect(page.getByTestId("santa-assistant-bubble")).toHaveCount(0);
+    await expect(helperPanel).toBeVisible();
 
     const shoppingOptionPanel = page.getByTestId("shopping-option-panel").first();
     const shoppingOptions = page.getByTestId("shopping-focus-options");
