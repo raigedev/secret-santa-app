@@ -42,7 +42,7 @@ export function DashboardHeader({
 
   return (
     <header
-      className={`sticky top-0 z-[80] w-full backdrop-blur-xl shadow-[0_8px_24px_rgba(45,51,55,0.06)] ${
+      className={`sticky top-0 z-80 w-full backdrop-blur-xl shadow-[0_8px_24px_rgba(45,51,55,0.06)] ${
         isDarkTheme ? "bg-slate-950/70" : "bg-white/70"
       }`}
     >
@@ -128,7 +128,7 @@ export function DashboardHeader({
           >
             <ThemeIcon dark={isDarkTheme} className={`h-5 w-5 ${utilityIconClass}`} />
           </button>
-          <div ref={profileMenuRef} className="relative z-[90]">
+              <div ref={profileMenuRef} className="relative z-90">
             <button
               type="button"
               onClick={onToggleProfileMenu}

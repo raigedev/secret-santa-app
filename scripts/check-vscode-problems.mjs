@@ -80,6 +80,7 @@ const roundedUtilities = new Set([
   "rounded-br",
   "rounded-bl",
 ]);
+const plainNumberUtilities = new Set(["z"]);
 const classDelimiters = new Set([" ", "\t", "\r", "\n", "\"", "'", "`", "<", ">", "{", "}", "(", ")", ","]);
 
 function isClassDelimiter(character) {
@@ -148,6 +149,10 @@ function canonicalRoundedClass(prefix, utility, amount, unit) {
   return `${prefix}${utility}-${roundedValue}`;
 }
 
+function canonicalPlainNumberClass(prefix, utility, amount) {
+  return `${prefix}${utility}-${amount}`;
+}
+
 function classTokenAt(content, markerOffset) {
   let start = markerOffset;
   let end = markerOffset;
@@ -174,13 +179,8 @@ function parseArbitraryClassToken(token) {
   }
 
   const value = token.slice(marker + 2, -1);
-  const unit = value.endsWith("px") ? "px" : value.endsWith("rem") ? "rem" : null;
-
-  if (!unit) {
-    return null;
-  }
-
-  const amount = value.slice(0, -unit.length);
+  const unit = value.endsWith("px") ? "px" : value.endsWith("rem") ? "rem" : "";
+  const amount = unit.length > 0 ? value.slice(0, -unit.length) : value;
 
   if (!isNumericLiteral(amount)) {
     return null;
@@ -361,6 +361,11 @@ function checkTailwindCanonicalClasses() {
         }
 
         if (roundedUtilities.has(arbitraryClass.utility)) {
+          if (arbitraryClass.unit.length === 0) {
+            arbitraryClassOffset = markerOffset + 2;
+            continue;
+          }
+
           const canonicalClass = canonicalRoundedClass(
             arbitraryClass.prefix,
             arbitraryClass.utility,
@@ -378,6 +383,25 @@ function checkTailwindCanonicalClasses() {
               `Use ${canonicalClass} instead.`,
             );
           }
+        }
+
+        const numericUtility = arbitraryClass.utility.startsWith("-")
+          ? arbitraryClass.utility.slice(1)
+          : arbitraryClass.utility;
+
+        if (arbitraryClass.unit.length === 0 && plainNumberUtilities.has(numericUtility)) {
+          reportProblem(
+            problems,
+            file,
+            content,
+            start,
+            token,
+            `Use ${canonicalPlainNumberClass(
+              arbitraryClass.prefix,
+              arbitraryClass.utility,
+              arbitraryClass.amount,
+            )} instead.`,
+          );
         }
       }
 

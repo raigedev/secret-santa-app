@@ -1107,7 +1107,7 @@ function LazadaCtaLink({
       target="_blank"
       rel="noopener noreferrer"
       data-testid="lazada-cta-link"
-      className={`group/lazada relative z-[45] inline-flex min-h-11 min-w-38.5 items-center justify-center gap-2 rounded-full px-4 py-2 text-center text-[13px] font-extrabold leading-none tracking-[0.01em] transition duration-200 hover:-translate-y-0.5 active:translate-y-0 focus-visible:outline-2 focus-visible:outline-offset-2 ${
+      className={`group/lazada relative z-45 inline-flex min-h-11 min-w-38.5 items-center justify-center gap-2 rounded-full px-4 py-2 text-center text-[13px] font-extrabold leading-none tracking-[0.01em] transition duration-200 hover:-translate-y-0.5 active:translate-y-0 focus-visible:outline-2 focus-visible:outline-offset-2 ${
         fullWidth ? "w-full" : "w-full sm:w-auto"
       }`}
       style={{

@@ -38,7 +38,7 @@ export function DashboardProfileMenu({
       role="menu"
       aria-label="Profile options"
       style={menuStyle}
-      className={`z-[200] overflow-hidden rounded-[20px] border p-1.5 shadow-[0_22px_44px_rgba(15,23,42,0.20)] backdrop-blur-md ${
+      className={`z-200 overflow-hidden rounded-[20px] border p-1.5 shadow-[0_22px_44px_rgba(15,23,42,0.20)] backdrop-blur-md ${
         isDarkTheme ? "border-slate-700/80 bg-slate-900/94" : "border-white/80 bg-white/96"
       }`}
     >
