@@ -216,7 +216,7 @@ export default function DashboardPage() {
         return;
       }
 
-      const enhancedGroups = await enhanceDashboardGroupsWithPeerProfiles(supabase, groups);
+      const enhancedGroups = await enhanceDashboardGroupsWithPeerProfiles(groups);
       if (!isMounted || loadVersion !== dashboardLoadVersion) {
         return;
       }

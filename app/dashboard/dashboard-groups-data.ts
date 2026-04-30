@@ -132,25 +132,32 @@ export async function loadDashboardGroups(
 }
 
 export async function enhanceDashboardGroupsWithPeerProfiles(
-  supabase: SupabaseClient,
   groups: Group[]
 ): Promise<Group[]> {
   if (groups.length === 0) {
     return groups;
   }
 
-  const profileEntries = await Promise.all(
-    groups.map(async (group) => {
-      const result = await supabase.rpc("list_group_peer_profiles", {
-        p_group_id: group.id,
-      });
+  const response = await fetch("/api/groups/peer-profiles", {
+    cache: "no-store",
+    credentials: "same-origin",
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ groupIds: groups.map((group) => group.id) }),
+  });
 
-      return {
-        groupId: group.id,
-        profiles: result.error ? [] : ((result.data || []) as PeerProfileRow[]),
-      };
-    })
-  );
+  if (!response.ok) {
+    return groups;
+  }
+
+  const payload = (await response.json()) as {
+    profilesByGroup?: Record<string, PeerProfileRow[]>;
+  };
+  const profilesByGroup = payload.profilesByGroup || {};
+  const profileEntries = groups.map((group) => ({
+    groupId: group.id,
+    profiles: profilesByGroup[group.id] || [],
+  }));
 
   const profileMapByGroup = new Map<
     string,

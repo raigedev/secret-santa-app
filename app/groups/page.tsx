@@ -68,10 +68,7 @@ export default function GroupsPage() {
         setInvitedGroups(groups.invitedGroups);
         setLoading(false);
 
-        const enhancedGroups = await enhanceDashboardGroupsWithPeerProfiles(
-          supabase,
-          groups.allGroups
-        );
+        const enhancedGroups = await enhanceDashboardGroupsWithPeerProfiles(groups.allGroups);
 
         if (!mountedRef.current || loadVersion !== loadVersionRef.current) {
           return;

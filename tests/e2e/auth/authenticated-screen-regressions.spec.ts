@@ -1061,6 +1061,21 @@ test.describe("group-scoped authenticated regressions", () => {
     await expect(page.getByText(/manage members, invites, wishlists, and the name draw from here/i)).toBeVisible();
   });
 
+  test("peer profile lookup stays authenticated and uncached", async ({ page }) => {
+    await loginWithTestCredentials(page, credentials!);
+
+    const response = await page.request.post("/api/groups/peer-profiles", {
+      data: { groupIds: [groupId] },
+    });
+
+    expect(response.status()).toBe(200);
+    expect(response.headers()["cache-control"]).toContain("no-store");
+
+    const body = (await response.json()) as { profilesByGroup?: unknown };
+    expect(body.profilesByGroup).toBeTruthy();
+    expect(typeof body.profilesByGroup).toBe("object");
+  });
+
   test("my groups sidebar link returns to the groups list", async ({ page }) => {
     await page.setViewportSize({ width: 1440, height: 900 });
     await loginWithTestCredentials(page, credentials!);
