@@ -1147,16 +1147,10 @@ function ShoppingIdeasSidebar({
   navItems,
   activeGroupName,
   activeGroupHref,
-  pageRegionLabel,
-  shoppingRegion,
-  onShoppingRegionChange,
 }: {
   navItems: ShoppingIdeasNavItem[];
   activeGroupName: string;
   activeGroupHref: string;
-  pageRegionLabel: string;
-  shoppingRegion: ShoppingRegion;
-  onShoppingRegionChange: (region: ShoppingRegion) => void;
 }) {
   return (
     <aside
@@ -1220,74 +1214,34 @@ function ShoppingIdeasSidebar({
       </nav>
 
       <div
-        className="mt-7 rounded-[24px] p-4"
+        data-testid="shopping-sidebar-current-group"
+        className="mt-auto rounded-[26px] p-5"
         style={{
-          background: "rgba(255,255,255,.74)",
-          border: "1px solid rgba(72,102,78,.14)",
-          boxShadow: "0 14px 34px rgba(46,52,50,.05)",
+          background:
+            "linear-gradient(140deg,rgba(255,254,250,.95),rgba(232,243,234,.74))",
+          border: "1px solid rgba(72,102,78,.16)",
+          boxShadow: "0 18px 38px rgba(46,52,50,.06)",
         }}
       >
-        <div
-          className="mb-2 text-[10px] font-extrabold uppercase tracking-[0.12em]"
-          style={{ color: TEXT_MUTED }}
-        >
-          Group
-        </div>
-        <a
-          href={activeGroupHref}
-          className="flex items-center justify-between gap-2 text-[13px] font-extrabold"
-          style={{ color: PAGE_TEXT_COLOR, textDecoration: "none" }}
-        >
-          <span className="min-w-0 truncate">{activeGroupName}</span>
-          <ChevronDownMark className="h-4 w-4 shrink-0" />
-        </a>
-        <label className="mt-3 block border-t pt-3" style={{ borderColor: "rgba(72,102,78,.12)" }}>
-          <span
-            className="block text-[10px] font-extrabold uppercase tracking-[0.12em]"
-            style={{ color: TEXT_MUTED }}
-          >
-            Shop region
-          </span>
-          <select
-            aria-label="Online shop region"
-            value={shoppingRegion}
-            onChange={(event) => onShoppingRegionChange(event.target.value as ShoppingRegion)}
-            className="mt-2 w-full rounded-full px-3 py-2.5 text-[12px] font-extrabold"
-            style={{
-              background: INPUT_BACKGROUND,
-              border: INPUT_BORDER,
-              color: INPUT_TEXT,
-              fontFamily: "inherit",
-            }}
-          >
-            {SHOPPING_REGION_OPTIONS.map((option) => (
-              <option key={option.value} value={option.value}>
-                {option.label}
-              </option>
-            ))}
-          </select>
-          <span className="mt-2 block text-[10px] leading-relaxed" style={{ color: TEXT_SOFT }}>
-            Using {pageRegionLabel} for shopping links.
-          </span>
-        </label>
-      </div>
-
-      <div className="mt-auto rounded-[26px] p-5" style={{
-        background:
-          "linear-gradient(140deg,rgba(255,254,250,.95),rgba(232,243,234,.74))",
-        border: "1px solid rgba(72,102,78,.16)",
-        boxShadow: "0 18px 38px rgba(46,52,50,.06)",
-      }}>
         <div className="flex items-start justify-between gap-3">
           <div>
             <div
-              className="text-[18px] font-black leading-tight"
+              className="text-[10px] font-extrabold uppercase tracking-[0.12em]"
+              style={{ color: TEXT_MUTED }}
+            >
+              Current exchange
+            </div>
+            <div
+              className="mt-2 text-[18px] font-black leading-tight"
               style={{ color: HOLIDAY_GREEN, fontFamily: "'Fredoka', 'Nunito', sans-serif" }}
             >
-              Share the magic
+              {activeGroupName}
             </div>
-            <p className="mt-2 text-[12px] font-semibold leading-relaxed" style={{ color: TEXT_MUTED }}>
-              Invite friends and complete your group.
+            <p
+              className="mt-2 text-[12px] font-semibold leading-relaxed"
+              style={{ color: TEXT_MUTED }}
+            >
+              Review members, wishlists, and gift details from the group page.
             </p>
           </div>
           <GiftBoxIllustration className="h-16 w-16 shrink-0" />
@@ -1302,7 +1256,7 @@ function ShoppingIdeasSidebar({
             textDecoration: "none",
           }}
         >
-          Invite members
+          Open group
         </a>
       </div>
     </aside>
@@ -1313,8 +1267,11 @@ function ShoppingIdeasHeader({
   mode,
   notificationButtonRef,
   notificationsPanelOpen,
+  pageRegionLabel,
   onViewerAvatarError,
+  onShoppingRegionChange,
   onToggleNotifications,
+  shoppingRegion,
   unreadNotificationCount,
   viewerAvatarEmoji,
   viewerAvatarUrl,
@@ -1323,8 +1280,11 @@ function ShoppingIdeasHeader({
   mode: SecretSantaExperienceMode;
   notificationButtonRef: RefObject<HTMLButtonElement | null>;
   notificationsPanelOpen: boolean;
+  pageRegionLabel: string;
   onViewerAvatarError: () => void;
+  onShoppingRegionChange: (region: ShoppingRegion) => void;
   onToggleNotifications: () => void;
+  shoppingRegion: ShoppingRegion;
   unreadNotificationCount: number;
   viewerAvatarEmoji: string;
   viewerAvatarUrl: string;
@@ -1368,6 +1328,38 @@ function ShoppingIdeasHeader({
         </div>
       </div>
       <div className="flex items-center gap-3">
+        {mode === "shopping" && (
+          <label
+            data-testid="shopping-region-header-control"
+            className="flex min-h-12 items-center gap-2 rounded-full px-3 py-1.5"
+            style={{
+              background: "rgba(255,255,255,.82)",
+              border: "1px solid rgba(72,102,78,.16)",
+              color: PAGE_TEXT_COLOR,
+            }}
+            title={`Shopping links use ${pageRegionLabel}`}
+          >
+            <span
+              className="text-[10px] font-black uppercase tracking-[0.12em]"
+              style={{ color: TEXT_MUTED }}
+            >
+              Region
+            </span>
+            <select
+              aria-label="Online shop region"
+              value={shoppingRegion}
+              onChange={(event) => onShoppingRegionChange(event.target.value as ShoppingRegion)}
+              className="min-w-[132px] rounded-full bg-transparent px-2 py-1.5 text-[12px] font-extrabold outline-none"
+              style={{ color: INPUT_TEXT, fontFamily: "inherit" }}
+            >
+              {SHOPPING_REGION_OPTIONS.map((option) => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
+            </select>
+          </label>
+        )}
         <button
           ref={notificationButtonRef}
           type="button"
@@ -3752,23 +3744,23 @@ export function SecretSantaExperience({ mode = "shopping" }: SecretSantaExperien
         navItems={sidebarNavItems}
         activeGroupName={activeGroupName}
         activeGroupHref={activeGroupHref}
-        pageRegionLabel={pageRegionLabel}
-        shoppingRegion={shoppingRegion}
-        onShoppingRegionChange={handleShoppingRegionChange}
       />
       <div className="relative z-10 min-h-screen xl:pl-[17.5rem]">
         <ShoppingIdeasHeader
           mode={mode}
           notificationButtonRef={notificationButtonRef}
           notificationsPanelOpen={notificationsPanelOpen}
+          pageRegionLabel={pageRegionLabel}
           onViewerAvatarError={() => {
             setViewerAvatarUrl("");
             storeViewerAvatarUrl(null);
           }}
+          onShoppingRegionChange={handleShoppingRegionChange}
           unreadNotificationCount={unreadNotificationCount}
           viewerAvatarEmoji={viewerAvatarEmoji}
           viewerAvatarUrl={viewerAvatarUrl}
           viewerName={viewerName}
+          shoppingRegion={shoppingRegion}
           onToggleNotifications={() => setNotificationsPanelOpen((open) => !open)}
         />
         <DashboardNotificationsPanel

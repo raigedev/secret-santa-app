@@ -275,6 +275,16 @@ test.describe("authenticated workflow edge cases", () => {
     const shoppingIdeasLink = sidebar.getByRole("link", { name: /^shopping ideas$/i });
     const myGifteeLink = sidebar.getByRole("link", { name: /^my giftee$/i });
     await expect(sidebar).toBeVisible();
+    await expect(page.getByTestId("shopping-region-header-control")).toBeVisible();
+    await expect(sidebar.locator('select[aria-label="Online shop region"]')).toHaveCount(0);
+    await expect(page.getByTestId("shopping-sidebar-current-group")).toContainText(
+      /current exchange/i
+    );
+    await expect(
+      page.getByTestId("shopping-sidebar-current-group").getByRole("link", {
+        name: /^open group$/i,
+      })
+    ).toBeVisible();
     await expect(sidebar.getByRole("link", { name: /^dashboard$/i })).toHaveAttribute(
       "href",
       /\/dashboard$/
