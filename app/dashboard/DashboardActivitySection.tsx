@@ -30,7 +30,7 @@ export function DashboardActivitySection({
       >
         {activityFeedItems.length === 0 ? (
           <div
-            className={`rounded-[24px] border border-dashed px-6 py-10 text-[15px] ${
+            className={`rounded-3xl border border-dashed px-6 py-10 text-[15px] ${
               isDarkTheme
                 ? "border-slate-700/70 bg-slate-950/45 text-slate-400"
                 : "border-slate-200 bg-slate-50/80 text-slate-500"

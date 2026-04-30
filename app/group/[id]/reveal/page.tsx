@@ -623,7 +623,7 @@ export default function GroupRevealPage() {
         style={{ background: "linear-gradient(180deg,#0f172a,#15384d 55%,#123226 100%)" }}
       >
         <div
-          className="max-w-[560px] rounded-[28px] p-8 text-center"
+          className="max-w-140 rounded-[28px] p-8 text-center"
           style={{
             background: "rgba(15,23,42,.72)",
             border: "1px solid rgba(255,255,255,.08)",
@@ -660,7 +660,7 @@ export default function GroupRevealPage() {
         @import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&family=Fredoka:wght@500;600;700&display=swap');
       `}</style>
 
-      <FadeIn className="max-w-[980px] mx-auto px-4 py-6 md:py-8">
+      <FadeIn className="max-w-245 mx-auto px-4 py-6 md:py-8">
         <div className="flex items-center justify-between gap-3 flex-wrap mb-5">
           <button
             type="button"
@@ -777,7 +777,7 @@ export default function GroupRevealPage() {
         </div>
 
         <div
-          className="rounded-[32px] overflow-hidden"
+          className="rounded-4xl overflow-hidden"
           style={{
             background: "rgba(15,23,42,.56)",
             border: "1px solid rgba(255,255,255,.08)",
@@ -905,7 +905,7 @@ export default function GroupRevealPage() {
 
               {isWaitingRoom || isSharedWaitingRoom ? (
                 <div
-                  className="rounded-[32px] px-6 py-8 md:px-10 md:py-10 min-h-[420px] flex flex-col items-center justify-center text-center"
+                  className="rounded-4xl px-6 py-8 md:px-10 md:py-10 min-h-105 flex flex-col items-center justify-center text-center"
                   style={{
                     background: "linear-gradient(145deg,rgba(29,78,216,.18),rgba(15,23,42,.76))",
                     border: "1px solid rgba(255,255,255,.08)",
@@ -924,7 +924,7 @@ export default function GroupRevealPage() {
                       : "Waiting for the owner to start the live reveal"}
                   </div>
                   <div
-                    className="text-[16px] md:text-[20px] font-semibold mt-5 max-w-[620px]"
+                    className="text-[16px] md:text-[20px] font-semibold mt-5 max-w-155"
                     style={{ color: "#dbeafe" }}
                   >
                     {isSharedWaitingRoom
@@ -936,7 +936,7 @@ export default function GroupRevealPage() {
                 </div>
               ) : showCountdown ? (
                 <div
-                  className="rounded-[32px] px-6 py-8 md:px-10 md:py-10 min-h-[520px] flex flex-col items-center justify-center text-center"
+                  className="rounded-4xl px-6 py-8 md:px-10 md:py-10 min-h-130 flex flex-col items-center justify-center text-center"
                   style={{
                     background: "linear-gradient(145deg,rgba(249,115,22,.22),rgba(15,23,42,.76))",
                     border: "1px solid rgba(255,255,255,.08)",
@@ -953,7 +953,7 @@ export default function GroupRevealPage() {
                     {countdownRemaining}
                   </div>
                   <div
-                    className="text-[18px] md:text-[24px] font-semibold mt-6 max-w-[640px]"
+                    className="text-[18px] md:text-[24px] font-semibold mt-6 max-w-160"
                     style={{ color: "#ffedd5" }}
                   >
                     The first event reveal card will appear on every joined screen as soon as the
@@ -962,7 +962,7 @@ export default function GroupRevealPage() {
                 </div>
               ) : activeAliasEntry || activeMatchEntry ? (
                 <div
-                  className="rounded-[32px] px-6 py-8 md:px-10 md:py-10 min-h-[520px] flex flex-col justify-between"
+                  className="rounded-4xl px-6 py-8 md:px-10 md:py-10 min-h-130 flex flex-col justify-between"
                   style={{
                     background: revealedCard
                       ? "linear-gradient(145deg,rgba(34,197,94,.24),rgba(15,23,42,.74))"
@@ -999,7 +999,7 @@ export default function GroupRevealPage() {
 
                   <div className="text-center px-2 md:px-8">
                     {isMatchPhase ? (
-                      <div className="max-w-[840px] mx-auto">
+                      <div className="max-w-210 mx-auto">
                         <div className="text-[64px] md:text-[82px] mb-6">{activeCardIcon}</div>
 
                         {/* Match reveals need a structured layout so long names wrap cleanly
@@ -1144,7 +1144,7 @@ export default function GroupRevealPage() {
                   </button>
 
                   <div
-                    className="text-[12px] md:text-[13px] font-semibold text-center max-w-[460px]"
+                    className="text-[12px] md:text-[13px] font-semibold text-center max-w-115"
                     style={{ color: "#cbd5e1" }}
                   >
                     {isPublishedPresentation

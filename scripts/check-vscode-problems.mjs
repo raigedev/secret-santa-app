@@ -11,34 +11,210 @@ const sourceRoots = ["app", "lib", "utils", "tests"];
 const sourceExtensions = new Set([".js", ".jsx", ".mjs", ".ts", ".tsx"]);
 const ignoredDirectoryNames = new Set([".next", "node_modules", "playwright-report", "test-results"]);
 
-const spacingScale = new Map([
-  ["0.5rem", "2"],
-  ["0.75rem", "3"],
-  ["1rem", "4"],
-  ["1.25rem", "5"],
-  ["1.5rem", "6"],
-  ["1.75rem", "7"],
-  ["2rem", "8"],
-  ["2.25rem", "9"],
-  ["2.5rem", "10"],
-  ["2.75rem", "11"],
-  ["3rem", "12"],
-  ["3.5rem", "14"],
-  ["4rem", "16"],
-  ["5rem", "20"],
-  ["6rem", "24"],
-  ["7rem", "28"],
-  ["8rem", "32"],
-  ["9rem", "36"],
-  ["10rem", "40"],
-  ["11rem", "44"],
-  ["12rem", "48"],
+const roundedScale = new Map([
+  ["2px", "sm"],
+  ["0.125rem", "sm"],
+  ["4px", ""],
+  ["0.25rem", ""],
+  ["6px", "md"],
+  ["0.375rem", "md"],
+  ["8px", "lg"],
+  ["0.5rem", "lg"],
+  ["12px", "xl"],
+  ["0.75rem", "xl"],
+  ["16px", "2xl"],
+  ["1rem", "2xl"],
+  ["24px", "3xl"],
+  ["1.5rem", "3xl"],
+  ["32px", "4xl"],
+  ["2rem", "4xl"],
 ]);
 
-const roundedScale = new Map([
-  ["1.5rem", "rounded-3xl"],
-  ["2rem", "rounded-4xl"],
+const spacingUtilities = new Set([
+  "max-h",
+  "max-w",
+  "min-h",
+  "min-w",
+  "inset-x",
+  "inset-y",
+  "space-x",
+  "space-y",
+  "gap-x",
+  "gap-y",
+  "bottom",
+  "right",
+  "left",
+  "top",
+  "inset",
+  "size",
+  "gap",
+  "h",
+  "w",
+  "px",
+  "py",
+  "pt",
+  "pr",
+  "pb",
+  "pl",
+  "p",
+  "mx",
+  "my",
+  "mt",
+  "mr",
+  "mb",
+  "ml",
+  "m",
 ]);
+const roundedUtilities = new Set([
+  "rounded",
+  "rounded-t",
+  "rounded-r",
+  "rounded-b",
+  "rounded-l",
+  "rounded-s",
+  "rounded-e",
+  "rounded-x",
+  "rounded-y",
+  "rounded-tl",
+  "rounded-tr",
+  "rounded-br",
+  "rounded-bl",
+]);
+const classDelimiters = new Set([" ", "\t", "\r", "\n", "\"", "'", "`", "<", ">", "{", "}", "(", ")", ","]);
+
+function isClassDelimiter(character) {
+  return character === undefined || classDelimiters.has(character);
+}
+
+function isNumericLiteral(value) {
+  if (value.length === 0) {
+    return false;
+  }
+
+  let decimalCount = 0;
+
+  for (const character of value) {
+    if (character === ".") {
+      decimalCount += 1;
+
+      if (decimalCount > 1) {
+        return false;
+      }
+
+      continue;
+    }
+
+    const characterCode = character.charCodeAt(0);
+    if (characterCode < 48 || characterCode > 57) {
+      return false;
+    }
+  }
+
+  return true;
+}
+
+function canonicalSpacingClass(prefix, utility, amount, unit) {
+  const numericValue = Number.parseFloat(amount);
+
+  if (!Number.isFinite(numericValue) || numericValue <= 0) {
+    return null;
+  }
+
+  const scaleValue = unit === "px" ? numericValue / 4 : numericValue * 4;
+  const nearestHalfStep = Math.round(scaleValue * 2) / 2;
+
+  if (Math.abs(scaleValue - nearestHalfStep) > 0.000_001) {
+    return null;
+  }
+
+  const scaleText = Number.isInteger(nearestHalfStep)
+    ? String(nearestHalfStep)
+    : String(nearestHalfStep);
+
+  return `${prefix}${utility}-${scaleText}`;
+}
+
+function canonicalRoundedClass(prefix, utility, amount, unit) {
+  const roundedValue = roundedScale.get(`${amount}${unit}`);
+
+  if (roundedValue === undefined) {
+    return null;
+  }
+
+  if (roundedValue.length === 0) {
+    return `${prefix}${utility}`;
+  }
+
+  return `${prefix}${utility}-${roundedValue}`;
+}
+
+function classTokenAt(content, markerOffset) {
+  let start = markerOffset;
+  let end = markerOffset;
+
+  while (start > 0 && !isClassDelimiter(content[start - 1])) {
+    start -= 1;
+  }
+
+  while (end < content.length && !isClassDelimiter(content[end])) {
+    end += 1;
+  }
+
+  return {
+    start,
+    token: content.slice(start, end),
+  };
+}
+
+function parseArbitraryClassToken(token) {
+  const marker = token.indexOf("-[");
+
+  if (marker <= 0 || !token.endsWith("]")) {
+    return null;
+  }
+
+  const value = token.slice(marker + 2, -1);
+  const unit = value.endsWith("px") ? "px" : value.endsWith("rem") ? "rem" : null;
+
+  if (!unit) {
+    return null;
+  }
+
+  const amount = value.slice(0, -unit.length);
+
+  if (!isNumericLiteral(amount)) {
+    return null;
+  }
+
+  const prefixAndUtility = token.slice(0, marker);
+  const variantIndex = prefixAndUtility.lastIndexOf(":");
+  const prefix = variantIndex === -1 ? "" : prefixAndUtility.slice(0, variantIndex + 1);
+  const utility = variantIndex === -1 ? prefixAndUtility : prefixAndUtility.slice(variantIndex + 1);
+
+  return {
+    amount,
+    prefix,
+    unit,
+    utility,
+  };
+}
+
+function containsClassToken(line, token) {
+  let index = line.indexOf(token);
+
+  while (index !== -1) {
+    const before = line[index - 1];
+    const after = line[index + token.length];
+
+    if (isClassDelimiter(before) && isClassDelimiter(after)) {
+      return true;
+    }
+
+    index = line.indexOf(token, index + token.length);
+  }
+
+  return false;
+}
 
 function runCommand(label, command, args) {
   console.log(`\n== ${label} ==`);
@@ -120,57 +296,111 @@ function checkTailwindCanonicalClasses() {
 
   for (const file of files) {
     const content = readFileSync(file, "utf8");
+    let arbitraryClassOffset = 0;
 
-    for (const match of content.matchAll(/\bbg-\[length:([^\]]+)\]/g)) {
-      reportProblem(
-        problems,
-        file,
-        content,
-        match.index || 0,
-        match[0],
-        `Use bg-size-[${match[1]}] instead.`,
-      );
-    }
+    while (arbitraryClassOffset < content.length) {
+      const markerOffset = content.indexOf("-[", arbitraryClassOffset);
 
-    for (const match of content.matchAll(/\bbg-\[(?:radial|linear)-gradient\([^\]]*_,[^\]]*\]/g)) {
-      reportProblem(
-        problems,
-        file,
-        content,
-        match.index || 0,
-        match[0],
-        "Remove redundant underscore separators or move complex gradients to a style backgroundImage.",
-      );
-    }
+      if (markerOffset === -1) {
+        break;
+      }
 
-    for (const match of content.matchAll(/\b(left|right|top|bottom)-\[-([0-9.]+rem)\]/g)) {
-      const canonicalValue = spacingScale.get(match[2]);
+      const { start, token } = classTokenAt(content, markerOffset);
 
-      if (canonicalValue) {
+      if (token.startsWith("bg-[length:") && token.endsWith("]")) {
+        const backgroundSize = token.slice("bg-[length:".length, -1);
         reportProblem(
           problems,
           file,
           content,
-          match.index || 0,
-          match[0],
-          `Use -${match[1]}-${canonicalValue} instead.`,
+          start,
+          token,
+          `Use bg-size-[${backgroundSize}] instead.`,
         );
       }
-    }
 
-    for (const match of content.matchAll(/\brounded-\[([0-9.]+rem)\]/g)) {
-      const canonicalClass = roundedScale.get(match[1]);
-
-      if (canonicalClass) {
+      if (
+        (token.startsWith("bg-[radial-gradient(") || token.startsWith("bg-[linear-gradient(")) &&
+        token.includes("_,")
+      ) {
         reportProblem(
           problems,
           file,
           content,
-          match.index || 0,
-          match[0],
-          `Use ${canonicalClass} instead.`,
+          start,
+          token,
+          "Remove redundant underscore separators or move complex gradients to a style backgroundImage.",
         );
       }
+
+      const arbitraryClass = parseArbitraryClassToken(token);
+
+      if (arbitraryClass) {
+        const spacingUtility = arbitraryClass.utility.startsWith("-")
+          ? arbitraryClass.utility.slice(1)
+          : arbitraryClass.utility;
+
+        if (spacingUtilities.has(spacingUtility)) {
+          const canonicalClass = canonicalSpacingClass(
+            arbitraryClass.prefix,
+            arbitraryClass.utility,
+            arbitraryClass.amount,
+            arbitraryClass.unit,
+          );
+
+          if (canonicalClass) {
+            reportProblem(
+              problems,
+              file,
+              content,
+              start,
+              token,
+              `Use ${canonicalClass} instead.`,
+            );
+          }
+        }
+
+        if (roundedUtilities.has(arbitraryClass.utility)) {
+          const canonicalClass = canonicalRoundedClass(
+            arbitraryClass.prefix,
+            arbitraryClass.utility,
+            arbitraryClass.amount,
+            arbitraryClass.unit,
+          );
+
+          if (canonicalClass) {
+            reportProblem(
+              problems,
+              file,
+              content,
+              start,
+              token,
+              `Use ${canonicalClass} instead.`,
+            );
+          }
+        }
+      }
+
+      arbitraryClassOffset = markerOffset + 2;
+    }
+
+    let lineStartOffset = 0;
+    for (const line of content.split("\n")) {
+      const hasBaseOutline = containsClassToken(line, "focus-visible:outline");
+      const hasOutlineWidth = containsClassToken(line, "focus-visible:outline-2");
+
+      if (hasBaseOutline && hasOutlineWidth) {
+        reportProblem(
+          problems,
+          file,
+          content,
+          lineStartOffset + line.indexOf("focus-visible:outline"),
+          "focus-visible:outline focus-visible:outline-2",
+          "Remove duplicate focus-visible:outline; focus-visible:outline-2 already sets the outline width.",
+        );
+      }
+
+      lineStartOffset += line.length + 1;
     }
   }
 

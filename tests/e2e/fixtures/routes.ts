@@ -9,10 +9,12 @@ export const PROTECTED_PAGE_PATHS = [
   "/create-group",
   `/group/${TEST_GROUP_ID}`,
   `/group/${TEST_GROUP_ID}/reveal`,
+  "/history",
   "/notifications",
   "/profile",
   "/secret-santa",
   "/secret-santa-chat",
+  "/settings",
   "/wishlist",
 ];
 

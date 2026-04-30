@@ -911,7 +911,7 @@ export default function GroupDetailsPage() {
         setEditName={setEditName}
       />
 
-      <FadeIn className="relative z-10 mx-auto max-w-[760px] px-4 py-5 sm:px-6 sm:py-6">
+      <FadeIn className="relative z-10 mx-auto max-w-190 px-4 py-5 sm:px-6 sm:py-6">
         <button
           onClick={() => router.push("/dashboard")}
           className="mb-5 inline-flex w-full items-center justify-center gap-1.5 rounded-lg px-4 py-2 text-sm font-bold transition sm:w-auto"
@@ -926,7 +926,7 @@ export default function GroupDetailsPage() {
         </button>
 
         <div
-          className="rounded-[24px] overflow-hidden"
+          className="rounded-3xl overflow-hidden"
           style={{
             background: "linear-gradient(170deg,#fdfbf7,#f8f1e8)",
             border: "2px solid rgba(26,107,42,.14)",

@@ -7,6 +7,8 @@ const CORE_PREFETCH_ROUTES = [
   "/secret-santa-chat",
   "/wishlist",
   "/notifications",
+  "/history",
+  "/settings",
   "/create-group",
 ] as const;
 

@@ -161,13 +161,21 @@ const AUTHENTICATED_SCREEN_CASES: ScreenCase[] = [
     },
   },
   {
-    name: "reminders",
-    path: "/reminders",
+    name: "settings",
+    path: "/settings",
     assertVisible: async (page) => {
-      await expect(page.getByTestId("reminders-workspace")).toBeVisible();
-      await expect(page.getByRole("heading", { name: /keep the exchange moving/i })).toBeVisible();
-      await expect(page.getByRole("button", { name: /save reminders/i })).toBeVisible();
+      await expect(page.getByTestId("settings-workspace")).toBeVisible();
+      await expect(page.getByRole("heading", { name: /make the app feel right/i })).toBeVisible();
+      await expect(page.getByRole("button", { name: /save settings/i })).toBeVisible();
       await expect(page.getByTestId("santa-assistant-preference-toggle")).toBeVisible();
+      await expect(page.getByTestId("dashboard-theme-preference-toggle")).toBeVisible();
+    },
+  },
+  {
+    name: "history",
+    path: "/history",
+    assertVisible: async (page) => {
+      await expect(page.getByRole("heading", { name: /past exchanges/i })).toBeVisible();
     },
   },
   {
@@ -175,7 +183,7 @@ const AUTHENTICATED_SCREEN_CASES: ScreenCase[] = [
     path: "/wishlist",
     assertVisible: async (page) => {
       await expect(page.getByText(/^my wishlist$/i)).toBeVisible();
-      await expect(page.getByRole("button", { name: /open gift planning/i })).toBeVisible();
+      await expect(page.getByRole("button", { name: /open gift planning/i })).toHaveCount(0);
       await expect(page.getByRole("button", { name: /back to dashboard/i })).toHaveCount(0);
     },
   },
@@ -207,7 +215,7 @@ const AUTHENTICATED_SCREEN_CASES: ScreenCase[] = [
     name: "gift-tracking",
     path: "/gift-tracking",
     assertVisible: async (page) => {
-      await expect(page.getByRole("heading", { name: /gift tracking/i })).toBeVisible();
+      await expect(page.getByRole("heading", { name: /gift progress/i })).toBeVisible();
       await expect(page.getByTestId("gift-tracking-workspace")).toBeVisible();
     },
   },
@@ -280,11 +288,11 @@ test.describe("authenticated screen regressions", () => {
     await expect(page).toHaveURL(/\/groups$/);
     await expect(myGroupsLink).toHaveAttribute("aria-current", "page");
 
-    await sidebar.getByRole("link", { name: /wishlist/i }).click();
+    await sidebar.getByRole("link", { name: /^my wishlist$/i }).click();
     await page.waitForURL(/\/wishlist$/);
     await expect(appShell).toBeVisible();
     await expect(page.getByText(/^my wishlist$/i)).toBeVisible();
-    await expect(sidebar.getByRole("link", { name: /wishlist/i })).toHaveAttribute(
+    await expect(sidebar.getByRole("link", { name: /^my wishlist$/i })).toHaveAttribute(
       "aria-current",
       "page"
     );
@@ -385,7 +393,7 @@ test.describe("authenticated screen regressions", () => {
     await page.setViewportSize({ width: 1440, height: 900 });
     await loginWithTestCredentials(page, credentials!);
     await page.goto("/dashboard");
-    await page.getByRole("button", { name: /switch to midnight dashboard theme/i }).click();
+    await page.evaluate(() => localStorage.setItem("ss_dashboard_theme", "midnight"));
     await expect
       .poll(() => page.evaluate(() => localStorage.getItem("ss_dashboard_theme")))
       .toBe("midnight");

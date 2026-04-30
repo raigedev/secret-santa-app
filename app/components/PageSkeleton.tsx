@@ -101,7 +101,7 @@ export function ChatSkeleton() {
   return (
     <main data-testid="chat-loading-shell" className="min-h-screen" style={{ background: appShellBackground }}>
       <style>{shimmerCSS}</style>
-      <div className="max-w-[720px] mx-auto px-4 py-6">
+      <div className="max-w-180 mx-auto px-4 py-6">
         <Bone w="100px" h="32px" />
         <div className="flex flex-col items-center mt-5 mb-6">
           <Bone w="240px" h="28px" />
@@ -126,7 +126,7 @@ export function ProfileSkeleton() {
   return (
     <main data-testid="profile-loading-shell" className="min-h-screen" style={{ background: appShellBackground }}>
       <style>{shimmerCSS}</style>
-      <div className="max-w-[640px] mx-auto px-4 py-6">
+      <div className="max-w-160 mx-auto px-4 py-6">
         <Bone w="100px" h="32px" className="mb-5" />
         <div className="flex flex-col items-center mb-8">
           <Bone w="180px" h="26px" />
@@ -172,7 +172,7 @@ export function SecretSantaSkeleton() {
     <main data-testid="secret-santa-loading-shell" className="min-h-screen" style={{ background: appShellBackground }}>
       <style>{shimmerCSS}</style>
       <aside
-        className="fixed inset-y-0 left-0 z-10 hidden w-[17.5rem] border-r px-5 py-5 xl:block"
+        className="fixed inset-y-0 left-0 z-10 hidden w-70 border-r px-5 py-5 xl:block"
         style={{
           background:
             "repeating-linear-gradient(135deg,rgba(72,102,78,.045) 0 1px,transparent 1px 38px),linear-gradient(180deg,rgba(255,254,250,.985),rgba(247,250,245,.965))",
@@ -192,8 +192,8 @@ export function SecretSantaSkeleton() {
           ))}
         </div>
       </aside>
-      <div className="relative z-20 min-h-screen xl:pl-[17.5rem]">
-        <header className="hidden h-[84px] items-center justify-between border-b px-7 xl:flex" style={{ background: "rgba(255,254,250,.92)", borderColor: "rgba(72,102,78,.14)" }}>
+      <div className="relative z-20 min-h-screen xl:pl-70">
+        <header className="hidden h-21 items-center justify-between border-b px-7 xl:flex" style={{ background: "rgba(255,254,250,.92)", borderColor: "rgba(72,102,78,.14)" }}>
           <div>
             <Bone w="180px" h="18px" />
             <Bone w="220px" h="12px" className="mt-2" />
@@ -204,7 +204,7 @@ export function SecretSantaSkeleton() {
             <Bone w="160px" h="56px" r={999} />
           </div>
         </header>
-        <div className="mx-auto w-full max-w-[94rem] px-4 py-4 sm:px-6 sm:py-6 xl:px-7 xl:py-6">
+        <div className="mx-auto w-full max-w-376 px-4 py-4 sm:px-6 sm:py-6 xl:px-7 xl:py-6">
           <div className="mb-5 grid gap-5 lg:grid-cols-[minmax(0,1fr)_minmax(260px,320px)]">
             <div>
               <Bone w="260px" h="52px" r={18} />
@@ -263,7 +263,7 @@ export function CreateGroupSkeleton() {
     <main data-testid="create-group-loading-shell" className="min-h-screen" style={{ background: appShellBackground }}>
       <style>{shimmerCSS}</style>
       <div className="mx-auto flex min-h-screen max-w-3xl items-center justify-center px-4 py-8">
-        <div className="w-full max-w-lg rounded-[24px] bg-white/80 p-8 shadow-[0_24px_70px_rgba(148,163,184,0.18)] backdrop-blur-md">
+        <div className="w-full max-w-lg rounded-3xl bg-white/80 p-8 shadow-[0_24px_70px_rgba(148,163,184,0.18)] backdrop-blur-md">
           <Bone w="120px" h="32px" r={999} className="mb-6" />
           <Bone w="220px" h="34px" className="mb-3" />
           <Bone w="260px" h="16px" className="mb-8" />

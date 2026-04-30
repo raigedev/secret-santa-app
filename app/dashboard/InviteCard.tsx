@@ -173,7 +173,7 @@ export default function InviteCard({
           type="button"
           onClick={handleAccept}
           disabled={status === "loading"}
-          className={`inline-flex min-w-[140px] items-center justify-center rounded-full px-5 py-2.5 text-sm font-semibold transition ${
+          className={`inline-flex min-w-35 items-center justify-center rounded-full px-5 py-2.5 text-sm font-semibold transition ${
             status === "loading"
               ? "cursor-not-allowed bg-slate-200 text-slate-500"
               : "bg-[linear-gradient(135deg,#2f80ff,#1f66e5)] text-white shadow-[0_14px_35px_rgba(37,99,235,0.22)] hover:-translate-y-0.5"
@@ -189,7 +189,7 @@ export default function InviteCard({
           type="button"
           onClick={handleDecline}
           disabled={status === "loading"}
-          className={`inline-flex min-w-[140px] items-center justify-center rounded-full px-5 py-2.5 text-sm font-semibold transition ${
+          className={`inline-flex min-w-35 items-center justify-center rounded-full px-5 py-2.5 text-sm font-semibold transition ${
             status === "loading"
               ? "cursor-not-allowed bg-slate-100 text-slate-400"
               : "bg-slate-100 text-slate-700 hover:bg-slate-200"

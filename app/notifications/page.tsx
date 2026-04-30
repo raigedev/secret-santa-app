@@ -323,7 +323,7 @@ export default function NotificationsPage() {
         fontFamily: "'Nunito', sans-serif",
       }}
     >
-      <FadeIn className="mx-auto max-w-[1040px] px-4 py-5 sm:px-6 sm:py-6">
+      <FadeIn className="mx-auto max-w-260 px-4 py-5 sm:px-6 sm:py-6">
         <button
           onClick={() => router.push("/dashboard")}
           className="mb-5 inline-flex w-full items-center justify-center gap-1.5 rounded-lg px-4 py-2 text-sm font-bold transition sm:w-auto"

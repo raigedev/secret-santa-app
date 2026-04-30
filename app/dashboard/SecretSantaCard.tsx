@@ -64,7 +64,7 @@ export default function SecretSantaCard({ recipientNames }: Props) {
 
   return (
     <div className="group rounded-[34px] p-[2.5px] transition duration-300 hover:-translate-y-0.5 bg-[linear-gradient(135deg,#fecdd3,#f43f5e,#9f1239,#fda4af,#881337)] shadow-[0_32px_80px_rgba(127,29,29,0.38)]">
-      <section className="relative overflow-hidden rounded-[32px] bg-[linear-gradient(145deg,#d44949_0%,#b8324e_38%,#8c2f7d_100%)] p-5 text-white">
+      <section className="relative overflow-hidden rounded-4xl bg-[linear-gradient(145deg,#d44949_0%,#b8324e_38%,#8c2f7d_100%)] p-5 text-white">
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(255,255,255,0.3),transparent_33%),radial-gradient(circle_at_bottom_right,rgba(255,225,170,0.24),transparent_36%)]" />
         {/* Wrapping paper cross-hatch texture */}
         <div
@@ -91,7 +91,7 @@ export default function SecretSantaCard({ recipientNames }: Props) {
         </div>
         {/* Gift box illustration — top right */}
         <div className="pointer-events-none absolute right-2 top-11 opacity-85">
-          <DecorativeGiftBox className="h-[64px] w-[64px]" />
+          <DecorativeGiftBox className="h-16 w-16" />
         </div>
         {/* Sparkles */}
         <span className="pointer-events-none absolute left-5 top-4 select-none text-base leading-none text-white/22">✦</span>
@@ -148,7 +148,7 @@ export default function SecretSantaCard({ recipientNames }: Props) {
           </div>
         </div>
         <div className="mt-3 flex items-start gap-4">
-          <div className="flex h-20 w-20 shrink-0 items-center justify-center rounded-[24px] bg-[linear-gradient(145deg,#fff7ed,#fee2e2)] text-rose-700 shadow-[0_18px_42px_rgba(148,163,184,0.2)]">
+          <div className="flex h-20 w-20 shrink-0 items-center justify-center rounded-3xl bg-[linear-gradient(145deg,#fff7ed,#fee2e2)] text-rose-700 shadow-[0_18px_42px_rgba(148,163,184,0.2)]">
             {hasAssignments ? <GiftIcon className="h-8 w-8" /> : <SnowflakeIcon />}
           </div>
           <div className="min-w-0 flex-1">

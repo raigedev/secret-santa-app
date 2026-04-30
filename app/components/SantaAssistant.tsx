@@ -248,7 +248,7 @@ export function SantaAssistant() {
               ? "Open minimized Secret Santa assistant"
               : "Open Secret Santa assistant"
         }
-        className="santa-assistant-button pointer-events-auto rounded-[28px] bg-transparent p-0 transition hover:-translate-y-1 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#48664e]"
+        className="santa-assistant-button pointer-events-auto rounded-[28px] bg-transparent p-0 transition hover:-translate-y-1 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#48664e]"
       >
         <span className="santa-assistant-avatar block">
           <SantaBuddyCharacter compactOnDesktop={useShoppingIdeasOffset} isOpen={isOpen} />

@@ -503,7 +503,7 @@ export default async function InviteLinkPage({
       }}
     >
       <div
-        className="w-full max-w-[640px] rounded-[28px] overflow-hidden"
+        className="w-full max-w-160 rounded-[28px] overflow-hidden"
         style={{
           background: "linear-gradient(180deg,#fffdf7,#fff8ef)",
           border: "2px solid rgba(22,101,52,.12)",

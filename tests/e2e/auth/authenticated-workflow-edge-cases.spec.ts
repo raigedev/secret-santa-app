@@ -52,11 +52,13 @@ const SHARED_NAVIGATION_CASES: NavigationCase[] = [
     },
   },
   {
-    label: /^wishlist$/i,
+    label: /^my wishlist$/i,
     expectedHref: /\/wishlist$/,
     expectedUrl: /\/wishlist$/,
     ready: async (page) => {
-      await expect(page.getByText(/^my wishlist$/i)).toBeVisible();
+      await expect(
+        page.getByRole("heading", { name: /keep your gift ideas wrapped and ready/i })
+      ).toBeVisible();
     },
   },
   {
@@ -77,7 +79,7 @@ const SHARED_NAVIGATION_CASES: NavigationCase[] = [
     },
   },
   {
-    label: /^gift tracking$/i,
+    label: /^gift progress$/i,
     expectedHref: /\/gift-tracking$/,
     expectedUrl: /\/gift-tracking$/,
     ready: async (page) => {
@@ -86,11 +88,19 @@ const SHARED_NAVIGATION_CASES: NavigationCase[] = [
     },
   },
   {
-    label: /^reminders$/i,
-    expectedHref: /\/reminders$/,
-    expectedUrl: /\/reminders$/,
+    label: /^history$/i,
+    expectedHref: /\/history$/,
+    expectedUrl: /\/history$/,
     ready: async (page) => {
-      await expect(page.getByTestId("reminders-workspace")).toBeVisible();
+      await expect(page.getByRole("heading", { name: /past exchanges/i })).toBeVisible();
+    },
+  },
+  {
+    label: /^settings$/i,
+    expectedHref: /\/settings$/,
+    expectedUrl: /\/settings$/,
+    ready: async (page) => {
+      await expect(page.getByTestId("settings-workspace")).toBeVisible();
     },
   },
 ];
@@ -201,17 +211,17 @@ test.describe("authenticated workflow edge cases", () => {
     await expect(page).toHaveURL(/\/dashboard$/);
     await expectOnlyCurrentSidebarLink(sharedSidebar, /^dashboard$/i);
 
-    await sharedSidebar.getByRole("link", { name: /^wishlist$/i }).click();
+    await sharedSidebar.getByRole("link", { name: /^my wishlist$/i }).click();
     await expect(page).toHaveURL(/\/wishlist$/);
-    await expectOnlyCurrentSidebarLink(sharedSidebar, /^wishlist$/i);
+    await expectOnlyCurrentSidebarLink(sharedSidebar, /^my wishlist$/i);
 
     await sharedSidebar.getByRole("link", { name: /^messages$/i }).click();
     await expect(page).toHaveURL(/\/secret-santa-chat$/);
     await expectOnlyCurrentSidebarLink(sharedSidebar, /^messages$/i);
 
-    await sharedSidebar.getByRole("link", { name: /^reminders$/i }).click();
-    await expect(page).toHaveURL(/\/reminders$/);
-    await expectOnlyCurrentSidebarLink(sharedSidebar, /^reminders$/i);
+    await sharedSidebar.getByRole("link", { name: /^settings$/i }).click();
+    await expect(page).toHaveURL(/\/settings$/);
+    await expectOnlyCurrentSidebarLink(sharedSidebar, /^settings$/i);
 
     await page.goto("/secret-santa");
     const shoppingSidebar = page.getByTestId("shopping-ideas-sidebar");
@@ -221,9 +231,9 @@ test.describe("authenticated workflow edge cases", () => {
     await expect(page).toHaveURL(/\/my-giftee$/);
     await expectOnlyCurrentSidebarLink(page.getByTestId("shopping-ideas-sidebar"), /^my giftee$/i);
 
-    await page.getByTestId("shopping-ideas-sidebar").getByRole("link", { name: /^gift tracking$/i }).click();
+    await page.getByTestId("shopping-ideas-sidebar").getByRole("link", { name: /^gift progress$/i }).click();
     await expect(page).toHaveURL(/\/gift-tracking$/);
-    await expectOnlyCurrentSidebarLink(page.getByTestId("shopping-ideas-sidebar"), /^gift tracking$/i);
+    await expectOnlyCurrentSidebarLink(page.getByTestId("shopping-ideas-sidebar"), /^gift progress$/i);
   });
 
   test("group scoped routes select their matching shared sidebar item", async ({ page }) => {
@@ -297,18 +307,18 @@ test.describe("authenticated workflow edge cases", () => {
       /\/groups$/
     );
     await expect(myGifteeLink).toHaveAttribute("href", /\/my-giftee$/);
-    await expect(sidebar.getByRole("link", { name: /^wishlist$/i })).toHaveAttribute(
+    await expect(sidebar.getByRole("link", { name: /^my wishlist$/i })).toHaveAttribute(
       "href",
       /\/wishlist$/
     );
     await expect(sidebar.getByRole("link", { name: /^assignments$/i })).toHaveCount(0);
-    await expect(sidebar.getByRole("link", { name: /^gift tracking$/i })).toHaveAttribute(
+    await expect(sidebar.getByRole("link", { name: /^gift progress$/i })).toHaveAttribute(
       "href",
       /\/gift-tracking$/
     );
-    await expect(sidebar.getByRole("link", { name: /^reminders$/i })).toHaveAttribute(
+    await expect(sidebar.getByRole("link", { name: /^settings$/i })).toHaveAttribute(
       "href",
-      /\/reminders$/
+      /\/settings$/
     );
     await expect(shoppingIdeasLink).toHaveAttribute("aria-current", "page");
 

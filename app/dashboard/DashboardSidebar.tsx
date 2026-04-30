@@ -21,8 +21,8 @@ type DashboardSidebarProps = {
   unreadNotificationCount: number;
   wishlistGroupCount: number;
   wishlistItemCount: number;
+  onGoGiftProgress: () => void;
   onGoNotifications: () => void;
-  onGoSecretSanta: () => void;
   onGoWishlist: () => void;
   onOpenPath: (path: string) => void;
 };
@@ -34,8 +34,8 @@ export function DashboardSidebar({
   unreadNotificationCount,
   wishlistGroupCount,
   wishlistItemCount,
+  onGoGiftProgress,
   onGoNotifications,
-  onGoSecretSanta,
   onGoWishlist,
   onOpenPath,
 }: DashboardSidebarProps) {
@@ -48,7 +48,7 @@ export function DashboardSidebar({
   return (
     <aside className="space-y-8 lg:sticky lg:top-24">
       <section
-        className={`relative overflow-hidden rounded-[32px] p-8 shadow-[0_14px_32px_rgba(45,51,55,0.05)] ${
+        className={`relative overflow-hidden rounded-4xl p-8 shadow-[0_14px_32px_rgba(45,51,55,0.05)] ${
           isDarkTheme ? "bg-slate-900/82 text-slate-100" : "bg-white text-slate-900"
         }`}
       >
@@ -78,7 +78,7 @@ export function DashboardSidebar({
       </section>
 
       <section
-        className={`rounded-[32px] p-8 shadow-[0_14px_32px_rgba(45,51,55,0.05)] ${
+        className={`rounded-4xl p-8 shadow-[0_14px_32px_rgba(45,51,55,0.05)] ${
           isDarkTheme ? "bg-slate-900/82 text-slate-100" : "bg-white text-slate-900"
         }`}
       >
@@ -120,17 +120,17 @@ export function DashboardSidebar({
         </div>
         <button
           type="button"
-          onClick={onGoSecretSanta}
+          onClick={onGoGiftProgress}
           className={`mt-7 flex w-full items-center justify-center rounded-full px-5 py-3 text-sm font-extrabold transition hover:-translate-y-0.5 ${
             isDarkTheme ? "bg-slate-800 text-slate-100" : "bg-slate-50 text-slate-700"
           }`}
         >
-          Open gift planning
+          Open Gift Progress
         </button>
       </section>
 
       <section
-        className={`rounded-[32px] p-8 shadow-[0_14px_32px_rgba(45,51,55,0.05)] ${
+        className={`rounded-4xl p-8 shadow-[0_14px_32px_rgba(45,51,55,0.05)] ${
           isDarkTheme ? "bg-slate-900/82 text-slate-100" : "bg-white text-slate-900"
         }`}
       >

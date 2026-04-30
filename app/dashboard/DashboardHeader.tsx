@@ -84,7 +84,7 @@ export function DashboardHeader({
               Groups
             </button>
             <button type="button" onClick={onGoWishlist} className={inactiveNavClass}>
-              Wishlist
+              My Wishlist
             </button>
             <button type="button" onClick={onScrollToActivity} className={inactiveNavClass}>
               Activity

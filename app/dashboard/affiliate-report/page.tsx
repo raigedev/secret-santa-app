@@ -1340,7 +1340,7 @@ function LazadaHealthCheckCard({
       </div>
 
       <div className="mt-4 grid gap-4 xl:grid-cols-[1.15fr_0.85fr]">
-        <div className="rounded-[24px] border border-slate-200 bg-white/80 p-4">
+        <div className="rounded-3xl border border-slate-200 bg-white/80 p-4">
           <div className="flex flex-wrap items-start justify-between gap-3">
             <div>
               <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">
@@ -1358,7 +1358,7 @@ function LazadaHealthCheckCard({
           </code>
         </div>
 
-        <div className="rounded-[24px] border border-slate-200 bg-slate-50/80 p-4">
+        <div className="rounded-3xl border border-slate-200 bg-slate-50/80 p-4">
           <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">
             How to read this
           </p>

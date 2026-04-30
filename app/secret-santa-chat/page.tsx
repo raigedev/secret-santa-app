@@ -1341,7 +1341,7 @@ export default function SecretSantaChatPage() {
         }}
       >
         <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_50%_0%,rgba(255,255,255,.09),transparent_30%)]" />
-        <div className="relative z-10 mx-auto flex min-h-screen max-w-[1180px] flex-col px-4 py-5 sm:px-6 lg:px-8">
+        <div className="relative z-10 mx-auto flex min-h-screen max-w-295 flex-col px-4 py-5 sm:px-6 lg:px-8">
           <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <button
               type="button"
@@ -1462,7 +1462,7 @@ export default function SecretSantaChatPage() {
                   {messages.length === 0 ? (
                     <div className="m-auto max-w-sm text-center">
                       <div
-                        className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-[24px]"
+                        className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-3xl"
                         style={{
                           background: "rgba(255,255,255,.08)",
                           border: "1px solid rgba(255,255,255,.1)",
@@ -1490,7 +1490,7 @@ export default function SecretSantaChatPage() {
                       return (
                         <div
                           key={msg.id}
-                          className={`flex max-w-[88%] flex-col rounded-[24px] px-4 py-3 text-[15px] leading-7 shadow-sm sm:max-w-[74%] ${
+                          className={`flex max-w-[88%] flex-col rounded-3xl px-4 py-3 text-[15px] leading-7 shadow-sm sm:max-w-[74%] ${
                             isMine ? "self-end rounded-br-md" : "self-start rounded-bl-md"
                           }`}
                           style={{
@@ -1701,7 +1701,7 @@ export default function SecretSantaChatPage() {
         `}</style>
 
         <div className="relative z-10 mx-auto flex w-full max-w-7xl flex-col gap-6 px-4 py-6 sm:px-6 lg:px-8">
-          <header className="flex items-center gap-3 rounded-[32px]">
+          <header className="flex items-center gap-3 rounded-4xl">
             <div className="flex items-center gap-3">
               <div className="grid h-12 w-12 place-items-center rounded-full bg-white/95 shadow-xl shadow-black/15">
                 <SantaMarkIcon className="h-9 w-9" />
@@ -1821,7 +1821,7 @@ export default function SecretSantaChatPage() {
 
           {threadListMessage && (
             <section
-              className="rounded-[24px] px-5 py-4 text-sm font-bold text-rose-100"
+              className="rounded-3xl px-5 py-4 text-sm font-bold text-rose-100"
               style={{
                 background: "rgba(190,18,60,.14)",
                 border: "1px solid rgba(251,113,133,.22)",
@@ -1847,7 +1847,7 @@ export default function SecretSantaChatPage() {
               {chatGroups.map((group) => (
                 <div
                   key={group.title}
-                  className="relative rounded-[32px] p-4 pt-9 sm:p-5 sm:pt-10"
+                  className="relative rounded-4xl p-4 pt-9 sm:p-5 sm:pt-10"
                   style={{
                     background: CHAT_PANEL_BACKGROUND,
                     border: CHAT_BORDER,

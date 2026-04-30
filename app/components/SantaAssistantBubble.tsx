@@ -43,7 +43,7 @@ export function SantaAssistantBubble({
       role="dialog"
       aria-label="Secret Santa assistant tip"
       data-testid="santa-assistant-bubble"
-      className="santa-assistant-bubble pointer-events-auto w-[min(calc(100vw-2rem),23rem)] rounded-[24px] border border-[rgba(72,102,78,.18)] bg-[#fffefa] p-4 text-left shadow-[0_24px_70px_rgba(46,52,50,.18)]"
+      className="santa-assistant-bubble pointer-events-auto w-[min(calc(100vw-2rem),23rem)] rounded-3xl border border-[rgba(72,102,78,.18)] bg-[#fffefa] p-4 text-left shadow-[0_24px_70px_rgba(46,52,50,.18)]"
     >
       <div className="flex items-start justify-between gap-4">
         <div>
@@ -58,7 +58,7 @@ export function SantaAssistantBubble({
           <button
             type="button"
             onClick={onMinimize}
-            className="flex h-9 w-9 items-center justify-center rounded-full border border-[rgba(72,102,78,.14)] bg-white text-[15px] font-black text-[#48664e] transition hover:-translate-y-0.5 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#48664e]"
+            className="flex h-9 w-9 items-center justify-center rounded-full border border-[rgba(72,102,78,.14)] bg-white text-[15px] font-black text-[#48664e] transition hover:-translate-y-0.5 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#48664e]"
             aria-label="Minimize Santa Buddy"
             title="Minimize"
           >
@@ -67,7 +67,7 @@ export function SantaAssistantBubble({
           <button
             type="button"
             onClick={onClose}
-            className="flex h-9 w-9 items-center justify-center rounded-full border border-[rgba(72,102,78,.14)] bg-white text-[15px] font-black text-[#48664e] transition hover:-translate-y-0.5 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#48664e]"
+            className="flex h-9 w-9 items-center justify-center rounded-full border border-[rgba(72,102,78,.14)] bg-white text-[15px] font-black text-[#48664e] transition hover:-translate-y-0.5 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#48664e]"
             aria-label="Close Santa Buddy tip"
             title="Close"
           >
@@ -85,7 +85,7 @@ export function SantaAssistantBubble({
           <button
             type="button"
             onClick={onPrevious}
-            className="min-h-10 rounded-full border border-[rgba(72,102,78,.14)] bg-white px-4 text-[12px] font-extrabold text-[#48664e] transition hover:-translate-y-0.5 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#48664e]"
+            className="min-h-10 rounded-full border border-[rgba(72,102,78,.14)] bg-white px-4 text-[12px] font-extrabold text-[#48664e] transition hover:-translate-y-0.5 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#48664e]"
             aria-label="Show previous Santa Buddy tip"
           >
             Previous
@@ -93,7 +93,7 @@ export function SantaAssistantBubble({
           <button
             type="button"
             onClick={onNext}
-            className="min-h-10 rounded-full bg-[#48664e] px-4 text-[12px] font-extrabold text-white transition hover:-translate-y-0.5 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#48664e]"
+            className="min-h-10 rounded-full bg-[#48664e] px-4 text-[12px] font-extrabold text-white transition hover:-translate-y-0.5 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#48664e]"
             aria-label="Show next Santa Buddy tip"
           >
             Next
@@ -117,7 +117,7 @@ export function SantaAssistantBubble({
         />
         <button
           type="submit"
-          className="min-h-11 rounded-full bg-[#48664e] px-4 text-[12px] font-extrabold text-white transition hover:-translate-y-0.5 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#48664e]"
+          className="min-h-11 rounded-full bg-[#48664e] px-4 text-[12px] font-extrabold text-white transition hover:-translate-y-0.5 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#48664e]"
         >
           Ask
         </button>
@@ -126,7 +126,7 @@ export function SantaAssistantBubble({
       {activeMessage.href && activeMessage.actionLabel && (
         <Link
           href={activeMessage.href}
-          className="mt-3 inline-flex min-h-10 w-full items-center justify-center rounded-full bg-[#c71824] px-4 text-[12px] font-extrabold text-white no-underline transition hover:-translate-y-0.5 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#a43c3f]"
+          className="mt-3 inline-flex min-h-10 w-full items-center justify-center rounded-full bg-[#c71824] px-4 text-[12px] font-extrabold text-white no-underline transition hover:-translate-y-0.5 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#a43c3f]"
         >
           {activeMessage.actionLabel}
         </Link>
@@ -139,7 +139,7 @@ export function SantaAssistantBubble({
         <button
           type="button"
           onClick={onHide}
-          className="rounded-full border border-[rgba(72,102,78,.16)] bg-white px-3 py-2 text-[11px] font-extrabold text-[#48664e] transition hover:-translate-y-0.5 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#48664e]"
+          className="rounded-full border border-[rgba(72,102,78,.16)] bg-white px-3 py-2 text-[11px] font-extrabold text-[#48664e] transition hover:-translate-y-0.5 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#48664e]"
         >
           Hide Santa Buddy
         </button>

@@ -7,6 +7,7 @@ import {
 } from "./dashboard-formatters";
 import { GiftIcon, UserOutlineIcon } from "./dashboard-icons";
 import type { Group } from "./dashboard-types";
+import { getGroupHistoryState } from "@/lib/groups/history";
 
 type DashboardGroupType = "owned" | "invited";
 
@@ -44,6 +45,8 @@ function DashboardGroupCard({
   const budgetLabel = formatDashboardBudget(group.budget, group.currency);
   const memberCountLabel = `${group.members.length} member${group.members.length === 1 ? "" : "s"}`;
   const eventCountdownLabel = formatDashboardEventCountdown(group.event_date, countdownNow);
+  const historyState = getGroupHistoryState(group.event_date, new Date(countdownNow));
+  const showHistoryNotice = historyState.isGracePeriod && historyState.daysUntilHistory !== null;
   const isOwnedGroup = type === "owned";
   const avatarShell = isDarkTheme
     ? "bg-slate-800 text-slate-100 ring-slate-900"
@@ -66,7 +69,7 @@ function DashboardGroupCard({
 
   return (
     <article
-      className={`group rounded-[24px] p-5 shadow-[0_8px_22px_rgba(45,51,55,0.03)] transition hover:-translate-y-0.5 hover:shadow-[0_16px_30px_rgba(45,51,55,0.07)] ${
+      className={`group rounded-3xl p-5 shadow-[0_8px_22px_rgba(45,51,55,0.03)] transition hover:-translate-y-0.5 hover:shadow-[0_16px_30px_rgba(45,51,55,0.07)] ${
         isDarkTheme ? "bg-slate-900/82 text-slate-100" : "bg-white text-slate-900"
       }`}
     >
@@ -137,6 +140,21 @@ function DashboardGroupCard({
           )}
         </div>
       </div>
+      {showHistoryNotice && (
+        <div
+          className={`mt-4 rounded-[18px] px-4 py-3 text-sm font-semibold leading-6 ${
+            isDarkTheme
+              ? "bg-amber-500/10 text-amber-100"
+              : "bg-amber-50 text-amber-900"
+          }`}
+        >
+          Moves to History in {historyState.daysUntilHistory} day
+          {historyState.daysUntilHistory === 1 ? "" : "s"}.{" "}
+          {isOwnedGroup
+            ? "Update the event date if this exchange is still active."
+            : "The owner can update the event date if this exchange is still active."}
+        </div>
+      )}
     </article>
   );
 }

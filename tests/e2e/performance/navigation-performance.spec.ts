@@ -80,7 +80,7 @@ test.describe("navigation performance smoke coverage", () => {
       "login to dashboard ready",
       () => loginWithTestCredentials(page, credentials!),
       async () => {
-        await expect(page.getByText(/your groups/i)).toBeVisible();
+        await expect(page.getByRole("heading", { name: /group snapshot/i })).toBeVisible();
       }
     );
 
@@ -106,7 +106,7 @@ test.describe("navigation performance smoke coverage", () => {
       () => page.goto("/wishlist"),
       async () => {
         await expect(page.getByText(/^my wishlist$/i)).toBeVisible();
-        await expect(page.getByRole("button", { name: /open gift planning/i })).toBeVisible();
+        await expect(page.getByRole("button", { name: /open gift planning/i })).toHaveCount(0);
       }
     );
 

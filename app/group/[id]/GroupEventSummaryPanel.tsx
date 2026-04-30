@@ -81,7 +81,7 @@ export function GroupEventSummaryPanel({
         {eventStats.map((item) => (
           <div
             key={item.label}
-            className="rounded-[16px] px-4 py-4"
+            className="rounded-2xl px-4 py-4"
             style={{
               background: "rgba(255,255,255,.78)",
               border: "1px solid rgba(255,255,255,.92)",
@@ -157,7 +157,7 @@ export function GroupEventSummaryPanel({
         {memberStats.map((stat) => (
           <div
             key={stat.label}
-            className="rounded-[16px] py-4 px-3 text-center relative overflow-hidden"
+            className="rounded-2xl py-4 px-3 text-center relative overflow-hidden"
             style={{
               background: "rgba(255,255,255,.78)",
               border: "1px solid rgba(255,255,255,.92)",

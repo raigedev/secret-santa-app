@@ -283,7 +283,7 @@ export function DashboardNotificationsPanel({
       aria-label="Notifications"
       data-testid="dashboard-notifications-panel"
       style={panelStyle}
-      className={`z-[210] flex flex-col overflow-hidden rounded-[24px] border ${surfaceClass}`}
+      className={`z-[210] flex flex-col overflow-hidden rounded-3xl border ${surfaceClass}`}
     >
       <div className="shrink-0 border-b border-slate-500/10 px-4 py-3">
         <div className="flex items-start justify-between gap-4">

@@ -13,12 +13,17 @@ import { DashboardGroupsSection } from "@/app/dashboard/DashboardGroupsSection";
 import { DashboardStatusMessage } from "@/app/dashboard/DashboardStatusMessage";
 import type { ActionMessage, Group } from "@/app/dashboard/dashboard-types";
 import { deleteGroup } from "@/app/group/[id]/actions";
+import { isGroupInHistory } from "@/lib/groups/history";
 import { createClient } from "@/lib/supabase/client";
 
 type GroupsPageUser = {
   id: string;
   email?: string | null;
 };
+
+function splitActiveGroups(groups: Group[]) {
+  return splitDashboardGroups(groups.filter((group) => !isGroupInHistory(group.event_date)));
+}
 
 export default function GroupsPage() {
   const router = useRouter();
@@ -64,8 +69,9 @@ export default function GroupsPage() {
           return;
         }
 
-        setOwnedGroups(groups.ownedGroups);
-        setInvitedGroups(groups.invitedGroups);
+        const activeGroups = splitActiveGroups(groups.allGroups);
+        setOwnedGroups(activeGroups.ownedGroups);
+        setInvitedGroups(activeGroups.invitedGroups);
         setLoading(false);
 
         const enhancedGroups = await enhanceDashboardGroupsWithPeerProfiles(groups.allGroups);
@@ -74,7 +80,7 @@ export default function GroupsPage() {
           return;
         }
 
-        const enhanced = splitDashboardGroups(enhancedGroups);
+        const enhanced = splitActiveGroups(enhancedGroups);
         setOwnedGroups(enhanced.ownedGroups);
         setInvitedGroups(enhanced.invitedGroups);
       } catch {

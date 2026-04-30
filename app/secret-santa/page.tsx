@@ -37,6 +37,7 @@ import {
   type ClientSnapshotMetadata,
 } from "@/lib/client-snapshot";
 import { isLazadaProductPageUrl } from "@/lib/affiliate/lazada-url";
+import { isGroupInHistory } from "@/lib/groups/history";
 import { isNullableNumber, isNullableString, isRecord } from "@/lib/validation/common";
 import { formatPriceRange } from "@/lib/wishlist/pricing";
 import {
@@ -316,7 +317,9 @@ type ShoppingIdeasNavItem = {
     | "report"
     | "shopping"
     | "tracking"
-    | "reminders";
+    | "reminders"
+    | "history"
+    | "settings";
 };
 
 type SecretSantaExperienceMode = "shopping" | "giftee" | "tracking";
@@ -496,8 +499,39 @@ function ShoppingNavIcon({
     );
   }
 
+  if (name === "history") {
+    return (
+      <svg {...commonProps}>
+        <path
+          d="M5.2 6.5v4.8h4.8"
+          stroke="currentColor"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          strokeWidth="1.8"
+        />
+        <path
+          d="M5.9 11.3a6.5 6.5 0 1 0 2-4.8L5.2 9"
+          stroke="currentColor"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          strokeWidth="1.8"
+        />
+        <path d="M12 8.2v4.4l2.9 1.7" stroke="currentColor" strokeLinecap="round" strokeWidth="1.8" />
+      </svg>
+    );
+  }
+
+  if (name === "settings") {
+    return (
+      <svg {...commonProps}>
+        <path d="M12 8.2a3.8 3.8 0 1 0 0 7.6 3.8 3.8 0 0 0 0-7.6Z" stroke="currentColor" strokeWidth="1.8" />
+        <path d="M12 3.6v2M12 18.4v2M4.6 12h2M17.4 12h2M6.8 6.8l1.4 1.4M15.8 15.8l1.4 1.4M17.2 6.8l-1.4 1.4M8.2 15.8l-1.4 1.4" stroke="currentColor" strokeLinecap="round" strokeWidth="1.8" />
+      </svg>
+    );
+  }
+
   const paths: Record<
-    Exclude<ShoppingIdeasNavItem["icon"], "shopping" | "wishlist" | "reminders">,
+    Exclude<ShoppingIdeasNavItem["icon"], "shopping" | "wishlist" | "reminders" | "history" | "settings">,
     string[]
   > = {
     dashboard: [
@@ -1073,7 +1107,7 @@ function LazadaCtaLink({
       target="_blank"
       rel="noopener noreferrer"
       data-testid="lazada-cta-link"
-      className={`group/lazada relative z-[45] inline-flex min-h-11 min-w-[154px] items-center justify-center gap-2 rounded-full px-4 py-2 text-center text-[13px] font-extrabold leading-none tracking-[0.01em] transition duration-200 hover:-translate-y-0.5 active:translate-y-0 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 ${
+      className={`group/lazada relative z-[45] inline-flex min-h-11 min-w-38.5 items-center justify-center gap-2 rounded-full px-4 py-2 text-center text-[13px] font-extrabold leading-none tracking-[0.01em] transition duration-200 hover:-translate-y-0.5 active:translate-y-0 focus-visible:outline-2 focus-visible:outline-offset-2 ${
         fullWidth ? "w-full" : "w-full sm:w-auto"
       }`}
       style={{
@@ -1116,7 +1150,7 @@ function ShoppingIdeasSidebar({
   return (
     <aside
       data-testid="shopping-ideas-sidebar"
-      className="fixed inset-y-0 left-0 z-30 hidden w-[17.5rem] flex-col border-r px-5 py-5 xl:flex"
+      className="fixed inset-y-0 left-0 z-30 hidden w-70 flex-col border-r px-5 py-5 xl:flex"
       style={{
         background:
           "repeating-linear-gradient(135deg,rgba(72,102,78,.045) 0 1px,transparent 1px 38px), linear-gradient(180deg,rgba(255,254,250,.985),rgba(247,250,245,.965))",
@@ -1158,7 +1192,7 @@ function ShoppingIdeasSidebar({
             key={`${item.label}-${item.href}`}
             href={item.href}
             aria-current={item.active ? "page" : undefined}
-            className="flex min-h-[46px] items-center gap-3 rounded-[12px] px-3 text-[14px] font-extrabold transition hover:-translate-y-0.5"
+            className="flex min-h-11.5 items-center gap-3 rounded-xl px-3 text-[14px] font-extrabold transition hover:-translate-y-0.5"
             style={{
               background: item.active ? "rgba(72,102,78,.12)" : "transparent",
               color: item.active ? HOLIDAY_GREEN : PAGE_TEXT_COLOR,
@@ -1251,10 +1285,10 @@ function ShoppingIdeasHeader({
     : getTimeOfDayGreeting();
   const subtitle =
     mode === "giftee"
-      ? "Your recipient, wishlist clues, and group budget."
+      ? "Recipient details, wishlist clues, gift day, and budget."
       : mode === "tracking"
-        ? "Update your gift progress and arrival status."
-        : "Find gifts from wishlists, budgets, and shopping links.";
+        ? "Track what you have planned, bought, wrapped, and received."
+        : "Shop gift ideas from wishlists, budgets, and affiliate links.";
   const profileInitial = displayViewerName.slice(0, 1).toUpperCase() || "?";
   const fallbackAvatar = viewerAvatarEmoji || profileInitial;
   const fallbackAvatarIsEmoji = Boolean(viewerAvatarEmoji);
@@ -1262,7 +1296,7 @@ function ShoppingIdeasHeader({
   return (
     <header
       data-testid="shopping-ideas-header"
-      className="sticky top-0 z-20 hidden h-[84px] items-center justify-between border-b px-7 xl:flex"
+      className="sticky top-0 z-20 hidden h-21 items-center justify-between border-b px-7 xl:flex"
       style={{
         background:
           "linear-gradient(180deg,rgba(255,254,250,.96),rgba(255,254,250,.9))",
@@ -1413,7 +1447,7 @@ function ShoppingRegionHelperControl({
           aria-label="Online shop region"
           value={shoppingRegion}
           onChange={(event) => onShoppingRegionChange(event.target.value as ShoppingRegion)}
-          className="min-h-10 min-w-[132px] rounded-full bg-transparent px-3 py-1.5 text-right text-[12px] font-extrabold outline-none"
+          className="min-h-10 min-w-33 rounded-full bg-transparent px-3 py-1.5 text-right text-[12px] font-extrabold outline-none"
           style={{ color: INPUT_TEXT, fontFamily: "inherit" }}
         >
           {SHOPPING_REGION_OPTIONS.map((option) => (
@@ -1478,7 +1512,7 @@ function SantaHelperSidecar({
   return (
     <aside
       data-testid="santa-helper-panel"
-      className="sticky top-[104px] hidden self-start overflow-hidden rounded-[30px] p-5 xl:block"
+      className="sticky top-26 hidden self-start overflow-hidden rounded-[30px] p-5 xl:block"
       style={{
         background:
           "radial-gradient(circle at 86% 78%,rgba(252,206,114,.22),transparent 11rem), " +
@@ -1517,7 +1551,7 @@ function SantaHelperSidecar({
         <button
           type="button"
           onClick={jumpToTopPicks}
-          className="flex h-9 w-9 items-center justify-center rounded-full text-[14px] font-black transition hover:-translate-y-0.5 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2"
+          className="flex h-9 w-9 items-center justify-center rounded-full text-[14px] font-black transition hover:-translate-y-0.5 focus-visible:outline-2 focus-visible:outline-offset-2"
           style={{
             background: "rgba(255,255,255,.86)",
             border: "1px solid rgba(72,102,78,.16)",
@@ -1537,7 +1571,7 @@ function SantaHelperSidecar({
             key={label}
             type="button"
             onClick={jumpToTopPicks}
-            className="flex w-full items-center justify-between gap-3 rounded-[20px] px-3 py-3 text-left transition hover:-translate-y-0.5 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2"
+            className="flex w-full items-center justify-between gap-3 rounded-[20px] px-3 py-3 text-left transition hover:-translate-y-0.5 focus-visible:outline-2 focus-visible:outline-offset-2"
             style={{
               background: "rgba(255,255,255,.72)",
               border: "1px solid rgba(72,102,78,.12)",
@@ -1947,6 +1981,17 @@ function getGiftPrepLabel(status: GiftPrepStatus | null): string {
 }
 
 function MyGifteeWorkspace({ assignments }: { assignments: RecipientData[] }) {
+  const groupCount = new Set(assignments.map((assignment) => assignment.group_id)).size;
+  const wishlistIdeaCount = assignments.reduce(
+    (total, assignment) => total + assignment.receiver_wishlist.length,
+    0
+  );
+  const nextGiftDate =
+    assignments
+      .map((assignment) => assignment.group_event_date)
+      .filter((date) => date.length > 0)
+      .sort((left, right) => new Date(left).getTime() - new Date(right).getTime())[0] || "";
+
   return (
     <section
       data-testid="my-giftee-workspace"
@@ -1975,8 +2020,35 @@ function MyGifteeWorkspace({ assignments }: { assignments: RecipientData[] }) {
             People you are gifting
           </h2>
           <p className="mt-3 max-w-md text-[13px] leading-relaxed" style={{ color: TEXT_MUTED }}>
-            Keep each match private. Open a giftee to see their wishlist, group date, and budget.
+            Keep each match private. Use this briefing to check gift day, budget,
+            wishlist clues, and your progress before you shop.
           </p>
+          <div className="mt-5 grid gap-3 sm:grid-cols-3 lg:grid-cols-1">
+            {[
+              ["Matches", `${assignments.length}`, `${groupCount} group${groupCount === 1 ? "" : "s"}`],
+              ["Wishlist clues", `${wishlistIdeaCount}`, "Ideas from your recipients"],
+              ["Next gift day", nextGiftDate ? formatDisplayDate(nextGiftDate) : "Not set", "Plan ahead"],
+            ].map(([label, value, helper]) => (
+              <div
+                key={label}
+                className="rounded-[20px] px-4 py-3"
+                style={{
+                  background: "rgba(255,255,255,.72)",
+                  border: "1px solid rgba(72,102,78,.12)",
+                }}
+              >
+                <p className="text-[10px] font-black uppercase tracking-[0.14em]" style={{ color: TEXT_MUTED }}>
+                  {label}
+                </p>
+                <p className="mt-1 text-[18px] font-black" style={{ color: PAGE_TEXT_COLOR }}>
+                  {value}
+                </p>
+                <p className="mt-0.5 text-[11px] font-semibold" style={{ color: TEXT_SOFT }}>
+                  {helper}
+                </p>
+              </div>
+            ))}
+          </div>
         </div>
 
         <div className="space-y-3">
@@ -1990,14 +2062,16 @@ function MyGifteeWorkspace({ assignments }: { assignments: RecipientData[] }) {
                   )
                 : "Set in group";
             const wishlistPreview = assignment.receiver_wishlist
-              .slice(0, 3)
-              .map((item) => item.item_name)
-              .join(", ");
+              .slice(0, 4);
+            const primaryWishlistNote =
+              wishlistPreview.find((item) => item.item_note.trim().length > 0)?.item_note ||
+              "";
+            const progressLabel = getGiftPrepLabel(assignment.gift_prep_status);
 
             return (
               <article
                 key={`giftee-${assignment.group_id}`}
-                className="rounded-[24px] border border-[rgba(72,102,78,.14)] bg-white/90 p-4"
+                className="rounded-3xl border border-[rgba(72,102,78,.14)] bg-white/90 p-4 shadow-[0_12px_28px_rgba(46,52,50,.04)]"
               >
                 <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                   <div className="min-w-0">
@@ -2010,13 +2084,27 @@ function MyGifteeWorkspace({ assignments }: { assignments: RecipientData[] }) {
                     <h3 className="mt-1 text-[20px] font-black leading-tight text-slate-950">
                       {assignment.receiver_nickname}
                     </h3>
-                    <p className="mt-1 text-[12px] font-semibold" style={{ color: TEXT_MUTED }}>
-                      Gift day: {formatDisplayDate(assignment.group_event_date)} / Group budget:{" "}
-                      {budgetLabel}
-                    </p>
+                    <div className="mt-2 flex flex-wrap gap-2">
+                      {[
+                        `Gift day: ${formatDisplayDate(assignment.group_event_date)}`,
+                        `Budget: ${budgetLabel}`,
+                        `Progress: ${progressLabel}`,
+                      ].map((detail) => (
+                        <span
+                          key={detail}
+                          className="rounded-full px-3 py-1 text-[11px] font-extrabold"
+                          style={{
+                            background: "rgba(72,102,78,.08)",
+                            color: HOLIDAY_GREEN,
+                          }}
+                        >
+                          {detail}
+                        </span>
+                      ))}
+                    </div>
                   </div>
                   <a
-                    href="/secret-santa"
+                    href={`/secret-santa#matches-${assignment.group_id}`}
                     className="inline-flex min-h-11 shrink-0 items-center justify-center rounded-full px-5 text-[12px] font-extrabold transition hover:-translate-y-0.5"
                     style={{
                       background: HOLIDAY_GREEN,
@@ -2024,7 +2112,7 @@ function MyGifteeWorkspace({ assignments }: { assignments: RecipientData[] }) {
                       textDecoration: "none",
                     }}
                   >
-                    Open gift ideas
+                    Open shopping ideas
                   </a>
                 </div>
                 <div
@@ -2034,10 +2122,33 @@ function MyGifteeWorkspace({ assignments }: { assignments: RecipientData[] }) {
                     color: PAGE_TEXT_COLOR,
                   }}
                 >
-                  <span className="font-extrabold" style={{ color: HOLIDAY_GREEN }}>
-                    Wishlist:
-                  </span>{" "}
-                  {wishlistPreview || "No wishlist ideas yet."}
+                  <div className="flex flex-wrap gap-2">
+                    {wishlistPreview.length > 0 ? (
+                      wishlistPreview.map((item) => (
+                        <span
+                          key={item.id}
+                          className="rounded-full bg-white/82 px-3 py-1 text-[11px] font-extrabold"
+                          style={{ color: PAGE_TEXT_COLOR }}
+                        >
+                          {item.item_name}
+                        </span>
+                      ))
+                    ) : (
+                      <span className="font-semibold" style={{ color: TEXT_MUTED }}>
+                        No wishlist ideas yet.
+                      </span>
+                    )}
+                  </div>
+                  {primaryWishlistNote && (
+                    <p className="mt-3 text-[12px] font-semibold" style={{ color: TEXT_MUTED }}>
+                      Note: {summarizeCardCopy(primaryWishlistNote, 120)}
+                    </p>
+                  )}
+                  <p className="mt-3 text-[11px] font-semibold" style={{ color: TEXT_SOFT }}>
+                    {assignment.gift_received
+                      ? "Recipient confirmed that this gift arrived."
+                      : "Update progress on Gift Progress when your plan changes."}
+                  </p>
                 </div>
               </article>
             );
@@ -3225,10 +3336,22 @@ export function SecretSantaExperience({ mode = "shopping" }: SecretSantaExperien
           );
 
           if (cachedSecretSanta) {
+            const activeCachedGroups = cachedSecretSanta.availableGroups.filter(
+              (group) => !isGroupInHistory(group.eventDate)
+            );
+            const activeCachedGroupIds = new Set(activeCachedGroups.map((group) => group.id));
             hasAppliedPageSnapshotRef.current = true;
-            setAvailableGroups(cachedSecretSanta.availableGroups);
-            setAssignments(cachedSecretSanta.assignments);
-            setReceivedGifts(cachedSecretSanta.receivedGifts);
+            setAvailableGroups(activeCachedGroups);
+            setAssignments(
+              cachedSecretSanta.assignments.filter((assignment) =>
+                activeCachedGroupIds.has(assignment.group_id)
+              )
+            );
+            setReceivedGifts(
+              cachedSecretSanta.receivedGifts.filter((gift) =>
+                activeCachedGroupIds.has(gift.group_id)
+              )
+            );
             setLoading(false);
           }
         }
@@ -3313,17 +3436,29 @@ export function SecretSantaExperience({ mode = "shopping" }: SecretSantaExperien
           throw primaryError;
         }
 
-        const groupOptions = buildAvailableGroups((groupsData || []) as GroupRow[]);
+        const groupOptions = buildAvailableGroups(
+          ((groupsData || []) as GroupRow[]).filter(
+            (group) => !isGroupInHistory(group.event_date)
+          )
+        );
+        const activeGroupIds = new Set(groupOptions.map((group) => group.id));
+        const activeAssignments = ((myAssignments || []) as AssignmentRow[]).filter(
+          (assignment) => activeGroupIds.has(assignment.group_id)
+        );
+        const activeReceivedAssignments = (
+          (receivedAssignments || []) as ReceivedAssignmentRow[]
+        ).filter((assignment) => activeGroupIds.has(assignment.group_id));
         let recipientData: RecipientData[] = [];
         const receivedGiftData = buildReceivedGiftData(
-          (receivedAssignments || []) as ReceivedAssignmentRow[],
+          activeReceivedAssignments,
           groupOptions
         );
 
-        if ((myAssignments || []).length > 0) {
+        if (activeAssignments.length > 0) {
           const receiverIds = [
-            ...new Set((myAssignments || []).map((assignment) => assignment.receiver_id)),
+            ...new Set(activeAssignments.map((assignment) => assignment.receiver_id)),
           ];
+          const activeGroupIdList = Array.from(activeGroupIds);
 
           const [
             { data: receiverMembers, error: receiverMembersError },
@@ -3333,7 +3468,7 @@ export function SecretSantaExperience({ mode = "shopping" }: SecretSantaExperien
               .from("group_members")
               .select("group_id, user_id, nickname")
               .in("user_id", receiverIds)
-              .in("group_id", groupIds)
+              .in("group_id", activeGroupIdList)
               .eq("status", "accepted"),
             supabase
               .from("wishlists")
@@ -3341,7 +3476,7 @@ export function SecretSantaExperience({ mode = "shopping" }: SecretSantaExperien
                 "id, group_id, user_id, item_name, item_category, item_image_url, item_link, item_note, preferred_price_min, preferred_price_max, priority"
               )
               .in("user_id", receiverIds)
-              .in("group_id", groupIds),
+              .in("group_id", activeGroupIdList),
           ]);
 
           if (receiverMembersError || receiverWishlistsError) {
@@ -3349,7 +3484,7 @@ export function SecretSantaExperience({ mode = "shopping" }: SecretSantaExperien
           }
 
           recipientData = buildRecipientData(
-            (myAssignments || []) as AssignmentRow[],
+            activeAssignments,
             groupOptions,
             (receiverMembers || []) as MemberRow[],
             (receiverWishlists || []) as WishlistRow[]
@@ -3642,8 +3777,8 @@ export function SecretSantaExperience({ mode = "shopping" }: SecretSantaExperien
       title: "Shopping Ideas",
       description:
         assignments.length > 1
-          ? `Gift ideas for ${shoppingRecipientLabel}, based on their wishlists, group budgets, and available shopping links.`
-          : `Gift ideas for ${firstRecipientName}, based on their wishlist, group budget, and available shopping links.`,
+          ? `Shop wishlist-based ideas for ${shoppingRecipientLabel}. Each card keeps its own budget and links.`
+          : `Shop wishlist-based ideas for ${firstRecipientName} with their budget and available links.`,
       cardLabel: "Group budget",
       cardValue: groupBudgetValue,
       cardHelper: groupBudgetHelper,
@@ -3656,7 +3791,7 @@ export function SecretSantaExperience({ mode = "shopping" }: SecretSantaExperien
       cardHelper: `${assignmentGroupCount} group${assignmentGroupCount === 1 ? "" : "s"}`,
     },
     tracking: {
-      title: "Gift Tracking",
+      title: "Gift Progress",
       description: "Update your gift progress and confirm gifts only after they arrive.",
       cardLabel: "Gift progress",
       cardValue: `${assignments.length}`,
@@ -3673,7 +3808,7 @@ export function SecretSantaExperience({ mode = "shopping" }: SecretSantaExperien
       icon: "giftee",
       active: mode === "giftee",
     },
-    { label: "Wishlist", href: "/wishlist", icon: "wishlist" },
+    { label: "My Wishlist", href: "/wishlist", icon: "wishlist" },
     { label: "Messages", href: "/secret-santa-chat", icon: "messages" },
     {
       label: "Shopping Ideas",
@@ -3682,11 +3817,12 @@ export function SecretSantaExperience({ mode = "shopping" }: SecretSantaExperien
       active: isShoppingMode,
     },
     {
-      label: "Gift Tracking",
+      label: "Gift Progress",
       href: "/gift-tracking",
       icon: "tracking",
       active: mode === "tracking",
     },
+    { label: "History", href: "/history", icon: "history" },
     ...(canViewAffiliateReport
       ? [
           {
@@ -3696,7 +3832,7 @@ export function SecretSantaExperience({ mode = "shopping" }: SecretSantaExperien
           },
         ]
       : []),
-    { label: "Reminders", href: "/reminders", icon: "reminders" },
+    { label: "Settings", href: "/settings", icon: "settings" },
   ];
 
   return (
@@ -3722,7 +3858,7 @@ export function SecretSantaExperience({ mode = "shopping" }: SecretSantaExperien
             "inset 2px 0 0 rgba(255,255,255,.72), inset -2px 0 0 rgba(255,255,255,.72)",
         }}
       />
-      <HolidayCornerSprig className="pointer-events-none fixed right-5 top-[86px] z-0 hidden h-24 w-24 opacity-80 2xl:block" />
+      <HolidayCornerSprig className="pointer-events-none fixed right-5 top-21.5 z-0 hidden h-24 w-24 opacity-80 2xl:block" />
       <style>{`
         .snowflake{position:absolute;background:rgba(72,102,78,.26);border-radius:50%;animation:fall linear infinite;}
         @keyframes fall{0%{transform:translateY(-10px) translateX(0);opacity:.36;}50%{transform:translateY(50vh) translateX(10px);}100%{transform:translateY(105vh) translateX(-5px);opacity:.08;}}
@@ -3734,7 +3870,7 @@ export function SecretSantaExperience({ mode = "shopping" }: SecretSantaExperien
         activeGroupName={activeGroupName}
         activeGroupHref={activeGroupHref}
       />
-      <div className="relative z-10 min-h-screen xl:pl-[17.5rem]">
+      <div className="relative z-10 min-h-screen xl:pl-70">
         <ShoppingIdeasHeader
           mode={mode}
           notificationButtonRef={notificationButtonRef}
@@ -3756,7 +3892,7 @@ export function SecretSantaExperience({ mode = "shopping" }: SecretSantaExperien
           onClose={() => setNotificationsPanelOpen(false)}
           onUnreadCountChange={setUnreadNotificationCount}
         />
-        <div className="mx-auto w-full max-w-[94rem] px-4 py-4 sm:px-6 sm:py-6 xl:px-7 xl:py-3">
+        <div className="mx-auto w-full max-w-376 px-4 py-4 sm:px-6 sm:py-6 xl:px-7 xl:py-3">
         {/* Primary navigation back to the dashboard. */}
         <button
           type="button"
@@ -3792,7 +3928,7 @@ export function SecretSantaExperience({ mode = "shopping" }: SecretSantaExperien
           <div className="relative grid gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(220px,280px)] lg:items-center">
             <div className="flex min-w-0 items-center gap-4">
               <span
-                className="hidden h-16 w-16 shrink-0 items-center justify-center rounded-[24px] sm:flex"
+                className="hidden h-16 w-16 shrink-0 items-center justify-center rounded-3xl sm:flex"
                 style={{
                   background: "rgba(255,255,255,.76)",
                   border: "1px solid rgba(72,102,78,.12)",
@@ -3848,7 +3984,7 @@ export function SecretSantaExperience({ mode = "shopping" }: SecretSantaExperien
             </div>
 
             <div
-              className="relative overflow-hidden rounded-[24px] p-4 sm:p-5"
+              className="relative overflow-hidden rounded-3xl p-4 sm:p-5"
               style={{
                 background: SHOPPING_SHELL_BACKGROUND,
                 border: SHOPPING_SHELL_BORDER,
@@ -4228,10 +4364,10 @@ export function SecretSantaExperience({ mode = "shopping" }: SecretSantaExperien
                       const heroLazadaTitle =
                         primaryFeaturedLazadaProduct?.title || item.item_name;
                       const heroLazadaCopy = summarizeCardCopy(
-                        primaryFeaturedLazadaProduct?.whyItFits ||
+                          primaryFeaturedLazadaProduct?.whyItFits ||
                           primaryFeaturedLazadaProduct?.subtitle ||
                           item.item_note ||
-                          `Start with ${item.item_name}, then compare the strongest Lazada options for this recipient.`,
+                          `Start with ${item.item_name}, then open a shopping option that fits this recipient.`,
                         150
                       );
                       const heroLazadaPriceLabel =
@@ -4398,7 +4534,7 @@ export function SecretSantaExperience({ mode = "shopping" }: SecretSantaExperien
                                 >
                                   <div className="flex items-center gap-4">
                                     <div
-                                      className="flex h-[68px] w-[68px] shrink-0 items-center justify-center overflow-hidden rounded-[10px] text-[19px] sm:h-[72px] sm:w-[72px]"
+                                      className="flex h-17 w-17 shrink-0 items-center justify-center overflow-hidden rounded-[10px] text-[19px] sm:h-18 sm:w-18"
                                       style={{
                                         background: "rgba(255,255,255,.88)",
                                         border: "1px solid rgba(72,102,78,.14)",
@@ -4517,7 +4653,7 @@ export function SecretSantaExperience({ mode = "shopping" }: SecretSantaExperien
                               <div className="grid min-w-0 gap-3">
                                 <section
                                   data-testid="recipient-wishlist-desktop-strip"
-                                  className="relative hidden min-w-0 overflow-hidden rounded-[24px] p-4 xl:block"
+                                  className="relative hidden min-w-0 overflow-hidden rounded-3xl p-4 xl:block"
                                   style={{
                                     background: FRAMED_SURFACE_BACKGROUND,
                                     border: "2px solid rgba(72,102,78,.34)",
@@ -4580,7 +4716,7 @@ export function SecretSantaExperience({ mode = "shopping" }: SecretSantaExperien
                                               assignment.group_id
                                             )
                                           }
-                                          className="rounded-full px-3 py-1.5 text-[10px] font-extrabold transition hover:-translate-y-0.5 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2"
+                                          className="rounded-full px-3 py-1.5 text-[10px] font-extrabold transition hover:-translate-y-0.5 focus-visible:outline-2 focus-visible:outline-offset-2"
                                           style={{
                                             background: HOLIDAY_GREEN,
                                             color: "#fffdf7",
@@ -4622,7 +4758,7 @@ export function SecretSantaExperience({ mode = "shopping" }: SecretSantaExperien
                                               wishlistItem.id
                                             )
                                           }
-                                          className="group min-w-0 rounded-[18px] p-2.5 text-left transition hover:-translate-y-0.5 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2"
+                                          className="group min-w-0 rounded-[18px] p-2.5 text-left transition hover:-translate-y-0.5 focus-visible:outline-2 focus-visible:outline-offset-2"
                                           style={{
                                             background: isActiveItem
                                               ? "linear-gradient(135deg,#fffdf7 0%,rgba(255,238,238,.98) 100%)"
@@ -4640,7 +4776,7 @@ export function SecretSantaExperience({ mode = "shopping" }: SecretSantaExperien
                                         >
                                           <div className="flex min-w-0 gap-3">
                                             <div
-                                              className="flex h-[58px] w-[58px] shrink-0 items-center justify-center overflow-hidden rounded-[14px]"
+                                              className="flex h-14.5 w-14.5 shrink-0 items-center justify-center overflow-hidden rounded-[14px]"
                                               style={{
                                                 background: "rgba(255,255,255,.9)",
                                                 border:
@@ -4709,7 +4845,7 @@ export function SecretSantaExperience({ mode = "shopping" }: SecretSantaExperien
                                 <section
                                   id={`direction-${assignment.group_id}`}
                                   data-testid="shopping-option-panel"
-                                  className="sticky top-0 z-20 min-w-0 overflow-hidden rounded-[24px] p-3 sm:p-4 xl:top-[96px]"
+                                  className="sticky top-0 z-20 min-w-0 overflow-hidden rounded-3xl p-3 sm:p-4 xl:top-24"
                                   style={{
                                     backgroundColor: "#ffffff",
                                     backgroundImage: SHOPPING_PANEL_BACKGROUND_IMAGE,
@@ -4775,7 +4911,7 @@ export function SecretSantaExperience({ mode = "shopping" }: SecretSantaExperien
                                               suggestion.id
                                             )
                                           }
-                                          className="inline-flex min-h-[54px] w-full min-w-0 items-center justify-center gap-2 rounded-[16px] border px-3 py-2.5 text-center transition hover:-translate-y-0.5 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 sm:px-4 xl:px-5"
+                                          className="inline-flex min-h-13.5 w-full min-w-0 items-center justify-center gap-2 rounded-2xl border px-3 py-2.5 text-center transition hover:-translate-y-0.5 focus-visible:outline-2 focus-visible:outline-offset-2 sm:px-4 xl:px-5"
                                           style={{
                                             background: isSelected
                                               ? HOLIDAY_GREEN
@@ -4831,7 +4967,7 @@ export function SecretSantaExperience({ mode = "shopping" }: SecretSantaExperien
                                 >
                                   <div
                                     data-testid="featured-lazada-card"
-                                    className="group relative min-w-0 overflow-hidden rounded-[24px]"
+                                    className="group relative min-w-0 overflow-hidden rounded-3xl"
                                     style={{
                                       background: SHOPPING_CARD_BACKGROUND,
                                       border: SHOPPING_CARD_BORDER,
@@ -4845,7 +4981,7 @@ export function SecretSantaExperience({ mode = "shopping" }: SecretSantaExperien
                                     />
                                     <div className="grid min-w-0 gap-0 md:grid-cols-[minmax(112px,140px)_minmax(0,1fr)]">
                                     <div
-                                      className="relative flex min-h-[108px] min-w-0 items-center justify-center overflow-hidden p-2 text-[30px] sm:min-h-[116px] lg:min-h-[124px]"
+                                      className="relative flex min-h-27 min-w-0 items-center justify-center overflow-hidden p-2 text-[30px] sm:min-h-29 lg:min-h-31"
                                       style={{
                                         background: SHOPPING_MEDIA_WELL_BACKGROUND,
                                         borderRight: "1px solid rgba(72,102,78,.18)",
@@ -4858,7 +4994,7 @@ export function SecretSantaExperience({ mode = "shopping" }: SecretSantaExperien
                                         <img
                                           src={heroLazadaImageUrl}
                                           alt={heroLazadaTitle}
-                                          className="h-full max-h-[108px] w-full object-contain object-center transition duration-700 group-hover:scale-[1.02] sm:max-h-[116px] lg:max-h-[124px]"
+                                          className="h-full max-h-27 w-full object-contain object-center transition duration-700 group-hover:scale-[1.02] sm:max-h-29 lg:max-h-31"
                                         />
                                       ) : (
                                         <div
@@ -5037,7 +5173,7 @@ export function SecretSantaExperience({ mode = "shopping" }: SecretSantaExperien
                                                 href={heroLazadaHref}
                                                 target="_blank"
                                                 rel="noopener noreferrer"
-                                                className="inline-flex w-fit items-center gap-1.5 rounded-full px-3 py-1.5 text-[11px] font-extrabold transition hover:-translate-y-0.5 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2"
+                                                className="inline-flex w-fit items-center gap-1.5 rounded-full px-3 py-1.5 text-[11px] font-extrabold transition hover:-translate-y-0.5 focus-visible:outline-2 focus-visible:outline-offset-2"
                                                 style={{
                                                   background: "rgba(255,255,255,.86)",
                                                   border: "1px solid rgba(72,102,78,.18)",
@@ -5151,11 +5287,11 @@ export function SecretSantaExperience({ mode = "shopping" }: SecretSantaExperien
                                                       <img
                                                         src={productImageUrl}
                                                         alt={product.title}
-                                                        className="relative z-0 h-full max-h-[190px] w-full object-contain object-center transition duration-700 hover:scale-[1.03]"
+                                                        className="relative z-0 h-full max-h-47.5 w-full object-contain object-center transition duration-700 hover:scale-[1.03]"
                                                       />
                                                     ) : (
                                                       <div
-                                                        className="relative flex h-full w-full items-center justify-center overflow-hidden rounded-[24px]"
+                                                        className="relative flex h-full w-full items-center justify-center overflow-hidden rounded-3xl"
                                                         style={{
                                                           background: SHOPPING_MEDIA_WELL_BACKGROUND,
                                                           border:
@@ -5365,7 +5501,7 @@ export function SecretSantaExperience({ mode = "shopping" }: SecretSantaExperien
                                                     href={merchantLink.href}
                                                     target="_blank"
                                                     rel="noopener noreferrer"
-                                                    className="inline-flex min-h-10 min-w-0 items-center gap-2 rounded-full px-3 py-2 text-[12px] font-extrabold transition hover:-translate-y-0.5 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2"
+                                                    className="inline-flex min-h-10 min-w-0 items-center gap-2 rounded-full px-3 py-2 text-[12px] font-extrabold transition hover:-translate-y-0.5 focus-visible:outline-2 focus-visible:outline-offset-2"
                                                     style={{
                                                       background: "#ffffff",
                                                       color: PAGE_TEXT_COLOR,
@@ -5381,7 +5517,7 @@ export function SecretSantaExperience({ mode = "shopping" }: SecretSantaExperien
                                                     >
                                                       {merchantLink.merchantLabel.slice(0, 1)}
                                                     </span>
-                                                    <span className="max-w-[9rem] truncate">
+                                                    <span className="max-w-36 truncate">
                                                       {merchantLink.merchantLabel}
                                                     </span>
                                                     <LazadaArrowIcon className="h-3 w-3 shrink-0" />

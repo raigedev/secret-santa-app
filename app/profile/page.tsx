@@ -536,7 +536,7 @@ export default function ProfilePage() {
 
   return (
     <main className="min-h-screen" style={{ background: "linear-gradient(180deg,#eef4fb,#dce8f5,#e8dce0)", fontFamily: "'Nunito', sans-serif" }}>
-      <FadeIn className="mx-auto max-w-[640px] px-4 py-5 sm:px-6 sm:py-8">
+      <FadeIn className="mx-auto max-w-160 px-4 py-5 sm:px-6 sm:py-8">
 
         {/* Back */}
         <button data-fade onClick={() => router.push("/dashboard")}
@@ -554,7 +554,7 @@ export default function ProfilePage() {
         {/* ═══ AVATAR SECTION ═══ */}
         <div data-fade className="mb-4 rounded-[20px] p-5 text-center sm:p-7" style={{ background: "#fff", boxShadow: "0 4px 20px rgba(0,0,0,.04)", border: "1px solid rgba(0,0,0,.04)" }}>
           <div className="relative inline-block mb-3">
-            <div className="flex h-[96px] w-[96px] items-center justify-center rounded-full text-[44px] sm:h-[120px] sm:w-[120px] sm:text-[56px]"
+            <div className="flex h-24 w-24 items-center justify-center rounded-full text-[44px] sm:h-30 sm:w-30 sm:text-[56px]"
               style={{ background: "linear-gradient(135deg,#fef2f2,#fee2e2)", border: "4px solid #fff", boxShadow: "0 4px 16px rgba(192,57,43,.15)" }}>
               {profile.avatar_url ? (
                 // eslint-disable-next-line @next/next/no-img-element
@@ -826,7 +826,7 @@ export default function ProfilePage() {
                           reminder_delivery_mode: option.value,
                         }))
                       }
-                      className="rounded-[12px] px-4 py-3 text-left transition"
+                      className="rounded-xl px-4 py-3 text-left transition"
                       style={{
                         background: selected ? "#fef2f2" : "#fff",
                         border: `2px solid ${selected ? "#c0392b" : "#e5e7eb"}`,

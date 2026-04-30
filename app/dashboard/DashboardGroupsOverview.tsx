@@ -109,7 +109,7 @@ export function DashboardGroupsOverview({
           </div>
           <div className={`rounded-[20px] border p-4 ${statClass}`}>
             <p className={`text-xs font-black uppercase tracking-[0.16em] ${quietTextClass}`}>
-              Past events
+              Wrapping up
             </p>
             <p className="mt-2 text-3xl font-black">{pastGroups}</p>
           </div>

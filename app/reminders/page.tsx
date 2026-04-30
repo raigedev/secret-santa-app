@@ -4,6 +4,13 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { AppShellIcon } from "@/app/components/AppShellIcons";
 import {
+  DASHBOARD_THEME_CHANGED_EVENT,
+  readStoredDashboardTheme,
+  writeStoredDashboardTheme,
+  type DashboardTheme,
+} from "@/app/components/theme-preferences";
+import { ThemeIcon } from "@/app/dashboard/dashboard-icons";
+import {
   readSantaAssistantHiddenPreference,
   setSantaAssistantHiddenPreference,
   SANTA_ASSISTANT_VISIBILITY_EVENT,
@@ -42,7 +49,7 @@ function ReminderToggle({
       type="button"
       disabled={disabled}
       onClick={onChange}
-      className="group flex min-h-[104px] w-full items-center justify-between gap-4 rounded-[22px] border bg-white/86 px-4 py-4 text-left shadow-[0_14px_32px_rgba(46,52,50,.05)] transition hover:-translate-y-0.5 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#48664e] disabled:cursor-wait disabled:opacity-70 disabled:hover:translate-y-0 sm:px-5"
+      className="group flex min-h-26 w-full items-center justify-between gap-4 rounded-[22px] border bg-white/86 px-4 py-4 text-left shadow-[0_14px_32px_rgba(46,52,50,.05)] transition hover:-translate-y-0.5 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#48664e] disabled:cursor-wait disabled:opacity-70 disabled:hover:translate-y-0 sm:px-5"
       style={{
         borderColor: checked ? "rgba(72,102,78,.28)" : "rgba(148,163,184,.18)",
       }}
@@ -87,7 +94,7 @@ function DeliveryOption({
       disabled={disabled}
       onClick={onSelect}
       aria-pressed={selected}
-      className="rounded-[20px] border px-5 py-4 text-left transition hover:-translate-y-0.5 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#48664e] disabled:cursor-wait disabled:opacity-70 disabled:hover:translate-y-0"
+      className="rounded-[20px] border px-5 py-4 text-left transition hover:-translate-y-0.5 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#48664e] disabled:cursor-wait disabled:opacity-70 disabled:hover:translate-y-0"
       style={{
         background: selected ? "rgba(72,102,78,.1)" : "#fff",
         borderColor: selected ? "rgba(72,102,78,.32)" : "rgba(148,163,184,.18)",
@@ -104,6 +111,9 @@ function DeliveryOption({
 export default function RemindersPage() {
   const router = useRouter();
   const [supabase] = useState(() => createClient());
+  const [dashboardTheme, setDashboardTheme] = useState<DashboardTheme>(() =>
+    readStoredDashboardTheme()
+  );
   const [loadingPreferences, setLoadingPreferences] = useState(true);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState("");
@@ -118,13 +128,20 @@ export default function RemindersPage() {
     const syncAssistantPreference = () => {
       setAssistantHidden(readSantaAssistantHiddenPreference());
     };
+    const syncThemePreference = () => {
+      setDashboardTheme(readStoredDashboardTheme());
+    };
 
     window.addEventListener("storage", syncAssistantPreference);
     window.addEventListener(SANTA_ASSISTANT_VISIBILITY_EVENT, syncAssistantPreference);
+    window.addEventListener("storage", syncThemePreference);
+    window.addEventListener(DASHBOARD_THEME_CHANGED_EVENT, syncThemePreference);
 
     return () => {
       window.removeEventListener("storage", syncAssistantPreference);
       window.removeEventListener(SANTA_ASSISTANT_VISIBILITY_EVENT, syncAssistantPreference);
+      window.removeEventListener("storage", syncThemePreference);
+      window.removeEventListener(DASHBOARD_THEME_CHANGED_EVENT, syncThemePreference);
     };
   }, []);
 
@@ -196,22 +213,43 @@ export default function RemindersPage() {
     setSantaAssistantHiddenPreference(!assistantHidden);
   };
 
+  const toggleDashboardTheme = () => {
+    writeStoredDashboardTheme(dashboardTheme === "midnight" ? "default" : "midnight");
+  };
+
+  const isMidnightTheme = dashboardTheme === "midnight";
+  const panelBackground = isMidnightTheme ? "rgba(15,23,42,.86)" : "rgba(255,255,255,.88)";
+  const panelBorder = isMidnightTheme ? "rgba(148,163,184,.22)" : "rgba(148,163,184,.18)";
+  const textColor = isMidnightTheme ? "#f8fafc" : "#2e3432";
+  const mutedColor = isMidnightTheme ? "#cbd5e1" : "#64748b";
+
   return (
-    <main data-testid="reminders-workspace" className="min-h-screen px-4 py-8 sm:px-6 lg:px-8">
+    <main data-testid="settings-workspace" className="min-h-screen px-4 py-8 sm:px-6 lg:px-8">
       <div className="mx-auto max-w-5xl">
-        <section className="relative overflow-hidden rounded-[30px] border border-[rgba(72,102,78,.16)] bg-white/84 px-5 py-6 shadow-[0_18px_42px_rgba(46,52,50,.06)] sm:px-7">
+        <section
+          className="relative overflow-hidden rounded-[30px] border px-5 py-6 shadow-[0_18px_42px_rgba(46,52,50,.06)] sm:px-7"
+          style={{
+            background: isMidnightTheme
+              ? "linear-gradient(135deg,rgba(15,23,42,.92),rgba(30,41,59,.86))"
+              : "rgba(255,255,255,.84)",
+            borderColor: isMidnightTheme ? "rgba(148,163,184,.24)" : "rgba(72,102,78,.16)",
+            color: textColor,
+          }}
+        >
           <div className="relative z-10 flex flex-col gap-5 md:flex-row md:items-end md:justify-between">
             <div className="max-w-2xl">
               <div className="inline-flex items-center gap-2 rounded-full bg-[#48664e]/10 px-3 py-1 text-[11px] font-black uppercase tracking-[0.16em] text-[#48664e]">
-                <AppShellIcon name="reminders" className="h-4 w-4" />
-                Reminders
+                <AppShellIcon name="settings" className="h-4 w-4" />
+                Settings
               </div>
-              <h1 className="mt-4 text-[34px] font-black leading-none text-[#2e3432] sm:text-[44px]" style={{ fontFamily: "'Fredoka','Nunito',sans-serif" }}>
-                Keep the exchange moving
+              <h1
+                className="mt-4 text-[34px] font-black leading-none sm:text-[44px]"
+                style={{ color: textColor, fontFamily: "'Fredoka','Nunito',sans-serif" }}
+              >
+                Make the app feel right
               </h1>
-              <p className="mt-3 text-[15px] font-semibold leading-7 text-[#64748b]">
-                Choose the gift nudges you want. Reminder settings apply to your account
-                across all groups.
+              <p className="mt-3 text-[15px] font-semibold leading-7" style={{ color: mutedColor }}>
+                Control reminders, Santa Buddy, and display preferences for every exchange.
               </p>
             </div>
             <button
@@ -220,7 +258,7 @@ export default function RemindersPage() {
               disabled={saving || loadingPreferences}
               className="inline-flex min-h-12 items-center justify-center rounded-full bg-[#48664e] px-6 text-[14px] font-black text-white shadow-[0_18px_34px_rgba(72,102,78,.18)] transition hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-60"
             >
-              {loadingPreferences ? "Loading choices..." : saving ? "Saving..." : "Save reminders"}
+              {loadingPreferences ? "Loading choices..." : saving ? "Saving..." : "Save settings"}
             </button>
           </div>
         </section>
@@ -277,9 +315,12 @@ export default function RemindersPage() {
         </section>
 
         <section className="mt-6 grid gap-5 lg:grid-cols-[minmax(0,1fr)_340px]">
-          <div className="rounded-[28px] border border-[rgba(148,163,184,.18)] bg-white/88 p-5 shadow-[0_18px_42px_rgba(46,52,50,.05)] sm:p-6">
-            <h2 className="text-[20px] font-black text-[#2e3432]">How reminders arrive</h2>
-            <p className="mt-2 text-[13px] font-semibold leading-6 text-[#64748b]">
+          <div
+            className="rounded-[28px] border p-5 shadow-[0_18px_42px_rgba(46,52,50,.05)] sm:p-6"
+            style={{ background: panelBackground, borderColor: panelBorder }}
+          >
+            <h2 className="text-[20px] font-black" style={{ color: textColor }}>How reminders arrive</h2>
+            <p className="mt-2 text-[13px] font-semibold leading-6" style={{ color: mutedColor }}>
               Choose whether each reminder appears right away or arrives as a single
               daily summary.
             </p>
@@ -301,20 +342,54 @@ export default function RemindersPage() {
             </div>
           </div>
 
-          <aside className="rounded-[28px] border border-[rgba(72,102,78,.16)] bg-[#fffefa] p-5 shadow-[0_18px_42px_rgba(46,52,50,.06)]">
-            <h2 className="text-[18px] font-black text-[#2e3432]">Santa Buddy</h2>
-            <p className="mt-2 text-[13px] font-semibold leading-6 text-[#64748b]">
-              Show the floating assistant when you want tips, or hide it for a quieter workspace.
-            </p>
-            <button
-              type="button"
-              data-testid="santa-assistant-preference-toggle"
-              onClick={toggleAssistant}
-              className="mt-5 inline-flex min-h-11 w-full items-center justify-center rounded-full border border-[rgba(72,102,78,.18)] bg-white px-4 text-[13px] font-black text-[#48664e] transition hover:-translate-y-0.5"
-              aria-pressed={!assistantHidden}
-            >
-              {assistantHidden ? "Show Santa Buddy" : "Hide Santa Buddy"}
-            </button>
+          <aside
+            className="space-y-4 rounded-[28px] border p-5 shadow-[0_18px_42px_rgba(46,52,50,.06)]"
+            style={{ background: panelBackground, borderColor: panelBorder }}
+          >
+            <div>
+              <h2 className="text-[18px] font-black" style={{ color: textColor }}>Display</h2>
+              <p className="mt-2 text-[13px] font-semibold leading-6" style={{ color: mutedColor }}>
+                Use the warm light theme or a calmer midnight theme for app pages.
+              </p>
+              <button
+                type="button"
+                data-testid="dashboard-theme-preference-toggle"
+                onClick={toggleDashboardTheme}
+                className="mt-5 inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-full border px-4 text-[13px] font-black transition hover:-translate-y-0.5"
+                style={{
+                  background: isMidnightTheme ? "rgba(252,206,114,.14)" : "#fff",
+                  borderColor: isMidnightTheme ? "rgba(252,206,114,.24)" : "rgba(72,102,78,.18)",
+                  color: isMidnightTheme ? "#fde68a" : "#48664e",
+                }}
+                aria-pressed={isMidnightTheme}
+              >
+                <ThemeIcon dark={isMidnightTheme} className="h-4 w-4" />
+                {isMidnightTheme ? "Use light mode" : "Use dark mode"}
+              </button>
+            </div>
+
+            <div className="h-px" style={{ background: panelBorder }} />
+
+            <div>
+              <h2 className="text-[18px] font-black" style={{ color: textColor }}>Santa Buddy</h2>
+              <p className="mt-2 text-[13px] font-semibold leading-6" style={{ color: mutedColor }}>
+                Show the floating assistant when you want tips, or hide it for a quieter workspace.
+              </p>
+              <button
+                type="button"
+                data-testid="santa-assistant-preference-toggle"
+                onClick={toggleAssistant}
+                className="mt-5 inline-flex min-h-11 w-full items-center justify-center rounded-full border px-4 text-[13px] font-black transition hover:-translate-y-0.5"
+                style={{
+                  background: isMidnightTheme ? "rgba(255,255,255,.08)" : "#fff",
+                  borderColor: isMidnightTheme ? "rgba(148,163,184,.24)" : "rgba(72,102,78,.18)",
+                  color: isMidnightTheme ? "#f8fafc" : "#48664e",
+                }}
+                aria-pressed={!assistantHidden}
+              >
+                {assistantHidden ? "Show Santa Buddy" : "Hide Santa Buddy"}
+              </button>
+            </div>
           </aside>
         </section>
       </div>

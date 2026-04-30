@@ -26,6 +26,7 @@ import {
   useSupabaseRealtimeRefresh,
   type RealtimeRefreshRule,
 } from "@/lib/supabase/realtime-refresh";
+import { isGroupInHistory } from "@/lib/groups/history";
 
 type WishlistPriority = 0 | 1 | 2;
 
@@ -382,9 +383,16 @@ export default function WishlistPage() {
           );
 
           if (cachedWishlist) {
-            setGroups(cachedWishlist.groups);
-            setItems(cachedWishlist.items);
-            setAddGroupId(cachedWishlist.addGroupId);
+            const activeCachedGroups = cachedWishlist.groups.filter(
+              (group) => !isGroupInHistory(group.eventDate)
+            );
+            const activeCachedGroupIds = new Set(activeCachedGroups.map((group) => group.id));
+            const activeCachedItems = cachedWishlist.items.filter((item) =>
+              activeCachedGroupIds.has(item.group_id)
+            );
+            setGroups(activeCachedGroups);
+            setItems(activeCachedItems);
+            setAddGroupId(resolveAddGroupId(cachedWishlist.addGroupId, activeCachedGroups, activeCachedItems));
             hasLoadedOnceRef.current = true;
             setLoading(false);
           }
@@ -429,12 +437,17 @@ export default function WishlistPage() {
         if (groupError || wishlistError) throw groupError || wishlistError;
         if (!active) return;
 
-        const nextGroups = ((groupRows || []) as GroupRow[]).map(toGroupOption).sort((a, b) =>
+        const activeGroupRows = ((groupRows || []) as GroupRow[]).filter(
+          (group) => !isGroupInHistory(group.event_date)
+        );
+        const nextGroups = activeGroupRows.map(toGroupOption).sort((a, b) =>
           a.name.localeCompare(b.name)
         );
         groupIdsRef.current = new Set(nextGroups.map((group) => group.id));
+        const activeGroupIds = groupIdsRef.current;
         const groupNames = new Map(nextGroups.map((group) => [group.id, group.name]));
         const nextItems = ((wishlistRows || []) as WishlistRow[])
+          .filter((row) => activeGroupIds.has(row.group_id))
           .map(toWishlistItem)
           .sort((a, b) => {
             const groupCompare = (groupNames.get(a.group_id) || "").localeCompare(groupNames.get(b.group_id) || "");
@@ -642,17 +655,6 @@ export default function WishlistPage() {
       </div>
 
       <div className="relative z-10 mx-auto flex w-full max-w-7xl flex-col gap-6">
-        <header className="flex flex-col gap-4 rounded-[32px] bg-white/75 p-3 shadow-[0_24px_70px_rgba(46,52,50,0.07)] backdrop-blur-xl sm:flex-row sm:items-center sm:justify-end">
-          <button
-            type="button"
-            onClick={() => router.push("/secret-santa")}
-            className="inline-flex w-full items-center justify-center gap-2 rounded-full bg-[linear-gradient(135deg,#48664e,#3c5a43)] px-5 py-3 text-sm font-black text-white shadow-[0_18px_42px_rgba(72,102,78,0.18)] transition hover:-translate-y-0.5 sm:w-auto"
-          >
-            Open Gift Planning
-            <ArrowRightIcon />
-          </button>
-        </header>
-
         <section className="grid gap-5 lg:grid-cols-[1.05fr_.95fr]">
           <div className="relative overflow-hidden rounded-[42px] bg-[#ffffff] p-6 shadow-[0_28px_80px_rgba(46,52,50,0.08)] sm:p-8 lg:p-10">
             <div className="absolute right-[-46px] top-[-42px] h-40 w-40 rounded-full bg-[#ffaba9]/35" />
@@ -718,7 +720,7 @@ export default function WishlistPage() {
 
         {message && (
           <div
-            className={`rounded-[24px] px-5 py-4 text-sm font-bold shadow-[0_16px_38px_rgba(46,52,50,0.06)] ${
+            className={`rounded-3xl px-5 py-4 text-sm font-bold shadow-[0_16px_38px_rgba(46,52,50,0.06)] ${
               message.type === "success"
                 ? "bg-[#d7fadb] text-[#314e38]"
                 : "bg-[#fff7f6] text-[#aa371c]"
@@ -767,7 +769,7 @@ export default function WishlistPage() {
                     </select>
                   </label>
 
-                  <div className="rounded-[24px] bg-[#f2f4f2] p-4">
+                  <div className="rounded-3xl bg-[#f2f4f2] p-4">
                     <div className="flex items-center justify-between gap-3 text-xs font-black uppercase tracking-[0.16em] text-[#5b605e]">
                       <span>Wishlist spots</span>
                       <span>{selectedGroupItemCount}/{WISHLIST_ITEMS_PER_GROUP_LIMIT}</span>
@@ -892,7 +894,7 @@ export default function WishlistPage() {
                           )}
                         </div>
                       </div>
-                      <div className="min-w-[160px] rounded-[24px] bg-white p-4">
+                      <div className="min-w-40 rounded-3xl bg-white p-4">
                         <div className="flex items-center justify-between text-xs font-black uppercase tracking-[0.16em] text-[#777c7a]">
                           <span>Filled</span>
                           <span>{group.items.length}/{WISHLIST_ITEMS_PER_GROUP_LIMIT}</span>
@@ -1005,10 +1007,10 @@ export default function WishlistPage() {
                               </div>
                             </div>
                           ) : (
-                            <article key={item.id} className="group relative overflow-hidden rounded-[32px] bg-[#f9faf8] p-5 transition hover:-translate-y-0.5">
+                            <article key={item.id} className="group relative overflow-hidden rounded-4xl bg-[#f9faf8] p-5 transition hover:-translate-y-0.5">
                               <div className={`absolute inset-x-0 top-0 h-2 bg-gradient-to-r ${tone.ribbon}`} />
                               <div className="flex gap-4">
-                                <div className="grid h-16 w-16 shrink-0 place-items-center rounded-[24px] bg-white text-[#a43c3f] shadow-[0_14px_34px_rgba(46,52,50,0.06)]">
+                                <div className="grid h-16 w-16 shrink-0 place-items-center rounded-3xl bg-white text-[#a43c3f] shadow-[0_14px_34px_rgba(46,52,50,0.06)]">
                                   <GiftIcon className="h-9 w-9" />
                                 </div>
                                 <div className="min-w-0 flex-1">

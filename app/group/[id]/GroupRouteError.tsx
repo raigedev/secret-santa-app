@@ -91,7 +91,7 @@ export function GroupRouteError({
       }}
     >
       <div
-        className="w-full max-w-[560px] rounded-[28px] p-8 text-center"
+        className="w-full max-w-140 rounded-[28px] p-8 text-center"
         style={{
           background: copy.cardBackground,
           border: copy.border,

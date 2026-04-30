@@ -9,7 +9,9 @@ export type AppNavIcon =
   | "report"
   | "shopping"
   | "tracking"
-  | "reminders";
+  | "reminders"
+  | "history"
+  | "settings";
 
 type AppShellIconProps = {
   className?: string;
@@ -49,6 +51,14 @@ export function AppShellIcon({ name, className = "h-5 w-5" }: AppShellIconProps)
 
   if (name === "tracking") {
     return <svg {...common}><path d="M4 8h11v9H4V8Zm11 3h2.8l2.2 2.4V17h-5v-6Z" stroke="currentColor" strokeLinejoin="round" strokeWidth="1.7" /><circle cx="8" cy="18" r="1.7" stroke="currentColor" strokeWidth="1.7" /><circle cx="17" cy="18" r="1.7" stroke="currentColor" strokeWidth="1.7" /></svg>;
+  }
+
+  if (name === "history") {
+    return <svg {...common}><path d="M5.2 6.4v4.8h4.8" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.7" /><path d="M5.8 11.2a6.4 6.4 0 1 0 2-4.7L5.2 9" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.7" /><path d="M12 8.2v4.2l2.8 1.7" stroke="currentColor" strokeLinecap="round" strokeWidth="1.7" /></svg>;
+  }
+
+  if (name === "settings") {
+    return <svg {...common}><path d="M12 8.1a3.9 3.9 0 1 0 0 7.8 3.9 3.9 0 0 0 0-7.8Z" stroke="currentColor" strokeWidth="1.7" /><path d="M12 3.6v2M12 18.4v2M4.6 12h2M17.4 12h2M6.8 6.8l1.4 1.4M15.8 15.8l1.4 1.4M17.2 6.8l-1.4 1.4M8.2 15.8l-1.4 1.4" stroke="currentColor" strokeLinecap="round" strokeWidth="1.7" /></svg>;
   }
 
   return <svg {...common}><path d="M12 6v6l3.6 2.1" stroke="currentColor" strokeLinecap="round" strokeWidth="1.7" /><path d="M5.3 5.7 3.8 4.2M18.7 5.7l1.5-1.5M12 3a8 8 0 1 1 0 16 8 8 0 0 1 0-16Z" stroke="currentColor" strokeLinecap="round" strokeWidth="1.7" /></svg>;

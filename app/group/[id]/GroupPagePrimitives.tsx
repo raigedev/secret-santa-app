@@ -17,7 +17,7 @@ export function GroupPageModal({ children, onClose }: ModalProps) {
       onClick={onClose}
     >
       <div
-        className="w-full max-w-[420px] rounded-[20px] p-7"
+        className="w-full max-w-105 rounded-[20px] p-7"
         style={{ background: "#fff", boxShadow: "0 20px 60px rgba(0,0,0,.18)" }}
         onClick={(event) => event.stopPropagation()}
       >

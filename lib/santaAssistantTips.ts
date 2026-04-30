@@ -42,7 +42,7 @@ const PAGE_TIPS: Array<{
       },
       {
         title: "Gift day status",
-        body: "Past gift days stay visible for history and follow-up. They do not disappear from your groups.",
+        body: "Past exchanges move into History after a short wrap-up window, keeping active groups easier to scan.",
       },
     ],
   },
@@ -55,7 +55,7 @@ const PAGE_TIPS: Array<{
       },
       {
         title: "After gift day",
-        body: "Keep the group for gift tracking, chat, and records even after the event date passes.",
+        body: "Past groups stay active briefly for final updates, then move to History automatically.",
       },
     ],
   },
@@ -96,7 +96,7 @@ const PAGE_TIPS: Array<{
     match: (pathname) => pathname === "/wishlist",
     tips: [
       {
-        title: "Wishlist",
+        title: "My Wishlist",
         body: "Add clear gift ideas so your Santa has options that actually fit you.",
       },
     ],
@@ -120,11 +120,11 @@ const PAGE_TIPS: Array<{
     ],
   },
   {
-    match: (pathname) => pathname === "/reminders",
+    match: (pathname) => pathname === "/settings" || pathname === "/reminders",
     tips: [
       {
-        title: "Reminders",
-        body: "Choose which gift nudges you receive and how they arrive.",
+        title: "Settings",
+        body: "Choose display, assistant, and reminder preferences from one place.",
       },
       {
         title: "Quiet workspace",
@@ -184,9 +184,9 @@ export function getSantaAssistantAnswer(
     normalizedQuestion.includes("sent")
   ) {
     return {
-      title: "Gift tracking",
-      body: "Use Gift Tracking to update your gift progress. A gift should only be confirmed after it actually arrives.",
-      actionLabel: "Open Gift Tracking",
+      title: "Gift progress",
+      body: "Use Gift Progress to update what you have planned, purchased, wrapped, or received.",
+      actionLabel: "Open Gift Progress",
       href: "/gift-tracking",
     };
   }
@@ -211,9 +211,9 @@ export function getSantaAssistantAnswer(
   ) {
     return {
       title: "Santa Buddy",
-      body: "Open Reminders to hide or show the floating assistant. Your choice stays saved on this browser.",
-      actionLabel: "Open reminders",
-      href: "/reminders",
+      body: "Open Settings to hide or show the floating assistant. Your choice stays saved on this browser.",
+      actionLabel: "Open Settings",
+      href: "/settings",
     };
   }
 

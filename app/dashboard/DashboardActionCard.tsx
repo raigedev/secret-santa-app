@@ -93,7 +93,7 @@ export function DashboardActionCard({
     <button
       type="button"
       onClick={onClick}
-      className={`group relative isolate min-h-[166px] overflow-hidden rounded-[32px] p-7 text-left shadow-[0_10px_26px_rgba(45,51,55,0.06)] transition hover:-translate-y-1 hover:shadow-[0_18px_34px_rgba(45,51,55,0.10)] active:scale-[0.99] ${theme.surface}`}
+      className={`group relative isolate min-h-41.5 overflow-hidden rounded-4xl p-7 text-left shadow-[0_10px_26px_rgba(45,51,55,0.06)] transition hover:-translate-y-1 hover:shadow-[0_18px_34px_rgba(45,51,55,0.10)] active:scale-[0.99] ${theme.surface}`}
     >
       <span
         aria-hidden="true"
@@ -101,7 +101,7 @@ export function DashboardActionCard({
       />
       <span aria-hidden="true" className="absolute inset-x-8 top-0 h-px bg-white/30" />
       {artwork}
-      <div className="relative z-10 flex min-h-[118px] flex-col justify-between">
+      <div className="relative z-10 flex min-h-29.5 flex-col justify-between">
         <div>
           <div className="mb-5 flex items-center justify-between gap-3">
             <div
@@ -115,7 +115,7 @@ export function DashboardActionCard({
           </div>
           <h2 className="text-[1.55rem] font-black leading-tight tracking-tight">{title}</h2>
         </div>
-        <p className="mt-3 max-w-[17rem] text-[15px] font-semibold leading-6 opacity-[0.82]">
+        <p className="mt-3 max-w-68 text-[15px] font-semibold leading-6 opacity-[0.82]">
           {description}
         </p>
       </div>

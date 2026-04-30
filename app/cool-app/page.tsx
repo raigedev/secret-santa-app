@@ -133,7 +133,7 @@ export default function CoolAppPage() {
             priority
             className="absolute right-0 top-0 hidden h-56 w-64 object-cover opacity-20 mix-blend-screen sm:block"
           />
-          <div className="relative z-10 flex h-full min-h-[440px] flex-col justify-between gap-8">
+          <div className="relative z-10 flex h-full min-h-110 flex-col justify-between gap-8">
             <div>
               <p className="text-xs font-bold uppercase tracking-[0.22em] text-[#cfd8cb]">
                 Live plan

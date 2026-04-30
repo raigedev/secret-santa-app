@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { getProfile } from "@/app/profile/actions";
 import { claimInvitedMemberships } from "./actions";
+import { isGroupInHistory } from "@/lib/groups/history";
 import { DashboardSkeleton } from "@/app/components/PageSkeleton";
 import FadeIn from "@/app/components/FadeIn";
 import {
@@ -193,10 +194,16 @@ export default function DashboardPage() {
     const applyDashboardSnapshot = (snapshot: DashboardSnapshot) => {
       const savedUserName =
         typeof sessionStorage !== "undefined" ? sessionStorage.getItem("ss_un") : null;
+      const activeOwnedGroups = snapshot.ownedGroups.filter(
+        (group) => !isGroupInHistory(group.event_date)
+      );
+      const activeInvitedGroups = snapshot.invitedGroups.filter(
+        (group) => !isGroupInHistory(group.event_date)
+      );
 
       setUserName(savedUserName || snapshot.userName);
-      setOwnedGroups(snapshot.ownedGroups);
-      setInvitedGroups(snapshot.invitedGroups);
+      setOwnedGroups(activeOwnedGroups);
+      setInvitedGroups(activeInvitedGroups);
       setPendingInvites(snapshot.pendingInvites);
       setRecipientNames(snapshot.recipientNames);
       setUnreadNotificationCount(snapshot.unreadNotificationCount);
@@ -399,16 +406,30 @@ export default function DashboardPage() {
         }
 
         const groupsData = groupsRes.data || [];
-        const allMembers = membersRes.data || [];
-        const allAssignments = assignmentsRes.data || [];
-        const myAssignments = myAssignRes.data || [];
-        const pendingGroups = pendingRes.data || [];
-        const wishlistSummary = (wishlistSummaryRes.data || []) as WishlistSummaryRow[];
+        const activeGroupsData = groupsData.filter(
+          (group) => !isGroupInHistory(group.event_date)
+        );
+        const activeGroupIds = new Set(activeGroupsData.map((group) => group.id));
+        const allMembers = (membersRes.data || []).filter((member) =>
+          activeGroupIds.has(member.group_id)
+        );
+        const allAssignments = (assignmentsRes.data || []).filter((assignment) =>
+          activeGroupIds.has(assignment.group_id)
+        );
+        const myAssignments = (myAssignRes.data || []).filter((assignment) =>
+          activeGroupIds.has(assignment.group_id)
+        );
+        const pendingGroups = (pendingRes.data || []).filter(
+          (group) => !isGroupInHistory(group.event_date)
+        );
+        const wishlistSummary = ((wishlistSummaryRes.data || []) as WishlistSummaryRow[]).filter(
+          (row) => activeGroupIds.has(row.group_id)
+        );
         const recentNotifications =
           (activityNotificationsRes.data || []) as NotificationFeedRow[];
         const drawnGroupIds = new Set(allAssignments.map((assignment) => assignment.group_id));
 
-        const groupsWithMembers: Group[] = groupsData.map((group) => {
+        const groupsWithMembers: Group[] = activeGroupsData.map((group) => {
           return {
             ...group,
             isOwner: roleMap[group.id] === "owner",
@@ -440,7 +461,7 @@ export default function DashboardPage() {
         void loadDashboardPeerProfiles(groupsWithMembers, currentLoadVersion);
 
         const receiverNameByGroupUser = new Map<string, string>();
-        const groupNameById = new Map(groupsData.map((group) => [group.id, group.name]));
+        const groupNameById = new Map(activeGroupsData.map((group) => [group.id, group.name]));
 
         for (const member of allMembers) {
           if (!member.user_id) {
@@ -1059,8 +1080,8 @@ export default function DashboardPage() {
             unreadNotificationCount={unreadNotificationCount}
             wishlistGroupCount={wishlistGroupCount}
             wishlistItemCount={wishlistItemCount}
+            onGoGiftProgress={() => router.push("/gift-tracking")}
             onGoNotifications={openNotificationsPanel}
-            onGoSecretSanta={() => router.push("/secret-santa")}
             onGoWishlist={() => router.push("/wishlist")}
             onOpenPath={(path) => router.push(path)}
           />

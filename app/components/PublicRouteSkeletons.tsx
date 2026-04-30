@@ -20,8 +20,8 @@ export function AuthRouteSkeleton() {
         <SkeletonBlock className="mt-3 h-5 w-full rounded-full" />
         <SkeletonBlock className="mt-2 h-5 w-9/12 rounded-full" />
         <div className="mt-8 space-y-5">
-          <SkeletonBlock className="h-[74px] w-full rounded-3xl" />
-          <SkeletonBlock className="h-[74px] w-full rounded-3xl" />
+          <SkeletonBlock className="h-18.5 w-full rounded-3xl" />
+          <SkeletonBlock className="h-18.5 w-full rounded-3xl" />
           <SkeletonBlock className="h-14 w-full rounded-full bg-[#a43c3f]/20" />
           <SkeletonBlock className="h-14 w-full rounded-3xl" />
         </div>
@@ -50,7 +50,7 @@ export function LandingRouteSkeleton() {
               <SkeletonBlock className="h-14 w-44 rounded-full" />
             </div>
           </div>
-          <SkeletonBlock className="h-[420px] w-full rounded-4xl bg-white" />
+          <SkeletonBlock className="h-105 w-full rounded-4xl bg-white" />
         </section>
       </div>
     </main>
@@ -79,7 +79,7 @@ export function ResetPasswordRouteSkeleton() {
       <section className="w-full max-w-md rounded-4xl bg-white p-6 shadow-[0_28px_80px_rgba(46,52,50,0.1)]">
         <SkeletonBlock className="h-9 w-44 rounded-2xl" />
         <SkeletonBlock className="mt-3 h-5 w-full rounded-full" />
-        <SkeletonBlock className="mt-8 h-[74px] w-full rounded-3xl" />
+        <SkeletonBlock className="mt-8 h-18.5 w-full rounded-3xl" />
         <SkeletonBlock className="mt-5 h-14 w-full rounded-full bg-[#a43c3f]/20" />
       </section>
     </main>
