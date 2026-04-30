@@ -11,14 +11,14 @@ This skill is repo-specific. It adapts OpenAI's frontend guidance and Reddit fie
 
 ## Core Workflow
 
-1. Read `DESIGN.md` before changing UI.
+1. Read `PRODUCT.md` and `DESIGN.md` before changing UI when present.
 2. Read the relevant route/component files and preserve existing behavior.
 3. Define a short visual thesis before editing: mood, hierarchy, and main interaction.
-4. Start from the user's screenshot, Stitch context, existing app shell, or current rendered screen.
+4. Start from the user's screenshot, Figma or Stitch context, existing app shell, or current rendered screen.
 5. Improve composition first: layout, spacing, hierarchy, contrast, scan path.
 6. Use components/cards only when they help the workflow.
 7. Keep app surfaces task-focused; avoid marketing-page heroes inside dashboards or tools.
-8. Verify with the Codex App Browser or Playwright screenshots across useful viewports.
+8. Verify with the Codex App Browser or Playwright screenshots across useful viewports; when implementing Figma frames, compare against the Figma screenshot/reference.
 9. Check for overflow, clipping, unreadable text, redundant buttons, slow/blank loading transitions, and broken auth navigation.
 
 ## Project Fit
@@ -51,6 +51,14 @@ Use a real browser loop for meaningful UI work:
 3. Use Playwright screenshots if the app browser is unavailable or if viewport comparisons are needed.
 4. Inspect desktop, tablet, and mobile widths for text clipping, horizontal overflow, overlapping controls, and unreadable contrast.
 5. Run the repo checks required by `AGENTS.md` after source changes.
+
+## Figma Workflow
+
+- Use Figma MCP automatically when available and the task includes a Figma link, selected frame, node, component mapping, screenshot, or explicit Figma design context.
+- Start with exact-node design context, then fetch a screenshot/reference before coding.
+- If design context is too broad or truncated, narrow to the relevant nodes instead of guessing from the whole file.
+- Translate the design into the existing Secret Santa components, Tailwind utilities, and `DESIGN.md` tokens.
+- Combine Figma with Stitch, Impeccable/Taste skills, Oracle, browser preview, and Playwright when multiple signals improve the UI decision.
 
 ## Reference
 

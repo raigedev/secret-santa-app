@@ -1,6 +1,6 @@
 # Agent Instructions
 
-- Always use the Stitch MCP server when the user asks for UI design context, design tokens, screen metadata, or implementation details from the user's Stitch project. For this app's current Secret Santa Stitch source, use project `3072957204541081703` (`Process Explainer`, despite the generic title) after confirming with `list_projects`/`list_screens` when needed; do not call `list_design_systems` without a `projectId`.
+- Always use Stitch and Figma MCP design tools when the user asks for UI design context, design tokens, screen metadata, selected frames, screenshots, variants, or implementation details from connected design sources. For this app's current Secret Santa Stitch source, use project `3072957204541081703` (`Process Explainer`, despite the generic title) after confirming with `list_projects`/`list_screens` when needed; do not call `list_design_systems` without a `projectId`. For Figma, use the connected Figma MCP/plugin automatically when available: start with exact-node design context, fetch a screenshot/reference for the selected frame, reuse this repo's existing components/tokens, and verify the implementation with browser or Playwright checks. If Figma tools are not exposed in the current Codex session, say that briefly and continue from screenshots, Stitch, `DESIGN.md`, and local code.
 
 ## Codex Skills
 
@@ -8,7 +8,7 @@ When the user asks to fix, improve, refactor, optimize, secure, clean up, remove
 
 Follow the skill before editing source code.
 
-When the user asks for frontend UI, visual polish, responsive layout fixes, app screen redesigns, or frontend readability improvements, use the repo `frontend-product-ui` skill automatically alongside `DESIGN.md`, Stitch when relevant, browser preview, and Playwright verification.
+When the user asks for frontend UI, visual polish, responsive layout fixes, app screen redesigns, or frontend readability improvements, use the repo `frontend-product-ui` skill automatically alongside `DESIGN.md`, Figma or Stitch when relevant and available, browser preview, and Playwright verification.
 
 When the user asks about Codex setup, installing helper tools, CI/PR workflow, changelogs, Sentry triage, GitHub automation, or remembering agent methods, use the repo `codex-workflow-stack` skill. Prefer already installed, free, repo-safe tools; treat account-bound remote-action tools as opt-in.
 
@@ -139,6 +139,7 @@ Act as a senior full-stack engineer and software architect. Code this project wi
 - For front-end UI work, use the repo `frontend-product-ui` skill first so OpenAI frontend guidance, Reddit field reports, and this app's design system are applied consistently.
 - For front-end UI work, use available UI/design skills and tools alongside the repo's existing design patterns. The user's preferred UI skills are `impeccable` and the Taste Skill family, especially `design-taste-frontend`, `stitch-design-taste`, `high-end-visual-design`, and `redesign-existing-projects` when installed or available in the active Codex session.
 - Use Google Stitch as the starting point for UI design context, base screen direction, design tokens, screen metadata, or implementation details when the user asks for design help or Stitch context. Start from `list_projects`, then call project-scoped tools such as `list_design_systems` or `list_screens`; the known Secret Santa Stitch source is project `3072957204541081703`, currently titled `Process Explainer`.
+- Use Figma MCP as a first-class design source when the user provides or references Figma files, selected frames, design nodes, design screenshots, component mappings, or Code Connect/design-system context. Follow the Codex/Figma workflow: fetch exact design context for the node, fetch a screenshot or visual reference, narrow large/truncated files to the relevant nodes, translate the design into existing app components and Tailwind tokens, then compare with Playwright/browser screenshots. Combine Figma with Stitch, `DESIGN.md`, `frontend-product-ui`, Impeccable/Taste skills, Oracle dry-runs, and Playwright when the task benefits from multiple design signals.
 - If the UI direction is unclear, create or compare a few variants for inspiration before settling on the simplest polished direction.
 - When a screen needs a more distinctive component treatment, review 21st.dev as an inspiration source for React/Tailwind components, screens, and themes. Use 21st.dev or its Magic MCP only when available and compatible with this Next.js/Tailwind stack; otherwise manually adapt ideas while preserving project style, accessibility, performance, and security.
 - For visual UI iteration, use the Codex App Browser interaction flow when available: start the local dev server, open the built-in Browser to localhost, let the user point at UI elements with screenshots/annotations, and treat those annotations as high-signal visual context for the next patch.
