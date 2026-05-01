@@ -26,7 +26,7 @@ import {
   useSupabaseRealtimeRefresh,
   type RealtimeRefreshRule,
 } from "@/lib/supabase/realtime-refresh";
-import { isGroupInHistory } from "@/lib/groups/history";
+import { isGroupWishlistActive } from "@/lib/groups/history";
 
 type WishlistPriority = 0 | 1 | 2;
 
@@ -383,8 +383,8 @@ export default function WishlistPage() {
           );
 
           if (cachedWishlist) {
-            const activeCachedGroups = cachedWishlist.groups.filter(
-              (group) => !isGroupInHistory(group.eventDate)
+            const activeCachedGroups = cachedWishlist.groups.filter((group) =>
+              isGroupWishlistActive(group.eventDate)
             );
             const activeCachedGroupIds = new Set(activeCachedGroups.map((group) => group.id));
             const activeCachedItems = cachedWishlist.items.filter((item) =>
@@ -437,8 +437,8 @@ export default function WishlistPage() {
         if (groupError || wishlistError) throw groupError || wishlistError;
         if (!active) return;
 
-        const activeGroupRows = ((groupRows || []) as GroupRow[]).filter(
-          (group) => !isGroupInHistory(group.event_date)
+        const activeGroupRows = ((groupRows || []) as GroupRow[]).filter((group) =>
+          isGroupWishlistActive(group.event_date)
         );
         const nextGroups = activeGroupRows.map(toGroupOption).sort((a, b) =>
           a.name.localeCompare(b.name)

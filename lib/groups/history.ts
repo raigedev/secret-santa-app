@@ -76,3 +76,16 @@ export function isGroupInHistory(
 ): boolean {
   return getGroupHistoryState(eventDate, now).isHistory;
 }
+
+export function isGroupWishlistActive(
+  eventDate: string | null | undefined,
+  now: number | Date = Date.now()
+): boolean {
+  const eventTime = parseDateOnlyUtc(eventDate);
+
+  if (eventTime === null) {
+    return true;
+  }
+
+  return getTodayUtc(now) <= eventTime;
+}
