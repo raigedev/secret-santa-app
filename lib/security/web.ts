@@ -67,18 +67,32 @@ function normalizeHttpOrigin(candidate: string | null | undefined): string | nul
   }
 }
 
-export function resolveTrustedAppOrigin(requestUrl: URL): string {
-  const configuredOrigin =
-    normalizeHttpOrigin(process.env.NEXT_PUBLIC_APP_URL) ||
-    normalizeHttpOrigin(process.env.APP_URL) ||
-    normalizeHttpOrigin(process.env.VERCEL_PROJECT_PRODUCTION_URL) ||
-    normalizeHttpOrigin(process.env.VERCEL_URL);
+function uniqueOrigins(origins: Array<string | null>): string[] {
+  const unique: string[] = [];
 
-  if (configuredOrigin) {
-    return configuredOrigin;
+  for (const origin of origins) {
+    if (origin && !unique.includes(origin)) {
+      unique.push(origin);
+    }
   }
 
-  return requestUrl.origin;
+  return unique;
+}
+
+export function resolveTrustedAppOrigin(requestUrl: URL): string {
+  const requestOrigin = normalizeHttpOrigin(requestUrl.origin);
+  const configuredOrigins = uniqueOrigins([
+    normalizeHttpOrigin(process.env.NEXT_PUBLIC_APP_URL),
+    normalizeHttpOrigin(process.env.APP_URL),
+    normalizeHttpOrigin(process.env.VERCEL_URL),
+    normalizeHttpOrigin(process.env.VERCEL_PROJECT_PRODUCTION_URL),
+  ]);
+
+  if (requestOrigin && configuredOrigins.includes(requestOrigin)) {
+    return requestOrigin;
+  }
+
+  return configuredOrigins[0] || requestOrigin || requestUrl.origin;
 }
 
 export function normalizeSafeAppPath(

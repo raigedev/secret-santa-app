@@ -1,6 +1,7 @@
 "use server";
 
 import { recordServerFailure } from "@/lib/security/audit";
+import { ELIGIBLE_EMAIL_INVITE_STATUSES } from "@/lib/groups/invite-claim.mjs";
 import { sanitizeGroupNickname, validateAnonymousGroupNickname } from "@/lib/groups/nickname";
 import { createNotification } from "@/lib/notifications";
 import {
@@ -106,7 +107,8 @@ export async function claimInvitedMemberships(): Promise<{
     .from("group_members")
     .select("id, group_id, status")
     .eq("email", normalizedEmail)
-    .is("user_id", null);
+    .is("user_id", null)
+    .in("status", ELIGIBLE_EMAIL_INVITE_STATUSES);
 
   if (membershipError) {
     await recordServerFailure({
@@ -129,7 +131,8 @@ export async function claimInvitedMemberships(): Promise<{
     .from("group_members")
     .update({ user_id: user.id })
     .eq("email", normalizedEmail)
-    .is("user_id", null);
+    .is("user_id", null)
+    .in("status", ELIGIBLE_EMAIL_INVITE_STATUSES);
 
   if (updateError) {
     await recordServerFailure({

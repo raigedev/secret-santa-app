@@ -7,6 +7,7 @@ import {
   buildInviteLinkExpiresAt,
   GROUP_INVITE_LINK_TTL_DAYS,
 } from "../lib/groups/invite-links.mjs";
+import { isEligibleEmailInviteStatus } from "../lib/groups/invite-claim.mjs";
 
 test("invite links expire seven days after creation", () => {
   const createdAt = new Date("2026-04-23T00:00:00.000Z");
@@ -60,4 +61,11 @@ test("postback payload storage drops token-like secret fields", () => {
       offer_id: "abc",
     }
   );
+});
+
+test("email invite auto-claim does not relink declined memberships", () => {
+  assert.equal(isEligibleEmailInviteStatus("pending"), true);
+  assert.equal(isEligibleEmailInviteStatus("accepted"), true);
+  assert.equal(isEligibleEmailInviteStatus("declined"), false);
+  assert.equal(isEligibleEmailInviteStatus(null), false);
 });

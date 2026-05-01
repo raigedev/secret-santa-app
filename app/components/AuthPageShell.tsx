@@ -139,6 +139,7 @@ export function AuthHeroPanel({
               alt="Holiday greenery"
               width={imageSize}
               height={imageSize}
+              loading="eager"
               className="hidden w-24 shrink-0 drop-shadow-[0_18px_30px_rgba(123,89,2,0.16)] sm:block"
             />
           </div>

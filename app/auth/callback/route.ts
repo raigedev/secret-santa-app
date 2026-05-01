@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
 import { recordServerFailure } from "@/lib/security/audit";
+import { ELIGIBLE_EMAIL_INVITE_STATUSES } from "@/lib/groups/invite-claim.mjs";
 import { normalizeSafeAppPath, resolveTrustedAppOrigin } from "@/lib/security/web";
 import { supabaseAdmin } from "@/lib/supabase/admin";
 
@@ -66,11 +67,21 @@ export async function GET(request: Request) {
   } = await supabase.auth.getUser();
 
   if (user?.email && user?.id) {
-    await supabaseAdmin
+    const { error: linkMembershipsError } = await supabaseAdmin
       .from("group_members")
       .update({ user_id: user.id })
       .eq("email", user.email.toLowerCase())
-      .is("user_id", null);
+      .is("user_id", null)
+      .in("status", ELIGIBLE_EMAIL_INVITE_STATUSES);
+
+    if (linkMembershipsError) {
+      await recordServerFailure({
+        actorUserId: user.id,
+        errorMessage: linkMembershipsError.message,
+        eventType: "auth.callback.link_invited_memberships",
+        resourceType: "group_membership",
+      });
+    }
   }
 
   return redirectResponse;
