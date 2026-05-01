@@ -11,6 +11,7 @@ type GroupMembersSectionProps = {
   drawDone: boolean;
   groupId: string;
   isOwner: boolean;
+  missingWishlistMemberNames?: string[];
   pendingMembers: Member[];
   requireAnonymousNickname: boolean;
   onRemoveMember: (member: Member) => void;
@@ -30,11 +31,15 @@ export function GroupMembersSection({
   drawDone,
   groupId,
   isOwner,
+  missingWishlistMemberNames = [],
   pendingMembers,
   requireAnonymousNickname,
   onRemoveMember,
   onRevokeMembership,
 }: GroupMembersSectionProps) {
+  const missingWishlistNames = new Set(
+    missingWishlistMemberNames.map((name) => normalizeMemberName(name))
+  );
   const rows: MemberDisplayRow[] = [
     ...acceptedMembers.map((member, index) => ({
       index,
@@ -55,7 +60,8 @@ export function GroupMembersSection({
 
   return (
     <section
-      className="rounded-[26px] bg-white p-4 shadow-[0_18px_44px_rgba(46,52,50,.06)] sm:p-5"
+      id="group-members"
+      className="rounded-3xl bg-[#fffefa] p-4 shadow-[0_18px_44px_rgba(46,52,50,.06)] ring-1 ring-[rgba(72,102,78,.12)] sm:p-5"
       aria-label="Members"
     >
       <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
@@ -72,55 +78,50 @@ export function GroupMembersSection({
         </div>
         {isOwner && !drawDone && (
           <a
-            href="#invite-members"
-            className="inline-flex min-h-10 items-center justify-center gap-2 rounded-full bg-white px-4 text-xs font-black text-[#48664e] shadow-[inset_0_0_0_1px_rgba(72,102,78,.14)]"
+            href="#member-management"
+            className="inline-flex min-h-10 items-center justify-center gap-2 rounded-full bg-white px-4 text-xs font-black text-[#48664e] shadow-[inset_0_0_0_1px_rgba(72,102,78,.14)] transition hover:-translate-y-0.5"
           >
+            <MembersIcon />
             Open member list
           </a>
         )}
       </div>
 
-      {isOwner && !drawDone && (
-        <div id="invite-members" className="mb-4">
-          <InviteForm groupId={groupId} />
-        </div>
-      )}
-
       {rows.length === 0 ? (
-        <p className="rounded-[18px] bg-[#f8faf7] px-4 py-5 text-center text-sm font-semibold text-[#64748b]">
+        <p className="rounded-2xl bg-[#f8faf7] px-4 py-5 text-center text-sm font-semibold text-[#64748b]">
           No members yet.
         </p>
       ) : (
-        <div className="overflow-hidden rounded-[20px] shadow-[inset_0_0_0_1px_rgba(72,102,78,.1)]">
-          <div className="hidden grid-cols-[minmax(0,1.2fr)_0.8fr_0.8fr_0.8fr_auto] gap-3 bg-[#f8faf7] px-4 py-3 text-[11px] font-black uppercase tracking-[0.12em] text-[#64748b] md:grid">
+        <div className="overflow-hidden rounded-2xl bg-white shadow-[inset_0_0_0_1px_rgba(72,102,78,.1)]">
+          <div className="hidden grid-cols-[minmax(0,1.3fr)_0.8fr_0.8fr_0.8fr_auto] gap-3 bg-[#fffefa] px-4 py-3 text-[11px] font-black text-[#5b605e] md:grid">
             <span>Member</span>
             <span>Status</span>
             <span>Wishlist</span>
             <span>Messages</span>
-            <span className="text-right">Actions</span>
+            <span className="sr-only">Actions</span>
           </div>
           <div className="divide-y divide-[rgba(72,102,78,.1)]">
             {rows.map(({ member, status, index }) => {
               const isCurrentUser = currentUserId === member.user_id;
-              const memberName = isCurrentUser
-                ? "You"
-                : getVisibleGroupMemberName(member, index, requireAnonymousNickname);
-              const displayInitial = memberName[0]?.toUpperCase() || "M";
-              const statusMeta = getStatusMeta(status);
+              const rawMemberName = getVisibleGroupMemberName(
+                member,
+                index,
+                requireAnonymousNickname
+              );
+              const memberName = rawMemberName;
+              const isWishlistMissing =
+                status !== "accepted" || missingWishlistNames.has(normalizeMemberName(rawMemberName));
+              const statusMeta = getStatusMeta(status, isWishlistMissing);
+              const wishlistMeta = getWishlistMeta(status, isWishlistMissing);
+              const messageMeta = getMessageMeta(status);
 
               return (
                 <div
                   key={member.id}
-                  className="grid gap-3 px-4 py-3 md:grid-cols-[minmax(0,1.2fr)_0.8fr_0.8fr_0.8fr_auto] md:items-center"
+                  className="grid gap-3 px-4 py-3 md:grid-cols-[minmax(0,1.3fr)_0.8fr_0.8fr_0.8fr_auto] md:items-center"
                 >
                   <div className="flex min-w-0 items-center gap-3">
-                    <span
-                      className="grid h-10 w-10 shrink-0 place-items-center rounded-full text-sm font-black"
-                      style={{ background: statusMeta.avatarBg, color: statusMeta.avatarColor }}
-                      aria-hidden="true"
-                    >
-                      {displayInitial}
-                    </span>
+                    <MemberFaceAvatar seed={index} status={status} />
                     <div className="min-w-0">
                       <div className="flex flex-wrap items-center gap-2">
                         <p className="truncate text-sm font-black text-[#2e3432]">
@@ -139,17 +140,29 @@ export function GroupMembersSection({
                   </div>
 
                   <span
-                    className="w-fit rounded-full px-3 py-1 text-[11px] font-black"
+                    className="inline-flex w-fit items-center gap-1.5 rounded-full px-3 py-1 text-[11px] font-black"
                     style={{ background: statusMeta.badgeBg, color: statusMeta.badgeColor }}
                   >
+                    <StatusCheckIcon />
                     {statusMeta.label}
                   </span>
-                  <span className="text-xs font-semibold text-[#64748b]">
-                    {status === "accepted" ? "Updated" : "Not started"}
-                  </span>
-                  <span className="text-xs font-semibold text-[#64748b]">
-                    {status === "accepted" ? "Read" : "No recent messages"}
-                  </span>
+
+                  <div className="text-xs font-semibold text-[#64748b]">
+                    <div className="flex items-center gap-1.5 font-black" style={{ color: wishlistMeta.color }}>
+                      <SmallStatusIcon tone={wishlistMeta.color} />
+                      {wishlistMeta.label}
+                    </div>
+                    <div className="mt-0.5">{wishlistMeta.helper}</div>
+                  </div>
+
+                  <div className="text-xs font-semibold text-[#64748b]">
+                    <div className="flex items-center gap-1.5 font-black" style={{ color: messageMeta.color }}>
+                      <MessageIcon />
+                      {messageMeta.label}
+                    </div>
+                    <div className="mt-0.5">{messageMeta.helper}</div>
+                  </div>
+
                   <div className="flex flex-wrap justify-start gap-2 md:justify-end">
                     {isCurrentUser && !drawDone && (
                       <NicknameForm groupId={groupId} currentNickname={member.nickname || ""} />
@@ -188,8 +201,14 @@ export function GroupMembersSection({
         </div>
       )}
 
+      {isOwner && !drawDone && (
+        <div id="member-management" className="mt-4">
+          <InviteForm groupId={groupId} />
+        </div>
+      )}
+
       {!drawDone && pendingMembers.length > 0 && isOwner && (
-        <div className="mt-4 rounded-[18px] bg-[#eef3ef] px-4 py-3 text-xs font-bold leading-5 text-[#48664e]">
+        <div className="mt-4 rounded-2xl bg-[#eef3ef] px-4 py-3 text-xs font-bold leading-5 text-[#48664e]">
           Pending members need to log in and accept from their dashboard. Declined members can be re-invited.
         </div>
       )}
@@ -197,11 +216,22 @@ export function GroupMembersSection({
   );
 }
 
-function getStatusMeta(status: MemberDisplayRow["status"]) {
+function normalizeMemberName(name: string): string {
+  return name.trim().toLowerCase();
+}
+
+function getStatusMeta(status: MemberDisplayRow["status"], isWishlistMissing: boolean) {
   if (status === "accepted") {
+    if (isWishlistMissing) {
+      return {
+        badgeBg: "#fff7f6",
+        badgeColor: "#a43c3f",
+        helper: "Needs wishlist",
+        label: "Needs attention",
+      };
+    }
+
     return {
-      avatarBg: "#d7fadb",
-      avatarColor: "#48664e",
       badgeBg: "#d7fadb",
       badgeColor: "#48664e",
       helper: "Joined",
@@ -211,8 +241,6 @@ function getStatusMeta(status: MemberDisplayRow["status"]) {
 
   if (status === "pending") {
     return {
-      avatarBg: "#fff4df",
-      avatarColor: "#7b5902",
       badgeBg: "#fff4df",
       badgeColor: "#7b5902",
       helper: "Has not responded yet",
@@ -221,12 +249,42 @@ function getStatusMeta(status: MemberDisplayRow["status"]) {
   }
 
   return {
-    avatarBg: "#fff7f6",
-    avatarColor: "#a43c3f",
     badgeBg: "#fff7f6",
     badgeColor: "#a43c3f",
     helper: "Declined the invitation",
     label: "Needs attention",
+  };
+}
+
+function getWishlistMeta(status: MemberDisplayRow["status"], isWishlistMissing: boolean) {
+  if (isWishlistMissing) {
+    return {
+      color: "#a43c3f",
+      helper: status === "accepted" ? "No wishlist" : "Not started",
+      label: "Missing",
+    };
+  }
+
+  return {
+    color: "#48664e",
+    helper: "Wishlist ready",
+    label: "Updated",
+  };
+}
+
+function getMessageMeta(status: MemberDisplayRow["status"]) {
+  if (status === "accepted") {
+    return {
+      color: "#48664e",
+      helper: "Recently checked",
+      label: "Read",
+    };
+  }
+
+  return {
+    color: "#64748b",
+    helper: "No recent messages",
+    label: "Quiet",
   };
 }
 
@@ -239,6 +297,93 @@ function MembersIcon() {
         strokeLinecap="round"
         strokeLinejoin="round"
         strokeWidth="1.8"
+      />
+    </svg>
+  );
+}
+
+function MemberFaceAvatar({
+  seed,
+  status,
+}: {
+  seed: number;
+  status: MemberDisplayRow["status"];
+}) {
+  const palette = [
+    { hair: "#a43c3f", skin: "#ffd7bc", bg: "#f7e8e1" },
+    { hair: "#f0a65a", skin: "#ffd9b0", bg: "#fff4df" },
+    { hair: "#48664e", skin: "#c78964", bg: "#e7f1e7" },
+    { hair: "#6d5a9c", skin: "#f2c2a0", bg: "#efeaf8" },
+    { hair: "#5f3b28", skin: "#d89b72", bg: "#f2ece6" },
+  ];
+  const colors = palette[seed % palette.length];
+  const muted = status !== "accepted";
+
+  return (
+    <span
+      className="grid h-10 w-10 shrink-0 place-items-center rounded-full"
+      style={{ background: muted ? "#eef1ee" : colors.bg }}
+      aria-hidden="true"
+    >
+      <svg viewBox="0 0 40 40" className="h-9 w-9">
+        <circle cx="20" cy="20" r="18" fill={muted ? "#dfe4e1" : colors.bg} />
+        <circle cx="20" cy="20" r="11" fill={muted ? "#f3f4f2" : colors.skin} />
+        <path
+          d="M10 19c1.4-7 5.5-10.5 10.4-10.5 4.3 0 8.2 2.7 9.6 8.2-5-2.5-10.9-2.3-20 .3Z"
+          fill={muted ? "#aeb3b1" : colors.hair}
+        />
+        <circle cx="16.2" cy="20.8" r="1.5" fill="#2e3432" />
+        <circle cx="23.8" cy="20.8" r="1.5" fill="#2e3432" />
+        <path
+          d="M15.8 26c2.6 1.9 5.6 1.9 8.4 0"
+          fill="none"
+          stroke="#48664e"
+          strokeLinecap="round"
+          strokeWidth="1.8"
+        />
+      </svg>
+    </span>
+  );
+}
+
+function StatusCheckIcon() {
+  return (
+    <svg viewBox="0 0 16 16" className="h-3.5 w-3.5" fill="none" aria-hidden="true">
+      <path
+        d="m3.5 8 2.8 2.8 6.2-6.4"
+        stroke="currentColor"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeWidth="1.8"
+      />
+    </svg>
+  );
+}
+
+function SmallStatusIcon({ tone }: { tone: string }) {
+  return (
+    <svg viewBox="0 0 16 16" className="h-3.5 w-3.5" fill="none" aria-hidden="true">
+      <circle cx="8" cy="8" r="5.2" stroke={tone} strokeWidth="1.6" />
+      <path
+        d="m5.8 8.2 1.5 1.5 3.2-3.3"
+        stroke={tone}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeWidth="1.6"
+      />
+    </svg>
+  );
+}
+
+function MessageIcon() {
+  return (
+    <svg viewBox="0 0 16 16" className="h-3.5 w-3.5" fill="none" aria-hidden="true">
+      <path
+        d="M3.5 4.2h9c.6 0 1.1.5 1.1 1.1V9c0 .6-.5 1.1-1.1 1.1H8.2l-2.8 2v-2H3.5c-.6 0-1.1-.5-1.1-1.1V5.3c0-.6.5-1.1 1.1-1.1Z"
+        stroke="currentColor"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeWidth="1.5"
       />
     </svg>
   );

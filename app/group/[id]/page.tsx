@@ -27,7 +27,7 @@ import FadeIn from "@/app/components/FadeIn";
 import { GroupActionModals } from "./GroupActionModals";
 import { GroupEventSummaryPanel } from "./GroupEventSummaryPanel";
 import { GroupMembersSection } from "./GroupMembersSection";
-import { GroupOwnerInsightsPanel } from "./GroupOwnerInsightsPanel";
+import { GroupOwnerInsightsPanel, GroupOwnerInsightsSkeleton } from "./GroupOwnerInsightsPanel";
 import { BUDGET_OPTIONS, CURRENCIES, HISTORY_PAGE_SIZE } from "./group-page-config";
 import { HistorySkeletonRows } from "./GroupPagePrimitives";
 import {
@@ -851,7 +851,11 @@ export default function GroupDetailsPage() {
     CURRENCIES.find((item) => item.code === (groupData.currency || "USD"))?.symbol || "$";
   const editCurrencySymbol =
     CURRENCIES.find((item) => item.code === editCurrency)?.symbol || "$";
-  const drawStatusLabel = groupData.revealed ? "Revealed" : drawDone ? "Names drawn" : "Not yet";
+  const drawStatusLabel = groupData.revealed ? "Revealed" : drawDone ? "Names drawn" : "Ready soon";
+  const groupBudgetLabel = groupData.budget
+    ? `${currencySymbol}${formatGroupBudgetAmount(groupData.budget)}`
+    : "No limit";
+  const giftDayLabel = formatGroupDisplayDate(groupData.event_date);
   const recapAliasPreview = groupRecap?.aliasRoster.slice(0, 6) || [];
   const recapExtraAliasCount = Math.max(
     (groupRecap?.aliasRoster.length || 0) - recapAliasPreview.length,
@@ -915,7 +919,7 @@ export default function GroupDetailsPage() {
       <FadeIn className="relative z-10 mx-auto max-w-376 px-4 py-5 sm:px-6 sm:py-6">
         <button
           onClick={() => router.push("/groups")}
-          className="mb-5 inline-flex w-full items-center justify-center gap-1.5 rounded-full px-4 py-2 text-sm font-bold transition hover:-translate-y-0.5 sm:w-auto"
+          className="mb-4 inline-flex min-h-10 w-full items-center justify-center gap-2 rounded-full px-4 text-sm font-bold transition hover:-translate-y-0.5 sm:w-auto"
           style={{
             color: "#48664e",
             background: "rgba(255,255,255,.72)",
@@ -923,83 +927,138 @@ export default function GroupDetailsPage() {
             fontFamily: "inherit",
           }}
         >
+          <ChevronLeftIcon />
           Back to groups
         </button>
 
-        <div
-          className="rounded-4xl overflow-hidden"
-          style={{
-            background: "linear-gradient(180deg,#fffefa,#f7faf5)",
-            border: "1px solid rgba(72,102,78,.14)",
-            boxShadow: "0 24px 70px rgba(46,52,50,.08)",
-          }}
-        >
-          <div
-            className="px-6 py-5"
+        <div className="space-y-5">
+          <section
+            id="group-overview"
+            className="rounded-3xl px-5 py-4 shadow-[0_18px_44px_rgba(46,52,50,.05)] ring-1 ring-[rgba(72,102,78,.12)] sm:px-6"
             style={{
               background: "linear-gradient(135deg,rgba(255,255,255,.94),rgba(242,244,242,.74))",
               color: "#2e3432",
             }}
+            aria-label="Group overview"
           >
-            <div
-              className="text-[28px] font-black"
-              style={{ fontFamily: "'Fredoka', sans-serif" }}
-            >
-              🎁 {groupData.name}
-            </div>
+            <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+              <div className="flex min-w-0 flex-col gap-4 sm:flex-row sm:items-center">
+                <GroupGiftBadge />
+                <div className="min-w-0">
+                  <div className="flex flex-wrap items-center gap-3">
+                    <h1
+                      className="truncate text-[28px] font-black leading-tight text-[#48664e] sm:text-[32px]"
+                      style={{ fontFamily: "'Fredoka', sans-serif" }}
+                    >
+                      {groupData.name}
+                    </h1>
+                    {isOwner && (
+                      <span className="rounded-full bg-[#fff4df] px-3 py-1 text-[11px] font-black text-[#7b5902] shadow-[inset_0_0_0_1px_rgba(123,89,2,.1)]">
+                        Owner
+                      </span>
+                    )}
+                  </div>
+                  <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-2 text-[13px] font-bold text-[#5b605e]">
+                    <span className="inline-flex items-center gap-1.5">
+                      <HeaderMembersIcon />
+                      {members.length} members
+                    </span>
+                    <span className="inline-flex items-center gap-1.5">
+                      <HeaderCalendarIcon />
+                      Gift day: {giftDayLabel}
+                    </span>
+                    <span className="inline-flex items-center gap-1.5">
+                      <HeaderBudgetIcon />
+                      Budget: {groupBudgetLabel}
+                    </span>
+                  </div>
+                </div>
+              </div>
 
-            <div className="text-[13px] mt-1" style={{ color: "#64748b" }}>
-              {members.length} members | Gift day: {groupData.event_date} | Budget:{" "}
-              {groupData.budget ? `${currencySymbol}${groupData.budget}` : "No limit"}
+              {isOwner ? (
+                <button
+                  type="button"
+                  onClick={openEditModal}
+                  className="inline-flex min-h-11 items-center justify-center gap-2 rounded-full bg-white px-5 text-sm font-black text-[#2e3432] shadow-[inset_0_0_0_1px_rgba(72,102,78,.12)] transition hover:-translate-y-0.5"
+                >
+                  <EditPencilIcon />
+                  Edit group
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  onClick={openLeaveModal}
+                  disabled={drawDone}
+                  className="inline-flex min-h-11 items-center justify-center rounded-full bg-[#fff4df] px-5 text-sm font-black text-[#7b5902] transition hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  {drawDone ? "Group locked" : "Leave group"}
+                </button>
+              )}
             </div>
             {!groupDataFresh && (
               <div className="mt-2 text-[11px] font-bold" style={{ color: "#64748b" }}>
                 Updating event details...
               </div>
             )}
-          </div>
+          </section>
 
-          <div className="p-4 sm:p-6">
-            <div className="mb-5 flex gap-6 overflow-x-auto border-b border-[rgba(72,102,78,.12)] text-sm font-black text-[#64748b]">
-              {["Overview", "Members", "Matches", "Messages", "Settings"].map((tab, index) => (
-                <span
-                  key={tab}
-                  className="shrink-0 pb-3"
-                  style={{
-                    color: index === 0 ? "#48664e" : "#64748b",
-                    borderBottom: index === 0 ? "2px solid #48664e" : "2px solid transparent",
-                  }}
-                >
-                  {tab}
-                </span>
-              ))}
-            </div>
-            <div className="mb-5 grid gap-5 lg:grid-cols-[minmax(0,1fr)_22rem] lg:items-start">
+          <nav
+            aria-label="Group sections"
+            className="flex gap-8 overflow-x-auto border-b border-[rgba(72,102,78,.12)] text-sm font-black text-[#64748b]"
+          >
+            {[
+              { href: "#group-overview", label: "Overview" },
+              { href: "#group-members", label: "Members" },
+              { href: "#draw-controls", label: "Matches" },
+              { href: "/secret-santa-chat", label: "Messages" },
+              { href: "#owner-controls", label: "Settings" },
+            ].map((tab, index) => (
+              <a
+                key={tab.label}
+                href={tab.href}
+                aria-current={index === 0 ? "page" : undefined}
+                className="shrink-0 pb-3"
+                style={{
+                  color: index === 0 ? "#48664e" : "#64748b",
+                  borderBottom: index === 0 ? "3px solid #48664e" : "3px solid transparent",
+                }}
+              >
+                {tab.label}
+              </a>
+            ))}
+          </nav>
+
+          <div
+            className={`grid gap-5 ${
+              isOwner ? "xl:grid-cols-[minmax(0,1fr)_22rem] xl:items-start" : ""
+            }`}
+          >
+            <div className="space-y-5">
+              <GroupMembersSection
+                acceptedMembers={acceptedMembers}
+                currentUserId={currentUserId}
+                declinedMembers={declinedMembers}
+                drawDone={drawDone}
+                groupId={id}
+                isOwner={isOwner}
+                missingWishlistMemberNames={ownerInsights?.missingWishlistMemberNames ?? []}
+                pendingMembers={pendingMembers}
+                requireAnonymousNickname={Boolean(groupData?.require_anonymous_nickname)}
+                onRemoveMember={handleOpenRemoveMember}
+                onRevokeMembership={handleRevokeMembership}
+              />
+
               <GroupEventSummaryPanel
                 acceptedCount={acceptedMembers.length}
                 currencySymbol={currencySymbol}
-                declinedCount={declinedMembers.length}
                 drawDone={drawDone}
                 drawStatusLabel={drawStatusLabel}
                 groupData={groupData}
-                isOwner={isOwner}
-                pendingCount={pendingMembers.length}
                 totalMemberCount={members.length}
-                onOpenDelete={openDeleteModal}
-                onOpenEdit={openEditModal}
-                onOpenLeave={openLeaveModal}
               />
 
-              {isOwner && ownerInsights && (
-                <GroupOwnerInsightsPanel
-                  drawDone={drawDone}
-                  eventDate={groupData.event_date}
-                  ownerInsights={ownerInsights}
-                />
-              )}
-            </div>
-
             <div
+              id="draw-controls"
               className="text-center my-5 py-5 rounded-2xl"
               style={{ background: "rgba(127,29,29,.03)", border: "1px solid rgba(127,29,29,.08)" }}
             >
@@ -2002,21 +2061,163 @@ export default function GroupDetailsPage() {
               </div>
             )}
 
-            <GroupMembersSection
-              acceptedMembers={acceptedMembers}
-              currentUserId={currentUserId}
-              declinedMembers={declinedMembers}
-              drawDone={drawDone}
-              groupId={id}
-              isOwner={isOwner}
-              pendingMembers={pendingMembers}
-              requireAnonymousNickname={Boolean(groupData?.require_anonymous_nickname)}
-              onRemoveMember={handleOpenRemoveMember}
-              onRevokeMembership={handleRevokeMembership}
-            />
+            {isOwner && (
+              <div
+                id="owner-controls"
+                className="rounded-2xl bg-white/75 px-4 py-3 text-right shadow-[inset_0_0_0_1px_rgba(164,60,63,.12)]"
+              >
+                <button
+                  type="button"
+                  onClick={openDeleteModal}
+                  className="rounded-full bg-[#fff7f6] px-4 py-2 text-xs font-black text-[#a43c3f] transition hover:-translate-y-0.5"
+                >
+                  Delete group
+                </button>
+              </div>
+            )}
+
+            </div>
+
+            {isOwner && (
+              ownerInsights ? (
+                <GroupOwnerInsightsPanel
+                  canDrawNames={canDrawNames}
+                  declinedMemberCount={declinedMembers.length}
+                  drawDone={drawDone}
+                  drawRulesReady={drawRulesReady}
+                  eventDate={groupData.event_date}
+                  ownerInsights={ownerInsights}
+                  pendingInviteCount={pendingMembers.length}
+                  pendingMemberCount={pendingMembers.length}
+                />
+              ) : (
+                <GroupOwnerInsightsSkeleton />
+              )
+            )}
           </div>
         </div>
       </FadeIn>
     </main>
+  );
+}
+
+function formatGroupBudgetAmount(value: number): string {
+  return value.toLocaleString(undefined, {
+    maximumFractionDigits: 0,
+  });
+}
+
+function formatGroupDisplayDate(value: string): string {
+  const parsed = new Date(value);
+  if (Number.isNaN(parsed.getTime())) {
+    return value || "Not set";
+  }
+
+  return parsed.toLocaleDateString(undefined, {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+  });
+}
+
+function ChevronLeftIcon() {
+  return (
+    <svg viewBox="0 0 20 20" className="h-4 w-4" fill="none" aria-hidden="true">
+      <path
+        d="m12.5 4.5-5.5 5.5 5.5 5.5"
+        stroke="currentColor"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeWidth="1.8"
+      />
+    </svg>
+  );
+}
+
+function EditPencilIcon() {
+  return (
+    <svg viewBox="0 0 20 20" className="h-4 w-4" fill="none" aria-hidden="true">
+      <path
+        d="m4.2 13.8-.6 2.6 2.6-.6 8.2-8.2-2-2-8.2 8.2Z"
+        stroke="currentColor"
+        strokeLinejoin="round"
+        strokeWidth="1.7"
+      />
+      <path
+        d="m11.4 6.6 2 2"
+        stroke="currentColor"
+        strokeLinecap="round"
+        strokeWidth="1.7"
+      />
+    </svg>
+  );
+}
+
+function GroupGiftBadge() {
+  return (
+    <div className="grid h-18 w-18 shrink-0 place-items-center rounded-3xl bg-white shadow-[inset_0_0_0_1px_rgba(72,102,78,.1),0_14px_34px_rgba(46,52,50,.06)]">
+      <svg viewBox="0 0 64 64" className="h-13 w-13" fill="none" aria-hidden="true">
+        <ellipse cx="32" cy="51" rx="18" ry="5" fill="rgba(72,102,78,.12)" />
+        <path d="M16 25h32v24H16V25Z" fill="#48664e" />
+        <path d="M16 25h32v9H16V25Z" fill="#fcce72" />
+        <path d="M29 25h6v24h-6V25Z" fill="#f6e4b6" />
+        <path d="M20 18c6-6 10 1 12 7-8 .5-13-.7-12-7Z" fill="#a43c3f" />
+        <path d="M44 18c-6-6-10 1-12 7 8 .5 13-.7 12-7Z" fill="#a43c3f" />
+        <circle cx="52" cy="31" r="2" fill="#fcce72" />
+        <path
+          d="M53.5 40h5M56 37.5v5M12 35h5M14.5 32.5v5"
+          stroke="#fcce72"
+          strokeLinecap="round"
+          strokeWidth="2"
+        />
+      </svg>
+    </div>
+  );
+}
+
+function HeaderMembersIcon() {
+  return (
+    <svg viewBox="0 0 20 20" className="h-4 w-4" fill="none" aria-hidden="true">
+      <path
+        d="M7.1 9.4a2.7 2.7 0 1 0 0-5.4 2.7 2.7 0 0 0 0 5.4ZM13.3 8.8a2.3 2.3 0 1 0 0-4.6 2.3 2.3 0 0 0 0 4.6ZM3.2 16c.5-2.8 2-4.2 4.1-4.2s3.6 1.4 4.1 4.2M11 12.1c.7-.5 1.5-.8 2.4-.8 2 0 3.3 1.3 3.8 3.8"
+        stroke="currentColor"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeWidth="1.6"
+      />
+    </svg>
+  );
+}
+
+function HeaderCalendarIcon() {
+  return (
+    <svg viewBox="0 0 20 20" className="h-4 w-4" fill="none" aria-hidden="true">
+      <path
+        d="M6 3.8v2.5M14 3.8v2.5M4.6 8h10.8M5.7 5.5h8.6c.9 0 1.5.7 1.5 1.5v7.2c0 .9-.7 1.5-1.5 1.5H5.7c-.9 0-1.5-.7-1.5-1.5V7c0-.9.7-1.5 1.5-1.5Z"
+        stroke="currentColor"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeWidth="1.6"
+      />
+    </svg>
+  );
+}
+
+function HeaderBudgetIcon() {
+  return (
+    <svg viewBox="0 0 20 20" className="h-4 w-4" fill="none" aria-hidden="true">
+      <path
+        d="M4.2 6.2h11.6v8.4H4.2V6.2Z"
+        stroke="currentColor"
+        strokeLinejoin="round"
+        strokeWidth="1.6"
+      />
+      <path
+        d="M7.4 6.2V5.1c0-.8.6-1.4 1.4-1.4h2.4c.8 0 1.4.6 1.4 1.4v1.1M7.2 10.4h5.6"
+        stroke="currentColor"
+        strokeLinecap="round"
+        strokeWidth="1.6"
+      />
+    </svg>
   );
 }

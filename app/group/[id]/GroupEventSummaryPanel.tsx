@@ -3,41 +3,33 @@ import { type GroupData } from "./group-page-state";
 type GroupEventSummaryPanelProps = {
   acceptedCount: number;
   currencySymbol: string;
-  declinedCount: number;
   drawDone: boolean;
   drawStatusLabel: string;
   groupData: GroupData;
-  isOwner: boolean;
-  pendingCount: number;
   totalMemberCount: number;
-  onOpenDelete: () => void;
-  onOpenEdit: () => void;
-  onOpenLeave: () => void;
 };
 
 export function GroupEventSummaryPanel({
   acceptedCount,
   currencySymbol,
-  declinedCount,
   drawDone,
   drawStatusLabel,
   groupData,
-  isOwner,
-  pendingCount,
   totalMemberCount,
-  onOpenDelete,
-  onOpenEdit,
-  onOpenLeave,
 }: GroupEventSummaryPanelProps) {
   const participation = totalMemberCount > 0
     ? Math.round((acceptedCount / totalMemberCount) * 100)
     : 0;
-  const budgetLabel = groupData.budget ? `${currencySymbol}${groupData.budget}` : "No limit";
+  const budgetLabel = groupData.budget
+    ? `${currencySymbol}${formatBudgetAmount(groupData.budget)}`
+    : "No limit";
+  const giftDay = getGiftDayMeta(groupData.event_date);
+  const participationDash = 138 - (138 * participation) / 100;
   const summaryCards = [
     {
-      helper: "Gift day",
-      label: formatEventDate(groupData.event_date),
-      meta: "Event date",
+      helper: giftDay.helper,
+      label: giftDay.label,
+      meta: "Gift day",
     },
     {
       helper: "Per person",
@@ -45,20 +37,16 @@ export function GroupEventSummaryPanel({
       meta: "Group budget",
     },
     {
-      helper: drawDone ? "Names are ready" : "Draw opens when ready",
+      helper: drawDone ? "Names are ready" : "Draw opens when ready.",
       label: drawStatusLabel,
       meta: "Draw status",
-    },
-    {
-      helper: `${participation}% joined`,
-      label: `${acceptedCount} / ${totalMemberCount}`,
-      meta: "Participation",
     },
   ];
 
   return (
     <section
-      className="rounded-[26px] bg-white p-4 shadow-[0_18px_44px_rgba(46,52,50,.06)] sm:p-5"
+      id="event-summary"
+      className="rounded-3xl bg-[#fffefa] p-4 shadow-[0_18px_44px_rgba(46,52,50,.06)] ring-1 ring-[rgba(72,102,78,.12)] sm:p-5"
       aria-label="Event summary"
     >
       <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
@@ -71,50 +59,15 @@ export function GroupEventSummaryPanel({
             Key dates and details for your exchange.
           </p>
         </div>
-        <div className="flex flex-wrap gap-2">
-          {isOwner ? (
-            <>
-              <button
-                type="button"
-                onClick={onOpenEdit}
-                className="rounded-full bg-[#f2f4f2] px-4 py-2 text-xs font-black text-[#48664e]"
-              >
-                Edit group
-              </button>
-              <button
-                type="button"
-                onClick={onOpenDelete}
-                className="rounded-full bg-[#fff7f6] px-4 py-2 text-xs font-black text-[#a43c3f]"
-              >
-                Delete group
-              </button>
-            </>
-          ) : (
-            <button
-              type="button"
-              onClick={onOpenLeave}
-              disabled={drawDone}
-              className="rounded-full bg-[#fff4df] px-4 py-2 text-xs font-black text-[#7b5902] disabled:cursor-not-allowed disabled:opacity-60"
-            >
-              {drawDone ? "Group locked" : "Leave group"}
-            </button>
-          )}
-        </div>
       </div>
-
-      {groupData.description && (
-        <div className="mb-4 rounded-[18px] bg-[#f8faf7] px-4 py-3 text-sm font-semibold leading-6 text-[#5b605e]">
-          {groupData.description}
-        </div>
-      )}
 
       <div className="grid gap-3 md:grid-cols-4">
         {summaryCards.map((card) => (
           <div
             key={card.meta}
-            className="rounded-[18px] bg-[#fbfcfa] p-4 shadow-[inset_0_0_0_1px_rgba(72,102,78,.08)]"
+            className="rounded-2xl bg-white p-4 shadow-[inset_0_0_0_1px_rgba(72,102,78,.1)]"
           >
-            <p className="text-[11px] font-black uppercase tracking-[0.12em] text-[#64748b]">
+            <p className="text-[11px] font-black text-[#5b605e]">
               {card.meta}
             </p>
             <p className="mt-2 text-[18px] font-black leading-tight text-[#48664e]">
@@ -123,25 +76,60 @@ export function GroupEventSummaryPanel({
             <p className="mt-2 text-xs font-semibold text-[#64748b]">{card.helper}</p>
           </div>
         ))}
-      </div>
-
-      <div className="mt-4 grid gap-3 sm:grid-cols-4">
-        {[
-          { count: acceptedCount, label: "Accepted", tone: "#48664e" },
-          { count: pendingCount, label: "Pending", tone: "#7b5902" },
-          { count: declinedCount, label: "Declined", tone: "#a43c3f" },
-          { count: totalMemberCount, label: "Total", tone: "#2e3432" },
-        ].map((stat) => (
-          <div key={stat.label} className="rounded-full bg-[#f2f4f2] px-3 py-2 text-center">
-            <span className="text-sm font-black" style={{ color: stat.tone }}>
-              {stat.count}
-            </span>
-            <span className="ml-1 text-xs font-bold text-[#64748b]">{stat.label}</span>
+        <div className="rounded-2xl bg-white p-4 shadow-[inset_0_0_0_1px_rgba(72,102,78,.1)]">
+          <p className="text-[11px] font-black text-[#5b605e]">Participation</p>
+          <div className="mt-2 flex items-center justify-between gap-3">
+            <div>
+              <p className="text-[18px] font-black leading-tight text-[#48664e]">
+                {acceptedCount} / {totalMemberCount}
+              </p>
+              <p className="mt-2 text-xs font-semibold text-[#64748b]">
+                {participation}% joined
+              </p>
+            </div>
+            <svg viewBox="0 0 52 52" className="h-13 w-13 shrink-0" aria-hidden="true">
+              <circle
+                cx="26"
+                cy="26"
+                r="22"
+                fill="none"
+                stroke="rgba(72,102,78,.14)"
+                strokeWidth="6"
+              />
+              <circle
+                cx="26"
+                cy="26"
+                r="22"
+                fill="none"
+                stroke="#48664e"
+                strokeDasharray="138"
+                strokeDashoffset={participationDash}
+                strokeLinecap="round"
+                strokeWidth="6"
+                transform="rotate(-90 26 26)"
+              />
+              <text
+                x="26"
+                y="30"
+                fill="#48664e"
+                fontSize="11"
+                fontWeight="900"
+                textAnchor="middle"
+              >
+                {participation}%
+              </text>
+            </svg>
           </div>
-        ))}
+        </div>
       </div>
     </section>
   );
+}
+
+function formatBudgetAmount(value: number): string {
+  return value.toLocaleString(undefined, {
+    maximumFractionDigits: 0,
+  });
 }
 
 function formatEventDate(value: string): string {
@@ -155,6 +143,40 @@ function formatEventDate(value: string): string {
     day: "numeric",
     year: "numeric",
   });
+}
+
+function getGiftDayMeta(value: string) {
+  const parsed = new Date(value);
+  if (Number.isNaN(parsed.getTime())) {
+    return {
+      helper: "Date not set",
+      label: value || "Not set",
+    };
+  }
+
+  const today = new Date();
+  const parsedDay = new Date(parsed.getFullYear(), parsed.getMonth(), parsed.getDate());
+  const todayDay = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+  const daysUntil = Math.round((parsedDay.getTime() - todayDay.getTime()) / 86400000);
+
+  if (daysUntil > 0) {
+    return {
+      helper: `In ${daysUntil} day${daysUntil === 1 ? "" : "s"}`,
+      label: formatEventDate(value),
+    };
+  }
+
+  if (daysUntil === 0) {
+    return {
+      helper: "Today",
+      label: formatEventDate(value),
+    };
+  }
+
+  return {
+    helper: "Gift day passed",
+    label: formatEventDate(value),
+  };
 }
 
 function CalendarIcon() {
