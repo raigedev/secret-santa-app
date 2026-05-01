@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
 import { recordServerFailure } from "@/lib/security/audit";
-import { normalizeSafeAppPath } from "@/lib/security/web";
+import { normalizeSafeAppPath, resolveTrustedAppOrigin } from "@/lib/security/web";
 import { supabaseAdmin } from "@/lib/supabase/admin";
 
 export async function GET(request: Request) {
@@ -14,12 +14,7 @@ export async function GET(request: Request) {
     requestUrl.searchParams.get("next") ?? nextFromCookie,
     "/dashboard"
   );
-  const forwardedHost = request.headers.get("x-forwarded-host");
-  const forwardedProto = request.headers.get("x-forwarded-proto") ?? "https";
-  const origin =
-    process.env.NODE_ENV === "development" || !forwardedHost
-      ? requestUrl.origin
-      : `${forwardedProto}://${forwardedHost}`;
+  const origin = resolveTrustedAppOrigin(requestUrl);
 
   if (!code) {
     await recordServerFailure({

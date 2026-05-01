@@ -42,13 +42,21 @@ test("non-unique assignment errors are not treated as already-drawn races", () =
 test("postback payload storage drops token-like secret fields", () => {
   assert.deepEqual(
     stripReservedPostbackSecrets({
+      accessToken: "should-not-persist",
+      access_token: "should-not-persist",
       amount: "1",
+      click_token: "tracking-token",
+      postbackToken: "should-not-persist",
       offer_id: "abc",
+      postback_token: "should-not-persist",
       secret: "should-not-persist",
+      signature: "should-not-persist",
       token: "should-not-persist",
+      x_lazada_postback_secret: "should-not-persist",
     }),
     {
       amount: "1",
+      click_token: "tracking-token",
       offer_id: "abc",
     }
   );

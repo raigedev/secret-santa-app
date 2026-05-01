@@ -6,12 +6,15 @@ import {
   isOpenRouterWishlistConfigured,
 } from "@/lib/ai/openrouter";
 import { enforceRateLimit } from "@/lib/security/rate-limit";
+import { recordServerFailure } from "@/lib/security/audit";
 import { createClient } from "@/lib/supabase/server";
 import {
+  isUuid,
   isSupportedShoppingRegion,
   sanitizeCompactString,
   sanitizeOptionalNumber,
 } from "@/lib/validation/common";
+import { canAccessRecipientWishlistItem } from "@/lib/wishlist/recipient-access";
 import {
   buildAiWishlistSuggestionOptions,
   buildWishlistSuggestionOptions,
@@ -129,14 +132,52 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ suggestions: [], usedAi: false });
   }
 
+  if (!isUuid(suggestionInput.groupId) || !isUuid(suggestionInput.wishlistItemId)) {
+    return NextResponse.json(
+      { error: "Forbidden", suggestions: [], usedAi: false },
+      { status: 403 }
+    );
+  }
+
+  const accessCheck = await canAccessRecipientWishlistItem({
+    groupId: suggestionInput.groupId,
+    userId: user.id,
+    wishlistItemId: suggestionInput.wishlistItemId,
+  });
+
+  if (!accessCheck.allowed) {
+    if (accessCheck.error) {
+      await recordServerFailure({
+        actorUserId: user.id,
+        details: {
+          groupId: suggestionInput.groupId,
+          reason: accessCheck.reason,
+          wishlistItemId: suggestionInput.wishlistItemId,
+        },
+        errorMessage: accessCheck.error,
+        eventType: "wishlist_ai_suggestions.access_lookup_failed",
+        resourceId: suggestionInput.wishlistItemId,
+        resourceType: "wishlist_ai_suggestion",
+      });
+
+      return NextResponse.json(
+        { error: "Could not check this gift item yet.", suggestions: [], usedAi: false },
+        { status: 500 }
+      );
+    }
+
+    return NextResponse.json(
+      { error: "Forbidden", suggestions: [], usedAi: false },
+      { status: 403 }
+    );
+  }
+
   const baseOptions = buildWishlistSuggestionOptions(suggestionInput);
   const { drafts: aiDrafts, provider: aiProvider } = await generateWishlistSuggestionDrafts({
     suggestionInput,
     baseOptions,
-  });
+  }).catch(() => ({ drafts: [], provider: null }));
   const aiSuggestions = buildAiWishlistSuggestionOptions(suggestionInput, aiDrafts);
-  
-  // If AI times out or fails, always show base suggestions so UI doesn't get stuck
   const suggestions = aiSuggestions.length > 0 ? aiSuggestions : baseOptions;
 
   return NextResponse.json({

@@ -28,6 +28,22 @@ test.describe("API auth and guard coverage", () => {
     });
   });
 
+  test("auth callback ignores spoofed forwarded hosts for redirects", async ({ request }) => {
+    const response = await request.get("/auth/callback", {
+      headers: {
+        "x-forwarded-host": "evil.example",
+        "x-forwarded-proto": "https",
+      },
+      maxRedirects: 0,
+    });
+    const location = response.headers().location || "";
+
+    expect(response.status()).toBeGreaterThanOrEqual(300);
+    expect(response.status()).toBeLessThan(400);
+    expect(location).toContain("/login?error=no_code");
+    expect(location).not.toContain("evil.example");
+  });
+
   test("lazada matches reject unauthenticated requests", async ({ request }) => {
     const response = await request.post("/api/affiliate/lazada/matches", {
       data: {

@@ -3,7 +3,9 @@ import { NextRequest, NextResponse } from "next/server";
 
 import { stripReservedPostbackSecrets } from "@/lib/affiliate/lazada-postback.mjs";
 import { supabaseAdmin } from "@/lib/supabase/admin";
-import { safeEqualSecret } from "@/lib/security/web";
+import { recordAuditEvent } from "@/lib/security/audit";
+import { enforceRateLimit } from "@/lib/security/rate-limit";
+import { extractRequestClientIp, safeEqualSecret } from "@/lib/security/web";
 
 export const dynamic = "force-dynamic";
 
@@ -81,6 +83,14 @@ function buildPayloadHash(payload: PostbackPayload): string {
   return createHash("sha256").update(JSON.stringify(normalized)).digest("hex");
 }
 
+function getProvidedPostbackSecret(request: NextRequest, payload: PostbackPayload): string | null {
+  return (
+    getFirstPayloadValue(payload, ["token", "secret"]) ||
+    request.headers.get("x-lazada-postback-secret") ||
+    request.headers.get("x-postback-secret")
+  )?.trim() || null;
+}
+
 async function readPostbackPayload(request: NextRequest): Promise<PostbackPayload> {
   const queryPayload = normalizePayloadObject(Object.fromEntries(request.nextUrl.searchParams.entries()));
 
@@ -132,28 +142,61 @@ function isAuthorizedPostback(request: NextRequest, payload: PostbackPayload): b
     return process.env.NODE_ENV !== "production";
   }
 
-  const providedSecret =
-    getFirstPayloadValue(payload, ["token", "secret"]) ||
-    request.headers.get("x-lazada-postback-secret") ||
-    request.headers.get("x-postback-secret");
+  const providedSecret = getProvidedPostbackSecret(request, payload);
 
-  return safeEqualSecret(configuredSecret, providedSecret?.trim() || null);
+  return safeEqualSecret(configuredSecret, providedSecret);
+}
+
+async function buildUnauthorizedPostbackResponse(
+  request: NextRequest,
+  payload: PostbackPayload
+): Promise<NextResponse> {
+  const clientIp = extractRequestClientIp(request.headers) || "unknown";
+  const rateLimit = await enforceRateLimit({
+    action: "affiliate.lazada.postback.unauthorized",
+    maxAttempts: 100,
+    resourceType: "affiliate_postback",
+    subject: `lazada-postback:${clientIp}`,
+    windowSeconds: 3600,
+  });
+
+  if (!rateLimit.allowed) {
+    return new NextResponse(rateLimit.message, {
+      status: 429,
+      headers: {
+        "Retry-After": String(Math.max(rateLimit.retryAfterSeconds, 1)),
+      },
+    });
+  }
+
+  await recordAuditEvent({
+    details: {
+      hasProvidedSecret: Boolean(getProvidedPostbackSecret(request, payload)),
+      method: request.method,
+      payloadKeyCount: Object.keys(payload).length,
+    },
+    eventType: "affiliate.lazada.postback.unauthorized",
+    outcome: "failure",
+    resourceType: "affiliate_postback",
+  });
+
+  return new NextResponse("Unauthorized", { status: 401 });
 }
 
 async function handlePostback(request: NextRequest) {
   const rawPayload = await readPostbackPayload(request);
 
   if (!isAuthorizedPostback(request, rawPayload)) {
-    return new NextResponse("Unauthorized", { status: 401 });
+    return buildUnauthorizedPostbackResponse(request, rawPayload);
   }
 
-  const payload = stripReservedPostbackSecrets(rawPayload);
-  const clickToken = getFirstPayloadValue(payload, [
+  const clickToken = getFirstPayloadValue(rawPayload, [
     "subId6",
     "sub_id6",
     "clickToken",
     "click_token",
   ]);
+  const payload = stripReservedPostbackSecrets(rawPayload);
   const eventType =
     getFirstPayloadValue(payload, ["eventType", "event_type", "type", "postbackType"]) ||
     "order";
@@ -257,6 +300,20 @@ async function handlePostback(request: NextRequest) {
     });
     return new NextResponse("Conversion write failed", { status: 500 });
   }
+
+  await recordAuditEvent({
+    details: {
+      eventType,
+      hasClickToken: Boolean(clickToken),
+      hasExternalOrderId: Boolean(externalOrderId),
+      mappedClick: Boolean(affiliateClickId),
+      status: conversionStatus,
+    },
+    eventType: "affiliate.lazada.postback.accepted",
+    outcome: "success",
+    resourceId: affiliateClickId,
+    resourceType: "affiliate_postback",
+  });
 
   return new NextResponse("OK", { status: 200 });
 }

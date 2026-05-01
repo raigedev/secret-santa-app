@@ -176,6 +176,8 @@ const GUIDE_TABS: Array<{ id: GuideTabId; label: string }> = [
 const ITEM_LINK_MAX_LENGTH = 500;
 const MAX_GROUP_ROUTE_PREFETCH = 8;
 const AI_SUGGESTION_REQUEST_TIMEOUT_MS = 18000;
+const AI_SUGGESTION_BATCH_SIZE = 3;
+const LAZADA_MATCH_BATCH_SIZE = 4;
 const MAX_VISIBLE_RECIPIENT_WISHLIST_ITEMS = 3;
 const PAGE_BACKGROUND =
   "radial-gradient(circle at 92% 6%,rgba(72,102,78,.12),transparent 25rem), radial-gradient(circle at 8% 90%,rgba(252,206,114,.15),transparent 24rem), repeating-linear-gradient(135deg,rgba(72,102,78,.055) 0 1px,transparent 1px 34px), repeating-linear-gradient(45deg,rgba(252,206,114,.09) 0 1px,transparent 1px 54px), linear-gradient(180deg,#fffdf8 0%,#fbfaf4 45%,#f1f7ee 100%)";
@@ -220,6 +222,17 @@ const LAZADA_AFFILIATE_DISCLOSURE =
   "Some Lazada links are affiliate links.";
 const SHOPPING_REGION_STORAGE_KEY = "gift-shopping-region";
 const SECRET_SANTA_PAGE_SNAPSHOT_STORAGE_PREFIX = "ss_secret_santa_page_snapshot_v1:";
+
+async function runLimitedBatches<T>(
+  items: T[],
+  batchSize: number,
+  worker: (item: T) => Promise<void>,
+  shouldStop: () => boolean
+): Promise<void> {
+  for (let index = 0; index < items.length && !shouldStop(); index += batchSize) {
+    await Promise.all(items.slice(index, index + batchSize).map(worker));
+  }
+}
 
 function getSecretSantaPageSnapshotStorageKey(userId: string): string {
   return `${SECRET_SANTA_PAGE_SNAPSHOT_STORAGE_PREFIX}${userId}`;
@@ -2945,6 +2958,8 @@ export function SecretSantaExperience({ mode = "shopping" }: SecretSantaExperien
           },
         }));
       } catch {
+        aiSuggestionStartedItemsRef.current.delete(targetItem.id);
+
         if (cancelled) {
           return;
         }
@@ -2963,10 +2978,11 @@ export function SecretSantaExperience({ mode = "shopping" }: SecretSantaExperien
       }
     };
 
-    void Promise.all(
-      pendingTargets.map(({ assignment, item }) =>
-        loadAiSuggestions(assignment, item)
-      )
+    void runLimitedBatches(
+      pendingTargets,
+      AI_SUGGESTION_BATCH_SIZE,
+      ({ assignment, item }) => loadAiSuggestions(assignment, item),
+      () => cancelled
     );
 
     return () => {
@@ -3192,8 +3208,10 @@ export function SecretSantaExperience({ mode = "shopping" }: SecretSantaExperien
     }
 
     const loadLazadaMatches = async () => {
-      await Promise.all(
-        pendingRequests.map(async (requestEntry) => {
+      await runLimitedBatches(
+        pendingRequests,
+        LAZADA_MATCH_BATCH_SIZE,
+        async (requestEntry) => {
           const controller = new AbortController();
           const timeoutId = window.setTimeout(() => controller.abort(), 12000);
 
@@ -3249,7 +3267,8 @@ export function SecretSantaExperience({ mode = "shopping" }: SecretSantaExperien
           } finally {
             window.clearTimeout(timeoutId);
           }
-        })
+        },
+        () => cancelled
       );
     };
 

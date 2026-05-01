@@ -47,6 +47,40 @@ export function extractRequestClientIp(headers: Headers): string | null {
   return null;
 }
 
+function normalizeHttpOrigin(candidate: string | null | undefined): string | null {
+  const trimmed = candidate?.trim();
+
+  if (!trimmed) {
+    return null;
+  }
+
+  try {
+    const url = new URL(trimmed.startsWith("http") ? trimmed : `https://${trimmed}`);
+
+    if (url.protocol !== "http:" && url.protocol !== "https:") {
+      return null;
+    }
+
+    return url.origin;
+  } catch {
+    return null;
+  }
+}
+
+export function resolveTrustedAppOrigin(requestUrl: URL): string {
+  const configuredOrigin =
+    normalizeHttpOrigin(process.env.NEXT_PUBLIC_APP_URL) ||
+    normalizeHttpOrigin(process.env.APP_URL) ||
+    normalizeHttpOrigin(process.env.VERCEL_PROJECT_PRODUCTION_URL) ||
+    normalizeHttpOrigin(process.env.VERCEL_URL);
+
+  if (configuredOrigin) {
+    return configuredOrigin;
+  }
+
+  return requestUrl.origin;
+}
+
 export function normalizeSafeAppPath(
   candidate: string | null | undefined,
   fallback = "/"
