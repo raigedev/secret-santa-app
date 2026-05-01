@@ -16,7 +16,7 @@ Prefer the tools already installed and trusted in this workspace:
 - GitHub plugin or `gh` CLI for repo, issue, PR, and workflow inspection.
 - `sentry` for production error investigation when Sentry access is available.
 - `playwright`, `playwright-interactive`, and `webapp-testing` for app and UI verification.
-- `frontend-product-ui`, `PRODUCT.md`, `DESIGN.md`, Figma or Stitch, and Taste skills for UI work.
+- `frontend-product-ui`, `PRODUCT.md`, `DESIGN.md`, Stitch first, then Figma and Taste skills for UI work.
 - Oracle browser mode for second opinions after a dry run; this machine uses a persistent manual-login browser profile and skips ChatGPT's fragile model selector.
 - `security-best-practices`, `security-threat-model`, and repo checks for security work.
 - `graphify` automatically for large codebase maps, architecture discovery, dependency neighborhoods, or persistent graph queries when normal file inspection is too narrow.
@@ -41,7 +41,7 @@ Prefer the tools already installed and trusted in this workspace:
 - PR comments: use `gh-address-comments`, resolve only actionable feedback, and preserve unrelated user changes.
 - Sentry alert: use `sentry` if configured; otherwise ask for the issue link or stack trace and map frames locally.
 - Changelog/release notes: use `git log`, group changes by user impact, filter internal noise, and write normal user-facing copy.
-- Frontend work: use `frontend-product-ui`, `PRODUCT.md`, `DESIGN.md`, Figma or Stitch when relevant and available, Playwright/browser verification, and Taste/Impeccable skills.
+- Frontend work: use `frontend-product-ui`, `PRODUCT.md`, `DESIGN.md`, Stitch first, Figma when relevant and available, Playwright/browser verification, and Taste/Impeccable skills.
 - Performance/security/architecture work: use `code-improvement`; add Oracle dry-run for meaningful risk.
 - Large codebase map, architecture discovery, or persistent graph need: use `graphify` automatically after checking `.graphifyignore`; do not commit `graphify-out/`.
 - Multi-agent or worktree orchestration: use `ao.cmd` automatically when the task truly benefits from branch-per-agent work, CI session tracking, or parallel coding sessions. Keep generated branches/worktrees reviewable and avoid remote-write flows unless the user task calls for them.
@@ -53,7 +53,7 @@ Prefer the tools already installed and trusted in this workspace:
 
 - Oracle `0.9.0` browser mode is configured locally at `%USERPROFILE%\.oracle\config.json` with `engine: "browser"`, `browser.manualLogin: true`, `browser.keepBrowser: true`, and `browser.modelStrategy: "ignore"`. Use `npx -y @steipete/oracle@0.9.0` for the tested path, dry-run first, then browser mode; do not switch to API mode without explicit approval.
 - If Oracle reports that the ChatGPT model selector is missing, keep `modelStrategy: "ignore"` and prefer manual login. Avoid cookie extraction or inline cookie files unless the user specifically chooses that secret-handling path; never paste cookies into prompts, docs, logs, or committed files.
-- For Stitch, do not call `list_design_systems` with an empty request. First call `list_projects`, then use project-scoped calls. The current Secret Santa design source is project `3072957204541081703` (`Process Explainer`, despite the generic title; its screens include Secret Santa shopping/chat/auth designs).
+- For Stitch, treat project `3072957204541081703` as the primary Secret Santa design source. For any meaningful screen, flow, or component design/redesign, ask Stitch to create or refresh the design direction before implementation, then use the rest of the tool stack to refine and verify. Do not call `list_design_systems` with an empty request. First call `list_projects`, then use project-scoped calls. The current Secret Santa design source is project `3072957204541081703` (`Process Explainer`, despite the generic title; its screens include Secret Santa shopping/chat/auth designs).
 - For Figma, use the connected Figma MCP/plugin automatically when a task references a Figma file, node, frame, selection, component mapping, screenshot, design exploration, mockup, or design-system sync. Preferred flow: get exact design context for the selected node, fetch a screenshot/reference, narrow large files to relevant nodes, reuse repo components/tokens, and verify with Playwright/browser screenshots. Use Figma write/design tools when an editable file or frame is available; if the current seat is view-only, use Figma as the reference source and continue from screenshots, Stitch, `PRODUCT.md`, `DESIGN.md`, and local code.
 
 ## Installed Orchestrator
