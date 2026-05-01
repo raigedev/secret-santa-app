@@ -9,11 +9,34 @@ export type NotificationItem = {
 };
 
 export function formatNotificationTime(value: string): string {
-  return new Date(value).toLocaleString([], {
-    month: "short",
+  const timestamp = new Date(value).getTime();
+
+  if (Number.isNaN(timestamp)) {
+    return "Recently";
+  }
+
+  const diffMs = Date.now() - timestamp;
+  const diffMinutes = Math.max(1, Math.floor(diffMs / 60000));
+
+  if (diffMinutes < 60) {
+    return `${diffMinutes}m ago`;
+  }
+
+  const diffHours = Math.floor(diffMinutes / 60);
+
+  if (diffHours < 24) {
+    return `${diffHours}h ago`;
+  }
+
+  const diffDays = Math.floor(diffHours / 24);
+
+  if (diffDays < 7) {
+    return `${diffDays}d ago`;
+  }
+
+  return new Date(value).toLocaleDateString(undefined, {
     day: "numeric",
-    hour: "numeric",
-    minute: "2-digit",
+    month: "short",
   });
 }
 
@@ -90,26 +113,36 @@ export function getNotificationLabelStyles(type: string): {
 }
 
 export function getNotificationActionLabel(notification: NotificationItem): string {
-  if (!notification.link_path) {
+  if (!getNotificationTargetPath(notification)) {
     return "Open";
   }
 
   switch (notification.type) {
     case "reminder_wishlist_incomplete":
-      return "Add wishlist";
+      return "View Wishlist";
     case "reminder_event_tomorrow":
-      return "Review group";
+      return "Open Group";
     case "reminder_post_draw":
-      return "Start planning";
+      return "Open Gift Ideas";
     case "reminder_digest":
-      return "Open summary";
+      return "View Exchange";
     case "chat":
-      return "Open chat";
+      return "Open Messages";
     case "invite":
-      return "View invite";
+      return "View Invite";
     case "affiliate_lazada_health":
       return "Open report";
+    case "gift_received":
+      return "Gift Progress";
     default:
       return "Open";
   }
+}
+
+export function getNotificationTargetPath(notification: NotificationItem): string | null {
+  if (notification.type === "reminder_wishlist_incomplete") {
+    return "/wishlist";
+  }
+
+  return notification.link_path;
 }

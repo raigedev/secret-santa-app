@@ -10,16 +10,28 @@ import {
 } from "@/app/dashboard/dashboard-groups-data";
 import { deleteWishlistItem } from "@/app/dashboard/wishlist-actions";
 import type { Group } from "@/app/dashboard/dashboard-types";
+import { type HistoryWishlistItem } from "@/app/history/HistoryGroupCard";
 import {
-  HistoryGroupCard,
-  type HistoryWishlistItem,
-} from "@/app/history/HistoryGroupCard";
+  HistoryMemoryBook,
+  type HistoryAssignmentSummary,
+} from "@/app/history/HistoryMemoryBook";
 import { isGroupInHistory } from "@/lib/groups/history";
 import { createClient } from "@/lib/supabase/client";
+import {
+  createGroupUserKey,
+  getDashboardMemberLabel,
+} from "@/app/dashboard/dashboard-formatters";
 
 type HistoryPageUser = {
   id: string;
   email?: string | null;
+};
+
+type HistoryAssignmentRow = {
+  gift_prep_status: string | null;
+  gift_received: boolean | null;
+  group_id: string;
+  receiver_id: string;
 };
 
 function filterHistoryGroups(groups: Group[]) {
@@ -34,6 +46,10 @@ export default function HistoryPage() {
   const [pastWishlistByGroupId, setPastWishlistByGroupId] = useState<
     Record<string, HistoryWishlistItem[]>
   >({});
+  const [assignmentSummariesByGroupId, setAssignmentSummariesByGroupId] = useState<
+    Record<string, HistoryAssignmentSummary>
+  >({});
+  const [selectedGroupId, setSelectedGroupId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [deletingWishlistItemId, setDeletingWishlistItemId] = useState<string | null>(null);
   const [message, setMessage] = useState("");
@@ -55,17 +71,31 @@ export default function HistoryPage() {
         const historical = filterHistoryGroups(groups.allGroups);
         const historyGroupIds = historical.allGroups.map((group) => group.id);
 
-        const wishlistRes =
+        const [wishlistRes, assignmentRes] =
           historyGroupIds.length > 0
-            ? await supabase
-                .from("wishlists")
-                .select("id, group_id, item_name, item_category, item_link, item_note, priority")
-                .eq("user_id", user.id)
-                .in("group_id", historyGroupIds)
-            : { data: [], error: null };
+            ? await Promise.all([
+                supabase
+                  .from("wishlists")
+                  .select("id, group_id, item_name, item_category, item_link, item_note, priority")
+                  .eq("user_id", user.id)
+                  .in("group_id", historyGroupIds),
+                supabase
+                  .from("assignments")
+                  .select("group_id, receiver_id, gift_prep_status, gift_received")
+                  .eq("giver_id", user.id)
+                  .in("group_id", historyGroupIds),
+              ])
+            : [
+                { data: [], error: null },
+                { data: [], error: null },
+              ];
 
         if (wishlistRes.error) {
           throw wishlistRes.error;
+        }
+
+        if (assignmentRes.error) {
+          throw assignmentRes.error;
         }
 
         const wishlistByGroupId = ((wishlistRes.data || []) as Array<
@@ -84,9 +114,48 @@ export default function HistoryPage() {
           return groupsById;
         }, {});
 
+        const memberNameByGroupUser = new Map<string, string>();
+
+        for (const group of historical.allGroups) {
+          for (const member of group.members) {
+            if (!member.userId) {
+              continue;
+            }
+
+            memberNameByGroupUser.set(
+              createGroupUserKey(group.id, member.userId),
+              getDashboardMemberLabel(member, group.require_anonymous_nickname)
+            );
+          }
+        }
+
+        const summariesByGroupId = ((assignmentRes.data || []) as HistoryAssignmentRow[]).reduce<
+          Record<string, HistoryAssignmentSummary>
+        >((summaries, assignment) => {
+          const receiverName =
+            memberNameByGroupUser.get(
+              createGroupUserKey(assignment.group_id, assignment.receiver_id)
+            ) || "Secret Member";
+          const isCompleted =
+            assignment.gift_received || assignment.gift_prep_status === "ready_to_give";
+
+          summaries[assignment.group_id] = {
+            giftProgressLabel: isCompleted ? "Completed" : "Concluded",
+            receiverName,
+          };
+
+          return summaries;
+        }, {});
+
         setOwnedGroups(historical.ownedGroups);
         setInvitedGroups(historical.invitedGroups);
         setPastWishlistByGroupId(wishlistByGroupId);
+        setAssignmentSummariesByGroupId(summariesByGroupId);
+        setSelectedGroupId((currentSelectedGroupId) =>
+          currentSelectedGroupId && historyGroupIds.includes(currentSelectedGroupId)
+            ? currentSelectedGroupId
+            : historyGroupIds[0] || null
+        );
         setLoading(false);
 
         const enhancedGroups = await enhanceDashboardGroupsWithPeerProfiles(historical.allGroups);
@@ -161,6 +230,7 @@ export default function HistoryPage() {
         scheduleReload
       )
       .on("postgres_changes", { event: "*", schema: "public", table: "wishlists" }, scheduleReload)
+      .on("postgres_changes", { event: "*", schema: "public", table: "assignments" }, scheduleReload)
       .subscribe();
 
     const {
@@ -224,85 +294,34 @@ export default function HistoryPage() {
 
   const allHistoryGroups = [...ownedGroups, ...invitedGroups];
 
-  return (
-    <main className="min-h-screen px-4 py-8 sm:px-6 lg:px-8">
-      <div className="mx-auto w-full max-w-5xl">
-        {message && (
-          <p role="status" className="mb-5 rounded-2xl bg-red-50 px-4 py-3 text-sm font-bold text-red-700">
-            {message}
-          </p>
-        )}
+  const selectedGroup =
+    allHistoryGroups.find((group) => group.id === selectedGroupId) || allHistoryGroups[0] || null;
 
-        <section className="mb-7 rounded-[30px] border border-[rgba(72,102,78,.12)] bg-white/82 p-6 shadow-[0_18px_44px_rgba(46,52,50,.05)]">
-          <p className="text-[11px] font-black uppercase tracking-[0.18em] text-[#7b5902]">
-            Memory book
-          </p>
-          <h1 className="mt-2 text-[34px] font-black leading-tight text-[#48664e]">
-            Past exchanges
-          </h1>
-          <p className="mt-3 max-w-2xl text-[15px] font-semibold leading-7 text-slate-600">
-            Concluded exchanges keep their group record and your past wishlist shelf here.
-            You can remove old wishlist items permanently when you no longer need them.
+  if (!selectedGroup) {
+    return (
+      <main className="min-h-screen px-4 py-8 sm:px-6 lg:px-8">
+        <section className="mx-auto max-w-3xl rounded-4xl border border-dashed border-[rgba(72,102,78,.24)] bg-white/72 p-8 text-center">
+          <h1 className="text-3xl font-black text-[#48664e]">History Memory Book</h1>
+          <h2 className="mt-4 text-xl font-black text-[#2e3432]">No concluded exchanges yet</h2>
+          <p className="mx-auto mt-2 max-w-lg text-sm font-semibold leading-6 text-slate-600">
+            Past groups will appear here automatically after the wrap-up window ends.
           </p>
         </section>
+      </main>
+    );
+  }
 
-        {allHistoryGroups.length === 0 ? (
-          <section className="rounded-[28px] border border-dashed border-[rgba(72,102,78,.24)] bg-white/72 p-8 text-center">
-            <h2 className="text-[22px] font-black text-[#2e3432]">No concluded exchanges yet</h2>
-            <p className="mx-auto mt-2 max-w-lg text-sm font-semibold leading-6 text-slate-600">
-              Past groups will appear here automatically after the wrap-up window ends.
-            </p>
-          </section>
-        ) : (
-          <div className="space-y-8">
-            {ownedGroups.length > 0 && (
-              <section className="space-y-4">
-                <div className="flex items-center justify-between gap-3 px-2">
-                  <h2 className="text-xs font-black uppercase tracking-[0.22em] text-slate-400">
-                    Hosted by you
-                  </h2>
-                  <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-bold text-slate-500">
-                    {ownedGroups.length} group{ownedGroups.length === 1 ? "" : "s"}
-                  </span>
-                </div>
-                {ownedGroups.map((group) => (
-                  <HistoryGroupCard
-                    key={`owned-${group.id}`}
-                    deletingWishlistItemId={deletingWishlistItemId}
-                    group={group}
-                    wishlistItems={pastWishlistByGroupId[group.id] || []}
-                    onDeleteWishlistItem={handleDeletePastWishlistItem}
-                    onOpenGroup={(groupId) => router.push(`/group/${groupId}`)}
-                  />
-                ))}
-              </section>
-            )}
-
-            {invitedGroups.length > 0 && (
-              <section className="space-y-4">
-                <div className="flex items-center justify-between gap-3 px-2">
-                  <h2 className="text-xs font-black uppercase tracking-[0.22em] text-slate-400">
-                    Joined as member
-                  </h2>
-                  <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-bold text-slate-500">
-                    {invitedGroups.length} group{invitedGroups.length === 1 ? "" : "s"}
-                  </span>
-                </div>
-                {invitedGroups.map((group) => (
-                  <HistoryGroupCard
-                    key={`joined-${group.id}`}
-                    deletingWishlistItemId={deletingWishlistItemId}
-                    group={group}
-                    wishlistItems={pastWishlistByGroupId[group.id] || []}
-                    onDeleteWishlistItem={handleDeletePastWishlistItem}
-                    onOpenGroup={(groupId) => router.push(`/group/${groupId}`)}
-                  />
-                ))}
-              </section>
-            )}
-          </div>
-        )}
-      </div>
-    </main>
+  return (
+    <HistoryMemoryBook
+      deletingWishlistItemId={deletingWishlistItemId}
+      groups={allHistoryGroups}
+      message={message}
+      onDeleteWishlistItem={handleDeletePastWishlistItem}
+      onOpenGroup={(groupId) => router.push(`/group/${groupId}`)}
+      onSelectGroup={setSelectedGroupId}
+      selectedGroup={selectedGroup}
+      summariesByGroupId={assignmentSummariesByGroupId}
+      wishlistItems={pastWishlistByGroupId[selectedGroup.id] || []}
+    />
   );
 }

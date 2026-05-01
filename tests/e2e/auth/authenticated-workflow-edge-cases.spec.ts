@@ -92,7 +92,7 @@ const SHARED_NAVIGATION_CASES: NavigationCase[] = [
     expectedHref: /\/history$/,
     expectedUrl: /\/history$/,
     ready: async (page) => {
-      await expect(page.getByRole("heading", { name: /past exchanges/i })).toBeVisible();
+      await expect(page.getByRole("heading", { name: /history memory book/i })).toBeVisible();
     },
   },
   {

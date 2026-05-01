@@ -175,7 +175,7 @@ const AUTHENTICATED_SCREEN_CASES: ScreenCase[] = [
     name: "history",
     path: "/history",
     assertVisible: async (page) => {
-      await expect(page.getByRole("heading", { name: /past exchanges/i })).toBeVisible();
+      await expect(page.getByRole("heading", { name: /history memory book/i })).toBeVisible();
     },
   },
   {

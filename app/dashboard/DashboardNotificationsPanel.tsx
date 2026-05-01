@@ -6,8 +6,7 @@ import { markAllNotificationsRead, markNotificationRead } from "@/app/notificati
 import {
   formatNotificationTime,
   getNotificationActionLabel,
-  getNotificationLabel,
-  getNotificationLabelStyles,
+  getNotificationTargetPath,
   type NotificationItem,
 } from "@/app/notifications/notification-display";
 import { NotificationEnvelopeMark } from "@/app/notifications/NotificationEnvelopeMark";
@@ -198,7 +197,7 @@ export function DashboardNotificationsPanel({
     : undefined;
   const surfaceClass = isDarkTheme
     ? "border-slate-700/80 bg-slate-950 text-slate-100 shadow-[0_24px_50px_rgba(0,0,0,0.42)]"
-    : "border-slate-200/80 bg-white text-slate-950 shadow-[0_24px_50px_rgba(15,23,42,0.18)]";
+    : "border-[#48664e]/12 bg-[#fffefa] text-[#2e3432] shadow-[0_24px_50px_rgba(46,52,50,0.16)]";
   const mutedTextClass = isDarkTheme ? "text-slate-400" : "text-slate-500";
   const itemHoverClass = isDarkTheme ? "hover:bg-slate-800/80" : "hover:bg-slate-50";
 
@@ -231,9 +230,11 @@ export function DashboardNotificationsPanel({
         }
       }
 
-      if (notification.link_path) {
+      const targetPath = getNotificationTargetPath(notification);
+
+      if (targetPath) {
         onClose();
-        router.push(notification.link_path);
+        router.push(targetPath);
       }
     } catch {
       setMessage("We could not update this notification. Please try again.");
@@ -283,14 +284,21 @@ export function DashboardNotificationsPanel({
       aria-label="Notifications"
       data-testid="dashboard-notifications-panel"
       style={panelStyle}
-          className={`z-210 flex flex-col overflow-hidden rounded-3xl border ${surfaceClass}`}
+      className={`z-210 flex flex-col overflow-hidden rounded-3xl border ${surfaceClass}`}
     >
-      <div className="shrink-0 border-b border-slate-500/10 px-4 py-3">
+      <div className="shrink-0 border-b border-slate-500/10 px-5 py-4">
         <div className="flex items-start justify-between gap-4">
           <div>
-            <h2 className="text-lg font-black tracking-[-0.02em]">Notifications</h2>
+            <div className="flex items-center gap-2">
+              <h2 className="text-xl font-black">Notifications</h2>
+              {unreadCount > 0 && (
+                <span className="inline-flex h-6 min-w-6 items-center justify-center rounded-full bg-[#fff0ef] px-2 text-xs font-black text-[#a43c3f] ring-1 ring-[#a43c3f]/20">
+                  {unreadCount}
+                </span>
+              )}
+            </div>
             <p className={`mt-0.5 text-xs font-semibold ${mutedTextClass}`}>
-              Updates from your groups, messages, and gift reminders.
+              Sealed notes from your groups, messages, and reminders.
             </p>
           </div>
           <button
@@ -317,8 +325,8 @@ export function DashboardNotificationsPanel({
                 className={`rounded-full px-3.5 py-1.5 text-xs font-extrabold transition ${
                   isActive
                     ? isDarkTheme
-                      ? "bg-blue-500 text-white"
-                      : "bg-blue-100 text-blue-700"
+                      ? "bg-[#48664e] text-white"
+                      : "bg-[#48664e]/10 text-[#48664e]"
                     : isDarkTheme
                       ? "text-slate-400 hover:text-slate-100"
                       : "text-slate-500 hover:text-slate-900"
@@ -383,7 +391,9 @@ export function DashboardNotificationsPanel({
               isDarkTheme ? "border-slate-700 text-slate-400" : "border-slate-200 text-slate-500"
             }`}
           >
-            <div className="mx-auto h-2.5 w-2.5 rounded-full bg-blue-500" aria-hidden="true" />
+            <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-[#f3f4f2]" aria-hidden="true">
+              <NotificationEnvelopeMark className="h-8 w-8" read type="invite" />
+            </div>
             <p className="mt-3 text-sm font-extrabold">
               {activeFilter === "unread" ? "No unread notifications" : "No notifications yet"}
             </p>
@@ -404,37 +414,34 @@ export function DashboardNotificationsPanel({
                   type="button"
                   onClick={() => void handleOpenNotification(notification)}
                   disabled={processingId === notification.id}
-                  className={`flex w-full items-start gap-2.5 rounded-[18px] px-3 py-2.5 text-left transition ${itemHoverClass}`}
+                  className={`flex w-full items-start gap-3 rounded-2xl px-3 py-3 text-left transition ${itemHoverClass}`}
                   style={{ cursor: processingId === notification.id ? "wait" : "pointer" }}
                 >
                   <span
-                    className={`inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-[14px] ${
+                    className={`relative inline-flex h-14 w-16 shrink-0 items-center justify-center rounded-2xl ${
                       isUnread
                         ? isDarkTheme
                           ? "bg-emerald-400/14"
-                          : "bg-[#48664e]/10"
+                          : "bg-[#fff8ea]"
                         : isDarkTheme
                           ? "bg-slate-800"
-                          : "bg-slate-100"
+                          : "bg-[#f3f4f2]"
                     }`}
                     aria-hidden="true"
                   >
                     <NotificationEnvelopeMark
-                      className="h-6 w-6"
+                      className="h-11 w-12"
                       read={!isUnread}
                       type={notification.type}
                     />
+                    {isUnread && (
+                      <span className="absolute right-2 top-2 h-2.5 w-2.5 rounded-full bg-[#e33434] ring-2 ring-white" />
+                    )}
                   </span>
 
                   <span className="min-w-0 flex-1">
                     <span className="flex items-start justify-between gap-3">
                       <span className="min-w-0">
-                        <span
-                          className="mb-1 inline-flex rounded-full px-2 py-0.5 text-[9px] font-extrabold uppercase tracking-[0.12em]"
-                          style={getNotificationLabelStyles(notification.type)}
-                        >
-                          {getNotificationLabel(notification.type)}
-                        </span>
                         <span
                           className={`line-clamp-2 break-words text-sm leading-5 ${
                             isUnread ? "font-black" : "font-bold"
@@ -443,9 +450,6 @@ export function DashboardNotificationsPanel({
                           {notification.title}
                         </span>
                       </span>
-                      {isUnread && (
-                        <span className="mt-2 h-2.5 w-2.5 shrink-0 rounded-full bg-blue-500" />
-                      )}
                     </span>
 
                     {notification.body && (
@@ -458,8 +462,8 @@ export function DashboardNotificationsPanel({
                       <span className={mutedTextClass}>
                         {formatNotificationTime(notification.created_at)}
                       </span>
-                      {notification.link_path && (
-                        <span className={isDarkTheme ? "text-blue-300" : "text-blue-700"}>
+                      {getNotificationTargetPath(notification) && (
+                        <span className={isDarkTheme ? "text-emerald-200" : "text-[#48664e]"}>
                           {getNotificationActionLabel(notification)}
                         </span>
                       )}

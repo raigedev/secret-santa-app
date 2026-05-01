@@ -17,14 +17,11 @@ import {
   markNotificationRead,
 } from "./actions";
 import {
-  formatNotificationTime,
-  getNotificationActionLabel,
-  getNotificationLabel,
-  getNotificationLabelStyles,
+  getNotificationTargetPath,
   type NotificationItem,
 } from "./notification-display";
-import { NotificationEnvelopeMark } from "./NotificationEnvelopeMark";
 import FadeIn from "@/app/components/FadeIn";
+import { NotificationsInboxView } from "./NotificationsInboxView";
 
 type NotificationsPageSnapshot = ClientSnapshotMetadata & {
   notifications: NotificationItem[];
@@ -58,14 +55,6 @@ function isNotificationsPageSnapshot(
     Array.isArray(value.notifications) &&
     value.notifications.every(isNotificationSnapshot)
   );
-}
-
-function getNotificationTargetPath(notification: NotificationItem): string | null {
-  if (notification.type === "reminder_wishlist_incomplete") {
-    return "/wishlist";
-  }
-
-  return notification.link_path;
 }
 
 export default function NotificationsPage() {
@@ -324,200 +313,16 @@ export default function NotificationsPage() {
         fontFamily: "'Nunito', sans-serif",
       }}
     >
-      <FadeIn className="mx-auto max-w-260 px-4 py-5 sm:px-6 sm:py-6">
-        <button
-          onClick={() => router.push("/dashboard")}
-          className="mb-5 inline-flex w-full items-center justify-center gap-1.5 rounded-full px-4 py-2 text-sm font-bold transition hover:-translate-y-0.5 sm:w-auto"
-          style={{
-            color: "#48664e",
-            background: "rgba(255,255,255,.78)",
-            border: "1px solid rgba(72,102,78,.14)",
-            fontFamily: "inherit",
-          }}
-        >
-          Back to dashboard
-        </button>
-
-        <div
-          className="overflow-hidden rounded-3xl"
-          style={{
-            background: "linear-gradient(180deg,#fffefa,#f8fbff)",
-            border: "1px solid rgba(72,102,78,.14)",
-            boxShadow: "0 24px 58px rgba(46,52,50,.08)",
-          }}
-        >
-          <div
-            className="px-6 py-5"
-            style={{ background: "linear-gradient(135deg,#48664e,#3c5a43)", color: "#fffdf7" }}
-          >
-            <div className="flex flex-wrap items-center justify-between gap-4">
-              <div>
-                <div className="flex items-center gap-3 text-[30px] font-bold" style={{ fontFamily: "'Fredoka', sans-serif" }}>
-                  <span className="flex h-11 w-11 items-center justify-center rounded-[18px] bg-white/16">
-                    <NotificationEnvelopeMark className="h-7 w-7" type="invite" />
-                  </span>
-                  Notifications
-                </div>
-                <p className="mt-1 text-[13px]" style={{ color: "rgba(255,255,255,.84)" }}>
-                  Important updates from your groups, private messages, gift progress, and reminders.
-                </p>
-              </div>
-
-              <div className="flex items-center gap-2">
-                <span
-                  className="rounded-full px-3 py-1.5 text-[11px] font-extrabold"
-                  style={{
-                    background: unreadCount > 0 ? "rgba(251,191,36,.18)" : "rgba(255,255,255,.12)",
-                    color: unreadCount > 0 ? "#fef3c7" : "rgba(255,255,255,.82)",
-                  }}
-                >
-                  {unreadCount > 0 ? `${unreadCount} unread` : "All caught up"}
-                </span>
-
-                <button
-                  type="button"
-                  onClick={handleMarkAllRead}
-                  disabled={unreadCount === 0 || markingAll}
-                  className="rounded-xl px-4 py-2 text-[12px] font-extrabold transition"
-                  style={{
-                    background:
-                      unreadCount === 0 || markingAll
-                        ? "rgba(255,255,255,.14)"
-                        : "rgba(255,255,255,.22)",
-                    color: unreadCount === 0 || markingAll ? "rgba(255,255,255,.55)" : "#fff",
-                    border: "1px solid rgba(255,255,255,.16)",
-                    cursor: unreadCount === 0 || markingAll ? "not-allowed" : "pointer",
-                    fontFamily: "inherit",
-                  }}
-                >
-                  {markingAll ? "Updating..." : "Mark all read"}
-                </button>
-              </div>
-            </div>
-          </div>
-
-          <div className="space-y-6 p-6">
-            {message && (
-              <div
-                className="rounded-xl px-4 py-3 text-sm font-bold"
-                style={{
-                  background: "rgba(239,68,68,.08)",
-                  color: "#b91c1c",
-                  border: "1px solid rgba(239,68,68,.14)",
-                }}
-              >
-                {message}
-              </div>
-            )}
-
-            {notifications.length === 0 ? (
-              <div
-                className="rounded-[20px] p-10 text-center"
-                style={{
-                  background: "rgba(255,255,255,.78)",
-                  border: "1px solid rgba(226,232,240,.82)",
-                }}
-              >
-                <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-3xl bg-[#48664e]/10">
-                  <NotificationEnvelopeMark className="h-10 w-10" type="invite" />
-                </div>
-                <div className="text-[22px] font-bold text-slate-900" style={{ fontFamily: "'Fredoka', sans-serif" }}>
-                  No notifications yet
-                </div>
-                <p className="mt-2 text-[13px] text-slate-500">
-                  When something important happens, it will show up here.
-                </p>
-              </div>
-            ) : (
-              <div className="flex flex-col gap-3">
-                {notifications.map((notification) => (
-                  <button
-                    key={notification.id}
-                    type="button"
-                    onClick={() => void handleOpenNotification(notification)}
-                    disabled={processingId === notification.id}
-                    className="w-full rounded-[18px] p-5 text-left transition"
-                    style={{
-                      background: notification.read_at
-                        ? "rgba(255,255,255,.72)"
-                        : "linear-gradient(135deg,rgba(255,255,255,.98),rgba(240,249,255,.96))",
-                      border: notification.read_at
-                        ? "1px solid rgba(226,232,240,.84)"
-                        : "1px solid rgba(59,130,246,.16)",
-                      boxShadow: notification.read_at ? "none" : "0 10px 24px rgba(59,130,246,.08)",
-                      cursor: processingId === notification.id ? "wait" : "pointer",
-                      opacity: processingId === notification.id ? 0.8 : 1,
-                    }}
-                  >
-                    <div className="flex items-start gap-4">
-                      <div
-                        className="flex h-12 w-12 shrink-0 items-center justify-center rounded-[18px]"
-                        style={{
-                          background: notification.read_at
-                            ? "rgba(148,163,184,.12)"
-                            : "rgba(72,102,78,.1)",
-                        }}
-                      >
-                        <NotificationEnvelopeMark
-                          className="h-8 w-8"
-                          read={Boolean(notification.read_at)}
-                          type={notification.type}
-                        />
-                      </div>
-
-                      <div className="min-w-0 flex-1">
-                        <div className="flex flex-wrap items-center justify-between gap-3">
-                          <div className="min-w-0">
-                            <div className="mb-2 flex flex-wrap items-center gap-2">
-                              <span
-                                className="rounded-full px-2.5 py-1 text-[10px] font-extrabold uppercase tracking-[0.14em]"
-                                style={getNotificationLabelStyles(notification.type)}
-                              >
-                                {getNotificationLabel(notification.type)}
-                              </span>
-                            </div>
-                            <div className="text-[15px] font-extrabold text-slate-900">
-                              {notification.title}
-                            </div>
-                          </div>
-                          <div className="flex items-center gap-2">
-                            {!notification.read_at && (
-                              <span className="h-2.5 w-2.5 rounded-full bg-blue-600" />
-                            )}
-                            <span className="text-[11px] font-bold text-slate-500">
-                              {formatNotificationTime(notification.created_at)}
-                            </span>
-                          </div>
-                        </div>
-
-                        {notification.body && (
-                          <p className="mt-1 text-[13px] font-semibold leading-relaxed text-slate-500">
-                            {notification.body}
-                          </p>
-                        )}
-
-                        <div className="mt-3 flex flex-wrap items-center justify-between gap-3">
-                          <span
-                            className="text-[11px] font-extrabold uppercase tracking-[0.12em]"
-                            style={{ color: notification.read_at ? "#94a3b8" : "#2563eb" }}
-                          >
-                            {notification.read_at ? "Read" : "Unread"}
-                          </span>
-
-                          {getNotificationTargetPath(notification) && (
-                            <span className="text-[12px] font-bold text-blue-700">
-                              {getNotificationActionLabel(notification)}
-                            </span>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                  </button>
-                ))}
-              </div>
-            )}
-          </div>
-        </div>
+      <FadeIn className="mx-auto max-w-7xl px-0 py-2 sm:px-0 sm:py-3">
+        <NotificationsInboxView
+          markingAll={markingAll}
+          message={message}
+          notifications={notifications}
+          onMarkAllRead={handleMarkAllRead}
+          onOpenNotification={handleOpenNotification}
+          processingId={processingId}
+          unreadCount={unreadCount}
+        />
       </FadeIn>
     </main>
   );
