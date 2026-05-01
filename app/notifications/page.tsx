@@ -19,11 +19,11 @@ import {
 import {
   formatNotificationTime,
   getNotificationActionLabel,
-  getNotificationIcon,
   getNotificationLabel,
   getNotificationLabelStyles,
   type NotificationItem,
 } from "./notification-display";
+import { NotificationEnvelopeMark } from "./NotificationEnvelopeMark";
 import FadeIn from "@/app/components/FadeIn";
 
 type NotificationsPageSnapshot = ClientSnapshotMetadata & {
@@ -319,18 +319,19 @@ export default function NotificationsPage() {
     <main
       className="min-h-screen"
       style={{
-        background: "linear-gradient(180deg,#eef4fb 0%,#dce8f5 38%,#e8ecef 100%)",
+        background:
+          "repeating-linear-gradient(135deg,rgba(72,102,78,.055) 0 1px,transparent 1px 34px), linear-gradient(180deg,#fffdf8 0%,#f8fbff 44%,#eef6ee 100%)",
         fontFamily: "'Nunito', sans-serif",
       }}
     >
       <FadeIn className="mx-auto max-w-260 px-4 py-5 sm:px-6 sm:py-6">
         <button
           onClick={() => router.push("/dashboard")}
-          className="mb-5 inline-flex w-full items-center justify-center gap-1.5 rounded-lg px-4 py-2 text-sm font-bold transition sm:w-auto"
+          className="mb-5 inline-flex w-full items-center justify-center gap-1.5 rounded-full px-4 py-2 text-sm font-bold transition hover:-translate-y-0.5 sm:w-auto"
           style={{
-            color: "#4a6fa5",
-            background: "rgba(255,255,255,.68)",
-            border: "1px solid rgba(74,111,165,.15)",
+            color: "#48664e",
+            background: "rgba(255,255,255,.78)",
+            border: "1px solid rgba(72,102,78,.14)",
             fontFamily: "inherit",
           }}
         >
@@ -340,19 +341,22 @@ export default function NotificationsPage() {
         <div
           className="overflow-hidden rounded-3xl"
           style={{
-            background: "linear-gradient(180deg,#fffdf9,#f8f5ef)",
-            border: "2px solid rgba(21,101,52,.1)",
-            boxShadow: "0 18px 40px rgba(15,23,42,.08)",
+            background: "linear-gradient(180deg,#fffefa,#f8fbff)",
+            border: "1px solid rgba(72,102,78,.14)",
+            boxShadow: "0 24px 58px rgba(46,52,50,.08)",
           }}
         >
           <div
-            className="px-6 py-5 text-white"
-            style={{ background: "linear-gradient(135deg,#14532d,#166534)" }}
+            className="px-6 py-5"
+            style={{ background: "linear-gradient(135deg,#48664e,#3c5a43)", color: "#fffdf7" }}
           >
             <div className="flex flex-wrap items-center justify-between gap-4">
               <div>
-                <div className="text-[30px] font-bold" style={{ fontFamily: "'Fredoka', sans-serif" }}>
-                  {"\u{1F514}"} Notifications
+                <div className="flex items-center gap-3 text-[30px] font-bold" style={{ fontFamily: "'Fredoka', sans-serif" }}>
+                  <span className="flex h-11 w-11 items-center justify-center rounded-[18px] bg-white/16">
+                    <NotificationEnvelopeMark className="h-7 w-7" type="invite" />
+                  </span>
+                  Notifications
                 </div>
                 <p className="mt-1 text-[13px]" style={{ color: "rgba(255,255,255,.84)" }}>
                   Important updates from your groups, private messages, gift progress, and reminders.
@@ -414,7 +418,9 @@ export default function NotificationsPage() {
                   border: "1px solid rgba(226,232,240,.82)",
                 }}
               >
-                <div className="mb-3 text-[42px]">{"\u{1F514}"}</div>
+                <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-3xl bg-[#48664e]/10">
+                  <NotificationEnvelopeMark className="h-10 w-10" type="invite" />
+                </div>
                 <div className="text-[22px] font-bold text-slate-900" style={{ fontFamily: "'Fredoka', sans-serif" }}>
                   No notifications yet
                 </div>
@@ -445,14 +451,18 @@ export default function NotificationsPage() {
                   >
                     <div className="flex items-start gap-4">
                       <div
-                        className="flex h-11.5 w-11.5 shrink-0 items-center justify-center rounded-[14px] text-[22px]"
+                        className="flex h-12 w-12 shrink-0 items-center justify-center rounded-[18px]"
                         style={{
                           background: notification.read_at
                             ? "rgba(148,163,184,.12)"
-                            : "rgba(59,130,246,.1)",
+                            : "rgba(72,102,78,.1)",
                         }}
                       >
-                        {getNotificationIcon(notification.type)}
+                        <NotificationEnvelopeMark
+                          className="h-8 w-8"
+                          read={Boolean(notification.read_at)}
+                          type={notification.type}
+                        />
                       </div>
 
                       <div className="min-w-0 flex-1">

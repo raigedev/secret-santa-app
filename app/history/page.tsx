@@ -8,8 +8,12 @@ import {
   loadDashboardGroups,
   splitDashboardGroups,
 } from "@/app/dashboard/dashboard-groups-data";
+import { deleteWishlistItem } from "@/app/dashboard/wishlist-actions";
 import type { Group } from "@/app/dashboard/dashboard-types";
-import { HistoryGroupCard } from "@/app/history/HistoryGroupCard";
+import {
+  HistoryGroupCard,
+  type HistoryWishlistItem,
+} from "@/app/history/HistoryGroupCard";
 import { isGroupInHistory } from "@/lib/groups/history";
 import { createClient } from "@/lib/supabase/client";
 
@@ -27,7 +31,11 @@ export default function HistoryPage() {
   const [supabase] = useState(() => createClient());
   const [ownedGroups, setOwnedGroups] = useState<Group[]>([]);
   const [invitedGroups, setInvitedGroups] = useState<Group[]>([]);
+  const [pastWishlistByGroupId, setPastWishlistByGroupId] = useState<
+    Record<string, HistoryWishlistItem[]>
+  >({});
   const [loading, setLoading] = useState(true);
+  const [deletingWishlistItemId, setDeletingWishlistItemId] = useState<string | null>(null);
   const [message, setMessage] = useState("");
   const mountedRef = useRef(false);
   const loadVersionRef = useRef(0);
@@ -45,8 +53,40 @@ export default function HistoryPage() {
         }
 
         const historical = filterHistoryGroups(groups.allGroups);
+        const historyGroupIds = historical.allGroups.map((group) => group.id);
+
+        const wishlistRes =
+          historyGroupIds.length > 0
+            ? await supabase
+                .from("wishlists")
+                .select("id, group_id, item_name, item_category, item_link, item_note, priority")
+                .eq("user_id", user.id)
+                .in("group_id", historyGroupIds)
+            : { data: [], error: null };
+
+        if (wishlistRes.error) {
+          throw wishlistRes.error;
+        }
+
+        const wishlistByGroupId = ((wishlistRes.data || []) as Array<
+          HistoryWishlistItem & { group_id: string }
+        >).reduce<Record<string, HistoryWishlistItem[]>>((groupsById, item) => {
+          const nextItem = {
+            id: item.id,
+            item_category: item.item_category,
+            item_link: item.item_link,
+            item_name: item.item_name,
+            item_note: item.item_note,
+            priority: item.priority,
+          };
+
+          groupsById[item.group_id] = [...(groupsById[item.group_id] || []), nextItem];
+          return groupsById;
+        }, {});
+
         setOwnedGroups(historical.ownedGroups);
         setInvitedGroups(historical.invitedGroups);
+        setPastWishlistByGroupId(wishlistByGroupId);
         setLoading(false);
 
         const enhancedGroups = await enhanceDashboardGroupsWithPeerProfiles(historical.allGroups);
@@ -120,6 +160,7 @@ export default function HistoryPage() {
         { event: "*", schema: "public", table: "group_members" },
         scheduleReload
       )
+      .on("postgres_changes", { event: "*", schema: "public", table: "wishlists" }, scheduleReload)
       .subscribe();
 
     const {
@@ -144,6 +185,39 @@ export default function HistoryPage() {
     };
   }, [loadHistoryGroups, router, supabase]);
 
+  const handleDeletePastWishlistItem = async (itemId: string, itemName: string) => {
+    const confirmed = confirm(
+      `Delete "${itemName}" from your past wishlist?\n\nThis permanently removes the saved item from this event history.`
+    );
+
+    if (!confirmed) {
+      return;
+    }
+
+    setDeletingWishlistItemId(itemId);
+    setMessage("");
+
+    try {
+      const result = await deleteWishlistItem(itemId);
+      setMessage(result.message);
+
+      if (result.success) {
+        setPastWishlistByGroupId((current) => {
+          const nextEntries = Object.entries(current).map(([groupId, items]) => [
+            groupId,
+            items.filter((item) => item.id !== itemId),
+          ]);
+
+          return Object.fromEntries(nextEntries);
+        });
+      }
+    } catch {
+      setMessage("We could not delete that wishlist item. Please try again.");
+    } finally {
+      setDeletingWishlistItemId(null);
+    }
+  };
+
   if (loading) {
     return <DashboardSkeleton />;
   }
@@ -161,14 +235,14 @@ export default function HistoryPage() {
 
         <section className="mb-7 rounded-[30px] border border-[rgba(72,102,78,.12)] bg-white/82 p-6 shadow-[0_18px_44px_rgba(46,52,50,.05)]">
           <p className="text-[11px] font-black uppercase tracking-[0.18em] text-[#7b5902]">
-            Event history
+            Memory book
           </p>
           <h1 className="mt-2 text-[34px] font-black leading-tight text-[#48664e]">
             Past exchanges
           </h1>
           <p className="mt-3 max-w-2xl text-[15px] font-semibold leading-7 text-slate-600">
-            Exchanges move here after their gift day and a short wrap-up window.
-            Active groups stay focused on current wishlists, shopping ideas, and gift progress.
+            Concluded exchanges keep their group record and your past wishlist shelf here.
+            You can remove old wishlist items permanently when you no longer need them.
           </p>
         </section>
 
@@ -194,7 +268,10 @@ export default function HistoryPage() {
                 {ownedGroups.map((group) => (
                   <HistoryGroupCard
                     key={`owned-${group.id}`}
+                    deletingWishlistItemId={deletingWishlistItemId}
                     group={group}
+                    wishlistItems={pastWishlistByGroupId[group.id] || []}
+                    onDeleteWishlistItem={handleDeletePastWishlistItem}
                     onOpenGroup={(groupId) => router.push(`/group/${groupId}`)}
                   />
                 ))}
@@ -214,7 +291,10 @@ export default function HistoryPage() {
                 {invitedGroups.map((group) => (
                   <HistoryGroupCard
                     key={`joined-${group.id}`}
+                    deletingWishlistItemId={deletingWishlistItemId}
                     group={group}
+                    wishlistItems={pastWishlistByGroupId[group.id] || []}
+                    onDeleteWishlistItem={handleDeletePastWishlistItem}
                     onOpenGroup={(groupId) => router.push(`/group/${groupId}`)}
                   />
                 ))}

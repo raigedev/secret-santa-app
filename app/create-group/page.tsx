@@ -20,8 +20,46 @@ const CURRENCIES = [
   { code: "CAD", symbol: "CAD", label: "CAD - Canadian Dollar" },
 ];
 
+type CreateGroupChecklistItem = {
+  done: boolean;
+  helper: string;
+  label: string;
+};
+
 function sanitize(input: string, max: number): string {
   return sanitizePlainText(input, max);
+}
+
+function getInviteEmailCount(value: string): number {
+  return value
+    .split(",")
+    .map((email) => email.trim())
+    .filter((email) => email.length > 0 && email.includes("@")).length;
+}
+
+function ChecklistMark({ done }: { done: boolean }) {
+  return (
+    <span
+      className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full border text-[12px] font-black ${
+        done
+          ? "border-[#48664e]/20 bg-[#48664e] text-white"
+          : "border-[rgba(72,102,78,.18)] bg-white text-slate-400"
+      }`}
+      aria-hidden="true"
+    >
+      {done && (
+        <svg viewBox="0 0 16 16" className="h-3.5 w-3.5" fill="none">
+          <path
+            d="m3.5 8.2 3 3 6-6.4"
+            stroke="currentColor"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeWidth="2"
+          />
+        </svg>
+      )}
+    </span>
+  );
 }
 
 export default function CreateGroupPage() {
@@ -115,44 +153,114 @@ export default function CreateGroupPage() {
   };
 
   const currencySymbol = CURRENCIES.find((item) => item.code === currency)?.symbol || "$";
+  const inviteEmailCount = getInviteEmailCount(inviteEmails);
+  const checklist: CreateGroupChecklistItem[] = [
+    {
+      done: groupName.trim().length > 0,
+      helper: groupName.trim() || "Give members a name they will recognize.",
+      label: "Name the exchange",
+    },
+    {
+      done: eventDate.length > 0,
+      helper: eventDate || "Pick the date when gifts are exchanged.",
+      label: "Pick gift day",
+    },
+    {
+      done: budget >= 0 && currency.length > 0,
+      helper: `${currencySymbol}${budget || 0} ${currency}`,
+      label: "Set budget",
+    },
+    {
+      done: inviteEmailCount > 0,
+      helper:
+        inviteEmailCount > 0
+          ? `${inviteEmailCount} invite${inviteEmailCount === 1 ? "" : "s"} ready`
+          : "You can invite people now or later.",
+      label: "Invite members",
+    },
+  ];
 
   return (
     <main
-      className="relative flex min-h-screen items-center justify-center px-4 py-12 sm:px-6"
+      className="relative min-h-screen px-4 py-8 sm:px-6 lg:py-12"
       style={{
-        background: "linear-gradient(180deg,#eef4fb,#dce8f5,#e8dce0)",
+        background:
+          "repeating-linear-gradient(135deg,rgba(72,102,78,.055) 0 1px,transparent 1px 34px), linear-gradient(180deg,#fffdf8 0%,#f8fbff 48%,#eef6ee 100%)",
         fontFamily: "'Nunito', sans-serif",
       }}
     >
       <div className="absolute inset-0 z-0 bg-[url('/snowflakes.svg')] bg-size-[320px_320px] bg-repeat opacity-20" />
 
-      <div
-        className="relative z-10 w-full max-w-lg rounded-[20px] p-6 shadow-xl sm:p-8"
-        style={{
-          background: "rgba(255,255,255,.75)",
-          backdropFilter: "blur(16px)",
-          border: "1px solid rgba(255,255,255,.6)",
-        }}
-      >
+      <div className="relative z-10 mx-auto grid w-full max-w-6xl gap-5 lg:grid-cols-[minmax(0,0.82fr)_minmax(0,1.18fr)] lg:items-start">
+        <aside
+          className="rounded-[30px] p-6 shadow-[0_22px_54px_rgba(46,52,50,.07)] lg:sticky lg:top-8"
+          style={{
+            background: "linear-gradient(135deg,rgba(255,255,255,.94),rgba(239,247,241,.9))",
+            border: "1px solid rgba(72,102,78,.16)",
+          }}
+        >
+          <p className="text-[11px] font-black uppercase tracking-[0.18em] text-[#7b5902]">
+            Create checklist
+          </p>
+          <h1
+            className="mt-2 text-[34px] font-black leading-tight text-[#48664e]"
+            style={{ fontFamily: "'Fredoka', sans-serif" }}
+          >
+            Build the exchange in one pass
+          </h1>
+          <p className="mt-3 text-[14px] font-semibold leading-7 text-slate-600">
+            Set the details members need first: name, gift day, budget, and invites.
+            Nicknames can keep the group private when you want a quieter exchange.
+          </p>
+
+          <div className="mt-6 space-y-3">
+            {checklist.map((item) => (
+              <div
+                key={item.label}
+                className="flex gap-3 rounded-[20px] bg-white/78 p-3"
+                style={{ border: "1px solid rgba(72,102,78,.12)" }}
+              >
+                <ChecklistMark done={item.done} />
+                <div className="min-w-0">
+                  <p className="text-[13px] font-black text-[#2e3432]">{item.label}</p>
+                  <p className="mt-0.5 truncate text-[12px] font-semibold text-slate-500">
+                    {item.helper}
+                  </p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </aside>
+
+        <section
+          className="rounded-[28px] p-6 shadow-[0_22px_54px_rgba(46,52,50,.07)] sm:p-8"
+          style={{
+            background: "rgba(255,255,255,.84)",
+            border: "1px solid rgba(72,102,78,.14)",
+          }}
+        >
         <button
           onClick={() => router.push("/dashboard")}
-          className="mb-4 inline-flex w-full items-center justify-center gap-1.5 rounded-lg px-3 py-2 text-sm font-bold transition sm:w-auto"
+          className="mb-4 inline-flex w-full items-center justify-center gap-1.5 rounded-full px-3 py-2 text-sm font-bold transition hover:-translate-y-0.5 sm:w-auto"
           style={{
-            color: "#4a6fa5",
-            background: "rgba(255,255,255,.6)",
-            border: "1px solid rgba(74,111,165,.15)",
+            color: "#48664e",
+            background: "rgba(255,255,255,.74)",
+            border: "1px solid rgba(72,102,78,.14)",
             fontFamily: "inherit",
           }}
         >
-          {"<-"} Back
+          Back to dashboard
         </button>
 
         <h1
-          className="mb-6 text-center text-[22px] font-bold leading-tight sm:text-[26px]"
-          style={{ fontFamily: "'Fredoka', sans-serif", color: "#1a6b2a" }}
+          className="mb-2 text-[24px] font-black leading-tight sm:text-[28px]"
+          style={{ fontFamily: "'Fredoka', sans-serif", color: "#48664e" }}
         >
-          Create a Secret Santa Group
+          Create a Secret Santa group
         </h1>
+        <p className="mb-6 text-[13px] font-semibold leading-6 text-slate-600">
+          Start with the basics. You can manage members, draw names, and send reminders after the group is created.
+        </p>
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
@@ -189,7 +297,7 @@ export default function CreateGroupPage() {
               </span>
             </label>
             <textarea
-              placeholder="e.g. Budget is $25. No re-gifts!"
+              placeholder="e.g. Budget is $25. Gift cards are welcome."
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               maxLength={300}
@@ -300,7 +408,7 @@ export default function CreateGroupPage() {
               </div>
             )}
             <p className="text-[11px] mt-2" style={{ color: "#9ca3af" }}>
-              Members will see this budget when they join
+              Members will see this budget when they join.
             </p>
           </div>
 
@@ -462,18 +570,19 @@ export default function CreateGroupPage() {
           <button
             type="submit"
             disabled={loading}
-            className="w-full py-3.5 rounded-xl text-[16px] font-extrabold text-white transition"
+            className="w-full rounded-full py-3.5 text-[16px] font-extrabold text-white transition hover:-translate-y-0.5 disabled:hover:translate-y-0"
             style={{
-              background: loading ? "#9ca3af" : "linear-gradient(135deg,#1a6b2a,#22c55e)",
+              background: loading ? "#9ca3af" : "linear-gradient(135deg,#48664e,#3c5a43)",
               border: "none",
               cursor: loading ? "not-allowed" : "pointer",
               fontFamily: "inherit",
-              boxShadow: loading ? "none" : "0 4px 16px rgba(26,107,42,.25)",
+              boxShadow: loading ? "none" : "0 16px 30px rgba(72,102,78,.2)",
             }}
           >
-            {loading ? "Creating group..." : "Create Group"}
+            {loading ? "Creating group..." : "Create group"}
           </button>
         </form>
+        </section>
       </div>
     </main>
   );

@@ -6,11 +6,11 @@ import { markAllNotificationsRead, markNotificationRead } from "@/app/notificati
 import {
   formatNotificationTime,
   getNotificationActionLabel,
-  getNotificationIcon,
   getNotificationLabel,
   getNotificationLabelStyles,
   type NotificationItem,
 } from "@/app/notifications/notification-display";
+import { NotificationEnvelopeMark } from "@/app/notifications/NotificationEnvelopeMark";
 import { createClient } from "@/lib/supabase/client";
 
 type NotificationFilter = "all" | "unread";
@@ -408,18 +408,22 @@ export function DashboardNotificationsPanel({
                   style={{ cursor: processingId === notification.id ? "wait" : "pointer" }}
                 >
                   <span
-                    className={`inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-base ${
+                    className={`inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-[14px] ${
                       isUnread
                         ? isDarkTheme
-                          ? "bg-blue-500/20"
-                          : "bg-blue-50"
+                          ? "bg-emerald-400/14"
+                          : "bg-[#48664e]/10"
                         : isDarkTheme
                           ? "bg-slate-800"
                           : "bg-slate-100"
                     }`}
                     aria-hidden="true"
                   >
-                    {getNotificationIcon(notification.type)}
+                    <NotificationEnvelopeMark
+                      className="h-6 w-6"
+                      read={!isUnread}
+                      type={notification.type}
+                    />
                   </span>
 
                   <span className="min-w-0 flex-1">

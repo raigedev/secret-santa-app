@@ -24,6 +24,7 @@ import { DashboardGroupsOverview } from "./DashboardGroupsOverview";
 import { DashboardHeader } from "./DashboardHeader";
 import { DashboardHero } from "./DashboardHero";
 import { DashboardInvitesSection } from "./DashboardInvitesSection";
+import { DashboardMissionBoard } from "./DashboardMissionBoard";
 import { DashboardNotificationsPanel } from "./DashboardNotificationsPanel";
 import { DashboardProfileMenu } from "./DashboardProfileMenu";
 import { DashboardQuickActions } from "./DashboardQuickActions";
@@ -1042,6 +1043,17 @@ export default function DashboardPage() {
           displayFirstName={displayFirstName}
           isDarkTheme={isDarkTheme}
           revealMessage={revealMessage}
+        />
+
+        <DashboardMissionBoard
+          countdownNow={countdownNow}
+          giftProgressSummary={giftProgressSummary}
+          groups={allDashboardGroups}
+          isDarkTheme={isDarkTheme}
+          pendingInviteCount={pendingInvites.length}
+          recipientCount={recipientNames.length}
+          wishlistItemCount={wishlistItemCount}
+          onNavigate={(path) => router.push(path)}
         />
 
         <DashboardInvitesSection pendingInvites={pendingInvites} />

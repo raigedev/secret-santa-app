@@ -17,33 +17,6 @@ export function formatNotificationTime(value: string): string {
   });
 }
 
-export function getNotificationIcon(type: string): string {
-  switch (type) {
-    case "invite":
-      return "\u{1F4E9}";
-    case "chat":
-      return "\u{1F4AC}";
-    case "draw":
-      return "\u{1F3B2}";
-    case "reveal":
-      return "\u{1F389}";
-    case "gift_received":
-      return "\u{1F381}";
-    case "reminder_wishlist_incomplete":
-      return "\u{1F4DD}";
-    case "reminder_event_tomorrow":
-      return "\u{1F4C5}";
-    case "reminder_post_draw":
-      return "\u{1F6CE}";
-    case "reminder_digest":
-      return "\u{23F0}";
-    case "affiliate_lazada_health":
-      return "\u{1F4CA}";
-    default:
-      return "\u{1F514}";
-  }
-}
-
 export function getNotificationLabel(type: string): string {
   switch (type) {
     case "invite":
