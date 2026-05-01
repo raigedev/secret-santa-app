@@ -38,7 +38,8 @@ yarn-error.log*
 # graphify generated knowledge graph output
 graphify-out/
 
-# local Codex/GSD workflow installs and scratch plans
+# local Codex/GSD/security workflow installs and scratch plans
+.agent/tools/
 .codex/get-shit-done/
 .codex/skills/gsd-*/
 .codex/gsd-file-manifest.json

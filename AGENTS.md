@@ -20,6 +20,8 @@ GSD (`get-shit-done-cc`) is available as a local Codex workflow aid. Use its pha
 
 Use the `mattpocock/skills` `grill-me` / `grill-with-docs` approach automatically when a request is ambiguous, high-impact, architectural, product/design-heavy, or likely to hide edge cases. Ask one focused question at a time, include the recommended answer, and first inspect the codebase or docs when the answer can be discovered locally. Do not use it to stall small obvious fixes; switch back to implementation once the missing decision is clear.
 
+Use the repo-local `sqlmap` install automatically for authorized SQL injection checks when endpoint, query, form, or route-param security testing would benefit from it. Keep it defensive and scoped: use local dev or app-owned preview targets, low-risk/read-only options by default, no data dumping, no tamper/evasion, no broad crawling, and never scan production, third-party, or user-supplied external systems without explicit approval. Keep auth cookies, tokens, and captured payloads out of chat, docs, logs, screenshots, and commits; treat findings as leads to verify in code, tests, and Supabase/RLS checks.
+
 ## Project Stack
 
 - Next.js `16.2.3` App Router on Vercel.
@@ -185,6 +187,7 @@ Act as a senior full-stack engineer and software architect. Code this project wi
 - Keep CSP/security headers in `next.config.ts` restrictive. Only add external sources when required by the implemented feature and scoped as tightly as practical.
 - Keep `eslint-plugin-security` and `eslint-plugin-no-secrets` checks passing; do not suppress security warnings without a specific reason documented in the change.
 - Use CodeRabbit or an equivalent AI code reviewer on every pull request when available. Treat it as an additional security/reliability gate for SQL injection, exposed credentials, broken auth, unsafe redirects, race conditions, and other common regressions; it is not a replacement for tests, typecheck, linting, build, or human review.
+- When using `sqlmap`, prefer the ignored local checkout at `.agent/tools/sqlmap/sqlmap.py` through the bundled Codex Python runtime. Use it alongside Playwright, PayloadsAllTheThings references, security skills, and manual code review for targeted input-validation checks; do not let scanner output replace authorization, rate-limit, or RLS verification.
 
 ### Security Playbook
 

@@ -19,6 +19,7 @@ Prefer the tools already installed and trusted in this workspace:
 - `frontend-product-ui`, `PRODUCT.md`, `DESIGN.md`, Stitch first, then Figma and Taste skills for UI work.
 - Oracle browser mode for second opinions after a dry run; this machine uses a persistent manual-login browser profile and skips ChatGPT's fragile model selector.
 - `security-best-practices`, `security-threat-model`, and repo checks for security work.
+- Repo-local `sqlmap` for authorized SQL injection checks on local/dev or app-owned preview endpoints, scoped with low-risk/read-only options by default.
 - `graphify` automatically for large codebase maps, architecture discovery, dependency neighborhoods, or persistent graph queries when normal file inspection is too narrow.
 - `ao.cmd` for Agent Orchestrator when parallel worktrees or agent-session management would materially help a task.
 - GSD (`get-shit-done-cc`) local minimal Codex install for structured discuss/plan/execute/verify phase workflows on broad, ambiguous, or multi-step work.
@@ -43,6 +44,7 @@ Prefer the tools already installed and trusted in this workspace:
 - Changelog/release notes: use `git log`, group changes by user impact, filter internal noise, and write normal user-facing copy.
 - Frontend work: use `frontend-product-ui`, `PRODUCT.md`, `DESIGN.md`, Stitch first, Figma when relevant and available, Playwright/browser verification, and Taste/Impeccable skills.
 - Performance/security/architecture work: use `code-improvement`; add Oracle dry-run for meaningful risk.
+- SQL injection or parameterized-input testing: use PayloadsAllTheThings as a reference and the ignored repo-local `sqlmap` checkout for focused local/preview app-owned endpoints. Never target production, third-party, or user-supplied external URLs without explicit approval; do not dump data, use tamper/evasion, or store cookies/tokens in prompts, docs, logs, or commits.
 - Large codebase map, architecture discovery, or persistent graph need: use `graphify` automatically after checking `.graphifyignore`; do not commit `graphify-out/`.
 - Multi-agent or worktree orchestration: use `ao.cmd` automatically when the task truly benefits from branch-per-agent work, CI session tracking, or parallel coding sessions. Keep generated branches/worktrees reviewable and avoid remote-write flows unless the user task calls for them.
 - Broad ambiguous implementation or product iteration: use GSD-style phases to keep discussion, plan, execution, and verification explicit. On Codex, do the work inline unless the user explicitly requested sub-agents; never let GSD skip repo checks or safety gates.
