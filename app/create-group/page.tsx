@@ -20,12 +20,6 @@ const CURRENCIES = [
   { code: "CAD", symbol: "CAD", label: "CAD - Canadian Dollar" },
 ];
 
-type CreateGroupChecklistItem = {
-  done: boolean;
-  helper: string;
-  label: string;
-};
-
 function sanitize(input: string, max: number): string {
   return sanitizePlainText(input, max);
 }
@@ -154,32 +148,6 @@ export default function CreateGroupPage() {
 
   const currencySymbol = CURRENCIES.find((item) => item.code === currency)?.symbol || "$";
   const inviteEmailCount = getInviteEmailCount(inviteEmails);
-  const checklist: CreateGroupChecklistItem[] = [
-    {
-      done: groupName.trim().length > 0,
-      helper: groupName.trim() || "Give members a name they will recognize.",
-      label: "Name the exchange",
-    },
-    {
-      done: eventDate.length > 0,
-      helper: eventDate || "Pick the date when gifts are exchanged.",
-      label: "Pick gift day",
-    },
-    {
-      done: budget >= 0 && currency.length > 0,
-      helper: `${currencySymbol}${budget || 0} ${currency}`,
-      label: "Set budget",
-    },
-    {
-      done: inviteEmailCount > 0,
-      helper:
-        inviteEmailCount > 0
-          ? `${inviteEmailCount} invite${inviteEmailCount === 1 ? "" : "s"} ready`
-          : "You can invite people now or later.",
-      label: "Invite members",
-    },
-  ];
-
   return (
     <main
       className="relative min-h-screen px-4 py-8 sm:px-6 lg:py-12"
@@ -191,49 +159,95 @@ export default function CreateGroupPage() {
     >
       <div className="absolute inset-0 z-0 bg-[url('/snowflakes.svg')] bg-size-[320px_320px] bg-repeat opacity-20" />
 
-      <div className="relative z-10 mx-auto grid w-full max-w-6xl gap-5 lg:grid-cols-[minmax(0,0.82fr)_minmax(0,1.18fr)] lg:items-start">
+      <div className="relative z-10 mx-auto mb-5 flex w-full max-w-6xl flex-col gap-4 rounded-[28px] bg-white/82 px-5 py-4 shadow-[0_18px_44px_rgba(46,52,50,.06)]">
+        <button
+          onClick={() => router.push("/dashboard")}
+          className="inline-flex w-fit items-center gap-2 rounded-full px-3 py-2 text-sm font-bold text-[#48664e] transition hover:-translate-y-0.5"
+          style={{ fontFamily: "inherit" }}
+        >
+          Back
+        </button>
+        <div>
+          <h1
+            className="text-[28px] font-black leading-tight text-[#2e3432]"
+            style={{ fontFamily: "'Fredoka', sans-serif" }}
+          >
+            Create Group
+          </h1>
+          <p className="mt-1 text-[13px] font-semibold text-slate-600">
+            Set up your Secret Santa exchange in a few simple steps.
+          </p>
+        </div>
+        <div className="grid gap-3 sm:grid-cols-5">
+          {([
+            ["1", "Basics", groupName.trim().length > 0],
+            ["2", "Budget", true],
+            ["3", "Privacy", requireAnonymousNickname],
+            ["4", "Invites", inviteEmailCount > 0],
+            ["5", "Review", groupName.trim().length > 0 && eventDate.length > 0],
+          ] as Array<[string, string, boolean]>).map(([step, label, done]) => (
+            <div key={label} className="flex items-center gap-3">
+              <span
+                className="grid h-11 w-11 shrink-0 place-items-center rounded-full text-sm font-black"
+                style={{
+                  background: done ? "#48664e" : "#ffffff",
+                  border: "1px solid rgba(72,102,78,.16)",
+                  color: done ? "#ffffff" : "#2e3432",
+                }}
+              >
+                {step}
+              </span>
+              <span className="text-xs font-black text-[#2e3432]">{label}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <div className="relative z-10 mx-auto grid w-full max-w-6xl gap-5 lg:grid-cols-[minmax(0,1fr)_minmax(340px,.78fr)] lg:items-start">
         <aside
-          className="rounded-[30px] p-6 shadow-[0_22px_54px_rgba(46,52,50,.07)] lg:sticky lg:top-8"
+          className="rounded-[30px] p-6 shadow-[0_22px_54px_rgba(46,52,50,.07)] lg:sticky lg:top-8 lg:order-2"
           style={{
             background: "linear-gradient(135deg,rgba(255,255,255,.94),rgba(239,247,241,.9))",
             border: "1px solid rgba(72,102,78,.16)",
           }}
         >
-          <p className="text-[11px] font-black uppercase tracking-[0.18em] text-[#7b5902]">
-            Create checklist
+          <p className="text-[11px] font-black uppercase tracking-[0.18em] text-[#48664e]">
+            Exchange preview
           </p>
           <h1
-            className="mt-2 text-[34px] font-black leading-tight text-[#48664e]"
+            className="mt-8 text-center text-[30px] font-black leading-tight text-[#48664e]"
             style={{ fontFamily: "'Fredoka', sans-serif" }}
           >
-            Build the exchange in one pass
+            {groupName.trim() || "My Office Secret Santa"}
           </h1>
-          <p className="mt-3 text-[14px] font-semibold leading-7 text-slate-600">
-            Set the details members need first: name, gift day, budget, and invites.
-            Nicknames can keep the group private when you want a quieter exchange.
+          <p className="mx-auto mt-2 max-w-sm text-center text-[13px] font-semibold leading-6 text-slate-600">
+            {description.trim() || "A little joy, a lot of surprises."}
           </p>
 
-          <div className="mt-6 space-y-3">
-            {checklist.map((item) => (
-              <div
-                key={item.label}
-                className="flex gap-3 rounded-[20px] bg-white/78 p-3"
-                style={{ border: "1px solid rgba(72,102,78,.12)" }}
-              >
-                <ChecklistMark done={item.done} />
-                <div className="min-w-0">
-                  <p className="text-[13px] font-black text-[#2e3432]">{item.label}</p>
-                  <p className="mt-0.5 truncate text-[12px] font-semibold text-slate-500">
-                    {item.helper}
-                  </p>
-                </div>
+          <div className="mx-auto mt-6 grid h-32 w-32 place-items-center rounded-[34px] bg-[#fff4df] text-[#48664e]">
+            <ChecklistMark done />
+          </div>
+
+          <div className="mt-8 space-y-4 border-t border-[rgba(72,102,78,.12)] pt-5">
+            {[
+              ["Gift date", eventDate ? new Date(eventDate).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" }) : "Choose date"],
+              ["Group budget", `${currencySymbol}${budget || 0} per person`],
+              ["Members", `${inviteEmailCount} invited`],
+            ].map(([label, value]) => (
+              <div key={label} className="flex items-center justify-between gap-4 text-sm">
+                <span className="font-bold text-[#64748b]">{label}</span>
+                <span className="font-black text-[#2e3432]">{value}</span>
               </div>
             ))}
+          </div>
+
+          <div className="mt-6 rounded-[18px] bg-[#eef3ef] px-4 py-3 text-xs font-bold leading-5 text-[#48664e]">
+            Privacy and invite settings can be changed later.
           </div>
         </aside>
 
         <section
-          className="rounded-[28px] p-6 shadow-[0_22px_54px_rgba(46,52,50,.07)] sm:p-8"
+          className="rounded-[28px] p-6 shadow-[0_22px_54px_rgba(46,52,50,.07)] sm:p-8 lg:order-1"
           style={{
             background: "rgba(255,255,255,.84)",
             border: "1px solid rgba(72,102,78,.14)",
@@ -241,7 +255,7 @@ export default function CreateGroupPage() {
         >
         <button
           onClick={() => router.push("/dashboard")}
-          className="mb-4 inline-flex w-full items-center justify-center gap-1.5 rounded-full px-3 py-2 text-sm font-bold transition hover:-translate-y-0.5 sm:w-auto"
+          className="hidden"
           style={{
             color: "#48664e",
             background: "rgba(255,255,255,.74)",
@@ -252,14 +266,14 @@ export default function CreateGroupPage() {
           Back to dashboard
         </button>
 
-        <h1
+        <h2
           className="mb-2 text-[24px] font-black leading-tight sm:text-[28px]"
           style={{ fontFamily: "'Fredoka', sans-serif", color: "#48664e" }}
         >
-          Create a Secret Santa group
-        </h1>
+          Set your budget
+        </h2>
         <p className="mb-6 text-[13px] font-semibold leading-6 text-slate-600">
-          Start with the basics. You can manage members, draw names, and send reminders after the group is created.
+          Add the key details about your exchange budget.
         </p>
 
         <form onSubmit={handleSubmit} className="space-y-4">

@@ -90,7 +90,7 @@ test.describe("navigation performance smoke coverage", () => {
         "dashboard to group ready",
         () => page.goto(`/group/${groupId}`),
         async () => {
-          await expect(page.getByRole("button", { name: /back to dashboard/i })).toBeVisible();
+          await expect(page.getByRole("button", { name: /back to groups/i })).toBeVisible();
         }
       );
     } else {
@@ -153,7 +153,7 @@ test.describe("navigation performance smoke coverage", () => {
       "create group ready",
       () => page.goto("/create-group"),
       async () => {
-        await expect(page.getByRole("heading", { name: /create a secret santa group/i })).toBeVisible();
+        await expect(page.getByRole("heading", { name: /^create group$/i })).toBeVisible();
       }
     );
 

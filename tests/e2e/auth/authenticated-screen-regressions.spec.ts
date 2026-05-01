@@ -136,7 +136,7 @@ const AUTHENTICATED_SCREEN_CASES: ScreenCase[] = [
     name: "create-group",
     path: "/create-group",
     assertVisible: async (page) => {
-      await expect(page.getByRole("heading", { name: /create a secret santa group/i })).toBeVisible();
+      await expect(page.getByRole("heading", { name: /^create group$/i })).toBeVisible();
       await expect(page.getByRole("button", { name: /create group/i })).toBeVisible();
     },
   },
@@ -712,7 +712,7 @@ test.describe("authenticated screen regressions", () => {
     await expect(page.getByTestId("santa-helper-panel")).toHaveCount(1);
     await expect(helperPanel).toBeVisible();
     await expect(page.getByTestId("santa-helper-action-strip")).toHaveCount(0);
-    await expect(page.getByText(/best fit/i).first()).toBeVisible();
+    await expect(page.getByText(/safe picks under budget/i).first()).toBeVisible();
     await expect(page.getByText(/compare gift ideas/i)).toHaveCount(0);
 
     const assistantMainOverlap = await page.evaluate(() => {
@@ -1104,8 +1104,8 @@ test.describe("group-scoped authenticated regressions", () => {
   test("group details route renders for a seeded member", async ({ page }) => {
     await loginWithTestCredentials(page, credentials!);
     await page.goto(`/group/${groupId}`);
-    await expect(page.getByRole("button", { name: /back to dashboard/i })).toBeVisible();
-    await expect(page.getByText(/manage members, invites, wishlists, and the name draw from here/i)).toBeVisible();
+    await expect(page.getByRole("button", { name: /back to groups/i })).toBeVisible();
+    await expect(page.getByText(/monitor participation and progress/i)).toBeVisible();
   });
 
   test("peer profile lookup stays authenticated and uncached", async ({ page }) => {

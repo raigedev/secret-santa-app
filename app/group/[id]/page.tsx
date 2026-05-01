@@ -862,7 +862,8 @@ export default function GroupDetailsPage() {
     <main
       className="min-h-screen relative overflow-x-hidden"
       style={{
-        background: "linear-gradient(180deg,#eef4fb 0%,#dce8f5 35%,#d0e0f0 65%,#e8dce0 100%)",
+        background:
+          "repeating-linear-gradient(135deg,rgba(72,102,78,.045) 0 1px,transparent 1px 38px),linear-gradient(180deg,#fffefa 0%,#f7faf5 42%,#eef4ef 100%)",
         fontFamily: "'Nunito', sans-serif",
       }}
     >
@@ -911,71 +912,92 @@ export default function GroupDetailsPage() {
         setEditName={setEditName}
       />
 
-      <FadeIn className="relative z-10 mx-auto max-w-190 px-4 py-5 sm:px-6 sm:py-6">
+      <FadeIn className="relative z-10 mx-auto max-w-376 px-4 py-5 sm:px-6 sm:py-6">
         <button
-          onClick={() => router.push("/dashboard")}
-          className="mb-5 inline-flex w-full items-center justify-center gap-1.5 rounded-lg px-4 py-2 text-sm font-bold transition sm:w-auto"
+          onClick={() => router.push("/groups")}
+          className="mb-5 inline-flex w-full items-center justify-center gap-1.5 rounded-full px-4 py-2 text-sm font-bold transition hover:-translate-y-0.5 sm:w-auto"
           style={{
-            color: "#4a6fa5",
+            color: "#48664e",
             background: "rgba(255,255,255,.72)",
-            border: "1px solid rgba(74,111,165,.15)",
+            border: "1px solid rgba(72,102,78,.15)",
             fontFamily: "inherit",
           }}
         >
-          ← Back to Dashboard
+          Back to groups
         </button>
 
         <div
-          className="rounded-3xl overflow-hidden"
+          className="rounded-4xl overflow-hidden"
           style={{
-            background: "linear-gradient(170deg,#fdfbf7,#f8f1e8)",
-            border: "2px solid rgba(26,107,42,.14)",
-            boxShadow: "0 18px 50px rgba(0,0,0,.08)",
+            background: "linear-gradient(180deg,#fffefa,#f7faf5)",
+            border: "1px solid rgba(72,102,78,.14)",
+            boxShadow: "0 24px 70px rgba(46,52,50,.08)",
           }}
         >
           <div
             className="px-6 py-5"
             style={{
-              background: "linear-gradient(135deg,#14532d,#166534)",
-              color: "#fff",
+              background: "linear-gradient(135deg,rgba(255,255,255,.94),rgba(242,244,242,.74))",
+              color: "#2e3432",
             }}
           >
             <div
-              className="text-[28px] font-bold"
+              className="text-[28px] font-black"
               style={{ fontFamily: "'Fredoka', sans-serif" }}
             >
               🎁 {groupData.name}
             </div>
 
-            <div className="text-[13px] mt-1" style={{ color: "rgba(255,255,255,.8)" }}>
-              Manage members, invites, wishlists, and the name draw from here.
+            <div className="text-[13px] mt-1" style={{ color: "#64748b" }}>
+              {members.length} members | Gift day: {groupData.event_date} | Budget:{" "}
+              {groupData.budget ? `${currencySymbol}${groupData.budget}` : "No limit"}
             </div>
             {!groupDataFresh && (
-              <div className="mt-2 text-[11px] font-bold" style={{ color: "rgba(255,255,255,.72)" }}>
+              <div className="mt-2 text-[11px] font-bold" style={{ color: "#64748b" }}>
                 Updating event details...
               </div>
             )}
           </div>
 
-          <div className="p-6">
-            <GroupEventSummaryPanel
-              acceptedCount={acceptedMembers.length}
-              currencySymbol={currencySymbol}
-              declinedCount={declinedMembers.length}
-              drawDone={drawDone}
-              drawStatusLabel={drawStatusLabel}
-              groupData={groupData}
-              isOwner={isOwner}
-              pendingCount={pendingMembers.length}
-              totalMemberCount={members.length}
-              onOpenDelete={openDeleteModal}
-              onOpenEdit={openEditModal}
-              onOpenLeave={openLeaveModal}
-            />
+          <div className="p-4 sm:p-6">
+            <div className="mb-5 flex gap-6 overflow-x-auto border-b border-[rgba(72,102,78,.12)] text-sm font-black text-[#64748b]">
+              {["Overview", "Members", "Matches", "Messages", "Settings"].map((tab, index) => (
+                <span
+                  key={tab}
+                  className="shrink-0 pb-3"
+                  style={{
+                    color: index === 0 ? "#48664e" : "#64748b",
+                    borderBottom: index === 0 ? "2px solid #48664e" : "2px solid transparent",
+                  }}
+                >
+                  {tab}
+                </span>
+              ))}
+            </div>
+            <div className="mb-5 grid gap-5 lg:grid-cols-[minmax(0,1fr)_22rem] lg:items-start">
+              <GroupEventSummaryPanel
+                acceptedCount={acceptedMembers.length}
+                currencySymbol={currencySymbol}
+                declinedCount={declinedMembers.length}
+                drawDone={drawDone}
+                drawStatusLabel={drawStatusLabel}
+                groupData={groupData}
+                isOwner={isOwner}
+                pendingCount={pendingMembers.length}
+                totalMemberCount={members.length}
+                onOpenDelete={openDeleteModal}
+                onOpenEdit={openEditModal}
+                onOpenLeave={openLeaveModal}
+              />
 
-            {isOwner && ownerInsights && (
-              <GroupOwnerInsightsPanel drawDone={drawDone} ownerInsights={ownerInsights} />
-            )}
+              {isOwner && ownerInsights && (
+                <GroupOwnerInsightsPanel
+                  drawDone={drawDone}
+                  eventDate={groupData.event_date}
+                  ownerInsights={ownerInsights}
+                />
+              )}
+            </div>
 
             <div
               className="text-center my-5 py-5 rounded-2xl"

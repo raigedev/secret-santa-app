@@ -655,7 +655,7 @@ export default function WishlistPage() {
       </div>
 
       <div className="relative z-10 mx-auto flex w-full max-w-7xl flex-col gap-6">
-        <section className="grid gap-5 lg:grid-cols-[1.05fr_.95fr]">
+        <section className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_320px]">
           <div className="relative overflow-hidden rounded-[42px] bg-[#ffffff] p-6 shadow-[0_28px_80px_rgba(46,52,50,0.08)] sm:p-8 lg:p-10">
             <div className="absolute right-[-46px] top-[-42px] h-40 w-40 rounded-full bg-[#ffaba9]/35" />
             <div className="absolute bottom-[-80px] right-[12%] h-48 w-48 rounded-full bg-[#d7fadb]/70" />
@@ -665,16 +665,16 @@ export default function WishlistPage() {
                 My Wishlist
               </div>
               <h1 className="max-w-3xl font-[Plus_Jakarta_Sans] text-4xl font-black tracking-[-0.06em] text-[#2e3432] sm:text-6xl">
-                Keep your gift ideas wrapped and ready.
+                My Wishlist
               </h1>
               <p className="mt-5 max-w-2xl text-base leading-8 text-[#5b605e] sm:text-lg">
-                This is your wishlist. Your Santa can use these ideas as clues when choosing your gift.
+                Add gift ideas to help your Santa choose something you will love.
               </p>
               <div className="mt-8 grid gap-3 sm:grid-cols-3">
                 {[
-                  { label: "Total items", value: items.length, helper: "Ideas visible to your Santa" },
+                  { label: "Wishlist items", value: items.length, helper: "Clues ready" },
                   { label: "Active groups", value: groups.length, helper: "Groups joined" },
-                  { label: "Top priority", value: topPriorityCount, helper: "Marked top priority" },
+                  { label: "Top priority", value: topPriorityCount, helper: "Marked important" },
                 ].map((stat) => (
                   <div key={stat.label} className="rounded-[28px] bg-[#f2f4f2] p-5">
                     <p className="text-xs font-black uppercase tracking-[0.22em] text-[#777c7a]">{stat.label}</p>
@@ -692,12 +692,12 @@ export default function WishlistPage() {
               <SnowflakeIcon className="h-24 w-24" />
             </div>
             <div className="relative">
-              <p className="text-xs font-black uppercase tracking-[0.28em] text-white/70">Holiday note</p>
+              <p className="text-xs font-black uppercase tracking-[0.28em] text-white/70">Gift clues ready</p>
               <h2 className="mt-4 font-[Plus_Jakarta_Sans] text-3xl font-black tracking-[-0.05em]">
-                A clearer wishlist makes gift shopping easier.
+                Your Santa shops from the details you add.
               </h2>
               <p className="mt-4 text-sm leading-7 text-white/78">
-                Add colors, sizes, links, images, and notes. Clear details help your Santa choose something that feels right for you.
+                Add sizes, colors, photos, links, and notes. Clear clues lower the chance of wrong guesses.
               </p>
               <div className="mt-7 rounded-[28px] bg-white/12 p-4 backdrop-blur">
                 <div className="flex items-center justify-between gap-3 text-sm font-black">
@@ -913,7 +913,7 @@ export default function WishlistPage() {
                         No wishlist items in this group yet. Add a few clear ideas so your Santa has a place to start.
                       </div>
                     ) : (
-                      <div className="grid gap-4 xl:grid-cols-2">
+                      <div className="grid gap-4">
                         {group.items.map((item) => {
                           const tone = priorityTone(item.priority);
 
@@ -1007,11 +1007,20 @@ export default function WishlistPage() {
                               </div>
                             </div>
                           ) : (
-                            <article key={item.id} className="group relative overflow-hidden rounded-4xl bg-[#f9faf8] p-5 transition hover:-translate-y-0.5">
+                            <article key={item.id} className="group relative overflow-hidden rounded-[26px] bg-[#f9faf8] p-5 transition hover:-translate-y-0.5">
                               <div className={`absolute inset-x-0 top-0 h-2 bg-gradient-to-r ${tone.ribbon}`} />
-                              <div className="flex gap-4">
-                                <div className="grid h-16 w-16 shrink-0 place-items-center rounded-3xl bg-white text-[#a43c3f] shadow-[0_14px_34px_rgba(46,52,50,0.06)]">
-                                  <GiftIcon className="h-9 w-9" />
+                              <div className="grid gap-4 md:grid-cols-[112px_minmax(0,1fr)_170px] md:items-center">
+                                <div className="grid aspect-square place-items-center overflow-hidden rounded-[22px] bg-white text-[#a43c3f] shadow-[0_14px_34px_rgba(46,52,50,0.06)]">
+                                  {item.item_image_url ? (
+                                    // eslint-disable-next-line @next/next/no-img-element
+                                    <img
+                                      src={item.item_image_url}
+                                      alt={item.item_name}
+                                      className="h-full w-full object-cover"
+                                    />
+                                  ) : (
+                                    <GiftIcon className="h-11 w-11" />
+                                  )}
                                 </div>
                                 <div className="min-w-0 flex-1">
                                   <h3 className="break-words font-[Plus_Jakarta_Sans] text-xl font-black tracking-[-0.04em] text-[#2e3432]">
@@ -1032,30 +1041,33 @@ export default function WishlistPage() {
                                       {item.item_note}
                                     </p>
                                   )}
-                                  <div className="mt-4 flex flex-wrap gap-2">
-                                    {item.item_link && (
-                                      <a
-                                        href={item.item_link}
-                                        target="_blank"
-                                        rel="noopener noreferrer"
-                                        className="inline-flex items-center gap-2 rounded-full bg-white px-4 py-2 text-xs font-black text-[#48664e]"
-                                      >
-                                        Reference link
-                                        <ArrowRightIcon />
-                                      </a>
-                                    )}
-                                    {item.item_image_url && (
-                                      <a
-                                        href={item.item_image_url}
-                                        target="_blank"
-                                        rel="noopener noreferrer"
-                                        className="inline-flex items-center gap-2 rounded-full bg-[#d7fadb] px-4 py-2 text-xs font-black text-[#314e38]"
-                                      >
-                                        Open image
-                                        <ArrowRightIcon />
-                                      </a>
-                                    )}
-                                  </div>
+                                  {item.item_link && (
+                                    <a
+                                      href={item.item_link}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      className="mt-3 inline-flex items-center gap-2 rounded-full bg-white px-4 py-2 text-xs font-black text-[#48664e]"
+                                    >
+                                      Reference link
+                                      <ArrowRightIcon />
+                                    </a>
+                                  )}
+                                </div>
+                                <div className="rounded-[22px] bg-white px-4 py-3">
+                                  <span className={`inline-flex rounded-full px-3 py-1.5 text-xs font-black ${
+                                    item.item_note && (item.item_link || item.item_image_url)
+                                      ? "bg-[#d7fadb] text-[#314e38]"
+                                      : "bg-[#fff7f6] text-[#a43c3f]"
+                                  }`}>
+                                    {item.item_note && (item.item_link || item.item_image_url)
+                                      ? "Ready for Santa"
+                                      : "Needs size or color"}
+                                  </span>
+                                  <p className="mt-3 text-xs font-bold text-[#64748b]">
+                                    {formatBudget(group.budget, group.currency)
+                                      ? `Budget fit: ${formatBudget(group.budget, group.currency)}`
+                                      : "Budget set by group"}
+                                  </p>
                                   <div className="mt-4 flex flex-wrap gap-2">
                                     <button
                                       type="button"

@@ -56,9 +56,7 @@ const SHARED_NAVIGATION_CASES: NavigationCase[] = [
     expectedHref: /\/wishlist$/,
     expectedUrl: /\/wishlist$/,
     ready: async (page) => {
-      await expect(
-        page.getByRole("heading", { name: /keep your gift ideas wrapped and ready/i })
-      ).toBeVisible();
+      await expect(page.getByRole("heading", { name: /^my wishlist$/i })).toBeVisible();
     },
   },
   {
@@ -244,7 +242,7 @@ test.describe("authenticated workflow edge cases", () => {
     await page.goto(`/group/${groupId}`);
 
     const sidebar = page.getByTestId("app-shell-sidebar");
-    await expect(page.getByText(/manage members, invites, wishlists, and the name draw from here/i)).toBeVisible();
+    await expect(page.getByText(/monitor participation and progress/i)).toBeVisible();
     await expectOnlyCurrentSidebarLink(sidebar, /^my groups$/i);
 
     await page.goto(`/group/${groupId}/reveal`);
@@ -393,7 +391,7 @@ test.describe("authenticated workflow edge cases", () => {
     }
 
     await page.goto("/create-group");
-    await expect(page.getByRole("heading", { name: /create a secret santa group/i })).toBeVisible();
+    await expect(page.getByRole("heading", { name: /^create group$/i })).toBeVisible();
     await page.getByRole("button", { name: /^create group$/i }).click();
     await expect(page.locator("input:invalid")).toHaveCount(2);
 

@@ -790,6 +790,26 @@ function CheckCircleMark({ className = "h-5 w-5" }: { className?: string }) {
   );
 }
 
+function ClockMark({ className = "h-5 w-5" }: { className?: string }) {
+  return (
+    <svg
+      aria-hidden="true"
+      className={className}
+      viewBox="0 0 24 24"
+      fill="none"
+    >
+      <circle cx="12" cy="12" r="8.25" stroke="currentColor" strokeWidth="1.8" />
+      <path
+        d="M12 7.5v4.85l3.1 2.05"
+        stroke="currentColor"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeWidth="1.8"
+      />
+    </svg>
+  );
+}
+
 function GiftBoxIllustration({ className = "h-16 w-16" }: { className?: string }) {
   return (
     <svg
@@ -1506,10 +1526,10 @@ function SantaHelperSidecar({
   };
 
   const helperActions = [
-    ["Best fit", "Matches wishlist and budget", "shield"],
-    ["Under budget", "Lower-cost shopping options", "coin"],
-    ["Why this gift", "Read the wishlist match", "search"],
-    ["Gift note", "Help me write a note", "note"],
+    ["Safe picks under budget", "Low risk, easy choices", "shield"],
+    ["Nearby and ready", "Quick delivery or pickup", "search"],
+    ["Great value ideas", "More for your budget", "coin"],
+    ["Add a gift note", "Make it more personal", "note"],
   ] as const;
   const helperScope =
     recipientCount > 1 ? `${recipientCount} recipients` : "this recipient";
@@ -1555,10 +1575,10 @@ function SantaHelperSidecar({
             <SparkleMark className="h-4 w-4" />
           </div>
           <p className="mt-2 text-[12px] font-semibold leading-relaxed" style={{ color: TEXT_MUTED }}>
-            Gift support for every recipient.
+            Need something fast and safe?
           </p>
           <p className="mt-1 text-[11px] font-medium leading-relaxed" style={{ color: TEXT_SOFT }}>
-            I can help choose a useful gift, keep budgets visible, and open shopping links in the right region.
+            I will help you narrow it down while keeping budgets and shop links in view.
           </p>
         </div>
         <button
@@ -1577,6 +1597,35 @@ function SantaHelperSidecar({
           <ShoppingBagMark className="h-4 w-4" />
         </button>
       </div>
+
+      <button
+        type="button"
+        onClick={jumpToTopPicks}
+        className="mt-4 flex w-full items-center gap-3 rounded-[22px] px-4 py-4 text-left transition hover:-translate-y-0.5 focus-visible:outline-2 focus-visible:outline-offset-2"
+        style={{
+          background: "linear-gradient(135deg,rgba(252,206,114,.22),rgba(255,255,255,.88))",
+          border: "1px solid rgba(252,206,114,.28)",
+          color: PAGE_TEXT_COLOR,
+          fontFamily: "inherit",
+          outlineColor: HOLIDAY_GREEN,
+        }}
+      >
+        <span
+          className="flex h-14 w-14 shrink-0 items-center justify-center rounded-[20px]"
+          style={{ background: "rgba(215,250,219,.7)", color: HOLIDAY_GREEN }}
+          aria-hidden="true"
+        >
+          <HelperActionIcon tone="shield" />
+        </span>
+        <span className="min-w-0">
+          <span className="block text-[14px] font-black leading-tight">
+            Start with a safe pick{budgetLabel ? ` under ${budgetLabel}` : ""}
+          </span>
+          <span className="mt-1 block text-[11px] font-semibold leading-tight" style={{ color: TEXT_MUTED }}>
+            Low risk, higher chance to arrive on time.
+          </span>
+        </span>
+      </button>
 
       <div className="mt-4 space-y-2.5">
         {helperActions.map(([label, helper, tone]) => (
@@ -1643,6 +1692,9 @@ function SantaHelperSidecar({
         }}
       >
         <span className="font-black" style={{ color: PAGE_TEXT_COLOR }}>{helperContext}</span>.
+        <span className="mt-2 block">
+          Tip: choose soon to leave room for delivery delays.
+        </span>
       </div>
     </aside>
   );
@@ -3796,8 +3848,8 @@ export function SecretSantaExperience({ mode = "shopping" }: SecretSantaExperien
       title: "Shopping Ideas",
       description:
         assignments.length > 1
-          ? `Shop wishlist-based ideas for ${shoppingRecipientLabel}. Each card keeps its own budget and links.`
-          : `Shop wishlist-based ideas for ${firstRecipientName} with their budget and available links.`,
+          ? `Quick, thoughtful ideas for ${shoppingRecipientLabel}, each with its own wishlist and budget.`
+          : `Quick, thoughtful ideas for ${firstRecipientName} with their wishlist and budget.`,
       cardLabel: "Group budget",
       cardValue: groupBudgetValue,
       cardHelper: groupBudgetHelper,
@@ -3928,6 +3980,52 @@ export function SecretSantaExperience({ mode = "shopping" }: SecretSantaExperien
         >
           ← Back to Dashboard
         </button>
+
+        {isShoppingMode && (
+          <section
+            className="mb-4 flex flex-col gap-3 rounded-[26px] px-4 py-3 sm:flex-row sm:items-center sm:justify-between sm:px-5"
+            style={{
+              background:
+                "linear-gradient(135deg,rgba(255,247,246,.94),rgba(255,254,250,.88))",
+              border: "1px solid rgba(164,60,63,.12)",
+              boxShadow: "0 14px 34px rgba(46,52,50,.05)",
+            }}
+            aria-label="Gift day reminder"
+          >
+            <div className="flex min-w-0 items-center gap-3">
+              <span
+                className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full"
+                style={{ background: "rgba(164,60,63,.1)", color: HOLIDAY_RED }}
+                aria-hidden="true"
+              >
+                <ClockMark className="h-5 w-5" />
+              </span>
+              <div className="min-w-0">
+                <p className="text-[15px] font-black leading-tight" style={{ color: HOLIDAY_RED }}>
+                  Gift day is close
+                </p>
+                <p className="mt-1 text-[11px] font-semibold leading-tight" style={{ color: TEXT_MUTED }}>
+                  Fast ideas that fit your region and budget.
+                </p>
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={() => router.push(activeGroupHref)}
+              className="inline-flex min-h-9 items-center justify-center gap-2 rounded-full px-3 text-[11px] font-black transition hover:-translate-y-0.5 focus-visible:outline-2 focus-visible:outline-offset-2"
+              style={{
+                background: "rgba(255,255,255,.86)",
+                border: "1px solid rgba(164,60,63,.14)",
+                color: HOLIDAY_GREEN,
+                fontFamily: "inherit",
+                outlineColor: HOLIDAY_RED,
+              }}
+            >
+              See gift day details
+              <ChevronRightMark className="h-3.5 w-3.5" />
+            </button>
+          </section>
+        )}
 
         <section
           data-testid="shopping-ideas-hero"
@@ -5178,13 +5276,13 @@ export function SecretSantaExperience({ mode = "shopping" }: SecretSantaExperien
                                                 }}
                                               >
                                                 <SparkleMark className="h-4 w-4" />
-                                                Top picks for this wishlist
+                                                Fast gift ideas
                                               </h3>
                                               <p
                                                 className="mt-1 text-[12px] font-medium leading-relaxed sm:text-[13px]"
                                                 style={{ color: TEXT_MUTED }}
                                               >
-                                                Product-style picks based on the wishlist, selected shopping option, and group budget.
+                                                Shortlist useful options by budget, availability, and how easy they are to buy.
                                               </p>
                                             </div>
                                             {heroLazadaHref && (
@@ -5496,13 +5594,13 @@ export function SecretSantaExperience({ mode = "shopping" }: SecretSantaExperien
                                                   className="text-[13px] font-extrabold"
                                                   style={{ color: PAGE_TEXT_COLOR }}
                                                 >
-                                                  Also check
+                                                  More places to shop
                                                 </div>
                                                 <div
                                                   className="mt-0.5 text-[11px]"
                                                   style={{ color: TEXT_MUTED }}
                                                 >
-                                                  Quick links for the same idea
+                                                  Check other platforms with fast delivery or pickup.
                                                 </div>
                                               </div>
                                             </div>

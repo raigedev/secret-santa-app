@@ -2,192 +2,214 @@ import { type OwnerInsights } from "./group-page-state";
 
 type GroupOwnerInsightsPanelProps = {
   drawDone: boolean;
+  eventDate: string;
   ownerInsights: OwnerInsights;
+};
+
+type HealthRow = {
+  accent: string;
+  helper: string;
+  label: string;
+  meta: string;
+  tone: string;
 };
 
 export function GroupOwnerInsightsPanel({
   drawDone,
+  eventDate,
   ownerInsights,
 }: GroupOwnerInsightsPanelProps) {
-  const missingWishlistPreview = ownerInsights.missingWishlistMemberNames.slice(0, 4);
-  const extraMissingWishlistCount = Math.max(
-    ownerInsights.missingWishlistMemberNames.length - missingWishlistPreview.length,
+  const missingWishlistCount = ownerInsights.missingWishlistMemberNames.length;
+  const pendingInvites = Math.max(
+    ownerInsights.acceptedCount - ownerInsights.wishlistReadyCount,
     0
   );
-  const wishlistPercent = getPercent(
-    ownerInsights.wishlistReadyCount,
-    ownerInsights.acceptedCount
-  );
-  const chatPercent = getPercent(
-    ownerInsights.activeChatThreadCount,
-    ownerInsights.totalChatThreadCount
-  );
-  const giftPercent = getPercent(
-    ownerInsights.confirmedGiftCount,
-    ownerInsights.totalGiftCount
-  );
-  const readinessRows = [
+  const giftDateLabel = formatEventDate(eventDate);
+  const rows: HealthRow[] = [
     {
+      accent: "#a43c3f",
       helper:
-        ownerInsights.missingWishlistMemberNames.length === 0
-          ? "Every accepted member has at least one wishlist item."
-          : `${ownerInsights.missingWishlistMemberNames.length} accepted member${
-              ownerInsights.missingWishlistMemberNames.length === 1 ? "" : "s"
-            } still need a wishlist.`,
+        pendingInvites > 0
+          ? "There are invites or member steps that need attention."
+          : "Members are in good shape.",
+      label: "Invites",
+      meta: pendingInvites > 0 ? `${pendingInvites} pending` : "All set",
+      tone: "rgba(164,60,63,.1)",
+    },
+    {
+      accent: "#a43c3f",
+      helper:
+        missingWishlistCount > 0
+          ? `${missingWishlistCount} member${missingWishlistCount === 1 ? "" : "s"} missing wishlist items.`
+          : "Every accepted member has a wishlist item.",
       label: "Wishlists",
-      percent: wishlistPercent,
-      value: `${ownerInsights.wishlistReadyCount}/${ownerInsights.acceptedCount}`,
+      meta: missingWishlistCount > 0 ? `${missingWishlistCount} missing` : "Ready",
+      tone: missingWishlistCount > 0 ? "rgba(164,60,63,.1)" : "rgba(72,102,78,.12)",
     },
     {
-      helper:
-        ownerInsights.totalChatThreadCount > 0
-          ? `${ownerInsights.activeChatThreadCount} private thread${
-              ownerInsights.activeChatThreadCount === 1 ? "" : "s"
-            } have a message.`
-          : "Threads open once names are drawn.",
-      label: "Private messages",
-      percent: chatPercent,
-      value:
-        ownerInsights.totalChatThreadCount > 0
-          ? `${ownerInsights.activeChatThreadCount}/${ownerInsights.totalChatThreadCount}`
-          : "After draw",
+      accent: "#7b5902",
+      helper: drawDone ? "Names have been drawn for this exchange." : "Names can be drawn once the group is ready.",
+      label: "Draw status",
+      meta: drawDone ? "Drawn" : "Ready soon",
+      tone: "rgba(252,206,114,.28)",
     },
     {
+      accent: "#48664e",
       helper:
-        ownerInsights.totalGiftCount > 0
-          ? `${Math.max(
-              ownerInsights.totalGiftCount - ownerInsights.confirmedGiftCount,
-              0
-            )} confirmation${
-              ownerInsights.totalGiftCount - ownerInsights.confirmedGiftCount === 1 ? "" : "s"
-            } still pending.`
-          : "Recipients can confirm gifts after the exchange.",
-      label: "Gift progress",
-      percent: giftPercent,
-      value:
-        ownerInsights.totalGiftCount > 0
-          ? `${ownerInsights.confirmedGiftCount}/${ownerInsights.totalGiftCount}`
-          : "After draw",
+        ownerInsights.totalChatThreadCount > 0
+          ? `${ownerInsights.activeChatThreadCount} private conversation${ownerInsights.activeChatThreadCount === 1 ? "" : "s"} active.`
+          : "No active conversations yet.",
+      label: "Messages",
+      meta: ownerInsights.activeChatThreadCount > 0 ? "Active" : "Quiet",
+      tone: "rgba(72,102,78,.12)",
+    },
+    {
+      accent: "#48664e",
+      helper: "Keep the date visible so members can plan their gifts.",
+      label: "Gift day",
+      meta: giftDateLabel,
+      tone: "rgba(72,102,78,.12)",
     },
   ];
 
   return (
-    <div
-      className="mb-5 rounded-[28px] p-5"
-      style={{
-        background:
-          "linear-gradient(135deg,rgba(255,255,255,.94),rgba(239,247,241,.9))",
-        border: "1px solid rgba(72,102,78,.16)",
-        boxShadow: "0 18px 42px rgba(46,52,50,.06)",
-      }}
+    <aside
+      className="rounded-[28px] bg-white p-4 shadow-[0_24px_70px_rgba(46,52,50,.08)] lg:sticky lg:top-25"
+      aria-label="Exchange health"
     >
-      <div className="mb-5 flex flex-wrap items-start justify-between gap-4">
-        <div>
-          <div
-            className="text-[20px] font-black"
-            style={{ fontFamily: "'Fredoka', sans-serif", color: "#48664e" }}
-          >
-            Exchange health
-          </div>
-          <div className="mt-1 max-w-2xl text-[12px] font-semibold leading-5" style={{ color: "#64748b" }}>
-            Readiness signals for invites, wishlists, messages, and gift progress. Private details stay private.
-          </div>
-        </div>
-
-        <div
-          className="rounded-full px-3 py-1.5 text-[11px] font-extrabold"
-          style={{
-            background: drawDone ? "rgba(72,102,78,.1)" : "rgba(252,206,114,.22)",
-            color: drawDone ? "#48664e" : "#7b5902",
-          }}
+      <div className="mb-4 flex items-start gap-3">
+        <span
+          className="grid h-11 w-11 shrink-0 place-items-center rounded-full"
+          style={{ background: "rgba(72,102,78,.12)", color: "#48664e" }}
+          aria-hidden="true"
         >
-          {drawDone ? "Names drawn" : "Before draw"}
+          <HealthIcon />
+        </span>
+        <div>
+          <h2 className="text-[18px] font-black leading-tight text-[#48664e]">
+            Exchange health
+          </h2>
+          <p className="mt-1 text-xs font-semibold leading-5 text-[#64748b]">
+            Keep your exchange on track.
+          </p>
         </div>
       </div>
 
-      <div className="grid gap-3 md:grid-cols-3">
-        {readinessRows.map((row) => (
+      <div className="space-y-3">
+        {rows.map((row) => (
           <div
             key={row.label}
-            className="rounded-[22px] p-4"
-            style={{
-              background: "rgba(255,255,255,.78)",
-              border: "1px solid rgba(72,102,78,.12)",
-            }}
+            className="rounded-[18px] bg-[#fbfcfa] p-4 shadow-[inset_0_0_0_1px_rgba(72,102,78,.08)]"
           >
-            <div className="flex items-center justify-between gap-3">
-              <div
-                className="text-[11px] font-extrabold uppercase tracking-[0.12em]"
-                style={{ color: "#48664e" }}
+            <div className="flex items-start gap-3">
+              <span
+                className="grid h-10 w-10 shrink-0 place-items-center rounded-full"
+                style={{ background: row.tone, color: row.accent }}
+                aria-hidden="true"
               >
-                {row.label}
+                <StatusIcon />
+              </span>
+              <div className="min-w-0 flex-1">
+                <div className="flex items-start justify-between gap-3">
+                  <p className="text-[14px] font-black leading-tight text-[#2e3432]">
+                    {row.label}
+                  </p>
+                  <span className="text-[11px] font-black" style={{ color: row.accent }}>
+                    {row.meta}
+                  </span>
+                </div>
+                <p className="mt-1 text-xs font-semibold leading-5 text-[#64748b]">
+                  {row.helper}
+                </p>
+                <button
+                  type="button"
+                  className="mt-3 inline-flex items-center gap-2 text-xs font-black text-[#48664e]"
+                >
+                  {getRowAction(row.label)}
+                  <ChevronIcon />
+                </button>
               </div>
-              <div className="text-[13px] font-black" style={{ color: "#2e3432" }}>
-                {row.value}
-              </div>
-            </div>
-            <div className="mt-3 h-2 overflow-hidden rounded-full bg-[#ecefec]">
-              <div
-                className="h-full rounded-full bg-[#48664e]"
-                style={{ width: `${row.percent}%` }}
-              />
-            </div>
-            <div
-              className="mt-3 text-[12px] font-semibold leading-5"
-              style={{ color: "#64748b" }}
-            >
-              {row.helper}
             </div>
           </div>
         ))}
       </div>
 
-      {ownerInsights.missingWishlistMemberNames.length > 0 && (
-        <div className="mt-4">
-          <div
-            className="text-[11px] font-extrabold uppercase tracking-[0.12em] mb-2"
-            style={{ color: "#b45309" }}
-          >
-            Still missing a wishlist
-          </div>
-          <div className="flex flex-wrap gap-2">
-            {missingWishlistPreview.map((memberName) => (
-              <span
-                key={memberName}
-                className="px-3 py-1.5 rounded-full text-[11px] font-bold"
-                style={{
-                  background: "rgba(251,191,36,.14)",
-                  color: "#92400e",
-                  border: "1px solid rgba(251,191,36,.24)",
-                }}
-              >
-                {memberName}
-              </span>
-            ))}
-
-            {extraMissingWishlistCount > 0 && (
-              <span
-                className="px-3 py-1.5 rounded-full text-[11px] font-bold"
-                style={{
-                  background: "rgba(148,163,184,.12)",
-                  color: "#475569",
-                  border: "1px solid rgba(148,163,184,.2)",
-                }}
-              >
-                +{extraMissingWishlistCount} more
-              </span>
-            )}
-          </div>
-        </div>
-      )}
-    </div>
+      <div className="mt-4 rounded-[18px] bg-[#eef3ef] px-4 py-3 text-xs font-bold leading-5 text-[#48664e]">
+        Tip: send reminders early to help everyone stay on track.
+      </div>
+    </aside>
   );
 }
 
-function getPercent(value: number, total: number): number {
-  if (total <= 0) {
-    return 0;
+function formatEventDate(value: string): string {
+  const parsed = new Date(value);
+  if (Number.isNaN(parsed.getTime())) {
+    return "Not set";
   }
 
-  return Math.min(Math.max(Math.round((value / total) * 100), 0), 100);
+  return parsed.toLocaleDateString(undefined, {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+  });
+}
+
+function getRowAction(label: string): string {
+  if (label === "Invites" || label === "Wishlists") {
+    return "Send reminder";
+  }
+  if (label === "Draw status") {
+    return "Draw names";
+  }
+  if (label === "Messages") {
+    return "View messages";
+  }
+  return "View event details";
+}
+
+function HealthIcon() {
+  return (
+    <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" aria-hidden="true">
+      <path
+        d="M4.5 12.2 8.3 8.4l3.3 3.3 2.7-6.2 5.2 6.1"
+        stroke="currentColor"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeWidth="1.8"
+      />
+      <path
+        d="M4.5 16.5h15"
+        stroke="currentColor"
+        strokeLinecap="round"
+        strokeWidth="1.8"
+      />
+    </svg>
+  );
+}
+
+function StatusIcon() {
+  return (
+    <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" aria-hidden="true">
+      <path
+        d="M5.5 12.2h13M12 5.7v13"
+        stroke="currentColor"
+        strokeLinecap="round"
+        strokeWidth="1.8"
+      />
+    </svg>
+  );
+}
+
+function ChevronIcon() {
+  return (
+    <svg viewBox="0 0 20 20" className="h-3.5 w-3.5" fill="none" aria-hidden="true">
+      <path
+        d="m7.5 4.8 5.2 5.2-5.2 5.2"
+        stroke="currentColor"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeWidth="1.8"
+      />
+    </svg>
+  );
 }

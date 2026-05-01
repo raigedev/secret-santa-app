@@ -29,153 +29,144 @@ export function GroupEventSummaryPanel({
   onOpenEdit,
   onOpenLeave,
 }: GroupEventSummaryPanelProps) {
-  const eventStats = [
-    { icon: "\uD83D\uDCC5", value: groupData.event_date, label: "Gift date" },
+  const participation = totalMemberCount > 0
+    ? Math.round((acceptedCount / totalMemberCount) * 100)
+    : 0;
+  const budgetLabel = groupData.budget ? `${currencySymbol}${groupData.budget}` : "No limit";
+  const summaryCards = [
     {
-      icon: "\uD83D\uDCB0",
-      value: groupData.budget ? `${currencySymbol}${groupData.budget}` : "No limit",
-      label: "Budget",
+      helper: "Gift day",
+      label: formatEventDate(groupData.event_date),
+      meta: "Event date",
     },
-    { icon: "\uD83D\uDC65", value: `${totalMemberCount}`, label: "Members" },
-    { icon: "\uD83C\uDFB2", value: drawStatusLabel, label: "Name draw" },
-  ];
-  const memberStats = [
-    { count: acceptedCount, label: "Accepted", color: "#15803d", border: "#22c55e" },
-    { count: pendingCount, label: "Pending", color: "#b45309", border: "#f59e0b" },
-    { count: declinedCount, label: "Declined", color: "#dc2626", border: "#dc2626" },
-    { count: totalMemberCount, label: "Total", color: "#1d4ed8", border: "#2563eb" },
+    {
+      helper: "Per person",
+      label: budgetLabel,
+      meta: "Group budget",
+    },
+    {
+      helper: drawDone ? "Names are ready" : "Draw opens when ready",
+      label: drawStatusLabel,
+      meta: "Draw status",
+    },
+    {
+      helper: `${participation}% joined`,
+      label: `${acceptedCount} / ${totalMemberCount}`,
+      meta: "Participation",
+    },
   ];
 
   return (
-    <>
-      {groupData.description && (
-        <div
-          className="rounded-xl overflow-hidden mb-4"
-          style={{
-            background: "rgba(127,29,29,.04)",
-            border: "1px solid rgba(127,29,29,.08)",
-          }}
-        >
-          <div
-            className="flex items-center gap-1.5 px-3.5 py-2"
-            style={{
-              background: "rgba(127,29,29,.04)",
-              borderBottom: "1px solid rgba(127,29,29,.06)",
-              fontSize: "10px",
-              fontWeight: 800,
-              color: "#991b1b",
-              textTransform: "uppercase",
-              letterSpacing: ".08em",
-            }}
-          >
-            {"\uD83D\uDCCB"} Group notes and rules
+    <section
+      className="rounded-[26px] bg-white p-4 shadow-[0_18px_44px_rgba(46,52,50,.06)] sm:p-5"
+      aria-label="Event summary"
+    >
+      <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+        <div>
+          <div className="flex items-center gap-2">
+            <CalendarIcon />
+            <h2 className="text-[18px] font-black text-[#2e3432]">Event summary</h2>
           </div>
-
-          <div className="px-3.5 py-2.5" style={{ fontSize: "13px", color: "#4b5563", lineHeight: 1.6 }}>
-            {groupData.description}
-          </div>
+          <p className="mt-1 text-xs font-semibold leading-5 text-[#64748b]">
+            Key dates and details for your exchange.
+          </p>
         </div>
-      )}
-
-      <div className="mb-5 grid grid-cols-1 gap-3 sm:grid-cols-2 md:grid-cols-4">
-        {eventStats.map((item) => (
-          <div
-            key={item.label}
-            className="rounded-2xl px-4 py-4"
-            style={{
-              background: "rgba(255,255,255,.78)",
-              border: "1px solid rgba(255,255,255,.92)",
-            }}
-          >
-            <div className="text-[18px] mb-1">{item.icon}</div>
-            <div className="text-[16px] font-bold text-gray-800">{item.value}</div>
-            <div className="text-[11px] font-semibold text-gray-500">{item.label}</div>
-          </div>
-        ))}
-      </div>
-
-      {isOwner ? (
-        <div className="flex gap-2 justify-center mb-5 flex-wrap">
-          <button
-            type="button"
-            onClick={onOpenEdit}
-            className="px-4 py-2 rounded-lg text-[11px] font-bold transition"
-            style={{
-              background: "rgba(59,130,246,.08)",
-              color: "#3b82f6",
-              border: "1px solid rgba(59,130,246,.15)",
-              cursor: "pointer",
-              fontFamily: "inherit",
-            }}
-          >
-            {"\u270F\uFE0F"} Edit Group
-          </button>
-
-          <button
-            type="button"
-            onClick={onOpenDelete}
-            className="px-4 py-2 rounded-lg text-[11px] font-bold transition"
-            style={{
-              background: "rgba(220,38,38,.06)",
-              color: "#ef4444",
-              border: "1px solid rgba(220,38,38,.12)",
-              cursor: "pointer",
-              fontFamily: "inherit",
-            }}
-          >
-            {"\uD83D\uDDD1\uFE0F"} Delete Group
-          </button>
-        </div>
-      ) : (
-        <div className="flex flex-col items-center gap-2 mb-5">
-          <button
-            type="button"
-            onClick={onOpenLeave}
-            disabled={drawDone}
-            className="px-4 py-2 rounded-lg text-[11px] font-bold transition"
-            style={{
-              background: "rgba(245,158,11,.08)",
-              color: drawDone ? "#9ca3af" : "#f59e0b",
-              border: "1px solid rgba(245,158,11,.12)",
-              cursor: drawDone ? "not-allowed" : "pointer",
-              fontFamily: "inherit",
-              opacity: drawDone ? 0.7 : 1,
-            }}
-          >
-            {drawDone ? "Group locked" : "\uD83D\uDEAA Leave Group"}
-          </button>
-
-          {drawDone && (
-            <p className="text-center text-[11px]" style={{ color: "#6b7280" }}>
-              Member changes are locked after names are drawn. Ask the owner to reset first.
-            </p>
+        <div className="flex flex-wrap gap-2">
+          {isOwner ? (
+            <>
+              <button
+                type="button"
+                onClick={onOpenEdit}
+                className="rounded-full bg-[#f2f4f2] px-4 py-2 text-xs font-black text-[#48664e]"
+              >
+                Edit group
+              </button>
+              <button
+                type="button"
+                onClick={onOpenDelete}
+                className="rounded-full bg-[#fff7f6] px-4 py-2 text-xs font-black text-[#a43c3f]"
+              >
+                Delete group
+              </button>
+            </>
+          ) : (
+            <button
+              type="button"
+              onClick={onOpenLeave}
+              disabled={drawDone}
+              className="rounded-full bg-[#fff4df] px-4 py-2 text-xs font-black text-[#7b5902] disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              {drawDone ? "Group locked" : "Leave group"}
+            </button>
           )}
         </div>
+      </div>
+
+      {groupData.description && (
+        <div className="mb-4 rounded-[18px] bg-[#f8faf7] px-4 py-3 text-sm font-semibold leading-6 text-[#5b605e]">
+          {groupData.description}
+        </div>
       )}
 
-      <div className="mb-5 grid grid-cols-1 gap-3 sm:grid-cols-2 md:grid-cols-4">
-        {memberStats.map((stat) => (
+      <div className="grid gap-3 md:grid-cols-4">
+        {summaryCards.map((card) => (
           <div
-            key={stat.label}
-            className="rounded-2xl py-4 px-3 text-center relative overflow-hidden"
-            style={{
-              background: "rgba(255,255,255,.78)",
-              border: "1px solid rgba(255,255,255,.92)",
-            }}
+            key={card.meta}
+            className="rounded-[18px] bg-[#fbfcfa] p-4 shadow-[inset_0_0_0_1px_rgba(72,102,78,.08)]"
           >
-            <div className="absolute top-0 left-0 right-0 h-[3px]" style={{ background: stat.border }} />
-            <div
-              className="text-2xl font-bold leading-none"
-              style={{ fontFamily: "'Fredoka', sans-serif", color: stat.color }}
-            >
-              {stat.count}
-            </div>
-            <div className="text-[10px] font-bold text-gray-500 mt-1 uppercase tracking-wide">
-              {stat.label}
-            </div>
+            <p className="text-[11px] font-black uppercase tracking-[0.12em] text-[#64748b]">
+              {card.meta}
+            </p>
+            <p className="mt-2 text-[18px] font-black leading-tight text-[#48664e]">
+              {card.label}
+            </p>
+            <p className="mt-2 text-xs font-semibold text-[#64748b]">{card.helper}</p>
           </div>
         ))}
       </div>
-    </>
+
+      <div className="mt-4 grid gap-3 sm:grid-cols-4">
+        {[
+          { count: acceptedCount, label: "Accepted", tone: "#48664e" },
+          { count: pendingCount, label: "Pending", tone: "#7b5902" },
+          { count: declinedCount, label: "Declined", tone: "#a43c3f" },
+          { count: totalMemberCount, label: "Total", tone: "#2e3432" },
+        ].map((stat) => (
+          <div key={stat.label} className="rounded-full bg-[#f2f4f2] px-3 py-2 text-center">
+            <span className="text-sm font-black" style={{ color: stat.tone }}>
+              {stat.count}
+            </span>
+            <span className="ml-1 text-xs font-bold text-[#64748b]">{stat.label}</span>
+          </div>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+function formatEventDate(value: string): string {
+  const parsed = new Date(value);
+  if (Number.isNaN(parsed.getTime())) {
+    return value || "Not set";
+  }
+
+  return parsed.toLocaleDateString(undefined, {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+  });
+}
+
+function CalendarIcon() {
+  return (
+    <svg viewBox="0 0 24 24" className="h-5 w-5 text-[#48664e]" fill="none" aria-hidden="true">
+      <path
+        d="M7 4.5v3M17 4.5v3M5.5 9.5h13M6.8 6.5h10.4c1 0 1.8.8 1.8 1.8v9.4c0 1-.8 1.8-1.8 1.8H6.8c-1 0-1.8-.8-1.8-1.8V8.3c0-1 .8-1.8 1.8-1.8Z"
+        stroke="currentColor"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeWidth="1.8"
+      />
+    </svg>
   );
 }
