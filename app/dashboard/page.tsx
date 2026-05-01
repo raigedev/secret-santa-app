@@ -1050,6 +1050,7 @@ export default function DashboardPage() {
           giftProgressSummary={giftProgressSummary}
           groups={allDashboardGroups}
           isDarkTheme={isDarkTheme}
+          notificationPreviewItems={notificationPreviewItems}
           pendingInviteCount={pendingInvites.length}
           recipientCount={recipientNames.length}
           wishlistItemCount={wishlistItemCount}
