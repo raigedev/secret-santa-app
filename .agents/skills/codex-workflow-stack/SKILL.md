@@ -21,6 +21,8 @@ Prefer the tools already installed and trusted in this workspace:
 - `security-best-practices`, `security-threat-model`, and repo checks for security work.
 - `graphify` automatically for large codebase maps, architecture discovery, dependency neighborhoods, or persistent graph queries when normal file inspection is too narrow.
 - `ao.cmd` for Agent Orchestrator when parallel worktrees or agent-session management would materially help a task.
+- GSD (`get-shit-done-cc`) local minimal Codex install for structured discuss/plan/execute/verify phase workflows on broad, ambiguous, or multi-step work.
+- Matt Pocock `grill-me` / `grill-with-docs` style interrogation for ambiguous, high-impact, architectural, product/design, or edge-case-heavy plans.
 - Git history plus the release-note rules below for changelogs.
 
 ## Decision Rules
@@ -31,6 +33,7 @@ Prefer the tools already installed and trusted in this workspace:
 4. Treat Reddit posts as field reports, not authority. Verify against GitHub, official docs, package metadata, or local tool availability.
 5. Keep helper tooling from changing app behavior unless the user asks for a product change.
 6. If a third-party skill repo has no license, missing scripts, or unclear provenance, do not copy it into this repo. Recreate only the small workflow idea in our own words when useful.
+7. Keep generated helper installs and scratch workflow state uncommitted unless the user explicitly asks to vendor them.
 
 ## Workflow Selection
 
@@ -42,6 +45,8 @@ Prefer the tools already installed and trusted in this workspace:
 - Performance/security/architecture work: use `code-improvement`; add Oracle dry-run for meaningful risk.
 - Large codebase map, architecture discovery, or persistent graph need: use `graphify` automatically after checking `.graphifyignore`; do not commit `graphify-out/`.
 - Multi-agent or worktree orchestration: use `ao.cmd` automatically when the task truly benefits from branch-per-agent work, CI session tracking, or parallel coding sessions. Keep generated branches/worktrees reviewable and avoid remote-write flows unless the user task calls for them.
+- Broad ambiguous implementation or product iteration: use GSD-style phases to keep discussion, plan, execution, and verification explicit. On Codex, do the work inline unless the user explicitly requested sub-agents; never let GSD skip repo checks or safety gates.
+- Unclear or risky requirements: use the `grill-me` approach before planning or editing. Ask one focused question at a time with a recommended answer, but answer from the codebase first when local inspection can resolve it. Use `grill-with-docs` ideas for domain-language or ADR-worthy decisions, creating docs only when the repo task truly needs them.
 - App connector work: use existing Codex app plugins first. Do not install Composio Connect or similar account-bound tools without a specific user request and setup confirmation.
 
 ## Oracle, Stitch, And Figma Notes
@@ -49,7 +54,7 @@ Prefer the tools already installed and trusted in this workspace:
 - Oracle `0.9.0` browser mode is configured locally at `%USERPROFILE%\.oracle\config.json` with `engine: "browser"`, `browser.manualLogin: true`, `browser.keepBrowser: true`, and `browser.modelStrategy: "ignore"`. Use `npx -y @steipete/oracle@0.9.0` for the tested path, dry-run first, then browser mode; do not switch to API mode without explicit approval.
 - If Oracle reports that the ChatGPT model selector is missing, keep `modelStrategy: "ignore"` and prefer manual login. Avoid cookie extraction or inline cookie files unless the user specifically chooses that secret-handling path; never paste cookies into prompts, docs, logs, or committed files.
 - For Stitch, do not call `list_design_systems` with an empty request. First call `list_projects`, then use project-scoped calls. The current Secret Santa design source is project `3072957204541081703` (`Process Explainer`, despite the generic title; its screens include Secret Santa shopping/chat/auth designs).
-- For Figma, use the connected Figma MCP/plugin automatically when a task references a Figma file, node, frame, selection, component mapping, or screenshot. Preferred flow: get exact design context for the selected node, fetch a screenshot/reference, narrow large files to relevant nodes, reuse repo components/tokens, and verify with Playwright/browser screenshots. If Figma tools are not exposed in the current Codex session, say so briefly and continue from screenshots, Stitch, `PRODUCT.md`, `DESIGN.md`, and local code.
+- For Figma, use the connected Figma MCP/plugin automatically when a task references a Figma file, node, frame, selection, component mapping, screenshot, design exploration, mockup, or design-system sync. Preferred flow: get exact design context for the selected node, fetch a screenshot/reference, narrow large files to relevant nodes, reuse repo components/tokens, and verify with Playwright/browser screenshots. Use Figma write/design tools when an editable file or frame is available; if the current seat is view-only, use Figma as the reference source and continue from screenshots, Stitch, `PRODUCT.md`, `DESIGN.md`, and local code.
 
 ## Installed Orchestrator
 
@@ -60,6 +65,14 @@ Known status:
 - `@aoagents/ao` version `0.3.0` is installed globally.
 - `ao.cmd --version` and `ao.cmd --help` work.
 - `ao.cmd doctor` currently fails because package version `0.3.0` looks for a missing `ao-doctor.sh`; do not treat that doctor failure as a repo problem.
+
+## GSD Notes
+
+Local minimal Codex install was performed with `npx.cmd --yes get-shit-done-cc@latest --codex --local --minimal`. It installs core phase skills under `.codex/skills/gsd-*` and a vendored workflow tree under `.codex/get-shit-done/`; these are local agent tooling artifacts, not app source. Use the same explicit `--codex --local --minimal` flags for updates. Do not run plain non-interactive installs, because the CLI can default to another runtime/global location. The package is useful for process structure, but this repo's `AGENTS.md`, `.agent/CONTINUITY.md`, security rules, Oracle/Figma/Stitch workflow, VS Code Problems checks, and manual commit/push preference remain higher priority.
+
+## Grill-Me Notes
+
+Use the method from `mattpocock/skills` rather than vendoring the skill by default. It is MIT-licensed and useful for alignment before work begins: interrogate the plan or design, resolve decision-tree branches one at a time, and provide a recommended answer with each question. For this repo, keep it lightweight and codebase-aware: do local inspection before asking, do not create docs unless useful, and do not let the interview replace implementation when the next safe step is already clear.
 
 ## Release Notes Rules
 
