@@ -1,4 +1,7 @@
-import { DashboardGroupBucket } from "./DashboardGroupCards";
+"use client";
+
+import { useMemo, useState } from "react";
+import { DashboardGroupsWorkspace } from "./DashboardGroupsWorkspace";
 import { ArrowRightIcon } from "./dashboard-icons";
 import type { Group } from "./dashboard-types";
 
@@ -28,22 +31,32 @@ export function DashboardGroupsSection({
   const dashboardPanelHeadingClass = isDarkTheme ? "text-white" : "text-slate-900";
   const dashboardPanelTextClass = isDarkTheme ? "text-slate-300" : "text-slate-600";
   const dashboardStatLabelClass = isDarkTheme ? "text-slate-500" : "text-slate-400";
+  const allGroups = useMemo(
+    () => [...ownedGroups, ...invitedGroups],
+    [invitedGroups, ownedGroups]
+  );
+  const [focusedGroupId, setFocusedGroupId] = useState<string | null>(null);
+  const focusedGroup =
+    allGroups.find((group) => group.id === focusedGroupId) || allGroups[0] || null;
 
   return (
     <section id="dashboard-groups" className="scroll-mt-24">
-      <div className="mb-5 flex items-end justify-between gap-4">
+      <div className="mb-5 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <h2 className={`text-[1.85rem] font-black tracking-tight ${dashboardPanelHeadingClass}`}>
+          <p className={`text-xs font-black uppercase tracking-[0.18em] ${dashboardStatLabelClass}`}>
+            My groups
+          </p>
+          <h2 className={`mt-2 text-2xl font-black tracking-tight ${dashboardPanelHeadingClass}`}>
             Your Groups
           </h2>
-          <p className={`mt-1 text-[15px] ${dashboardPanelTextClass}`}>
-            Groups you host and groups you joined, all in one place.
+          <p className={`mt-1 max-w-2xl text-sm leading-6 ${dashboardPanelTextClass}`}>
+            Choose an exchange, then manage members, wishlists, matches, messages, and settings from one workspace.
           </p>
         </div>
         <button
           type="button"
           onClick={onCreateGroup}
-          className={`hidden items-center gap-1.5 rounded-full px-3 py-1.5 text-sm font-extrabold transition hover:-translate-y-0.5 sm:inline-flex ${
+          className={`inline-flex min-h-11 items-center justify-center gap-2 rounded-full px-4 text-sm font-extrabold transition hover:-translate-y-0.5 ${
             isDarkTheme ? "bg-red-500/12 text-red-200" : "bg-red-50 text-red-700"
           }`}
         >
@@ -76,34 +89,16 @@ export function DashboardGroupsSection({
           </button>
         </section>
       ) : (
-        <div className="space-y-8">
-          {ownedGroups.length > 0 && (
-            <DashboardGroupBucket
-              title="Hosted by you"
-              count={ownedGroups.length}
-              groups={ownedGroups}
-              type="owned"
-              countdownNow={countdownNow}
-              deletingGroupId={deletingGroupId}
-              isDarkTheme={isDarkTheme}
-              onOpenGroup={onOpenGroup}
-              onDeleteGroup={onDeleteGroup}
-            />
-          )}
-          {invitedGroups.length > 0 && (
-            <DashboardGroupBucket
-              title="Joined as member"
-              count={invitedGroups.length}
-              groups={invitedGroups}
-              type="invited"
-              countdownNow={countdownNow}
-              deletingGroupId={deletingGroupId}
-              isDarkTheme={isDarkTheme}
-              onOpenGroup={onOpenGroup}
-              onDeleteGroup={onDeleteGroup}
-            />
-          )}
-        </div>
+        <DashboardGroupsWorkspace
+          countdownNow={countdownNow}
+          deletingGroupId={deletingGroupId}
+          focusedGroup={focusedGroup}
+          groups={allGroups}
+          isDarkTheme={isDarkTheme}
+          onDeleteGroup={onDeleteGroup}
+          onOpenGroup={onOpenGroup}
+          onSelectGroup={setFocusedGroupId}
+        />
       )}
     </section>
   );
