@@ -72,6 +72,86 @@ const ProfileSetupModal = dynamic<ProfileSetupModalProps>(() => import("./Profil
 
 const DASHBOARD_THEME_STORAGE_KEY = "ss_dashboard_theme";
 const DASHBOARD_THEME_CHANGED_EVENT = "ss-dashboard-theme-changed";
+const DASHBOARD_NOTIFICATION_PREVIEW_LIMIT = 3;
+
+type DashboardNotificationPreviewGroup = {
+  count: number;
+  latest: NotificationFeedRow;
+};
+
+function getNotificationGroupKey(notification: NotificationFeedRow): string {
+  return notification.type;
+}
+
+function getNotificationSortTime(notification: NotificationFeedRow): number {
+  const timestamp = new Date(notification.created_at).getTime();
+
+  return Number.isNaN(timestamp) ? 0 : timestamp;
+}
+
+function getGroupedNotificationPreviewTitle(
+  notification: NotificationFeedRow,
+  count: number
+): string {
+  if (count === 1) {
+    return getNotificationPreviewTitle(notification.type, notification.title);
+  }
+
+  switch (notification.type) {
+    case "invite":
+      return `${count} group invites`;
+    case "chat":
+      return `${count} private messages`;
+    case "draw":
+      return `${count} draw updates`;
+    case "reveal":
+      return `${count} reveal updates`;
+    case "gift_received":
+      return `${count} gift updates`;
+    default:
+      return `${count} updates`;
+  }
+}
+
+function buildNotificationPreviewItems(
+  notifications: NotificationFeedRow[]
+): DashboardNotificationPreviewItem[] {
+  const groups = new Map<string, DashboardNotificationPreviewGroup>();
+
+  notifications.forEach((notification) => {
+    const groupKey = getNotificationGroupKey(notification);
+    const group = groups.get(groupKey);
+
+    if (!group) {
+      groups.set(groupKey, { count: 1, latest: notification });
+      return;
+    }
+
+    group.count += 1;
+
+    if (getNotificationSortTime(notification) > getNotificationSortTime(group.latest)) {
+      group.latest = notification;
+    }
+  });
+
+  return [...groups.values()]
+    .sort(
+      (left, right) =>
+        getNotificationSortTime(right.latest) - getNotificationSortTime(left.latest)
+    )
+    .slice(0, DASHBOARD_NOTIFICATION_PREVIEW_LIMIT)
+    .map(({ count, latest }) => {
+      const visual = getActivityFeedVisual(latest.type);
+
+      return {
+        id: count > 1 ? `${latest.type}:${latest.id}:${count}` : latest.id,
+        title: getGroupedNotificationPreviewTitle(latest, count),
+        href: count > 1 ? "/notifications" : latest.link_path,
+        createdAt: latest.created_at,
+        ...visual,
+      };
+    });
+}
 
 function readStoredDashboardTheme(): DashboardTheme {
   if (typeof window === "undefined") {
@@ -537,6 +617,8 @@ export default function DashboardPage() {
 
         setGiftProgressSummary(nextGiftProgressSummary);
 
+        const nextNotificationPreviewItems = buildNotificationPreviewItems(recentNotifications);
+
         // The dashboard feed combines "what changed around me" notifications
         // with the user's own gift-progress actions so the home page feels alive
         // without inventing a separate activity table.
@@ -563,33 +645,22 @@ export default function DashboardPage() {
                 ...visual,
               };
             }),
-          ...recentNotifications.map((notification) => {
-            const visual = getActivityFeedVisual(notification.type);
-
-            return {
-              id: notification.id,
-              title: notification.title,
-              subtitle: notification.body || "Open the notification center for details.",
-              createdAt: notification.created_at,
-              href: notification.link_path,
-              ...visual,
-            };
-          }),
+          ...nextNotificationPreviewItems.map((notification) => ({
+            id: `notification:${notification.id}`,
+            title: notification.title,
+            subtitle:
+              notification.href === "/notifications"
+                ? "Review the grouped updates."
+                : "Open the update.",
+            createdAt: notification.createdAt,
+            href: notification.href,
+            icon: notification.icon,
+            tone: notification.tone,
+          })),
         ]
           .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
           .slice(0, 5);
 
-        const nextNotificationPreviewItems = recentNotifications.slice(0, 3).map((notification) => {
-          const visual = getActivityFeedVisual(notification.type);
-
-          return {
-            id: notification.id,
-            title: getNotificationPreviewTitle(notification.type, notification.title),
-            href: notification.link_path,
-            createdAt: notification.created_at,
-            ...visual,
-          };
-        });
         const nextPendingInvites = pendingGroups.map((group) => ({
           group_id: group.id,
           group_name: group.name,
