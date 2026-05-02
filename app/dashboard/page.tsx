@@ -1049,10 +1049,6 @@ export default function DashboardPage() {
   const handleOpenGroup = (groupId: string) => {
     router.push(`/group/${groupId}`);
   };
-  const openNotificationsPanel = () => {
-    closeProfileMenu();
-    setNotificationsPanelOpen(true);
-  };
   const toggleNotificationsPanel = () => {
     closeProfileMenu();
     setNotificationsPanelOpen((current) => !current);
@@ -1160,14 +1156,10 @@ export default function DashboardPage() {
           <DashboardSidebar
             giftProgressSummary={giftProgressSummary}
             isDarkTheme={isDarkTheme}
-            notificationPreviewItems={notificationPreviewItems}
-            unreadNotificationCount={unreadNotificationCount}
             wishlistGroupCount={wishlistGroupCount}
             wishlistItemCount={wishlistItemCount}
             onGoGiftProgress={() => router.push("/gift-tracking")}
-            onGoNotifications={openNotificationsPanel}
             onGoWishlist={() => router.push("/wishlist")}
-            onOpenPath={(path) => router.push(path)}
           />
         </section>
 

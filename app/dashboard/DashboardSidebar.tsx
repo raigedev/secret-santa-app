@@ -1,11 +1,9 @@
-import { formatRelativeTime, getGiftProgressStepIndex } from "./dashboard-formatters";
+import { getGiftProgressStepIndex } from "./dashboard-formatters";
 import { WishlistIcon } from "./dashboard-icons";
 import type {
-  DashboardNotificationPreviewItem,
   GiftProgressStep,
   GiftProgressSummary,
 } from "./dashboard-types";
-import { getDashboardToneTheme } from "./dashboard-visuals";
 
 const GIFT_PROGRESS_STEPS: Array<{ key: GiftProgressStep; label: string }> = [
   { key: "planning", label: "Planning" },
@@ -17,27 +15,19 @@ const GIFT_PROGRESS_STEPS: Array<{ key: GiftProgressStep; label: string }> = [
 type DashboardSidebarProps = {
   giftProgressSummary: GiftProgressSummary | null;
   isDarkTheme: boolean;
-  notificationPreviewItems: DashboardNotificationPreviewItem[];
-  unreadNotificationCount: number;
   wishlistGroupCount: number;
   wishlistItemCount: number;
   onGoGiftProgress: () => void;
-  onGoNotifications: () => void;
   onGoWishlist: () => void;
-  onOpenPath: (path: string) => void;
 };
 
 export function DashboardSidebar({
   giftProgressSummary,
   isDarkTheme,
-  notificationPreviewItems,
-  unreadNotificationCount,
   wishlistGroupCount,
   wishlistItemCount,
   onGoGiftProgress,
-  onGoNotifications,
   onGoWishlist,
-  onOpenPath,
 }: DashboardSidebarProps) {
   const dashboardPanelHeadingClass = isDarkTheme ? "text-white" : "text-slate-900";
   const dashboardPanelTextClass = isDarkTheme ? "text-slate-300" : "text-slate-600";
@@ -129,70 +119,6 @@ export function DashboardSidebar({
         </button>
       </section>
 
-      <section
-        className={`rounded-4xl p-8 shadow-[0_14px_32px_rgba(45,51,55,0.05)] ${
-          isDarkTheme ? "bg-slate-900/82 text-slate-100" : "bg-white text-slate-900"
-        }`}
-      >
-        <h3 className="text-lg font-black">Notification Highlights</h3>
-        <div className="mt-5 space-y-4">
-          {notificationPreviewItems.length === 0 ? (
-            <div
-              className={`rounded-[22px] border border-dashed px-4 py-7 text-sm ${
-                isDarkTheme ? "border-slate-700/70 text-slate-400" : "border-slate-200 text-slate-500"
-              }`}
-            >
-              New invites, chat pings, and draw updates will show up here.
-            </div>
-          ) : (
-            notificationPreviewItems.slice(0, 2).map((item) => {
-              const theme = getDashboardToneTheme(item.tone, isDarkTheme);
-
-              return (
-                <button
-                  key={item.id}
-                  type="button"
-                  onClick={() => {
-                    if (item.href) {
-                      onOpenPath(item.href);
-                      return;
-                    }
-
-                    onGoNotifications();
-                  }}
-                  className="flex w-full items-center gap-3 rounded-[20px] p-3 text-left transition hover:bg-slate-500/5"
-                >
-                  <span className={`inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-lg ${theme.iconShell}`}>
-                    {item.icon}
-                  </span>
-                  <span className="min-w-0 flex-1">
-                    <span className={`block truncate text-sm font-extrabold ${dashboardPanelHeadingClass}`}>
-                      {item.title}
-                    </span>
-                    <span className={`mt-0.5 block truncate text-xs ${dashboardPanelTextClass}`}>
-                      {formatRelativeTime(item.createdAt)}
-                    </span>
-                  </span>
-                </button>
-              );
-            })
-          )}
-        </div>
-        <button
-          type="button"
-          onClick={onGoNotifications}
-          className={`mt-6 flex w-full items-center justify-center gap-2 rounded-full px-5 py-3 text-sm font-extrabold transition hover:-translate-y-0.5 ${
-            isDarkTheme ? "bg-slate-800 text-slate-100" : "bg-slate-50 text-slate-700"
-          }`}
-        >
-          See notifications
-          {unreadNotificationCount > 0 && (
-            <span className="rounded-full bg-rose-500 px-2 py-0.5 text-[11px] text-white">
-              {unreadNotificationCount}
-            </span>
-          )}
-        </button>
-      </section>
     </aside>
   );
 }

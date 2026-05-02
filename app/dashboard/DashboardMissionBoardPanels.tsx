@@ -4,12 +4,6 @@ import { formatRelativeTime } from "./dashboard-formatters";
 import { GiftIcon } from "./dashboard-icons";
 import type { DashboardNotificationPreviewItem } from "./dashboard-types";
 
-export type QuickStartItem = {
-  done: boolean;
-  helper: string;
-  label: string;
-};
-
 type HealthRow = {
   label: string;
   percent: number;
@@ -114,50 +108,6 @@ export function GiftPanicBanner({
   );
 }
 
-export function QuickStartChecklist({
-  items,
-  isDarkTheme,
-}: {
-  items: QuickStartItem[];
-  isDarkTheme: boolean;
-}) {
-  return (
-    <section className={`rounded-3xl p-5 shadow-[0_16px_40px_rgba(46,52,50,.05)] ${getPanelClass(isDarkTheme)}`}>
-      <h3 className="text-[18px] font-black">Quick start checklist</h3>
-      <div className="mt-4 space-y-2">
-        {items.map((item) => (
-          <div
-            key={item.label}
-            className={`flex items-center gap-3 rounded-2xl px-3 py-2.5 ${
-              item.done
-                ? isDarkTheme
-                  ? "bg-emerald-300/12 text-emerald-100"
-                  : "bg-[#d7fadb]/74 text-[#48664e]"
-                : isDarkTheme
-                  ? "border border-dashed border-slate-700 text-slate-400"
-                  : "border border-dashed border-slate-300 text-slate-500"
-            }`}
-          >
-            <span
-              className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-[11px] font-black ${
-                item.done ? "bg-[#48664e] text-white" : "bg-white text-slate-300"
-              }`}
-            >
-              {item.done ? "OK" : ""}
-            </span>
-            <span className="min-w-0">
-              <span className="block text-[12px] font-black">{item.label}</span>
-              <span className="block truncate text-[11px] font-semibold opacity-72">
-                {item.helper}
-              </span>
-            </span>
-          </div>
-        ))}
-      </div>
-    </section>
-  );
-}
-
 export function MysteryEnvelopes({
   isDarkTheme,
   items,
@@ -212,7 +162,9 @@ export function MysteryEnvelopes({
                 <span className="min-w-0">
                   <span className="line-clamp-1 text-[14px] font-black">{item.title}</span>
                   <span className={`mt-0.5 block text-[12px] font-semibold ${mutedClass}`}>
-                    Open the sealed update
+                    {item.href === "/notifications"
+                      ? "Review grouped updates"
+                      : "Open the sealed update"}
                   </span>
                 </span>
               </span>

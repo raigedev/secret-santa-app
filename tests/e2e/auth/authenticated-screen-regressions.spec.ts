@@ -97,6 +97,9 @@ const AUTHENTICATED_SCREEN_CASES: ScreenCase[] = [
     assertVisible: async (page) => {
       await expect(page.getByRole("button", { name: /open profile menu/i })).toBeVisible();
       await expect(page.getByRole("heading", { name: /group snapshot/i })).toBeVisible();
+      await expect(page.getByRole("heading", { name: /mystery envelopes/i })).toBeVisible();
+      await expect(page.getByText(/quick start checklist/i)).toHaveCount(0);
+      await expect(page.getByText(/notification highlights/i)).toHaveCount(0);
       await expect(page.getByText(/\b0 days left\b/i)).toHaveCount(0);
       await expectBadgeClearOfBellIcon(page, "app-shell-notification-badge");
 

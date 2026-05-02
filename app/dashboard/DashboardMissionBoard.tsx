@@ -3,7 +3,6 @@ import {
   getExchangeDaysUntilEvent,
   type ExchangeLifecycleStep,
 } from "@/lib/exchange-lifecycle";
-import { formatDashboardBudget, formatDashboardDate } from "./dashboard-formatters";
 import { ArrowRightIcon } from "./dashboard-icons";
 import {
   GiftPanicBanner,
@@ -11,8 +10,6 @@ import {
   MissionStepNode,
   MysteryEnvelopes,
   OwnerExchangeHealth,
-  QuickStartChecklist,
-  type QuickStartItem,
 } from "./DashboardMissionBoardPanels";
 import { MemoryBookPreview } from "./DashboardMissionMemoryBook";
 import type {
@@ -100,34 +97,6 @@ export function DashboardMissionBoard({
   const missionSteps = lifecycle.steps.filter((step) =>
     ["setup", "invites", "draw", "giftDay"].includes(step.id)
   );
-  const budgetLabel = focusGroup
-    ? formatDashboardBudget(focusGroup.budget, focusGroup.currency)
-    : null;
-  const quickStartItems: QuickStartItem[] = [
-    {
-      done: Boolean(focusGroup),
-      helper: focusGroup?.name || "Create your first exchange.",
-      label: "Name group",
-    },
-    {
-      done: Boolean(budgetLabel),
-      helper: budgetLabel || "Set a gift budget.",
-      label: "Set budget",
-    },
-    {
-      done: Boolean(focusGroup?.event_date),
-      helper: focusGroup ? formatDashboardDate(focusGroup.event_date) : "Pick the gift day.",
-      label: "Pick date",
-    },
-    {
-      done: Boolean(focusGroup && (memberCount >= 2 || pendingInviteCount > 0)),
-      helper:
-        pendingInviteCount > 0
-          ? `${pendingInviteCount} invite${pendingInviteCount === 1 ? "" : "s"} waiting`
-          : `${memberCount} member${memberCount === 1 ? "" : "s"}`,
-      label: "Invite members",
-    },
-  ];
   const healthRows = [
     {
       label: "Invites accepted",
@@ -228,7 +197,6 @@ export function DashboardMissionBoard({
             healthRows={healthRows}
             isDarkTheme={isDarkTheme}
           />
-          <QuickStartChecklist items={quickStartItems} isDarkTheme={isDarkTheme} />
         </aside>
       </div>
 
