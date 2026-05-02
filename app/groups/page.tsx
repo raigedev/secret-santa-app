@@ -13,6 +13,7 @@ import { DashboardGroupsSection } from "@/app/dashboard/DashboardGroupsSection";
 import { DashboardStatusMessage } from "@/app/dashboard/DashboardStatusMessage";
 import type { ActionMessage, Group } from "@/app/dashboard/dashboard-types";
 import { deleteGroup } from "@/app/group/[id]/actions";
+import { GroupDeleteDialog, type DeleteGroupTarget } from "@/app/groups/GroupDeleteDialog";
 import { isGroupInHistory } from "@/lib/groups/history";
 import { createClient } from "@/lib/supabase/client";
 
@@ -34,6 +35,10 @@ export default function GroupsPage() {
   const [loading, setLoading] = useState(true);
   const [actionMessage, setActionMessage] = useState<ActionMessage>(null);
   const [deletingGroupId, setDeletingGroupId] = useState<string | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<DeleteGroupTarget | null>(null);
+  const [deleteConfirmName, setDeleteConfirmName] = useState("");
+  const [deleteDialogMessage, setDeleteDialogMessage] = useState<ActionMessage>(null);
+  const deleteTriggerRef = useRef<HTMLElement | null>(null);
   const mountedRef = useRef(false);
   const loadVersionRef = useRef(0);
   const sessionUserRef = useRef<GroupsPageUser | null>(null);
@@ -216,42 +221,65 @@ export default function GroupsPage() {
   }, [loadGroups, router, supabase]);
 
   const handleDeleteGroup = async (groupId: string, groupName: string) => {
-    const confirmed = confirm(
-      `Delete "${groupName}"?\n\nThis permanently removes the group, members, wishlists, messages, and draw details.`
-    );
-
-    if (!confirmed) {
+    if (deletingGroupId) {
       return;
     }
 
-    const typedName = prompt(
-      `Type the group name exactly to confirm deletion:\n\n${groupName}`,
-      ""
-    );
-
-    if (typedName === null) {
-      return;
-    }
-
-    setDeletingGroupId(groupId);
+    deleteTriggerRef.current =
+      document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    setDeleteTarget({ id: groupId, name: groupName });
+    setDeleteConfirmName("");
+    setDeleteDialogMessage(null);
     setActionMessage(null);
+  };
+
+  const closeDeleteDialog = () => {
+    if (deletingGroupId) {
+      return;
+    }
+
+    setDeleteTarget(null);
+    setDeleteConfirmName("");
+    setDeleteDialogMessage(null);
+    requestAnimationFrame(() => {
+      deleteTriggerRef.current?.focus();
+    });
+  };
+
+  const confirmDeleteGroup = async () => {
+    if (!deleteTarget) {
+      return;
+    }
+
+    if (deleteConfirmName.trim() !== deleteTarget.name.trim()) {
+      setDeleteDialogMessage({
+        type: "error",
+        text: "Type the group name exactly to delete it.",
+      });
+      return;
+    }
+
+    setDeletingGroupId(deleteTarget.id);
+    setActionMessage(null);
+    setDeleteDialogMessage(null);
 
     try {
-      const result = await deleteGroup(groupId, typedName);
-      setActionMessage({
-        type: result.success ? "success" : "error",
-        text: result.message,
-      });
+      const result = await deleteGroup(deleteTarget.id, deleteConfirmName);
 
       if (result.success) {
+        setDeleteTarget(null);
+        setDeleteConfirmName("");
         clearDashboardSnapshots();
         const sessionUser = sessionUserRef.current;
         if (sessionUser) {
-          void loadGroups(sessionUser);
+          await loadGroups(sessionUser);
         }
+        setActionMessage({ type: "success", text: result.message });
+      } else {
+        setDeleteDialogMessage({ type: "error", text: result.message });
       }
     } catch {
-      setActionMessage({
+      setDeleteDialogMessage({
         type: "error",
         text: "Failed to delete the group. Please try again.",
       });
@@ -282,6 +310,17 @@ export default function GroupsPage() {
           onOpenGroup={(groupId) => router.push(`/group/${groupId}`)}
         />
       </div>
+      {deleteTarget && (
+        <GroupDeleteDialog
+          confirmName={deleteConfirmName}
+          deleting={deletingGroupId === deleteTarget.id}
+          message={deleteDialogMessage}
+          target={deleteTarget}
+          onCancel={closeDeleteDialog}
+          onConfirm={() => void confirmDeleteGroup()}
+          onConfirmNameChange={setDeleteConfirmName}
+        />
+      )}
     </main>
   );
 }

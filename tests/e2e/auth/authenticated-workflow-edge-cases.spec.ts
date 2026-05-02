@@ -235,6 +235,38 @@ test.describe("authenticated workflow edge cases", () => {
     await expectOnlyCurrentSidebarLink(page.getByTestId("shopping-ideas-sidebar"), /^gift progress$/i);
   });
 
+  test("my groups delete requires an in-page exact-name confirmation", async ({
+    page,
+  }, testInfo) => {
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await loginWithTestCredentials(page, credentials!);
+    await page.goto("/groups");
+    await expect(page.getByRole("heading", { name: /your groups/i })).toBeVisible();
+
+    const deleteButton = page.getByRole("button", { name: /^delete$/i }).first();
+    if (!(await deleteButton.isVisible({ timeout: 5000 }).catch(() => false))) {
+      testInfo.annotations.push({
+        type: "edge-case-note",
+        description: "Seeded account has no owned group delete button right now.",
+      });
+      return;
+    }
+
+    await deleteButton.click();
+    const dialog = page.getByRole("dialog", { name: /delete .+\?/i });
+    await expect(dialog).toBeVisible();
+    await expect(dialog.getByText(/type the group name to confirm/i)).toBeVisible();
+    await expect(dialog.getByRole("button", { name: /delete forever/i })).toBeDisabled();
+
+    await dialog.getByLabel(/type the group name/i).fill("__not_the_group_name__");
+    await expect(dialog.getByRole("button", { name: /delete forever/i })).toBeEnabled();
+    await dialog.getByRole("button", { name: /delete forever/i }).click();
+    await expect(dialog.getByText(/type the group name exactly/i)).toBeVisible();
+
+    await dialog.getByRole("button", { name: /keep group/i }).click();
+    await expect(dialog).toHaveCount(0);
+  });
+
   test("group scoped routes select their matching shared sidebar item", async ({ page }) => {
     test.skip(!groupId, GROUP_BLOCKED_MESSAGE);
 

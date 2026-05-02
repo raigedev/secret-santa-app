@@ -24,6 +24,7 @@ function sanitize(input: string, max: number): string {
 
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const ALLOWED_CURRENCIES = new Set(["USD", "EUR", "GBP", "PHP", "JPY", "AUD", "CAD"]);
+const GROUP_DELETE_CONFIRM_MAX_LENGTH = 100;
 
 function buildInviteToken(): string {
   return randomBytes(24).toString("base64url");
@@ -1205,6 +1206,18 @@ export async function deleteGroup(
     return { success: false, message: "Invalid group ID." };
   }
 
+  if (
+    typeof confirmName !== "string" ||
+    confirmName.length > GROUP_DELETE_CONFIRM_MAX_LENGTH
+  ) {
+    return { success: false, message: "Group name does not match. Please type it exactly." };
+  }
+
+  const cleanConfirmName = confirmName.trim();
+  if (!cleanConfirmName) {
+    return { success: false, message: "Group name does not match. Please type it exactly." };
+  }
+
   const context = await requireRateLimitedAction({
     action: "group.delete",
     maxAttempts: 5,
@@ -1219,21 +1232,40 @@ export async function deleteGroup(
   }
 
   const { supabase, user } = context;
-  const { data: group } = await supabase
+  const { data: group, error: groupLookupError } = await supabase
     .from("groups")
     .select("owner_id, name")
     .eq("id", groupId)
-    .single();
+    .maybeSingle();
+
+  if (groupLookupError) {
+    await recordServerFailure({
+      actorUserId: user.id,
+      errorMessage: groupLookupError.message,
+      eventType: "group.delete.lookup",
+      resourceId: groupId,
+      resourceType: "group",
+    });
+
+    return { success: false, message: "Failed to check group ownership. Please try again." };
+  }
 
   if (!group || group.owner_id !== user.id) {
     return { success: false, message: "Only the group owner can delete this group." };
   }
 
-  if (confirmName.trim().toLowerCase() !== group.name.trim().toLowerCase()) {
+  const expectedGroupName = typeof group.name === "string" ? group.name.trim() : "";
+  if (cleanConfirmName !== expectedGroupName) {
     return { success: false, message: "Group name does not match. Please type it exactly." };
   }
 
-  const { error } = await supabase.from("groups").delete().eq("id", groupId);
+  const { data: deletedGroup, error } = await supabaseAdmin
+    .from("groups")
+    .delete()
+    .eq("id", groupId)
+    .eq("owner_id", user.id)
+    .select("id")
+    .maybeSingle();
 
   if (error) {
     await recordServerFailure({
@@ -1245,6 +1277,18 @@ export async function deleteGroup(
     });
 
     return { success: false, message: "Failed to delete group. Please try again." };
+  }
+
+  if (!deletedGroup) {
+    await recordServerFailure({
+      actorUserId: user.id,
+      errorMessage: "Delete returned no matching group after owner verification.",
+      eventType: "group.delete.empty_result",
+      resourceId: groupId,
+      resourceType: "group",
+    });
+
+    return { success: false, message: "This group was not deleted. Refresh and try again." };
   }
 
   await recordAuditEvent({
