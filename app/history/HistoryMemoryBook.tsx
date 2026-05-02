@@ -23,9 +23,11 @@ export type HistoryAssignmentSummary = {
 };
 
 type HistoryMemoryBookProps = {
+  deletingGroupId: string | null;
   deletingWishlistItemId: string | null;
   groups: Group[];
   message: string;
+  onDeleteGroup: (groupId: string, groupName: string) => void | Promise<void>;
   onDeleteWishlistItem: (itemId: string, itemName: string) => void | Promise<void>;
   onOpenGroup: (groupId: string) => void;
   onSelectGroup: (groupId: string) => void;
@@ -39,9 +41,11 @@ function formatHistoryBudget(group: Group): string {
 }
 
 export function HistoryMemoryBook({
+  deletingGroupId,
   deletingWishlistItemId,
   groups,
   message,
+  onDeleteGroup,
   onDeleteWishlistItem,
   onOpenGroup,
   onSelectGroup,
@@ -241,6 +245,17 @@ export function HistoryMemoryBook({
                 View result card
                 <ArrowRightIcon />
               </button>
+              {selectedGroup.isOwner && (
+                <button
+                  type="button"
+                  onClick={() => void onDeleteGroup(selectedGroup.id, selectedGroup.name)}
+                  disabled={deletingGroupId === selectedGroup.id}
+                  className="mt-3 inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-full bg-[#a43c3f]/10 px-5 text-sm font-black text-[#a43c3f] transition hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  <TrashIcon />
+                  {deletingGroupId === selectedGroup.id ? "Deleting exchange" : "Delete exchange"}
+                </button>
+              )}
             </aside>
           </div>
         </div>

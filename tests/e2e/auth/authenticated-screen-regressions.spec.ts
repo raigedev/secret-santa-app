@@ -179,6 +179,17 @@ const AUTHENTICATED_SCREEN_CASES: ScreenCase[] = [
     path: "/history",
     assertVisible: async (page) => {
       await expect(page.getByRole("heading", { name: /history memory book/i })).toBeVisible();
+      const deleteExchangeButton = page.getByRole("button", { name: /delete exchange/i }).first();
+
+      if (await deleteExchangeButton.isVisible().catch(() => false)) {
+        await deleteExchangeButton.click();
+        const dialog = page.getByRole("dialog", { name: /delete .+\?/i });
+        await expect(dialog).toBeVisible();
+        await expect(dialog.getByText(/related notifications are cleared too/i)).toBeVisible();
+        await expect(dialog.getByRole("button", { name: /delete forever/i })).toBeDisabled();
+        await dialog.getByRole("button", { name: /keep group/i }).click();
+        await expect(dialog).toHaveCount(0);
+      }
     },
   },
   {

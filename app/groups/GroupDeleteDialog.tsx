@@ -110,7 +110,7 @@ export function GroupDeleteDialog({
           className="mt-3 text-sm font-semibold leading-6 text-slate-600"
         >
           This removes the group, members, wishlists, messages, draw details, and progress
-          records. This cannot be undone.
+          records. Related notifications are cleared too. This cannot be undone.
         </p>
         <label
           className="mt-5 block text-sm font-black text-slate-700"

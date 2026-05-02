@@ -8,7 +8,11 @@ import {
   loadDashboardGroups,
   splitDashboardGroups,
 } from "@/app/dashboard/dashboard-groups-data";
+import { clearDashboardSnapshots } from "@/app/dashboard/dashboard-snapshot";
 import { deleteWishlistItem } from "@/app/dashboard/wishlist-actions";
+import { deleteGroup } from "@/app/group/[id]/actions";
+import { clearGroupPageSnapshots } from "@/app/group/[id]/group-page-state";
+import { GroupDeleteDialog, type DeleteGroupTarget } from "@/app/groups/GroupDeleteDialog";
 import type { Group } from "@/app/dashboard/dashboard-types";
 import { type HistoryWishlistItem } from "@/app/history/HistoryGroupCard";
 import {
@@ -51,7 +55,11 @@ export default function HistoryPage() {
   >({});
   const [selectedGroupId, setSelectedGroupId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const [deletingGroupId, setDeletingGroupId] = useState<string | null>(null);
   const [deletingWishlistItemId, setDeletingWishlistItemId] = useState<string | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<DeleteGroupTarget | null>(null);
+  const [deleteConfirmName, setDeleteConfirmName] = useState("");
+  const [deleteDialogMessage, setDeleteDialogMessage] = useState("");
   const [message, setMessage] = useState("");
   const mountedRef = useRef(false);
   const loadVersionRef = useRef(0);
@@ -288,6 +296,76 @@ export default function HistoryPage() {
     }
   };
 
+  const handleDeleteGroup = (groupId: string, groupName: string) => {
+    setDeleteTarget({ id: groupId, name: groupName });
+    setDeleteConfirmName("");
+    setDeleteDialogMessage("");
+    setMessage("");
+  };
+
+  const closeDeleteDialog = () => {
+    if (deletingGroupId) {
+      return;
+    }
+
+    setDeleteTarget(null);
+    setDeleteConfirmName("");
+    setDeleteDialogMessage("");
+  };
+
+  const confirmDeleteGroup = async () => {
+    if (!deleteTarget) {
+      return;
+    }
+
+    setDeletingGroupId(deleteTarget.id);
+    setDeleteDialogMessage("");
+    setMessage("");
+
+    let result: Awaited<ReturnType<typeof deleteGroup>>;
+
+    try {
+      result = await deleteGroup(deleteTarget.id, deleteConfirmName);
+    } catch {
+      setDeleteDialogMessage("We could not delete that exchange. Please try again.");
+      setDeletingGroupId(null);
+      return;
+    }
+
+    if (!result.success) {
+      setDeleteDialogMessage(result.message);
+      setDeletingGroupId(null);
+      return;
+    }
+
+    setMessage(result.message);
+    clearDashboardSnapshots();
+    clearGroupPageSnapshots(deleteTarget.id);
+    setDeleteTarget(null);
+    setDeleteConfirmName("");
+    setDeleteDialogMessage("");
+    setOwnedGroups((currentGroups) =>
+      currentGroups.filter((group) => group.id !== deleteTarget.id)
+    );
+    setInvitedGroups((currentGroups) =>
+      currentGroups.filter((group) => group.id !== deleteTarget.id)
+    );
+    setPastWishlistByGroupId((currentItems) => {
+      const remainingItems = { ...currentItems };
+      delete remainingItems[deleteTarget.id];
+      return remainingItems;
+    });
+    setAssignmentSummariesByGroupId((currentSummaries) => {
+      const remainingSummaries = { ...currentSummaries };
+      delete remainingSummaries[deleteTarget.id];
+      return remainingSummaries;
+    });
+    setSelectedGroupId((currentSelectedId) =>
+      currentSelectedId === deleteTarget.id ? null : currentSelectedId
+    );
+    setDeletingGroupId(null);
+  };
+
   if (loading) {
     return <DashboardSkeleton />;
   }
@@ -312,16 +390,38 @@ export default function HistoryPage() {
   }
 
   return (
-    <HistoryMemoryBook
-      deletingWishlistItemId={deletingWishlistItemId}
-      groups={allHistoryGroups}
-      message={message}
-      onDeleteWishlistItem={handleDeletePastWishlistItem}
-      onOpenGroup={(groupId) => router.push(`/group/${groupId}`)}
-      onSelectGroup={setSelectedGroupId}
-      selectedGroup={selectedGroup}
-      summariesByGroupId={assignmentSummariesByGroupId}
-      wishlistItems={pastWishlistByGroupId[selectedGroup.id] || []}
-    />
+    <>
+      <HistoryMemoryBook
+        deletingGroupId={deletingGroupId}
+        deletingWishlistItemId={deletingWishlistItemId}
+        groups={allHistoryGroups}
+        message={message}
+        onDeleteGroup={handleDeleteGroup}
+        onDeleteWishlistItem={handleDeletePastWishlistItem}
+        onOpenGroup={(groupId) => router.push(`/group/${groupId}`)}
+        onSelectGroup={setSelectedGroupId}
+        selectedGroup={selectedGroup}
+        summariesByGroupId={assignmentSummariesByGroupId}
+        wishlistItems={pastWishlistByGroupId[selectedGroup.id] || []}
+      />
+      {deleteTarget && (
+        <GroupDeleteDialog
+          confirmName={deleteConfirmName}
+          deleting={deletingGroupId === deleteTarget.id}
+          message={
+            deleteDialogMessage
+              ? {
+                  text: deleteDialogMessage,
+                  type: "error",
+                }
+              : null
+          }
+          target={deleteTarget}
+          onCancel={closeDeleteDialog}
+          onConfirm={() => void confirmDeleteGroup()}
+          onConfirmNameChange={setDeleteConfirmName}
+        />
+      )}
+    </>
   );
 }

@@ -1265,6 +1265,12 @@ export async function deleteGroup(
     return { success: false, message: "Group name does not match. Please type it exactly." };
   }
 
+  const notificationCleanupResult = await deleteGroupScopedNotifications(groupId, user.id);
+
+  if (!notificationCleanupResult.success) {
+    return notificationCleanupResult;
+  }
+
   const { data: deletedGroup, error } = await supabaseAdmin
     .from("groups")
     .delete()
@@ -1306,6 +1312,37 @@ export async function deleteGroup(
   });
 
   return { success: true, message: "Group deleted." };
+}
+
+async function deleteGroupScopedNotifications(
+  groupId: string,
+  actorUserId: string
+): Promise<{ success: boolean; message: string }> {
+  const notificationQueries = [
+    supabaseAdmin.from("notifications").delete().filter("metadata->>groupId", "eq", groupId),
+    supabaseAdmin.from("notifications").delete().eq("link_path", `/group/${groupId}`),
+    supabaseAdmin.from("notifications").delete().eq("link_path", `/group/${groupId}/reveal`),
+  ];
+
+  const results = await Promise.all(notificationQueries);
+  const failedResult = results.find((result) => result.error);
+
+  if (failedResult?.error) {
+    await recordServerFailure({
+      actorUserId,
+      errorMessage: failedResult.error.message,
+      eventType: "group.delete.notifications",
+      resourceId: groupId,
+      resourceType: "group",
+    });
+
+    return {
+      success: false,
+      message: "Failed to clear group notifications. Please try again.",
+    };
+  }
+
+  return { success: true, message: "Group notifications cleared." };
 }
 
 export async function removeMember(
