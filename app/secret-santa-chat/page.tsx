@@ -4,6 +4,7 @@ import { useCallback, useEffect, useId, useMemo, useRef, useState } from "react"
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { ChatSkeleton } from "@/app/components/PageSkeleton";
+import { isGroupInHistory } from "@/lib/groups/history";
 import {
   clearClientSnapshots,
   hasFreshClientSnapshotMetadata,
@@ -218,6 +219,10 @@ function pickDefaultThread(availableThreads: Thread[]): Thread | null {
     availableThreads[0] ||
     null
   );
+}
+
+function isCurrentChatThread(thread: Thread): boolean {
+  return !isGroupInHistory(thread.group_gift_date);
 }
 
 function formatThreadTime(value: string): string {
@@ -934,9 +939,10 @@ export default function SecretSantaChatPage() {
         );
 
         if (cachedChat) {
-          setThreads(cachedChat.threads);
+          const cachedCurrentThreads = cachedChat.threads.filter(isCurrentChatThread);
+          setThreads(cachedCurrentThreads);
           if (!activeThreadRef.current) {
-            setActiveThread(pickDefaultThread(cachedChat.threads));
+            setActiveThread(pickDefaultThread(cachedCurrentThreads));
           }
           setThreadListMessage(null);
           hasLoadedThreadsRef.current = true;
@@ -1020,6 +1026,11 @@ export default function SecretSantaChatPage() {
       const groupGiftDateById = new Map(
         ((groupsData || []) as GroupRow[]).map((group) => [group.id, group.event_date || ""])
       );
+      const currentChatGroupIds = new Set(
+        ((groupsData || []) as GroupRow[])
+          .filter((group) => !isGroupInHistory(group.event_date))
+          .map((group) => group.id)
+      );
       const receiverNameByGroupUser = new Map(
         memberNicknames.map((member) => [
           createGroupUserKey(member.group_id, member.user_id),
@@ -1035,6 +1046,10 @@ export default function SecretSantaChatPage() {
       const buildThreads: Thread[] = [];
 
       for (const a of giverRows) {
+        if (!currentChatGroupIds.has(a.group_id)) {
+          continue;
+        }
+
         const name =
           receiverNameByGroupUser.get(createGroupUserKey(a.group_id, a.receiver_id)) ||
             "Member";
@@ -1058,6 +1073,10 @@ export default function SecretSantaChatPage() {
       }
 
       for (const a of receiverRows) {
+        if (!currentChatGroupIds.has(a.group_id)) {
+          continue;
+        }
+
         const threadMeta = threadMetaByKey.get(
           createThreadKey(a.group_id, a.giver_id, a.receiver_id)
         );

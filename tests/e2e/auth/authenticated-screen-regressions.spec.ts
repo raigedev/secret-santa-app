@@ -246,6 +246,8 @@ const AUTHENTICATED_SCREEN_CASES: ScreenCase[] = [
       await expect(page.getByRole("heading", { name: /secret threads/i })).toBeVisible();
       await page.waitForTimeout(1000);
       await expect(page.getByText(/we could not load your chats/i)).toHaveCount(0);
+      await expect(page.getByText(/history ready/i)).toHaveCount(0);
+      await expect(page.getByText(/ready for history/i)).toHaveCount(0);
       await expect(page.getByRole("button", { name: /^dashboard$/i })).toHaveCount(0);
 
       const headingColor = await pageHeading.evaluate(
