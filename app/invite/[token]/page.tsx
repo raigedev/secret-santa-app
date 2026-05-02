@@ -2,7 +2,11 @@ import Link from "next/link";
 import { createHash } from "crypto";
 import { redirect } from "next/navigation";
 import { getEmailVerificationMessage, isUserEmailVerified } from "@/lib/auth/user-status";
-import { sanitizeGroupNickname, validateAnonymousGroupNickname } from "@/lib/groups/nickname";
+import {
+  getDefaultGroupNicknameFromEmail,
+  sanitizeGroupNickname,
+  validateAnonymousGroupNickname,
+} from "@/lib/groups/nickname";
 import {
   countActiveGroupSlots,
   getGroupCapacityMessage,
@@ -313,7 +317,7 @@ async function joinGroupViaInviteToken(
     }
   }
 
-  const defaultNickname = normalizedEmail.split("@")[0] || "member";
+  const defaultNickname = getDefaultGroupNicknameFromEmail(normalizedEmail);
 
   const { data: memberships, error: membershipsError } = await supabaseAdmin
     .from("group_members")

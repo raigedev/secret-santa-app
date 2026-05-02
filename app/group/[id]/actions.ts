@@ -9,7 +9,11 @@ import {
 import { getServerActionContext, requireRateLimitedAction } from "@/lib/auth/server-action-context";
 import { groupHasDrawStarted } from "@/lib/groups/draw-state";
 import { buildInviteLinkExpiresAt } from "@/lib/groups/invite-links.mjs";
-import { sanitizeGroupNickname, validateAnonymousGroupNickname } from "@/lib/groups/nickname";
+import {
+  getDefaultGroupNicknameFromEmail,
+  sanitizeGroupNickname,
+  validateAnonymousGroupNickname,
+} from "@/lib/groups/nickname";
 import { hasDeclinedInviteResendTarget } from "@/lib/groups/resend-invite.mjs";
 import { recordAuditEvent, recordServerFailure } from "@/lib/security/audit";
 import { createNotification, createNotifications } from "@/lib/notifications";
@@ -306,7 +310,9 @@ export async function inviteUser(
       group_id: groupId,
       user_id: existingUserId,
       email: cleanEmail,
-      nickname: group.require_anonymous_nickname ? null : cleanEmail.split("@")[0],
+      nickname: group.require_anonymous_nickname
+        ? null
+        : getDefaultGroupNicknameFromEmail(cleanEmail),
       role: "member",
       status: "pending",
     },

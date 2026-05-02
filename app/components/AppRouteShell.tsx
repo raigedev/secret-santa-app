@@ -523,8 +523,8 @@ export default function AppRouteShell({ children }: { children: ReactNode }) {
         [data-app-shell-content] > main > header {
           display: none !important;
         }
-        [data-app-shell-content] > main > [class*="absolute"][class*="inset-0"],
-        [data-app-shell-content] > main > [class*="fixed"][class*="inset-0"] {
+        [data-app-shell-content] > main > [class*="absolute"][class*="inset-0"]:not([data-app-modal="true"]),
+        [data-app-shell-content] > main > [class*="fixed"][class*="inset-0"]:not([data-app-modal="true"]) {
           display: none !important;
         }
       `}</style>

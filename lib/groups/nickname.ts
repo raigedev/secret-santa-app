@@ -12,6 +12,14 @@ export function sanitizeGroupNickname(input: string): string {
   return sanitizePlainText(input, NICKNAME_MAX_LENGTH);
 }
 
+export function getDefaultGroupNicknameFromEmail(
+  email: string | null | undefined,
+  fallbackLabel = "member"
+): string {
+  const emailName = email?.split("@")[0] || "";
+  return sanitizeGroupNickname(emailName) || fallbackLabel;
+}
+
 export function getAnonymousGroupDisplayName(
   nickname: string | null | undefined,
   fallbackLabel = "Member"

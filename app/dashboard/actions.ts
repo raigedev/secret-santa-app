@@ -2,7 +2,11 @@
 
 import { recordServerFailure } from "@/lib/security/audit";
 import { ELIGIBLE_EMAIL_INVITE_STATUSES } from "@/lib/groups/invite-claim.mjs";
-import { sanitizeGroupNickname, validateAnonymousGroupNickname } from "@/lib/groups/nickname";
+import {
+  getDefaultGroupNicknameFromEmail,
+  sanitizeGroupNickname,
+  validateAnonymousGroupNickname,
+} from "@/lib/groups/nickname";
 import { createNotification } from "@/lib/notifications";
 import {
   requireRateLimitedAction,
@@ -262,7 +266,7 @@ export async function acceptInvite(
   if (requiresAnonymousNickname) {
     membershipUpdate.nickname = cleanNickname;
   } else if (!membership.nickname) {
-    membershipUpdate.nickname = normalizedEmail.split("@")[0] || "member";
+    membershipUpdate.nickname = getDefaultGroupNicknameFromEmail(normalizedEmail);
   }
 
   const { error } = await supabaseAdmin

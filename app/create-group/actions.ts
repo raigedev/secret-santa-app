@@ -1,6 +1,7 @@
 "use server";
 
 import {
+  getDefaultGroupNicknameFromEmail,
   sanitizeGroupNickname,
   validateAnonymousGroupNickname,
 } from "@/lib/groups/nickname";
@@ -201,7 +202,7 @@ export async function createGroupWithInvites(
   const ownerEmail = (user.email || "").toLowerCase();
   const ownerNickname = requireAnonymousNickname
     ? cleanOwnerCodename
-    : ownerEmail.split("@")[0] || "owner";
+    : getDefaultGroupNicknameFromEmail(ownerEmail, "owner");
 
   const memberRows = [
     {
@@ -216,7 +217,7 @@ export async function createGroupWithInvites(
       group_id: newGroup.id,
       user_id: null,
       email,
-      nickname: requireAnonymousNickname ? null : email.split("@")[0],
+      nickname: requireAnonymousNickname ? null : getDefaultGroupNicknameFromEmail(email),
       role: "member",
       status: "pending",
     })),

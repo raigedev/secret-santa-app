@@ -243,6 +243,22 @@ test.describe("authenticated workflow edge cases", () => {
     await page.goto("/groups");
     await expect(page.getByRole("heading", { name: /your groups/i })).toBeVisible();
 
+    const appModalDisplay = await page.evaluate(() => {
+      const pageMain = document.querySelector<HTMLElement>("[data-app-shell-content] > main");
+      if (!pageMain) {
+        return "missing-main";
+      }
+
+      const modalProbe = document.createElement("div");
+      modalProbe.dataset.appModal = "true";
+      modalProbe.className = "fixed inset-0";
+      pageMain.append(modalProbe);
+      const display = window.getComputedStyle(modalProbe).display;
+      modalProbe.remove();
+      return display;
+    });
+    expect(appModalDisplay).not.toBe("none");
+
     const deleteButton = page.getByRole("button", { name: /^delete$/i }).first();
     if (!(await deleteButton.isVisible({ timeout: 5000 }).catch(() => false))) {
       testInfo.annotations.push({

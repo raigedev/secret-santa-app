@@ -83,6 +83,7 @@ export function GroupDeleteDialog({
 
   return (
     <div
+      data-app-modal="true"
       className="fixed inset-0 z-50 flex items-center justify-center bg-[#2e3432]/35 px-4 py-6 backdrop-blur-sm"
       role="presentation"
     >
