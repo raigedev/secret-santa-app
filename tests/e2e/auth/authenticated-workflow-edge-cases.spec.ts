@@ -31,7 +31,7 @@ const SHARED_NAVIGATION_CASES: NavigationCase[] = [
     expectedHref: /\/dashboard$/,
     expectedUrl: /\/dashboard$/,
     ready: async (page) => {
-      await expect(page.getByRole("heading", { name: /group snapshot/i })).toBeVisible();
+      await expect(page.getByRole("heading", { name: /active exchanges/i })).toBeVisible();
     },
   },
   {

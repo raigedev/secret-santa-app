@@ -18,17 +18,11 @@ import {
   getNotificationPreviewTitle,
   normalizeGiftProgressStep,
 } from "./dashboard-formatters";
-import { DashboardActivitySection } from "./DashboardActivitySection";
 import { DashboardBackdrop } from "./DashboardBackdrop";
-import { DashboardGroupsOverview } from "./DashboardGroupsOverview";
 import { DashboardHeader } from "./DashboardHeader";
-import { DashboardHero } from "./DashboardHero";
-import { DashboardInvitesSection } from "./DashboardInvitesSection";
-import { DashboardMissionBoard } from "./DashboardMissionBoard";
 import { DashboardNotificationsPanel } from "./DashboardNotificationsPanel";
+import { DashboardPreviewWorkspace } from "./DashboardPreviewWorkspace";
 import { DashboardProfileMenu } from "./DashboardProfileMenu";
-import { DashboardQuickActions } from "./DashboardQuickActions";
-import { DashboardSidebar } from "./DashboardSidebar";
 import { DashboardStatusMessage } from "./DashboardStatusMessage";
 import { useDashboardProfileMenu } from "./useDashboardProfileMenu";
 import { useDashboardRoutePrefetch } from "./useDashboardRoutePrefetch";
@@ -179,12 +173,8 @@ export default function DashboardPage() {
   const [recipientNames, setRecipientNames] = useState<string[]>([]);
   const [unreadNotificationCount, setUnreadNotificationCount] = useState(0);
   const [wishlistItemCount, setWishlistItemCount] = useState(0);
-  const [wishlistGroupCount, setWishlistGroupCount] = useState(0);
   const [giftProgressSummary, setGiftProgressSummary] = useState<GiftProgressSummary | null>(null);
   const [activityFeedItems, setActivityFeedItems] = useState<DashboardActivityItem[]>([]);
-  const [notificationPreviewItems, setNotificationPreviewItems] = useState<
-    DashboardNotificationPreviewItem[]
-  >([]);
   const [dashboardTheme, setDashboardTheme] = useState<DashboardTheme>(() =>
     readStoredDashboardTheme()
   );
@@ -289,10 +279,8 @@ export default function DashboardPage() {
       setRecipientNames(snapshot.recipientNames);
       setUnreadNotificationCount(snapshot.unreadNotificationCount);
       setWishlistItemCount(snapshot.wishlistItemCount);
-      setWishlistGroupCount(snapshot.wishlistGroupCount);
       setGiftProgressSummary(snapshot.giftProgressSummary);
       setActivityFeedItems(snapshot.activityFeedItems);
-      setNotificationPreviewItems(snapshot.notificationPreviewItems);
       setLoading(false);
     };
 
@@ -364,10 +352,8 @@ export default function DashboardPage() {
           setPendingInvites([]);
           setRecipientNames([]);
           setWishlistItemCount(0);
-          setWishlistGroupCount(0);
           setGiftProgressSummary(null);
           setActivityFeedItems([]);
-          setNotificationPreviewItems([]);
           writeDashboardSnapshot({
             createdAt: Date.now(),
             userId: user.id,
@@ -566,7 +552,6 @@ export default function DashboardPage() {
         setRecipientNames(nextRecipientNames);
         setWishlistItemCount(wishlistSummary.length);
         const nextWishlistGroupCount = new Set(wishlistSummary.map((row) => row.group_id)).size;
-        setWishlistGroupCount(nextWishlistGroupCount);
         let nextGiftProgressSummary: GiftProgressSummary | null = null;
 
         if (myAssignments.length > 0) {
@@ -670,7 +655,6 @@ export default function DashboardPage() {
         }));
 
         setActivityFeedItems(feedItems);
-        setNotificationPreviewItems(nextNotificationPreviewItems);
         setPendingInvites(nextPendingInvites);
 
         const defaultDisplayName = email.split("@")[0];
@@ -1106,62 +1090,28 @@ export default function DashboardPage() {
       <FadeIn className="relative z-10 mx-auto w-full max-w-7xl px-4 pb-24 pt-8 sm:px-6 lg:px-8">
         <DashboardStatusMessage message={actionMessage} />
 
-        <DashboardHero
-          displayFirstName={displayFirstName}
-          isDarkTheme={isDarkTheme}
-          revealMessage={revealMessage}
-        />
-
-        <DashboardMissionBoard
+        <DashboardPreviewWorkspace
+          activityFeedItems={activityFeedItems}
           countdownNow={countdownNow}
+          displayFirstName={displayFirstName}
           giftProgressSummary={giftProgressSummary}
           groups={allDashboardGroups}
-          isDarkTheme={isDarkTheme}
-          notificationPreviewItems={notificationPreviewItems}
-          pendingInviteCount={pendingInvites.length}
-          recipientCount={recipientNames.length}
-          wishlistItemCount={wishlistItemCount}
-          onNavigate={(path) => router.push(path)}
-        />
-
-        <DashboardInvitesSection pendingInvites={pendingInvites} />
-
-        <DashboardQuickActions
           hasAssignments={hasAssignments}
           isDarkTheme={isDarkTheme}
+          pendingInvites={pendingInvites}
+          recipientCount={recipientNames.length}
+          revealMessage={revealMessage}
+          unreadNotificationCount={unreadNotificationCount}
+          wishlistItemCount={wishlistItemCount}
           onCreateGroup={() => router.push("/create-group")}
           onOpenChat={() => router.push("/secret-santa-chat")}
+          onOpenGiftProgress={() => router.push("/gift-tracking")}
+          onOpenGroup={handleOpenGroup}
+          onOpenGroups={() => router.push("/groups")}
+          onOpenPath={(path) => router.push(path)}
           onOpenSecretSanta={() => router.push("/secret-santa")}
+          onOpenWishlist={() => router.push("/wishlist")}
         />
-
-        <section data-fade className="grid items-start gap-10 lg:grid-cols-[minmax(0,1fr)_360px]">
-          <div className="space-y-12">
-            <DashboardGroupsOverview
-              countdownNow={countdownNow}
-              invitedGroups={invitedGroups}
-              isDarkTheme={isDarkTheme}
-              ownedGroups={ownedGroups}
-              onCreateGroup={() => router.push("/create-group")}
-              onOpenGroup={handleOpenGroup}
-              onOpenGroups={() => router.push("/groups")}
-            />
-
-            <DashboardActivitySection
-              activityFeedItems={activityFeedItems}
-              isDarkTheme={isDarkTheme}
-              onOpenPath={(path) => router.push(path)}
-            />
-          </div>
-
-          <DashboardSidebar
-            giftProgressSummary={giftProgressSummary}
-            isDarkTheme={isDarkTheme}
-            wishlistGroupCount={wishlistGroupCount}
-            wishlistItemCount={wishlistItemCount}
-            onGoGiftProgress={() => router.push("/gift-tracking")}
-            onGoWishlist={() => router.push("/wishlist")}
-          />
-        </section>
 
       </FadeIn>
     </main>
