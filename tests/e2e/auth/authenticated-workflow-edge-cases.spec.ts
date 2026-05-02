@@ -256,12 +256,19 @@ test.describe("authenticated workflow edge cases", () => {
     const dialog = page.getByRole("dialog", { name: /delete .+\?/i });
     await expect(dialog).toBeVisible();
     await expect(dialog.getByText(/type the group name to confirm/i)).toBeVisible();
-    await expect(dialog.getByRole("button", { name: /delete forever/i })).toBeDisabled();
+    const confirmInput = dialog.getByLabel(/type the group name/i);
+    const deleteForeverButton = dialog.getByRole("button", { name: /delete forever/i });
+    await expect(deleteForeverButton).toBeDisabled();
 
-    await dialog.getByLabel(/type the group name/i).fill("__not_the_group_name__");
-    await expect(dialog.getByRole("button", { name: /delete forever/i })).toBeEnabled();
-    await dialog.getByRole("button", { name: /delete forever/i }).click();
-    await expect(dialog.getByText(/type the group name exactly/i)).toBeVisible();
+    await confirmInput.fill("__not_the_group_name__");
+    await expect(deleteForeverButton).toBeDisabled();
+    await expect(dialog.getByText(/match the exact group name/i)).toBeVisible();
+
+    const exactGroupName = await confirmInput.getAttribute("placeholder");
+    if (exactGroupName) {
+      await confirmInput.fill(exactGroupName);
+      await expect(deleteForeverButton).toBeEnabled();
+    }
 
     await dialog.getByRole("button", { name: /keep group/i }).click();
     await expect(dialog).toHaveCount(0);

@@ -29,6 +29,7 @@ export function GroupDeleteDialog({
 }: GroupDeleteDialogProps) {
   const dialogRef = useRef<HTMLElement | null>(null);
   const inputRef = useRef<HTMLInputElement | null>(null);
+  const confirmationMatches = confirmName.trim() === target.name.trim();
 
   useEffect(() => {
     const focusInputFrame = requestAnimationFrame(() => {
@@ -126,6 +127,11 @@ export function GroupDeleteDialog({
           autoComplete="off"
           placeholder={target.name}
         />
+        {!confirmationMatches && confirmName.trim().length > 0 && (
+          <p className="mt-2 text-xs font-bold text-slate-500" role="status">
+            Match the exact group name, including capitalization and spacing.
+          </p>
+        )}
         {message && (
           <p
             className={`mt-3 rounded-2xl px-4 py-3 text-sm font-bold ${
@@ -150,7 +156,7 @@ export function GroupDeleteDialog({
           <button
             type="button"
             onClick={onConfirm}
-            disabled={deleting || confirmName.trim().length === 0}
+            disabled={deleting || !confirmationMatches}
             className="inline-flex min-h-11 items-center justify-center rounded-full bg-[#a43c3f] px-5 text-sm font-black text-white shadow-[0_14px_28px_rgba(164,60,63,0.18)] transition hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-60"
           >
             {deleting ? "Deleting" : "Delete forever"}

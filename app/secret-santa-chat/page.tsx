@@ -41,7 +41,7 @@ type MembershipRow = {
 type GroupRow = {
   id: string;
   name: string | null;
-  gift_date: string | null;
+  event_date: string | null;
 };
 
 type AssignmentRow = {
@@ -978,7 +978,7 @@ export default function SecretSantaChatPage() {
         { data: allMessages, error: messagesError },
         { data: readTimestamps, error: readTimestampsError },
       ] = await Promise.all([
-        supabase.from("groups").select("id, name, gift_date").in("id", groupIds),
+        supabase.from("groups").select("id, name, event_date").in("id", groupIds),
         supabase.from("assignments").select("group_id, giver_id, receiver_id").eq("giver_id", user.id).in("group_id", groupIds),
         supabase.from("assignments").select("group_id, giver_id, receiver_id").eq("receiver_id", user.id).in("group_id", groupIds),
         supabase.from("messages").select("group_id, thread_giver_id, thread_receiver_id, sender_id, content, created_at").in("group_id", groupIds).order("created_at", { ascending: false }),
@@ -1018,7 +1018,7 @@ export default function SecretSantaChatPage() {
         ((groupsData || []) as GroupRow[]).map((group) => [group.id, group.name || "Unknown"])
       );
       const groupGiftDateById = new Map(
-        ((groupsData || []) as GroupRow[]).map((group) => [group.id, group.gift_date || ""])
+        ((groupsData || []) as GroupRow[]).map((group) => [group.id, group.event_date || ""])
       );
       const receiverNameByGroupUser = new Map(
         memberNicknames.map((member) => [
