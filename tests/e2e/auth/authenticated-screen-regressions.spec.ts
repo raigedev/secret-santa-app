@@ -239,11 +239,11 @@ const AUTHENTICATED_SCREEN_CASES: ScreenCase[] = [
     path: "/secret-santa-chat",
     assertVisible: async (page) => {
       const chatPage = page.getByTestId("secret-santa-chat-page");
-      const pageHeading = page.getByRole("heading", { name: /^wrap-up window$/i }).first();
+      const pageHeading = page.getByRole("heading", { name: /^secret messages$/i }).first();
       await expect(chatPage).toBeVisible();
       await expect(pageHeading).toBeVisible();
-      await expect(page.getByText(/group labels stay visible on every thread/i)).toBeVisible();
-      await expect(page.getByRole("heading", { name: /secret threads/i })).toBeVisible();
+      await expect(page.getByText(/writing to your giftee or your Secret Santa/i)).toBeVisible();
+      await expect(page.getByRole("heading", { name: /gift chats/i })).toBeVisible();
       await page.waitForTimeout(1000);
       await expect(page.getByText(/we could not load your chats/i)).toHaveCount(0);
       await expect(page.getByText(/history ready/i)).toHaveCount(0);

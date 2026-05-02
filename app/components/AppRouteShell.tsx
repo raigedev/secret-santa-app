@@ -167,7 +167,7 @@ function getShellSubtitle(pathname: string): string {
   }
   if (pathname === "/wishlist") return "Add gift ideas, links, sizes, and notes your Santa can shop from.";
   if (pathname === "/secret-santa-chat") {
-    return "You are Santa and your Secret Santa are separated with group labels.";
+    return "Message your giftees as their Santa, or reply to the Santa gifting you.";
   }
   if (pathname === "/notifications") return "Updates from your groups, messages, and gift reminders.";
   if (pathname === "/profile") return "Your photo, avatar, account, and preferences.";

@@ -289,9 +289,9 @@ function getGiftTimingInfo(value: string): {
 
   if (!value.trim()) {
     return {
-      label: "Group calendar",
-      detail: "The chat will show timing once the group date is set.",
-      chip: "Timing pending",
+      label: "Gift day not set",
+      detail: "Set a group gift day to show whether this chat is in planning, gift day, or wrap-up.",
+      chip: "Date needed",
       phase: "unknown",
       highlightedDay: fallbackDay,
     };
@@ -300,9 +300,9 @@ function getGiftTimingInfo(value: string): {
   const giftDate = new Date(value);
   if (Number.isNaN(giftDate.getTime())) {
     return {
-      label: "Group calendar",
-      detail: "The chat will show timing once the group date is set.",
-      chip: "Timing pending",
+      label: "Gift day not set",
+      detail: "Set a group gift day to show whether this chat is in planning, gift day, or wrap-up.",
+      chip: "Date needed",
       phase: "unknown",
       highlightedDay: fallbackDay,
     };
@@ -315,8 +315,8 @@ function getGiftTimingInfo(value: string): {
 
   if (daysUntil > 0) {
     return {
-      label: "Before gift day",
-      detail: "Use this thread for size, color, delivery, and clue questions before the exchange.",
+      label: "Planning time",
+      detail: "Ask about sizes, colors, delivery details, or hints while identities stay protected.",
       chip: daysUntil === 1 ? "1d left" : `${daysUntil}d left`,
       phase: "planning",
       highlightedDay,
@@ -326,7 +326,7 @@ function getGiftTimingInfo(value: string): {
   if (daysUntil === 0) {
     return {
       label: "Gift day",
-      detail: "Today is the exchange date. Use chat for final delivery or thank-you notes.",
+      detail: "It is gift day. Use this thread for delivery updates, quick replies, or thank-you notes.",
       chip: "Gift day",
       phase: "gift-day",
       highlightedDay,
@@ -338,8 +338,8 @@ function getGiftTimingInfo(value: string): {
 
   if (wrapUpDaysLeft > 0) {
     return {
-      label: "Wrap-up window",
-      detail: "This past event can still receive final notes before it moves to History.",
+      label: "Wrap-up time",
+      detail: "Gift day has passed, but final thank-yous and delivery notes can still be sent.",
       chip: wrapUpDaysLeft === 1 ? "1d left" : `${wrapUpDaysLeft}d left`,
       phase: "wrap-up",
       highlightedDay,
@@ -347,9 +347,9 @@ function getGiftTimingInfo(value: string): {
   }
 
   return {
-    label: "History ready",
-    detail: "This exchange is ready for History. Keep only the memories you still need.",
-    chip: "History ready",
+    label: "Ready for History",
+    detail: "This exchange has wrapped up. Save what you need, then keep the memories in History.",
+    chip: "History",
     phase: "history",
     highlightedDay,
   };
@@ -1503,8 +1503,8 @@ export default function SecretSantaChatPage() {
     : ["Share a preference", "Send thanks", "Clarify timing"];
   const filterOptions: { label: string; value: ThreadFilter }[] = [
     { label: "All", value: "all" },
-    { label: "You are Santa", value: "giver" },
-    { label: "Your Secret Santa", value: "receiver" },
+    { label: "My giftees", value: "giver" },
+    { label: "My Santa", value: "receiver" },
   ];
   const statusSteps = [
     { label: "Planning", active: selectedTiming.phase === "planning" },
@@ -1526,7 +1526,7 @@ export default function SecretSantaChatPage() {
     const isGiverThread = thread.role === "giver";
     const accent = isGiverThread ? CHAT_GREEN : CHAT_RED;
     const threadTitle = isGiverThread ? `To ${thread.other_name}` : "From your Secret Santa";
-    const threadLabel = isGiverThread ? "You are Santa" : "Your Secret Santa";
+    const threadLabel = isGiverThread ? "You are their Santa" : "Your Santa";
 
     return (
       <button
@@ -1601,10 +1601,10 @@ export default function SecretSantaChatPage() {
             </span>
             <div>
               <h1 className="text-[22px] font-black leading-tight" style={{ fontFamily: "'Fredoka','Nunito',sans-serif" }}>
-                Wrap-Up Window
+                Secret Messages
               </h1>
               <p className="mt-1 text-[12px] font-extrabold" style={{ color: "#64748b" }}>
-                You are Santa and your Secret Santa are separated with group labels.
+                Message your giftees or reply to the Santa gifting you.
               </p>
             </div>
           </div>
@@ -1630,22 +1630,22 @@ export default function SecretSantaChatPage() {
           <div className="relative flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
             <div className="max-w-2xl">
               <p className="text-[11px] font-black uppercase tracking-[0.18em]" style={{ color: "#7285a1" }}>
-                Wrap-up window
+                Private gift chats
               </p>
               <h2 className="mt-2 text-[2.3rem] font-black leading-none tracking-normal sm:text-[3.1rem]" style={{ color: CHAT_GREEN, fontFamily: "'Fredoka','Nunito',sans-serif" }}>
-                Wrap-Up Window
+                Secret Messages
               </h2>
               <p className="mt-2 text-sm font-extrabold" style={{ color: "#526174" }}>
-                Group labels stay visible on every thread, message header, and composer.
+                Each thread shows the group and whether you are writing to your giftee or your Secret Santa.
               </p>
             </div>
             <div className="flex flex-wrap gap-2">
               <span className="inline-flex items-center gap-2 rounded-full px-4 py-2 text-xs font-black text-white" style={{ background: CHAT_GREEN }}>
                 <LockLineIcon className="h-4 w-4" />
-                You are Santa: {giverThreads.length} {giverThreads.length === 1 ? "thread" : "threads"}
+                To giftees: {giverThreads.length} {giverThreads.length === 1 ? "thread" : "threads"}
               </span>
               <span className="rounded-full px-4 py-2 text-xs font-black" style={{ background: "rgba(164,60,63,.10)", color: CHAT_RED, border: "1px solid rgba(164,60,63,.18)" }}>
-                Your Secret Santa: {receiverThreads.length} {receiverThreads.length === 1 ? "thread" : "threads"}
+                From my Santa: {receiverThreads.length} {receiverThreads.length === 1 ? "thread" : "threads"}
               </span>
               <span className="rounded-full px-4 py-2 text-xs font-black" style={{ background: "rgba(252,206,114,.35)", color: "#7b5902", border: `1px solid ${CHAT_GOLD}` }}>
                 {selectedTiming.chip}
@@ -1668,9 +1668,9 @@ export default function SecretSantaChatPage() {
               <div className="mt-2 flex items-start gap-3">
                 <EnvelopeLineIcon className="mt-1 h-6 w-6 shrink-0" />
                 <div>
-                  <h2 className="text-xl font-black">Secret Threads</h2>
+                  <h2 className="text-xl font-black">Gift chats</h2>
                   <p className="mt-1 text-xs font-bold leading-5" style={{ color: CHAT_TEXT_MUTED }}>
-                    Role and group are visible before the conversation opens.
+                    Pick a thread and keep the group context visible while you chat.
                   </p>
                 </div>
               </div>
@@ -1703,7 +1703,7 @@ export default function SecretSantaChatPage() {
                   <section>
                     <div className="mb-2 flex items-center justify-between">
                       <p className="text-[11px] font-black uppercase tracking-[0.18em]" style={{ color: CHAT_GREEN }}>
-                        You are Santa
+                        My giftees
                       </p>
                       <span className="text-xs font-black">{giverThreads.length}</span>
                     </div>
@@ -1712,7 +1712,7 @@ export default function SecretSantaChatPage() {
                         giverThreads.map(renderThreadButton)
                       ) : (
                         <p className="rounded-2xl px-3 py-3 text-xs font-bold leading-5" style={{ background: CHAT_SURFACE_MUTED, color: CHAT_TEXT_MUTED }}>
-                          Your recipient chats appear after names are drawn.
+                          Giftee chats appear after names are drawn.
                         </p>
                       )}
                     </div>
@@ -1723,7 +1723,7 @@ export default function SecretSantaChatPage() {
                   <section>
                     <div className="mb-2 flex items-center justify-between">
                       <p className="text-[11px] font-black uppercase tracking-[0.18em]" style={{ color: CHAT_RED }}>
-                        Your Secret Santa
+                        My Santa
                       </p>
                       <span className="text-xs font-black">{receiverThreads.length}</span>
                     </div>
@@ -1732,7 +1732,7 @@ export default function SecretSantaChatPage() {
                         receiverThreads.map(renderThreadButton)
                       ) : (
                         <p className="rounded-2xl px-3 py-3 text-xs font-bold leading-5" style={{ background: CHAT_SURFACE_MUTED, color: CHAT_TEXT_MUTED }}>
-                          Your Secret Santa can start a private thread after names are drawn.
+                          Messages from your Santa appear here when they start a private thread.
                         </p>
                       )}
                     </div>
@@ -1753,14 +1753,14 @@ export default function SecretSantaChatPage() {
                         ? selectedIsGiver
                           ? `To ${selectedThread.other_name}`
                           : "From your Secret Santa"
-                        : "Choose a thread"}
+                        : "Choose a chat"}
                     </h2>
                     <p className="mt-1 text-xs font-black" style={{ color: CHAT_TEXT_MUTED }}>
-                      Group: {selectedThread?.group_name || "Select a Secret Thread"}
+                      Group: {selectedThread?.group_name || "Select a gift chat"}
                     </p>
                     <div className="mt-3 flex flex-wrap gap-2">
                       <span className="rounded-full px-3 py-1.5 text-[11px] font-black text-white" style={{ background: selectedIsGiver ? CHAT_GREEN : CHAT_RED }}>
-                        {selectedIsGiver ? "Writing as Secret Santa" : "Replying to your Secret Santa"}
+                        {selectedIsGiver ? "You are their Secret Santa" : "Replying to your Secret Santa"}
                       </span>
                       <span className="rounded-full px-3 py-1.5 text-[11px] font-black" style={{ background: "rgba(72,102,78,.10)", color: CHAT_GREEN }}>
                         Identity protected
@@ -1795,9 +1795,9 @@ export default function SecretSantaChatPage() {
                 ) : !selectedThread ? (
                   <div className="m-auto max-w-sm text-center">
                     <ChatLineIcon className="mx-auto h-10 w-10" />
-                    <p className="mt-4 text-xl font-black">Choose a Secret Thread</p>
+                    <p className="mt-4 text-xl font-black">Choose a gift chat</p>
                     <p className="mt-2 text-sm font-semibold leading-6" style={{ color: CHAT_TEXT_MUTED }}>
-                      Select a recipient or your Secret Santa to keep the group context visible while you chat.
+                      Pick a giftee chat or Santa thread to start messaging.
                     </p>
                   </div>
                 ) : messages.length === 0 ? (
@@ -1805,7 +1805,9 @@ export default function SecretSantaChatPage() {
                     <EnvelopeLineIcon className="mx-auto h-12 w-12" />
                     <p className="mt-4 text-xl font-black">No messages yet</p>
                     <p className="mt-2 text-sm font-semibold leading-6" style={{ color: CHAT_TEXT_MUTED }}>
-                      Start with a simple size, color, delivery, or thank-you note.
+                      {selectedIsGiver
+                        ? "Ask about sizes, colors, delivery, or hints while staying anonymous."
+                        : "Share preferences, answer questions, or send a thank-you note."}
                     </p>
                   </div>
                 ) : (
@@ -1814,7 +1816,7 @@ export default function SecretSantaChatPage() {
                     const isTemp = msg.id.startsWith("temp-");
                     const messageAuthor = isMine
                       ? selectedIsGiver
-                        ? "You as Secret Santa"
+                        ? "You as their Santa"
                         : "You"
                       : selectedIsGiver
                         ? selectedThread.other_name
@@ -1883,9 +1885,9 @@ export default function SecretSantaChatPage() {
                     placeholder={
                       selectedThread
                         ? selectedIsGiver
-                          ? `Ask ${selectedThread.other_name} in ${selectedThread.group_name}...`
-                          : `Reply inside ${selectedThread.group_name}...`
-                        : "Choose a thread first..."
+                          ? `Ask ${selectedThread.other_name} about their gift...`
+                          : `Reply to your Santa in ${selectedThread.group_name}...`
+                        : "Choose a chat first..."
                     }
                     maxLength={500}
                     className="min-h-12 w-full rounded-full px-5 text-[15px] font-semibold outline-none focus-visible:outline-2 focus-visible:outline-offset-2 disabled:cursor-not-allowed disabled:opacity-60 sm:flex-1"
@@ -1926,10 +1928,10 @@ export default function SecretSantaChatPage() {
                 <CalendarLineIcon className="mt-1 h-6 w-6 shrink-0" />
                 <div>
                   <h2 className="text-xl font-black" style={{ color: CHAT_GREEN }}>
-                    Group calendar
+                    Chat timing
                   </h2>
                   <p className="mt-1 text-xs font-bold leading-5" style={{ color: CHAT_TEXT_MUTED }}>
-                    The chat shows whether this is before gift day, wrap-up, or history.
+                    See whether this thread is before gift day, on gift day, or in wrap-up.
                   </p>
                 </div>
               </div>
