@@ -171,6 +171,36 @@ async function expectOnlyCurrentSidebarLink(sidebar: Locator, label: RegExp) {
   );
 }
 
+async function expectSantaAssistantClearOf(page: Page, target: Locator, label: string) {
+  await expect(page.getByTestId("santa-assistant-toggle")).toBeVisible();
+  await expect(target.first()).toBeVisible();
+
+  const overlap = await target.first().evaluate((targetElement) => {
+    const assistant = document.querySelector<HTMLElement>(
+      '[data-testid="santa-assistant-toggle"]'
+    );
+
+    if (!assistant) {
+      return { hasAssistant: false, overlaps: true };
+    }
+
+    const assistantRect = assistant.getBoundingClientRect();
+    const targetRect = targetElement.getBoundingClientRect();
+    const overlaps =
+      assistantRect.left < targetRect.right &&
+      assistantRect.right > targetRect.left &&
+      assistantRect.top < targetRect.bottom &&
+      assistantRect.bottom > targetRect.top;
+
+    return { hasAssistant: true, overlaps };
+  });
+
+  expect(overlap.hasAssistant, `Santa assistant should render before checking ${label}`).toBe(
+    true
+  );
+  expect(overlap.overlaps, `Santa assistant should not cover ${label}`).toBe(false);
+}
+
 test.describe("authenticated workflow edge cases", () => {
   test.setTimeout(90_000);
   test.skip(!credentials, AUTH_BLOCKED_MESSAGE);
@@ -288,6 +318,27 @@ test.describe("authenticated workflow edge cases", () => {
 
     await dialog.getByRole("button", { name: /keep group/i }).click();
     await expect(dialog).toHaveCount(0);
+  });
+
+  test("my groups keeps Santa Buddy clear of workspace controls", async ({ page }) => {
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await loginWithTestCredentials(page, credentials!);
+    await page.goto("/groups");
+    await expect(page.getByRole("heading", { name: /your groups/i })).toBeVisible();
+    await expectSantaAssistantClearOf(
+      page,
+      page.getByRole("button", { name: /open full workspace/i }),
+      "the desktop Exchange health action"
+    );
+
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.goto("/groups");
+    await expect(page.getByRole("heading", { name: /your groups/i })).toBeVisible();
+    await expectSantaAssistantClearOf(
+      page,
+      page.getByRole("link", { name: /open member list/i }),
+      "the mobile member-list action"
+    );
   });
 
   test("group scoped routes select their matching shared sidebar item", async ({ page }) => {

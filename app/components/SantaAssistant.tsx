@@ -12,7 +12,7 @@ function SantaBuddyCharacter({
   isOpen: boolean;
 }) {
   const sizeClass = compactOnDesktop
-    ? "h-12 w-12 min-[420px]:h-16 min-[420px]:w-16 sm:h-24 sm:w-24 xl:h-20 xl:w-20"
+    ? "h-11 w-11 min-[420px]:h-14 min-[420px]:w-14"
     : "h-12 w-12 min-[420px]:h-16 min-[420px]:w-16 sm:h-32 sm:w-32";
 
   return (
@@ -127,6 +127,9 @@ export function SantaAssistant() {
     tipIndex,
   } = useSantaAssistant();
   const useShoppingIdeasOffset = pathname === "/secret-santa";
+  const assistantPositionClass = useShoppingIdeasOffset
+    ? "bottom-[calc(env(safe-area-inset-bottom)+7rem)] right-2 sm:right-5 sm:bottom-4 xl:right-1 2xl:right-1"
+    : "top-[calc(env(safe-area-inset-top)+0.75rem)] right-3 sm:top-auto sm:right-5 sm:bottom-5";
 
   const handleToggle = () => {
     const hasShoppingHelperRail =
@@ -153,9 +156,7 @@ export function SantaAssistant() {
   return (
     <aside
       data-testid="santa-assistant"
-      className={`pointer-events-none fixed bottom-[calc(env(safe-area-inset-bottom)+7rem)] right-2 z-55 flex max-w-[calc(100vw-1rem)] flex-col items-end gap-2 sm:right-5 sm:bottom-4 ${
-        useShoppingIdeasOffset ? "xl:right-1 2xl:right-1" : ""
-      }`}
+      className={`pointer-events-none fixed z-55 flex max-w-[calc(100vw-1rem)] flex-col items-end gap-2 ${assistantPositionClass}`}
       aria-label="Secret Santa assistant"
     >
       <style>{`
@@ -251,7 +252,7 @@ export function SantaAssistant() {
         className="santa-assistant-button pointer-events-auto rounded-[28px] bg-transparent p-0 transition hover:-translate-y-1 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#48664e]"
       >
         <span className="santa-assistant-avatar block">
-          <SantaBuddyCharacter compactOnDesktop={useShoppingIdeasOffset} isOpen={isOpen} />
+          <SantaBuddyCharacter compactOnDesktop isOpen={isOpen} />
         </span>
       </button>
     </aside>
