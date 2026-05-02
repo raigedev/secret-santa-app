@@ -166,7 +166,9 @@ function getShellSubtitle(pathname: string): string {
     return "Active exchanges with members, invites, wishlists, and draw details.";
   }
   if (pathname === "/wishlist") return "Add gift ideas, links, sizes, and notes your Santa can shop from.";
-  if (pathname === "/secret-santa-chat") return "Private messages without spoiling the surprise.";
+  if (pathname === "/secret-santa-chat") {
+    return "You are Santa and your Secret Santa are separated with group labels.";
+  }
   if (pathname === "/notifications") return "Updates from your groups, messages, and gift reminders.";
   if (pathname === "/profile") return "Your photo, avatar, account, and preferences.";
   if (pathname === "/settings" || pathname === "/reminders") {

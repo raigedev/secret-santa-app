@@ -17,6 +17,7 @@ import { sendMessage } from "./chat-actions";
 type Thread = {
   group_id: string;
   group_name: string;
+  group_gift_date: string;
   giver_id: string;
   receiver_id: string;
   other_name: string;
@@ -40,6 +41,7 @@ type MembershipRow = {
 type GroupRow = {
   id: string;
   name: string | null;
+  gift_date: string | null;
 };
 
 type AssignmentRow = {
@@ -71,21 +73,26 @@ type MemberNicknameRow = {
 };
 
 type FestiveTone = "gold" | "green" | "neutral";
+type ThreadFilter = "all" | "giver" | "receiver";
 type ChatPageSnapshot = ClientSnapshotMetadata & {
   threads: Thread[];
 };
 
 const CHAT_PAGE_SNAPSHOT_STORAGE_PREFIX = "ss_chat_page_snapshot_v1:";
 const CHAT_PAGE_BACKGROUND =
-  "radial-gradient(circle at 14% 8%,rgba(252,206,114,.3),transparent 24%),radial-gradient(circle at 88% 18%,rgba(164,60,63,.28),transparent 30%),radial-gradient(circle at 78% 84%,rgba(72,102,78,.32),transparent 34%),linear-gradient(180deg,#13160d 0%,#261214 50%,#10150f 100%)";
-const CHAT_PANEL_BACKGROUND = "linear-gradient(145deg,rgba(46,52,50,.96),rgba(32,40,35,.98) 58%,rgba(61,83,64,.95))";
-const CHAT_SURFACE_STRONG = "linear-gradient(180deg,rgba(42,50,44,.97),rgba(25,32,27,.99))";
-const CHAT_SURFACE_MUTED = "rgba(22,29,25,.9)";
-const CHAT_BORDER = "1px solid rgba(252,206,114,.34)";
-const CHAT_BORDER_SOFT = "1px solid rgba(255,248,240,.22)";
-const CHAT_TEXT_MUTED = "#edf4ec";
-const CHAT_TEXT_SUBTLE = "#d5ded4";
+  "repeating-linear-gradient(135deg,rgba(72,102,78,.04) 0 1px,transparent 1px 38px),radial-gradient(circle at 15% 0%,rgba(252,206,114,.18),transparent 30%),radial-gradient(circle at 95% 15%,rgba(164,60,63,.10),transparent 28%),linear-gradient(180deg,#fffefa 0%,#f9faf8 46%,#eff5ef 100%)";
+const CHAT_PANEL_BACKGROUND = "linear-gradient(145deg,rgba(255,255,255,.92),rgba(251,252,250,.96))";
+const CHAT_SURFACE_STRONG = "linear-gradient(180deg,rgba(255,255,255,.96),rgba(249,250,248,.98))";
+const CHAT_SURFACE_MUTED = "rgba(243,244,242,.9)";
+const CHAT_BORDER = "1px solid rgba(72,102,78,.14)";
+const CHAT_BORDER_SOFT = "1px solid rgba(72,102,78,.12)";
+const CHAT_TEXT_MUTED = "#64748b";
+const CHAT_TEXT_SUBTLE = "#6f7a74";
 const CHAT_HEADER_TEXT = "#2e3432";
+const CHAT_GREEN = "#48664e";
+const CHAT_RED = "#a43c3f";
+const CHAT_GOLD = "#fcce72";
+const WRAP_UP_DAYS = 7;
 
 function getChatPageSnapshotStorageKey(userId: string): string {
   return `${CHAT_PAGE_SNAPSHOT_STORAGE_PREFIX}${userId}`;
@@ -100,6 +107,7 @@ function isThreadSnapshot(value: unknown): value is Thread {
     isRecord(value) &&
     typeof value.group_id === "string" &&
     typeof value.group_name === "string" &&
+    typeof value.group_gift_date === "string" &&
     typeof value.giver_id === "string" &&
     typeof value.receiver_id === "string" &&
     typeof value.other_name === "string" &&
@@ -171,6 +179,26 @@ function ArrowRightIcon({ className = "h-4 w-4" }: { className?: string }) {
   );
 }
 
+function EnvelopeLineIcon({ className = "h-5 w-5" }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" className={className} aria-hidden="true">
+      <rect x="3.75" y="5.75" width="16.5" height="12.5" rx="2.5" stroke="currentColor" strokeWidth="1.7" />
+      <path d="m5.5 7.6 6.5 5.2 6.5-5.2" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" />
+      <path d="m5.7 16 4.1-3.4M18.3 16l-4.1-3.4" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" />
+    </svg>
+  );
+}
+
+function CalendarLineIcon({ className = "h-5 w-5" }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" className={className} aria-hidden="true">
+      <rect x="4" y="5.5" width="16" height="14.5" rx="3" stroke="currentColor" strokeWidth="1.7" />
+      <path d="M8 4v3M16 4v3M4.5 9.5h15" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" />
+      <path d="M8 13h.01M12 13h.01M16 13h.01M8 16.5h.01M12 16.5h.01" stroke="currentColor" strokeWidth="3" strokeLinecap="round" />
+    </svg>
+  );
+}
+
 function sanitize(input: string): string {
   return sanitizePlainText(input, 500);
 }
@@ -181,6 +209,15 @@ function createThreadKey(groupId: string, giverId: string, receiverId: string): 
 
 function createGroupUserKey(groupId: string, userId: string): string {
   return `${groupId}:${userId}`;
+}
+
+function pickDefaultThread(availableThreads: Thread[]): Thread | null {
+  return (
+    availableThreads.find((thread) => thread.unread > 0) ||
+    availableThreads.find((thread) => thread.role === "giver") ||
+    availableThreads[0] ||
+    null
+  );
 }
 
 function formatThreadTime(value: string): string {
@@ -216,6 +253,101 @@ function createPreviewText(
         : `${otherName}: `;
 
   return prefix + content.slice(0, 60);
+}
+
+function formatGroupDate(value: string): string {
+  if (!value.trim()) return "Date not set";
+
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "Date not set";
+
+  return date.toLocaleDateString([], {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+  });
+}
+
+function getStartOfLocalDay(value: Date): number {
+  return new Date(value.getFullYear(), value.getMonth(), value.getDate()).getTime();
+}
+
+function getGiftTimingInfo(value: string): {
+  label: string;
+  detail: string;
+  chip: string;
+  phase: "planning" | "gift-day" | "wrap-up" | "history" | "unknown";
+  highlightedDay: number;
+} {
+  const now = new Date();
+  const fallbackDay = Math.min(Math.max(now.getDate(), 1), 28);
+
+  if (!value.trim()) {
+    return {
+      label: "Group calendar",
+      detail: "The chat will show timing once the group date is set.",
+      chip: "Timing pending",
+      phase: "unknown",
+      highlightedDay: fallbackDay,
+    };
+  }
+
+  const giftDate = new Date(value);
+  if (Number.isNaN(giftDate.getTime())) {
+    return {
+      label: "Group calendar",
+      detail: "The chat will show timing once the group date is set.",
+      chip: "Timing pending",
+      phase: "unknown",
+      highlightedDay: fallbackDay,
+    };
+  }
+
+  const daysUntil = Math.round(
+    (getStartOfLocalDay(giftDate) - getStartOfLocalDay(now)) / 86400000
+  );
+  const highlightedDay = Math.min(Math.max(giftDate.getDate(), 1), 28);
+
+  if (daysUntil > 0) {
+    return {
+      label: "Before gift day",
+      detail: "Use this thread for size, color, delivery, and clue questions before the exchange.",
+      chip: daysUntil === 1 ? "1d left" : `${daysUntil}d left`,
+      phase: "planning",
+      highlightedDay,
+    };
+  }
+
+  if (daysUntil === 0) {
+    return {
+      label: "Gift day",
+      detail: "Today is the exchange date. Use chat for final delivery or thank-you notes.",
+      chip: "Gift day",
+      phase: "gift-day",
+      highlightedDay,
+    };
+  }
+
+  const daysPast = Math.abs(daysUntil);
+  const wrapUpDaysLeft = Math.max(WRAP_UP_DAYS - daysPast, 0);
+
+  if (wrapUpDaysLeft > 0) {
+    return {
+      label: "Wrap-up window",
+      detail: "This past event can still receive final notes before it moves to History.",
+      chip: wrapUpDaysLeft === 1 ? "1d left" : `${wrapUpDaysLeft}d left`,
+      phase: "wrap-up",
+      highlightedDay,
+    };
+  }
+
+  return {
+    label: "History ready",
+    detail: "This exchange is ready for History. Keep only the memories you still need.",
+    chip: "History ready",
+    phase: "history",
+    highlightedDay,
+  };
 }
 
 function FestiveTrim({
@@ -732,10 +864,13 @@ export default function SecretSantaChatPage() {
   const [loading, setLoading] = useState(true);
   const [activeThread, setActiveThread] = useState<Thread | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
+  const [messagesLoading, setMessagesLoading] = useState(false);
   const [msgInput, setMsgInput] = useState("");
+  const [threadFilter, setThreadFilter] = useState<ThreadFilter>("all");
   const [threadListMessage, setThreadListMessage] = useState<string | null>(null);
   const [threadMessage, setThreadMessage] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const chatPanelRef = useRef<HTMLElement | null>(null);
   const activeThreadRef = useRef<Thread | null>(null);
   const userIdRef = useRef<string | null>(null);
   const loadThreadsRef = useRef<() => Promise<void>>(null);
@@ -800,6 +935,9 @@ export default function SecretSantaChatPage() {
 
         if (cachedChat) {
           setThreads(cachedChat.threads);
+          if (!activeThreadRef.current) {
+            setActiveThread(pickDefaultThread(cachedChat.threads));
+          }
           setThreadListMessage(null);
           hasLoadedThreadsRef.current = true;
           setLoading(false);
@@ -840,7 +978,7 @@ export default function SecretSantaChatPage() {
         { data: allMessages, error: messagesError },
         { data: readTimestamps, error: readTimestampsError },
       ] = await Promise.all([
-        supabase.from("groups").select("id, name").in("id", groupIds),
+        supabase.from("groups").select("id, name, gift_date").in("id", groupIds),
         supabase.from("assignments").select("group_id, giver_id, receiver_id").eq("giver_id", user.id).in("group_id", groupIds),
         supabase.from("assignments").select("group_id, giver_id, receiver_id").eq("receiver_id", user.id).in("group_id", groupIds),
         supabase.from("messages").select("group_id, thread_giver_id, thread_receiver_id, sender_id, content, created_at").in("group_id", groupIds).order("created_at", { ascending: false }),
@@ -879,6 +1017,9 @@ export default function SecretSantaChatPage() {
       const groupNameById = new Map(
         ((groupsData || []) as GroupRow[]).map((group) => [group.id, group.name || "Unknown"])
       );
+      const groupGiftDateById = new Map(
+        ((groupsData || []) as GroupRow[]).map((group) => [group.id, group.gift_date || ""])
+      );
       const receiverNameByGroupUser = new Map(
         memberNicknames.map((member) => [
           createGroupUserKey(member.group_id, member.user_id),
@@ -903,6 +1044,7 @@ export default function SecretSantaChatPage() {
         buildThreads.push({
           group_id: a.group_id,
           group_name: groupNameById.get(a.group_id) || "Unknown",
+          group_gift_date: groupGiftDateById.get(a.group_id) || "",
           giver_id: a.giver_id,
           receiver_id: a.receiver_id,
           other_name: name,
@@ -922,6 +1064,7 @@ export default function SecretSantaChatPage() {
         buildThreads.push({
           group_id: a.group_id,
           group_name: groupNameById.get(a.group_id) || "Unknown",
+          group_gift_date: groupGiftDateById.get(a.group_id) || "",
           giver_id: a.giver_id,
           receiver_id: a.receiver_id,
           other_name: "Secret Santa",
@@ -959,10 +1102,12 @@ export default function SecretSantaChatPage() {
       });
 
       if (currentActiveThread && !nextActiveThread) {
-        setActiveThread(null);
+        setActiveThread(pickDefaultThread(buildThreads));
         setMessages([]);
       } else if (nextActiveThread) {
         setActiveThread(nextActiveThread);
+      } else if (!currentActiveThread) {
+        setActiveThread(pickDefaultThread(buildThreads));
       }
 
       setLoading(false);
@@ -1083,6 +1228,7 @@ export default function SecretSantaChatPage() {
     let isMounted = true;
 
     const loadMessages = async () => {
+      setMessagesLoading(true);
       const { data, error } = await supabase
         .from("messages")
         .select("id, sender_id, content, created_at")
@@ -1094,13 +1240,17 @@ export default function SecretSantaChatPage() {
       if (error) {
         // Keep the chat open and explain the failure in the UI instead of
         // sending users to the browser console for basic load issues.
-        setThreadMessage("We could not load messages. Try reopening this chat.");
+        if (isMounted) {
+          setThreadMessage("We could not load messages. Try reopening this chat.");
+          setMessagesLoading(false);
+        }
         return;
       }
 
       if (isMounted) {
         setThreadMessage(null);
         setMessages((data || []) as Message[]);
+        setMessagesLoading(false);
         setTimeout(scrollToBottom, 50);
       }
     };
@@ -1154,10 +1304,20 @@ export default function SecretSantaChatPage() {
           const nextMessage = payload.new as MessageRow & { id: string };
 
           setMessages((currentMessages) => {
-            const withoutOptimisticCopy = currentMessages.filter(
-              (message) =>
-                !(message.id.startsWith("temp-") && message.sender_id === nextMessage.sender_id)
-            );
+            let removedOptimisticCopy = false;
+            const withoutOptimisticCopy = currentMessages.filter((message) => {
+              if (
+                !removedOptimisticCopy &&
+                message.id.startsWith("temp-") &&
+                message.sender_id === nextMessage.sender_id &&
+                message.content === nextMessage.content
+              ) {
+                removedOptimisticCopy = true;
+                return false;
+              }
+
+              return true;
+            });
 
             if (withoutOptimisticCopy.find((message) => message.id === nextMessage.id)) {
               return withoutOptimisticCopy;
@@ -1256,6 +1416,7 @@ export default function SecretSantaChatPage() {
     if (!result.success) {
       setMessages((prev) => prev.filter((m) => m.id !== tempId));
       setThreadMessage(result.message || "We could not send your message. Please try again.");
+      void loadThreadsRef.current?.();
       return;
     }
 
@@ -1273,6 +1434,7 @@ export default function SecretSantaChatPage() {
     // Clear the previous thread immediately so we do not flash stale messages
     // while the next conversation history is loading.
     setMessages([]);
+    setMessagesLoading(true);
     setThreadMessage(null);
     setActiveThread(t);
     setThreads((currentThreads) =>
@@ -1287,6 +1449,12 @@ export default function SecretSantaChatPage() {
 
     if (userId) {
       void markAsRead(t, userId);
+    }
+
+    if (window.innerWidth < 1280) {
+      window.setTimeout(() => {
+        chatPanelRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+      }, 80);
     }
   };
 
@@ -1303,628 +1471,492 @@ export default function SecretSantaChatPage() {
 
   if (loading) return <ChatSkeleton />;
 
-  if (activeThread) {
-    const isGiver = activeThread.role === "giver";
-    const accent = isGiver ? "#fcce72" : "#d7fadb";
-    const accentDark = isGiver ? "#a43c3f" : "#48664e";
-    const roleLabel = isGiver ? "You are gifting" : "Your mystery Santa";
-    const recipientLabel = isGiver ? activeThread.other_name : "Secret Santa";
-    const privacyCopy = isGiver
-      ? `${activeThread.other_name} sees these messages from their Secret Santa, not your name.`
-      : "Your Santa can message you here, but their name stays hidden.";
-    const activeThreadDetails = [
-      {
-        label: isGiver ? "Recipient" : "Sender",
-        value: isGiver ? activeThread.other_name : "Anonymous Santa",
-      },
-      {
-        label: "Group",
-        value: activeThread.group_name,
-      },
-      {
-        label: "Visibility",
-        value: isGiver ? "Your name stays hidden" : "Their name stays hidden",
-      },
-    ];
-    const promptChips = isGiver
-      ? ["Size", "Color", "Delivery", "Already owns"]
-      : ["Wishlist", "Preference", "Timing", "Thank you"];
+  const selectedThread = activeThread;
+  const selectedIsGiver = selectedThread?.role === "giver";
+  const selectedTiming = getGiftTimingInfo(selectedThread?.group_gift_date || "");
+  const selectedThreadKey = selectedThread
+    ? createThreadKey(selectedThread.group_id, selectedThread.giver_id, selectedThread.receiver_id)
+    : "";
+  const showGiverThreads = threadFilter === "all" || threadFilter === "giver";
+  const showReceiverThreads = threadFilter === "all" || threadFilter === "receiver";
+  const promptChips = selectedIsGiver
+    ? ["Ask about size", "Ask about color", "Check delivery timing"]
+    : ["Share a preference", "Send thanks", "Clarify timing"];
+  const filterOptions: { label: string; value: ThreadFilter }[] = [
+    { label: "All", value: "all" },
+    { label: "You are Santa", value: "giver" },
+    { label: "Your Secret Santa", value: "receiver" },
+  ];
+  const statusSteps = [
+    { label: "Planning", active: selectedTiming.phase === "planning" },
+    { label: "Gift day", active: selectedTiming.phase === "gift-day" },
+    { label: "Wrap-up", active: selectedTiming.phase === "wrap-up" },
+    { label: "History", active: selectedTiming.phase === "history" },
+  ];
+
+  const applyPromptChip = (chip: string) => {
+    setMsgInput((current) => {
+      const next = current.trim() ? `${current.trim()} ${chip.toLowerCase()}: ` : `${chip}: `;
+      return next.slice(0, 500);
+    });
+  };
+
+  const renderThreadButton = (thread: Thread) => {
+    const threadKey = createThreadKey(thread.group_id, thread.giver_id, thread.receiver_id);
+    const isActive = threadKey === selectedThreadKey;
+    const isGiverThread = thread.role === "giver";
+    const accent = isGiverThread ? CHAT_GREEN : CHAT_RED;
+    const threadTitle = isGiverThread ? `To ${thread.other_name}` : "From your Secret Santa";
+    const threadLabel = isGiverThread ? "You are Santa" : "Your Secret Santa";
 
     return (
-      <main
-        data-testid="secret-santa-chat-thread"
-        className="relative min-h-screen overflow-hidden"
+      <button
+        key={threadKey}
+        type="button"
+        onClick={() => openThread(thread)}
+        className="group w-full rounded-2xl p-3 text-left transition duration-200 hover:-translate-y-0.5 focus-visible:outline-2 focus-visible:outline-offset-2"
         style={{
-          background: CHAT_PAGE_BACKGROUND,
-          color: "#f8fafc",
-          fontFamily: "'Be Vietnam Pro','Nunito',sans-serif",
+          background: isActive
+            ? "linear-gradient(135deg,rgba(72,102,78,.12),rgba(255,255,255,.94))"
+            : "rgba(255,255,255,.78)",
+          border: isActive ? `1px solid ${accent}` : CHAT_BORDER_SOFT,
+          boxShadow: isActive ? "0 12px 28px rgba(72,102,78,.10)" : "0 8px 18px rgba(46,52,50,.035)",
+          color: CHAT_HEADER_TEXT,
+          outlineColor: accent,
         }}
       >
-        <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_50%_0%,rgba(255,255,255,.09),transparent_30%)]" />
-        <div className="relative z-10 mx-auto flex min-h-screen max-w-295 flex-col px-4 py-5 sm:px-6 lg:px-8">
-          <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-            <button
-              type="button"
-              onClick={async () => {
-                if (activeThread && userId) {
-                  await markAsRead(activeThread, userId);
-                  setThreads((currentThreads) =>
-                    currentThreads.map((thread) =>
-                      thread.group_id === activeThread.group_id &&
-                      thread.giver_id === activeThread.giver_id &&
-                      thread.receiver_id === activeThread.receiver_id
-                        ? { ...thread, unread: 0 }
-                        : thread
-                    )
-                  );
-                }
-                setActiveThread(null);
-              }}
-              className="inline-flex w-full items-center justify-center gap-2 rounded-full px-4 py-2.5 text-sm font-extrabold transition hover:-translate-y-0.5 sm:w-auto"
-              style={{
-                background: "linear-gradient(135deg,rgba(252,206,114,.18),rgba(46,52,50,.62))",
-                border: "1px solid rgba(252,206,114,.24)",
-                color: "#f3eee8",
-                boxShadow: "0 14px 30px rgba(10,14,10,.18)",
-              }}
-            >
-              <span className="grid h-7 w-7 place-items-center rounded-full" style={{ background: "rgba(252,206,114,.18)", color: "#fcce72" }}>
-                <ArrowRightIcon className="h-4 w-4 rotate-180" />
-              </span>
-              Back to chats
-            </button>
-            <div
-              className="inline-flex items-center justify-center gap-2 rounded-full px-4 py-2 text-[11px] font-black uppercase tracking-[0.18em]"
-              style={{
-                background: isGiver ? "rgba(252,206,114,.14)" : "rgba(215,250,219,.12)",
-                border: isGiver ? "1px solid rgba(252,206,114,.2)" : "1px solid rgba(215,250,219,.16)",
-                color: accent,
-              }}
-            >
-              <LockLineIcon className="h-4 w-4" />
-              {roleLabel}
+        <div className="flex items-center gap-3">
+          <span
+            className="grid h-10 w-10 shrink-0 place-items-center rounded-full text-sm font-black"
+            style={{
+              background: isGiverThread ? "rgba(252,206,114,.26)" : "rgba(164,60,63,.10)",
+              color: accent,
+            }}
+          >
+            {isGiverThread ? thread.other_name.slice(0, 1).toUpperCase() : "?"}
+          </span>
+          <span className="min-w-0 flex-1">
+            <span className="flex items-center justify-between gap-2">
+              <span className="truncate text-sm font-black">{threadTitle}</span>
+              {thread.unread > 0 && (
+                <span className="grid h-5 min-w-5 place-items-center rounded-full px-1.5 text-[10px] font-black text-white" style={{ background: CHAT_RED }}>
+                  {thread.unread}
+                </span>
+              )}
+            </span>
+            <span className="mt-0.5 block truncate text-[11px] font-extrabold" style={{ color: CHAT_TEXT_SUBTLE }}>
+              Group: {thread.group_name}
+            </span>
+            <span className="mt-1 block truncate text-[11px] font-bold" style={{ color: CHAT_TEXT_MUTED }}>
+              {thread.last_message}
+            </span>
+            <span className="mt-2 inline-flex rounded-full px-2 py-1 text-[10px] font-black" style={{ background: `${accent}18`, color: accent }}>
+              {threadLabel}
+            </span>
+          </span>
+        </div>
+      </button>
+    );
+  };
+
+  return (
+    <main
+      data-testid="secret-santa-chat-page"
+      className="relative overflow-x-hidden rounded-none"
+      style={{
+        color: CHAT_HEADER_TEXT,
+        fontFamily: "'Be Vietnam Pro','Nunito',sans-serif",
+      }}
+    >
+      <style>{`
+        .chat-scrollbar::-webkit-scrollbar { width: 8px; }
+        .chat-scrollbar::-webkit-scrollbar-track { background: rgba(72,102,78,.08); border-radius: 999px; }
+        .chat-scrollbar::-webkit-scrollbar-thumb { background: rgba(72,102,78,.35); border-radius: 999px; }
+      `}</style>
+
+      <div className="relative mx-auto flex w-full max-w-376 flex-col gap-4">
+        <div className="flex flex-col gap-1 px-1 sm:flex-row sm:items-end sm:justify-between">
+          <div className="flex items-start gap-3">
+            <span className="grid h-11 w-11 shrink-0 place-items-center rounded-full" style={{ background: "rgba(255,255,255,.82)", border: CHAT_BORDER }}>
+              <SantaMarkIcon className="h-9 w-9" />
+            </span>
+            <div>
+              <h1 className="text-[22px] font-black leading-tight" style={{ fontFamily: "'Fredoka','Nunito',sans-serif" }}>
+                Wrap-Up Window
+              </h1>
+              <p className="mt-1 text-[12px] font-extrabold" style={{ color: "#64748b" }}>
+                You are Santa and your Secret Santa are separated with group labels.
+              </p>
             </div>
           </div>
+          <div className="hidden rounded-full px-4 py-2 text-[12px] font-black sm:inline-flex" style={{ background: "rgba(255,255,255,.78)", border: CHAT_BORDER }}>
+            {totalUnread > 0 ? `${totalUnread} unread` : `${uniqueGroupCount} groups`}
+          </div>
+        </div>
 
-          <section className="grid flex-1 gap-5 lg:grid-cols-[minmax(0,1fr)_320px]">
-            <div
-              className="flex min-h-[calc(100vh-120px)] flex-col overflow-hidden rounded-[34px]"
-              style={{
-                background: CHAT_SURFACE_STRONG,
-                border: CHAT_BORDER,
-                boxShadow: "0 24px 60px rgba(46,52,50,.2)",
-                backdropFilter: "blur(18px)",
-              }}
-            >
-              <div className="flex flex-col gap-4 p-5 sm:p-6">
-                <div className="flex min-w-0 items-center gap-4">
-                  <div
-                    className="flex h-12 w-12 shrink-0 items-center justify-center rounded-[20px]"
-                    style={{
-                      background: `linear-gradient(135deg,${accent},${accentDark})`,
-                      boxShadow: `0 14px 28px ${isGiver ? "rgba(252,206,114,.22)" : "rgba(215,250,219,.16)"}`,
-                    }}
-                  >
-                    {isGiver ? <SantaMarkIcon className="h-9 w-9" /> : <ChatLineIcon className="h-6 w-6 text-white" />}
+        <section
+          className="relative overflow-hidden rounded-4xl p-5 sm:p-6"
+          style={{
+            background: CHAT_SURFACE_STRONG,
+            border: CHAT_BORDER,
+            boxShadow: "0 24px 70px rgba(72,102,78,.10)",
+          }}
+        >
+          <FestiveTrim tone="neutral" compact />
+          <div
+            className="pointer-events-none absolute inset-0 opacity-70"
+            style={{ background: CHAT_PAGE_BACKGROUND }}
+            aria-hidden="true"
+          />
+          <div className="relative flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+            <div className="max-w-2xl">
+              <p className="text-[11px] font-black uppercase tracking-[0.18em]" style={{ color: "#7285a1" }}>
+                Wrap-up window
+              </p>
+              <h2 className="mt-2 text-[2.3rem] font-black leading-none tracking-normal sm:text-[3.1rem]" style={{ color: CHAT_GREEN, fontFamily: "'Fredoka','Nunito',sans-serif" }}>
+                Wrap-Up Window
+              </h2>
+              <p className="mt-2 text-sm font-extrabold" style={{ color: "#526174" }}>
+                Group labels stay visible on every thread, message header, and composer.
+              </p>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              <span className="inline-flex items-center gap-2 rounded-full px-4 py-2 text-xs font-black text-white" style={{ background: CHAT_GREEN }}>
+                <LockLineIcon className="h-4 w-4" />
+                You are Santa: {giverThreads.length} {giverThreads.length === 1 ? "thread" : "threads"}
+              </span>
+              <span className="rounded-full px-4 py-2 text-xs font-black" style={{ background: "rgba(164,60,63,.10)", color: CHAT_RED, border: "1px solid rgba(164,60,63,.18)" }}>
+                Your Secret Santa: {receiverThreads.length} {receiverThreads.length === 1 ? "thread" : "threads"}
+              </span>
+              <span className="rounded-full px-4 py-2 text-xs font-black" style={{ background: "rgba(252,206,114,.35)", color: "#7b5902", border: `1px solid ${CHAT_GOLD}` }}>
+                {selectedTiming.chip}
+              </span>
+            </div>
+          </div>
+        </section>
+
+        {threadListMessage && (
+          <section className="rounded-3xl px-5 py-4 text-sm font-bold" style={{ background: "rgba(164,60,63,.10)", border: "1px solid rgba(164,60,63,.18)", color: CHAT_RED }}>
+            {threadListMessage}
+          </section>
+        )}
+
+        <section className="grid gap-4 xl:grid-cols-[300px_minmax(0,1fr)_270px]">
+            <aside className="rounded-4xl p-4" style={{ background: CHAT_PANEL_BACKGROUND, border: CHAT_BORDER, boxShadow: "0 18px 44px rgba(46,52,50,.06)" }}>
+              <p className="text-[11px] font-black uppercase tracking-[0.18em]" style={{ color: "#7285a1" }}>
+                Mystery mailbox
+              </p>
+              <div className="mt-2 flex items-start gap-3">
+                <EnvelopeLineIcon className="mt-1 h-6 w-6 shrink-0" />
+                <div>
+                  <h2 className="text-xl font-black">Secret Threads</h2>
+                  <p className="mt-1 text-xs font-bold leading-5" style={{ color: CHAT_TEXT_MUTED }}>
+                    Role and group are visible before the conversation opens.
+                  </p>
+                </div>
+              </div>
+
+              <div className="mt-4 flex flex-wrap gap-2">
+                {filterOptions.map((option) => {
+                  const active = threadFilter === option.value;
+                  return (
+                    <button
+                      key={option.value}
+                      type="button"
+                      aria-pressed={active}
+                      onClick={() => setThreadFilter(option.value)}
+                      className="rounded-full px-3 py-2 text-[11px] font-black transition hover:-translate-y-0.5 focus-visible:outline-2 focus-visible:outline-offset-2"
+                      style={{
+                        background: active ? CHAT_GREEN : "rgba(252,206,114,.20)",
+                        border: active ? "1px solid rgba(72,102,78,.22)" : "1px solid rgba(123,89,2,.12)",
+                        color: active ? "#fffefa" : "#7b5902",
+                        outlineColor: CHAT_GREEN,
+                      }}
+                    >
+                      {option.label}
+                    </button>
+                  );
+                })}
+              </div>
+
+              <div className="chat-scrollbar mt-5 max-h-145 space-y-5 overflow-y-auto pr-1">
+                {showGiverThreads && (
+                  <section>
+                    <div className="mb-2 flex items-center justify-between">
+                      <p className="text-[11px] font-black uppercase tracking-[0.18em]" style={{ color: CHAT_GREEN }}>
+                        You are Santa
+                      </p>
+                      <span className="text-xs font-black">{giverThreads.length}</span>
+                    </div>
+                    <div className="space-y-2">
+                      {giverThreads.length > 0 ? (
+                        giverThreads.map(renderThreadButton)
+                      ) : (
+                        <p className="rounded-2xl px-3 py-3 text-xs font-bold leading-5" style={{ background: CHAT_SURFACE_MUTED, color: CHAT_TEXT_MUTED }}>
+                          Your recipient chats appear after names are drawn.
+                        </p>
+                      )}
+                    </div>
+                  </section>
+                )}
+
+                {showReceiverThreads && (
+                  <section>
+                    <div className="mb-2 flex items-center justify-between">
+                      <p className="text-[11px] font-black uppercase tracking-[0.18em]" style={{ color: CHAT_RED }}>
+                        Your Secret Santa
+                      </p>
+                      <span className="text-xs font-black">{receiverThreads.length}</span>
+                    </div>
+                    <div className="space-y-2">
+                      {receiverThreads.length > 0 ? (
+                        receiverThreads.map(renderThreadButton)
+                      ) : (
+                        <p className="rounded-2xl px-3 py-3 text-xs font-bold leading-5" style={{ background: CHAT_SURFACE_MUTED, color: CHAT_TEXT_MUTED }}>
+                          Your Secret Santa can start a private thread after names are drawn.
+                        </p>
+                      )}
+                    </div>
+                  </section>
+                )}
+              </div>
+            </aside>
+
+            <section ref={chatPanelRef} className="flex min-h-162.5 flex-col overflow-hidden rounded-4xl" style={{ background: CHAT_PANEL_BACKGROUND, border: CHAT_BORDER, boxShadow: "0 18px 44px rgba(46,52,50,.06)" }}>
+              <div className="flex flex-col gap-4 border-b px-5 py-5 sm:flex-row sm:items-start sm:justify-between" style={{ borderColor: "rgba(72,102,78,.12)" }}>
+                <div className="flex min-w-0 gap-4">
+                  <div className="grid h-14 w-14 shrink-0 place-items-center rounded-full" style={{ background: "rgba(252,206,114,.28)", color: CHAT_RED }}>
+                    <EnvelopeLineIcon className="h-7 w-7" />
                   </div>
                   <div className="min-w-0">
-                    <div
-                      className="mb-1 inline-flex rounded-full px-3 py-1 text-[11px] font-black uppercase tracking-[0.18em]"
-                      style={{
-                        background: isGiver ? "rgba(252,206,114,.16)" : "rgba(215,250,219,.12)",
-                        color: accent,
-                      }}
-                    >
-                      {roleLabel}
-                    </div>
-                    <h1 className="truncate text-2xl font-black tracking-normal sm:text-3xl">
-                      {recipientLabel}
-                    </h1>
-                    <p className="mt-1 text-sm font-semibold" style={{ color: CHAT_TEXT_MUTED }}>
-                      {activeThread.group_name}
+                    <h2 className="truncate text-2xl font-black" style={{ color: CHAT_GREEN, fontFamily: "'Fredoka','Nunito',sans-serif" }}>
+                      {selectedThread
+                        ? selectedIsGiver
+                          ? `To ${selectedThread.other_name}`
+                          : "From your Secret Santa"
+                        : "Choose a thread"}
+                    </h2>
+                    <p className="mt-1 text-xs font-black" style={{ color: CHAT_TEXT_MUTED }}>
+                      Group: {selectedThread?.group_name || "Select a Secret Thread"}
                     </p>
+                    <div className="mt-3 flex flex-wrap gap-2">
+                      <span className="rounded-full px-3 py-1.5 text-[11px] font-black text-white" style={{ background: selectedIsGiver ? CHAT_GREEN : CHAT_RED }}>
+                        {selectedIsGiver ? "Writing as Secret Santa" : "Replying to your Secret Santa"}
+                      </span>
+                      <span className="rounded-full px-3 py-1.5 text-[11px] font-black" style={{ background: "rgba(72,102,78,.10)", color: CHAT_GREEN }}>
+                        Identity protected
+                      </span>
+                      <span className="rounded-full px-3 py-1.5 text-[11px] font-black" style={{ background: "rgba(164,60,63,.10)", color: CHAT_RED }}>
+                        {selectedTiming.label}
+                      </span>
+                    </div>
                   </div>
                 </div>
-                <div
-                  className="rounded-[22px] px-4 py-3 text-sm font-bold leading-6"
-                  style={{
-                    background: CHAT_SURFACE_MUTED,
-                    border: CHAT_BORDER_SOFT,
-                    color: CHAT_TEXT_MUTED,
-                  }}
-                >
-                  {privacyCopy}
+                <div className="rounded-2xl px-4 py-3 text-xs font-extrabold leading-5" style={{ background: "rgba(252,206,114,.24)", color: "#7b5902", border: "1px solid rgba(123,89,2,.12)" }}>
+                  {selectedTiming.detail}
                 </div>
               </div>
 
-              <div className="px-4 pb-4 sm:px-6 sm:pb-6">
-                <div
-                  className="flex min-h-[46vh] flex-col gap-3 overflow-y-auto rounded-[28px] p-4 sm:min-h-[54vh] sm:p-5"
-                  style={{
-                    background:
-                      "linear-gradient(180deg,rgba(24,31,25,.58),rgba(20,24,21,.88))",
-                    border: "1px solid rgba(252,206,114,.1)",
-                  }}
-                >
-                  {threadMessage && (
-                    <div
-                      className="rounded-2xl px-4 py-3 text-sm font-bold"
-                      style={{
-                        background: "rgba(170,55,28,.16)",
-                        border: "1px solid rgba(250,113,80,.22)",
-                        color: "#fecaca",
-                      }}
-                    >
-                      {threadMessage}
-                    </div>
-                  )}
+              <div className="chat-scrollbar flex min-h-105 flex-1 flex-col gap-3 overflow-y-auto p-4 sm:p-5" style={{ background: "linear-gradient(180deg,rgba(249,250,248,.78),rgba(255,255,255,.94))" }}>
+                {threadMessage && (
+                  <div className="rounded-2xl px-4 py-3 text-sm font-bold" style={{ background: "rgba(164,60,63,.10)", border: "1px solid rgba(164,60,63,.18)", color: CHAT_RED }}>
+                    {threadMessage}
+                  </div>
+                )}
 
-                  {messages.length === 0 ? (
-                    <div className="m-auto max-w-sm text-center">
+                {messagesLoading ? (
+                  <div className="m-auto w-full max-w-md space-y-3" aria-live="polite">
+                    <p className="text-center text-sm font-black" style={{ color: CHAT_TEXT_MUTED }}>
+                      Loading messages for {selectedThread?.group_name || "this thread"}...
+                    </p>
+                    <div className="h-16 rounded-3xl" style={{ background: "rgba(72,102,78,.08)" }} />
+                    <div className="ml-auto h-20 w-4/5 rounded-3xl" style={{ background: "rgba(72,102,78,.14)" }} />
+                    <div className="h-16 w-3/4 rounded-3xl" style={{ background: "rgba(72,102,78,.08)" }} />
+                  </div>
+                ) : !selectedThread ? (
+                  <div className="m-auto max-w-sm text-center">
+                    <ChatLineIcon className="mx-auto h-10 w-10" />
+                    <p className="mt-4 text-xl font-black">Choose a Secret Thread</p>
+                    <p className="mt-2 text-sm font-semibold leading-6" style={{ color: CHAT_TEXT_MUTED }}>
+                      Select a recipient or your Secret Santa to keep the group context visible while you chat.
+                    </p>
+                  </div>
+                ) : messages.length === 0 ? (
+                  <div className="m-auto max-w-sm text-center">
+                    <EnvelopeLineIcon className="mx-auto h-12 w-12" />
+                    <p className="mt-4 text-xl font-black">No messages yet</p>
+                    <p className="mt-2 text-sm font-semibold leading-6" style={{ color: CHAT_TEXT_MUTED }}>
+                      Start with a simple size, color, delivery, or thank-you note.
+                    </p>
+                  </div>
+                ) : (
+                  messages.map((msg) => {
+                    const isMine = msg.sender_id === userId;
+                    const isTemp = msg.id.startsWith("temp-");
+                    const messageAuthor = isMine
+                      ? selectedIsGiver
+                        ? "You as Secret Santa"
+                        : "You"
+                      : selectedIsGiver
+                        ? selectedThread.other_name
+                        : "Your Secret Santa";
+
+                    return (
                       <div
-                        className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-3xl"
+                        key={msg.id}
+                        className={`flex max-w-[78%] flex-col rounded-3xl px-4 py-3 text-[14px] font-semibold leading-6 shadow-sm ${
+                          isMine ? "self-end rounded-br-md" : "self-start rounded-bl-md"
+                        }`}
                         style={{
-                          background: "rgba(255,255,255,.08)",
-                          border: "1px solid rgba(255,255,255,.1)",
+                          background: isMine
+                            ? `linear-gradient(135deg,${CHAT_GREEN},#315741)`
+                            : "rgba(255,255,255,.95)",
+                          border: isMine ? "1px solid rgba(72,102,78,.18)" : CHAT_BORDER_SOFT,
+                          color: isMine ? "#fffefa" : CHAT_HEADER_TEXT,
+                          opacity: isTemp ? 0.72 : 1,
                         }}
                       >
-                        <ChatLineIcon className="h-8 w-8 text-[#d8ddd6]" />
+                        <span className="mb-1 text-[10px] font-black uppercase tracking-[0.14em]" style={{ color: isMine ? "rgba(255,255,255,.78)" : CHAT_TEXT_SUBTLE }}>
+                          {messageAuthor} - Group: {selectedThread.group_name}
+                        </span>
+                        <span style={{ wordBreak: "break-word" }}>{msg.content}</span>
+                        <span className="mt-2 text-[11px] font-bold" style={{ color: isMine ? "rgba(255,255,255,.65)" : CHAT_TEXT_MUTED }}>
+                          {isTemp
+                            ? "Sending..."
+                            : new Date(msg.created_at).toLocaleTimeString([], {
+                                hour: "2-digit",
+                                minute: "2-digit",
+                              })}
+                        </span>
                       </div>
-                      <p className="text-xl font-black tracking-normal">No messages yet</p>
-                      <p className="mt-2 text-sm leading-6" style={{ color: CHAT_TEXT_SUBTLE }}>
-                        Start with a simple hint, size question, or delivery note.
-                      </p>
-                    </div>
-                  ) : (
-                    messages.map((msg) => {
-                      const isMine = msg.sender_id === userId;
-                      const isTemp = msg.id.startsWith("temp-");
-                      const messageAuthor = isMine
-                        ? isGiver
-                          ? "You as Secret Santa"
-                          : "You"
-                        : isGiver
-                          ? activeThread.other_name
-                          : "Secret Santa";
-
-                      return (
-                        <div
-                          key={msg.id}
-                          className={`flex max-w-[88%] flex-col rounded-3xl px-4 py-3 text-[15px] leading-7 shadow-sm sm:max-w-[74%] ${
-                            isMine ? "self-end rounded-br-md" : "self-start rounded-bl-md"
-                          }`}
-                          style={{
-                            background: isMine
-                              ? `linear-gradient(135deg,${accentDark},${accent})`
-                              : "rgba(255,248,240,.1)",
-                            border: isMine ? "1px solid rgba(255,255,255,.12)" : "1px solid rgba(255,255,255,.1)",
-                            color: "#fff",
-                            opacity: isTemp ? 0.72 : 1,
-                          }}
-                        >
-                          <span className="mb-1 text-[11px] font-black uppercase tracking-[0.16em] opacity-75">
-                            {messageAuthor}
-                          </span>
-                          <span style={{ wordBreak: "break-word" }}>{msg.content}</span>
-                          <span className="mt-2 text-[11px] font-bold opacity-60">
-                            {isTemp
-                              ? "Sending..."
-                              : new Date(msg.created_at).toLocaleTimeString([], {
-                                  hour: "2-digit",
-                                  minute: "2-digit",
-                                })}
-                          </span>
-                        </div>
-                      );
-                    })
-                  )}
-                  <div ref={messagesEndRef} />
-                </div>
+                    );
+                  })
+                )}
+                <div ref={messagesEndRef} />
               </div>
 
-              <div
-                className="mt-auto flex flex-col gap-3 p-4 sm:flex-row sm:p-6"
-                style={{
-                  background: "rgba(255,248,240,.04)",
-                  borderTop: "1px solid rgba(252,206,114,.1)",
-                }}
-              >
-                <input
-                  value={msgInput}
-                  onChange={(e) => setMsgInput(e.target.value)}
-                  onKeyDown={handleKeyDown}
-                  placeholder={isGiver ? `Ask ${activeThread.other_name} a private gift question...` : "Reply to your Santa..."}
-                  maxLength={500}
-                  className="min-h-12 w-full rounded-full px-5 text-[15px] font-semibold outline-none sm:flex-1"
-                  style={{
-                    background: "rgba(249,250,248,.11)",
-                    border: "1px solid rgba(252,206,114,.16)",
-                    color: "#fff",
-                    fontFamily: "inherit",
-                  }}
-                />
-                <button
-                  type="button"
-                  onClick={handleSend}
-                  disabled={!msgInput.trim()}
-                  className="inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-full px-6 text-sm font-black transition sm:w-auto"
-                  style={{
-                    background: msgInput.trim()
-                      ? `linear-gradient(135deg,${accentDark},${accent})`
-                      : "rgba(255,255,255,.08)",
-                    color: msgInput.trim() ? "#fff" : "rgba(255,255,255,.36)",
-                    cursor: msgInput.trim() ? "pointer" : "not-allowed",
-                    border: "1px solid rgba(255,255,255,.1)",
-                    fontFamily: "inherit",
-                    boxShadow: msgInput.trim() ? `0 18px 34px ${isGiver ? "rgba(252,206,114,.26)" : "rgba(215,250,219,.18)"}` : "none",
-                  }}
-                >
-                  Send
-                  <ArrowRightIcon />
-                </button>
-              </div>
-            </div>
-
-            <aside className="grid gap-4 lg:content-start">
-              <div
-                className="rounded-[30px] p-5"
-                style={{
-                  background: CHAT_PANEL_BACKGROUND,
-                  border: CHAT_BORDER,
-                  backdropFilter: "blur(18px)",
-                }}
-              >
-                <div className="mb-4 flex items-center gap-3">
-                  <SantaMarkIcon className="h-12 w-12" />
-                  <div>
-                    <p className="text-xs font-black uppercase tracking-[0.2em]" style={{ color: accent }}>
-                      Identity rules
-                    </p>
-                    <h2 className="text-xl font-black tracking-normal">Keep it secret</h2>
-                  </div>
-                </div>
-                <div className="space-y-3 text-sm leading-6" style={{ color: CHAT_TEXT_MUTED }}>
-                  <p>
-                    <strong style={{ color: "#ffffff" }}>You -&gt; Giftee:</strong> ask questions without showing your name.
-                  </p>
-                  <p>
-                    <strong style={{ color: "#ffffff" }}>Santa -&gt; You:</strong> reply while their name stays hidden.
-                  </p>
-                </div>
-                <div className="mt-5 grid gap-2">
-                  {activeThreadDetails.map((detail) => (
-                    <div
-                      key={detail.label}
-                      className="rounded-[18px] px-4 py-3"
-                      style={{
-                        background: "rgba(20,24,21,.42)",
-                        border: "1px solid rgba(252,206,114,.1)",
-                      }}
-                    >
-                      <p className="text-[10px] font-black uppercase tracking-[0.18em]" style={{ color: CHAT_TEXT_SUBTLE }}>
-                        {detail.label}
-                      </p>
-                      <p className="mt-1 truncate text-sm font-black" style={{ color: "#ffffff" }}>{detail.value}</p>
-                    </div>
-                  ))}
-                </div>
-                <div
-                  className="mt-5 rounded-[22px] px-4 py-3 text-sm leading-6"
-                  style={{
-                    background: "rgba(46,52,50,.46)",
-                    border: "1px solid rgba(252,206,114,.12)",
-                    color: CHAT_TEXT_MUTED,
-                  }}
-                >
-                  Ask about size, color, delivery timing, or what they already own. Short questions are easier to answer.
-                </div>
-                <div className="mt-4 flex flex-wrap gap-2">
+              <div className="border-t p-4 sm:p-5" style={{ background: "rgba(255,255,255,.82)", borderColor: "rgba(72,102,78,.12)" }}>
+                <div className="mb-3 flex flex-wrap gap-2">
                   {promptChips.map((chip) => (
-                    <span
+                    <button
                       key={chip}
-                      className="rounded-full px-3 py-1.5 text-xs font-black"
-                      style={{
-                        background: isGiver ? "rgba(252,206,114,.13)" : "rgba(215,250,219,.11)",
-                        border: isGiver ? "1px solid rgba(252,206,114,.18)" : "1px solid rgba(215,250,219,.16)",
-                        color: accent,
-                      }}
+                      type="button"
+                      disabled={!selectedThread}
+                      onClick={() => applyPromptChip(chip)}
+                      className="rounded-full px-3 py-1.5 text-[11px] font-black transition hover:-translate-y-0.5 focus-visible:outline-2 focus-visible:outline-offset-2 disabled:opacity-50"
+                      style={{ background: "rgba(72,102,78,.08)", color: CHAT_GREEN, border: "1px solid rgba(72,102,78,.10)", outlineColor: CHAT_GREEN }}
                     >
                       {chip}
-                    </span>
+                    </button>
                   ))}
                 </div>
-              </div>
-            </aside>
-          </section>
-        </div>
-      </main>
-    );
-  }
-
-  if (!activeThread) {
-    const chatGroups = [
-      {
-        eyebrow: "You gift them",
-        title: "People you gift",
-        description: "Ask gift questions without showing your name.",
-        threads: giverThreads,
-        accent: "#fcce72",
-        empty: "No recipient chat yet. After names are drawn, your private recipient chat appears here.",
-      },
-      {
-        eyebrow: "They gift you",
-        title: "Your mystery Santa",
-        description: "Reply to the person assigned to you while their name stays hidden.",
-        threads: receiverThreads,
-        accent: "#d7fadb",
-        empty: "No Santa chat yet. Your Santa can start a private thread after names are drawn.",
-      },
-    ];
-
-    const stats = [
-      { label: "Chats", value: threads.length },
-      { label: "Unread", value: totalUnread },
-      { label: "Groups", value: uniqueGroupCount },
-    ];
-    const privacyHighlights = [
-      { label: "Giftee thread", value: "You ask without showing your name." },
-      { label: "Santa thread", value: "They can reply while their name stays hidden." },
-      { label: "Private scope", value: "Each chat stays tied to one match." },
-    ];
-    const privacyBadges = ["Identity hidden", "Match-only", "No group thread"];
-
-    return (
-      <main
-        data-testid="secret-santa-chat-page"
-        className="relative min-h-screen overflow-x-hidden"
-        style={{
-          background: CHAT_PAGE_BACKGROUND,
-          color: "#f8fafc",
-          fontFamily: "'Be Vietnam Pro','Nunito',sans-serif",
-        }}
-      >
-        <div
-          id="snowWrap"
-          className="pointer-events-none fixed inset-0 opacity-60"
-          style={{
-            backgroundImage:
-              "radial-gradient(circle at 20% 30%,rgba(255,255,255,.22) 0 2px,transparent 3px),radial-gradient(circle at 70% 20%,rgba(255,255,255,.14) 0 2px,transparent 3px),radial-gradient(circle at 80% 80%,rgba(255,255,255,.12) 0 3px,transparent 4px)",
-            backgroundSize: "260px 260px, 340px 340px, 420px 420px",
-          }}
-        />
-        <style>{`
-          @import url('https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@600;700;800&display=swap');
-          .chat-scrollbar::-webkit-scrollbar { width: 8px; }
-          .chat-scrollbar::-webkit-scrollbar-track { background: rgba(255,255,255,.04); border-radius: 999px; }
-          .chat-scrollbar::-webkit-scrollbar-thumb { background: rgba(252,206,114,.5); border-radius: 999px; }
-          @media (max-width: 640px) { #snowWrap { opacity: .35; } }
-        `}</style>
-
-        <div className="relative z-10 mx-auto flex w-full max-w-7xl flex-col gap-6 px-4 py-6 sm:px-6 lg:px-8">
-          <header className="flex items-center gap-3 rounded-4xl">
-            <div className="flex items-center gap-3">
-              <div className="grid h-12 w-12 place-items-center rounded-full bg-white/95 shadow-xl shadow-black/15">
-                <SantaMarkIcon className="h-9 w-9" />
-              </div>
-              <div>
-                <p className="text-[10px] font-black uppercase tracking-[0.28em]" style={{ color: "#a43c3f" }}>
-                  My Secret Santa
-                </p>
-                <h1
-                  className="font-[Plus_Jakarta_Sans] text-[2rem] font-black tracking-normal sm:text-[2.35rem]"
-                  style={{ color: CHAT_HEADER_TEXT }}
-                >
-                  Private gift whispers
-                </h1>
-              </div>
-            </div>
-          </header>
-
-          <section className="grid gap-4 lg:grid-cols-[minmax(0,1.15fr)_360px]">
-            <div
-              className="rounded-[34px] p-6 sm:p-7"
-              style={{
-                background: CHAT_PANEL_BACKGROUND,
-                border: CHAT_BORDER,
-                boxShadow: "0 22px 54px rgba(46,52,50,.18)",
-              }}
-            >
-              <div className="max-w-3xl">
-                <p className="mb-3 text-[11px] font-black uppercase tracking-[0.22em]" style={{ color: "#d7fadb" }}>
-                  Not a group chat
-                </p>
-                <h2 className="font-[Plus_Jakarta_Sans] text-[2.25rem] font-black tracking-normal sm:text-[3.4rem]">
-                  One private thread for each Secret Santa match.
-                </h2>
-                <p className="mt-4 max-w-2xl text-base leading-7 sm:text-lg sm:leading-8" style={{ color: CHAT_TEXT_MUTED }}>
-                  Use this page for your recipient and the person gifting you. Names stay hidden so hints help without spoiling the surprise.
-                </p>
-              </div>
-
-              <div className="mt-7 grid gap-3 sm:grid-cols-3">
-                {stats.map((stat) => (
-                  <div
-                    key={stat.label}
-                    className="rounded-[22px] px-4 py-3.5"
-                    style={{ background: "rgba(46,52,50,.42)", border: "1px solid rgba(252,206,114,.1)" }}
-                  >
-                    <p className="text-xs font-black uppercase tracking-[0.2em]" style={{ color: CHAT_TEXT_SUBTLE }}>{stat.label}</p>
-                    <p className="mt-2 text-[2rem] font-black leading-none">{stat.value}</p>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            <aside
-              className="self-start rounded-[34px] p-6 sm:p-7"
-              style={{
-                background: "linear-gradient(145deg,rgba(164,60,63,.18),rgba(46,52,50,.72) 52%,rgba(72,102,78,.5))",
-                border: "1px solid rgba(252,206,114,.24)",
-                boxShadow: "0 22px 54px rgba(10,14,10,.18)",
-                backdropFilter: "blur(18px)",
-              }}
-            >
-              <div className="flex items-start gap-4">
-                <div className="grid h-12 w-12 shrink-0 place-items-center rounded-2xl" style={{ background: "rgba(252,206,114,.2)", color: "#fcce72" }}>
-                  <LockLineIcon className="h-5 w-5" />
-                </div>
-                <div>
-                  <p className="text-[11px] font-black uppercase tracking-[0.2em]" style={{ color: CHAT_TEXT_SUBTLE }}>How privacy works</p>
-                  <div className="mt-4 space-y-3 text-sm leading-6" style={{ color: CHAT_TEXT_MUTED }}>
-                    <p>
-                      <strong className="text-white">You -&gt; Giftee:</strong> ask questions as their Secret Santa.
-                    </p>
-                    <p>
-                      <strong className="text-white">Santa -&gt; You:</strong> reply while their name stays hidden.
-                    </p>
-                  </div>
-                </div>
-              </div>
-
-              <div className="mt-5 grid gap-2">
-                {privacyHighlights.map((item) => (
-                  <div
-                    key={item.label}
-                    className="rounded-[20px] px-4 py-3"
+                <div className="flex flex-col gap-3 sm:flex-row">
+                  <input
+                    value={msgInput}
+                    onChange={(e) => setMsgInput(e.target.value)}
+                    onKeyDown={handleKeyDown}
+                    disabled={!selectedThread}
+                    aria-label={
+                      selectedThread
+                        ? `Message composer for ${selectedThread.group_name}`
+                        : "Message composer"
+                    }
+                    placeholder={
+                      selectedThread
+                        ? selectedIsGiver
+                          ? `Ask ${selectedThread.other_name} in ${selectedThread.group_name}...`
+                          : `Reply inside ${selectedThread.group_name}...`
+                        : "Choose a thread first..."
+                    }
+                    maxLength={500}
+                    className="min-h-12 w-full rounded-full px-5 text-[15px] font-semibold outline-none focus-visible:outline-2 focus-visible:outline-offset-2 disabled:cursor-not-allowed disabled:opacity-60 sm:flex-1"
                     style={{
-                      background: "rgba(20,24,21,.42)",
-                      border: "1px solid rgba(252,206,114,.12)",
+                      background: "#f9faf8",
+                      border: CHAT_BORDER_SOFT,
+                      color: CHAT_HEADER_TEXT,
+                      fontFamily: "inherit",
+                      outlineColor: CHAT_GREEN,
+                    }}
+                  />
+                  <button
+                    type="button"
+                    onClick={handleSend}
+                    disabled={!selectedThread || !msgInput.trim()}
+                    className="inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-full px-6 text-sm font-black transition hover:-translate-y-0.5 focus-visible:outline-2 focus-visible:outline-offset-2 disabled:cursor-not-allowed disabled:opacity-55 sm:w-auto"
+                    style={{
+                      background: msgInput.trim() && selectedThread ? CHAT_GREEN : "rgba(72,102,78,.12)",
+                      color: msgInput.trim() && selectedThread ? "#fffefa" : "rgba(46,52,50,.48)",
+                      border: "1px solid rgba(72,102,78,.12)",
+                      fontFamily: "inherit",
+                      boxShadow: msgInput.trim() && selectedThread ? "0 16px 28px rgba(72,102,78,.18)" : "none",
+                      outlineColor: CHAT_GREEN,
                     }}
                   >
-                    <p className="text-[10px] font-black uppercase tracking-[0.18em]" style={{ color: "#fcce72" }}>
-                      {item.label}
-                    </p>
-                    <p className="mt-1 text-sm leading-6" style={{ color: CHAT_TEXT_MUTED }}>
-                      {item.value}
-                    </p>
-                  </div>
-                ))}
+                    Send
+                    <ArrowRightIcon />
+                  </button>
+                </div>
               </div>
-
-              <div className="mt-5 flex flex-wrap gap-2">
-                {privacyBadges.map((badge) => (
-                  <span
-                    key={badge}
-                    className="rounded-full px-3 py-1.5 text-xs font-black"
-                    style={{
-                      background: "rgba(215,250,219,.11)",
-                      border: "1px solid rgba(215,250,219,.16)",
-                      color: "#d7fadb",
-                    }}
-                  >
-                    {badge}
-                  </span>
-                ))}
-              </div>
-            </aside>
-          </section>
-
-          {threadListMessage && (
-            <section
-              className="rounded-3xl px-5 py-4 text-sm font-bold text-rose-100"
-              style={{
-                background: "rgba(190,18,60,.14)",
-                border: "1px solid rgba(251,113,133,.22)",
-              }}
-            >
-              {threadListMessage}
             </section>
-          )}
 
-          {threads.length === 0 ? (
-            <section
-              className="rounded-[34px] p-8 text-center"
-              style={{ background: "rgba(255,248,240,.08)", border: "1px dashed rgba(252,206,114,.2)" }}
-            >
-              <ChatLineIcon className="mx-auto h-10 w-10 text-[#aeb8ae]" />
-              <h2 className="mt-4 text-2xl font-black">No private chats yet</h2>
-              <p className="mx-auto mt-3 max-w-xl" style={{ color: CHAT_TEXT_MUTED }}>
-                After a group draws names, your private Secret Santa conversations will appear here automatically.
+            <aside className="rounded-4xl p-4 xl:sticky xl:top-24 xl:self-start" style={{ background: CHAT_PANEL_BACKGROUND, border: CHAT_BORDER, boxShadow: "0 18px 44px rgba(46,52,50,.06)" }}>
+              <p className="text-[11px] font-black uppercase tracking-[0.18em]" style={{ color: "#7285a1" }}>
+                Gift timing
               </p>
-            </section>
-          ) : (
-            <section className="grid gap-5 lg:grid-cols-2">
-              {chatGroups.map((group) => (
-                <div
-                  key={group.title}
-                  className="relative rounded-4xl p-4 pt-9 sm:p-5 sm:pt-10"
-                  style={{
-                    background: CHAT_PANEL_BACKGROUND,
-                    border: CHAT_BORDER,
-                    boxShadow: "0 18px 44px rgba(46,52,50,.16)",
-                  }}
-                >
-                  <FestiveTrim tone={group.title === "People you gift" ? "gold" : "green"} compact />
-                  <div className="relative mb-4 flex items-start justify-between gap-3 px-2">
-                    <div>
-                      <p className="text-[11px] font-black uppercase tracking-[0.22em]" style={{ color: group.accent }}>
-                        {group.eyebrow}
-                      </p>
-                      <h2 className="mt-1 text-[1.85rem] font-black tracking-normal">{group.title}</h2>
-                      <p className="mt-2 max-w-md text-sm leading-6" style={{ color: CHAT_TEXT_MUTED }}>{group.description}</p>
-                    </div>
-                    <span className="shrink-0 rounded-full px-3 py-1 text-xs font-black text-slate-100" style={{ background: "rgba(46,52,50,.5)" }}>
-                      {group.threads.length}
+              <div className="mt-2 flex items-start gap-3">
+                <CalendarLineIcon className="mt-1 h-6 w-6 shrink-0" />
+                <div>
+                  <h2 className="text-xl font-black" style={{ color: CHAT_GREEN }}>
+                    Group calendar
+                  </h2>
+                  <p className="mt-1 text-xs font-bold leading-5" style={{ color: CHAT_TEXT_MUTED }}>
+                    The chat shows whether this is before gift day, wrap-up, or history.
+                  </p>
+                </div>
+              </div>
+
+              <div className="mt-5 grid grid-cols-7 gap-2">
+                {Array.from({ length: 28 }, (_, index) => index + 1).map((day) => {
+                  const active = day === selectedTiming.highlightedDay;
+                  return (
+                    <span
+                      key={day}
+                      className="grid h-8 w-8 place-items-center rounded-full text-[11px] font-black"
+                      style={{
+                        background: active ? CHAT_RED : "rgba(72,102,78,.08)",
+                        color: active ? "#fffefa" : "#61736a",
+                      }}
+                    >
+                      {day}
+                    </span>
+                  );
+                })}
+              </div>
+
+              <div className="mt-5 rounded-3xl p-4" style={{ background: CHAT_SURFACE_MUTED, border: CHAT_BORDER_SOFT }}>
+                <p className="text-xs font-black uppercase tracking-[0.16em]" style={{ color: selectedTiming.phase === "wrap-up" ? CHAT_RED : CHAT_GREEN }}>
+                  {selectedTiming.chip}
+                </p>
+                <p className="mt-2 text-sm font-black">{selectedTiming.label}</p>
+                <p className="mt-1 text-xs font-bold leading-5" style={{ color: CHAT_TEXT_MUTED }}>
+                  Gift date: {formatGroupDate(selectedThread?.group_gift_date || "")}
+                </p>
+              </div>
+
+              <div className="mt-4 space-y-2">
+                {statusSteps.map((step) => (
+                  <div key={step.label} className="flex items-center gap-3 rounded-2xl px-3 py-2" style={{ background: step.active ? "rgba(72,102,78,.10)" : "transparent" }}>
+                    <span className="h-2.5 w-2.5 rounded-full" style={{ background: step.active ? CHAT_GREEN : "rgba(72,102,78,.20)" }} />
+                    <span className="text-xs font-black" style={{ color: step.active ? CHAT_GREEN : CHAT_TEXT_MUTED }}>
+                      {step.label}
                     </span>
                   </div>
-
-                  <div className="relative space-y-3">
-                    {group.threads.length === 0 ? (
-                      <div className="rounded-[26px] p-5 text-sm leading-6" style={{ background: "rgba(46,52,50,.4)", border: "1px solid rgba(252,206,114,.1)", color: CHAT_TEXT_MUTED }}>
-                        {group.empty}
-                      </div>
-                    ) : (
-                      group.threads.map((thread) => (
-                        <button
-                          key={createThreadKey(thread.group_id, thread.giver_id, thread.receiver_id)}
-                          onClick={() => openThread(thread)}
-                          className="group w-full rounded-[26px] p-4 text-left transition duration-200 hover:-translate-y-0.5"
-                          style={{
-                            background: "linear-gradient(135deg,rgba(255,248,240,.11),rgba(236,239,236,.055))",
-                            border: thread.unread > 0 ? `1px solid ${group.accent}` : "1px solid rgba(252,206,114,.1)",
-                          }}
-                        >
-                          <div className="flex items-center gap-4">
-                            <div className="grid h-11 w-11 place-items-center rounded-2xl text-lg font-black" style={{ background: `${group.accent}20`, color: group.accent }}>
-                              {thread.role === "giver" ? <ChatLineIcon className="h-6 w-6" /> : <SantaMarkIcon className="h-10 w-10" />}
-                            </div>
-                            <div className="min-w-0 flex-1">
-                              <p className="text-[11px] font-black uppercase tracking-[0.18em]" style={{ color: group.accent }}>
-                                {group.title === "People you gift" ? "Giftee thread" : "Anonymous Santa"}
-                              </p>
-                              <div className="flex items-center justify-between gap-3">
-                                <p className="truncate text-lg font-black">{thread.other_name}</p>
-                                <span className="text-xs font-bold uppercase tracking-[0.15em]" style={{ color: CHAT_TEXT_SUBTLE }}>
-                                  {formatThreadTime(thread.last_time)}
-                                </span>
-                              </div>
-                              <p className="mt-1 truncate text-sm" style={{ color: CHAT_TEXT_MUTED }}>{thread.group_name}</p>
-                              <p className="mt-2 truncate text-sm" style={{ color: CHAT_TEXT_SUBTLE }}>{thread.last_message}</p>
-                            </div>
-                            <div className="flex shrink-0 items-center gap-2">
-                              {thread.unread > 0 && (
-                                <span className="grid h-7 min-w-7 place-items-center rounded-full px-2 text-xs font-black text-slate-950" style={{ background: group.accent }}>
-                                  {thread.unread}
-                                </span>
-                              )}
-                              <span className="grid h-10 w-10 place-items-center rounded-full text-slate-200 transition group-hover:translate-x-1" style={{ background: "rgba(46,52,50,.5)" }}>
-                                <ArrowRightIcon className="h-5 w-5" />
-                              </span>
-                            </div>
-                          </div>
-                        </button>
-                      ))
-                    )}
-                  </div>
-                </div>
-              ))}
-            </section>
-          )}
-        </div>
-      </main>
-    );
-  }
-
-  return null;
+                ))}
+              </div>
+            </aside>
+        </section>
+      </div>
+    </main>
+  );
 }
 

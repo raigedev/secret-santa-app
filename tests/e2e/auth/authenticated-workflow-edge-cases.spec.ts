@@ -64,7 +64,8 @@ const SHARED_NAVIGATION_CASES: NavigationCase[] = [
     expectedHref: /\/secret-santa-chat$/,
     expectedUrl: /\/secret-santa-chat$/,
     ready: async (page) => {
-      await expect(page.getByRole("heading", { name: /private gift whispers/i })).toBeVisible();
+      await expect(page.getByTestId("secret-santa-chat-page")).toBeVisible();
+      await expect(page.getByRole("heading", { name: /^wrap-up window$/i }).first()).toBeVisible();
     },
   },
   {
