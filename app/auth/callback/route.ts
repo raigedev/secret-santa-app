@@ -2,6 +2,11 @@ import { NextResponse } from "next/server";
 import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
 import { recordServerFailure } from "@/lib/security/audit";
+import {
+  createOAuthCallbackErrorLoginUrl,
+  getOAuthCallbackErrorDetails,
+  hasOAuthCallbackError,
+} from "@/lib/auth/oauth-callback-errors";
 import { ELIGIBLE_EMAIL_INVITE_STATUSES } from "@/lib/groups/invite-claim.mjs";
 import { normalizeSafeAppPath, resolveTrustedAppOrigin } from "@/lib/security/web";
 import { supabaseAdmin } from "@/lib/supabase/admin";
@@ -16,6 +21,18 @@ export async function GET(request: Request) {
     "/dashboard"
   );
   const origin = resolveTrustedAppOrigin(requestUrl);
+
+  if (!code && hasOAuthCallbackError(requestUrl.searchParams)) {
+    await recordServerFailure({
+      errorMessage:
+        getOAuthCallbackErrorDetails(requestUrl.searchParams) ||
+        "OAuth callback returned an error without a code",
+      eventType: "auth.callback.oauth_error",
+      resourceType: "auth_callback",
+    });
+
+    return NextResponse.redirect(createOAuthCallbackErrorLoginUrl(origin));
+  }
 
   if (!code) {
     await recordServerFailure({

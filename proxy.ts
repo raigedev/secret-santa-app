@@ -1,6 +1,10 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { createServerClient } from "@supabase/ssr";
+import {
+  createOAuthCallbackErrorLoginUrl,
+  hasOAuthCallbackError,
+} from "@/lib/auth/oauth-callback-errors";
 import { getEmailVerificationMessage, isUserEmailVerified } from "@/lib/auth/user-status";
 
 // Central request guard for auth, invite-link access, and email-verification redirects.
@@ -9,6 +13,10 @@ export async function proxy(req: NextRequest) {
   // through the callback handler first so the session is exchanged before any UI renders.
   const hasOAuthCode = req.nextUrl.searchParams.has("code");
   const isCallbackRoute = req.nextUrl.pathname === "/auth/callback";
+
+  if (!isCallbackRoute && hasOAuthCallbackError(req.nextUrl.searchParams)) {
+    return NextResponse.redirect(createOAuthCallbackErrorLoginUrl(req.url));
+  }
 
   if (hasOAuthCode && !isCallbackRoute) {
     const callbackUrl = req.nextUrl.clone();

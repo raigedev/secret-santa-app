@@ -9,6 +9,7 @@ import {
   AuthHeroPanel,
   AuthPageFrame,
 } from "@/app/components/AuthPageShell";
+import { OAUTH_CALLBACK_FAILED_ERROR } from "@/lib/auth/oauth-callback-errors";
 import { createClient } from "@/lib/supabase/client";
 
 const TRUST_MARKERS = [
@@ -30,6 +31,7 @@ const AUTH_ERROR_MESSAGES: Record<string, string> = {
   confirm_email: "Please confirm your email address before signing in.",
   auth_failed: "We could not sign you in. Please try again.",
   no_code: "The sign-in link did not work. Please try again.",
+  [OAUTH_CALLBACK_FAILED_ERROR]: "Google sign-in expired. Please start again.",
 };
 
 const GENERIC_LOGIN_ERROR =

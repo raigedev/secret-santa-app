@@ -73,4 +73,18 @@ test.describe("public auth regressions", () => {
     await expect(page).toHaveURL(/\/login$/);
     await expect(page.getByRole("button", { name: /^login$/i })).toBeVisible();
   });
+
+  test("landing OAuth callback errors recover on the login screen", async ({ page }) => {
+    const callbackError = new URLSearchParams({
+      error: "invalid_request",
+      error_code: "bad_oauth_callback",
+      error_description: "OAuth state parameter missing",
+    });
+
+    await page.goto(`/?${callbackError}`);
+
+    await expect(page).toHaveURL(/\/login\?error=oauth_callback_failed$/);
+    await expect(page.getByRole("alert")).toContainText(/google sign-in expired/i);
+    await expect(page.getByRole("button", { name: /continue with google/i })).toBeVisible();
+  });
 });

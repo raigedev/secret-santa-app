@@ -44,6 +44,25 @@ test.describe("API auth and guard coverage", () => {
     expect(location).not.toContain("evil.example");
   });
 
+  test("auth callback turns OAuth provider errors into a clean login redirect", async ({
+    request,
+  }) => {
+    const callbackError = new URLSearchParams({
+      error: "invalid_request",
+      error_code: "bad_oauth_callback",
+      error_description: "OAuth state parameter missing",
+    });
+    const response = await request.get(`/auth/callback?${callbackError}`, {
+      maxRedirects: 0,
+    });
+    const location = response.headers().location || "";
+
+    expect(response.status()).toBeGreaterThanOrEqual(300);
+    expect(response.status()).toBeLessThan(400);
+    expect(location).toContain("/login?error=oauth_callback_failed");
+    expect(location).not.toContain("OAuth+state+parameter+missing");
+  });
+
   test("lazada matches reject unauthenticated requests", async ({ request }) => {
     const response = await request.post("/api/affiliate/lazada/matches", {
       data: {

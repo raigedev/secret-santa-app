@@ -1,7 +1,7 @@
 import { expect, type Page } from "@playwright/test";
 
 const BASE_ORIGIN = new URL(
-  process.env.PLAYWRIGHT_BASE_URL || "http://127.0.0.1:3000"
+  process.env.PLAYWRIGHT_BASE_URL || "http://localhost:3000"
 ).origin;
 const CORE_RESOURCE_TYPES = new Set(["document", "fetch", "font", "image", "script", "stylesheet"]);
 const IGNORED_CONSOLE_PATTERNS = [/download the react devtools/i];

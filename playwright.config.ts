@@ -58,7 +58,7 @@ function loadLocalPlaywrightEnv() {
 
 loadLocalPlaywrightEnv();
 
-const baseURL = process.env.PLAYWRIGHT_BASE_URL || `http://127.0.0.1:${PORT}`;
+const baseURL = process.env.PLAYWRIGHT_BASE_URL || `http://localhost:${PORT}`;
 const authenticatedE2eEnabled = Boolean(
   process.env.PLAYWRIGHT_E2E_EMAIL && process.env.PLAYWRIGHT_E2E_PASSWORD
 );
