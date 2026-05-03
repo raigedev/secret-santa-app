@@ -54,7 +54,9 @@ graphify-out/
 .vercel
 
 # local Supabase CLI artifacts
+supabase/.branches/
 supabase/.temp/
+supabase/config.toml
 supabase/public-schema.sql
 
 # typescript
