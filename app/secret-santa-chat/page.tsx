@@ -97,7 +97,7 @@ const WRAP_UP_DAYS = 7;
 const CHAT_THREAD_MESSAGE_SCAN_LIMIT = 300;
 const CHAT_ACTIVE_THREAD_MESSAGE_LIMIT = 100;
 const CHAT_THREAD_FALLBACK_POLL_MS = 5 * 60 * 1000;
-const CHAT_ACTIVE_THREAD_FALLBACK_POLL_MS = 2 * 60 * 1000;
+const CHAT_ACTIVE_THREAD_FALLBACK_POLL_MS = 5 * 60 * 1000;
 
 function getChatPageSnapshotStorageKey(userId: string): string {
   return `${CHAT_PAGE_SNAPSHOT_STORAGE_PREFIX}${userId}`;
@@ -1165,73 +1165,6 @@ export default function SecretSantaChatPage() {
       }
     };
 
-    const channel = supabase
-      .channel("chat-threads-realtime")
-      .on(
-        "postgres_changes",
-        { event: "*", schema: "public", table: "messages" },
-        (payload) => {
-          const currentUserId = userIdRef.current;
-
-          if (!currentUserId) {
-            return;
-          }
-
-          if (payload.eventType !== "INSERT") {
-            scheduleThreadsReload();
-            return;
-          }
-
-          const newMessage = payload.new as MessageRow;
-
-          if (
-            newMessage.thread_giver_id !== currentUserId &&
-            newMessage.thread_receiver_id !== currentUserId
-          ) {
-            return;
-          }
-
-          let matchedExistingThread = false;
-
-          setThreads((currentThreads) => {
-            const result = applyMessageToThreads(
-              currentThreads,
-              newMessage,
-              currentUserId,
-              activeThreadRef.current
-            );
-
-            matchedExistingThread = result.matched;
-            return result.threads;
-          });
-
-          if (!matchedExistingThread) {
-            void loadThreadsRef.current?.();
-          }
-        }
-      )
-      .on(
-        "postgres_changes",
-        { event: "*", schema: "public", table: "assignments" },
-        () => scheduleThreadsReload()
-      )
-      .on(
-        "postgres_changes",
-        { event: "*", schema: "public", table: "group_members" },
-        () => scheduleThreadsReload()
-      )
-      .on(
-        "postgres_changes",
-        { event: "*", schema: "public", table: "groups" },
-        () => scheduleThreadsReload()
-      )
-      .on(
-        "postgres_changes",
-        { event: "*", schema: "public", table: "thread_reads" },
-        () => scheduleThreadsReload()
-      )
-      .subscribe();
-
     window.addEventListener("focus", refreshThreadsIfVisible);
     document.addEventListener("visibilitychange", refreshThreadsIfVisible);
     pollInterval = setInterval(refreshThreadsIfVisible, CHAT_THREAD_FALLBACK_POLL_MS);
@@ -1245,7 +1178,6 @@ export default function SecretSantaChatPage() {
       }
       window.removeEventListener("focus", refreshThreadsIfVisible);
       document.removeEventListener("visibilitychange", refreshThreadsIfVisible);
-      supabase.removeChannel(channel);
     };
   }, [supabase, router]);
 

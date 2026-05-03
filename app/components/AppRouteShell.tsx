@@ -48,6 +48,7 @@ const PAGE_TEXT_COLOR = "#2e3432";
 const HOLIDAY_GREEN = "#48664e";
 const HOLIDAY_RED = "#a43c3f";
 const TEXT_MUTED = "#64748b";
+const APP_SHELL_FALLBACK_POLL_MS = 5 * 60 * 1000;
 
 type AppNavItem = {
   href: string;
@@ -372,7 +373,7 @@ export default function AppRouteShell({ children }: { children: ReactNode }) {
           // Keep the cached shell profile if the background refresh is unavailable.
         });
     },
-    pollMs: 60000,
+    pollMs: APP_SHELL_FALLBACK_POLL_MS,
     rules: shellProfileRealtimeRules,
     supabase,
   });
@@ -400,7 +401,7 @@ export default function AppRouteShell({ children }: { children: ReactNode }) {
         void loadShellUnreadCount(shellUserId);
       }
     },
-    pollMs: 30000,
+    pollMs: APP_SHELL_FALLBACK_POLL_MS,
     rules: shellNotificationsRealtimeRules,
     supabase,
   });

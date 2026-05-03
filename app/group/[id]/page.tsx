@@ -60,6 +60,8 @@ const ShareResultsCard = dynamic<ShareResultsCardProps>(() => import("./ShareRes
   loading: () => null,
 });
 
+const GROUP_PAGE_FALLBACK_POLL_MS = 5 * 60 * 1000;
+
 export default function GroupDetailsPage() {
   const router = useRouter();
   const params = useParams();
@@ -421,7 +423,7 @@ export default function GroupDetailsPage() {
       .channel(`group-${id}-realtime`)
       .on(
         "postgres_changes",
-        { event: "*", schema: "public", table: "group_members" },
+        { event: "*", schema: "public", table: "group_members", filter: `group_id=eq.${id}` },
         (payload) => {
           if (matchesGroupChange(payload)) {
             scheduleReload();
@@ -430,7 +432,7 @@ export default function GroupDetailsPage() {
       )
       .on(
         "postgres_changes",
-        { event: "*", schema: "public", table: "groups" },
+        { event: "*", schema: "public", table: "groups", filter: `id=eq.${id}` },
         (payload) => {
           if (matchesGroupChange(payload, "id")) {
             scheduleReload();
@@ -439,7 +441,7 @@ export default function GroupDetailsPage() {
       )
       .on(
         "postgres_changes",
-        { event: "*", schema: "public", table: "assignments" },
+        { event: "*", schema: "public", table: "assignments", filter: `group_id=eq.${id}` },
         (payload) => {
           if (matchesGroupChange(payload)) {
             scheduleReload();
@@ -448,7 +450,7 @@ export default function GroupDetailsPage() {
       )
       .on(
         "postgres_changes",
-        { event: "*", schema: "public", table: "wishlists" },
+        { event: "*", schema: "public", table: "wishlists", filter: `group_id=eq.${id}` },
         (payload) => {
           if (matchesGroupChange(payload)) {
             scheduleReload();
@@ -457,7 +459,7 @@ export default function GroupDetailsPage() {
       )
       .on(
         "postgres_changes",
-        { event: "*", schema: "public", table: "messages" },
+        { event: "*", schema: "public", table: "messages", filter: `group_id=eq.${id}` },
         (payload) => {
           if (matchesGroupChange(payload)) {
             scheduleReload();
@@ -466,7 +468,7 @@ export default function GroupDetailsPage() {
       )
       .on(
         "postgres_changes",
-        { event: "*", schema: "public", table: "group_draw_exclusions" },
+        { event: "*", schema: "public", table: "group_draw_exclusions", filter: `group_id=eq.${id}` },
         (payload) => {
           if (matchesGroupChange(payload)) {
             scheduleReload();
@@ -478,7 +480,7 @@ export default function GroupDetailsPage() {
     window.addEventListener("storage", handleStorageRefresh);
     window.addEventListener("focus", refreshIfVisible);
     document.addEventListener("visibilitychange", refreshIfVisible);
-    pollInterval = setInterval(refreshIfVisible, 60000);
+    pollInterval = setInterval(refreshIfVisible, GROUP_PAGE_FALLBACK_POLL_MS);
 
     return () => {
       isMounted = false;

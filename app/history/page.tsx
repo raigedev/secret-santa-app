@@ -38,6 +38,8 @@ type HistoryAssignmentRow = {
   receiver_id: string;
 };
 
+const HISTORY_PAGE_FALLBACK_POLL_MS = 5 * 60 * 1000;
+
 function filterHistoryGroups(groups: Group[]) {
   return splitDashboardGroups(groups.filter((group) => isGroupInHistory(group.event_date)));
 }
@@ -190,6 +192,7 @@ export default function HistoryPage() {
   useEffect(() => {
     mountedRef.current = true;
     let reloadTimer: ReturnType<typeof setTimeout> | null = null;
+    let pollInterval: ReturnType<typeof setInterval> | null = null;
 
     const scheduleReload = () => {
       if (reloadTimer) {
@@ -202,6 +205,12 @@ export default function HistoryPage() {
           void loadHistoryGroups(sessionUser);
         }
       }, 120);
+    };
+
+    const refreshIfVisible = () => {
+      if (document.visibilityState === "visible") {
+        scheduleReload();
+      }
     };
 
     const bootstrap = async () => {
@@ -228,18 +237,9 @@ export default function HistoryPage() {
     };
 
     void bootstrap();
-
-    const channel = supabase
-      .channel("history-list-realtime")
-      .on("postgres_changes", { event: "*", schema: "public", table: "groups" }, scheduleReload)
-      .on(
-        "postgres_changes",
-        { event: "*", schema: "public", table: "group_members" },
-        scheduleReload
-      )
-      .on("postgres_changes", { event: "*", schema: "public", table: "wishlists" }, scheduleReload)
-      .on("postgres_changes", { event: "*", schema: "public", table: "assignments" }, scheduleReload)
-      .subscribe();
+    window.addEventListener("focus", refreshIfVisible);
+    document.addEventListener("visibilitychange", refreshIfVisible);
+    pollInterval = setInterval(refreshIfVisible, HISTORY_PAGE_FALLBACK_POLL_MS);
 
     const {
       data: { subscription },
@@ -258,7 +258,11 @@ export default function HistoryPage() {
       if (reloadTimer) {
         clearTimeout(reloadTimer);
       }
-      void supabase.removeChannel(channel);
+      if (pollInterval) {
+        clearInterval(pollInterval);
+      }
+      window.removeEventListener("focus", refreshIfVisible);
+      document.removeEventListener("visibilitychange", refreshIfVisible);
       subscription.unsubscribe();
     };
   }, [loadHistoryGroups, router, supabase]);

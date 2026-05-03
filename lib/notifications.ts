@@ -635,19 +635,43 @@ async function enqueuePostDrawReminderJobs(now: Date): Promise<number> {
   const cycleWindowStart = new Date(
     now.getTime() - 14 * 24 * 60 * 60 * 1000
   ).toISOString();
-  const [cyclesResult, assignmentsResult, groupsResult, messagesResult] = await Promise.all([
+  const groupsResult = await supabaseAdmin
+    .from("groups")
+    .select("id, name, event_date")
+    .gte("event_date", today);
+
+  if (groupsResult.error) {
+    await recordServerFailure({
+      errorMessage: groupsResult.error.message,
+      eventType: "notifications.reminders.post_draw.groups",
+      resourceType: "group",
+    });
+    return 0;
+  }
+
+  const currentGroups = new Map(
+    ((groupsResult.data || []) as GroupSummary[]).map((group) => [group.id, group])
+  );
+  const currentGroupIds = [...currentGroups.keys()];
+
+  if (currentGroupIds.length === 0) {
+    return 0;
+  }
+
+  const [cyclesResult, assignmentsResult] = await Promise.all([
     supabaseAdmin
       .from("group_draw_cycles")
       .select("id, group_id, cycle_number, created_at")
+      .in("group_id", currentGroupIds)
       .gte("created_at", cycleWindowStart)
       .order("group_id", { ascending: true })
       .order("cycle_number", { ascending: false }),
     supabaseAdmin
       .from("assignments")
       .select("group_id, giver_id, gift_prep_status, gift_received, created_at")
-      .order("created_at", { ascending: false }),
-    supabaseAdmin.from("groups").select("id, name, event_date").gte("event_date", today),
-    supabaseAdmin.from("messages").select("group_id, sender_id"),
+      .in("group_id", currentGroupIds)
+      .is("gift_prep_status", null)
+      .or("gift_received.is.null,gift_received.eq.false"),
   ]);
 
   if (cyclesResult.error) {
@@ -668,14 +692,18 @@ async function enqueuePostDrawReminderJobs(now: Date): Promise<number> {
     return 0;
   }
 
-  if (groupsResult.error) {
-    await recordServerFailure({
-      errorMessage: groupsResult.error.message,
-      eventType: "notifications.reminders.post_draw.groups",
-      resourceType: "group",
-    });
+  const typedAssignments = (assignmentsResult.data || []) as AssignmentReminderRow[];
+
+  if (typedAssignments.length === 0) {
     return 0;
   }
+
+  const assignmentGiverIds = [...new Set(typedAssignments.map((assignment) => assignment.giver_id))];
+  const messagesResult = await supabaseAdmin
+    .from("messages")
+    .select("group_id, sender_id")
+    .in("group_id", currentGroupIds)
+    .in("sender_id", assignmentGiverIds);
 
   if (messagesResult.error) {
     await recordServerFailure({
@@ -686,9 +714,6 @@ async function enqueuePostDrawReminderJobs(now: Date): Promise<number> {
     return 0;
   }
 
-  const currentGroups = new Map(
-    ((groupsResult.data || []) as GroupSummary[]).map((group) => [group.id, group])
-  );
   const latestCycleByGroup = new Map<string, DrawCycleSummary>();
 
   for (const cycle of (cyclesResult.data || []) as DrawCycleSummary[]) {
@@ -704,9 +729,8 @@ async function enqueuePostDrawReminderJobs(now: Date): Promise<number> {
       (message) => `${message.group_id}:${message.sender_id}`
     )
   );
-  const typedAssignments = (assignmentsResult.data || []) as AssignmentReminderRow[];
   const preferenceMap = await loadReminderPreferencesMap(
-    typedAssignments.map((assignment) => assignment.giver_id)
+    assignmentGiverIds
   );
   let enqueued = 0;
 

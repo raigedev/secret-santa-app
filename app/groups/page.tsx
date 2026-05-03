@@ -22,6 +22,8 @@ type GroupsPageUser = {
   email?: string | null;
 };
 
+const GROUPS_PAGE_FALLBACK_POLL_MS = 5 * 60 * 1000;
+
 function splitActiveGroups(groups: Group[]) {
   return splitDashboardGroups(groups.filter((group) => !isGroupInHistory(group.event_date)));
 }
@@ -150,7 +152,7 @@ export default function GroupsPage() {
           return;
         }
 
-        groupPollInterval = setInterval(refreshGroupsIfVisible, 60_000);
+        groupPollInterval = setInterval(refreshGroupsIfVisible, GROUPS_PAGE_FALLBACK_POLL_MS);
       } catch {
         if (!mountedRef.current) {
           return;
@@ -168,30 +170,6 @@ export default function GroupsPage() {
 
     window.addEventListener("focus", refreshGroupsIfVisible);
     document.addEventListener("visibilitychange", refreshGroupsIfVisible);
-
-    const channel = supabase
-      .channel("groups-list-realtime")
-      .on(
-        "postgres_changes",
-        { event: "*", schema: "public", table: "group_members" },
-        scheduleGroupsReload
-      )
-      .on(
-        "postgres_changes",
-        { event: "*", schema: "public", table: "groups" },
-        scheduleGroupsReload
-      )
-      .on(
-        "postgres_changes",
-        { event: "*", schema: "public", table: "assignments" },
-        scheduleGroupsReload
-      )
-      .on(
-        "postgres_changes",
-        { event: "*", schema: "public", table: "profiles" },
-        scheduleGroupsReload
-      )
-      .subscribe();
 
     const {
       data: { subscription },
@@ -215,7 +193,6 @@ export default function GroupsPage() {
       }
       window.removeEventListener("focus", refreshGroupsIfVisible);
       document.removeEventListener("visibilitychange", refreshGroupsIfVisible);
-      void supabase.removeChannel(channel);
       subscription.unsubscribe();
     };
   }, [loadGroups, router, supabase]);

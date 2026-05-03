@@ -67,6 +67,7 @@ const ProfileSetupModal = dynamic<ProfileSetupModalProps>(() => import("./Profil
 const DASHBOARD_THEME_STORAGE_KEY = "ss_dashboard_theme";
 const DASHBOARD_THEME_CHANGED_EVENT = "ss-dashboard-theme-changed";
 const DASHBOARD_NOTIFICATION_PREVIEW_LIMIT = 3;
+const DASHBOARD_FALLBACK_POLL_MS = 5 * 60 * 1000;
 
 type DashboardNotificationPreviewGroup = {
   count: number;
@@ -197,7 +198,6 @@ export default function DashboardPage() {
   const loadDashboardDataRef = useRef<
     ((user: { id: string; email?: string | null }) => Promise<void>) | null
   >(null);
-  const loadProfileDataRef = useRef<(() => Promise<void>) | null>(null);
   const loadNotificationCountRef = useRef<((userId: string) => Promise<void>) | null>(null);
 
   useEffect(() => {
@@ -251,7 +251,6 @@ export default function DashboardPage() {
   useEffect(() => {
     let isMounted = true;
     let dashboardReloadTimer: ReturnType<typeof setTimeout> | null = null;
-    let profileReloadTimer: ReturnType<typeof setTimeout> | null = null;
     let notificationPollInterval: ReturnType<typeof setInterval> | null = null;
     let dashboardPollInterval: ReturnType<typeof setInterval> | null = null;
     let dashboardLoadVersion = 0;
@@ -749,8 +748,6 @@ export default function DashboardPage() {
       }
     };
 
-    loadProfileDataRef.current = loadProfileData;
-
     const loadNotificationCount = async (targetUserId: string) => {
       const { data, error } = await supabase
         .from("notifications")
@@ -787,18 +784,6 @@ export default function DashboardPage() {
       dashboardReloadTimer = setTimeout(() => {
         if (sessionUser && loadDashboardDataRef.current) {
           void loadDashboardDataRef.current(sessionUser);
-        }
-      }, 120);
-    };
-
-    const scheduleProfileReload = () => {
-      if (profileReloadTimer) {
-        clearTimeout(profileReloadTimer);
-      }
-
-      profileReloadTimer = setTimeout(() => {
-        if (loadProfileDataRef.current) {
-          void loadProfileDataRef.current();
         }
       }, 120);
     };
@@ -860,8 +845,8 @@ export default function DashboardPage() {
         }
 
         // claimInvitedMemberships only needs to run once per browser session.
-        // Email-linked invites don't change between visits; realtime will trigger
-        // a data reload automatically when a brand-new invite arrives.
+        // Email-linked invites don't change between visits; focus and the light
+        // fallback refresh keep brand-new invites synced without hot polling.
         const CLAIM_KEY = "ss_mc";
         const alreadyClaimed =
           typeof sessionStorage !== "undefined" &&
@@ -907,10 +892,10 @@ export default function DashboardPage() {
         // bell accurate if the browser misses a websocket event or resumes from sleep.
         notificationPollInterval = setInterval(() => {
           refreshNotificationsIfVisible();
-        }, 30000);
+        }, DASHBOARD_FALLBACK_POLL_MS);
         dashboardPollInterval = setInterval(() => {
           refreshDashboardIfVisible();
-        }, 60000);
+        }, DASHBOARD_FALLBACK_POLL_MS);
       } catch {
         if (!isMounted) {
           return;
@@ -929,52 +914,6 @@ export default function DashboardPage() {
     window.addEventListener("focus", refreshDashboardIfVisible);
     document.addEventListener("visibilitychange", refreshDashboardIfVisible);
 
-    const channel = supabase
-      .channel("dashboard-realtime")
-      .on(
-        "postgres_changes",
-        { event: "*", schema: "public", table: "group_members" },
-        () => scheduleDashboardReload()
-      )
-      .on(
-        "postgres_changes",
-        { event: "*", schema: "public", table: "groups" },
-        () => scheduleDashboardReload()
-      )
-      .on(
-        "postgres_changes",
-        { event: "*", schema: "public", table: "assignments" },
-        () => scheduleDashboardReload()
-      )
-      .on(
-        "postgres_changes",
-        { event: "*", schema: "public", table: "profiles" },
-        (payload) => {
-          const changedUserId =
-            (payload.new as { user_id?: string } | null)?.user_id ||
-            (payload.old as { user_id?: string } | null)?.user_id;
-
-          if (sessionUser && changedUserId === sessionUser.id) {
-            scheduleProfileReload();
-          }
-        }
-      )
-      .on(
-        "postgres_changes",
-        { event: "*", schema: "public", table: "notifications" },
-        (payload) => {
-          const changedUserId =
-            (payload.new as { user_id?: string } | null)?.user_id ||
-            (payload.old as { user_id?: string } | null)?.user_id;
-
-          if (sessionUser && changedUserId === sessionUser.id) {
-            scheduleNotificationsReload();
-            scheduleDashboardReload();
-          }
-        }
-      )
-      .subscribe();
-
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((_event, session) => {
@@ -989,9 +928,6 @@ export default function DashboardPage() {
       if (dashboardReloadTimer) {
         clearTimeout(dashboardReloadTimer);
       }
-      if (profileReloadTimer) {
-        clearTimeout(profileReloadTimer);
-      }
       if (notificationPollInterval) {
         clearInterval(notificationPollInterval);
       }
@@ -1000,7 +936,6 @@ export default function DashboardPage() {
       }
       window.removeEventListener("focus", refreshDashboardIfVisible);
       document.removeEventListener("visibilitychange", refreshDashboardIfVisible);
-      void supabase.removeChannel(channel);
       subscription.unsubscribe();
     };
   }, [supabase, router]);

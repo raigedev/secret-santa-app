@@ -28,6 +28,7 @@ type NotificationsPageSnapshot = ClientSnapshotMetadata & {
 };
 
 const NOTIFICATIONS_PAGE_SNAPSHOT_STORAGE_PREFIX = "ss_notifications_page_snapshot_v1:";
+const NOTIFICATIONS_PAGE_FALLBACK_POLL_MS = 5 * 60 * 1000;
 
 function getNotificationsPageSnapshotStorageKey(userId: string): string {
   return `${NOTIFICATIONS_PAGE_SNAPSHOT_STORAGE_PREFIX}${userId}`;
@@ -186,7 +187,7 @@ export default function NotificationsPage() {
 
     // Realtime is the primary path; this fallback is intentionally light to avoid
     // repeated notification reads while the database is already under I/O pressure.
-    pollInterval = setInterval(refreshIfVisible, 30000);
+    pollInterval = setInterval(refreshIfVisible, NOTIFICATIONS_PAGE_FALLBACK_POLL_MS);
     window.addEventListener("focus", refreshIfVisible);
     document.addEventListener("visibilitychange", refreshIfVisible);
 

@@ -71,6 +71,7 @@ type ProfilePageSnapshot = ClientSnapshotMetadata & {
 };
 
 const PROFILE_PAGE_SNAPSHOT_STORAGE_PREFIX = "ss_profile_page_snapshot_v1:";
+const PROFILE_PAGE_FALLBACK_POLL_MS = 5 * 60 * 1000;
 const DEFAULT_PROFILE: Profile = {
   display_name: "",
   avatar_emoji: DEFAULT_AVATAR_EMOJI,
@@ -367,7 +368,7 @@ export default function ProfilePage() {
 
     window.addEventListener("focus", refreshIfVisible);
     document.addEventListener("visibilitychange", refreshIfVisible);
-    pollInterval = setInterval(refreshIfVisible, 60000);
+    pollInterval = setInterval(refreshIfVisible, PROFILE_PAGE_FALLBACK_POLL_MS);
 
     return () => {
       isActive = false;

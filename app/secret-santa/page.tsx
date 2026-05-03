@@ -217,6 +217,7 @@ const INPUT_TEXT = "#2e3432";
 const HOLIDAY_RED = "#a43c3f";
 const HOLIDAY_GREEN = "#48664e";
 const HOLIDAY_GOLD = "#7b5902";
+const SECRET_SANTA_FALLBACK_POLL_MS = 5 * 60 * 1000;
 const HOLIDAY_BLUE = "#58748e";
 const LAZADA_AFFILIATE_DISCLOSURE =
   "Some Lazada links are affiliate links.";
@@ -2777,7 +2778,7 @@ export function SecretSantaExperience({ mode = "shopping" }: SecretSantaExperien
         void loadUnreadNotificationCount(viewerUserId);
       }
     },
-    pollMs: 30000,
+    pollMs: SECRET_SANTA_FALLBACK_POLL_MS,
     rules: notificationRealtimeRules,
     supabase,
   });
@@ -3617,34 +3618,9 @@ export function SecretSantaExperience({ mode = "shopping" }: SecretSantaExperien
 
     void loadData();
 
-    // Refresh visible data when related rows change in Supabase.
-    const channel = supabase
-      .channel("santa-page-realtime")
-      .on(
-        "postgres_changes",
-        { event: "*", schema: "public", table: "wishlists" },
-        () => scheduleReload()
-      )
-      .on(
-        "postgres_changes",
-        { event: "*", schema: "public", table: "assignments" },
-        () => scheduleReload()
-      )
-      .on(
-        "postgres_changes",
-        { event: "*", schema: "public", table: "group_members" },
-        () => scheduleReload()
-      )
-      .on(
-        "postgres_changes",
-        { event: "*", schema: "public", table: "groups" },
-        () => scheduleReload()
-      )
-      .subscribe();
-
     window.addEventListener("focus", refreshIfVisible);
     document.addEventListener("visibilitychange", refreshIfVisible);
-    pollInterval = setInterval(refreshIfVisible, 60000);
+    pollInterval = setInterval(refreshIfVisible, SECRET_SANTA_FALLBACK_POLL_MS);
 
     return () => {
       isMounted = false;
@@ -3656,7 +3632,6 @@ export function SecretSantaExperience({ mode = "shopping" }: SecretSantaExperien
       }
       window.removeEventListener("focus", refreshIfVisible);
       document.removeEventListener("visibilitychange", refreshIfVisible);
-      void supabase.removeChannel(channel);
     };
   }, [loadUnreadNotificationCount, supabase, router]);
 

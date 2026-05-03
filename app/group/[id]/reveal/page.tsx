@@ -46,6 +46,8 @@ type RevealPresentation = {
   session: RevealSession;
 };
 
+const REVEAL_PAGE_FALLBACK_POLL_MS = 5 * 60 * 1000;
+
 function formatRevealTime(value: string | null): string {
   if (!value) {
     return "Not revealed yet";
@@ -252,7 +254,7 @@ export default function GroupRevealPage() {
 
     window.addEventListener("focus", refreshIfVisible);
     document.addEventListener("visibilitychange", refreshIfVisible);
-    pollInterval = setInterval(refreshIfVisible, 30000);
+    pollInterval = setInterval(refreshIfVisible, REVEAL_PAGE_FALLBACK_POLL_MS);
 
     return () => {
       isMounted = false;

@@ -79,6 +79,7 @@ const ITEM_NAME_MAX = 100;
 const ITEM_NOTE_MAX = 200;
 const ITEM_URL_MAX = 500;
 const WISHLIST_PAGE_SNAPSHOT_STORAGE_PREFIX = "ss_wishlist_page_snapshot_v1:";
+const WISHLIST_PAGE_FALLBACK_POLL_MS = 5 * 60 * 1000;
 const PRIORITY_OPTIONS: Array<{ value: WishlistPriority; label: string }> = [
   { value: 2, label: "Want most" },
   { value: 1, label: "Nice to have" },
@@ -492,7 +493,7 @@ export default function WishlistPage() {
     channelName: userId ? `wishlist-page-${userId}` : "wishlist-page-disabled",
     enabled: Boolean(userId),
     onRefresh: () => loadDataRef.current?.(),
-    pollMs: 30000,
+    pollMs: WISHLIST_PAGE_FALLBACK_POLL_MS,
     rules: realtimeRules,
     supabase,
   });
