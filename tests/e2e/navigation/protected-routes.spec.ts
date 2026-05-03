@@ -8,7 +8,7 @@ test.describe("protected route coverage", () => {
       await page.goto(path);
 
       await expect(page).toHaveURL(/\/login$/);
-      await expect(page.getByRole("button", { name: /^login$/i })).toBeVisible();
+      await expect(page.getByRole("button", { name: /^log in$/i })).toBeVisible();
     });
   }
 });

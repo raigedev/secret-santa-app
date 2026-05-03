@@ -16,8 +16,8 @@ test.describe("public smoke coverage", () => {
   test("login page renders the core auth controls", async ({ page }) => {
     await page.goto("/login");
 
-    await expect(page.getByRole("heading", { name: /my secret santa/i })).toBeVisible();
-    await expect(page.getByRole("button", { name: /^login$/i })).toBeVisible();
+    await expect(page.getByRole("heading", { name: /log in/i })).toBeVisible();
+    await expect(page.getByRole("button", { name: /^log in$/i })).toBeVisible();
     await expect(page.getByRole("button", { name: /continue with google/i })).toBeVisible();
     await expect(page.getByRole("button", { name: /create account/i })).toBeVisible();
   });
@@ -26,7 +26,7 @@ test.describe("public smoke coverage", () => {
     await page.goto("/dashboard");
 
     await expect(page).toHaveURL(/\/login$/);
-    await expect(page.getByRole("button", { name: /^login$/i })).toBeVisible();
+    await expect(page.getByRole("button", { name: /^log in$/i })).toBeVisible();
   });
 
   test("reminder processing route rejects unauthenticated requests", async ({ request }) => {
@@ -54,7 +54,7 @@ test.describe("public smoke coverage", () => {
     await page.goto(`/go/suggestion?${params.toString()}`);
 
     await expect(page).toHaveURL(/\/login$/);
-    await expect(page.getByRole("button", { name: /^login$/i })).toBeVisible();
+    await expect(page.getByRole("button", { name: /^log in$/i })).toBeVisible();
   });
 
   test("wishlist-link redirect requires an authenticated session", async ({ page }) => {
@@ -68,7 +68,7 @@ test.describe("public smoke coverage", () => {
     await page.goto(`/go/wishlist-link?${params.toString()}`);
 
     await expect(page).toHaveURL(/\/login$/);
-    await expect(page.getByRole("button", { name: /^login$/i })).toBeVisible();
+    await expect(page.getByRole("button", { name: /^log in$/i })).toBeVisible();
   });
 
   test("prime-links route rejects unauthenticated requests", async ({ request }) => {

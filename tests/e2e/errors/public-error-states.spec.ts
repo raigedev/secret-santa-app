@@ -14,6 +14,6 @@ test.describe("public error and edge states", () => {
     await page.goto(UNKNOWN_ROUTE_PATH);
 
     await expect(page).toHaveURL(/\/login$/);
-    await expect(page.getByRole("button", { name: /^login$/i })).toBeVisible();
+    await expect(page.getByRole("button", { name: /^log in$/i })).toBeVisible();
   });
 });

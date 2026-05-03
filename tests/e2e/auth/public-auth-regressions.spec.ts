@@ -5,7 +5,7 @@ test.describe("public auth regressions", () => {
     await page.setViewportSize({ width: 610, height: 654 });
     await page.goto("/login");
 
-    const loginHeading = page.getByRole("heading", { name: "Login" });
+    const loginHeading = page.getByRole("heading", { name: "Log in" });
     await expect(loginHeading).toHaveCSS("text-align", "center");
 
     await page.setViewportSize({ width: 1280, height: 720 });
@@ -14,14 +14,14 @@ test.describe("public auth regressions", () => {
 
   test("login requires an email before submission", async ({ page }) => {
     await page.goto("/login");
-    await page.getByRole("button", { name: /^login$/i }).click();
+    await page.getByRole("button", { name: /^log in$/i }).click();
     await expect(page.getByText(/please enter your email address/i)).toBeVisible();
   });
 
   test("login requires a password after the email is filled", async ({ page }) => {
     await page.goto("/login");
     await page.getByPlaceholder(/enter your email address/i).fill("tester@example.com");
-    await page.getByRole("button", { name: /^login$/i }).click();
+    await page.getByRole("button", { name: /^log in$/i }).click();
     await expect(page.getByText(/please enter your password/i)).toBeVisible();
   });
 
@@ -41,7 +41,7 @@ test.describe("public auth regressions", () => {
     await page.goto("/login");
     await page.getByPlaceholder(/enter your email address/i).fill("tester@example.com");
     await page.getByPlaceholder(/enter your password/i).fill("not-a-real-password");
-    await page.getByRole("button", { name: /^login$/i }).click();
+    await page.getByRole("button", { name: /^log in$/i }).click();
 
     const alert = page.locator("form [role='alert']");
     await expect(alert).toContainText(/we could not sign you in/i);
@@ -71,7 +71,7 @@ test.describe("public auth regressions", () => {
     await page.goto("/forgot-password");
     await page.getByRole("button", { name: /back to login/i }).click();
     await expect(page).toHaveURL(/\/login$/);
-    await expect(page.getByRole("button", { name: /^login$/i })).toBeVisible();
+    await expect(page.getByRole("button", { name: /^log in$/i })).toBeVisible();
   });
 
   test("landing OAuth callback errors recover on the login screen", async ({ page }) => {

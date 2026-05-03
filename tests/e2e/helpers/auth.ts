@@ -58,7 +58,7 @@ export async function loginWithTestCredentials(page: Page, credentials: TestAuth
   await page.goto("/login");
   await page.getByPlaceholder(/enter your email address/i).fill(credentials.email);
   await page.getByPlaceholder(/enter your password/i).fill(credentials.password);
-  await page.getByRole("button", { name: /^login$/i }).click();
+  await page.getByRole("button", { name: /^log in$/i }).click();
   await page.waitForURL(/\/dashboard$/);
   await expect(page).toHaveURL(/\/dashboard$/);
 }

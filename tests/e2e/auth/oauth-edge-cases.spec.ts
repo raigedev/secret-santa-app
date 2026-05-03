@@ -28,7 +28,7 @@ test.describe("login oauth edge cases", () => {
     await expect(page).toHaveURL(/\/login\?next=%2Fdashboard$/);
     await expect(page.getByText(/opening google sign-in/i)).toBeHidden();
     await expect(page.getByRole("button", { name: /continue with google/i })).toBeVisible();
-    await expect(page.getByRole("button", { name: /^login$/i })).toBeVisible();
+    await expect(page.getByRole("button", { name: /^log in$/i })).toBeVisible();
   });
 
   test("google oauth shows recovery controls while the provider navigation is slow", async ({

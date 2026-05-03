@@ -23,7 +23,7 @@ test.describe("public smoke coverage", () => {
 
     await page.getByRole("button", { name: /start drawing names/i }).first().click();
     await expect(page).toHaveURL(/\/login$/);
-    await expect(page.getByRole("button", { name: /^login$/i })).toBeVisible();
+    await expect(page.getByRole("button", { name: /^log in$/i })).toBeVisible();
   });
 
   test("login page renders core controls without critical console errors", async ({ page }) => {
@@ -31,8 +31,8 @@ test.describe("public smoke coverage", () => {
 
     await page.goto("/login");
 
-    await expect(page.getByRole("heading", { name: /my secret santa/i })).toBeVisible();
-    await expect(page.getByRole("button", { name: /^login$/i })).toBeVisible();
+    await expect(page.getByRole("heading", { name: /log in/i })).toBeVisible();
+    await expect(page.getByRole("button", { name: /^log in$/i })).toBeVisible();
     await expect(page.getByRole("button", { name: /continue with google/i })).toBeVisible();
     await health.expectHealthy();
   });

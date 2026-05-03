@@ -28,6 +28,6 @@ test.describe("authenticated auth coverage", () => {
     await page.getByRole("menuitem", { name: /logout/i }).click();
 
     await expect(page).toHaveURL(/\/login$/);
-    await expect(page.getByRole("button", { name: /^login$/i })).toBeVisible();
+    await expect(page.getByRole("button", { name: /^log in$/i })).toBeVisible();
   });
 });
