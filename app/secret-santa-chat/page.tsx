@@ -94,6 +94,10 @@ const CHAT_GREEN = "#48664e";
 const CHAT_RED = "#a43c3f";
 const CHAT_GOLD = "#fcce72";
 const WRAP_UP_DAYS = 7;
+const CHAT_THREAD_MESSAGE_SCAN_LIMIT = 300;
+const CHAT_ACTIVE_THREAD_MESSAGE_LIMIT = 100;
+const CHAT_THREAD_FALLBACK_POLL_MS = 5 * 60 * 1000;
+const CHAT_ACTIVE_THREAD_FALLBACK_POLL_MS = 2 * 60 * 1000;
 
 function getChatPageSnapshotStorageKey(userId: string): string {
   return `${CHAT_PAGE_SNAPSHOT_STORAGE_PREFIX}${userId}`;
@@ -987,7 +991,12 @@ export default function SecretSantaChatPage() {
         supabase.from("groups").select("id, name, event_date").in("id", groupIds),
         supabase.from("assignments").select("group_id, giver_id, receiver_id").eq("giver_id", user.id).in("group_id", groupIds),
         supabase.from("assignments").select("group_id, giver_id, receiver_id").eq("receiver_id", user.id).in("group_id", groupIds),
-        supabase.from("messages").select("group_id, thread_giver_id, thread_receiver_id, sender_id, content, created_at").in("group_id", groupIds).order("created_at", { ascending: false }),
+        supabase
+          .from("messages")
+          .select("group_id, thread_giver_id, thread_receiver_id, sender_id, content, created_at")
+          .in("group_id", groupIds)
+          .order("created_at", { ascending: false })
+          .limit(CHAT_THREAD_MESSAGE_SCAN_LIMIT),
         supabase.from("thread_reads").select("group_id, thread_giver_id, thread_receiver_id, last_read_at").eq("user_id", user.id),
       ]);
 
@@ -1225,7 +1234,7 @@ export default function SecretSantaChatPage() {
 
     window.addEventListener("focus", refreshThreadsIfVisible);
     document.addEventListener("visibilitychange", refreshThreadsIfVisible);
-    pollInterval = setInterval(refreshThreadsIfVisible, 60000);
+    pollInterval = setInterval(refreshThreadsIfVisible, CHAT_THREAD_FALLBACK_POLL_MS);
 
     return () => {
       if (reloadTimer) {
@@ -1254,7 +1263,8 @@ export default function SecretSantaChatPage() {
         .eq("group_id", activeThread.group_id)
         .eq("thread_giver_id", activeThread.giver_id)
         .eq("thread_receiver_id", activeThread.receiver_id)
-        .order("created_at", { ascending: true });
+        .order("created_at", { ascending: false })
+        .limit(CHAT_ACTIVE_THREAD_MESSAGE_LIMIT);
 
       if (error) {
         // Keep the chat open and explain the failure in the UI instead of
@@ -1268,7 +1278,7 @@ export default function SecretSantaChatPage() {
 
       if (isMounted) {
         setThreadMessage(null);
-        setMessages((data || []) as Message[]);
+        setMessages([...(data || [])].reverse() as Message[]);
         setMessagesLoading(false);
         setTimeout(scrollToBottom, 50);
       }
@@ -1342,7 +1352,7 @@ export default function SecretSantaChatPage() {
               return withoutOptimisticCopy;
             }
 
-            return [
+            const nextMessages = [
               ...withoutOptimisticCopy,
               {
                 id: nextMessage.id,
@@ -1351,6 +1361,8 @@ export default function SecretSantaChatPage() {
                 created_at: nextMessage.created_at,
               },
             ];
+
+            return nextMessages.slice(-CHAT_ACTIVE_THREAD_MESSAGE_LIMIT);
           });
           setThreads((currentThreads) => {
             const currentUserId = userIdRef.current;
@@ -1377,7 +1389,7 @@ export default function SecretSantaChatPage() {
 
     window.addEventListener("focus", refreshMessagesIfVisible);
     document.addEventListener("visibilitychange", refreshMessagesIfVisible);
-    pollInterval = setInterval(refreshMessagesIfVisible, 30000);
+    pollInterval = setInterval(refreshMessagesIfVisible, CHAT_ACTIVE_THREAD_FALLBACK_POLL_MS);
 
     return () => {
       isMounted = false;

@@ -29,6 +29,16 @@ type UseSupabaseRealtimeRefreshOptions = {
   supabase: SupabaseClient;
 };
 
+const MIN_FALLBACK_POLL_MS = 5 * 60 * 1000;
+
+function normalizeFallbackPollMs(pollMs: number): number {
+  if (pollMs <= 0) {
+    return 0;
+  }
+
+  return Math.max(pollMs, MIN_FALLBACK_POLL_MS);
+}
+
 function readPayloadRecordValue(payload: RealtimePayload, recordKey: "new" | "old", field: string) {
   const record = payload[recordKey] as RealtimeRow | null | undefined;
   const value = record?.[field];
@@ -92,6 +102,7 @@ export function useSupabaseRealtimeRefresh({
       return;
     }
 
+    const fallbackPollMs = normalizeFallbackPollMs(pollMs);
     let refreshTimer: ReturnType<typeof setTimeout> | null = null;
     let pollInterval: ReturnType<typeof setInterval> | null = null;
     let channel = supabase.channel(channelName);
@@ -136,8 +147,8 @@ export function useSupabaseRealtimeRefresh({
       document.addEventListener("visibilitychange", refreshIfVisible);
     }
 
-    if (pollMs > 0) {
-      pollInterval = setInterval(refreshIfVisible, pollMs);
+    if (fallbackPollMs > 0) {
+      pollInterval = setInterval(refreshIfVisible, fallbackPollMs);
     }
 
     return () => {
