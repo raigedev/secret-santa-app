@@ -34,6 +34,9 @@ const AUTH_ERROR_MESSAGES: Record<string, string> = {
 
 const GENERIC_LOGIN_ERROR =
   "We could not sign you in. Please check your email and password, then try again.";
+const GOOGLE_OAUTH_UNAVAILABLE_ERROR =
+  "Google sign-in did not open. Please try again or sign in with email.";
+const OAUTH_REDIRECT_HELP_DELAY_MS = 8000;
 
 function getReadableAuthErrorMessage(message: string | null): string | null {
   const trimmedMessage = message?.trim();
@@ -138,12 +141,16 @@ function LoginPageInner() {
   const searchParams = useSearchParams();
   const supabase = createClient();
   const oauthAttemptLeftPageRef = useRef(false);
+  const oauthAttemptIdRef = useRef(0);
+  const oauthRecoveryTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [redirecting, setRedirecting] = useState(false);
+  const [oauthUrl, setOauthUrl] = useState<string | null>(null);
+  const [showOauthHelp, setShowOauthHelp] = useState(false);
 
   const nextPath = (() => {
     const candidate = searchParams.get("next") || "/dashboard";
@@ -153,6 +160,22 @@ function LoginPageInner() {
   const pageError = mapAuthErrorMessage(searchParams.get("error"), searchParams.get("message"));
   const activeError = error || pageError;
 
+  const clearOauthRecoveryTimer = () => {
+    if (!oauthRecoveryTimerRef.current) {
+      return;
+    }
+
+    clearTimeout(oauthRecoveryTimerRef.current);
+    oauthRecoveryTimerRef.current = null;
+  };
+
+  const resetGoogleRedirectState = () => {
+    clearOauthRecoveryTimer();
+    setRedirecting(false);
+    setOauthUrl(null);
+    setShowOauthHelp(false);
+  };
+
   useEffect(() => {
     const clearRedirectState = () => {
       if (!oauthAttemptLeftPageRef.current) {
@@ -160,7 +183,14 @@ function LoginPageInner() {
       }
 
       oauthAttemptLeftPageRef.current = false;
+      oauthAttemptIdRef.current += 1;
+      if (oauthRecoveryTimerRef.current) {
+        clearTimeout(oauthRecoveryTimerRef.current);
+        oauthRecoveryTimerRef.current = null;
+      }
       setRedirecting(false);
+      setOauthUrl(null);
+      setShowOauthHelp(false);
     };
 
     const handleVisibilityChange = () => {
@@ -189,21 +219,75 @@ function LoginPageInner() {
     };
   }, []);
 
+  useEffect(() => {
+    return () => {
+      if (oauthRecoveryTimerRef.current) {
+        clearTimeout(oauthRecoveryTimerRef.current);
+        oauthRecoveryTimerRef.current = null;
+      }
+    };
+  }, []);
+
+  const cancelGoogleRedirect = () => {
+    oauthAttemptIdRef.current += 1;
+    window.stop();
+    resetGoogleRedirectState();
+  };
+
   const handleGoogleLogin = async () => {
+    if (loading || redirecting) {
+      return;
+    }
+
+    const attemptId = oauthAttemptIdRef.current + 1;
+    oauthAttemptIdRef.current = attemptId;
     setError(null);
+    setOauthUrl(null);
+    setShowOauthHelp(false);
     setRedirecting(true);
     rememberPostLoginNextPath(nextPath);
+    clearOauthRecoveryTimer();
+    oauthRecoveryTimerRef.current = setTimeout(() => {
+      if (oauthAttemptIdRef.current === attemptId) {
+        window.stop();
+        setShowOauthHelp(true);
+      }
+    }, OAUTH_REDIRECT_HELP_DELAY_MS);
 
-    const { error: signInError } = await supabase.auth.signInWithOAuth({
-      provider: "google",
-      options: {
-        redirectTo: `${window.location.origin}/auth/callback`,
-      },
-    });
+    try {
+      const { data, error: signInError } = await supabase.auth.signInWithOAuth({
+        provider: "google",
+        options: {
+          redirectTo: `${window.location.origin}/auth/callback`,
+          skipBrowserRedirect: true,
+        },
+      });
 
-    if (signInError) {
-      setRedirecting(false);
-      setError(getFriendlyLoginError(signInError.message));
+      if (oauthAttemptIdRef.current !== attemptId) {
+        return;
+      }
+
+      if (signInError) {
+        resetGoogleRedirectState();
+        setError(getFriendlyLoginError(signInError.message));
+        return;
+      }
+
+      if (!data.url) {
+        resetGoogleRedirectState();
+        setError(GOOGLE_OAUTH_UNAVAILABLE_ERROR);
+        return;
+      }
+
+      setOauthUrl(data.url);
+      window.location.assign(data.url);
+    } catch {
+      if (oauthAttemptIdRef.current !== attemptId) {
+        return;
+      }
+
+      resetGoogleRedirectState();
+      setError(GOOGLE_OAUTH_UNAVAILABLE_ERROR);
     }
   };
 
@@ -251,11 +335,37 @@ function LoginPageInner() {
             <div className="m-auto flex max-w-xs flex-col items-center rounded-[1.75rem] bg-white px-6 py-7 text-center shadow-[0_24px_55px_rgba(46,52,50,0.1)]">
               <div className="h-12 w-12 animate-spin rounded-full border-[3px] border-[#d7fadb] border-t-[#48664e]" />
               <p className="mt-4 font-[Plus_Jakarta_Sans] text-xl font-black tracking-[-0.04em] text-[#2e3432]">
-                Redirecting to Google
+                Opening Google sign-in
               </p>
               <p className="mt-2 text-sm leading-6 text-[#5b605e]">
                 Hold on for a moment while we open the secure sign-in flow.
               </p>
+              {showOauthHelp ? (
+                <div className="mt-5 w-full rounded-[1.25rem] bg-[#fff8e6] px-4 py-3 text-sm leading-6 text-[#6f4a00]">
+                  <p className="font-semibold text-[#4d3500]">Still on this screen?</p>
+                  <p className="mt-1">
+                    Google sign-in is taking longer than expected. You can try opening it again or
+                    return to the form.
+                  </p>
+                  <div className="mt-4 flex flex-col gap-2">
+                    {oauthUrl ? (
+                      <a
+                        href={oauthUrl}
+                        className="rounded-full bg-[#48664e] px-4 py-2 font-semibold text-white transition hover:bg-[#3c5a43]"
+                      >
+                        Open Google sign-in again
+                      </a>
+                    ) : null}
+                    <button
+                      type="button"
+                      onClick={cancelGoogleRedirect}
+                      className="rounded-full bg-white px-4 py-2 font-semibold text-[#48664e] ring-1 ring-[#d8dfd7] transition hover:bg-[#f7faf7]"
+                    >
+                      Back to sign in
+                    </button>
+                  </div>
+                </div>
+              ) : null}
             </div>
           </div>
         )}
