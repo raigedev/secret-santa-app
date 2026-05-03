@@ -110,6 +110,7 @@ type DrawCycleSummary = {
 };
 
 type MessageSummary = {
+  created_at: string;
   group_id: string;
   sender_id: string;
 };
@@ -698,22 +699,6 @@ async function enqueuePostDrawReminderJobs(now: Date): Promise<number> {
     return 0;
   }
 
-  const assignmentGiverIds = [...new Set(typedAssignments.map((assignment) => assignment.giver_id))];
-  const messagesResult = await supabaseAdmin
-    .from("messages")
-    .select("group_id, sender_id")
-    .in("group_id", currentGroupIds)
-    .in("sender_id", assignmentGiverIds);
-
-  if (messagesResult.error) {
-    await recordServerFailure({
-      errorMessage: messagesResult.error.message,
-      eventType: "notifications.reminders.post_draw.messages",
-      resourceType: "message_thread",
-    });
-    return 0;
-  }
-
   const latestCycleByGroup = new Map<string, DrawCycleSummary>();
 
   for (const cycle of (cyclesResult.data || []) as DrawCycleSummary[]) {
@@ -724,11 +709,47 @@ async function enqueuePostDrawReminderJobs(now: Date): Promise<number> {
     latestCycleByGroup.set(cycle.group_id, cycle);
   }
 
-  const giverMessageSet = new Set(
-    ((messagesResult.data || []) as MessageSummary[]).map(
-      (message) => `${message.group_id}:${message.sender_id}`
-    )
+  const assignmentGiverIds = [...new Set(typedAssignments.map((assignment) => assignment.giver_id))];
+  const earliestRelevantMessageAt = typedAssignments.reduce<string | null>(
+    (earliest, assignment) => {
+      const cycle = latestCycleByGroup.get(assignment.group_id);
+      const sourceCreatedAt = cycle?.created_at || assignment.created_at;
+
+      return earliest && earliest <= sourceCreatedAt ? earliest : sourceCreatedAt;
+    },
+    null
   );
+
+  if (!earliestRelevantMessageAt) {
+    return 0;
+  }
+
+  const messagesResult = await supabaseAdmin
+    .from("messages")
+    .select("group_id, sender_id, created_at")
+    .in("group_id", currentGroupIds)
+    .in("sender_id", assignmentGiverIds)
+    .gte("created_at", earliestRelevantMessageAt);
+
+  if (messagesResult.error) {
+    await recordServerFailure({
+      errorMessage: messagesResult.error.message,
+      eventType: "notifications.reminders.post_draw.messages",
+      resourceType: "message_thread",
+    });
+    return 0;
+  }
+
+  const latestMessageAtByGiver = new Map<string, string>();
+
+  for (const message of (messagesResult.data || []) as MessageSummary[]) {
+    const key = `${message.group_id}:${message.sender_id}`;
+    const currentLatest = latestMessageAtByGiver.get(key);
+
+    if (!currentLatest || currentLatest < message.created_at) {
+      latestMessageAtByGiver.set(key, message.created_at);
+    }
+  }
   const preferenceMap = await loadReminderPreferencesMap(
     assignmentGiverIds
   );
@@ -744,10 +765,6 @@ async function enqueuePostDrawReminderJobs(now: Date): Promise<number> {
       continue;
     }
 
-    if (giverMessageSet.has(`${assignment.group_id}:${assignment.giver_id}`)) {
-      continue;
-    }
-
     const preferences =
       preferenceMap.get(assignment.giver_id) || getDefaultReminderPreferences();
     if (!preferences.reminder_post_draw) {
@@ -759,6 +776,14 @@ async function enqueuePostDrawReminderJobs(now: Date): Promise<number> {
       ? `cycle${cycle.cycle_number}`
       : `legacy-${assignment.created_at.slice(0, 19)}`;
     const sourceCreatedAt = cycle?.created_at || assignment.created_at;
+    const latestMessageAt = latestMessageAtByGiver.get(
+      `${assignment.group_id}:${assignment.giver_id}`
+    );
+
+    if (latestMessageAt && latestMessageAt >= sourceCreatedAt) {
+      continue;
+    }
+
     const candidateDueAt = new Date(sourceCreatedAt);
     candidateDueAt.setHours(candidateDueAt.getHours() + POST_DRAW_REMINDER_DELAY_HOURS);
     const scheduledDueAt = scheduleReminderDueAt(

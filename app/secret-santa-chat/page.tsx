@@ -1226,7 +1226,6 @@ export default function SecretSantaChatPage() {
       }
 
       void loadMessages();
-      void loadThreadsRef.current?.();
     };
 
     const channel = supabase

@@ -749,13 +749,11 @@ export default function DashboardPage() {
     };
 
     const loadNotificationCount = async (targetUserId: string) => {
-      const { data, error } = await supabase
+      const { count, error } = await supabase
         .from("notifications")
-        .select("id")
+        .select("id", { count: "exact", head: true })
         .eq("user_id", targetUserId)
-        .is("read_at", null)
-        .order("created_at", { ascending: false })
-        .limit(200);
+        .is("read_at", null);
 
       if (!isMounted) {
         return;
@@ -765,7 +763,7 @@ export default function DashboardPage() {
         return;
       }
 
-      setUnreadNotificationCount((data || []).length);
+      setUnreadNotificationCount(count || 0);
     };
 
     loadNotificationCountRef.current = loadNotificationCount;

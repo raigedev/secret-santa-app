@@ -8,6 +8,13 @@ import type {
   MembershipRow,
   PeerProfileRow,
 } from "./dashboard-types";
+import {
+  hasFreshClientSnapshotMetadata,
+  readClientSnapshot,
+  writeClientSnapshot,
+  type ClientSnapshotMetadata,
+} from "@/lib/client-snapshot";
+import { isNullableString, isRecord } from "@/lib/validation/common";
 
 type DashboardGroupsUser = {
   id: string;
@@ -18,11 +25,52 @@ type GroupOwnerRow = {
   id: string;
 };
 
+type PeerProfileSnapshot = ClientSnapshotMetadata & {
+  profilesByGroup: Record<string, PeerProfileRow[]>;
+};
+
 export type DashboardGroupsLoadResult = {
   allGroups: Group[];
   invitedGroups: Group[];
   ownedGroups: Group[];
 };
+
+const PEER_PROFILE_SNAPSHOT_STORAGE_PREFIX = "ss_peer_profiles_v1:";
+
+function getPeerProfileGroupFingerprint(groups: Group[]): string {
+  return [...new Set(groups.map((group) => group.id))].sort().join(",");
+}
+
+function getPeerProfileSnapshotStorageKey(groupFingerprint: string): string {
+  return `${PEER_PROFILE_SNAPSHOT_STORAGE_PREFIX}${groupFingerprint}`;
+}
+
+function isPeerProfileRow(value: unknown): value is PeerProfileRow {
+  return (
+    isRecord(value) &&
+    isNullableString(value.user_id) &&
+    isNullableString(value.display_name) &&
+    isNullableString(value.avatar_emoji) &&
+    isNullableString(value.avatar_url)
+  );
+}
+
+function isPeerProfileSnapshot(
+  value: unknown,
+  groupFingerprint: string
+): value is PeerProfileSnapshot {
+  if (!hasFreshClientSnapshotMetadata(value, groupFingerprint)) {
+    return false;
+  }
+
+  const profilesByGroup = value.profilesByGroup;
+  return (
+    isRecord(profilesByGroup) &&
+    Object.values(profilesByGroup).every(
+      (profiles) => Array.isArray(profiles) && profiles.every(isPeerProfileRow)
+    )
+  );
+}
 
 export function splitDashboardGroups(groups: Group[]): DashboardGroupsLoadResult {
   const ownedGroups = groups.filter((group) => group.isOwner);
@@ -131,29 +179,10 @@ export async function loadDashboardGroups(
   );
 }
 
-export async function enhanceDashboardGroupsWithPeerProfiles(
-  groups: Group[]
-): Promise<Group[]> {
-  if (groups.length === 0) {
-    return groups;
-  }
-
-  const response = await fetch("/api/groups/peer-profiles", {
-    cache: "no-store",
-    credentials: "same-origin",
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ groupIds: groups.map((group) => group.id) }),
-  });
-
-  if (!response.ok) {
-    return groups;
-  }
-
-  const payload = (await response.json()) as {
-    profilesByGroup?: Record<string, PeerProfileRow[]>;
-  };
-  const profilesByGroup = payload.profilesByGroup || {};
+function applyPeerProfilesToGroups(
+  groups: Group[],
+  profilesByGroup: Record<string, PeerProfileRow[]>
+): Group[] {
   const profileEntries = groups.map((group) => ({
     groupId: group.id,
     profiles: profilesByGroup[group.id] || [],
@@ -204,4 +233,48 @@ export async function enhanceDashboardGroupsWithPeerProfiles(
       }),
     };
   });
+}
+
+export async function enhanceDashboardGroupsWithPeerProfiles(
+  groups: Group[]
+): Promise<Group[]> {
+  if (groups.length === 0) {
+    return groups;
+  }
+
+  const groupFingerprint = getPeerProfileGroupFingerprint(groups);
+  const cachedProfiles = readClientSnapshot(
+    getPeerProfileSnapshotStorageKey(groupFingerprint),
+    groupFingerprint,
+    isPeerProfileSnapshot
+  );
+
+  if (cachedProfiles) {
+    return applyPeerProfilesToGroups(groups, cachedProfiles.profilesByGroup);
+  }
+
+  const response = await fetch("/api/groups/peer-profiles", {
+    cache: "no-store",
+    credentials: "same-origin",
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ groupIds: groups.map((group) => group.id) }),
+  });
+
+  if (!response.ok) {
+    return groups;
+  }
+
+  const payload = (await response.json()) as {
+    profilesByGroup?: Record<string, PeerProfileRow[]>;
+  };
+  const profilesByGroup = payload.profilesByGroup || {};
+
+  writeClientSnapshot(getPeerProfileSnapshotStorageKey(groupFingerprint), {
+    createdAt: Date.now(),
+    profilesByGroup,
+    userId: groupFingerprint,
+  });
+
+  return applyPeerProfilesToGroups(groups, profilesByGroup);
 }
