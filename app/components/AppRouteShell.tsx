@@ -49,6 +49,7 @@ const HOLIDAY_GREEN = "#48664e";
 const HOLIDAY_RED = "#a43c3f";
 const TEXT_MUTED = "#64748b";
 const APP_SHELL_FALLBACK_POLL_MS = 5 * 60 * 1000;
+const NOTIFICATION_BADGE_COUNT_LIMIT = 100;
 
 type AppNavItem = {
   href: string;
@@ -239,14 +240,15 @@ export default function AppRouteShell({ children }: { children: ReactNode }) {
 
   const loadShellUnreadCount = useCallback(
     async (userId: string) => {
-      const { count, error } = await supabase
+      const { data, error } = await supabase
         .from("notifications")
-        .select("id", { count: "exact", head: true })
+        .select("id")
         .eq("user_id", userId)
-        .is("read_at", null);
+        .is("read_at", null)
+        .limit(NOTIFICATION_BADGE_COUNT_LIMIT);
 
       if (!error) {
-        setUnreadCount(count || 0);
+        setUnreadCount(data?.length || 0);
       }
     },
     [supabase]

@@ -130,6 +130,7 @@ const DIGEST_HOUR_MANILA = 9;
 const MAX_REMINDER_ATTEMPTS = 5;
 const WISHLIST_REMINDER_WINDOW_DAYS = 14;
 const POST_DRAW_REMINDER_DELAY_HOURS = 6;
+const POST_DRAW_REMINDER_LOOK_BACK_DAYS = 14;
 
 const REMINDER_TYPE_TO_PROFILE_KEY: Record<
   ReminderType,
@@ -634,55 +635,15 @@ async function enqueueWishlistIncompleteReminderJobs(now: Date): Promise<number>
 async function enqueuePostDrawReminderJobs(now: Date): Promise<number> {
   const today = getManilaDateString(now);
   const cycleWindowStart = new Date(
-    now.getTime() - 14 * 24 * 60 * 60 * 1000
+    now.getTime() - POST_DRAW_REMINDER_LOOK_BACK_DAYS * 24 * 60 * 60 * 1000
   ).toISOString();
-  const groupsResult = await supabaseAdmin
-    .from("groups")
-    .select("id, name, event_date")
-    .gte("event_date", today);
 
-  if (groupsResult.error) {
-    await recordServerFailure({
-      errorMessage: groupsResult.error.message,
-      eventType: "notifications.reminders.post_draw.groups",
-      resourceType: "group",
-    });
-    return 0;
-  }
-
-  const currentGroups = new Map(
-    ((groupsResult.data || []) as GroupSummary[]).map((group) => [group.id, group])
-  );
-  const currentGroupIds = [...currentGroups.keys()];
-
-  if (currentGroupIds.length === 0) {
-    return 0;
-  }
-
-  const [cyclesResult, assignmentsResult] = await Promise.all([
-    supabaseAdmin
-      .from("group_draw_cycles")
-      .select("id, group_id, cycle_number, created_at")
-      .in("group_id", currentGroupIds)
-      .gte("created_at", cycleWindowStart)
-      .order("group_id", { ascending: true })
-      .order("cycle_number", { ascending: false }),
-    supabaseAdmin
-      .from("assignments")
-      .select("group_id, giver_id, gift_prep_status, gift_received, created_at")
-      .in("group_id", currentGroupIds)
-      .is("gift_prep_status", null)
-      .or("gift_received.is.null,gift_received.eq.false"),
-  ]);
-
-  if (cyclesResult.error) {
-    await recordServerFailure({
-      errorMessage: cyclesResult.error.message,
-      eventType: "notifications.reminders.post_draw.cycles",
-      resourceType: "group",
-    });
-    return 0;
-  }
+  const assignmentsResult = await supabaseAdmin
+    .from("assignments")
+    .select("group_id, giver_id, gift_prep_status, gift_received, created_at")
+    .gte("created_at", cycleWindowStart)
+    .is("gift_prep_status", null)
+    .or("gift_received.is.null,gift_received.eq.false");
 
   if (assignmentsResult.error) {
     await recordServerFailure({
@@ -693,9 +654,56 @@ async function enqueuePostDrawReminderJobs(now: Date): Promise<number> {
     return 0;
   }
 
-  const typedAssignments = (assignmentsResult.data || []) as AssignmentReminderRow[];
+  const recentPendingAssignments = (assignmentsResult.data || []) as AssignmentReminderRow[];
 
-  if (typedAssignments.length === 0) {
+  if (recentPendingAssignments.length === 0) {
+    return 0;
+  }
+
+  const candidateGroupIds = [...new Set(recentPendingAssignments.map((row) => row.group_id))];
+  const [groupsResult, cyclesResult] = await Promise.all([
+    supabaseAdmin
+      .from("groups")
+      .select("id, name, event_date")
+      .in("id", candidateGroupIds)
+      .gte("event_date", today),
+    supabaseAdmin
+      .from("group_draw_cycles")
+      .select("id, group_id, cycle_number, created_at")
+      .in("group_id", candidateGroupIds)
+      .gte("created_at", cycleWindowStart)
+      .order("group_id", { ascending: true })
+      .order("cycle_number", { ascending: false }),
+  ]);
+
+  if (groupsResult.error) {
+    await recordServerFailure({
+      errorMessage: groupsResult.error.message,
+      eventType: "notifications.reminders.post_draw.groups",
+      resourceType: "group",
+    });
+    return 0;
+  }
+
+  if (cyclesResult.error) {
+    await recordServerFailure({
+      errorMessage: cyclesResult.error.message,
+      eventType: "notifications.reminders.post_draw.cycles",
+      resourceType: "group",
+    });
+    return 0;
+  }
+
+  const currentGroups = new Map(
+    ((groupsResult.data || []) as GroupSummary[]).map((group) => [group.id, group])
+  );
+  const typedAssignments = recentPendingAssignments.filter((assignment) =>
+    currentGroups.has(assignment.group_id)
+  );
+
+  const currentGroupIds = [...currentGroups.keys()];
+
+  if (typedAssignments.length === 0 || currentGroupIds.length === 0) {
     return 0;
   }
 

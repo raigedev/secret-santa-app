@@ -218,6 +218,7 @@ const HOLIDAY_RED = "#a43c3f";
 const HOLIDAY_GREEN = "#48664e";
 const HOLIDAY_GOLD = "#7b5902";
 const SECRET_SANTA_FALLBACK_POLL_MS = 5 * 60 * 1000;
+const NOTIFICATION_BADGE_COUNT_LIMIT = 100;
 const HOLIDAY_BLUE = "#58748e";
 const LAZADA_AFFILIATE_DISCLOSURE =
   "Some Lazada links are affiliate links.";
@@ -2742,14 +2743,15 @@ export function SecretSantaExperience({ mode = "shopping" }: SecretSantaExperien
 
   const loadUnreadNotificationCount = useCallback(
     async (userId: string) => {
-      const { count, error } = await supabase
+      const { data, error } = await supabase
         .from("notifications")
-        .select("id", { count: "exact", head: true })
+        .select("id")
         .eq("user_id", userId)
-        .is("read_at", null);
+        .is("read_at", null)
+        .limit(NOTIFICATION_BADGE_COUNT_LIMIT);
 
       if (!error) {
-        setUnreadNotificationCount(count || 0);
+        setUnreadNotificationCount(data?.length || 0);
       }
     },
     [supabase]

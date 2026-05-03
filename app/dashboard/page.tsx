@@ -68,6 +68,7 @@ const DASHBOARD_THEME_STORAGE_KEY = "ss_dashboard_theme";
 const DASHBOARD_THEME_CHANGED_EVENT = "ss-dashboard-theme-changed";
 const DASHBOARD_NOTIFICATION_PREVIEW_LIMIT = 3;
 const DASHBOARD_FALLBACK_POLL_MS = 5 * 60 * 1000;
+const NOTIFICATION_BADGE_COUNT_LIMIT = 100;
 
 type DashboardNotificationPreviewGroup = {
   count: number;
@@ -749,11 +750,12 @@ export default function DashboardPage() {
     };
 
     const loadNotificationCount = async (targetUserId: string) => {
-      const { count, error } = await supabase
+      const { data, error } = await supabase
         .from("notifications")
-        .select("id", { count: "exact", head: true })
+        .select("id")
         .eq("user_id", targetUserId)
-        .is("read_at", null);
+        .is("read_at", null)
+        .limit(NOTIFICATION_BADGE_COUNT_LIMIT);
 
       if (!isMounted) {
         return;
@@ -763,7 +765,7 @@ export default function DashboardPage() {
         return;
       }
 
-      setUnreadNotificationCount(count || 0);
+      setUnreadNotificationCount(data?.length || 0);
     };
 
     loadNotificationCountRef.current = loadNotificationCount;
