@@ -81,6 +81,22 @@ function shouldUseAppShell(pathname: string) {
   return !PUBLIC_ROUTE_PREFIXES.some((prefix) => pathname.startsWith(prefix));
 }
 
+function shouldUseShellProfileRealtime(pathname: string) {
+  if (!shouldUseAppShell(pathname)) {
+    return false;
+  }
+
+  return pathname !== "/dashboard" && pathname !== "/profile";
+}
+
+function shouldUseShellNotificationsRealtime(pathname: string) {
+  if (!shouldUseAppShell(pathname)) {
+    return false;
+  }
+
+  return pathname !== "/dashboard" && pathname !== "/notifications";
+}
+
 function getTimeOfDayGreeting() {
   const hour = new Date().getHours();
   if (hour < 12) return "Good morning";
@@ -353,7 +369,7 @@ export default function AppRouteShell({ children }: { children: ReactNode }) {
 
   useSupabaseRealtimeRefresh({
     channelName: shellUserId ? `app-shell-profile-${shellUserId}` : "app-shell-profile-disabled",
-    enabled: shouldUseAppShell(pathname) && Boolean(shellUserId),
+    enabled: shouldUseShellProfileRealtime(pathname) && Boolean(shellUserId),
     onRefresh: () => {
       void getProfile()
         .then((profile) => {
@@ -397,7 +413,7 @@ export default function AppRouteShell({ children }: { children: ReactNode }) {
     channelName: shellUserId
       ? `app-shell-notifications-${shellUserId}`
       : "app-shell-notifications-disabled",
-    enabled: shouldUseAppShell(pathname) && Boolean(shellUserId),
+    enabled: shouldUseShellNotificationsRealtime(pathname) && Boolean(shellUserId),
     onRefresh: () => {
       if (shellUserId) {
         void loadShellUnreadCount(shellUserId);
