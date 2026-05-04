@@ -41,6 +41,8 @@ graphify-out/
 # local Codex/GSD/security workflow installs and scratch plans
 .agent/*
 !.agent/CONTINUITY.md
+!.agent/BRANCH_WORKFLOW.md
+!.agent/TOOLING_HISTORY.md
 .agent/tools/
 docs/archived-codex-thread-*.md
 .codex/get-shit-done/
