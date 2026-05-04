@@ -39,7 +39,10 @@ yarn-error.log*
 graphify-out/
 
 # local Codex/GSD/security workflow installs and scratch plans
+.agent/*
+!.agent/CONTINUITY.md
 .agent/tools/
+docs/archived-codex-thread-*.md
 .codex/get-shit-done/
 .codex/skills/gsd-*/
 .codex/gsd-file-manifest.json
