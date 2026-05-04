@@ -469,6 +469,7 @@ export default function AppRouteShell({ children }: { children: ReactNode }) {
   }
 
   const navItems = createNavItems(canViewAffiliateReport);
+  const hasStandalonePageHeader = pathname === "/dashboard";
   const displayViewerName = normalizeViewerName(viewerName);
   const profileInitial = displayViewerName.slice(0, 1).toUpperCase() || "?";
   const fallbackAvatar = viewerAvatarEmoji || profileInitial;
@@ -523,7 +524,7 @@ export default function AppRouteShell({ children }: { children: ReactNode }) {
           background: transparent !important;
           overflow: visible !important;
         }
-        [data-app-shell-content] > main > header {
+        [data-app-shell-content] > main > header:not([data-app-page-header="true"]) {
           display: none !important;
         }
         [data-app-shell-content] > main > [class*="absolute"][class*="inset-0"]:not([data-app-modal="true"]),
@@ -588,68 +589,70 @@ export default function AppRouteShell({ children }: { children: ReactNode }) {
       </aside>
 
       <div className="relative z-10 min-h-screen xl:pl-70">
-        <header className="sticky top-0 z-20 hidden h-21 items-center justify-between border-b px-7 xl:flex" style={{ background: shellHeaderBackground, borderColor: shellBorderColor, backdropFilter: "blur(16px)" }}>
-          <div>
-            <div className="flex items-center gap-2 text-[16px] font-black" style={{ color: shellTextColor }}>
-              <span data-testid="app-shell-greeting">{greetingText}</span>
+        {!hasStandalonePageHeader && (
+          <header className="sticky top-0 z-20 hidden h-21 items-center justify-between border-b px-7 xl:flex" style={{ background: shellHeaderBackground, borderColor: shellBorderColor, backdropFilter: "blur(16px)" }}>
+            <div>
+              <div className="flex items-center gap-2 text-[16px] font-black" style={{ color: shellTextColor }}>
+                <span data-testid="app-shell-greeting">{greetingText}</span>
+              </div>
+              <div className="mt-0.5 text-[12px] font-semibold" style={{ color: shellMutedColor }}>
+                {shellSubtitle}
+              </div>
             </div>
-            <div className="mt-0.5 text-[12px] font-semibold" style={{ color: shellMutedColor }}>
-              {shellSubtitle}
-            </div>
-          </div>
-          <div className="flex items-center gap-3">
-            <button ref={notificationButtonRef} type="button" onClick={() => setNotificationsOpen((open) => !open)} aria-label={unreadCount > 0 ? `Open notifications, ${unreadCount} unread` : "Open notifications"} className="relative flex h-12 w-12 items-center justify-center rounded-full transition hover:-translate-y-0.5" style={{ background: shellControlBackground, border: `1px solid ${shellBorderColor}`, color: shellTextColor }}>
-              <BellIcon className="h-5 w-5" />
-              {unreadCount > 0 && <span data-testid="app-shell-notification-badge" className="pointer-events-none absolute -right-2 -top-2.5 flex h-5 min-w-5 items-center justify-center rounded-full border-2 border-white px-1.5 text-[9px] font-black leading-none text-white shadow-[0_6px_14px_rgba(164,60,63,.24)]" style={{ background: HOLIDAY_RED }}>{unreadCount > 99 ? "99+" : unreadCount}</span>}
-            </button>
-            <div className="relative">
-              <button type="button" onClick={() => setProfileOpen((open) => !open)} aria-haspopup="menu" aria-expanded={profileOpen} aria-label="Open profile menu" className="flex items-center gap-3 rounded-full py-1.5 pl-2 pr-4 transition hover:-translate-y-0.5" style={{ background: shellControlBackground, border: `1px solid ${shellBorderColor}`, color: shellTextColor, boxShadow: isDarkAppShell ? "0 12px 26px rgba(0,0,0,.18)" : "0 12px 26px rgba(46,52,50,.06)" }}>
-                <span
-                  data-testid="app-shell-viewer-avatar"
-                  className={`flex h-12 w-12 items-center justify-center overflow-hidden rounded-full ${
-                    fallbackAvatarIsEmoji && !viewerAvatarUrl
-                      ? "text-[24px]"
-                      : "text-[15px] font-black text-white"
-                  }`}
-                  style={{
-                    background:
-                      fallbackAvatarIsEmoji && !viewerAvatarUrl
-                        ? "linear-gradient(135deg,#fff7ed,#fee2e2)"
-                        : "linear-gradient(135deg,#48664e,#2e3432)",
-                  }}
-                >
-                  {viewerAvatarUrl ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img
-                      src={viewerAvatarUrl}
-                      alt=""
-                      className="h-full w-full object-cover"
-                      onError={() => {
-                        setViewerAvatarUrl("");
-                        storeViewerAvatarUrl(null);
-                      }}
-                    />
-                  ) : (
-                    fallbackAvatar
-                  )}
-                </span>
-                <span className="hidden min-w-0 lg:block">
-                  <span data-testid="app-shell-viewer-name" className="block text-[13px] font-black leading-tight">{displayViewerName || "Profile"}</span>
-                  <span className="block text-[11px] font-semibold" style={{ color: shellMutedColor }}>View profile</span>
-                </span>
-                <UserOutlineIcon className="hidden h-4 w-4 lg:block" />
+            <div className="flex items-center gap-3">
+              <button ref={notificationButtonRef} type="button" onClick={() => setNotificationsOpen((open) => !open)} aria-label={unreadCount > 0 ? `Open notifications, ${unreadCount} unread` : "Open notifications"} className="relative flex h-12 w-12 items-center justify-center rounded-full transition hover:-translate-y-0.5" style={{ background: shellControlBackground, border: `1px solid ${shellBorderColor}`, color: shellTextColor }}>
+                <BellIcon className="h-5 w-5" />
+                {unreadCount > 0 && <span data-testid="app-shell-notification-badge" className="pointer-events-none absolute -right-2 -top-2.5 flex h-5 min-w-5 items-center justify-center rounded-full border-2 border-white px-1.5 text-[9px] font-black leading-none text-white shadow-[0_6px_14px_rgba(164,60,63,.24)]" style={{ background: HOLIDAY_RED }}>{unreadCount > 99 ? "99+" : unreadCount}</span>}
               </button>
-              {profileOpen && (
-                <div role="menu" className="absolute right-0 mt-2 w-48 rounded-[18px] p-2 shadow-[0_18px_42px_rgba(46,52,50,.16)] ring-1" style={{ background: shellMenuBackground, borderColor: shellBorderColor }}>
-                  <Link role="menuitem" href="/profile" onClick={() => setProfileOpen(false)} className="block rounded-xl px-3 py-2 text-[13px] font-extrabold" style={{ color: shellTextColor, textDecoration: "none" }}>Profile settings</Link>
-                  <button type="button" role="menuitem" onClick={() => void handleLogout()} className="mt-1 block w-full rounded-xl px-3 py-2 text-left text-[13px] font-extrabold text-[#a43c3f]">
-                    Logout
-                  </button>
-                </div>
-              )}
+              <div className="relative">
+                <button type="button" onClick={() => setProfileOpen((open) => !open)} aria-haspopup="menu" aria-expanded={profileOpen} aria-label="Open profile menu" className="flex items-center gap-3 rounded-full py-1.5 pl-2 pr-4 transition hover:-translate-y-0.5" style={{ background: shellControlBackground, border: `1px solid ${shellBorderColor}`, color: shellTextColor, boxShadow: isDarkAppShell ? "0 12px 26px rgba(0,0,0,.18)" : "0 12px 26px rgba(46,52,50,.06)" }}>
+                  <span
+                    data-testid="app-shell-viewer-avatar"
+                    className={`flex h-12 w-12 items-center justify-center overflow-hidden rounded-full ${
+                      fallbackAvatarIsEmoji && !viewerAvatarUrl
+                        ? "text-[24px]"
+                        : "text-[15px] font-black text-white"
+                    }`}
+                    style={{
+                      background:
+                        fallbackAvatarIsEmoji && !viewerAvatarUrl
+                          ? "linear-gradient(135deg,#fff7ed,#fee2e2)"
+                          : "linear-gradient(135deg,#48664e,#2e3432)",
+                    }}
+                  >
+                    {viewerAvatarUrl ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img
+                        src={viewerAvatarUrl}
+                        alt=""
+                        className="h-full w-full object-cover"
+                        onError={() => {
+                          setViewerAvatarUrl("");
+                          storeViewerAvatarUrl(null);
+                        }}
+                      />
+                    ) : (
+                      fallbackAvatar
+                    )}
+                  </span>
+                  <span className="hidden min-w-0 lg:block">
+                    <span data-testid="app-shell-viewer-name" className="block text-[13px] font-black leading-tight">{displayViewerName || "Profile"}</span>
+                    <span className="block text-[11px] font-semibold" style={{ color: shellMutedColor }}>View profile</span>
+                  </span>
+                  <UserOutlineIcon className="hidden h-4 w-4 lg:block" />
+                </button>
+                {profileOpen && (
+                  <div role="menu" className="absolute right-0 mt-2 w-48 rounded-[18px] p-2 shadow-[0_18px_42px_rgba(46,52,50,.16)] ring-1" style={{ background: shellMenuBackground, borderColor: shellBorderColor }}>
+                    <Link role="menuitem" href="/profile" onClick={() => setProfileOpen(false)} className="block rounded-xl px-3 py-2 text-[13px] font-extrabold" style={{ color: shellTextColor, textDecoration: "none" }}>Profile settings</Link>
+                    <button type="button" role="menuitem" onClick={() => void handleLogout()} className="mt-1 block w-full rounded-xl px-3 py-2 text-left text-[13px] font-extrabold text-[#a43c3f]">
+                      Logout
+                    </button>
+                  </div>
+                )}
+              </div>
             </div>
-          </div>
-        </header>
+          </header>
+        )}
         <DashboardNotificationsPanel
           anchorRef={notificationButtonRef}
           isDarkTheme={isDarkAppShell}

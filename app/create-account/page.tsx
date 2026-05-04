@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, useState, type ReactNode } from "react";
+import { Suspense, useEffect, useState, type ReactNode } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import {
   AUTH_FIELD_CLASS_NAME,
@@ -95,6 +95,7 @@ function CreateAccountPageInner() {
   const [error, setError] = useState("");
   const [confirmation, setConfirmation] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [formReady, setFormReady] = useState(false);
 
   const nextPath = (() => {
     const candidate = searchParams.get("next") || "/dashboard";
@@ -105,8 +106,13 @@ function CreateAccountPageInner() {
     document.cookie = `post_login_next=${encodeURIComponent(nextPath)}; Path=/; Max-Age=86400; SameSite=Lax`;
   };
 
+  useEffect(() => {
+    const formReadyTimer = window.setTimeout(() => setFormReady(true), 0);
+    return () => window.clearTimeout(formReadyTimer);
+  }, []);
+
   const handleSignup = async () => {
-    if (isSubmitting) {
+    if (!formReady || isSubmitting) {
       return;
     }
 
@@ -192,6 +198,7 @@ function CreateAccountPageInner() {
                 placeholder="Enter your name"
                 value={name}
                 onChange={(event) => setName(event.target.value)}
+                disabled={!formReady || isSubmitting}
                 className={AUTH_FIELD_CLASS_NAME}
               />
             </div>
@@ -209,6 +216,7 @@ function CreateAccountPageInner() {
                 placeholder="Enter your email address"
                 value={email}
                 onChange={(event) => setEmail(event.target.value)}
+                disabled={!formReady || isSubmitting}
                 className={AUTH_FIELD_CLASS_NAME}
               />
             </div>
@@ -224,6 +232,7 @@ function CreateAccountPageInner() {
                 placeholder="Create a password"
                 value={password}
                 onChange={(event) => setPassword(event.target.value)}
+                disabled={!formReady || isSubmitting}
                 className={AUTH_FIELD_CLASS_NAME}
               />
             </div>
@@ -241,7 +250,7 @@ function CreateAccountPageInner() {
 
             <button
               type="submit"
-              disabled={isSubmitting}
+              disabled={!formReady || isSubmitting}
               className="w-full rounded-full bg-[linear-gradient(135deg,#48664e_0%,#3c5a43_100%)] px-6 py-4 text-base font-semibold text-[#f7fbf8] shadow-[0_24px_55px_rgba(60,90,67,0.18)] transition hover:-translate-y-0.5 hover:shadow-[0_30px_60px_rgba(60,90,67,0.24)] disabled:translate-y-0 disabled:cursor-not-allowed disabled:opacity-70 disabled:shadow-none"
             >
               {isSubmitting ? "Sending confirmation..." : "Sign up"}
@@ -260,6 +269,7 @@ function CreateAccountPageInner() {
               <button
                 type="button"
                 onClick={() => router.push(`/login?next=${encodeURIComponent(nextPath)}`)}
+                disabled={!formReady || isSubmitting}
                 className="font-semibold text-[#a43c3f] transition hover:text-[#812227]"
               >
                 Sign in instead

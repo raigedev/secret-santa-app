@@ -1,6 +1,10 @@
 import type { NextConfig } from "next";
 
 const isDevelopment = process.env.NODE_ENV === "development";
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || "";
+const usesLocalSupabase =
+  supabaseUrl.startsWith("http://127.0.0.1:54321") ||
+  supabaseUrl.startsWith("http://localhost:54321");
 const scriptSource = [
   "script-src",
   "'self'",
@@ -14,7 +18,7 @@ const connectSource = [
   "https://*.supabase.co",
   "wss://*.supabase.co",
   "https://fonts.googleapis.com",
-  ...(isDevelopment
+  ...(isDevelopment || usesLocalSupabase
     ? [
         "http://127.0.0.1:54321",
         "http://localhost:54321",

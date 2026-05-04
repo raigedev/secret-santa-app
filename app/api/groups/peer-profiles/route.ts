@@ -6,6 +6,9 @@ import { createClient } from "@/lib/supabase/server";
 import { isRecord, isUuid } from "@/lib/validation/common";
 
 const MAX_GROUP_PROFILE_LOOKUPS = 50;
+const PEER_PROFILE_RATE_LIMIT_MAX_REQUESTS = 120;
+const PEER_PROFILE_RATE_LIMIT_WINDOW_SECONDS = 3600;
+const PEER_PROFILE_SERVER_CACHE_TTL_MS = 5 * 60 * 1000;
 
 type GroupAccessRow = {
   id: string;
@@ -30,6 +33,13 @@ type PeerProfilePayload = {
   profilesByGroup: Record<string, ProfileRow[]>;
 };
 
+type PeerProfileCacheEntry = {
+  createdAt: number;
+  payload: PeerProfilePayload;
+};
+
+const peerProfileCache = new Map<string, PeerProfileCacheEntry>();
+
 export const dynamic = "force-dynamic";
 
 function peerProfileResponse(payload: PeerProfilePayload, init?: ResponseInit) {
@@ -50,6 +60,32 @@ function parseGroupIds(value: unknown): string[] {
   return Array.from(new Set(value.filter(isUuid))).slice(0, MAX_GROUP_PROFILE_LOOKUPS);
 }
 
+function getPeerProfileCacheKey(userId: string, groupIds: string[]) {
+  return `${userId}:${[...groupIds].sort().join(",")}`;
+}
+
+function readPeerProfileCache(cacheKey: string): PeerProfilePayload | null {
+  const cached = peerProfileCache.get(cacheKey);
+
+  if (!cached) {
+    return null;
+  }
+
+  if (Date.now() - cached.createdAt > PEER_PROFILE_SERVER_CACHE_TTL_MS) {
+    peerProfileCache.delete(cacheKey);
+    return null;
+  }
+
+  return cached.payload;
+}
+
+function writePeerProfileCache(cacheKey: string, payload: PeerProfilePayload) {
+  peerProfileCache.set(cacheKey, {
+    createdAt: Date.now(),
+    payload,
+  });
+}
+
 export async function POST(request: Request) {
   const supabase = await createClient();
   const {
@@ -59,19 +95,6 @@ export async function POST(request: Request) {
 
   if (userError || !user) {
     return peerProfileResponse({ profilesByGroup: {} }, { status: 401 });
-  }
-
-  const rateLimit = await enforceRateLimit({
-    action: "groups.peer_profiles",
-    actorUserId: user.id,
-    maxAttempts: 120,
-    resourceType: "group",
-    subject: user.id,
-    windowSeconds: 3600,
-  });
-
-  if (!rateLimit.allowed) {
-    return peerProfileResponse({ profilesByGroup: {} }, { status: 429 });
   }
 
   let body: unknown;
@@ -90,6 +113,34 @@ export async function POST(request: Request) {
 
   if (requestedGroupIds.length === 0) {
     return peerProfileResponse({ profilesByGroup: {} } satisfies PeerProfilePayload);
+  }
+
+  const cacheKey = getPeerProfileCacheKey(user.id, requestedGroupIds);
+  const cachedPayload = readPeerProfileCache(cacheKey);
+
+  if (cachedPayload) {
+    return peerProfileResponse(cachedPayload);
+  }
+
+  const rateLimit = await enforceRateLimit({
+    action: "groups.peer_profiles",
+    actorUserId: user.id,
+    maxAttempts: PEER_PROFILE_RATE_LIMIT_MAX_REQUESTS,
+    resourceType: "group",
+    subject: user.id,
+    windowSeconds: PEER_PROFILE_RATE_LIMIT_WINDOW_SECONDS,
+  });
+
+  if (!rateLimit.allowed) {
+    return peerProfileResponse(
+      { profilesByGroup: {} },
+      {
+        status: 429,
+        headers: {
+          "Retry-After": String(Math.max(rateLimit.retryAfterSeconds, 1)),
+        },
+      }
+    );
   }
 
   const [{ data: groups, error: groupsError }, { data: members, error: membersError }] =
@@ -130,7 +181,9 @@ export async function POST(request: Request) {
   }
 
   if (accessibleGroupIds.size === 0) {
-    return peerProfileResponse({ profilesByGroup: {} } satisfies PeerProfilePayload);
+    const payload = { profilesByGroup: {} } satisfies PeerProfilePayload;
+    writePeerProfileCache(cacheKey, payload);
+    return peerProfileResponse(payload);
   }
 
   const memberRows = ((members || []) as GroupMemberProfileRow[]).filter(
@@ -139,7 +192,9 @@ export async function POST(request: Request) {
   const profileUserIds = Array.from(new Set(memberRows.map((member) => member.user_id).filter(isUuid)));
 
   if (profileUserIds.length === 0) {
-    return peerProfileResponse({ profilesByGroup: {} } satisfies PeerProfilePayload);
+    const payload = { profilesByGroup: {} } satisfies PeerProfilePayload;
+    writePeerProfileCache(cacheKey, payload);
+    return peerProfileResponse(payload);
   }
 
   const { data: profiles, error: profilesError } = await supabaseAdmin
@@ -181,5 +236,8 @@ export async function POST(request: Request) {
     });
   }
 
-  return peerProfileResponse({ profilesByGroup } satisfies PeerProfilePayload);
+  const payload = { profilesByGroup } satisfies PeerProfilePayload;
+  writePeerProfileCache(cacheKey, payload);
+
+  return peerProfileResponse(payload);
 }

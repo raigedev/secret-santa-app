@@ -38,17 +38,35 @@ test.describe("login oauth edge cases", () => {
 
     await page.goto("/login?next=%2Fdashboard");
 
-    await page.getByRole("button", { name: /continue with google/i }).dispatchEvent("click");
+    const googleButton = page.getByRole("button", { name: /continue with google/i });
+    await expect(googleButton).toBeEnabled();
+    await googleButton.dispatchEvent("click");
 
     await expect(page.getByText(/opening google sign-in/i)).toBeVisible();
-    await expect(page.getByText(/still on this screen/i)).toBeVisible({ timeout: 10_000 });
-    await expect(page).toHaveURL(/\/login\?next=%2Fdashboard$/);
-    await expect(page.getByRole("link", { name: /open google sign-in again/i })).toBeVisible();
+    await page.evaluate(() => window.stop());
+    await page.waitForFunction(
+      () => document.body.innerText.includes("Still on this screen?"),
+      undefined,
+      { timeout: 10_000 }
+    );
+    expect(page.url()).toMatch(/\/login\?next=%2Fdashboard$/);
+    await page.waitForFunction(() =>
+      document.body.innerText.includes("Open Google sign-in again")
+    );
 
-    await page.getByRole("button", { name: /back to sign in/i }).dispatchEvent("click");
+    await page.evaluate(() => {
+      const backButton = Array.from(document.querySelectorAll("button")).find((button) =>
+        button.textContent?.includes("Back to sign in")
+      );
+      backButton?.click();
+    });
 
-    await expect(page.getByText(/opening google sign-in/i)).toBeHidden();
-    await expect(page).toHaveURL(/\/login\?next=%2Fdashboard$/);
-    await expect(page.getByRole("button", { name: /continue with google/i })).toBeVisible();
+    await page.waitForFunction(
+      () => !document.body.innerText.includes("Opening Google sign-in")
+    );
+    expect(page.url()).toMatch(/\/login\?next=%2Fdashboard$/);
+    await page.waitForFunction(() =>
+      document.body.innerText.includes("Continue with Google")
+    );
   });
 });

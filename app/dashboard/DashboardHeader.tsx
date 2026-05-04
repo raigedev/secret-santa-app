@@ -8,6 +8,10 @@ type DashboardHeaderProps = {
   profileMenuOpen: boolean;
   profileMenuRef: RefObject<HTMLDivElement | null>;
   unreadNotificationCount: number;
+  viewerAvatarEmoji: string;
+  viewerAvatarUrl: string;
+  viewerName: string;
+  onAvatarImageError: () => void;
   onGoDashboard: () => void;
   onGoWishlist: () => void;
   onScrollToActivity: () => void;
@@ -24,6 +28,10 @@ export function DashboardHeader({
   profileMenuOpen,
   profileMenuRef,
   unreadNotificationCount,
+  viewerAvatarEmoji,
+  viewerAvatarUrl,
+  viewerName,
+  onAvatarImageError,
   onGoDashboard,
   onGoWishlist,
   onScrollToActivity,
@@ -36,13 +44,18 @@ export function DashboardHeader({
   const utilityButtonClass = `relative inline-flex h-10 w-10 items-center justify-center rounded-full transition hover:-translate-y-0.5 ${
     isDarkTheme ? "hover:bg-white/10" : "hover:bg-white/80"
   }`;
+  const displayViewerName = viewerName.trim() || "Profile";
+  const profileInitial = displayViewerName.slice(0, 1).toUpperCase() || "?";
+  const fallbackAvatar = viewerAvatarEmoji || profileInitial;
+  const fallbackAvatarIsEmoji = Boolean(viewerAvatarEmoji);
   const inactiveNavClass = isDarkTheme
     ? "text-slate-400 text-base font-semibold hover:text-red-300"
     : "text-slate-500 text-base font-semibold hover:text-red-600";
 
   return (
     <header
-      className={`sticky top-0 z-80 w-full backdrop-blur-xl shadow-[0_8px_24px_rgba(45,51,55,0.06)] ${
+      data-app-page-header="true"
+      className={`fixed left-0 right-0 top-0 z-80 w-full backdrop-blur-xl shadow-[0_8px_24px_rgba(45,51,55,0.06)] ${
         isDarkTheme ? "bg-slate-950/70" : "bg-white/70"
       }`}
     >
@@ -128,17 +141,54 @@ export function DashboardHeader({
           >
             <ThemeIcon dark={isDarkTheme} className={`h-5 w-5 ${utilityIconClass}`} />
           </button>
-              <div ref={profileMenuRef} className="relative z-90">
+          <div ref={profileMenuRef} className="relative z-90">
             <button
               type="button"
               onClick={onToggleProfileMenu}
-              className={utilityButtonClass}
+              className={`flex min-h-10 items-center gap-2 rounded-full py-1 pl-1 pr-3 transition hover:-translate-y-0.5 ${
+                isDarkTheme ? "hover:bg-white/10" : "hover:bg-white/80"
+              }`}
               aria-haspopup="menu"
               aria-expanded={profileMenuOpen}
               aria-label="Open profile menu"
               title="Open profile menu"
             >
-              <UserOutlineIcon className={`h-5 w-5 ${utilityIconClass}`} />
+              <span
+                data-testid="app-shell-viewer-avatar"
+                className={`flex h-9 w-9 items-center justify-center overflow-hidden rounded-full ring-1 ${
+                  fallbackAvatarIsEmoji && !viewerAvatarUrl
+                    ? "bg-amber-50 text-[20px] ring-amber-100"
+                    : isDarkTheme
+                      ? "bg-slate-800 text-[13px] font-black text-white ring-white/10"
+                      : "bg-[#48664e] text-[13px] font-black text-white ring-white/80"
+                }`}
+              >
+                {viewerAvatarUrl ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    src={viewerAvatarUrl}
+                    alt=""
+                    className="h-full w-full object-cover"
+                    onError={onAvatarImageError}
+                  />
+                ) : (
+                  fallbackAvatar
+                )}
+              </span>
+              <span className="hidden min-w-0 text-left sm:block">
+                <span
+                  data-testid="app-shell-viewer-name"
+                  className={`block max-w-32 truncate text-[12px] font-black leading-tight ${
+                    isDarkTheme ? "text-white" : "text-slate-950"
+                  }`}
+                >
+                  {displayViewerName}
+                </span>
+                <span className={`block text-[10px] font-semibold ${utilityIconClass}`}>
+                  View profile
+                </span>
+              </span>
+              <UserOutlineIcon className={`hidden h-4 w-4 lg:block ${utilityIconClass}`} />
             </button>
           </div>
         </div>

@@ -2828,6 +2828,10 @@ export function SecretSantaExperience({ mode = "shopping" }: SecretSantaExperien
   }, [router, availableGroups, assignments]);
 
   useEffect(() => {
+    if (shoppingRegionInitialized) {
+      return;
+    }
+
     const savedRegion = window.localStorage.getItem(SHOPPING_REGION_STORAGE_KEY);
     const nextRegion =
       savedRegion && SHOPPING_REGION_OPTIONS.some((option) => option.value === savedRegion)
@@ -2836,7 +2840,7 @@ export function SecretSantaExperience({ mode = "shopping" }: SecretSantaExperien
 
     setShoppingRegion((current) => (current === nextRegion ? current : nextRegion));
     setShoppingRegionInitialized(true);
-  }, [availableGroups]);
+  }, [availableGroups, shoppingRegionInitialized]);
 
   useEffect(() => {
     if (!shoppingRegionInitialized) {

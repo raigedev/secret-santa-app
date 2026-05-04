@@ -5,6 +5,7 @@ import {
   GROUP_BLOCKED_MESSAGE,
   getTestAuthCredentials,
   getTestGroupId,
+  getVisibleProfileMenuButton,
   loginWithTestCredentials,
 } from "../helpers/auth";
 
@@ -120,7 +121,7 @@ test.describe("navigation performance smoke coverage", () => {
       "wishlist ready",
       () => page.goto("/wishlist"),
       async () => {
-        await expect(page.getByText(/^my wishlist$/i)).toBeVisible();
+        await expect(page.getByRole("heading", { name: /^my wishlist$/i })).toBeVisible();
         await expect(page.getByRole("button", { name: /open gift planning/i })).toHaveCount(0);
       }
     );
@@ -177,7 +178,7 @@ test.describe("navigation performance smoke coverage", () => {
       "logout to login ready",
       async () => {
         await page.goto("/dashboard");
-        await page.getByRole("button", { name: /open profile menu/i }).click();
+        await getVisibleProfileMenuButton(page).click();
         await page.getByRole("menuitem", { name: /logout/i }).click();
       },
       () => waitForLoginReady(page)

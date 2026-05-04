@@ -32,6 +32,15 @@ import {
   sanitizeGroupsForDashboardSnapshot,
   writeDashboardSnapshot,
 } from "./dashboard-snapshot";
+import {
+  addViewerProfileChangedListener,
+  applyViewerProfileChangedEvent,
+  normalizeViewerAvatarEmoji,
+  normalizeViewerAvatarUrl,
+  readStoredViewerProfile,
+  storeViewerAvatarEmoji,
+  storeViewerAvatarUrl,
+} from "@/app/components/viewer-profile-client";
 import { enhanceDashboardGroupsWithPeerProfiles } from "./dashboard-groups-data";
 import type {
   ActionMessage,
@@ -163,12 +172,10 @@ export default function DashboardPage() {
   const router = useRouter();
   const [supabase] = useState(() => createClient());
   const [countdownNow, setCountdownNow] = useState(() => Date.now());
-  const [canViewAffiliateReport, setCanViewAffiliateReport] = useState(
-    () => typeof sessionStorage !== "undefined" && sessionStorage.getItem("ss_ara") === "1"
-  );
-  const [userName, setUserName] = useState(
-    () => (typeof sessionStorage !== "undefined" ? (sessionStorage.getItem("ss_un") ?? "") : "")
-  );
+  const [canViewAffiliateReport, setCanViewAffiliateReport] = useState(false);
+  const [userName, setUserName] = useState("");
+  const [viewerAvatarEmoji, setViewerAvatarEmoji] = useState("");
+  const [viewerAvatarUrl, setViewerAvatarUrl] = useState("");
   const [ownedGroups, setOwnedGroups] = useState<Group[]>([]);
   const [invitedGroups, setInvitedGroups] = useState<Group[]>([]);
   const [pendingInvites, setPendingInvites] = useState<PendingInvite[]>([]);
@@ -177,12 +184,8 @@ export default function DashboardPage() {
   const [wishlistItemCount, setWishlistItemCount] = useState(0);
   const [giftProgressSummary, setGiftProgressSummary] = useState<GiftProgressSummary | null>(null);
   const [activityFeedItems, setActivityFeedItems] = useState<DashboardActivityItem[]>([]);
-  const [dashboardTheme, setDashboardTheme] = useState<DashboardTheme>(() =>
-    readStoredDashboardTheme()
-  );
-  const [dashboardThemeReady, setDashboardThemeReady] = useState(
-    () => typeof window !== "undefined"
-  );
+  const [dashboardTheme, setDashboardTheme] = useState<DashboardTheme>("default");
+  const [dashboardThemeReady, setDashboardThemeReady] = useState(false);
   const [loading, setLoading] = useState(true);
   const [showProfileSetup, setShowProfileSetup] = useState(false);
   const [notificationsPanelOpen, setNotificationsPanelOpen] = useState(false);
@@ -200,6 +203,25 @@ export default function DashboardPage() {
     ((user: { id: string; email?: string | null }) => Promise<void>) | null
   >(null);
   const loadNotificationCountRef = useRef<((userId: string) => Promise<void>) | null>(null);
+
+  useEffect(() => {
+    const storedViewerProfile = readStoredViewerProfile();
+
+    if (storedViewerProfile.displayName) {
+      setUserName(storedViewerProfile.displayName);
+    }
+
+    setViewerAvatarEmoji(storedViewerProfile.avatarEmoji);
+    setViewerAvatarUrl(storedViewerProfile.avatarUrl);
+
+    return addViewerProfileChangedListener((event) => {
+      applyViewerProfileChangedEvent(event, {
+        setViewerAvatarEmoji,
+        setViewerAvatarUrl,
+        setViewerName: setUserName,
+      });
+    });
+  }, []);
 
   useEffect(() => {
     if (typeof window === "undefined") {
@@ -272,7 +294,9 @@ export default function DashboardPage() {
         (group) => !isGroupInHistory(group.event_date)
       );
 
-      setUserName(savedUserName || snapshot.userName);
+      if (savedUserName) {
+        setUserName(savedUserName);
+      }
       setOwnedGroups(activeOwnedGroups);
       setInvitedGroups(activeInvitedGroups);
       setPendingInvites(snapshot.pendingInvites);
@@ -746,11 +770,18 @@ export default function DashboardPage() {
 
       if (profileData) {
         const resolvedName = profileData.display_name || defaultName;
+        const resolvedAvatarEmoji = normalizeViewerAvatarEmoji(profileData.avatar_emoji);
+        const resolvedAvatarUrl = normalizeViewerAvatarUrl(profileData.avatar_url);
+
         setShowProfileSetup(!profileData.profile_setup_complete);
         setUserName(resolvedName);
+        setViewerAvatarEmoji(resolvedAvatarEmoji);
+        setViewerAvatarUrl(resolvedAvatarUrl);
         if (typeof sessionStorage !== "undefined") {
           sessionStorage.setItem("ss_un", resolvedName);
         }
+        storeViewerAvatarEmoji(resolvedAvatarEmoji || null);
+        storeViewerAvatarUrl(resolvedAvatarUrl || null);
       }
     };
 
@@ -834,14 +865,9 @@ export default function DashboardPage() {
 
         sessionUser = session.user;
 
-        const email = (session.user.email || "guest@example.com").toLowerCase();
-        const defaultName = email.split("@")[0];
-
         if (!isMounted) {
           return;
         }
-
-        setUserName((current) => current || defaultName);
 
         const cachedDashboard = readDashboardSnapshot(session.user.id);
 
@@ -968,8 +994,8 @@ export default function DashboardPage() {
   const allDashboardGroups = [...ownedGroups, ...invitedGroups];
   const revealMessage = buildDashboardRevealMessage(allDashboardGroups, countdownNow);
   const dashboardShellClass = isDarkTheme
-    ? "relative min-h-screen overflow-hidden bg-[linear-gradient(180deg,#08111f_0%,#0f172a_38%,#111827_100%)] text-slate-100"
-    : "relative min-h-screen overflow-hidden bg-[linear-gradient(180deg,#edf6ff_0%,#f8fbff_45%,#eef5ff_100%)] text-slate-900";
+    ? "relative min-h-screen bg-[linear-gradient(180deg,#08111f_0%,#0f172a_38%,#111827_100%)] text-slate-100"
+    : "relative min-h-screen bg-[linear-gradient(180deg,#edf6ff_0%,#f8fbff_45%,#eef5ff_100%)] text-slate-900";
   const handleOpenGroup = (groupId: string) => {
     router.push(`/group/${groupId}`);
   };
@@ -1018,6 +1044,13 @@ export default function DashboardPage() {
         profileMenuOpen={profileMenuOpen}
         profileMenuRef={profileMenuRef}
         unreadNotificationCount={unreadNotificationCount}
+        viewerAvatarEmoji={viewerAvatarEmoji}
+        viewerAvatarUrl={viewerAvatarUrl}
+        viewerName={userName}
+        onAvatarImageError={() => {
+          setViewerAvatarUrl("");
+          storeViewerAvatarUrl(null);
+        }}
         onGoDashboard={() => router.push("/dashboard")}
         onGoWishlist={() => router.push("/wishlist")}
         onScrollToActivity={() => document.getElementById("dashboard-activity")?.scrollIntoView({ behavior: "smooth" })}
@@ -1027,7 +1060,7 @@ export default function DashboardPage() {
         onToggleTheme={() => setDashboardTheme((current) => (current === "midnight" ? "default" : "midnight"))}
       />
 
-      <FadeIn className="relative z-10 mx-auto w-full max-w-7xl px-4 pb-24 pt-8 sm:px-6 lg:px-8">
+      <FadeIn className="relative z-10 mx-auto w-full max-w-7xl px-4 pb-24 pt-24 sm:px-6 lg:px-8">
         <DashboardStatusMessage message={actionMessage} />
 
         <DashboardPreviewWorkspace

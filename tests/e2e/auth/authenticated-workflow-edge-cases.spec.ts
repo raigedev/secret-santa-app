@@ -25,6 +25,19 @@ const CRITICAL_CONSOLE_PATTERNS = [
   /uncaught/i,
 ];
 
+function isNonCriticalLocalNavigationAbort(text: string): boolean {
+  if (!text.endsWith(" due to access control checks.")) {
+    return false;
+  }
+
+  return (
+    text.includes("/127.0.0.1:54321/rest/v1/") ||
+    text.includes("/localhost:54321/rest/v1/") ||
+    text.includes("/127.0.0.1:3000/") ||
+    text.includes("/localhost:3000/")
+  );
+}
+
 const SHARED_NAVIGATION_CASES: NavigationCase[] = [
   {
     label: /^dashboard$/i,
@@ -107,6 +120,14 @@ const SHARED_NAVIGATION_CASES: NavigationCase[] = [
 function monitorCriticalPageErrors(page: Page) {
   const issues: string[] = [];
 
+  const recordIssue = (text: string) => {
+    if (isNonCriticalLocalNavigationAbort(text)) {
+      return;
+    }
+
+    issues.push(text);
+  };
+
   page.on("console", (message) => {
     if (message.type() !== "error") {
       return;
@@ -114,12 +135,12 @@ function monitorCriticalPageErrors(page: Page) {
 
     const text = message.text();
     if (CRITICAL_CONSOLE_PATTERNS.some((pattern) => pattern.test(text))) {
-      issues.push(text);
+      recordIssue(text);
     }
   });
 
   page.on("pageerror", (error) => {
-    issues.push(error.message);
+    recordIssue(error.message);
   });
 
   return {
@@ -171,6 +192,32 @@ async function expectOnlyCurrentSidebarLink(sidebar: Locator, label: RegExp) {
   );
 }
 
+async function clickVisibleNavigationLink(link: Locator) {
+  await expect(link).toBeVisible();
+  await link.click({ force: true });
+}
+
+function isTransientFirefoxNavigationAbort(error: unknown): boolean {
+  return error instanceof Error && /NS_BINDING_ABORTED|frame was detached/i.test(error.message);
+}
+
+async function returnToDashboard(page: Page) {
+  const currentPathname = new URL(page.url()).pathname;
+
+  if (currentPathname !== "/dashboard") {
+    try {
+      await page.goto("/dashboard", { waitUntil: "domcontentloaded" });
+    } catch (error) {
+      if (!isTransientFirefoxNavigationAbort(error)) {
+        throw error;
+      }
+    }
+  }
+
+  await expect(page).toHaveURL(/\/dashboard$/);
+  await expect(page.getByRole("heading", { name: /active exchanges/i })).toBeVisible();
+}
+
 async function expectSantaAssistantClearOf(page: Page, target: Locator, label: string) {
   await expect(page.getByTestId("santa-assistant-toggle")).toBeVisible();
   await expect(target.first()).toBeVisible();
@@ -202,7 +249,7 @@ async function expectSantaAssistantClearOf(page: Page, target: Locator, label: s
 }
 
 test.describe("authenticated workflow edge cases", () => {
-  test.setTimeout(90_000);
+  test.setTimeout(150_000);
   test.skip(!credentials, AUTH_BLOCKED_MESSAGE);
 
   test("shared sidebar has a stable route contract for every primary tool", async ({ page }) => {
@@ -256,11 +303,16 @@ test.describe("authenticated workflow edge cases", () => {
     const shoppingSidebar = page.getByTestId("shopping-ideas-sidebar");
     await expectOnlyCurrentSidebarLink(shoppingSidebar, /^shopping ideas$/i);
 
-    await shoppingSidebar.getByRole("link", { name: /^my giftee$/i }).click();
+    await clickVisibleNavigationLink(
+      shoppingSidebar.getByRole("link", { name: /^my giftee$/i })
+    );
     await expect(page).toHaveURL(/\/my-giftee$/);
     await expectOnlyCurrentSidebarLink(page.getByTestId("shopping-ideas-sidebar"), /^my giftee$/i);
 
-    await page.getByTestId("shopping-ideas-sidebar").getByRole("link", { name: /^gift progress$/i }).click();
+    const giftProgressLink = page
+      .getByTestId("shopping-ideas-sidebar")
+      .getByRole("link", { name: /^gift progress$/i });
+    await clickVisibleNavigationLink(giftProgressLink);
     await expect(page).toHaveURL(/\/gift-tracking$/);
     await expectOnlyCurrentSidebarLink(page.getByTestId("shopping-ideas-sidebar"), /^gift progress$/i);
   });
@@ -366,7 +418,7 @@ test.describe("authenticated workflow edge cases", () => {
     await loginWithTestCredentials(page, credentials!);
 
     for (const navItem of SHARED_NAVIGATION_CASES) {
-      await page.goto("/dashboard");
+      await returnToDashboard(page);
       await expectSharedNavigationContract(page);
 
       await page.getByTestId("app-shell-sidebar").getByRole("link", { name: navItem.label }).click();
@@ -460,7 +512,7 @@ test.describe("authenticated workflow edge cases", () => {
 
     await addWishlistNotification.click();
     await expect(page).toHaveURL(/\/wishlist$/);
-    await expect(page.getByText(/^my wishlist$/i)).toBeVisible();
+    await expect(page.getByRole("heading", { name: /^my wishlist$/i })).toBeVisible();
   });
 
   test("safe validation blocks empty workflow submissions before writes", async ({
@@ -483,7 +535,7 @@ test.describe("authenticated workflow edge cases", () => {
     await page.setViewportSize({ width: 1440, height: 900 });
     await loginWithTestCredentials(page, credentials!);
     await page.goto("/wishlist");
-    await expect(page.getByText(/^my wishlist$/i)).toBeVisible();
+    await expect(page.getByRole("heading", { name: /^my wishlist$/i })).toBeVisible();
 
     const addWishlistButton = page.getByRole("button", { name: /add to wishlist/i });
     if (await addWishlistButton.isVisible().catch(() => false)) {

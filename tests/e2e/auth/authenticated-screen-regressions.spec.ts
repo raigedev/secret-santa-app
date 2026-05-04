@@ -6,6 +6,8 @@ import {
   canSeededUserOpenAffiliateReport,
   getTestAuthCredentials,
   getTestGroupId,
+  getVisibleNotificationsButton,
+  getVisibleProfileMenuButton,
   loginWithTestCredentials,
 } from "../helpers/auth";
 
@@ -95,7 +97,7 @@ const AUTHENTICATED_SCREEN_CASES: ScreenCase[] = [
     name: "dashboard",
     path: "/dashboard",
     assertVisible: async (page) => {
-      await expect(page.getByRole("button", { name: /open profile menu/i })).toBeVisible();
+      await expect(getVisibleProfileMenuButton(page)).toBeVisible();
       await expect(page.getByRole("heading", { name: /active exchanges/i })).toBeVisible();
       await expect(page.getByRole("heading", { name: /quick actions/i })).toBeVisible();
       await expect(page.getByRole("heading", { name: /mystery envelopes/i })).toHaveCount(0);
@@ -104,7 +106,9 @@ const AUTHENTICATED_SCREEN_CASES: ScreenCase[] = [
       await expect(page.getByText(/\b0 days left\b/i)).toHaveCount(0);
       await expectBadgeClearOfBellIcon(page, "app-shell-notification-badge");
 
-      await page.getByRole("button", { name: /open notifications/i }).click();
+      await page
+        .locator('[data-app-page-header="true"] button[aria-label^="Open notifications"]:visible')
+        .click();
       const notificationsPanel = page.getByTestId("dashboard-notifications-panel");
       await expect(notificationsPanel).toBeVisible();
       await expect(page.getByRole("button", { name: /^all$/i })).toBeVisible();
@@ -197,7 +201,7 @@ const AUTHENTICATED_SCREEN_CASES: ScreenCase[] = [
     name: "wishlist",
     path: "/wishlist",
     assertVisible: async (page) => {
-      await expect(page.getByText(/^my wishlist$/i)).toBeVisible();
+      await expect(page.getByRole("heading", { name: /^my wishlist$/i })).toBeVisible();
       await expect(page.getByRole("button", { name: /open gift planning/i })).toHaveCount(0);
       await expect(page.getByRole("button", { name: /back to dashboard/i })).toHaveCount(0);
     },
@@ -209,7 +213,7 @@ const AUTHENTICATED_SCREEN_CASES: ScreenCase[] = [
       await expect(page.getByRole("heading", { name: /shopping ideas/i })).toBeVisible();
       await expect(page.getByTestId("shopping-option-panel").first()).toBeVisible();
 
-      const notificationsButton = page.getByRole("button", { name: /open notifications/i });
+      const notificationsButton = getVisibleNotificationsButton(page);
       await expect(notificationsButton).toBeVisible();
       await expectBadgeClearOfBellIcon(page, "shopping-ideas-notification-badge");
       await notificationsButton.click();
@@ -311,7 +315,7 @@ test.describe("authenticated screen regressions", () => {
     await sidebar.getByRole("link", { name: /^my wishlist$/i }).click();
     await page.waitForURL(/\/wishlist$/);
     await expect(appShell).toBeVisible();
-    await expect(page.getByText(/^my wishlist$/i)).toBeVisible();
+    await expect(page.getByRole("heading", { name: /^my wishlist$/i })).toBeVisible();
     await expect(sidebar.getByRole("link", { name: /^my wishlist$/i })).toHaveAttribute(
       "aria-current",
       "page"
@@ -1135,25 +1139,30 @@ test.describe("group-scoped authenticated regressions", () => {
       data: { groupIds: [groupId] },
     });
 
-    expect(response.status()).toBe(200);
+    expect([200, 429]).toContain(response.status());
     expect(response.headers()["cache-control"]).toContain("no-store");
 
     const body = (await response.json()) as { profilesByGroup?: unknown };
     expect(body.profilesByGroup).toBeTruthy();
     expect(typeof body.profilesByGroup).toBe("object");
+
+    if (response.status() === 429) {
+      expect(response.headers()["retry-after"]).toBeTruthy();
+    }
   });
 
   test("my groups sidebar link returns to the groups list", async ({ page }) => {
     await page.setViewportSize({ width: 1440, height: 900 });
     await loginWithTestCredentials(page, credentials!);
     await page.goto(`/group/${groupId}`);
+    await expect(page.getByText(/monitor participation and progress/i)).toBeVisible();
 
     const sidebar = page.getByTestId("app-shell-sidebar");
-    const myGroupsLink = sidebar.getByRole("link", { name: /my groups?/i });
+    const myGroupsLink = sidebar.getByRole("link", { name: /^my groups$/i });
 
+    await expect(myGroupsLink).toBeVisible();
     await expect(myGroupsLink).toHaveAttribute("href", /\/groups$/);
-    await myGroupsLink.click();
-    await expect(page).toHaveURL(/\/groups$/);
+    await Promise.all([page.waitForURL(/\/groups$/), myGroupsLink.click()]);
     await expect(page.getByRole("heading", { name: /your groups/i })).toBeVisible();
   });
 
@@ -1216,6 +1225,7 @@ test.describe("owner-only affiliate route regressions", () => {
 
     await page.waitForURL(/\/dashboard$/);
     await expect(page).toHaveURL(/\/dashboard$/);
-    await expect(page.getByRole("heading", { name: /group snapshot/i })).toBeVisible();
+    await expect(page.getByRole("heading", { name: /welcome back/i })).toBeVisible();
+    await expect(page.getByRole("heading", { name: /active exchanges/i })).toBeVisible();
   });
 });

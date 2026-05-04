@@ -54,8 +54,19 @@ export function canSeededUserOpenAffiliateReport(email: string | null | undefine
   return allowedEmails.includes(normalizedEmail);
 }
 
+export function getVisibleProfileMenuButton(page: Page) {
+  return page.locator('button[aria-label="Open profile menu"]:visible').first();
+}
+
+export function getVisibleNotificationsButton(page: Page) {
+  return page.locator('button[aria-label^="Open notifications"]:visible').first();
+}
+
 export async function loginWithTestCredentials(page: Page, credentials: TestAuthCredentials) {
   await page.goto("/login");
+  await page.evaluate(() => {
+    window.localStorage.setItem("secret-santa-assistant-seen-v1", "true");
+  });
   await page.getByPlaceholder(/enter your email address/i).fill(credentials.email);
   await page.getByPlaceholder(/enter your password/i).fill(credentials.password);
   await page.getByRole("button", { name: /^log in$/i }).click();

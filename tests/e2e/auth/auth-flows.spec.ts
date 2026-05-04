@@ -3,6 +3,7 @@ import { expect, test } from "@playwright/test";
 import {
   AUTH_BLOCKED_MESSAGE,
   getTestAuthCredentials,
+  getVisibleProfileMenuButton,
   loginWithTestCredentials,
   saveAuthenticatedStorageState,
 } from "../helpers/auth";
@@ -18,13 +19,13 @@ test.describe("authenticated auth coverage", () => {
 
     await page.reload();
     await expect(page).toHaveURL(/\/dashboard$/);
-    await expect(page.getByLabel(/open profile menu/i)).toBeVisible();
+    await expect(getVisibleProfileMenuButton(page)).toBeVisible();
   });
 
   test("logout returns the user to the login screen", async ({ page }) => {
     await loginWithTestCredentials(page, credentials!);
 
-    await page.getByRole("button", { name: /open profile menu/i }).click();
+    await getVisibleProfileMenuButton(page).click();
     await page.getByRole("menuitem", { name: /logout/i }).click();
 
     await expect(page).toHaveURL(/\/login$/);
