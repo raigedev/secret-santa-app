@@ -2,6 +2,8 @@ import "server-only";
 
 import { timingSafeEqual } from "crypto";
 
+export { normalizeSafeAppPath } from "@/lib/security/safe-app-path";
+
 export function extractBearerToken(headerValue: string | null): string | null {
   if (!headerValue) {
     return null;
@@ -93,22 +95,4 @@ export function resolveTrustedAppOrigin(requestUrl: URL): string {
   }
 
   return configuredOrigins[0] || requestOrigin || requestUrl.origin;
-}
-
-export function normalizeSafeAppPath(
-  candidate: string | null | undefined,
-  fallback = "/"
-): string {
-  const normalized = candidate?.trim() || fallback;
-
-  if (
-    !normalized.startsWith("/") ||
-    normalized.startsWith("//") ||
-    normalized.includes("\\") ||
-    normalized.includes("\0")
-  ) {
-    return fallback;
-  }
-
-  return normalized;
 }

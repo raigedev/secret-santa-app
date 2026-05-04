@@ -61,10 +61,22 @@ test.describe("public auth regressions", () => {
     await expect(page).toHaveURL(/\/create-account\?next=%2Fdashboard$/);
   });
 
+  test("login drops protocol-relative next paths", async ({ page }) => {
+    await page.goto(`/login?next=${encodeURIComponent("//example.com/dashboard")}`);
+    await page.getByRole("button", { name: /create account/i }).click();
+    await expect(page).toHaveURL(/\/create-account\?next=%2Fdashboard$/);
+  });
+
   test("create-account keeps an internal next path when returning to login", async ({ page }) => {
     await page.goto("/create-account?next=%2Fsecret-santa");
     await page.getByRole("button", { name: /sign in instead/i }).click();
     await expect(page).toHaveURL(/\/login\?next=%2Fsecret-santa$/);
+  });
+
+  test("create-account drops next paths containing backslashes", async ({ page }) => {
+    await page.goto(`/create-account?next=${encodeURIComponent("/\\example.com")}`);
+    await page.getByRole("button", { name: /sign in instead/i }).click();
+    await expect(page).toHaveURL(/\/login\?next=%2Fdashboard$/);
   });
 
   test("forgot-password can return to login without breaking the flow", async ({ page }) => {
@@ -84,7 +96,7 @@ test.describe("public auth regressions", () => {
     await page.goto(`/?${callbackError}`);
 
     await expect(page).toHaveURL(/\/login\?error=oauth_callback_failed$/);
-    await expect(page.getByRole("alert")).toContainText(/google sign-in expired/i);
+    await expect(page.locator("[role='alert']").filter({ hasText: /google sign-in expired/i })).toBeVisible();
     await expect(page.getByRole("button", { name: /continue with google/i })).toBeVisible();
   });
 });

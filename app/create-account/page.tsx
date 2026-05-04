@@ -7,6 +7,7 @@ import {
   AuthHeroPanel,
   AuthPageFrame,
 } from "@/app/components/AuthPageShell";
+import { normalizeSafeAppPath } from "@/lib/security/safe-app-path";
 import { createClient } from "@/lib/supabase/client";
 
 const MIN_PASSWORD_LENGTH = 8;
@@ -97,7 +98,7 @@ function CreateAccountPageInner() {
 
   const nextPath = (() => {
     const candidate = searchParams.get("next") || "/dashboard";
-    return candidate.startsWith("/") ? candidate : "/dashboard";
+    return normalizeSafeAppPath(candidate, "/dashboard");
   })();
 
   const rememberNextPath = () => {

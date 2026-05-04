@@ -495,23 +495,28 @@ export default function DashboardPage() {
         const recentNotifications =
           (activityNotificationsRes.data || []) as NotificationFeedRow[];
         const drawnGroupIds = new Set(allAssignments.map((assignment) => assignment.group_id));
+        const membersByGroupId = new Map<string, GroupMemberRow[]>();
+
+        for (const member of allMembers) {
+          const currentMembers = membersByGroupId.get(member.group_id) || [];
+          currentMembers.push(member);
+          membersByGroupId.set(member.group_id, currentMembers);
+        }
 
         const groupsWithMembers: Group[] = activeGroupsData.map((group) => {
           return {
             ...group,
             isOwner: roleMap[group.id] === "owner",
             hasDrawn: drawnGroupIds.has(group.id),
-            members: allMembers
-              .filter((member) => member.group_id === group.id)
-              .map((member) => ({
-                userId: member.user_id,
-                nickname: member.nickname,
-                email: member.email,
-                role: member.role,
-                displayName: null,
-                avatarEmoji: null,
-                avatarUrl: null,
-              })),
+            members: (membersByGroupId.get(group.id) || []).map((member) => ({
+              userId: member.user_id,
+              nickname: member.nickname,
+              email: member.email,
+              role: member.role,
+              displayName: null,
+              avatarEmoji: null,
+              avatarUrl: null,
+            })),
           };
         });
 

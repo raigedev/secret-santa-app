@@ -158,23 +158,28 @@ export async function loadDashboardGroups(
   const allMembers = (membersRes.data || []) as GroupMemberRow[];
   const allAssignments = (assignmentsRes.data || []) as AssignmentRow[];
   const drawnGroupIds = new Set(allAssignments.map((assignment) => assignment.group_id));
+  const membersByGroupId = new Map<string, GroupMemberRow[]>();
+
+  for (const member of allMembers) {
+    const currentMembers = membersByGroupId.get(member.group_id) || [];
+    currentMembers.push(member);
+    membersByGroupId.set(member.group_id, currentMembers);
+  }
 
   return splitDashboardGroups(
     groupsData.map((group) => ({
       ...group,
       hasDrawn: drawnGroupIds.has(group.id),
       isOwner: roleMap[group.id] === "owner",
-      members: allMembers
-        .filter((member) => member.group_id === group.id)
-        .map((member) => ({
-          avatarEmoji: null,
-          avatarUrl: null,
-          displayName: null,
-          email: member.email,
-          nickname: member.nickname,
-          role: member.role,
-          userId: member.user_id,
-        })),
+      members: (membersByGroupId.get(group.id) || []).map((member) => ({
+        avatarEmoji: null,
+        avatarUrl: null,
+        displayName: null,
+        email: member.email,
+        nickname: member.nickname,
+        role: member.role,
+        userId: member.user_id,
+      })),
     }))
   );
 }

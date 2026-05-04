@@ -113,6 +113,7 @@ type MessageSummary = {
   created_at: string;
   group_id: string;
   sender_id: string;
+  thread_giver_id: string;
 };
 
 type GroupMemberReminderRow = {
@@ -734,9 +735,10 @@ async function enqueuePostDrawReminderJobs(now: Date): Promise<number> {
 
   const messagesResult = await supabaseAdmin
     .from("messages")
-    .select("group_id, sender_id, created_at")
+    .select("group_id, sender_id, thread_giver_id, created_at")
     .in("group_id", currentGroupIds)
     .in("sender_id", assignmentGiverIds)
+    .in("thread_giver_id", assignmentGiverIds)
     .gte("created_at", earliestRelevantMessageAt);
 
   if (messagesResult.error) {
@@ -751,7 +753,11 @@ async function enqueuePostDrawReminderJobs(now: Date): Promise<number> {
   const latestMessageAtByGiver = new Map<string, string>();
 
   for (const message of (messagesResult.data || []) as MessageSummary[]) {
-    const key = `${message.group_id}:${message.sender_id}`;
+    if (message.sender_id !== message.thread_giver_id) {
+      continue;
+    }
+
+    const key = `${message.group_id}:${message.thread_giver_id}`;
     const currentLatest = latestMessageAtByGiver.get(key);
 
     if (!currentLatest || currentLatest < message.created_at) {
