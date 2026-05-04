@@ -106,19 +106,28 @@ function MysteryEnvelopeHero() {
 }
 
 function NotificationEmptyState({ filter }: { filter: NotificationFilter }) {
-  const title = filter === "unread" ? "No unread envelopes" : "You're all caught up";
-  const body =
-    filter === "unread"
-      ? "Every new message has been opened for now."
-      : "We'll deliver new updates here.";
+  const copy: Record<NotificationFilter, { body: string; title: string }> = {
+    all: {
+      body: "We'll deliver new updates here.",
+      title: "You're all caught up",
+    },
+    read: {
+      body: "Opened updates will appear here after you read them.",
+      title: "No opened envelopes",
+    },
+    unread: {
+      body: "Every new message has been opened for now.",
+      title: "No unread envelopes",
+    },
+  };
 
   return (
     <div className="px-4 py-10 text-center sm:py-14">
       <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-3xl bg-[#f3f4f2] text-[#48664e]">
         <NotificationEnvelopeMark className="h-9 w-9" read type="invite" />
       </div>
-      <h2 className="mt-4 text-xl font-black text-[#2e3432]">{title}</h2>
-      <p className="mt-2 text-sm font-semibold leading-6 text-slate-500">{body}</p>
+      <h2 className="mt-4 text-xl font-black text-[#2e3432]">{copy[filter].title}</h2>
+      <p className="mt-2 text-sm font-semibold leading-6 text-slate-500">{copy[filter].body}</p>
     </div>
   );
 }
@@ -284,10 +293,6 @@ export function NotificationsInboxView({
             })
           )}
         </div>
-
-        {visibleNotifications.length > 0 && (
-          <NotificationEmptyState filter="all" />
-        )}
       </div>
     </section>
   );

@@ -40,6 +40,7 @@ export function GroupMembersSection({
   const missingWishlistNames = new Set(
     missingWishlistMemberNames.map((name) => normalizeMemberName(name))
   );
+  const visibleDeclinedMembers = isOwner ? declinedMembers : [];
   const rows: MemberDisplayRow[] = [
     ...acceptedMembers.map((member, index) => ({
       index,
@@ -51,7 +52,7 @@ export function GroupMembersSection({
       member,
       status: "pending" as const,
     })),
-    ...declinedMembers.map((member, index) => ({
+    ...visibleDeclinedMembers.map((member, index) => ({
       index,
       member,
       status: "declined" as const,
@@ -207,9 +208,9 @@ export function GroupMembersSection({
         </div>
       )}
 
-      {!drawDone && pendingMembers.length > 0 && isOwner && (
+      {!drawDone && (pendingMembers.length > 0 || declinedMembers.length > 0) && isOwner && (
         <div className="mt-4 rounded-2xl bg-[#eef3ef] px-4 py-3 text-xs font-bold leading-5 text-[#48664e]">
-          Pending members need to log in and accept from their dashboard. Declined members can be re-invited.
+          Pending members need to accept from their dashboard. Declined invites can be resent by the organizer.
         </div>
       )}
     </section>

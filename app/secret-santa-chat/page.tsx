@@ -919,7 +919,7 @@ export default function SecretSantaChatPage() {
     [supabase]
   );
 
-  // â”€â”€â”€ Load threads on mount + real-time â”€â”€â”€
+  // Load threads on mount and subscribe to live updates.
   useEffect(() => {
     let reloadTimer: ReturnType<typeof setTimeout> | null = null;
 
@@ -997,7 +997,11 @@ export default function SecretSantaChatPage() {
           .in("group_id", groupIds)
           .order("created_at", { ascending: false })
           .limit(CHAT_THREAD_MESSAGE_SCAN_LIMIT),
-        supabase.from("thread_reads").select("group_id, thread_giver_id, thread_receiver_id, last_read_at").eq("user_id", user.id),
+        supabase
+          .from("thread_reads")
+          .select("group_id, thread_giver_id, thread_receiver_id, last_read_at")
+          .eq("user_id", user.id)
+          .in("group_id", groupIds),
       ]);
 
       if (
@@ -1181,7 +1185,7 @@ export default function SecretSantaChatPage() {
     };
   }, [supabase, router]);
 
-  // â”€â”€â”€ Load messages + real-time for active thread â”€â”€â”€
+  // Load messages and subscribe to live updates for the active thread.
   useEffect(() => {
     if (!activeThread) return;
 
