@@ -10,6 +10,8 @@ const npxCommand = isWindows ? "npx.cmd" : "npx";
 const sourceRoots = ["app", "lib", "utils", "tests"];
 const sourceExtensions = new Set([".js", ".jsx", ".mjs", ".ts", ".tsx"]);
 const ignoredDirectoryNames = new Set([".next", "node_modules", "playwright-report", "test-results"]);
+const supabaseConfigPath = path.join("supabase", "config.toml");
+const supabaseMigrationsPath = path.join("supabase", "migrations");
 
 const roundedScale = new Map([
   ["2px", "sm"],
@@ -443,9 +445,80 @@ function checkTailwindCanonicalClasses() {
   return false;
 }
 
+function checkSupabaseMigrationCliSafety() {
+  console.log("\n== Supabase migration CLI safety scan ==");
+  const problems = [];
+
+  if (existsSync(supabaseMigrationsPath)) {
+    const migrationFiles = readdirSync(supabaseMigrationsPath)
+      .filter((file) => file.endsWith(".sql"))
+      .map((file) => path.join(supabaseMigrationsPath, file));
+
+    for (const file of migrationFiles) {
+      const content = readFileSync(file, "utf8");
+      const concurrentIndexPattern = /\b(?:create|drop)\s+index\s+concurrently\b/gi;
+      let match = concurrentIndexPattern.exec(content);
+
+      while (match) {
+        reportProblem(
+          problems,
+          file,
+          content,
+          match.index,
+          match[0],
+          "Do not use CONCURRENTLY in committed Supabase migrations; run production-only one-statement index operations manually when needed.",
+        );
+        match = concurrentIndexPattern.exec(content);
+      }
+    }
+  }
+
+  if (existsSync(supabaseConfigPath)) {
+    const content = readFileSync(supabaseConfigPath, "utf8");
+    let inMigrationsSection = false;
+    let lineStartOffset = 0;
+
+    for (const line of content.split("\n")) {
+      const trimmedLine = line.trim();
+
+      if (trimmedLine === "[db.migrations]") {
+        inMigrationsSection = true;
+      } else if (trimmedLine.startsWith("[") && trimmedLine.endsWith("]")) {
+        inMigrationsSection = false;
+      } else if (inMigrationsSection && /^enabled\s*=\s*false\b/.test(trimmedLine)) {
+        reportProblem(
+          problems,
+          supabaseConfigPath,
+          content,
+          lineStartOffset + line.indexOf("enabled"),
+          trimmedLine,
+          "Keep db.migrations.enabled = true so Supabase dry-runs do not silently skip pending migrations.",
+        );
+      }
+
+      lineStartOffset += line.length + 1;
+    }
+  }
+
+  if (problems.length === 0) {
+    console.log("No Supabase migration CLI safety problems found.");
+    return true;
+  }
+
+  for (const problem of problems) {
+    console.error(`${problem.file}:${problem.line}`);
+    console.error(`  ${problem.found}`);
+    console.error(`  ${problem.message}`);
+  }
+
+  process.exitCode = 1;
+  return false;
+}
+
 let ok = true;
 
 ok = checkTailwindCanonicalClasses() && ok;
+ok = checkSupabaseMigrationCliSafety() && ok;
 ok = runCommand("TypeScript", npmCommand, ["run", "typecheck"]) && ok;
 ok = runCommand("ESLint security", npmCommand, ["run", "lint:security"]) && ok;
 ok = runCommand("cSpell", npxCommand, ["--yes", "cspell@8", "--no-progress", "."]) && ok;
