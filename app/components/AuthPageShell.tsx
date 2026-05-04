@@ -1,7 +1,7 @@
 import Image from "next/image";
 import type { ReactNode } from "react";
 
-export type AuthPageMarker = {
+type AuthPageMarker = {
   title: string;
   copy: string;
 };
@@ -22,7 +22,7 @@ const AUTH_PAGE_BACKGROUND_STYLE = { backgroundImage: AUTH_PAGE_BACKGROUND_IMAGE
 const AUTH_HERO_BACKGROUND_STYLE = { backgroundImage: AUTH_HERO_BACKGROUND_IMAGE };
 const AUTH_INFO_CARD_BACKGROUND_STYLE = { backgroundImage: AUTH_INFO_CARD_BACKGROUND_IMAGE };
 
-export function AuthPageBackground({
+function AuthPageBackground({
   showDecorativeBlobs = true,
 }: {
   showDecorativeBlobs?: boolean;

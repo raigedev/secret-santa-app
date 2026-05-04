@@ -8,7 +8,7 @@ type NotificationPreferenceKey =
   | "notify_chat"
   | "notify_wishlist";
 
-export type ReminderType =
+type ReminderType =
   | "wishlist_incomplete"
   | "event_tomorrow"
   | "post_draw";

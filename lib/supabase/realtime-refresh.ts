@@ -46,22 +46,6 @@ function readPayloadRecordValue(payload: RealtimePayload, recordKey: "new" | "ol
   return typeof value === "string" ? value : null;
 }
 
-export function realtimePayloadMatchesValue(
-  payload: RealtimePayload,
-  field: string,
-  value: string,
-  { refreshWhenUnknown = false }: { refreshWhenUnknown?: boolean } = {}
-) {
-  const nextValue = readPayloadRecordValue(payload, "new", field);
-  const previousValue = readPayloadRecordValue(payload, "old", field);
-
-  if (!nextValue && !previousValue) {
-    return refreshWhenUnknown;
-  }
-
-  return nextValue === value || previousValue === value;
-}
-
 export function realtimePayloadMatchesAnyValue(
   payload: RealtimePayload,
   field: string,

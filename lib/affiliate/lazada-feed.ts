@@ -5,7 +5,7 @@ import path from "path";
 import { normalizeLazadaProductPageUrl } from "@/lib/affiliate/lazada-url";
 import { slugifyAsciiIdentifier } from "@/lib/validation/common";
 
-export type LazadaImportedFeedRow = {
+type LazadaImportedFeedRow = {
   date: string;
   skuId: string;
   itemId: string;
@@ -38,7 +38,7 @@ export type LazadaImportedFeedRow = {
   sourceCategory: string;
 };
 
-export type LazadaFeedProduct = {
+type LazadaFeedProduct = {
   itemId: string;
   skuId: string;
   productName: string;
@@ -70,9 +70,9 @@ export type LazadaFeedMatch = {
   searchTokenCount: number;
 };
 
-export type LazadaFeedMatchConfidence = "high" | "low" | "medium";
+type LazadaFeedMatchConfidence = "high" | "low" | "medium";
 
-export type LazadaFeedBudgetMode = "minimum-only" | "window";
+type LazadaFeedBudgetMode = "minimum-only" | "window";
 
 type LazadaFeedBudgetWindow = {
   maximum: number | null;

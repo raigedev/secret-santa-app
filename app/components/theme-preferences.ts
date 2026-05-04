@@ -1,6 +1,6 @@
 "use client";
 
-export const DASHBOARD_THEME_STORAGE_KEY = "ss_dashboard_theme";
+const DASHBOARD_THEME_STORAGE_KEY = "ss_dashboard_theme";
 export const DASHBOARD_THEME_CHANGED_EVENT = "ss-dashboard-theme-changed";
 
 export type DashboardTheme = "default" | "midnight";

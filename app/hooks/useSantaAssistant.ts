@@ -32,7 +32,7 @@ function shouldShowAssistant(pathname: string): boolean {
   return !HIDDEN_ROUTE_PREFIXES.some((prefix) => pathname.startsWith(prefix));
 }
 
-export type SantaAssistantState = {
+type SantaAssistantState = {
   close: () => void;
   hide: () => void;
   isHidden: boolean;

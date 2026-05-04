@@ -11,7 +11,7 @@ type AffiliateHealthClickRow = {
   target_url: string | null;
 };
 
-export type AffiliateConversionPayload = Record<string, unknown>;
+type AffiliateConversionPayload = Record<string, unknown>;
 
 export type AffiliateConversionRow = {
   affiliate_click_id: string | null;

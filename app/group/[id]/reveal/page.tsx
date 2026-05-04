@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { useParams, useRouter } from "next/navigation";
+import { useParams, usePathname, useRouter } from "next/navigation";
 import FadeIn from "@/app/components/FadeIn";
 import { GroupSkeleton } from "@/app/components/PageSkeleton";
 import { createClient } from "@/lib/supabase/client";
@@ -47,6 +47,49 @@ type RevealPresentation = {
 };
 
 const REVEAL_PAGE_FALLBACK_POLL_MS = 5 * 60 * 1000;
+
+function readGroupIdFromRoute(
+  params: ReturnType<typeof useParams>,
+  pathname: string | null
+): string {
+  const paramValue = params.id;
+
+  if (typeof paramValue === "string" && paramValue.trim()) {
+    return paramValue;
+  }
+
+  if (Array.isArray(paramValue) && typeof paramValue[0] === "string") {
+    return paramValue[0];
+  }
+
+  for (const value of Object.values(params)) {
+    if (typeof value === "string" && value.trim()) {
+      return value;
+    }
+
+    if (Array.isArray(value) && typeof value[0] === "string" && value[0].trim()) {
+      return value[0];
+    }
+  }
+
+  const pathnameCandidates = [
+    pathname || "",
+    typeof window === "undefined" ? "" : window.location.pathname,
+  ];
+  const pathnameMatch = pathnameCandidates
+    .map((candidate) => /^\/group\/([^/]+)\/reveal(?:\/)?$/.exec(candidate))
+    .find((match) => Boolean(match?.[1]));
+
+  if (!pathnameMatch?.[1]) {
+    return "";
+  }
+
+  try {
+    return decodeURIComponent(pathnameMatch[1]);
+  } catch {
+    return pathnameMatch[1];
+  }
+}
 
 function formatRevealTime(value: string | null): string {
   if (!value) {
@@ -150,7 +193,8 @@ function getRevealNameTextStyle(value: string, variant: "alias" | "match") {
 export default function GroupRevealPage() {
   const router = useRouter();
   const params = useParams();
-  const id = params.id as string;
+  const pathname = usePathname();
+  const id = readGroupIdFromRoute(params, pathname);
 
   const [supabase] = useState(() => createClient());
   const [presentation, setPresentation] = useState<RevealPresentation | null>(null);
@@ -169,6 +213,12 @@ export default function GroupRevealPage() {
   const hasLoadedPresentationRef = useRef(false);
 
   useEffect(() => {
+    if (!id) {
+      setError("");
+      setLoading(true);
+      return;
+    }
+
     let isMounted = true;
     let reloadTimer: ReturnType<typeof setTimeout> | null = null;
     let pollInterval: ReturnType<typeof setInterval> | null = null;
@@ -271,6 +321,10 @@ export default function GroupRevealPage() {
   }, [id, supabase]);
 
   useEffect(() => {
+    if (!id) {
+      return;
+    }
+
     router.prefetch(`/group/${id}`);
   }, [id, router]);
 

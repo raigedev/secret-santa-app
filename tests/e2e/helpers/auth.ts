@@ -59,7 +59,21 @@ export async function loginWithTestCredentials(page: Page, credentials: TestAuth
   await page.getByPlaceholder(/enter your email address/i).fill(credentials.email);
   await page.getByPlaceholder(/enter your password/i).fill(credentials.password);
   await page.getByRole("button", { name: /^log in$/i }).click();
-  await page.waitForURL(/\/dashboard$/);
+  const formAlert = page.locator("form [role='alert']").first();
+
+  await Promise.race([
+    page.waitForURL(/\/dashboard$/, { timeout: 20_000 }),
+    formAlert.waitFor({ state: "visible", timeout: 20_000 }).then(async () => {
+      const message = ((await formAlert.textContent()) || "").trim() || "unknown error";
+      const localSetupHint =
+        message.toLowerCase() === "failed to fetch"
+          ? " Start local Supabase with `npx.cmd supabase start`, then run `npm.cmd run seed:e2e:local`."
+          : "";
+
+      throw new Error(`Seeded Playwright login failed: ${message}.${localSetupHint}`);
+    }),
+  ]);
+
   await expect(page).toHaveURL(/\/dashboard$/);
 }
 

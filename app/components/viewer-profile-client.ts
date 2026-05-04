@@ -66,7 +66,7 @@ export function readStoredViewerName() {
   return normalizeViewerName(sessionStorage.getItem(VIEWER_NAME_STORAGE_KEY));
 }
 
-export function readStoredViewerAvatarUrl() {
+function readStoredViewerAvatarUrl() {
   if (typeof sessionStorage === "undefined") {
     return "";
   }
@@ -74,7 +74,7 @@ export function readStoredViewerAvatarUrl() {
   return normalizeViewerAvatarUrl(sessionStorage.getItem(VIEWER_AVATAR_STORAGE_KEY));
 }
 
-export function readStoredViewerAvatarEmoji() {
+function readStoredViewerAvatarEmoji() {
   if (typeof sessionStorage === "undefined") {
     return "";
   }

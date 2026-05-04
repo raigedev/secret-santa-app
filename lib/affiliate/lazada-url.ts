@@ -8,7 +8,7 @@ function normalizeHostname(hostname: string): string {
   return hostname.toLowerCase().replace(/^www\./, "");
 }
 
-export function isLazadaHostname(hostname: string): boolean {
+function isLazadaHostname(hostname: string): boolean {
   const normalized = normalizeHostname(hostname);
 
   return LAZADA_ALLOWED_HOSTS.some((allowedHost) =>

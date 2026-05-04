@@ -1,6 +1,9 @@
 {
   "$schema": "https://unpkg.com/knip@6/schema-jsonc.json",
   "ignore": [
+    ".agents/skills/**",
+    "scripts/repair-local-supabase-schema.mjs",
+    "scripts/seed-local-playwright.mjs",
     "scripts/check-vscode-problems.mjs",
     "scripts/prepare-husky.mjs",
     "tests/e2e/fixtures/routes.ts",

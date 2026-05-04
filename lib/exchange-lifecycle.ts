@@ -1,8 +1,8 @@
 const DAY_MS = 24 * 60 * 60 * 1000;
 
-export const GIFT_PANIC_WINDOW_DAYS = 2;
+const GIFT_PANIC_WINDOW_DAYS = 2;
 
-export type ExchangeLifecycleStepId =
+type ExchangeLifecycleStepId =
   | "setup"
   | "invites"
   | "wishlists"
@@ -11,22 +11,22 @@ export type ExchangeLifecycleStepId =
   | "giftDay"
   | "history";
 
-export type ExchangeLifecycleStatus = "done" | "current" | "locked" | "attention";
+type ExchangeLifecycleStatus = "done" | "current" | "locked" | "attention";
 
-export type ExchangeLifecycleStep = {
+type ExchangeLifecycleStep = {
   id: ExchangeLifecycleStepId;
   label: string;
   helper: string;
   status: ExchangeLifecycleStatus;
 };
 
-export type ExchangeNextAction = {
+type ExchangeNextAction = {
   href: string;
   label: string;
   tone: "evergreen" | "red" | "neutral";
 };
 
-export type ExchangeLifecycleInput = {
+type ExchangeLifecycleInput = {
   acceptedCount: number;
   eventDate: string | null | undefined;
   giftProgressTotal: number;
@@ -39,7 +39,7 @@ export type ExchangeLifecycleInput = {
   wishlistItemCount: number;
 };
 
-export type ExchangeLifecycleSummary = {
+type ExchangeLifecycleSummary = {
   daysUntilEvent: number | null;
   isGiftDayPast: boolean;
   isGiftDayToday: boolean;
@@ -91,7 +91,7 @@ function getCalendarDayKey(timestamp: number): number {
   return Date.UTC(date.getFullYear(), date.getMonth(), date.getDate());
 }
 
-export function getExchangeDaysUntilEvent(
+function getExchangeDaysUntilEvent(
   eventDate: string | null | undefined,
   now: number | Date = Date.now()
 ): number | null {

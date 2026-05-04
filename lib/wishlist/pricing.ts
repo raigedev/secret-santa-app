@@ -1,20 +1,3 @@
-export function normalizeOptionalPriceValue(
-  value: string | number | null | undefined
-): number | null {
-  if (value === null || value === undefined || value === "") {
-    return null;
-  }
-
-  const numericValue =
-    typeof value === "number" ? value : Number.parseFloat(String(value).trim());
-
-  if (!Number.isFinite(numericValue) || numericValue < 0) {
-    return null;
-  }
-
-  return Math.round(numericValue * 100) / 100;
-}
-
 export function formatPriceRange(
   min: number | null,
   max: number | null,

@@ -8,7 +8,7 @@ export type ServerActionUser = NonNullable<
   Awaited<ReturnType<ServerSupabaseClient["auth"]["getUser"]>>["data"]["user"]
 >;
 
-export type ServerActionContext =
+type ServerActionContext =
   | {
       ok: true;
       supabase: ServerSupabaseClient;

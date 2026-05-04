@@ -1,4 +1,4 @@
-export type GiftTaxonomySuggestionTemplate = {
+type GiftTaxonomySuggestionTemplate = {
   title: string;
   subtitle: string;
   searchQuery: string;

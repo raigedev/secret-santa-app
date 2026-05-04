@@ -72,26 +72,6 @@ function getCalendarDayDifference(eventTime: number, now: number): number {
   return Math.round((getCalendarDayKey(eventTime) - getCalendarDayKey(now)) / 86_400_000);
 }
 
-export function getDaysUntilEvent(value: string, now: number): number | null {
-  const eventTime = getDashboardEventTime(value);
-
-  if (Number.isNaN(eventTime)) {
-    return null;
-  }
-
-  return Math.max(0, getCalendarDayDifference(eventTime, now));
-}
-
-export function isDashboardEventPast(value: string, now: number): boolean {
-  const eventTime = getDashboardEventTime(value);
-
-  if (Number.isNaN(eventTime)) {
-    return false;
-  }
-
-  return getCalendarDayDifference(eventTime, now) < 0;
-}
-
 export function formatDashboardEventCountdown(value: string, now: number): string {
   const eventTime = getDashboardEventTime(value);
 

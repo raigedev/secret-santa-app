@@ -24,7 +24,7 @@ export type SuggestionMerchant =
 
 export type ShoppingRegion = "AU" | "CA" | "GLOBAL" | "JP" | "PH" | "UK" | "US";
 
-export type ShoppingRegionOption = {
+type ShoppingRegionOption = {
   value: ShoppingRegion;
   label: string;
   helper: string;
@@ -41,7 +41,7 @@ export type WishlistSuggestionOption = {
   source: "ai" | "base";
 };
 
-export type WishlistMerchantLink = {
+type WishlistMerchantLink = {
   id: string;
   merchant: SuggestionMerchant;
   merchantLabel: string;

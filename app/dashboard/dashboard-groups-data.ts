@@ -29,7 +29,7 @@ type PeerProfileSnapshot = ClientSnapshotMetadata & {
   profilesByGroup: Record<string, PeerProfileRow[]>;
 };
 
-export type DashboardGroupsLoadResult = {
+type DashboardGroupsLoadResult = {
   allGroups: Group[];
   invitedGroups: Group[];
   ownedGroups: Group[];

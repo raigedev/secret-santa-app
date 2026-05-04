@@ -1,6 +1,6 @@
 import { isRecord } from "@/lib/validation/common";
 
-export const CLIENT_SNAPSHOT_TTL_MS = 5 * 60 * 1000;
+const CLIENT_SNAPSHOT_TTL_MS = 5 * 60 * 1000;
 
 export type ClientSnapshotMetadata = {
   createdAt: number;

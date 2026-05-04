@@ -8,7 +8,7 @@ type AuthLikeUser = {
   email_confirmed_at?: string | null;
 } | null | undefined;
 
-export function requiresEmailVerification(user: AuthLikeUser): boolean {
+function requiresEmailVerification(user: AuthLikeUser): boolean {
   if (!user?.email) {
     return false;
   }

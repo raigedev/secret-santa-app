@@ -9,23 +9,23 @@ import {
 import { normalizeLazadaProductPageUrl } from "@/lib/affiliate/lazada-url";
 import { slugifyAsciiIdentifier } from "@/lib/validation/common";
 
-export const LAZADA_DEFAULT_API_BASE_URL = "https://api.lazada.com.ph/rest";
-export const LAZADA_GET_LINK_PATH = "/marketing/getlink";
-export const LAZADA_MAX_GET_LINK_BATCH_SIZE = 100;
+const LAZADA_DEFAULT_API_BASE_URL = "https://api.lazada.com.ph/rest";
+const LAZADA_GET_LINK_PATH = "/marketing/getlink";
+const LAZADA_MAX_GET_LINK_BATCH_SIZE = 100;
 
-export type LazadaLinkInputType = "offerId" | "productId" | "url";
+type LazadaLinkInputType = "offerId" | "productId" | "url";
 
-export type LazadaSubIds = Partial<
+type LazadaSubIds = Partial<
   Record<"subId1" | "subId2" | "subId3" | "subId4" | "subId5" | "subId6", string>
 >;
 
-export type LazadaOpenApiStatus = {
+type LazadaOpenApiStatus = {
   apiBaseUrl: string;
   missingEnvVars: string[];
   ready: boolean;
 };
 
-export type LazadaGetLinkRequestOptions = {
+type LazadaGetLinkRequestOptions = {
   inputType: LazadaLinkInputType;
   inputValues: string[];
   userToken: string;
@@ -35,7 +35,7 @@ export type LazadaGetLinkRequestOptions = {
   mmCampaignId?: string | null;
 };
 
-export type LazadaRawGetLinkItem = {
+type LazadaRawGetLinkItem = {
   dmCommission?: string | null;
   dmPromotionLink?: string | null;
   errorCode?: string | null;
@@ -54,7 +54,7 @@ export type LazadaRawGetLinkItem = {
   regularPromotionLink?: string | null;
 };
 
-export type LazadaRawGetLinkResponse = {
+type LazadaRawGetLinkResponse = {
   code?: string | null;
   data?: {
     offerBatchGetLinkInfoList?: LazadaRawGetLinkItem[] | null;
@@ -77,7 +77,7 @@ export type LazadaRawGetLinkResponse = {
   type?: string | null;
 };
 
-export type LazadaNormalizedPromotionLink = {
+type LazadaNormalizedPromotionLink = {
   inputValue: string;
   offerName: string | null;
   originalUrl: string | null;
@@ -89,7 +89,7 @@ export type LazadaNormalizedPromotionLink = {
   errorMessage: string | null;
 };
 
-export type LazadaPromotionLinkResolution = {
+type LazadaPromotionLinkResolution = {
   mode: "promotion-link" | "search-fallback";
   reason:
     | "api-error"
@@ -106,7 +106,7 @@ export type LazadaPromotionLinkResolution = {
   targetUrl: string;
 };
 
-export type LazadaPrimePromotionLinksResult = {
+type LazadaPrimePromotionLinksResult = {
   productIdsPrimed: number;
   ready: boolean;
   urlsPrimed: number;
@@ -228,7 +228,7 @@ function sanitizeOptionalIdentifier(value: string | null | undefined): string | 
   return normalized.length > 0 ? normalized.slice(0, 80) : null;
 }
 
-export function sanitizeLazadaSubIds(subIds?: LazadaSubIds): LazadaSubIds {
+function sanitizeLazadaSubIds(subIds?: LazadaSubIds): LazadaSubIds {
   if (!subIds) {
     return {};
   }
@@ -267,12 +267,6 @@ export function getLazadaOpenApiStatus(): LazadaOpenApiStatus {
   };
 }
 
-export function buildLazadaWishlistSubIds(searchQuery: string): LazadaSubIds {
-  return buildLazadaWishlistSubIdsFromContext({
-    searchQuery,
-  });
-}
-
 export function createLazadaClickToken(): string {
   return randomBytes(12).toString("hex");
 }
@@ -306,7 +300,7 @@ export function buildLazadaClickToken(context: LazadaAffiliateAttributionContext
     .slice(0, 16);
 }
 
-export function buildLazadaWishlistSubIdsFromContext(
+function buildLazadaWishlistSubIdsFromContext(
   context: LazadaAffiliateAttributionContext
 ): LazadaSubIds {
   const sourceToken = slugifyLazadaSubIdValue(context.catalogSource, "search");
@@ -337,7 +331,7 @@ function buildGenericLazadaPromotionCacheKey(
   });
 }
 
-export function chunkLazadaInputValues(values: string[]): string[][] {
+function chunkLazadaInputValues(values: string[]): string[][] {
   const sanitizedValues = values
     .map((value) => value.trim())
     .filter((value) => value.length > 0);
@@ -351,7 +345,7 @@ export function chunkLazadaInputValues(values: string[]): string[][] {
   return chunks;
 }
 
-export function buildLazadaGetLinkRequest(
+function buildLazadaGetLinkRequest(
   options: LazadaGetLinkRequestOptions
 ): Record<string, string> {
   const sanitizedSubIds = sanitizeLazadaSubIds(options.subIds);
@@ -386,7 +380,7 @@ export function buildLazadaGetLinkRequest(
 
 // Cache keys must be stable across restarts and safe to log.
 // We hash the request payload rather than embedding raw user tokens or URLs.
-export function buildLazadaGetLinkCacheKey(
+function buildLazadaGetLinkCacheKey(
   options: Omit<LazadaGetLinkRequestOptions, "userToken">
 ): string {
   const payload = JSON.stringify({
@@ -401,7 +395,7 @@ export function buildLazadaGetLinkCacheKey(
   return createHash("sha256").update(payload).digest("hex");
 }
 
-export function readCachedLazadaPromotionLinks(
+function readCachedLazadaPromotionLinks(
   cacheKey: string
 ): LazadaNormalizedPromotionLink[] | null {
   const cache = getLazadaPromotionLinkCache();
@@ -419,7 +413,7 @@ export function readCachedLazadaPromotionLinks(
   return cachedEntry.links;
 }
 
-export function storeCachedLazadaPromotionLinks(
+function storeCachedLazadaPromotionLinks(
   cacheKey: string,
   links: LazadaNormalizedPromotionLink[]
 ): void {
@@ -431,7 +425,7 @@ export function storeCachedLazadaPromotionLinks(
   });
 }
 
-export function normalizeLazadaGetLinkResponse(
+function normalizeLazadaGetLinkResponse(
   inputType: LazadaLinkInputType,
   response: LazadaRawGetLinkResponse
 ): LazadaNormalizedPromotionLink[] {
@@ -615,7 +609,7 @@ async function fetchLazadaPromotionLinks(
 // still pending. Once the Open API credentials are approved, we can replace the
 // internals here with the signed /marketing/getlink call and keep the redirect
 // route contract unchanged.
-export async function resolveLazadaPromotionLinkTarget(options: {
+async function resolveLazadaPromotionLinkTarget(options: {
   attribution?: Omit<LazadaAffiliateAttributionContext, "searchQuery">;
   fallbackUrl: string;
   productId: string | null;

@@ -2,7 +2,7 @@ import "server-only";
 
 import { supabaseAdmin } from "@/lib/supabase/admin";
 
-export type RecipientWishlistAccessResult =
+type RecipientWishlistAccessResult =
   | { allowed: true }
   | {
       allowed: false;

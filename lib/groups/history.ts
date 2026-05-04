@@ -1,8 +1,8 @@
 const DAY_MS = 24 * 60 * 60 * 1000;
 
-export const GROUP_HISTORY_GRACE_DAYS = 7;
+const GROUP_HISTORY_GRACE_DAYS = 7;
 
-export type GroupHistoryState = {
+type GroupHistoryState = {
   daysPastEvent: number;
   daysUntilHistory: number;
   isGracePeriod: boolean;
