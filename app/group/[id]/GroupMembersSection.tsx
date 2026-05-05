@@ -119,6 +119,13 @@ export function GroupMembersSection({
               const statusMeta = getStatusMeta(status, isWishlistMissing);
               const wishlistMeta = getWishlistMeta(status, isWishlistMissing);
               const messageMeta = getMessageMeta(status);
+              const canEditNickname = isCurrentUser && !drawDone;
+              const canRemoveAcceptedMember =
+                isOwner && !drawDone && status === "accepted" && Boolean(member.user_id) && !isCurrentUser;
+              const canRevokePendingInvite = isOwner && !drawDone && status === "pending";
+              const canManageDeclinedInvite = isOwner && !drawDone && status === "declined";
+              const hasRowActions =
+                canEditNickname || canRemoveAcceptedMember || canManageDeclinedInvite;
 
               return (
                 <div
@@ -147,13 +154,24 @@ export function GroupMembersSection({
                     </div>
                   </div>
 
-                  <span
-                    className="inline-flex w-fit items-center gap-1.5 rounded-full px-3 py-1 text-[11px] font-black"
-                    style={{ background: statusMeta.badgeBg, color: statusMeta.badgeColor }}
-                  >
-                    <StatusCheckIcon />
-                    {statusMeta.label}
-                  </span>
+                  <div className="min-w-0">
+                    <span
+                      className="inline-flex w-fit items-center gap-1.5 rounded-full px-3 py-1 text-[11px] font-black"
+                      style={{ background: statusMeta.badgeBg, color: statusMeta.badgeColor }}
+                    >
+                      <StatusCheckIcon />
+                      {statusMeta.label}
+                    </span>
+                    {canRevokePendingInvite && (
+                      <div className="mt-2">
+                        <RevokeInviteButton
+                          groupId={groupId}
+                          membershipId={member.id}
+                          onRevoked={() => onRevokeMembership(member.id)}
+                        />
+                      </div>
+                    )}
+                  </div>
 
                   <div className="text-xs font-semibold text-[#64748b]">
                     <div className="flex items-center gap-1.5 font-black" style={{ color: wishlistMeta.color }}>
@@ -171,37 +189,32 @@ export function GroupMembersSection({
                     <div className="mt-0.5">{messageMeta.helper}</div>
                   </div>
 
-                  <div className="flex min-w-0 flex-wrap justify-start gap-2 border-t border-[rgba(72,102,78,.08)] pt-3 lg:col-span-4 lg:justify-end">
-                    {isCurrentUser && !drawDone && (
-                      <NicknameForm groupId={groupId} currentNickname={member.nickname || ""} />
-                    )}
-                    {isOwner && !drawDone && status === "accepted" && member.user_id && !isCurrentUser && (
-                      <button
-                        type="button"
-                        onClick={() => onRemoveMember(member)}
-                        className="rounded-full bg-[#fff7f6] px-3 py-1.5 text-[11px] font-black text-[#a43c3f]"
-                      >
-                        Remove
-                      </button>
-                    )}
-                    {isOwner && !drawDone && status === "pending" && (
-                      <RevokeInviteButton
-                        groupId={groupId}
-                        membershipId={member.id}
-                        onRevoked={() => onRevokeMembership(member.id)}
-                      />
-                    )}
-                    {isOwner && !drawDone && status === "declined" && (
-                      <>
-                        <ResendButton groupId={groupId} memberEmail={member.email || ""} />
-                        <RevokeInviteButton
-                          groupId={groupId}
-                          membershipId={member.id}
-                          onRevoked={() => onRevokeMembership(member.id)}
-                        />
-                      </>
-                    )}
-                  </div>
+                  {hasRowActions && (
+                    <div className="flex min-w-0 flex-wrap justify-start gap-2 border-t border-[rgba(72,102,78,.08)] pt-3 lg:col-span-4">
+                      {canEditNickname && (
+                        <NicknameForm groupId={groupId} currentNickname={member.nickname || ""} />
+                      )}
+                      {canRemoveAcceptedMember && (
+                        <button
+                          type="button"
+                          onClick={() => onRemoveMember(member)}
+                          className="rounded-full bg-[#fff7f6] px-3 py-1.5 text-[11px] font-black text-[#a43c3f]"
+                        >
+                          Remove
+                        </button>
+                      )}
+                      {canManageDeclinedInvite && (
+                        <>
+                          <ResendButton groupId={groupId} memberEmail={member.email || ""} />
+                          <RevokeInviteButton
+                            groupId={groupId}
+                            membershipId={member.id}
+                            onRevoked={() => onRevokeMembership(member.id)}
+                          />
+                        </>
+                      )}
+                    </div>
+                  )}
                 </div>
               );
             })}
