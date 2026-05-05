@@ -1128,7 +1128,7 @@ test.describe("group-scoped authenticated regressions", () => {
     await loginWithTestCredentials(page, credentials!);
     await page.goto(`/group/${groupId}`);
     await expect(page.getByRole("button", { name: /back to groups/i })).toBeVisible();
-    await expect(page.getByText(/monitor participation and progress/i)).toBeVisible();
+    await expect(page.getByText(/track replies, wishlists, and messages/i)).toBeVisible();
   });
 
   test("peer profile lookup stays authenticated and uncached", async ({ page }) => {
@@ -1154,7 +1154,7 @@ test.describe("group-scoped authenticated regressions", () => {
     await page.setViewportSize({ width: 1440, height: 900 });
     await loginWithTestCredentials(page, credentials!);
     await page.goto(`/group/${groupId}`);
-    await expect(page.getByText(/monitor participation and progress/i)).toBeVisible();
+    await expect(page.getByText(/track replies, wishlists, and messages/i)).toBeVisible();
 
     const sidebar = page.getByTestId("app-shell-sidebar");
     const myGroupsLink = sidebar.getByRole("link", { name: /^my groups$/i });

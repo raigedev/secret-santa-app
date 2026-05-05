@@ -12,6 +12,15 @@ type State = {
   message: string;
 };
 
+function isSuccessMessage(message: string): boolean {
+  return Boolean(
+    message &&
+      !/(failed|invalid|expired|could not|try again|unavailable|not logged|only the group owner|no active)/i.test(
+        message
+      )
+  );
+}
+
 export default function InviteForm({ groupId }: { groupId: string }) {
   const [state, formAction] = useActionState<State, FormData>(inviteUser, { message: "" });
   const [linkMessage, setLinkMessage] = useState("");
@@ -83,9 +92,9 @@ export default function InviteForm({ groupId }: { groupId: string }) {
 
     try {
       await navigator.clipboard.writeText(nextLink);
-      setLinkMessage("✅ Invite link copied. The previous link is now turned off.");
+      setLinkMessage("Invite link copied. The previous link is now turned off.");
     } catch {
-      setLinkMessage("✅ Invite link is ready below. Copy it manually if your browser blocks clipboard access.");
+      setLinkMessage("Invite link is ready below. Copy it manually if your browser blocks clipboard access.");
     }
 
     setLinkLoading("idle");
@@ -115,22 +124,31 @@ export default function InviteForm({ groupId }: { groupId: string }) {
       <form action={formAction} className="flex flex-col gap-2">
         <input type="hidden" name="id" value={groupId} />
 
-        <div className="rounded-xl p-4" style={{ background: "rgba(255,255,255,.72)", border: "1px solid rgba(255,255,255,.9)" }}>
-          <div className="text-[11px] font-extrabold uppercase tracking-[0.1em] text-emerald-700 mb-2">
-            Invite by email
+        <div className="rounded-3xl bg-[#fffefa] p-4 shadow-[inset_0_0_0_1px_rgba(72,102,78,.11)]">
+          <div className="mb-3">
+            <div className="text-[11px] font-black uppercase tracking-[0.14em] text-[#48664e]">
+              Invite by email
+            </div>
+            <p className="mt-1 text-xs font-bold leading-5 text-[#64748b]">
+              Send a private invite to new members. Existing users also see the invite on their dashboard.
+            </p>
           </div>
 
-          <div className="flex gap-2">
+          <div className="grid gap-2 sm:grid-cols-[minmax(0,1fr)_auto]">
+            <label className="sr-only" htmlFor="member-email">
+              Member email address
+            </label>
             <input
+              id="member-email"
               type="email"
               name="email"
               placeholder="Enter an email address"
-              className="flex-1 px-3 py-2 border rounded-lg text-black bg-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-green-500"
+              className="min-h-11 min-w-0 rounded-2xl border border-[rgba(72,102,78,.14)] bg-white px-4 text-sm font-bold text-[#2e3432] outline-none placeholder:text-slate-400 focus:border-[#48664e] focus:ring-4 focus:ring-[#48664e]/12"
               required
             />
             <button
               type="submit"
-              className="bg-green-600 text-white px-4 py-2 rounded-lg shadow hover:bg-green-700 transition"
+              className="inline-flex min-h-11 items-center justify-center rounded-full bg-[#48664e] px-5 text-sm font-black text-white shadow-[0_14px_28px_rgba(72,102,78,.18)] transition hover:-translate-y-0.5 hover:bg-[#3c5a43]"
             >
               Invite
             </button>
@@ -138,8 +156,10 @@ export default function InviteForm({ groupId }: { groupId: string }) {
 
           {state.message && (
             <p
-              className={`text-sm mt-2 ${
-                state.message.startsWith("✅") ? "text-green-600" : "text-red-600"
+              className={`mt-3 rounded-2xl px-3 py-2 text-sm font-bold ${
+                isSuccessMessage(state.message)
+                  ? "bg-[#eef7ef] text-[#48664e]"
+                  : "bg-[#fff7f6] text-[#a43c3f]"
               }`}
             >
               {state.message}
@@ -148,18 +168,12 @@ export default function InviteForm({ groupId }: { groupId: string }) {
         </div>
       </form>
 
-      <div
-        className="rounded-xl p-4"
-        style={{
-          background: "rgba(219,234,254,.45)",
-          border: "1px solid rgba(59,130,246,.16)",
-        }}
-      >
-        <div className="text-[11px] font-extrabold uppercase tracking-[0.1em] text-blue-700 mb-1">
-          Invite Link
+      <div className="rounded-3xl bg-[#f8faf7] p-4 shadow-[inset_0_0_0_1px_rgba(72,102,78,.1)]">
+        <div className="text-[11px] font-black uppercase tracking-[0.14em] text-[#7b5902]">
+          Invite link
         </div>
 
-        <p className="text-[12px] text-slate-600 leading-relaxed mb-3">
+        <p className="mb-3 mt-1 text-[12px] font-bold leading-5 text-[#64748b]">
           Create a link members can use to join before names are drawn.
           Creating a new link turns off the older one.
         </p>
@@ -168,16 +182,12 @@ export default function InviteForm({ groupId }: { groupId: string }) {
           <input
             readOnly
             value={inviteLink}
-            className="w-full px-3 py-2 rounded-lg text-[12px] text-slate-700 bg-white border mb-3"
-            style={{ borderColor: "rgba(59,130,246,.18)" }}
+            className="mb-3 w-full rounded-2xl border border-[rgba(72,102,78,.14)] bg-white px-4 py-3 text-[12px] font-bold text-[#2e3432]"
           />
         )}
 
         {!inviteLink && hasActiveLink && (
-          <div
-            className="w-full px-3 py-2 rounded-lg text-[12px] text-slate-600 bg-white border mb-3"
-            style={{ borderColor: "rgba(59,130,246,.18)" }}
-          >
+          <div className="mb-3 w-full rounded-2xl border border-[rgba(72,102,78,.14)] bg-white px-4 py-3 text-[12px] font-bold text-[#64748b]">
             An invite link is already active. Create a new one if you want to replace it.
           </div>
         )}
@@ -187,42 +197,39 @@ export default function InviteForm({ groupId }: { groupId: string }) {
             type="button"
             onClick={handleCreateInviteLink}
             disabled={linkLoading !== "idle"}
-            className="px-4 py-2 rounded-lg text-sm font-bold text-white transition"
-            style={{
-              background:
-                linkLoading === "idle"
-                  ? "linear-gradient(135deg,#2563eb,#3b82f6)"
-                  : "#94a3b8",
-              cursor: linkLoading === "idle" ? "pointer" : "not-allowed",
-            }}
+            className={`min-h-10 rounded-full px-4 text-sm font-black text-white transition ${
+              linkLoading === "idle"
+                ? "bg-[#48664e] hover:-translate-y-0.5 hover:bg-[#3c5a43]"
+                : "cursor-not-allowed bg-slate-400"
+            }`}
           >
             {linkLoading === "creating"
-              ? "Generating..."
+              ? "Creating..."
               : inviteLink || hasActiveLink
-                ? "Copy New Link"
-                : "Create Invite Link"}
+                ? "Create new link"
+                : "Create invite link"}
           </button>
 
           <button
             type="button"
             onClick={handleRevokeInviteLink}
             disabled={linkLoading !== "idle"}
-            className="px-4 py-2 rounded-lg text-sm font-bold transition"
-            style={{
-              background: "rgba(220,38,38,.08)",
-              color: linkLoading === "idle" ? "#dc2626" : "#94a3b8",
-              border: "1px solid rgba(220,38,38,.15)",
-              cursor: linkLoading === "idle" ? "pointer" : "not-allowed",
-            }}
+            className={`min-h-10 rounded-full px-4 text-sm font-black transition ${
+              linkLoading === "idle"
+                ? "bg-[#fff7f6] text-[#a43c3f] ring-1 ring-[#a43c3f]/15 hover:-translate-y-0.5"
+                : "cursor-not-allowed bg-slate-100 text-slate-400"
+            }`}
           >
-            {linkLoading === "revoking" ? "Revoking..." : "Revoke Link"}
+            {linkLoading === "revoking" ? "Turning off..." : "Turn off link"}
           </button>
         </div>
 
         {linkMessage && (
           <p
-            className={`text-sm mt-3 ${
-              linkMessage.startsWith("✅") ? "text-green-600" : "text-red-600"
+            className={`mt-3 rounded-2xl px-3 py-2 text-sm font-bold ${
+              isSuccessMessage(linkMessage)
+                ? "bg-[#eef7ef] text-[#48664e]"
+                : "bg-[#fff7f6] text-[#a43c3f]"
             }`}
           >
             {linkMessage}

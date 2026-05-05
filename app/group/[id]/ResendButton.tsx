@@ -1,11 +1,5 @@
 "use client";
 
-// ─── ResendButton Component ───
-// Shows a "Resend Invite" button on declined member cards.
-// Calls a SERVER ACTION (not client-side update) because
-// RLS only lets you edit your own row — the owner needs
-// server-side permission to update someone else's row.
-
 import { useState } from "react";
 import { resendInvite } from "./actions";
 
@@ -15,46 +9,42 @@ type Props = {
 };
 
 export default function ResendButton({ groupId, memberEmail }: Props) {
-  // "idle" = showing the button
-  // "loading" = waiting for server response
-  // "sent" = successfully resent
   const [status, setStatus] = useState<"idle" | "loading" | "sent">("idle");
 
   const handleResend = async () => {
     setStatus("loading");
 
-    // Call the server action — it verifies ownership
-    // and uses the admin client to update the row
     const result = await resendInvite(groupId, memberEmail);
 
-    if (result.message.startsWith("✅")) {
+    if (/invite resent/i.test(result.message)) {
       setStatus("sent");
-    } else {
-      alert(result.message);
-      setStatus("idle");
+      return;
     }
+
+    alert(result.message);
+    setStatus("idle");
   };
 
-  // Already resent — show confirmation
   if (status === "sent") {
     return (
-      <span className="text-xs bg-green-100 text-green-700 px-3 py-1 rounded-full font-bold">
-        ✅ Invite resent
+      <span className="inline-flex min-h-8 items-center rounded-full bg-[#eef7ef] px-3 text-xs font-black text-[#48664e]">
+        Invite resent
       </span>
     );
   }
 
   return (
     <button
+      type="button"
       onClick={handleResend}
       disabled={status === "loading"}
-      className={`text-xs px-3 py-1 rounded-full font-bold transition ${
+      className={`inline-flex min-h-8 items-center rounded-full px-3 text-xs font-black transition ${
         status === "loading"
-          ? "bg-gray-300 text-gray-500 cursor-not-allowed"
-          : "bg-orange-100 text-orange-700 hover:bg-orange-200"
+          ? "cursor-not-allowed bg-slate-100 text-slate-400"
+          : "bg-[#fff4df] text-[#7b5902] hover:-translate-y-0.5 hover:bg-[#ffedc1]"
       }`}
     >
-      {status === "loading" ? "Sending..." : "🔄 Resend invite"}
+      {status === "loading" ? "Sending..." : "Resend invite"}
     </button>
   );
 }

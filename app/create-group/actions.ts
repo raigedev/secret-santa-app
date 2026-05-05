@@ -1,10 +1,14 @@
 "use server";
 
 import {
-  getDefaultGroupNicknameFromEmail,
   sanitizeGroupNickname,
   validateAnonymousGroupNickname,
 } from "@/lib/groups/nickname";
+import {
+  findExistingInviteUserIdByEmail,
+  sendGroupInviteEmail,
+} from "@/lib/groups/invite-email";
+import { createNotification } from "@/lib/notifications";
 import { recordAuditEvent, recordServerFailure } from "@/lib/security/audit";
 import { MAX_GROUP_CREATION_INVITES } from "@/lib/groups/capacity";
 import { enforceRateLimit } from "@/lib/security/rate-limit";
@@ -76,13 +80,37 @@ function normalizeInviteEmails(rawEmails: string[], ownerEmail: string | null | 
 async function sendInviteEmails(
   emails: string[],
   actorUserId: string,
-  groupId: string
-): Promise<{ failedCount: number; sentCount: number }> {
-  let sentCount = 0;
+  groupId: string,
+  groupName: string
+): Promise<{ dashboardInviteCount: number; emailInviteCount: number; failedCount: number }> {
+  let dashboardInviteCount = 0;
+  let emailInviteCount = 0;
   let failedCount = 0;
 
   for (const email of emails) {
-    const { error } = await supabaseAdmin.auth.admin.inviteUserByEmail(email);
+    const existingUserId = await findExistingInviteUserIdByEmail(email);
+
+    if (existingUserId) {
+      await createNotification({
+        userId: existingUserId,
+        type: "invite",
+        title: `New group invite: ${groupName}`,
+        body: "You have a pending group invitation. Open your dashboard to accept or decline it.",
+        linkPath: "/dashboard",
+        metadata: {
+          groupId,
+        },
+        preferenceKey: "notify_invites",
+      });
+      dashboardInviteCount += 1;
+      continue;
+    }
+
+    const { error } = await sendGroupInviteEmail({
+      email,
+      groupId,
+      groupName,
+    });
 
     if (error) {
       await recordServerFailure({
@@ -97,10 +125,32 @@ async function sendInviteEmails(
       continue;
     }
 
-    sentCount += 1;
+    emailInviteCount += 1;
   }
 
-  return { failedCount, sentCount };
+  return { dashboardInviteCount, emailInviteCount, failedCount };
+}
+
+function getInviteDeliveryMessage(summary: {
+  dashboardInviteCount: number;
+  emailInviteCount: number;
+  failedCount: number;
+}): string {
+  const totalPrepared = summary.dashboardInviteCount + summary.emailInviteCount;
+
+  if (summary.failedCount > 0) {
+    return `Group created. ${totalPrepared} invite(s) prepared, ${summary.failedCount} could not be delivered.`;
+  }
+
+  if (summary.dashboardInviteCount > 0 && summary.emailInviteCount > 0) {
+    return `Group created. ${summary.emailInviteCount} email invite(s) sent; ${summary.dashboardInviteCount} existing member(s) will see it on their dashboard.`;
+  }
+
+  if (summary.dashboardInviteCount > 0) {
+    return `Group created. ${summary.dashboardInviteCount} existing member(s) will see it on their dashboard.`;
+  }
+
+  return `Group created. ${summary.emailInviteCount} invite email(s) sent.`;
 }
 
 export async function createGroupWithInvites(
@@ -200,9 +250,7 @@ export async function createGroupWithInvites(
   }
 
   const ownerEmail = (user.email || "").toLowerCase();
-  const ownerNickname = requireAnonymousNickname
-    ? cleanOwnerCodename
-    : getDefaultGroupNicknameFromEmail(ownerEmail, "owner");
+  const ownerNickname = requireAnonymousNickname ? cleanOwnerCodename : null;
 
   const memberRows = [
     {
@@ -217,7 +265,7 @@ export async function createGroupWithInvites(
       group_id: newGroup.id,
       user_id: null,
       email,
-      nickname: requireAnonymousNickname ? null : getDefaultGroupNicknameFromEmail(email),
+      nickname: null,
       role: "member",
       status: "pending",
     })),
@@ -269,15 +317,20 @@ export async function createGroupWithInvites(
     return { success: true, message: "Group created!" };
   }
 
-  const { failedCount, sentCount } = await sendInviteEmails(inviteEmails, user.id, newGroup.id);
+  const inviteDelivery = await sendInviteEmails(
+    inviteEmails,
+    user.id,
+    newGroup.id,
+    newGroup.name
+  );
 
   await recordAuditEvent({
     actorUserId: user.id,
     details: {
-      failedInviteCount: failedCount,
+      failedInviteCount: inviteDelivery.failedCount,
       groupId: newGroup.id,
       inviteCount: inviteEmails.length,
-      sentInviteCount: sentCount,
+      sentInviteCount: inviteDelivery.emailInviteCount + inviteDelivery.dashboardInviteCount,
     },
     eventType: "group.create",
     outcome: "success",
@@ -285,15 +338,8 @@ export async function createGroupWithInvites(
     resourceType: "group",
   });
 
-  if (failedCount > 0) {
-    return {
-      success: true,
-      message: `Group created. Sent ${sentCount} invite(s), ${failedCount} failed.`,
-    };
-  }
-
   return {
     success: true,
-    message: `Group created. Sent ${sentCount} invite(s).`,
+    message: getInviteDeliveryMessage(inviteDelivery),
   };
 }

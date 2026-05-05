@@ -1,4 +1,7 @@
-import { getAnonymousGroupDisplayName } from "@/lib/groups/nickname";
+import {
+  getAnonymousGroupDisplayName,
+  isEmailDerivedGroupNickname,
+} from "@/lib/groups/nickname";
 import { isNullableNumber, isNullableString, isRecord } from "@/lib/validation/common";
 
 export type Member = {
@@ -234,9 +237,23 @@ export function getVisibleGroupMemberName(
   requireAnonymousNickname: boolean,
   fallbackPrefix = "Member"
 ): string {
-  if (requireAnonymousNickname) {
-    return getAnonymousGroupDisplayName(member.nickname, `${fallbackPrefix} ${index + 1}`);
+  const fallbackLabel =
+    member.status === "pending"
+      ? `Invited participant ${index + 1}`
+      : member.status === "declined"
+        ? `Past invite ${index + 1}`
+        : `${fallbackPrefix} ${index + 1}`;
+  const safeNickname = isEmailDerivedGroupNickname(member.nickname, member.email)
+    ? null
+    : member.nickname?.trim();
+
+  if (member.status !== "accepted") {
+    return fallbackLabel;
   }
 
-  return member.nickname || `${fallbackPrefix} ${index + 1}`;
+  if (requireAnonymousNickname) {
+    return getAnonymousGroupDisplayName(safeNickname, fallbackLabel);
+  }
+
+  return safeNickname || fallbackLabel;
 }

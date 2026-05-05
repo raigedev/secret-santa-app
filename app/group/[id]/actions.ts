@@ -8,9 +8,13 @@ import {
 } from "@/lib/groups/capacity";
 import { getServerActionContext, requireRateLimitedAction } from "@/lib/auth/server-action-context";
 import { groupHasDrawStarted } from "@/lib/groups/draw-state";
+import {
+  findExistingInviteUserIdByEmail,
+  sendGroupInviteEmail,
+} from "@/lib/groups/invite-email";
 import { buildInviteLinkExpiresAt } from "@/lib/groups/invite-links.mjs";
 import {
-  getDefaultGroupNicknameFromEmail,
+  isEmailDerivedGroupNickname,
   sanitizeGroupNickname,
   validateAnonymousGroupNickname,
 } from "@/lib/groups/nickname";
@@ -30,6 +34,37 @@ const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const ALLOWED_CURRENCIES = new Set(["USD", "EUR", "GBP", "PHP", "JPY", "AUD", "CAD"]);
 const GROUP_DELETE_CONFIRM_MAX_LENGTH = 100;
 
+function getSafeMemberDisplayValue(
+  value: string | null | undefined,
+  email: string | null | undefined
+): string | null {
+  const trimmed = value?.trim();
+
+  if (!trimmed || isEmailDerivedGroupNickname(trimmed, email)) {
+    return null;
+  }
+
+  return trimmed;
+}
+
+function getSafeMemberDisplayName({
+  displayName,
+  email,
+  fallback,
+  nickname,
+}: {
+  displayName?: string | null;
+  email?: string | null;
+  fallback: string;
+  nickname?: string | null;
+}): string {
+  return (
+    getSafeMemberDisplayValue(nickname, email) ||
+    getSafeMemberDisplayValue(displayName, email) ||
+    fallback
+  );
+}
+
 function buildInviteToken(): string {
   return randomBytes(24).toString("base64url");
 }
@@ -42,9 +77,14 @@ async function sendInviteEmail(
   email: string,
   actorUserId: string,
   groupId: string,
+  groupName: string,
   eventType: string
 ): Promise<{ message?: string; success: boolean }> {
-  const { error } = await supabaseAdmin.auth.admin.inviteUserByEmail(email);
+  const { error } = await sendGroupInviteEmail({
+    email,
+    groupId,
+    groupName,
+  });
 
   if (!error) {
     return { success: true };
@@ -63,35 +103,6 @@ async function sendInviteEmail(
     success: false,
     message: "Failed to send the invite email. Please try again.",
   };
-}
-
-async function findExistingUserIdByEmail(email: string): Promise<string | null> {
-  const normalizedEmail = email.trim().toLowerCase();
-
-  for (let page = 1; page <= 5; page += 1) {
-    const { data, error } = await supabaseAdmin.auth.admin.listUsers({
-      page,
-      perPage: 200,
-    });
-
-    if (error) {
-      return null;
-    }
-
-    const matchedUser = data.users.find(
-      (candidateUser) => (candidateUser.email || "").toLowerCase() === normalizedEmail
-    );
-
-    if (matchedUser) {
-      return matchedUser.id;
-    }
-
-    if (data.users.length < 200) {
-      break;
-    }
-  }
-
-  return null;
 }
 
 async function notifyInvitedUser(options: {
@@ -232,7 +243,7 @@ export async function inviteUser(
     return { message: "Group not found." };
   }
 
-  const existingUserId = await findExistingUserIdByEmail(cleanEmail);
+  const existingUserId = await findExistingInviteUserIdByEmail(cleanEmail);
   const { data: memberships, error: membershipsError } = await supabaseAdmin
     .from("group_members")
     .select("id, status, user_id, email")
@@ -297,6 +308,7 @@ export async function inviteUser(
       cleanEmail,
       user.id,
       groupId,
+      group.name,
       "group.invite_user.send_email"
     );
 
@@ -310,9 +322,7 @@ export async function inviteUser(
       group_id: groupId,
       user_id: existingUserId,
       email: cleanEmail,
-      nickname: group.require_anonymous_nickname
-        ? null
-        : getDefaultGroupNicknameFromEmail(cleanEmail),
+      nickname: null,
       role: "member",
       status: "pending",
     },
@@ -346,7 +356,11 @@ export async function inviteUser(
     resourceType: "group",
   });
 
-  return { message: `Invite sent to ${cleanEmail}` };
+  return {
+    message: existingUserId
+      ? "Invite added. They already have an account, so it will appear in their dashboard."
+      : "Invite email sent. Ask them to check their inbox.",
+  };
 }
 
 export async function updateNickname(
@@ -506,7 +520,7 @@ export async function resendInvite(
     return { message: "Enter a valid email address." };
   }
 
-  const existingUserId = await findExistingUserIdByEmail(normalizedEmail);
+  const existingUserId = await findExistingInviteUserIdByEmail(normalizedEmail);
   const { data: memberships, error: membershipsError } = await supabaseAdmin
     .from("group_members")
     .select("id, status, user_id, email")
@@ -540,6 +554,7 @@ export async function resendInvite(
       normalizedEmail,
       user.id,
       groupId,
+      group.name,
       "group.resend_invite.send_email"
     );
 
@@ -579,7 +594,7 @@ export async function resendInvite(
     groupName: group.name,
   });
 
-  return { message: "Invite resent!" };
+  return { message: "Invite resent. Ask them to check their inbox." };
 }
 
 export async function createInviteLink(
@@ -947,7 +962,13 @@ export async function getGroupOwnerInsights(groupId: string): Promise<{
 
   const missingWishlistMemberNames = safeAcceptedMembers
     .filter((member) => !membersWithWishlist.has(member.user_id))
-    .map((member) => member.nickname?.trim() || member.email?.split("@")[0] || "Member");
+    .map((member, index) =>
+      getSafeMemberDisplayName({
+        email: member.email,
+        fallback: `Member ${index + 1}`,
+        nickname: member.nickname,
+      })
+    );
 
   const assignmentThreadKeys = new Set(
     (assignments || []).map((assignment) => `${assignment.giver_id}:${assignment.receiver_id}`)
@@ -1549,9 +1570,15 @@ async function loadRevealSourceData(groupId: string): Promise<RevealSourceData> 
   for (const member of members || []) {
     if (member.user_id) {
       const profile = profileByUserId.get(member.user_id);
-      const emailLabel = member.email?.split("@")[0] || "Member";
-      const alias = member.nickname?.trim() || profile?.displayName?.trim() || emailLabel;
-      const realName = profile?.displayName?.trim() || alias || emailLabel;
+      const fallbackName = `Member ${participants.length + 1}`;
+      const alias = getSafeMemberDisplayName({
+        displayName: profile?.displayName,
+        email: member.email,
+        fallback: fallbackName,
+        nickname: member.nickname,
+      });
+      const realName =
+        getSafeMemberDisplayValue(profile?.displayName, member.email) || alias;
 
       participants.push({
         userId: member.user_id,
