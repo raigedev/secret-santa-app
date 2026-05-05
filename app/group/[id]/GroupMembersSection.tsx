@@ -25,7 +25,7 @@ type MemberDisplayRow = {
 };
 
 const MEMBER_GRID_COLUMNS_CLASS =
-  "md:grid-cols-[minmax(190px,1.45fr)_minmax(112px,0.72fr)_minmax(128px,0.82fr)_minmax(138px,0.82fr)_minmax(170px,1fr)]";
+  "lg:grid-cols-[minmax(190px,1.35fr)_minmax(112px,0.7fr)_minmax(128px,0.8fr)_minmax(138px,0.8fr)]";
 
 export function GroupMembersSection({
   acceptedMembers,
@@ -98,13 +98,12 @@ export function GroupMembersSection({
       ) : (
         <div className="overflow-hidden rounded-2xl bg-white shadow-[inset_0_0_0_1px_rgba(72,102,78,.1)]">
           <div
-            className={`hidden gap-3 bg-[#fffefa] px-4 py-3 text-[11px] font-black text-[#5b605e] md:grid ${MEMBER_GRID_COLUMNS_CLASS}`}
+            className={`hidden gap-3 bg-[#fffefa] px-4 py-3 text-[11px] font-black text-[#5b605e] lg:grid ${MEMBER_GRID_COLUMNS_CLASS}`}
           >
             <span>Member</span>
             <span>Status</span>
             <span>Wishlist</span>
             <span>Messages</span>
-            <span className="sr-only">Actions</span>
           </div>
           <div className="divide-y divide-[rgba(72,102,78,.1)]">
             {rows.map(({ member, status, index }) => {
@@ -124,7 +123,7 @@ export function GroupMembersSection({
               return (
                 <div
                   key={member.id}
-                  className={`grid gap-3 px-4 py-3 md:items-start ${MEMBER_GRID_COLUMNS_CLASS}`}
+                  className={`grid gap-3 px-4 py-3 lg:items-start ${MEMBER_GRID_COLUMNS_CLASS}`}
                 >
                   <div className="flex min-w-0 items-center gap-3">
                     <MemberFaceAvatar seed={index} status={status} />
@@ -172,7 +171,7 @@ export function GroupMembersSection({
                     <div className="mt-0.5">{messageMeta.helper}</div>
                   </div>
 
-                  <div className="flex min-w-0 flex-wrap justify-start gap-2 md:justify-end">
+                  <div className="flex min-w-0 flex-wrap justify-start gap-2 border-t border-[rgba(72,102,78,.08)] pt-3 lg:col-span-4 lg:justify-end">
                     {isCurrentUser && !drawDone && (
                       <NicknameForm groupId={groupId} currentNickname={member.nickname || ""} />
                     )}
