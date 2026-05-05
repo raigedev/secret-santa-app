@@ -2,9 +2,8 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { getPasswordPolicyMessage, PASSWORD_POLICY_HELP_TEXT } from "@/lib/auth/password-policy";
 import { createClient } from "@/lib/supabase/client";
-
-const MIN_PASSWORD_LENGTH = 8;
 
 export default function ResetPasswordPage() {
   const router = useRouter();
@@ -13,8 +12,9 @@ export default function ResetPasswordPage() {
   const [message, setMessage] = useState("");
 
   const handleUpdatePassword = async () => {
-    if (newPassword.length < MIN_PASSWORD_LENGTH) {
-      setMessage(`Use at least ${MIN_PASSWORD_LENGTH} characters for your new password.`);
+    const passwordPolicyMessage = getPasswordPolicyMessage(newPassword, "new password");
+    if (passwordPolicyMessage) {
+      setMessage(passwordPolicyMessage);
       return;
     }
 
@@ -50,9 +50,7 @@ export default function ResetPasswordPage() {
           onChange={(event) => setNewPassword(event.target.value)}
         />
 
-        <p className="mb-4 text-xs text-gray-500">
-          Use at least {MIN_PASSWORD_LENGTH} characters.
-        </p>
+        <p className="mb-4 text-xs text-gray-500">{PASSWORD_POLICY_HELP_TEXT}</p>
 
         <button
           onClick={handleUpdatePassword}

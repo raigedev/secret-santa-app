@@ -12,6 +12,12 @@ This is currently a warning, not a build blocker. Keep watching it during builds
 
 Do not use the suggested `npm audit fix --force`; npm currently proposes a breaking and incorrect Next.js downgrade path. Monitor for a safe upstream Next.js patch instead.
 
+## Supabase Free Plan Leaked Password Protection Advisor
+
+Supabase Security Advisor may report `Leaked Password Protection Disabled` while the project is on the Free plan.
+
+This specific HaveIBeenPwned leaked-password check is a Supabase Pro-plan feature, so code changes cannot clear that hosted advisor item on Free. Until the project upgrades, keep the app password policy and hosted Supabase Auth password settings strict: at least 12 characters with uppercase and lowercase letters, a number, and a symbol.
+
 ## Local OAuth Redirects
 
 Google OAuth can redirect back to the Vercel domain if local Supabase redirect URLs are not allow-listed.
