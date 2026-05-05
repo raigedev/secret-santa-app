@@ -63,6 +63,37 @@ function getGroupPhaseLabel(group: Group): string {
   return group.hasDrawn ? "In progress" : group.isOwner ? "Setup" : "Joined";
 }
 
+function DashboardSummaryPill({
+  isDarkTheme,
+  label,
+  value,
+}: {
+  isDarkTheme: boolean;
+  label: string;
+  value: string;
+}) {
+  return (
+    <span
+      className={`inline-flex min-h-13 min-w-35.5 items-center justify-center gap-2 rounded-full px-4 text-center shadow-[0_12px_28px_rgba(46,52,50,.05)] ring-1 transition hover:-translate-y-0.5 sm:min-w-39 ${
+        isDarkTheme
+          ? "bg-slate-800/90 text-slate-100 ring-slate-700"
+          : "bg-white/92 text-[#48664e] ring-[rgba(72,102,78,.13)]"
+      }`}
+    >
+      <strong className="text-[18px] font-black leading-none tracking-tight sm:text-[20px]">
+        {value}
+      </strong>
+      <span
+        className={`text-[12px] font-black leading-4 sm:text-[13px] ${
+          isDarkTheme ? "text-slate-300" : "text-[#48664e]"
+        }`}
+      >
+        {label}
+      </span>
+    </span>
+  );
+}
+
 export function DashboardPreviewWorkspace({
   activityFeedItems,
   countdownNow,
@@ -162,10 +193,22 @@ export function DashboardPreviewWorkspace({
             {revealMessage}
           </p>
         </div>
-        <div className="flex flex-wrap gap-2">
-          <span className={`rounded-full px-3 py-2 text-[12px] font-black ${chipClass}`}>{groups.length} active exchange{groups.length === 1 ? "" : "s"}</span>
-          <span className={`rounded-full px-3 py-2 text-[12px] font-black ${chipClass}`}>{pendingWorkCount} update{pendingWorkCount === 1 ? "" : "s"}</span>
-          <span className={`rounded-full px-3 py-2 text-[12px] font-black ${chipClass}`}>{wishlistPercent}% wishlist</span>
+        <div className="grid w-full grid-cols-1 gap-2 sm:w-auto sm:grid-cols-3">
+          <DashboardSummaryPill
+            isDarkTheme={isDarkTheme}
+            label={`active exchange${groups.length === 1 ? "" : "s"}`}
+            value={String(groups.length)}
+          />
+          <DashboardSummaryPill
+            isDarkTheme={isDarkTheme}
+            label={`update${pendingWorkCount === 1 ? "" : "s"}`}
+            value={String(pendingWorkCount)}
+          />
+          <DashboardSummaryPill
+            isDarkTheme={isDarkTheme}
+            label="wishlist ready"
+            value={`${wishlistPercent}%`}
+          />
         </div>
       </section>
 

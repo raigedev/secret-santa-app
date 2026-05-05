@@ -20,6 +20,16 @@ export function getDefaultGroupNicknameFromEmail(
   return sanitizeGroupNickname(emailName) || fallbackLabel;
 }
 
+export function isEmailDerivedGroupNickname(
+  nickname: string | null | undefined,
+  email: string | null | undefined
+): boolean {
+  const cleanNickname = normalizeComparableValue(sanitizeGroupNickname(nickname || ""));
+  const emailNickname = normalizeComparableValue(getDefaultGroupNicknameFromEmail(email, ""));
+
+  return Boolean(cleanNickname && emailNickname && cleanNickname === emailNickname);
+}
+
 export function getAnonymousGroupDisplayName(
   nickname: string | null | undefined,
   fallbackLabel = "Member"

@@ -316,12 +316,12 @@ export function HistoryMemoryBook({
 
               <div className="mt-5 flex -space-x-2">
                 {memberPreview.map((member, index) => (
-                  <span key={`${selectedGroup.id}-${member.email || member.nickname || index}`} className="inline-flex h-10 w-10 items-center justify-center overflow-hidden rounded-full bg-white text-sm font-black text-[#48664e] ring-2 ring-white" title={getDashboardMemberLabel(member, selectedGroup.require_anonymous_nickname)}>
+                  <span key={`${selectedGroup.id}-${member.email || member.nickname || index}`} className="inline-flex h-10 w-10 items-center justify-center overflow-hidden rounded-full bg-white text-sm font-black text-[#48664e] ring-2 ring-white" title={getDashboardMemberLabel(member, selectedGroup.require_anonymous_nickname, `Member ${index + 1}`)}>
                     {member.avatarUrl ? (
                       // eslint-disable-next-line @next/next/no-img-element
                       <img src={member.avatarUrl} alt="" className="h-full w-full object-cover" />
                     ) : (
-                      member.avatarEmoji || getAvatarLabel(getDashboardMemberLabel(member, selectedGroup.require_anonymous_nickname))
+                      member.avatarEmoji || getAvatarLabel(getDashboardMemberLabel(member, selectedGroup.require_anonymous_nickname, `Member ${index + 1}`))
                     )}
                   </span>
                 ))}

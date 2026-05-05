@@ -31,6 +31,7 @@ export function MembersTable({ group, isDarkTheme }: { group: Group; isDarkTheme
           <MemberMobileCard
             key={`${group.id}-${member.email || member.nickname || index}-mobile`}
             group={group}
+            index={index}
             member={member}
           />
         ))}
@@ -54,8 +55,14 @@ export function MembersTable({ group, isDarkTheme }: { group: Group; isDarkTheme
               >
                 <td className="min-w-0 px-4 py-3">
                   <div className="flex min-w-0 items-center gap-3">
-                    <MemberAvatar group={group} member={member} />
-                    <span className="truncate">{getDashboardMemberLabel(member, group.require_anonymous_nickname)}</span>
+                    <MemberAvatar group={group} index={index} member={member} />
+                    <span className="truncate">
+                      {getDashboardMemberLabel(
+                        member,
+                        group.require_anonymous_nickname,
+                        `Member ${index + 1}`
+                      )}
+                    </span>
                   </div>
                 </td>
                 <td className="px-4 py-3">
@@ -174,14 +181,26 @@ function SummaryTile({
   );
 }
 
-function MemberMobileCard({ group, member }: { group: Group; member: GroupMember }) {
+function MemberMobileCard({
+  group,
+  index,
+  member,
+}: {
+  group: Group;
+  index: number;
+  member: GroupMember;
+}) {
   return (
     <div className="rounded-2xl bg-white/80 p-4 shadow-[inset_0_0_0_1px_rgba(72,102,78,0.1)]">
       <div className="flex min-w-0 items-center justify-between gap-3">
         <div className="flex min-w-0 items-center gap-3">
-          <MemberAvatar group={group} member={member} />
+          <MemberAvatar group={group} index={index} member={member} />
           <span className="truncate text-sm font-black text-[#2e3432]">
-            {getDashboardMemberLabel(member, group.require_anonymous_nickname)}
+            {getDashboardMemberLabel(
+              member,
+              group.require_anonymous_nickname,
+              `Member ${index + 1}`
+            )}
           </span>
         </div>
         <MemberStatus role={member.role} />
@@ -213,8 +232,20 @@ function InlineAction({ href, label }: { href: string; label: string }) {
   );
 }
 
-function MemberAvatar({ group, member }: { group: Group; member: GroupMember }) {
-  const label = getDashboardMemberLabel(member, group.require_anonymous_nickname);
+function MemberAvatar({
+  group,
+  index,
+  member,
+}: {
+  group: Group;
+  index: number;
+  member: GroupMember;
+}) {
+  const label = getDashboardMemberLabel(
+    member,
+    group.require_anonymous_nickname,
+    `Member ${index + 1}`
+  );
 
   return (
     <span className="flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-full bg-[#edf3ee] text-xs font-black text-[#48664e] ring-4 ring-white">

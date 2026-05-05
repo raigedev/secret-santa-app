@@ -1,4 +1,7 @@
-import { getAnonymousGroupDisplayName } from "@/lib/groups/nickname";
+import {
+  getAnonymousGroupDisplayName,
+  isEmailDerivedGroupNickname,
+} from "@/lib/groups/nickname";
 import type { GiftProgressStep, Group, GroupMember } from "./dashboard-types";
 
 const CURRENCY_SYMBOLS: Record<string, string> = {
@@ -210,13 +213,21 @@ export function formatDashboardBudget(
 
 export function getDashboardMemberLabel(
   member: GroupMember,
-  requireAnonymousNickname: boolean
+  requireAnonymousNickname: boolean,
+  fallbackLabel = "Member"
 ): string {
+  const safeNickname = isEmailDerivedGroupNickname(member.nickname, member.email)
+    ? null
+    : member.nickname?.trim();
+  const safeDisplayName = isEmailDerivedGroupNickname(member.displayName, member.email)
+    ? null
+    : member.displayName?.trim();
+
   if (requireAnonymousNickname) {
-    return getAnonymousGroupDisplayName(member.nickname, "Member");
+    return getAnonymousGroupDisplayName(safeNickname, fallbackLabel);
   }
 
-  return member.displayName || member.nickname || member.email || "Member";
+  return safeDisplayName || safeNickname || fallbackLabel;
 }
 
 export function formatRelativeTime(value: string): string {

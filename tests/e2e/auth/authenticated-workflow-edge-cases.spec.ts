@@ -401,7 +401,7 @@ test.describe("authenticated workflow edge cases", () => {
     await page.goto(`/group/${groupId}`);
 
     const sidebar = page.getByTestId("app-shell-sidebar");
-    await expect(page.getByText(/monitor participation and progress/i)).toBeVisible();
+    await expect(page.getByText(/track replies, wishlists, and messages/i)).toBeVisible();
     await expectOnlyCurrentSidebarLink(sidebar, /^my groups$/i);
 
     await page.goto(`/group/${groupId}/reveal`);

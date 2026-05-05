@@ -3,7 +3,6 @@ import { createHash } from "crypto";
 import { redirect } from "next/navigation";
 import { getEmailVerificationMessage, isUserEmailVerified } from "@/lib/auth/user-status";
 import {
-  getDefaultGroupNicknameFromEmail,
   sanitizeGroupNickname,
   validateAnonymousGroupNickname,
 } from "@/lib/groups/nickname";
@@ -317,8 +316,6 @@ async function joinGroupViaInviteToken(
     }
   }
 
-  const defaultNickname = getDefaultGroupNicknameFromEmail(normalizedEmail);
-
   const { data: memberships, error: membershipsError } = await supabaseAdmin
     .from("group_members")
     .select("id, status, user_id, email, nickname")
@@ -388,7 +385,7 @@ async function joinGroupViaInviteToken(
         email: normalizedEmail,
         nickname: requiresAnonymousNickname
           ? cleanNickname
-          : reusableMembership.nickname || defaultNickname,
+          : reusableMembership.nickname,
         status: "accepted",
       })
       .eq("id", reusableMembership.id);
@@ -417,7 +414,7 @@ async function joinGroupViaInviteToken(
       group_id: link.group_id,
       user_id: user.id,
       email: normalizedEmail,
-      nickname: requiresAnonymousNickname ? cleanNickname : defaultNickname,
+      nickname: requiresAnonymousNickname ? cleanNickname : null,
       role: "member",
       status: "accepted",
     });
