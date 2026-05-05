@@ -237,12 +237,7 @@ export function getVisibleGroupMemberName(
   requireAnonymousNickname: boolean,
   fallbackPrefix = "Member"
 ): string {
-  const fallbackLabel =
-    member.status === "pending"
-      ? `Invited participant ${index + 1}`
-      : member.status === "declined"
-        ? `Past invite ${index + 1}`
-        : `${fallbackPrefix} ${index + 1}`;
+  const fallbackLabel = `${fallbackPrefix} ${index + 1}`;
   const safeNickname = isEmailDerivedGroupNickname(member.nickname, member.email)
     ? null
     : member.nickname?.trim();

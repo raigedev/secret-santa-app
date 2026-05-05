@@ -16,11 +16,11 @@ export type HealthRow = {
   tone?: "gold" | "quiet";
 };
 
-const giftProgressSteps: { helper: string; id: GiftProgressStep; label: string }[] = [
-  { helper: "Pick a clue", id: "planning", label: "Plan" },
-  { helper: "Gift in hand", id: "purchased", label: "Buy" },
-  { helper: "Ready to hide", id: "wrapped", label: "Wrap" },
-  { helper: "Ready to share", id: "ready_to_give", label: "Give" },
+const giftProgressSteps: { id: GiftProgressStep; label: string }[] = [
+  { id: "planning", label: "Idea saved" },
+  { id: "purchased", label: "Purchased" },
+  { id: "wrapped", label: "Wrapped" },
+  { id: "ready_to_give", label: "Ready to give" },
 ];
 
 export function getPanelClass(isDarkTheme: boolean): string {
@@ -102,82 +102,21 @@ export function GiftProgressCard({
   isDarkTheme: boolean;
   onOpenGiftProgress: () => void;
 }) {
-  const safeStepIndex = Math.min(
-    Math.max(activeStepIndex, 0),
-    giftProgressSteps.length - 1
-  );
-  const progressPercent =
-    giftProgressSteps.length <= 1
-      ? 0
-      : Math.round((safeStepIndex / (giftProgressSteps.length - 1)) * 100);
-
   return (
     <section className={`min-w-0 overflow-hidden rounded-[30px] p-5 ${getPanelClass(isDarkTheme)}`}>
-      <SectionHeader action={<button type="button" onClick={onOpenGiftProgress} className="text-[13px] font-black text-[#a43c3f]">Open progress</button>} isDarkTheme={isDarkTheme} title="Gift journey">
-        Follow each gift from first idea to handoff.
-      </SectionHeader>
-      <div
-        className={`relative mt-2 overflow-hidden rounded-3xl p-4 ${
-          isDarkTheme ? "bg-slate-950/35" : "bg-[#f8faf7]"
-        }`}
-      >
-        <div className="absolute left-7 right-7 top-10 hidden h-2 overflow-hidden rounded-full bg-[#e5e9e5] sm:block">
-          <span
-            className="block h-full rounded-full bg-[#48664e] transition-[width] duration-300"
-            style={{ width: `${progressPercent}%` }}
-          />
-        </div>
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-4">
-          {giftProgressSteps.map((step, index) => {
-            const complete = index < safeStepIndex;
-            const current = index === safeStepIndex;
-            const done = index <= safeStepIndex;
-
-            return (
-              <button
-                key={step.id}
-                type="button"
-                onClick={onOpenGiftProgress}
-                className={`relative z-10 min-h-30 rounded-[22px] p-4 text-left transition hover:-translate-y-0.5 ${
-                  current
-                    ? "bg-white text-[#2e3432] shadow-[0_16px_34px_rgba(72,102,78,.12)] ring-2 ring-[#48664e]"
-                    : complete
-                      ? "bg-white/90 text-[#2e3432] ring-1 ring-[rgba(72,102,78,.13)]"
-                      : isDarkTheme
-                        ? "bg-slate-900/82 text-slate-300 ring-1 ring-slate-700"
-                        : "bg-white/70 text-[#5b605e] ring-1 ring-[rgba(72,102,78,.09)]"
-                }`}
-                aria-label={`Open gift progress: ${step.label}`}
-              >
-                <span
-                  className={`flex h-11 w-11 items-center justify-center rounded-full text-[13px] font-black shadow-[0_10px_20px_rgba(46,52,50,.06)] ${
-                    done
-                      ? current
-                        ? "bg-[#a43c3f] text-white"
-                        : "bg-[#48664e] text-white"
-                      : "bg-[#e5e9e6] text-slate-400"
-                  }`}
-                >
-                  {complete ? "Done" : index + 1}
-                </span>
-                <strong className="mt-3 block text-[16px] font-black leading-5">
-                  {step.label}
-                </strong>
-                <span
-                  className={`mt-1 block text-[12px] font-bold leading-4 ${
-                    current
-                      ? "text-[#a43c3f]"
-                      : isDarkTheme
-                        ? "text-slate-400"
-                        : "text-[#64748b]"
-                  }`}
-                >
-                  {step.helper}
-                </span>
-              </button>
-            );
-          })}
-        </div>
+      <SectionHeader action={<button type="button" onClick={onOpenGiftProgress} className="text-[12px] font-black text-[#a43c3f]">Open progress</button>} isDarkTheme={isDarkTheme} title="Gift progress" />
+      <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+        {giftProgressSteps.map((step, index) => {
+          const done = index <= activeStepIndex;
+          return (
+            <div key={step.id} className={`rounded-[18px] p-3 text-center ${getSoftPanelClass(isDarkTheme)}`}>
+              <span className={`mx-auto flex h-8 w-8 items-center justify-center rounded-full text-[12px] font-black ${done ? "bg-[#48664e] text-white" : "bg-slate-200 text-slate-400"}`}>
+                {done ? "OK" : index + 1}
+              </span>
+              <strong className="mt-2 block text-[12px] leading-4">{step.label}</strong>
+            </div>
+          );
+        })}
       </div>
     </section>
   );

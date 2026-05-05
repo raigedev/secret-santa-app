@@ -957,7 +957,7 @@ export default function DashboardPage() {
     router,
   });
 
-  if (loading) {
+  if (loading || !dashboardThemeReady) {
     return <DashboardSkeleton />;
   }
 
