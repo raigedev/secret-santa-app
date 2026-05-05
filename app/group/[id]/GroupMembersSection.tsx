@@ -124,8 +124,11 @@ export function GroupMembersSection({
                   <div className="flex min-w-0 items-center gap-3">
                     <MemberFaceAvatar seed={index} status={status} />
                     <div className="min-w-0">
-                      <div className="flex flex-wrap items-center gap-2">
-                        <p className="truncate text-sm font-black text-[#2e3432]">
+                      <div className="flex min-w-0 flex-wrap items-center gap-2">
+                        <p
+                          className="max-w-full whitespace-normal break-words text-sm font-black leading-5 text-[#2e3432]"
+                          title={memberName}
+                        >
                           {memberName}
                         </p>
                         {isCurrentUser && (
