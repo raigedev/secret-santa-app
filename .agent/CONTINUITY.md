@@ -3,7 +3,7 @@
 ## Operating Rules
 - 2026-04-20T00:00:00+08:00 [USER] New Codex chats should read `AGENTS.md` first, then this file.
 - 2026-04-20T00:00:00+08:00 [USER] User usually commits and pushes manually unless explicitly asking Codex to do it.
-- 2026-05-05T05:27:37+08:00 [USER/TOOL] Branch workflow: `dev` is for local/preview work and `main` is production/Vercel deploy; before git/deploy moments run `git status`; after user pushes commits to `dev`, Codex may create PR, watch checks, and merge when green unless safety issue; see `.agent/BRANCH_WORKFLOW.md`.
+- 2026-05-05T05:27:37+08:00 [USER/TOOL] Branch workflow: `dev` is for local/preview work and `main` is production/Vercel deploy; before git/deploy moments run `git status`; when user says "done pushing", Codex must create PR `dev -> main`, watch checks, and merge when green unless safety issue; see `.agent/BRANCH_WORKFLOW.md`.
 - 2026-04-23T16:42:26+08:00 [USER] After meaningful changes, final replies must include what changed, detailed Vercel/manual test steps, and exact `git add`/`git commit`/`git push` commands; do not omit commit/push steps when the user is expected to commit manually.
 - 2026-04-23T16:42:26+08:00 [USER] User verifies mainly on Vercel preview/production after push; 2026-04-29T01:00:44+08:00 [USER] after every push, send the dev/browser preview button or exact preview link for quick verification.
 - 2026-04-29T16:25:00+08:00 [USER] Use necessary installed skills/tools automatically when relevant, including repo skills, Graphify, Agent Orchestrator, Playwright/webapp tests, Oracle, GSD, Matt Pocock `grill-me` style alignment, and design tools as appropriate; user does not want to manually invoke skill commands. Preserve safety guardrails for secrets and remote writes.
