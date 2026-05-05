@@ -7,10 +7,10 @@ import {
   AuthHeroPanel,
   AuthPageFrame,
 } from "@/app/components/AuthPageShell";
+import { getPasswordPolicyMessage, PASSWORD_POLICY_HELP_TEXT } from "@/lib/auth/password-policy";
 import { normalizeSafeAppPath } from "@/lib/security/safe-app-path";
 import { createClient } from "@/lib/supabase/client";
 
-const MIN_PASSWORD_LENGTH = 8;
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 const TRUST_MARKERS = [
@@ -41,6 +41,10 @@ function getFriendlySignupError(message: string): string {
 
   if (normalized.includes("already registered") || normalized.includes("already exists")) {
     return "This email already has an account. Please sign in instead.";
+  }
+
+  if (normalized.includes("weak password") || normalized.includes("password is too weak")) {
+    return PASSWORD_POLICY_HELP_TEXT;
   }
 
   return message || "We could not create your account. Please try again.";
@@ -132,8 +136,9 @@ function CreateAccountPageInner() {
       return;
     }
 
-    if (password.length < MIN_PASSWORD_LENGTH) {
-      setError(`Use at least ${MIN_PASSWORD_LENGTH} characters for your password.`);
+    const passwordPolicyMessage = getPasswordPolicyMessage(password);
+    if (passwordPolicyMessage) {
+      setError(passwordPolicyMessage);
       return;
     }
 
@@ -238,8 +243,8 @@ function CreateAccountPageInner() {
             </div>
 
             <div className="rounded-[1.35rem] bg-[#f2f4f2] px-4 py-3 text-sm leading-6 text-[#5b605e]">
-              Use at least {MIN_PASSWORD_LENGTH} characters. A short phrase plus a symbol or number is
-              usually easier to remember and harder to guess.
+              {PASSWORD_POLICY_HELP_TEXT} A short phrase is usually easier to remember and harder
+              to guess.
             </div>
 
             {error ? (

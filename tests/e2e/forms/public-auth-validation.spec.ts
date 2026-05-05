@@ -28,7 +28,20 @@ test.describe("public auth form validation", () => {
     await page.getByPlaceholder(/create a password/i).fill("short");
     await page.getByRole("button", { name: /sign up/i }).click();
 
-    await expect(page.getByText(/use at least 8 characters for your password/i)).toBeVisible();
+    await expect(page.getByText(/use at least 12 characters for your password/i)).toBeVisible();
+  });
+
+  test("create-account requires password character variety", async ({ page }) => {
+    await page.goto("/create-account");
+
+    await page.getByPlaceholder(/enter your name/i).fill("Playwright Tester");
+    await page.getByPlaceholder(/enter your email address/i).fill("tester@example.com");
+    await page.getByPlaceholder(/create a password/i).fill(["long", "password", "only"].join(""));
+    await page.getByRole("button", { name: /sign up/i }).click();
+
+    await expect(
+      page.getByText(/add an uppercase letter, a number, and a symbol to your password/i)
+    ).toBeVisible();
   });
 
   test("forgot-password requires an email before submission", async ({ page }) => {
@@ -47,6 +60,6 @@ test.describe("public auth form validation", () => {
     await page.getByPlaceholder(/enter your new password/i).fill("short");
     await page.getByRole("button", { name: /save new password/i }).click();
 
-    await expect(page.getByText(/use at least 8 characters for your new password/i)).toBeVisible();
+    await expect(page.getByText(/use at least 12 characters for your new password/i)).toBeVisible();
   });
 });

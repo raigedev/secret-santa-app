@@ -16,6 +16,12 @@ IMPLEMENTED NOW
     - Logged-in but unverified users are blocked from protected routes
     - Verified in: proxy.ts
 
+[ ] Public password forms require stronger passwords
+    Status: DONE
+    Notes:
+    - Create-account and reset-password require 12+ characters, uppercase and lowercase letters, a number, and a symbol
+    - Verified in: lib/auth/password-policy.ts
+
 [ ] Database security baseline is applied
     Status: DONE
     Notes:
@@ -128,6 +134,8 @@ CHECK REGULARLY
 [ ] Confirm LAZADA_POSTBACK_SECRET is set in Vercel
 [ ] Confirm Lazada Postback URL is still active in Lazada dashboard
 [ ] Confirm Supabase migrations are fully applied
+[ ] Confirm the hosted Supabase Auth password policy still matches the app policy
+[ ] Upgrade Supabase to Pro before launch if the leaked-password protection advisor must be cleared
 [ ] Confirm no new tables were added without RLS/policies
 [ ] Confirm owner-only pages are still hidden from regular users
 [ ] Confirm privacy notice matches real affiliate tracking behavior

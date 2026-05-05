@@ -116,6 +116,8 @@ function getFriendlyLoginError(message: string): string {
     ? "We could not match that email and password. Please try again."
     : normalized.includes("email not confirmed")
       ? "Please confirm your email before signing in."
+      : normalized.includes("weak password") || normalized.includes("password is too weak")
+        ? "Your password needs to be stronger before you can continue. Reset it with at least 12 characters, uppercase and lowercase letters, a number, and a symbol."
       : readableMessage;
 }
 
