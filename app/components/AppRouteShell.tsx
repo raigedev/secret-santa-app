@@ -485,7 +485,6 @@ export default function AppRouteShell({ children }: { children: ReactNode }) {
   }
 
   const navItems = createNavItems(canViewAffiliateReport);
-  const hasStandalonePageHeader = pathname === "/dashboard";
   const displayViewerName = normalizeViewerName(viewerName);
   const profileInitial = displayViewerName.slice(0, 1).toUpperCase() || "?";
   const fallbackAvatar = viewerAvatarEmoji || profileInitial;
@@ -605,8 +604,7 @@ export default function AppRouteShell({ children }: { children: ReactNode }) {
       </aside>
 
       <div className="relative z-10 min-h-screen xl:pl-70">
-        {!hasStandalonePageHeader && (
-          <header className="sticky top-0 z-20 hidden h-21 items-center justify-between border-b px-7 xl:flex" style={{ background: shellHeaderBackground, borderColor: shellBorderColor, backdropFilter: "blur(16px)" }}>
+        <header className="sticky top-0 z-20 flex min-h-18 items-center justify-between border-b px-4 py-3 sm:px-6 xl:h-21 xl:px-7 xl:py-0" style={{ background: shellHeaderBackground, borderColor: shellBorderColor, backdropFilter: "blur(16px)" }}>
             <div>
               <div className="flex items-center gap-2 text-[16px] font-black" style={{ color: shellTextColor }}>
                 <span data-testid="app-shell-greeting">{greetingText}</span>
@@ -667,8 +665,7 @@ export default function AppRouteShell({ children }: { children: ReactNode }) {
                 )}
               </div>
             </div>
-          </header>
-        )}
+        </header>
         <DashboardNotificationsPanel
           anchorRef={notificationButtonRef}
           isDarkTheme={isDarkAppShell}

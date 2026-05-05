@@ -19,12 +19,8 @@ import {
   normalizeGiftProgressStep,
 } from "./dashboard-formatters";
 import { DashboardBackdrop } from "./DashboardBackdrop";
-import { DashboardHeader } from "./DashboardHeader";
-import { DashboardNotificationsPanel } from "./DashboardNotificationsPanel";
 import { DashboardPreviewWorkspace } from "./DashboardPreviewWorkspace";
-import { DashboardProfileMenu } from "./DashboardProfileMenu";
 import { DashboardStatusMessage } from "./DashboardStatusMessage";
-import { useDashboardProfileMenu } from "./useDashboardProfileMenu";
 import { useDashboardRoutePrefetch } from "./useDashboardRoutePrefetch";
 import {
   clearDashboardSnapshots,
@@ -174,8 +170,6 @@ export default function DashboardPage() {
   const [countdownNow, setCountdownNow] = useState(() => Date.now());
   const [canViewAffiliateReport, setCanViewAffiliateReport] = useState(false);
   const [userName, setUserName] = useState("");
-  const [viewerAvatarEmoji, setViewerAvatarEmoji] = useState("");
-  const [viewerAvatarUrl, setViewerAvatarUrl] = useState("");
   const [ownedGroups, setOwnedGroups] = useState<Group[]>([]);
   const [invitedGroups, setInvitedGroups] = useState<Group[]>([]);
   const [pendingInvites, setPendingInvites] = useState<PendingInvite[]>([]);
@@ -188,17 +182,7 @@ export default function DashboardPage() {
   const [dashboardThemeReady, setDashboardThemeReady] = useState(false);
   const [loading, setLoading] = useState(true);
   const [showProfileSetup, setShowProfileSetup] = useState(false);
-  const [notificationsPanelOpen, setNotificationsPanelOpen] = useState(false);
   const [actionMessage, setActionMessage] = useState<ActionMessage>(null);
-  const notificationButtonRef = useRef<HTMLButtonElement | null>(null);
-  const {
-    closeProfileMenu,
-    profileMenuOpen,
-    profileMenuPanelRef,
-    profileMenuPosition,
-    profileMenuRef,
-    toggleProfileMenu,
-  } = useDashboardProfileMenu();
   const loadDashboardDataRef = useRef<
     ((user: { id: string; email?: string | null }) => Promise<void>) | null
   >(null);
@@ -211,13 +195,10 @@ export default function DashboardPage() {
       setUserName(storedViewerProfile.displayName);
     }
 
-    setViewerAvatarEmoji(storedViewerProfile.avatarEmoji);
-    setViewerAvatarUrl(storedViewerProfile.avatarUrl);
-
     return addViewerProfileChangedListener((event) => {
       applyViewerProfileChangedEvent(event, {
-        setViewerAvatarEmoji,
-        setViewerAvatarUrl,
+        setViewerAvatarEmoji: () => undefined,
+        setViewerAvatarUrl: () => undefined,
         setViewerName: setUserName,
       });
     });
@@ -775,8 +756,6 @@ export default function DashboardPage() {
 
         setShowProfileSetup(!profileData.profile_setup_complete);
         setUserName(resolvedName);
-        setViewerAvatarEmoji(resolvedAvatarEmoji);
-        setViewerAvatarUrl(resolvedAvatarUrl);
         if (typeof sessionStorage !== "undefined") {
           sessionStorage.setItem("ss_un", resolvedName);
         }
@@ -978,12 +957,6 @@ export default function DashboardPage() {
     router,
   });
 
-  const handleLogout = async () => {
-    clearDashboardSnapshots();
-    await supabase.auth.signOut();
-    router.push("/login");
-  };
-
   if (loading) {
     return <DashboardSkeleton />;
   }
@@ -999,14 +972,6 @@ export default function DashboardPage() {
   const handleOpenGroup = (groupId: string) => {
     router.push(`/group/${groupId}`);
   };
-  const toggleNotificationsPanel = () => {
-    closeProfileMenu();
-    setNotificationsPanelOpen((current) => !current);
-  };
-  const toggleProfilePanel = () => {
-    setNotificationsPanelOpen(false);
-    toggleProfileMenu();
-  };
 
   return (
     <main className={dashboardShellClass}>
@@ -1019,48 +984,8 @@ export default function DashboardPage() {
       )}
 
       <DashboardBackdrop isDarkTheme={isDarkTheme} />
-      {profileMenuOpen && (
-        <DashboardProfileMenu
-          isDarkTheme={isDarkTheme}
-          menuRef={profileMenuPanelRef}
-          position={profileMenuPosition}
-          onClose={closeProfileMenu}
-          onGoProfile={() => router.push("/profile")}
-          onLogout={() => void handleLogout()}
-        />
-      )}
-      <DashboardNotificationsPanel
-        anchorRef={notificationButtonRef}
-        isDarkTheme={isDarkTheme}
-        open={notificationsPanelOpen}
-        onClose={() => setNotificationsPanelOpen(false)}
-        onUnreadCountChange={setUnreadNotificationCount}
-      />
 
-      <DashboardHeader
-        isDarkTheme={isDarkTheme}
-        notificationButtonRef={notificationButtonRef}
-        notificationsPanelOpen={notificationsPanelOpen}
-        profileMenuOpen={profileMenuOpen}
-        profileMenuRef={profileMenuRef}
-        unreadNotificationCount={unreadNotificationCount}
-        viewerAvatarEmoji={viewerAvatarEmoji}
-        viewerAvatarUrl={viewerAvatarUrl}
-        viewerName={userName}
-        onAvatarImageError={() => {
-          setViewerAvatarUrl("");
-          storeViewerAvatarUrl(null);
-        }}
-        onGoDashboard={() => router.push("/dashboard")}
-        onGoWishlist={() => router.push("/wishlist")}
-        onScrollToActivity={() => document.getElementById("dashboard-activity")?.scrollIntoView({ behavior: "smooth" })}
-        onScrollToGroups={() => document.getElementById("dashboard-groups")?.scrollIntoView({ behavior: "smooth" })}
-        onToggleNotifications={toggleNotificationsPanel}
-        onToggleProfileMenu={toggleProfilePanel}
-        onToggleTheme={() => setDashboardTheme((current) => (current === "midnight" ? "default" : "midnight"))}
-      />
-
-      <FadeIn className="relative z-10 mx-auto w-full max-w-7xl px-4 pb-24 pt-24 sm:px-6 lg:px-8">
+      <FadeIn className="relative z-10 mx-auto w-full max-w-7xl px-4 pb-24 pt-6 sm:px-6 lg:px-8">
         <DashboardStatusMessage message={actionMessage} />
 
         <DashboardPreviewWorkspace
