@@ -106,9 +106,7 @@ const AUTHENTICATED_SCREEN_CASES: ScreenCase[] = [
       await expect(page.getByText(/\b0 days left\b/i)).toHaveCount(0);
       await expectBadgeClearOfBellIcon(page, "app-shell-notification-badge");
 
-      await page
-        .locator('[data-app-page-header="true"] button[aria-label^="Open notifications"]:visible')
-        .click();
+      await getVisibleNotificationsButton(page).click();
       const notificationsPanel = page.getByTestId("dashboard-notifications-panel");
       await expect(notificationsPanel).toBeVisible();
       await expect(page.getByRole("button", { name: /^all$/i })).toBeVisible();
@@ -299,6 +297,7 @@ test.describe("authenticated screen regressions", () => {
     const myGroupsLink = sidebar.getByRole("link", { name: /my groups?/i });
     await expect(appShell).toBeVisible();
     await expect(sidebar).toBeVisible();
+    await expect(page.locator('[data-app-page-header="true"]')).toHaveCount(0);
     await expect(dashboardLink).toHaveAttribute("aria-current", "page");
     await expect(myGroupsLink).toHaveAttribute("href", /\/groups$/);
 
