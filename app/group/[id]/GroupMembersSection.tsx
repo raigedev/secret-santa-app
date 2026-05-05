@@ -74,7 +74,7 @@ export function GroupMembersSection({
             </h2>
           </div>
           <p className="mt-1 text-xs font-semibold leading-5 text-[#64748b]">
-            Track replies, wishlists, and messages without exposing email names.
+            Monitor participation and progress.
           </p>
         </div>
         {isOwner && !drawDone && (
@@ -95,7 +95,7 @@ export function GroupMembersSection({
       ) : (
         <div className="overflow-hidden rounded-2xl bg-white shadow-[inset_0_0_0_1px_rgba(72,102,78,.1)]">
           <div className="hidden grid-cols-[minmax(0,1.3fr)_0.8fr_0.8fr_0.8fr_auto] gap-3 bg-[#fffefa] px-4 py-3 text-[11px] font-black text-[#5b605e] md:grid">
-            <span>Participant</span>
+            <span>Member</span>
             <span>Status</span>
             <span>Wishlist</span>
             <span>Messages</span>
@@ -210,7 +210,7 @@ export function GroupMembersSection({
 
       {!drawDone && (pendingMembers.length > 0 || declinedMembers.length > 0) && isOwner && (
         <div className="mt-4 rounded-2xl bg-[#eef3ef] px-4 py-3 text-xs font-bold leading-5 text-[#48664e]">
-          Invited participants stay anonymous here. If an email does not arrive, create an invite link and send it directly.
+          Pending members need to accept from their dashboard. Declined invites can be resent by the organizer.
         </div>
       )}
     </section>
@@ -244,16 +244,16 @@ function getStatusMeta(status: MemberDisplayRow["status"], isWishlistMissing: bo
     return {
       badgeBg: "#fff4df",
       badgeColor: "#7b5902",
-      helper: "Waiting for their reply",
-      label: "Invited",
+      helper: "Has not responded yet",
+      label: "Pending",
     };
   }
 
   return {
     badgeBg: "#fff7f6",
     badgeColor: "#a43c3f",
-    helper: "Declined the invite",
-    label: "Declined",
+    helper: "Declined the invitation",
+    label: "Needs attention",
   };
 }
 
@@ -284,7 +284,7 @@ function getMessageMeta(status: MemberDisplayRow["status"]) {
 
   return {
     color: "#64748b",
-    helper: "No thread yet",
+    helper: "No recent messages",
     label: "Quiet",
   };
 }
