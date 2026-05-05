@@ -16,11 +16,11 @@ export type HealthRow = {
   tone?: "gold" | "quiet";
 };
 
-const giftProgressSteps: { id: GiftProgressStep; label: string }[] = [
-  { id: "planning", label: "Idea saved" },
-  { id: "purchased", label: "Purchased" },
-  { id: "wrapped", label: "Wrapped" },
-  { id: "ready_to_give", label: "Ready to give" },
+const giftProgressSteps: { id: GiftProgressStep; label: string; shortLabel: string }[] = [
+  { id: "planning", label: "Idea saved", shortLabel: "Idea" },
+  { id: "purchased", label: "Purchased", shortLabel: "Bought" },
+  { id: "wrapped", label: "Wrapped", shortLabel: "Wrapped" },
+  { id: "ready_to_give", label: "Ready to give", shortLabel: "Ready" },
 ];
 
 export function getPanelClass(isDarkTheme: boolean): string {
@@ -105,15 +105,22 @@ export function GiftProgressCard({
   return (
     <section className={`min-w-0 overflow-hidden rounded-[30px] p-5 ${getPanelClass(isDarkTheme)}`}>
       <SectionHeader action={<button type="button" onClick={onOpenGiftProgress} className="text-[12px] font-black text-[#a43c3f]">Open progress</button>} isDarkTheme={isDarkTheme} title="Gift progress" />
-      <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+      <div className="grid grid-cols-4 gap-2">
         {giftProgressSteps.map((step, index) => {
           const done = index <= activeStepIndex;
           return (
-            <div key={step.id} className={`rounded-[18px] p-3 text-center ${getSoftPanelClass(isDarkTheme)}`}>
-              <span className={`mx-auto flex h-8 w-8 items-center justify-center rounded-full text-[12px] font-black ${done ? "bg-[#48664e] text-white" : "bg-slate-200 text-slate-400"}`}>
+            <div
+              key={step.id}
+              aria-label={`${step.label}: ${done ? "complete" : "not complete"}`}
+              className={`flex min-h-23 min-w-0 flex-col items-center justify-center rounded-[18px] px-1.5 py-3 text-center ${getSoftPanelClass(isDarkTheme)}`}
+              title={step.label}
+            >
+              <span className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-[12px] font-black ${done ? "bg-[#48664e] text-white" : "bg-slate-200 text-slate-400"}`}>
                 {done ? "OK" : index + 1}
               </span>
-              <strong className="mt-2 block text-[12px] leading-4">{step.label}</strong>
+              <strong className="mt-2 block max-w-full truncate whitespace-nowrap text-[11px] font-black leading-none sm:text-[12px]">
+                {step.shortLabel}
+              </strong>
             </div>
           );
         })}

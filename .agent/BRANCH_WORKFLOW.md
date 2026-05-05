@@ -52,7 +52,7 @@ git commit -m "Describe the change"
 git push
 ```
 
-After the user says they pushed commits to `dev`, Codex is trusted to handle the PR workflow:
+After the user says they pushed commits to `dev` or says "done pushing", Codex must handle the PR workflow without waiting for another reminder:
 
 ```cmd
 gh pr create --base main --head dev
@@ -85,6 +85,7 @@ That final push to `main` is the production deploy trigger.
 Future agents should help the user avoid accidental production pushes:
 
 - Check `git status` before branch-sensitive work.
+- Treat "done pushing" as the trigger to create the `dev -> main` PR, watch checks, and merge when green unless a real safety issue appears.
 - Keep new work on `dev` unless the user explicitly asks for a production release.
 - Explain that Vercel production follows `main`.
 - Include exact commit and push commands in final responses after changes.
