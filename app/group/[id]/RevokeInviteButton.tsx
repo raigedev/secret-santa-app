@@ -33,8 +33,8 @@ export default function RevokeInviteButton({
 
   if (status === "revoked") {
     return (
-      <span className="text-xs bg-red-100 text-red-700 px-3 py-1 rounded-full font-bold">
-        ✅ Invite revoked
+      <span className="inline-flex min-h-8 items-center rounded-full bg-red-100 px-3 text-xs font-bold text-red-700">
+        Invite revoked
       </span>
     );
   }
@@ -43,13 +43,13 @@ export default function RevokeInviteButton({
     <button
       onClick={handleRevoke}
       disabled={status === "loading"}
-      className={`text-xs px-3 py-1 rounded-full font-bold transition ${
+      className={`inline-flex min-h-8 items-center justify-center rounded-full px-3 text-xs font-bold transition ${
         status === "loading"
           ? "bg-gray-300 text-gray-500 cursor-not-allowed"
           : "bg-red-100 text-red-700 hover:bg-red-200"
       }`}
     >
-      {status === "loading" ? "Revoking..." : "🛑 Revoke invite"}
+      {status === "loading" ? "Revoking..." : "Revoke invite"}
     </button>
   );
 }

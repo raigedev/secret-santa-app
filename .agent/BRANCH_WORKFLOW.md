@@ -87,5 +87,6 @@ Future agents should help the user avoid accidental production pushes:
 - Check `git status` before branch-sensitive work.
 - Treat "done pushing" as the trigger to create the `dev -> main` PR, watch checks, and merge when green unless a real safety issue appears.
 - Keep new work on `dev` unless the user explicitly asks for a production release.
+- After every UI or app-facing fix/create task, render/open the affected route and show the preview or screenshot before finalizing.
 - Explain that Vercel production follows `main`.
 - Include exact commit and push commands in final responses after changes.
