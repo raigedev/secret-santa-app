@@ -7,7 +7,7 @@ import type { Group, GroupMember } from "./dashboard-types";
 export function MembersTable({ group, isDarkTheme }: { group: Group; isDarkTheme: boolean }) {
   return (
     <section
-      className={`rounded-3xl p-5 shadow-[0_12px_30px_rgba(45,51,55,0.04)] ${
+      className={`min-w-0 rounded-3xl p-5 shadow-[0_12px_30px_rgba(45,51,55,0.04)] ${
         isDarkTheme ? "bg-slate-900/80 text-slate-100" : "bg-white/95 text-[#2e3432]"
       }`}
     >
@@ -39,6 +39,12 @@ export function MembersTable({ group, isDarkTheme }: { group: Group; isDarkTheme
 
       <div className="hidden overflow-hidden rounded-2xl bg-white/75 shadow-[inset_0_0_0_1px_rgba(72,102,78,0.1)] md:block">
         <table className="w-full table-fixed text-left">
+          <colgroup>
+            <col className="w-[34%]" />
+            <col className="w-[22%]" />
+            <col className="w-[22%]" />
+            <col className="w-[22%]" />
+          </colgroup>
           <thead>
             <tr className="text-xs font-black uppercase tracking-[0.14em] text-slate-500">
               <th scope="col" className="px-4 py-3">Member</th>
@@ -56,7 +62,7 @@ export function MembersTable({ group, isDarkTheme }: { group: Group; isDarkTheme
                 <td className="min-w-0 px-4 py-3">
                   <div className="flex min-w-0 items-center gap-3">
                     <MemberAvatar group={group} index={index} member={member} />
-                    <span className="truncate">
+                    <span className="min-w-0 flex-1 whitespace-normal break-words leading-5">
                       {getDashboardMemberLabel(
                         member,
                         group.require_anonymous_nickname,
@@ -192,10 +198,10 @@ function MemberMobileCard({
 }) {
   return (
     <div className="rounded-2xl bg-white/80 p-4 shadow-[inset_0_0_0_1px_rgba(72,102,78,0.1)]">
-      <div className="flex min-w-0 items-center justify-between gap-3">
-        <div className="flex min-w-0 items-center gap-3">
+      <div className="flex min-w-0 flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex w-full min-w-0 items-center gap-3">
           <MemberAvatar group={group} index={index} member={member} />
-          <span className="truncate text-sm font-black text-[#2e3432]">
+          <span className="min-w-0 flex-1 whitespace-normal break-words text-sm font-black leading-5 text-[#2e3432]">
             {getDashboardMemberLabel(
               member,
               group.require_anonymous_nickname,
@@ -203,9 +209,11 @@ function MemberMobileCard({
             )}
           </span>
         </div>
-        <MemberStatus role={member.role} />
+        <div className="shrink-0 self-start sm:self-center">
+          <MemberStatus role={member.role} />
+        </div>
       </div>
-      <div className="mt-3 grid grid-cols-2 gap-2">
+      <div className="mt-3 grid gap-2 sm:grid-cols-2">
         <InlineAction href={`/group/${group.id}#group-members`} label="Open group" />
         <InlineAction href="/secret-santa-chat" label="Private chat" />
       </div>
