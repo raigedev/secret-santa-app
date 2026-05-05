@@ -52,9 +52,24 @@ git commit -m "Describe the change"
 git push
 ```
 
+After the user says they pushed commits to `dev`, Codex is trusted to handle the PR workflow:
+
+```cmd
+gh pr create --base main --head dev
+```
+
+Then Codex should:
+
+- Inspect the PR files and status checks.
+- Wait for CI, CodeQL, Dependency Review, and Vercel checks.
+- Rerun obviously flaky failed jobs when appropriate.
+- Merge the PR when checks are green and the diff is safe.
+- Sync local `main` and `dev`, then leave the workspace on `dev`.
+- Stop and explain before merging if checks fail for a real code issue, the diff contains risky production/database/security changes, or the branch is not clean.
+
 ## Releasing To Production
 
-Only merge `dev` into `main` when the user says the change is ready for the live Vercel app:
+For manual releases, only merge `dev` into `main` when the user says the change is ready for the live Vercel app:
 
 ```cmd
 git switch main
