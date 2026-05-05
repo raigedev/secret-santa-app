@@ -13,6 +13,7 @@ export default function NicknameForm({ groupId, currentNickname }: Props) {
   const [nickname, setNickname] = useState(currentNickname);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState("");
+  const displayNickname = currentNickname || nickname || "Set your nickname";
 
   const handleSave = async () => {
     setMessage("");
@@ -45,38 +46,31 @@ export default function NicknameForm({ groupId, currentNickname }: Props) {
   };
 
   return (
-    <div>
+    <div className="w-full min-w-0 max-w-44">
       {!isEditing ? (
-        <div className="flex items-center justify-between mt-2">
-          <span
-            className="text-sm font-bold"
-            style={{ color: "#6b7280", fontWeight: 800 }}
-          >
-            {currentNickname || nickname || "Set your nickname"}
-          </span>
-          <button
-            onClick={() => setIsEditing(true)}
-            className="text-xs bg-white/50 hover:bg-white/80 text-gray-600 px-3 py-1 rounded-full transition font-semibold"
-          >
-            Change nickname
-          </button>
-        </div>
+        <button
+          onClick={() => setIsEditing(true)}
+          className="inline-flex min-h-8 w-full items-center justify-center rounded-full bg-white/70 px-3 py-1 text-xs font-bold text-[#48664e] shadow-[inset_0_0_0_1px_rgba(72,102,78,.14)] transition hover:bg-white"
+          title={`Change nickname: ${displayNickname}`}
+        >
+          Change nickname
+        </button>
       ) : (
-        <div className="mt-2 flex flex-col gap-2">
-          <div className="flex gap-2">
+        <div className="flex min-w-0 flex-col gap-2">
+          <div className="grid grid-cols-2 gap-2">
             <input
               type="text"
               value={nickname}
               onChange={(event) => setNickname(event.target.value)}
               placeholder="Enter a nickname, like GiftNinja"
               maxLength={30}
-              className="flex-1 px-3 py-2 rounded-lg text-sm text-black bg-white border border-gray-300 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-green-500"
+              className="col-span-2 min-w-0 rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-black placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-green-500"
             />
 
             <button
               onClick={handleSave}
               disabled={saving}
-              className={`px-4 py-2 rounded-lg text-sm font-bold shadow transition ${
+              className={`rounded-lg px-2 py-2 text-xs font-bold shadow transition ${
                 saving
                   ? "bg-gray-400 text-white cursor-not-allowed"
                   : "bg-green-600 text-white hover:bg-green-700"
@@ -91,7 +85,7 @@ export default function NicknameForm({ groupId, currentNickname }: Props) {
                 setNickname(currentNickname);
                 setMessage("");
               }}
-              className="bg-gray-300 text-gray-700 px-4 py-2 rounded-lg text-sm font-bold hover:bg-gray-400 transition"
+              className="rounded-lg bg-gray-300 px-2 py-2 text-xs font-bold text-gray-700 transition hover:bg-gray-400"
             >
               Cancel
             </button>
