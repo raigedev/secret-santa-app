@@ -253,7 +253,6 @@ export default function GroupDetailsPage() {
       const group = groupResult.data;
       setError(null);
       setGroupDataFresh(false);
-      setOwnerInsights(null);
       setRevealMatches([]);
       setGroupRecap(null);
       setDrawCycleHistory([]);
@@ -451,15 +450,6 @@ export default function GroupDetailsPage() {
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "wishlists", filter: `group_id=eq.${id}` },
-        (payload) => {
-          if (matchesGroupChange(payload)) {
-            scheduleReload();
-          }
-        }
-      )
-      .on(
-        "postgres_changes",
-        { event: "*", schema: "public", table: "messages", filter: `group_id=eq.${id}` },
         (payload) => {
           if (matchesGroupChange(payload)) {
             scheduleReload();
@@ -1046,6 +1036,7 @@ export default function GroupDetailsPage() {
                 missingWishlistMemberNames={ownerInsights?.missingWishlistMemberNames ?? []}
                 pendingMembers={pendingMembers}
                 requireAnonymousNickname={Boolean(groupData?.require_anonymous_nickname)}
+                wishlistReadinessLoaded={!isOwner || Boolean(ownerInsights)}
                 onRemoveMember={handleOpenRemoveMember}
                 onRevokeMembership={handleRevokeMembership}
               />

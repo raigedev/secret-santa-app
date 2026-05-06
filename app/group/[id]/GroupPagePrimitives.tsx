@@ -12,6 +12,9 @@ type HistorySkeletonRowsProps = {
 export function GroupPageModal({ children, onClose }: ModalProps) {
   return (
     <div
+      data-app-modal="true"
+      role="dialog"
+      aria-modal="true"
       className="fixed inset-0 z-50 flex items-center justify-center p-4"
       style={{ background: "rgba(0,0,0,.45)", backdropFilter: "blur(6px)" }}
       onClick={onClose}
