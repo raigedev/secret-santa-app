@@ -38,10 +38,22 @@ const eslintConfig = defineConfig([
   globalIgnores([
     // Default ignores of eslint-config-next:
     ".next/**",
+    ".agent/**",
+    ".agents/**",
+    ".codex/**",
+    ".vercel/**",
     "out/**",
     "build/**",
+    "coverage/**",
+    "graphify-out/**",
     "lib/affiliate/lazada-feed-data.generated.json",
     "next-env.d.ts",
+    "node_modules/**",
+    "output/**",
+    "playwright-report/**",
+    "supabase/.branches/**",
+    "supabase/.temp/**",
+    "test-results/**",
   ]),
 ]);
 
