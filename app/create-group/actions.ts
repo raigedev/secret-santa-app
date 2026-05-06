@@ -1,7 +1,10 @@
 "use server";
 
-import { Buffer } from "node:buffer";
 import { GROUP_IMAGE_BUCKET } from "@/lib/groups/group-image";
+import {
+  type PreparedGroupImage,
+  prepareGroupImageUpload,
+} from "@/lib/groups/group-image-upload";
 import {
   sanitizeGroupNickname,
   validateAnonymousGroupNickname,
@@ -23,13 +26,7 @@ const GROUP_DESCRIPTION_MAX_LENGTH = 300;
 const GROUP_CURRENCY_MAX_LENGTH = 5;
 const MAX_INVITES_PER_GROUP = MAX_GROUP_CREATION_INVITES;
 const EMAIL_MAX_LENGTH = 100;
-const MAX_GROUP_IMAGE_BYTES = 2 * 1024 * 1024;
 const ALLOWED_CURRENCIES = new Set(["USD", "EUR", "GBP", "PHP", "JPY", "AUD", "CAD"]);
-const ALLOWED_GROUP_IMAGE_TYPES = new Map([
-  ["image/jpeg", "jpg"],
-  ["image/png", "png"],
-  ["image/webp", "webp"],
-]);
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 type CreateGroupInput = {
@@ -46,12 +43,6 @@ type CreateGroupInput = {
 type CreateGroupResult = {
   success: boolean;
   message: string;
-};
-
-type PreparedGroupImage = {
-  contentType: string;
-  extension: string;
-  bytes: Buffer;
 };
 
 function sanitizeText(input: string, maxLength: number): string {
@@ -108,58 +99,6 @@ function parseInviteEmailsJson(rawValue: FormDataEntryValue | null): string[] {
 function getFormString(formData: FormData, key: string): string {
   const value = formData.get(key);
   return typeof value === "string" ? value : "";
-}
-
-async function prepareGroupImage(file: File | null): Promise<{
-  image: PreparedGroupImage | null;
-  message?: string;
-}> {
-  if (!file || file.size === 0) {
-    return { image: null };
-  }
-
-  const extension = ALLOWED_GROUP_IMAGE_TYPES.get(file.type);
-
-  if (!extension) {
-    return { image: null, message: "Upload a JPG, PNG, or WebP image." };
-  }
-
-  if (file.size > MAX_GROUP_IMAGE_BYTES) {
-    return { image: null, message: "Keep the group picture under 2 MB." };
-  }
-
-  const bytes = Buffer.from(await file.arrayBuffer());
-  const looksLikeJpeg = bytes.length >= 3 && bytes[0] === 0xff && bytes[1] === 0xd8 && bytes[2] === 0xff;
-  const looksLikePng =
-    bytes.length >= 8 &&
-    bytes[0] === 0x89 &&
-    bytes[1] === 0x50 &&
-    bytes[2] === 0x4e &&
-    bytes[3] === 0x47 &&
-    bytes[4] === 0x0d &&
-    bytes[5] === 0x0a &&
-    bytes[6] === 0x1a &&
-    bytes[7] === 0x0a;
-  const looksLikeWebp =
-    bytes.length >= 12 &&
-    bytes.subarray(0, 4).toString("ascii") === "RIFF" &&
-    bytes.subarray(8, 12).toString("ascii") === "WEBP";
-  const matchesContent =
-    (file.type === "image/jpeg" && looksLikeJpeg) ||
-    (file.type === "image/png" && looksLikePng) ||
-    (file.type === "image/webp" && looksLikeWebp);
-
-  if (!matchesContent) {
-    return { image: null, message: "That image file could not be verified." };
-  }
-
-  return {
-    image: {
-      bytes,
-      contentType: file.type,
-      extension,
-    },
-  };
 }
 
 async function uploadGroupImage(input: {
@@ -338,7 +277,7 @@ async function createGroupWithInvitesInternal(
     return { success: false, message: "Choose a valid currency." };
   }
 
-  const preparedGroupImage = await prepareGroupImage(groupImage);
+  const preparedGroupImage = await prepareGroupImageUpload(groupImage);
 
   if (preparedGroupImage.message) {
     return { success: false, message: preparedGroupImage.message };

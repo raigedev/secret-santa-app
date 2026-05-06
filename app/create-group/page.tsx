@@ -3,6 +3,7 @@
 import {
   type ChangeEvent,
   type DragEvent,
+  type FormEvent,
   useEffect,
   useRef,
   useState,
@@ -17,6 +18,10 @@ import { createGroupWithInvitesFromFormData } from "./actions";
 
 const BUDGET_OPTIONS = [10, 15, 25, 50, 100];
 const MAX_GROUP_IMAGE_BYTES = 2 * 1024 * 1024;
+const MAX_GROUP_IMAGE_DECODED_SIDE = 6000;
+const MAX_GROUP_IMAGE_DECODED_PIXELS = 12_000_000;
+const GROUP_IMAGE_PREVIEW_SIZE = 320;
+const GROUP_IMAGE_PREVIEW_MAX_PIXEL_RATIO = 2;
 const ALLOWED_GROUP_IMAGE_TYPES = new Set(["image/jpeg", "image/png", "image/webp"]);
 const CURRENCIES = [
   { code: "USD", symbol: "$", label: "USD - US Dollar" },
@@ -51,6 +56,66 @@ function validateGroupImageFile(file: File): string | null {
   return null;
 }
 
+function imageBitmapExceedsPreviewLimits(bitmap: ImageBitmap): boolean {
+  return (
+    bitmap.width > MAX_GROUP_IMAGE_DECODED_SIDE ||
+    bitmap.height > MAX_GROUP_IMAGE_DECODED_SIDE ||
+    bitmap.width * bitmap.height > MAX_GROUP_IMAGE_DECODED_PIXELS
+  );
+}
+
+function GroupImagePreviewCanvas({
+  bitmap,
+  className,
+}: {
+  bitmap: ImageBitmap;
+  className: string;
+}) {
+  const canvasRef = useRef<HTMLCanvasElement | null>(null);
+
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    const context = canvas?.getContext("2d");
+
+    if (!canvas || !context) {
+      return;
+    }
+
+    const previewSize = GROUP_IMAGE_PREVIEW_SIZE;
+    const pixelRatio = Math.min(window.devicePixelRatio || 1, GROUP_IMAGE_PREVIEW_MAX_PIXEL_RATIO);
+    canvas.width = Math.round(previewSize * pixelRatio);
+    canvas.height = Math.round(previewSize * pixelRatio);
+    context.setTransform(pixelRatio, 0, 0, pixelRatio, 0, 0);
+    context.clearRect(0, 0, previewSize, previewSize);
+
+    const scale = Math.max(previewSize / bitmap.width, previewSize / bitmap.height);
+    const sourceWidth = previewSize / scale;
+    const sourceHeight = previewSize / scale;
+    const sourceX = Math.max(0, (bitmap.width - sourceWidth) / 2);
+    const sourceY = Math.max(0, (bitmap.height - sourceHeight) / 2);
+
+    context.drawImage(
+      bitmap,
+      sourceX,
+      sourceY,
+      sourceWidth,
+      sourceHeight,
+      0,
+      0,
+      previewSize,
+      previewSize
+    );
+  }, [bitmap]);
+
+  return (
+    <canvas
+      ref={canvasRef}
+      className={className}
+      aria-label="Exchange picture preview"
+    />
+  );
+}
+
 function ChecklistMark({ done }: { done: boolean }) {
   return (
     <span
@@ -79,6 +144,9 @@ function ChecklistMark({ done }: { done: boolean }) {
 export default function CreateGroupPage() {
   const router = useRouter();
   const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const groupImagePreviewBitmapRef = useRef<ImageBitmap | null>(null);
+  const imageDecodeRequestRef = useRef(0);
+  const mountedRef = useRef(true);
 
   const [groupName, setGroupName] = useState("");
   const [description, setDescription] = useState("");
@@ -90,25 +158,41 @@ export default function CreateGroupPage() {
   const [requireAnonymousNickname, setRequireAnonymousNickname] = useState(false);
   const [ownerCodename, setOwnerCodename] = useState("");
   const [groupImageFile, setGroupImageFile] = useState<File | null>(null);
-  const [groupImagePreviewUrl, setGroupImagePreviewUrl] = useState("");
+  const [groupImagePreviewBitmap, setGroupImagePreviewBitmap] = useState<ImageBitmap | null>(null);
+  const [imageDecodePending, setImageDecodePending] = useState(false);
   const [imageDragActive, setImageDragActive] = useState(false);
 
+  const [isHydrated, setIsHydrated] = useState(false);
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState("");
   const [statusMsg, setStatusMsg] = useState("");
 
   useEffect(() => {
-    return () => {
-      if (groupImagePreviewUrl) {
-        URL.revokeObjectURL(groupImagePreviewUrl);
-      }
-    };
-  }, [groupImagePreviewUrl]);
+    setIsHydrated(true);
 
-  const applyGroupImageFile = (file: File) => {
+    return () => {
+      mountedRef.current = false;
+      imageDecodeRequestRef.current += 1;
+      groupImagePreviewBitmapRef.current?.close();
+      groupImagePreviewBitmapRef.current = null;
+    };
+  }, []);
+
+  const replaceGroupImagePreviewBitmap = (bitmap: ImageBitmap | null) => {
+    groupImagePreviewBitmapRef.current?.close();
+    groupImagePreviewBitmapRef.current = bitmap;
+    setGroupImagePreviewBitmap(bitmap);
+  };
+
+  const applyGroupImageFile = async (file: File) => {
+    const requestId = imageDecodeRequestRef.current + 1;
+    imageDecodeRequestRef.current = requestId;
     const validationMessage = validateGroupImageFile(file);
 
     if (validationMessage) {
+      setGroupImageFile(null);
+      replaceGroupImagePreviewBitmap(null);
+      setImageDecodePending(false);
       setErrorMsg(validationMessage);
       setStatusMsg("");
       return;
@@ -117,51 +201,78 @@ export default function CreateGroupPage() {
     setErrorMsg("");
     setStatusMsg("");
     setGroupImageFile(file);
-    setGroupImagePreviewUrl((currentPreviewUrl) => {
-      if (currentPreviewUrl) {
-        URL.revokeObjectURL(currentPreviewUrl);
+    setImageDecodePending(true);
+
+    try {
+      const previewBitmap = await createImageBitmap(file);
+
+      if (!mountedRef.current || requestId !== imageDecodeRequestRef.current) {
+        previewBitmap.close();
+        return;
       }
 
-      return URL.createObjectURL(file);
-    });
+      if (imageBitmapExceedsPreviewLimits(previewBitmap)) {
+        previewBitmap.close();
+        setGroupImageFile(null);
+        replaceGroupImagePreviewBitmap(null);
+        setErrorMsg("Choose a smaller picture, under 6000 pixels on each side.");
+        return;
+      }
+
+      replaceGroupImagePreviewBitmap(previewBitmap);
+    } catch {
+      if (!mountedRef.current || requestId !== imageDecodeRequestRef.current) {
+        return;
+      }
+
+      setGroupImageFile(null);
+      replaceGroupImagePreviewBitmap(null);
+      setErrorMsg("We could not preview that picture. Try another JPG, PNG, or WebP image.");
+    } finally {
+      if (mountedRef.current && requestId === imageDecodeRequestRef.current) {
+        setImageDecodePending(false);
+      }
+    }
   };
 
-  const handleGroupImageInput = (event: ChangeEvent<HTMLInputElement>) => {
+  const handleGroupImageInput = async (event: ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
 
     if (file) {
-      applyGroupImageFile(file);
+      await applyGroupImageFile(file);
     }
 
     event.target.value = "";
   };
 
-  const handleGroupImageDrop = (event: DragEvent<HTMLButtonElement>) => {
+  const handleGroupImageDrop = async (event: DragEvent<HTMLButtonElement>) => {
     event.preventDefault();
     setImageDragActive(false);
     const file = event.dataTransfer.files?.[0];
 
     if (file) {
-      applyGroupImageFile(file);
+      await applyGroupImageFile(file);
     }
   };
 
   const removeGroupImage = () => {
+    imageDecodeRequestRef.current += 1;
     setGroupImageFile(null);
-    setGroupImagePreviewUrl((currentPreviewUrl) => {
-      if (currentPreviewUrl) {
-        URL.revokeObjectURL(currentPreviewUrl);
-      }
-
-      return "";
-    });
+    setImageDecodePending(false);
+    replaceGroupImagePreviewBitmap(null);
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setLoading(true);
     setErrorMsg("");
     setStatusMsg("");
+
+    if (imageDecodePending) {
+      setErrorMsg("Wait for the group picture to finish previewing.");
+      setLoading(false);
+      return;
+    }
 
     // Run the fast checks in the browser for instant feedback, then let the
     // server action repeat them before any database write happens.
@@ -237,6 +348,7 @@ export default function CreateGroupPage() {
 
   const currencySymbol = CURRENCIES.find((item) => item.code === currency)?.symbol || "$";
   const inviteEmailCount = getInviteEmailCount(inviteEmails);
+  const formActionDisabled = !isHydrated || loading || imageDecodePending;
   return (
     <main
       className="relative min-h-screen px-4 py-8 sm:px-6 lg:py-12"
@@ -310,11 +422,9 @@ export default function CreateGroupPage() {
           </p>
 
           <div className="mx-auto mt-6 grid h-32 w-32 overflow-hidden rounded-[34px] bg-[#fff4df] text-[#48664e] shadow-[inset_0_0_0_1px_rgba(72,102,78,.1)]">
-            {groupImagePreviewUrl ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img
-                src={groupImagePreviewUrl}
-                alt="Exchange preview"
+            {groupImagePreviewBitmap ? (
+              <GroupImagePreviewCanvas
+                bitmap={groupImagePreviewBitmap}
                 className="h-full w-full object-cover"
               />
             ) : (
@@ -434,11 +544,9 @@ export default function CreateGroupPage() {
               }}
             >
               <span className="grid h-20 w-20 shrink-0 place-items-center overflow-hidden rounded-2xl bg-white text-[#48664e] shadow-[inset_0_0_0_1px_rgba(72,102,78,.1)]">
-                {groupImagePreviewUrl ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img
-                    src={groupImagePreviewUrl}
-                    alt=""
+                {groupImagePreviewBitmap ? (
+                  <GroupImagePreviewCanvas
+                    bitmap={groupImagePreviewBitmap}
                     className="h-full w-full object-cover"
                   />
                 ) : (
@@ -689,6 +797,7 @@ export default function CreateGroupPage() {
               </div>
               <button
                 type="button"
+                disabled={!isHydrated}
                 onClick={() => setRequireAnonymousNickname((current) => !current)}
                 aria-pressed={requireAnonymousNickname}
                 aria-label={
@@ -771,17 +880,18 @@ export default function CreateGroupPage() {
 
           <button
             type="submit"
-            disabled={loading}
+            disabled={formActionDisabled}
             className="w-full rounded-full py-3.5 text-[16px] font-extrabold text-white transition hover:-translate-y-0.5 disabled:hover:translate-y-0"
             style={{
-              background: loading ? "#9ca3af" : "linear-gradient(135deg,#48664e,#3c5a43)",
+              background:
+                formActionDisabled ? "#9ca3af" : "linear-gradient(135deg,#48664e,#3c5a43)",
               border: "none",
-              cursor: loading ? "not-allowed" : "pointer",
+              cursor: formActionDisabled ? "not-allowed" : "pointer",
               fontFamily: "inherit",
-              boxShadow: loading ? "none" : "0 16px 30px rgba(72,102,78,.2)",
+              boxShadow: formActionDisabled ? "none" : "0 16px 30px rgba(72,102,78,.2)",
             }}
           >
-            {loading ? "Creating group..." : "Create group"}
+            {loading ? "Creating group..." : imageDecodePending ? "Checking picture..." : "Create group"}
           </button>
         </form>
         </section>
