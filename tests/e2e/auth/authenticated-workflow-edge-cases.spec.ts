@@ -388,8 +388,8 @@ test.describe("authenticated workflow edge cases", () => {
     await expect(page.getByRole("heading", { name: /your groups/i })).toBeVisible();
     await expectSantaAssistantClearOf(
       page,
-      page.getByRole("link", { name: /open member list/i }),
-      "the mobile member-list action"
+      page.getByRole("button", { name: /open overview/i }),
+      "the mobile overview action"
     );
   });
 

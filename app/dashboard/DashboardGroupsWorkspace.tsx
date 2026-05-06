@@ -176,11 +176,11 @@ function GroupWorkspacePreview({
             </div>
           </div>
 
-          <div className="flex flex-wrap items-center gap-2">
+          <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:flex-wrap sm:items-center sm:justify-end">
             <button
               type="button"
               onClick={() => onOpenGroup(group.id)}
-              className="inline-flex min-h-11 items-center justify-center gap-2 rounded-full bg-[#48664e] px-5 text-sm font-black text-white shadow-[0_14px_28px_rgba(72,102,78,0.18)] transition hover:-translate-y-0.5"
+              className="inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-full bg-[#48664e] px-5 text-sm font-black text-white shadow-[0_14px_28px_rgba(72,102,78,0.18)] transition hover:-translate-y-0.5 sm:w-auto sm:min-w-52"
             >
               Open overview
               <ArrowRightIcon className="h-4 w-4" />
@@ -190,9 +190,9 @@ function GroupWorkspacePreview({
                 type="button"
                 onClick={() => void onDeleteGroup(group.id, group.name)}
                 disabled={deletingGroupId === group.id}
-                className="inline-flex min-h-11 items-center justify-center rounded-full bg-slate-100 px-4 text-sm font-black text-slate-600 transition hover:-translate-y-0.5 hover:bg-rose-50 hover:text-rose-700 disabled:cursor-not-allowed disabled:opacity-60"
+                className="inline-flex min-h-10 w-full items-center justify-center rounded-full border border-[#f5caca] bg-[#fff8f8] px-4 text-sm font-black text-[#a43c3f] transition hover:-translate-y-0.5 hover:border-[#e6a9aa] hover:bg-[#fff1f2] hover:text-[#812227] disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto"
               >
-                {deletingGroupId === group.id ? "Deleting" : "Delete"}
+                {deletingGroupId === group.id ? "Deleting" : "Delete group"}
               </button>
             )}
           </div>
