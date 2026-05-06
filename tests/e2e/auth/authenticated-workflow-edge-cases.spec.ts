@@ -554,12 +554,17 @@ test.describe("authenticated workflow edge cases", () => {
     await page.getByRole("button", { name: /^create group$/i }).click();
     await expect(page.locator("input:invalid")).toHaveCount(2);
 
+    const createGroupForm = page.locator("form").first();
+    const groupNameInput = createGroupForm.getByPlaceholder(/office holiday party/i);
+    const eventDateInput = createGroupForm.locator('input[type="date"]');
     const futureDate = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
       .toISOString()
       .slice(0, 10);
-    await page.getByPlaceholder(/office holiday party/i).fill("Playwright validation check");
-    await page.locator('input[type="date"]').fill(futureDate);
-    await page.locator('button[aria-pressed="false"]').click();
+    await page.getByRole("button", { name: /^use nicknames in this group$/i }).click();
+    await groupNameInput.fill("Playwright validation check");
+    await eventDateInput.fill(futureDate);
+    await expect(groupNameInput).toHaveValue("Playwright validation check");
+    await expect(eventDateInput).toHaveValue(futureDate);
     await page.getByRole("button", { name: /^create group$/i }).click();
 
     await expect(page.getByText(/enter a group nickname to continue/i)).toBeVisible();

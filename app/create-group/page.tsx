@@ -1,15 +1,23 @@
 "use client";
 
-import { useState } from "react";
+import {
+  type ChangeEvent,
+  type DragEvent,
+  useEffect,
+  useRef,
+  useState,
+} from "react";
 import { useRouter } from "next/navigation";
 import {
   sanitizeGroupNickname,
   validateAnonymousGroupNickname,
 } from "@/lib/groups/nickname";
 import { sanitizePlainText } from "@/lib/validation/common";
-import { createGroupWithInvites } from "./actions";
+import { createGroupWithInvitesFromFormData } from "./actions";
 
 const BUDGET_OPTIONS = [10, 15, 25, 50, 100];
+const MAX_GROUP_IMAGE_BYTES = 2 * 1024 * 1024;
+const ALLOWED_GROUP_IMAGE_TYPES = new Set(["image/jpeg", "image/png", "image/webp"]);
 const CURRENCIES = [
   { code: "USD", symbol: "$", label: "USD - US Dollar" },
   { code: "EUR", symbol: "EUR", label: "EUR - Euro" },
@@ -29,6 +37,18 @@ function getInviteEmailCount(value: string): number {
     .split(",")
     .map((email) => email.trim())
     .filter((email) => email.length > 0 && email.includes("@")).length;
+}
+
+function validateGroupImageFile(file: File): string | null {
+  if (!ALLOWED_GROUP_IMAGE_TYPES.has(file.type)) {
+    return "Upload a JPG, PNG, or WebP image.";
+  }
+
+  if (file.size > MAX_GROUP_IMAGE_BYTES) {
+    return "Keep the group picture under 2 MB.";
+  }
+
+  return null;
 }
 
 function ChecklistMark({ done }: { done: boolean }) {
@@ -58,6 +78,7 @@ function ChecklistMark({ done }: { done: boolean }) {
 
 export default function CreateGroupPage() {
   const router = useRouter();
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   const [groupName, setGroupName] = useState("");
   const [description, setDescription] = useState("");
@@ -68,10 +89,73 @@ export default function CreateGroupPage() {
   const [customBudget, setCustomBudget] = useState(false);
   const [requireAnonymousNickname, setRequireAnonymousNickname] = useState(false);
   const [ownerCodename, setOwnerCodename] = useState("");
+  const [groupImageFile, setGroupImageFile] = useState<File | null>(null);
+  const [groupImagePreviewUrl, setGroupImagePreviewUrl] = useState("");
+  const [imageDragActive, setImageDragActive] = useState(false);
 
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState("");
   const [statusMsg, setStatusMsg] = useState("");
+
+  useEffect(() => {
+    return () => {
+      if (groupImagePreviewUrl) {
+        URL.revokeObjectURL(groupImagePreviewUrl);
+      }
+    };
+  }, [groupImagePreviewUrl]);
+
+  const applyGroupImageFile = (file: File) => {
+    const validationMessage = validateGroupImageFile(file);
+
+    if (validationMessage) {
+      setErrorMsg(validationMessage);
+      setStatusMsg("");
+      return;
+    }
+
+    setErrorMsg("");
+    setStatusMsg("");
+    setGroupImageFile(file);
+    setGroupImagePreviewUrl((currentPreviewUrl) => {
+      if (currentPreviewUrl) {
+        URL.revokeObjectURL(currentPreviewUrl);
+      }
+
+      return URL.createObjectURL(file);
+    });
+  };
+
+  const handleGroupImageInput = (event: ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+
+    if (file) {
+      applyGroupImageFile(file);
+    }
+
+    event.target.value = "";
+  };
+
+  const handleGroupImageDrop = (event: DragEvent<HTMLButtonElement>) => {
+    event.preventDefault();
+    setImageDragActive(false);
+    const file = event.dataTransfer.files?.[0];
+
+    if (file) {
+      applyGroupImageFile(file);
+    }
+  };
+
+  const removeGroupImage = () => {
+    setGroupImageFile(null);
+    setGroupImagePreviewUrl((currentPreviewUrl) => {
+      if (currentPreviewUrl) {
+        URL.revokeObjectURL(currentPreviewUrl);
+      }
+
+      return "";
+    });
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -121,16 +205,21 @@ export default function CreateGroupPage() {
       .map((email) => sanitize(email, 100).toLowerCase())
       .filter((email) => email.length > 0 && email.includes("@"));
 
-    const result = await createGroupWithInvites({
-      name: cleanName,
-      description: cleanDesc,
-      eventDate,
-      inviteEmails: emailList,
-      budget: cleanBudget,
-      currency,
-      requireAnonymousNickname,
-      ownerCodename: cleanOwnerCodename,
-    });
+    const formData = new FormData();
+    formData.set("name", cleanName);
+    formData.set("description", cleanDesc);
+    formData.set("eventDate", eventDate);
+    formData.set("inviteEmailsJson", JSON.stringify(emailList));
+    formData.set("budget", cleanBudget.toString());
+    formData.set("currency", currency);
+    formData.set("requireAnonymousNickname", String(requireAnonymousNickname));
+    formData.set("ownerCodename", cleanOwnerCodename);
+
+    if (groupImageFile) {
+      formData.set("groupImage", groupImageFile);
+    }
+
+    const result = await createGroupWithInvitesFromFormData(formData);
 
     if (!result.success) {
       setErrorMsg(result.message);
@@ -220,8 +309,17 @@ export default function CreateGroupPage() {
             {description.trim() || "A little joy, a lot of surprises."}
           </p>
 
-          <div className="mx-auto mt-6 grid h-32 w-32 place-items-center rounded-[34px] bg-[#fff4df] text-[#48664e]">
-            <ChecklistMark done />
+          <div className="mx-auto mt-6 grid h-32 w-32 overflow-hidden rounded-[34px] bg-[#fff4df] text-[#48664e] shadow-[inset_0_0_0_1px_rgba(72,102,78,.1)]">
+            {groupImagePreviewUrl ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={groupImagePreviewUrl}
+                alt="Exchange preview"
+                className="h-full w-full object-cover"
+              />
+            ) : (
+              <ChecklistMark done />
+            )}
           </div>
 
           <div className="mt-8 space-y-4 border-t border-[rgba(72,102,78,.12)] pt-5">
@@ -290,6 +388,99 @@ export default function CreateGroupPage() {
                 color: "#1f2937",
               }}
             />
+          </div>
+
+          <div>
+            <label
+              className="text-[13px] font-extrabold mb-1.5 block"
+              style={{ color: "#374151" }}
+            >
+              Exchange picture{" "}
+              <span className="text-[11px] font-semibold" style={{ color: "#9ca3af" }}>
+                (optional)
+              </span>
+            </label>
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/png,image/jpeg,image/webp"
+              onChange={handleGroupImageInput}
+              className="hidden"
+            />
+            <button
+              type="button"
+              onClick={() => fileInputRef.current?.click()}
+              onDragEnter={(event) => {
+                event.preventDefault();
+                setImageDragActive(true);
+              }}
+              onDragOver={(event) => {
+                event.preventDefault();
+                setImageDragActive(true);
+              }}
+              onDragLeave={(event) => {
+                event.preventDefault();
+                setImageDragActive(false);
+              }}
+              onDrop={handleGroupImageDrop}
+              className="flex w-full flex-col gap-4 rounded-2xl p-4 text-left transition hover:-translate-y-0.5 sm:flex-row sm:items-center"
+              style={{
+                background: imageDragActive ? "#eef6ee" : "rgba(72,102,78,.045)",
+                border: imageDragActive
+                  ? "2px solid rgba(72,102,78,.42)"
+                  : "2px dashed rgba(72,102,78,.2)",
+                color: "#2e3432",
+                fontFamily: "inherit",
+              }}
+            >
+              <span className="grid h-20 w-20 shrink-0 place-items-center overflow-hidden rounded-2xl bg-white text-[#48664e] shadow-[inset_0_0_0_1px_rgba(72,102,78,.1)]">
+                {groupImagePreviewUrl ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    src={groupImagePreviewUrl}
+                    alt=""
+                    className="h-full w-full object-cover"
+                  />
+                ) : (
+                  <svg viewBox="0 0 28 28" className="h-8 w-8" fill="none" aria-hidden="true">
+                    <path
+                      d="M6 11.5h16v9.2c0 1-.8 1.8-1.8 1.8H7.8c-1 0-1.8-.8-1.8-1.8v-9.2Z"
+                      stroke="currentColor"
+                      strokeWidth="1.8"
+                    />
+                    <path
+                      d="M9 11.5V9.8A3.8 3.8 0 0 1 16.2 8M14 11.5V9.8a3.8 3.8 0 0 1 7.3-1.4M5 14h18"
+                      stroke="currentColor"
+                      strokeLinecap="round"
+                      strokeWidth="1.8"
+                    />
+                    <path
+                      d="M14 4.5v5M11.5 7h5"
+                      stroke="#c0392b"
+                      strokeLinecap="round"
+                      strokeWidth="1.8"
+                    />
+                  </svg>
+                )}
+              </span>
+              <span className="min-w-0">
+                <span className="block text-[14px] font-black">
+                  {groupImageFile ? groupImageFile.name : "Drop a group picture or browse"}
+                </span>
+                <span className="mt-1 block text-[12px] font-semibold leading-5 text-slate-500">
+                  JPG, PNG, or WebP. Keep it under 2 MB. The picture appears on your group card.
+                </span>
+              </span>
+            </button>
+            {groupImageFile && (
+              <button
+                type="button"
+                onClick={removeGroupImage}
+                className="mt-2 rounded-full px-3 py-1.5 text-[12px] font-bold text-[#a43c3f] transition hover:bg-[#fff1f2]"
+              >
+                Remove picture
+              </button>
+            )}
           </div>
 
           <div>
@@ -500,6 +691,11 @@ export default function CreateGroupPage() {
                 type="button"
                 onClick={() => setRequireAnonymousNickname((current) => !current)}
                 aria-pressed={requireAnonymousNickname}
+                aria-label={
+                  requireAnonymousNickname
+                    ? "Allow real names in this group"
+                    : "Use nicknames in this group"
+                }
                 className="inline-flex shrink-0 items-center rounded-full p-1 transition"
                 style={{
                   background: requireAnonymousNickname ? "#2563eb" : "#cbd5e1",

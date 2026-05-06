@@ -1,10 +1,15 @@
 import type { ReactNode } from "react";
 import { GiftIcon } from "./dashboard-icons";
 
-export function GroupGiftBadge() {
+export function GroupGiftBadge({ imageUrl }: { imageUrl?: string | null }) {
   return (
-    <span className="relative flex h-16 w-16 shrink-0 items-center justify-center rounded-3xl bg-white text-[#48664e] shadow-[inset_0_0_0_1px_rgba(72,102,78,0.12),0_12px_26px_rgba(72,102,78,0.08)]">
-      <GiftIcon className="h-8 w-8" />
+    <span className="relative flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-3xl bg-white text-[#48664e] shadow-[inset_0_0_0_1px_rgba(72,102,78,0.12),0_12px_26px_rgba(72,102,78,0.08)]">
+      {imageUrl ? (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img src={imageUrl} alt="" className="h-full w-full object-cover" />
+      ) : (
+        <GiftIcon className="h-8 w-8" />
+      )}
       <span className="absolute right-2 top-2 h-3 w-3 rounded-full bg-[#fcce72]" />
     </span>
   );

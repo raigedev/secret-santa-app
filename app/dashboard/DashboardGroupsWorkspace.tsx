@@ -149,7 +149,7 @@ function GroupWorkspacePreview({
       >
         <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
           <div className="flex min-w-0 flex-col gap-4 sm:flex-row sm:items-center">
-            <GroupGiftBadge />
+            <GroupGiftBadge imageUrl={group.image_url} />
             <div className="min-w-0">
               <div className="flex flex-wrap items-center gap-3">
                 <h3

@@ -146,6 +146,8 @@ const AUTHENTICATED_SCREEN_CASES: ScreenCase[] = [
     path: "/create-group",
     assertVisible: async (page) => {
       await expect(page.getByRole("heading", { name: /^create group$/i })).toBeVisible();
+      await expect(page.getByText(/exchange picture/i)).toBeVisible();
+      await expect(page.getByText(/drop a group picture or browse/i)).toBeVisible();
       await expect(page.getByRole("button", { name: /create group/i })).toBeVisible();
     },
   },

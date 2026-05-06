@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { getProfile } from "@/app/profile/actions";
 import { claimInvitedMemberships } from "./actions";
+import { normalizeGroupImageUrl } from "@/lib/groups/group-image";
 import { isGroupInHistory } from "@/lib/groups/history";
 import { DashboardSkeleton } from "@/app/components/PageSkeleton";
 import FadeIn from "@/app/components/FadeIn";
@@ -405,7 +406,7 @@ export default function DashboardPage() {
             acceptedGroupIds.length > 0
               ? supabase
                   .from("groups")
-                  .select("id, name, description, event_date, budget, currency, owner_id, created_at, require_anonymous_nickname")
+                  .select("id, name, description, event_date, image_url, budget, currency, owner_id, created_at, require_anonymous_nickname")
                   .in("id", acceptedGroupIds)
               : createEmptyQueryResult<GroupRow>(),
             acceptedGroupIds.length > 0
@@ -511,6 +512,7 @@ export default function DashboardPage() {
         const groupsWithMembers: Group[] = activeGroupsData.map((group) => {
           return {
             ...group,
+            image_url: normalizeGroupImageUrl(group.image_url),
             isOwner: roleMap[group.id] === "owner",
             hasDrawn: drawnGroupIds.has(group.id),
             members: (membersByGroupId.get(group.id) || []).map((member) => ({

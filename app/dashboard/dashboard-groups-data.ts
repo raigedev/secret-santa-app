@@ -14,6 +14,7 @@ import {
   writeClientSnapshot,
   type ClientSnapshotMetadata,
 } from "@/lib/client-snapshot";
+import { normalizeGroupImageUrl } from "@/lib/groups/group-image";
 import { isNullableString, isRecord } from "@/lib/validation/common";
 
 type DashboardGroupsUser = {
@@ -127,7 +128,7 @@ export async function loadDashboardGroups(
     acceptedGroupIds.length > 0
       ? supabase
           .from("groups")
-          .select("id, name, description, event_date, budget, currency, owner_id, created_at, require_anonymous_nickname")
+          .select("id, name, description, event_date, image_url, budget, currency, owner_id, created_at, require_anonymous_nickname")
           .in("id", acceptedGroupIds)
       : createEmptyQueryResult<GroupRow>(),
     acceptedGroupIds.length > 0
@@ -169,6 +170,7 @@ export async function loadDashboardGroups(
   return splitDashboardGroups(
     groupsData.map((group) => ({
       ...group,
+      image_url: normalizeGroupImageUrl(group.image_url),
       hasDrawn: drawnGroupIds.has(group.id),
       isOwner: roleMap[group.id] === "owner",
       members: (membersByGroupId.get(group.id) || []).map((member) => ({

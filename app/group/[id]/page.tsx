@@ -30,6 +30,7 @@ import { GroupMembersSection } from "./GroupMembersSection";
 import { GroupOwnerInsightsPanel, GroupOwnerInsightsSkeleton } from "./GroupOwnerInsightsPanel";
 import { BUDGET_OPTIONS, CURRENCIES, HISTORY_PAGE_SIZE } from "./group-page-config";
 import { HistorySkeletonRows } from "./GroupPagePrimitives";
+import { normalizeGroupImageUrl } from "@/lib/groups/group-image";
 import {
   clearGroupPageSnapshots,
   getVisibleGroupMemberName,
@@ -221,7 +222,7 @@ export default function GroupDetailsPage() {
       const [groupResult, membersResult] = await Promise.all([
         supabase
           .from("groups")
-          .select("name, description, event_date, owner_id, budget, currency, require_anonymous_nickname, revealed, revealed_at")
+          .select("name, description, event_date, image_url, owner_id, budget, currency, require_anonymous_nickname, revealed, revealed_at")
           .eq("id", id)
           .maybeSingle(),
         supabase
@@ -250,7 +251,10 @@ export default function GroupDetailsPage() {
         return;
       }
 
-      const group = groupResult.data;
+      const group = {
+        ...groupResult.data,
+        image_url: normalizeGroupImageUrl(groupResult.data.image_url),
+      };
       setError(null);
       setGroupDataFresh(false);
       setRevealMatches([]);
@@ -932,7 +936,7 @@ export default function GroupDetailsPage() {
           >
             <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
               <div className="flex min-w-0 flex-col gap-4 sm:flex-row sm:items-center">
-                <GroupGiftBadge />
+                  <GroupGiftBadge imageUrl={groupData.image_url} />
                 <div className="min-w-0">
                   <div className="flex flex-wrap items-center gap-3">
                     <h1
@@ -2115,24 +2119,29 @@ function EditPencilIcon() {
   );
 }
 
-function GroupGiftBadge() {
+function GroupGiftBadge({ imageUrl }: { imageUrl?: string | null }) {
   return (
-    <div className="grid h-18 w-18 shrink-0 place-items-center rounded-3xl bg-white shadow-[inset_0_0_0_1px_rgba(72,102,78,.1),0_14px_34px_rgba(46,52,50,.06)]">
-      <svg viewBox="0 0 64 64" className="h-13 w-13" fill="none" aria-hidden="true">
-        <ellipse cx="32" cy="51" rx="18" ry="5" fill="rgba(72,102,78,.12)" />
-        <path d="M16 25h32v24H16V25Z" fill="#48664e" />
-        <path d="M16 25h32v9H16V25Z" fill="#fcce72" />
-        <path d="M29 25h6v24h-6V25Z" fill="#f6e4b6" />
-        <path d="M20 18c6-6 10 1 12 7-8 .5-13-.7-12-7Z" fill="#a43c3f" />
-        <path d="M44 18c-6-6-10 1-12 7 8 .5 13-.7 12-7Z" fill="#a43c3f" />
-        <circle cx="52" cy="31" r="2" fill="#fcce72" />
-        <path
-          d="M53.5 40h5M56 37.5v5M12 35h5M14.5 32.5v5"
-          stroke="#fcce72"
-          strokeLinecap="round"
-          strokeWidth="2"
-        />
-      </svg>
+    <div className="grid h-18 w-18 shrink-0 place-items-center overflow-hidden rounded-3xl bg-white shadow-[inset_0_0_0_1px_rgba(72,102,78,.1),0_14px_34px_rgba(46,52,50,.06)]">
+      {imageUrl ? (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img src={imageUrl} alt="" className="h-full w-full object-cover" />
+      ) : (
+        <svg viewBox="0 0 64 64" className="h-13 w-13" fill="none" aria-hidden="true">
+          <ellipse cx="32" cy="51" rx="18" ry="5" fill="rgba(72,102,78,.12)" />
+          <path d="M16 25h32v24H16V25Z" fill="#48664e" />
+          <path d="M16 25h32v9H16V25Z" fill="#fcce72" />
+          <path d="M29 25h6v24h-6V25Z" fill="#f6e4b6" />
+          <path d="M20 18c6-6 10 1 12 7-8 .5-13-.7-12-7Z" fill="#a43c3f" />
+          <path d="M44 18c-6-6-10 1-12 7 8 .5 13-.7 12-7Z" fill="#a43c3f" />
+          <circle cx="52" cy="31" r="2" fill="#fcce72" />
+          <path
+            d="M53.5 40h5M56 37.5v5M12 35h5M14.5 32.5v5"
+            stroke="#fcce72"
+            strokeLinecap="round"
+            strokeWidth="2"
+          />
+        </svg>
+      )}
     </div>
   );
 }

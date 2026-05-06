@@ -13,6 +13,7 @@ export type Group = {
   name: string;
   description: string;
   event_date: string;
+  image_url: string | null;
   budget: number | null;
   currency: string | null;
   owner_id: string;
@@ -47,6 +48,7 @@ export type GroupRow = {
   name: string;
   description: string;
   event_date: string;
+  image_url: string | null;
   budget: number | null;
   currency: string | null;
   owner_id: string;
