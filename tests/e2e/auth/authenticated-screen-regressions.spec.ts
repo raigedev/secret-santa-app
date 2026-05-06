@@ -136,6 +136,9 @@ const AUTHENTICATED_SCREEN_CASES: ScreenCase[] = [
     assertVisible: async (page) => {
       await expect(page.getByTestId("app-route-shell")).toBeVisible();
       await expect(page.getByRole("heading", { name: /your groups/i })).toBeVisible();
+      await expect(page.getByRole("heading", { name: /group launcher/i })).toBeVisible();
+      await expect(page.getByRole("heading", { name: /members \(/i })).toHaveCount(0);
+      await expect(page.getByRole("link", { name: /open member list/i })).toHaveCount(0);
     },
   },
   {
