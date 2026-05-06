@@ -1129,6 +1129,21 @@ test.describe("group-scoped authenticated regressions", () => {
     await page.goto(`/group/${groupId}`);
     await expect(page.getByRole("button", { name: /back to groups/i })).toBeVisible();
     await expect(page.getByText(/monitor participation and progress/i)).toBeVisible();
+
+    const membersSection = page.locator("#group-members");
+    await expect(membersSection.getByText(/needs attention/i)).toHaveCount(0);
+
+    const editGroupButton = page.getByRole("button", { name: /^edit group$/i });
+
+    if (await editGroupButton.isVisible().catch(() => false)) {
+      await editGroupButton.click();
+
+      const dialog = page.getByRole("dialog");
+      await expect(dialog.getByRole("heading", { name: /edit group/i })).toBeVisible();
+      await expect(dialog.locator("input").first()).toBeVisible();
+      await dialog.getByRole("button", { name: /cancel/i }).click();
+      await expect(dialog).toHaveCount(0);
+    }
   });
 
   test("peer profile lookup stays authenticated and uncached", async ({ page }) => {

@@ -14,6 +14,7 @@ type GroupMembersSectionProps = {
   missingWishlistMemberNames?: string[];
   pendingMembers: Member[];
   requireAnonymousNickname: boolean;
+  wishlistReadinessLoaded?: boolean;
   onRemoveMember: (member: Member) => void;
   onRevokeMembership: (membershipId: string) => void;
 };
@@ -37,6 +38,7 @@ export function GroupMembersSection({
   missingWishlistMemberNames = [],
   pendingMembers,
   requireAnonymousNickname,
+  wishlistReadinessLoaded = true,
   onRemoveMember,
   onRevokeMembership,
 }: GroupMembersSectionProps) {
@@ -113,10 +115,12 @@ export function GroupMembersSection({
                 requireAnonymousNickname
               );
               const memberName = rawMemberName;
+              const isWishlistPendingCheck = status === "accepted" && !wishlistReadinessLoaded;
               const isWishlistMissing =
-                status !== "accepted" || missingWishlistNames.has(normalizeMemberName(rawMemberName));
-              const statusMeta = getStatusMeta(status, isWishlistMissing);
-              const wishlistMeta = getWishlistMeta(status, isWishlistMissing);
+                status !== "accepted" ||
+                (wishlistReadinessLoaded && missingWishlistNames.has(normalizeMemberName(rawMemberName)));
+              const statusMeta = getStatusMeta(status);
+              const wishlistMeta = getWishlistMeta(status, isWishlistMissing, isWishlistPendingCheck);
               const canEditNickname = isCurrentUser && !drawDone;
               const canRemoveAcceptedMember =
                 isOwner && !drawDone && status === "accepted" && Boolean(member.user_id) && !isCurrentUser;
@@ -231,22 +235,13 @@ function normalizeMemberName(name: string): string {
   return name.trim().toLowerCase();
 }
 
-function getStatusMeta(status: MemberDisplayRow["status"], isWishlistMissing: boolean) {
+function getStatusMeta(status: MemberDisplayRow["status"]) {
   if (status === "accepted") {
-    if (isWishlistMissing) {
-      return {
-        badgeBg: "#fff7f6",
-        badgeColor: "#a43c3f",
-        helper: "Needs wishlist",
-        label: "Needs attention",
-      };
-    }
-
     return {
       badgeBg: "#d7fadb",
       badgeColor: "#48664e",
-      helper: "Joined",
-      label: "All set",
+      helper: "Accepted invite",
+      label: "Joined",
     };
   }
 
@@ -263,11 +258,23 @@ function getStatusMeta(status: MemberDisplayRow["status"], isWishlistMissing: bo
     badgeBg: "#fff7f6",
     badgeColor: "#a43c3f",
     helper: "Declined the invitation",
-    label: "Needs attention",
+    label: "Declined",
   };
 }
 
-function getWishlistMeta(status: MemberDisplayRow["status"], isWishlistMissing: boolean) {
+function getWishlistMeta(
+  status: MemberDisplayRow["status"],
+  isWishlistMissing: boolean,
+  isWishlistPendingCheck: boolean
+) {
+  if (isWishlistPendingCheck) {
+    return {
+      color: "#64748b",
+      helper: "Checking wishlist",
+      label: "Checking",
+    };
+  }
+
   if (isWishlistMissing) {
     return {
       color: "#a43c3f",
