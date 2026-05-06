@@ -536,7 +536,14 @@ export default function ProfilePage() {
   if (loading) return <ProfileSkeleton />;
 
   return (
-    <main className="min-h-screen" style={{ background: "linear-gradient(180deg,#eef4fb,#dce8f5,#e8dce0)", fontFamily: "'Nunito', sans-serif" }}>
+    <main
+      className="min-h-screen"
+      style={{
+        background:
+          "repeating-linear-gradient(135deg,rgba(72,102,78,.045) 0 1px,transparent 1px 38px),linear-gradient(180deg,#fffefa 0%,#f7faf5 42%,#eef4ef 100%)",
+        fontFamily: "'Nunito', sans-serif",
+      }}
+    >
       <FadeIn className="mx-auto max-w-160 px-4 py-5 sm:px-6 sm:py-8">
 
         {/* Back */}
@@ -553,7 +560,7 @@ export default function ProfilePage() {
         </div>
 
         {/* ═══ AVATAR SECTION ═══ */}
-        <div data-fade className="mb-4 rounded-[20px] p-5 text-center sm:p-7" style={{ background: "#fff", boxShadow: "0 4px 20px rgba(0,0,0,.04)", border: "1px solid rgba(0,0,0,.04)" }}>
+        <div data-fade className="holiday-panel-strong mb-4 rounded-[20px] p-5 text-center sm:p-7">
           <div className="relative inline-block mb-3">
             <div className="flex h-24 w-24 items-center justify-center rounded-full text-[44px] sm:h-30 sm:w-30 sm:text-[56px]"
               style={{ background: "linear-gradient(135deg,#fef2f2,#fee2e2)", border: "4px solid #fff", boxShadow: "0 4px 16px rgba(192,57,43,.15)" }}>
@@ -631,7 +638,7 @@ export default function ProfilePage() {
         </div>
 
         {/* ═══ PERSONAL INFO ═══ */}
-        <div data-fade className="mb-4 rounded-[20px] p-5 sm:p-7" style={{ background: "#fff", boxShadow: "0 4px 20px rgba(0,0,0,.04)", border: "1px solid rgba(0,0,0,.04)" }}>
+        <div data-fade className="holiday-panel mb-4 rounded-[20px] p-5 sm:p-7">
           <h2 className="text-[18px] font-bold mb-5 flex items-center gap-2" style={{ fontFamily: "'Fredoka', sans-serif", color: "#1a1a1a" }}>👤 Personal Info</h2>
 
           <div className="mb-4">
@@ -664,7 +671,7 @@ export default function ProfilePage() {
         </div>
 
         {/* ═══ PREFERENCES ═══ */}
-        <div data-fade className="mb-4 rounded-[20px] p-5 sm:p-7" style={{ background: "#fff", boxShadow: "0 4px 20px rgba(0,0,0,.04)", border: "1px solid rgba(0,0,0,.04)" }}>
+        <div data-fade className="holiday-panel mb-4 rounded-[20px] p-5 sm:p-7">
           <h2 className="text-[18px] font-bold mb-5 flex items-center gap-2" style={{ fontFamily: "'Fredoka', sans-serif", color: "#1a1a1a" }}>⚙️ Preferences</h2>
 
           <div className="mb-5">
@@ -715,7 +722,7 @@ export default function ProfilePage() {
         </div>
 
         {/* ═══ NOTIFICATIONS ═══ */}
-        <div data-fade className="mb-4 rounded-[20px] p-5 sm:p-7" style={{ background: "#fff", boxShadow: "0 4px 20px rgba(0,0,0,.04)", border: "1px solid rgba(0,0,0,.04)" }}>
+        <div data-fade className="holiday-panel mb-4 rounded-[20px] p-5 sm:p-7">
           <h2 className="text-[18px] font-bold mb-5 flex items-center gap-2" style={{ fontFamily: "'Fredoka', sans-serif", color: "#1a1a1a" }}>🔔 Notifications</h2>
 
           {[
@@ -868,7 +875,7 @@ export default function ProfilePage() {
         </div>
 
         {/* ═══ DANGER ZONE ═══ */}
-        <div data-fade className="rounded-[20px] p-5 sm:p-7" style={{ background: "#fff", border: "1px solid rgba(220,38,38,.1)", boxShadow: "0 4px 20px rgba(0,0,0,.04)" }}>
+        <div data-fade className="holiday-panel rounded-[20px] p-5 sm:p-7" style={{ borderColor: "rgba(220,38,38,.1)" }}>
           <h2 className="text-[18px] font-bold mb-3" style={{ fontFamily: "'Fredoka', sans-serif", color: "#dc2626" }}>⚠️ Account actions</h2>
           <div className="flex flex-wrap gap-2">
             <button onClick={() => router.push("/reset-password")}

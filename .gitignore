@@ -17,6 +17,7 @@
 /test-results/*
 !/test-results/.gitkeep
 /playwright/.auth/
+/output/playwright/
 
 # next.js
 /.next/

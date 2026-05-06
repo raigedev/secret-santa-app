@@ -1547,14 +1547,11 @@ function SantaHelperSidecar({
   return (
     <aside
       data-testid="santa-helper-panel"
-      className="sticky top-26 hidden self-start overflow-hidden rounded-[30px] p-5 xl:block"
+      className="holiday-panel sticky top-26 hidden self-start overflow-hidden rounded-[30px] p-5 xl:block"
       style={{
         background:
           "radial-gradient(circle at 86% 78%,rgba(252,206,114,.22),transparent 11rem), " +
           SHOPPING_SHELL_BACKGROUND,
-        border: SHOPPING_SHELL_BORDER,
-        boxShadow:
-          "0 26px 60px rgba(46,52,50,.12), inset 0 1px 0 rgba(255,255,255,.94)",
       }}
       aria-label="Santa Helper gift guidance"
     >
@@ -2062,12 +2059,7 @@ function MyGifteeWorkspace({ assignments }: { assignments: RecipientData[] }) {
   return (
     <section
       data-testid="my-giftee-workspace"
-      className="mb-8 rounded-[30px] p-4 sm:p-6"
-      style={{
-        background: "linear-gradient(135deg,rgba(255,255,255,.96),rgba(239,247,241,.92))",
-        border: "1px solid rgba(72,102,78,.18)",
-        boxShadow: "0 22px 54px rgba(46,52,50,.07)",
-      }}
+      className="holiday-panel-strong mb-8 rounded-[30px] p-4 sm:p-6"
     >
       <div className="grid gap-5 lg:grid-cols-[minmax(0,0.8fr)_minmax(0,1.2fr)]">
         <div>
@@ -2138,7 +2130,7 @@ function MyGifteeWorkspace({ assignments }: { assignments: RecipientData[] }) {
             return (
               <article
                 key={`giftee-${assignment.group_id}`}
-                className="rounded-3xl border border-[rgba(72,102,78,.14)] bg-white/90 p-4 shadow-[0_12px_28px_rgba(46,52,50,.04)]"
+                className="holiday-panel-row rounded-3xl p-4"
               >
                 <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                   <div className="min-w-0">
@@ -2244,7 +2236,7 @@ function GiftTrackingWorkspace({
         <article
           key={`tracking-${assignment.group_id}`}
           data-testid="secret-santa-gift-progress-section"
-          className="rounded-[28px] border border-[rgba(72,102,78,.16)] bg-white/90 p-4"
+          className="holiday-panel-soft rounded-[28px] p-4"
         >
           <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
             <div>
@@ -4615,7 +4607,7 @@ export function SecretSantaExperience({ mode = "shopping" }: SecretSantaExperien
                                       wishlistItem.id
                                     )
                                   }
-                                  className="w-full rounded-[30px] p-4 text-left transition hover:-translate-y-0.5 sm:p-5"
+                                  className="holiday-panel-soft w-full rounded-[30px] p-4 text-left transition hover:-translate-y-0.5 sm:p-5"
                                   style={{
                                     background: isActiveItem
                                       ? "linear-gradient(135deg,#fffdf7 0%,rgba(255,238,238,.98) 100%)"

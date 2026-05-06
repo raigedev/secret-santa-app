@@ -263,7 +263,7 @@ export function CreateGroupSkeleton() {
     <main data-testid="create-group-loading-shell" className="min-h-screen" style={{ background: appShellBackground }}>
       <style>{shimmerCSS}</style>
       <div className="mx-auto flex min-h-screen max-w-3xl items-center justify-center px-4 py-8">
-        <div className="w-full max-w-lg rounded-3xl bg-white/80 p-8 shadow-[0_24px_70px_rgba(148,163,184,0.18)] backdrop-blur-md">
+        <div className="holiday-panel w-full max-w-lg p-8">
           <Bone w="120px" h="32px" r={999} className="mb-6" />
           <Bone w="220px" h="34px" className="mb-3" />
           <Bone w="260px" h="16px" className="mb-8" />

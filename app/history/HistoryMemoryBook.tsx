@@ -78,7 +78,7 @@ export function HistoryMemoryBook({
 
   return (
     <main className="relative min-h-screen px-0 py-2 sm:py-3">
-      <section id="history-exchange-list" className="relative overflow-hidden rounded-4xl bg-white/90 px-4 py-5 shadow-[0_24px_70px_rgba(46,52,50,.08)] ring-1 ring-[#48664e]/12 sm:px-7 sm:py-7 lg:px-10">
+      <section id="history-exchange-list" className="holiday-panel-strong relative overflow-hidden rounded-4xl px-4 py-5 sm:px-7 sm:py-7 lg:px-10">
         <PineCorner />
         <div className="relative">
           <a href="#history-exchange-list" className="inline-flex min-h-10 items-center gap-2 rounded-full px-3 text-sm font-black text-[#48664e] transition hover:-translate-y-0.5">
@@ -124,7 +124,7 @@ export function HistoryMemoryBook({
           <div className="mt-7 grid gap-6 xl:grid-cols-[minmax(0,1fr)_21rem]">
             <section className="min-w-0">
               <div
-                className="grid grid-cols-2 overflow-hidden rounded-t-3xl bg-[#f3f4f2] ring-1 ring-[#48664e]/12 sm:grid-cols-4"
+                className="holiday-panel-soft grid grid-cols-2 overflow-hidden rounded-t-3xl sm:grid-cols-4"
                 role="tablist"
                 aria-label="History sections"
               >
@@ -151,7 +151,7 @@ export function HistoryMemoryBook({
                 id="history-tab-panel"
                 role="tabpanel"
                 aria-labelledby={`history-tab-${activeTab}`}
-                className="rounded-b-3xl bg-white/94 p-4 ring-1 ring-[#48664e]/12 sm:p-6"
+                className="holiday-panel rounded-b-3xl p-4 sm:p-6"
               >
                 <h2 className="sr-only">{activeTabLabel}</h2>
 
@@ -165,7 +165,7 @@ export function HistoryMemoryBook({
                     </div>
                     <dl className="mt-6 grid gap-3 sm:grid-cols-2">
                       {selectedGroupFacts.map(([label, value]) => (
-                        <div key={label} className="rounded-3xl bg-[#f8fbff] px-4 py-4 ring-1 ring-[#48664e]/10">
+                        <div key={label} className="holiday-panel-soft rounded-3xl px-4 py-4">
                           <dt className="text-xs font-black uppercase tracking-[0.14em] text-[#48664e]">
                             {label}
                           </dt>
@@ -188,7 +188,7 @@ export function HistoryMemoryBook({
                     </div>
 
                     {wishlistItems.length === 0 ? (
-                      <div className="mt-6 rounded-3xl border border-dashed border-[#48664e]/18 bg-[#f8fbff] px-5 py-8 text-center">
+                      <div className="holiday-panel-soft mt-6 rounded-3xl border border-dashed border-[#48664e]/18 px-5 py-8 text-center">
                         <h2 className="text-xl font-black text-[#2e3432]">No past wishlist items</h2>
                         <p className="mt-2 text-sm font-semibold text-slate-500">
                           This exchange does not have saved wishlist items in your history.
@@ -197,7 +197,7 @@ export function HistoryMemoryBook({
                     ) : (
                       <div className="mt-6 space-y-4">
                         {wishlistItems.map((item) => (
-                          <article key={item.id} className="flex flex-col gap-4 rounded-3xl bg-white p-3 shadow-[0_12px_28px_rgba(46,52,50,.045)] ring-1 ring-[#48664e]/12 sm:flex-row sm:items-center">
+                          <article key={item.id} className="holiday-panel-row flex flex-col gap-4 rounded-3xl p-3 sm:flex-row sm:items-center">
                             <WishlistMemoryThumbnail item={item} />
                             <div className="min-w-0 flex-1">
                               <h2 className="break-words text-xl font-black leading-7 text-[#2e3432]">
@@ -241,7 +241,7 @@ export function HistoryMemoryBook({
                 )}
 
                 {activeTab === "result-card" && (
-                  <div className="rounded-3xl bg-[#f8fbff] px-5 py-8 text-center ring-1 ring-[#48664e]/10">
+                  <div className="holiday-panel-soft rounded-3xl px-5 py-8 text-center">
                     <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-full bg-[#fff8ea] ring-1 ring-[#fcce72]/40">
                       <SantaMarkIcon size={62} />
                     </div>
@@ -257,7 +257,7 @@ export function HistoryMemoryBook({
                 )}
 
                 {activeTab === "notes" && (
-                  <div className="rounded-3xl bg-[#f8fbff] px-5 py-8 ring-1 ring-[#48664e]/10">
+                  <div className="holiday-panel-soft rounded-3xl px-5 py-8">
                     <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
                       <SparkMark />
                       <div>
@@ -271,7 +271,7 @@ export function HistoryMemoryBook({
                 )}
               </div>
 
-              <div className="mt-5 flex items-center gap-4 rounded-3xl bg-[#f8fbff]/86 px-5 py-4 ring-1 ring-[#48664e]/12">
+              <div className="holiday-panel-soft mt-5 flex items-center gap-4 rounded-3xl px-5 py-4">
                 <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-white text-[#48664e]">
                   <UserOutlineIcon className="h-5 w-5" />
                 </span>
@@ -281,7 +281,7 @@ export function HistoryMemoryBook({
               </div>
             </section>
 
-            <aside className="rounded-3xl bg-white/94 p-5 shadow-[0_18px_42px_rgba(46,52,50,.055)] ring-1 ring-[#48664e]/12 xl:sticky xl:top-26 xl:self-start">
+            <aside className="holiday-panel rounded-3xl p-5 xl:sticky xl:top-26 xl:self-start">
               <div className="flex items-center justify-between gap-3">
                 <p className="text-[11px] font-black uppercase tracking-[0.18em] text-[#48664e]">Event recap</p>
                 <span className="rounded-full bg-[#48664e]/10 px-3 py-1 text-xs font-black text-[#48664e]">Concluded</span>

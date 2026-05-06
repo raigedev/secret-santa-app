@@ -218,7 +218,6 @@ export default function RemindersPage() {
   };
 
   const isMidnightTheme = dashboardTheme === "midnight";
-  const panelBackground = isMidnightTheme ? "rgba(15,23,42,.86)" : "rgba(255,255,255,.88)";
   const panelBorder = isMidnightTheme ? "rgba(148,163,184,.22)" : "rgba(148,163,184,.18)";
   const textColor = isMidnightTheme ? "#f8fafc" : "#2e3432";
   const mutedColor = isMidnightTheme ? "#cbd5e1" : "#64748b";
@@ -227,12 +226,10 @@ export default function RemindersPage() {
     <main data-testid="settings-workspace" className="min-h-screen px-4 py-8 sm:px-6 lg:px-8">
       <div className="mx-auto max-w-5xl">
         <section
-          className="relative overflow-hidden rounded-[30px] border px-5 py-6 shadow-[0_18px_42px_rgba(46,52,50,.06)] sm:px-7"
+          className={`relative overflow-hidden rounded-[30px] px-5 py-6 sm:px-7 ${
+            isMidnightTheme ? "holiday-panel-dark" : "holiday-panel-strong"
+          }`}
           style={{
-            background: isMidnightTheme
-              ? "linear-gradient(135deg,rgba(15,23,42,.92),rgba(30,41,59,.86))"
-              : "rgba(255,255,255,.84)",
-            borderColor: isMidnightTheme ? "rgba(148,163,184,.24)" : "rgba(72,102,78,.16)",
             color: textColor,
           }}
         >
@@ -266,7 +263,7 @@ export default function RemindersPage() {
         {loadingPreferences && (
           <div
             role="status"
-            className="mt-5 rounded-[18px] border border-[rgba(72,102,78,.16)] bg-white/88 px-4 py-3 text-[13px] font-extrabold text-[#48664e]"
+            className="holiday-panel-soft mt-5 rounded-[18px] px-4 py-3 text-[13px] font-extrabold text-[#48664e]"
           >
             Loading your saved reminder choices...
           </div>
@@ -275,7 +272,7 @@ export default function RemindersPage() {
         {message && (
           <div
             role={message.includes("could not") ? "alert" : "status"}
-            className="mt-5 rounded-[18px] border border-[rgba(72,102,78,.16)] bg-white/88 px-4 py-3 text-[13px] font-extrabold text-[#48664e]"
+            className="holiday-panel-soft mt-5 rounded-[18px] px-4 py-3 text-[13px] font-extrabold text-[#48664e]"
           >
             {message}
           </div>
@@ -316,8 +313,10 @@ export default function RemindersPage() {
 
         <section className="mt-6 grid gap-5 lg:grid-cols-[minmax(0,1fr)_340px]">
           <div
-            className="rounded-[28px] border p-5 shadow-[0_18px_42px_rgba(46,52,50,.05)] sm:p-6"
-            style={{ background: panelBackground, borderColor: panelBorder }}
+            className={`rounded-[28px] p-5 sm:p-6 ${
+              isMidnightTheme ? "holiday-panel-dark" : "holiday-panel"
+            }`}
+            style={{ color: textColor }}
           >
             <h2 className="text-[20px] font-black" style={{ color: textColor }}>How reminders arrive</h2>
             <p className="mt-2 text-[13px] font-semibold leading-6" style={{ color: mutedColor }}>
@@ -343,8 +342,10 @@ export default function RemindersPage() {
           </div>
 
           <aside
-            className="space-y-4 rounded-[28px] border p-5 shadow-[0_18px_42px_rgba(46,52,50,.06)]"
-            style={{ background: panelBackground, borderColor: panelBorder }}
+            className={`space-y-4 rounded-[28px] p-5 ${
+              isMidnightTheme ? "holiday-panel-dark" : "holiday-panel"
+            }`}
+            style={{ color: textColor }}
           >
             <div>
               <h2 className="text-[18px] font-black" style={{ color: textColor }}>Display</h2>

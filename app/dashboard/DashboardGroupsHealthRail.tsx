@@ -22,8 +22,8 @@ export function GroupHealthRail({
 
   return (
     <aside
-      className={`rounded-3xl p-5 shadow-[0_18px_44px_rgba(46,52,50,0.06)] ring-1 ring-[rgba(72,102,78,0.12)] xl:sticky xl:top-24 ${
-        isDarkTheme ? "bg-slate-900/85 text-slate-100" : "bg-white/95 text-[#2e3432]"
+      className={`rounded-3xl p-5 xl:sticky xl:top-24 ${
+        isDarkTheme ? "holiday-panel-dark text-slate-100" : "holiday-panel text-[#2e3432]"
       }`}
       aria-label="Exchange health"
     >
@@ -108,8 +108,8 @@ function HealthRow({
   return (
     <Link
       href={href}
-      className={`flex items-center gap-3 rounded-2xl p-4 shadow-[inset_0_0_0_1px_rgba(72,102,78,0.1)] transition hover:-translate-y-0.5 ${
-        isDarkTheme ? "bg-slate-800 text-slate-100" : "bg-white"
+      className={`flex items-center gap-3 rounded-2xl p-4 transition hover:-translate-y-0.5 ${
+        isDarkTheme ? "bg-slate-800 text-slate-100" : "holiday-panel-row"
       }`}
     >
       <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[#f2f4f2] text-[#48664e]">

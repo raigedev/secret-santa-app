@@ -92,7 +92,7 @@ export function GroupDeleteDialog({
         aria-labelledby="delete-group-title"
         aria-describedby="delete-group-description"
         aria-modal="true"
-        className="w-full max-w-lg rounded-[28px] border border-[rgba(164,60,63,0.18)] bg-white p-6 text-[#2e3432] shadow-[0_24px_70px_rgba(46,52,50,0.22)]"
+        className="holiday-panel w-full max-w-lg p-6 text-[#2e3432]"
         role="dialog"
       >
         <p className="text-[11px] font-black uppercase tracking-[0.18em] text-[#a43c3f]">

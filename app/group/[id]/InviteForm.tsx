@@ -124,7 +124,7 @@ export default function InviteForm({ groupId }: { groupId: string }) {
       <form action={formAction} className="flex flex-col gap-2">
         <input type="hidden" name="id" value={groupId} />
 
-        <div className="rounded-3xl bg-[#fffefa] p-4 shadow-[inset_0_0_0_1px_rgba(72,102,78,.11)]">
+        <div className="holiday-panel-soft rounded-3xl p-4">
           <div className="mb-3">
             <div className="text-[11px] font-black uppercase tracking-[0.14em] text-[#48664e]">
               Invite by email
@@ -168,7 +168,7 @@ export default function InviteForm({ groupId }: { groupId: string }) {
         </div>
       </form>
 
-      <div className="rounded-3xl bg-[#f8faf7] p-4 shadow-[inset_0_0_0_1px_rgba(72,102,78,.1)]">
+      <div className="holiday-panel-soft rounded-3xl p-4">
         <div className="text-[11px] font-black uppercase tracking-[0.14em] text-[#7b5902]">
           Invite link
         </div>

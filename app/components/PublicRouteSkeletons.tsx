@@ -61,7 +61,7 @@ export function InviteRouteSkeleton() {
   return (
     <main className="min-h-screen bg-[linear-gradient(180deg,#eef4fb,#f8fbff,#fff7ef)] px-4 py-8">
       <div className="mx-auto flex min-h-[calc(100vh-4rem)] max-w-3xl items-center justify-center">
-        <section className="w-full rounded-4xl bg-white/88 p-6 shadow-[0_28px_80px_rgba(46,52,50,0.1)] sm:p-8">
+        <section className="holiday-panel w-full p-6 sm:p-8">
           <SkeletonBlock className="h-10 w-40 rounded-full" />
           <SkeletonBlock className="mt-7 h-12 w-10/12 rounded-2xl" />
           <SkeletonBlock className="mt-3 h-6 w-8/12 rounded-full" />

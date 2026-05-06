@@ -67,8 +67,8 @@ export function DashboardGroupsSection({
 
       {totalDashboardGroupCount === 0 ? (
         <section
-          className={`relative overflow-hidden rounded-[28px] p-7 shadow-[0_12px_30px_rgba(45,51,55,0.04)] ${
-            isDarkTheme ? "bg-slate-900/82 text-slate-100" : "bg-white text-slate-900"
+          className={`relative overflow-hidden rounded-[28px] p-7 ${
+            isDarkTheme ? "holiday-panel-dark text-slate-100" : "holiday-panel text-slate-900"
           }`}
         >
           <div className="absolute bottom-4 right-6 h-24 w-24 rounded-full bg-[radial-gradient(circle_at_center,#dbeafe,transparent_70%)] opacity-80" />

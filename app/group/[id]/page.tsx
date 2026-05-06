@@ -926,11 +926,8 @@ export default function GroupDetailsPage() {
         <div className="space-y-5">
           <section
             id="group-overview"
-            className="rounded-3xl px-5 py-4 shadow-[0_18px_44px_rgba(46,52,50,.05)] ring-1 ring-[rgba(72,102,78,.12)] sm:px-6"
-            style={{
-              background: "linear-gradient(135deg,rgba(255,255,255,.94),rgba(242,244,242,.74))",
-              color: "#2e3432",
-            }}
+            className="holiday-panel-strong rounded-3xl px-5 py-4 sm:px-6"
+            style={{ color: "#2e3432" }}
             aria-label="Group overview"
           >
             <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">

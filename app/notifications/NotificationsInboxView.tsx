@@ -156,12 +156,7 @@ export function NotificationsInboxView({
 
   return (
     <section
-      className="relative overflow-hidden rounded-4xl px-4 py-5 shadow-[0_24px_70px_rgba(46,52,50,.08)] sm:px-7 sm:py-7 lg:px-10"
-      style={{
-        background:
-          "linear-gradient(180deg,rgba(255,255,255,.92),rgba(255,253,248,.86))",
-        border: "1px solid rgba(72,102,78,.14)",
-      }}
+      className="holiday-panel-strong relative overflow-hidden rounded-4xl px-4 py-5 sm:px-7 sm:py-7 lg:px-10"
     >
       <PineCorner />
       <div className="relative">
@@ -190,13 +185,13 @@ export function NotificationsInboxView({
               onClick={onMarkAllRead}
               disabled={unreadCount === 0 || markingAll}
               aria-label="Mark all read"
-              className="inline-flex min-h-11 items-center gap-2 rounded-full bg-white px-4 text-sm font-black text-[#2e3432] shadow-[0_10px_24px_rgba(46,52,50,.05)] ring-1 ring-[#48664e]/12 transition hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-55"
+              className="holiday-panel-row inline-flex min-h-11 items-center gap-2 rounded-full px-4 text-sm font-black text-[#2e3432] transition hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-55"
             >
               <CheckIcon />
               {markingAll ? "Updating" : "Mark all as read"}
             </button>
 
-            <label className="inline-flex min-h-11 items-center gap-2 rounded-full bg-white px-4 text-sm font-black text-[#2e3432] shadow-[0_10px_24px_rgba(46,52,50,.05)] ring-1 ring-[#48664e]/12">
+            <label className="holiday-panel-row inline-flex min-h-11 items-center gap-2 rounded-full px-4 text-sm font-black text-[#2e3432]">
               <FilterIcon />
               <span className="sr-only">Filter notifications</span>
               <select
@@ -236,7 +231,7 @@ export function NotificationsInboxView({
                   type="button"
                   onClick={() => void onOpenNotification(notification)}
                   disabled={processingId === notification.id}
-                  className="group relative w-full overflow-hidden rounded-3xl bg-white/92 px-4 py-4 text-left shadow-[0_14px_32px_rgba(46,52,50,.055)] ring-1 ring-[#48664e]/12 transition duration-200 hover:-translate-y-0.5 hover:shadow-[0_20px_44px_rgba(46,52,50,.08)] disabled:cursor-wait disabled:opacity-75 sm:px-5"
+                  className="holiday-panel group relative w-full overflow-hidden rounded-3xl px-4 py-4 text-left transition duration-200 hover:-translate-y-0.5 hover:shadow-[0_20px_44px_rgba(46,52,50,.08)] disabled:cursor-wait disabled:opacity-75 sm:px-5"
                 >
                   <span
                     className="absolute inset-y-3 right-0 w-2 rounded-l-full opacity-70"

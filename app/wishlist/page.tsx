@@ -733,7 +733,7 @@ export default function WishlistPage() {
 
         <section className="grid gap-5 lg:grid-cols-[380px_minmax(0,1fr)]">
           <aside className="lg:sticky lg:top-5 lg:self-start">
-            <div className="overflow-hidden rounded-[38px] bg-white p-5 shadow-[0_24px_70px_rgba(46,52,50,0.08)] sm:p-6">
+            <div className="holiday-panel-strong overflow-hidden rounded-[38px] p-5 sm:p-6">
               <div className="mb-5 flex items-start justify-between gap-4">
                 <div>
                   <p className="text-xs font-black uppercase tracking-[0.22em] text-[#7b5902]">Gift workshop</p>
@@ -770,7 +770,7 @@ export default function WishlistPage() {
                     </select>
                   </label>
 
-                  <div className="rounded-3xl bg-[#f2f4f2] p-4">
+                  <div className="holiday-panel-soft rounded-3xl p-4">
                     <div className="flex items-center justify-between gap-3 text-xs font-black uppercase tracking-[0.16em] text-[#5b605e]">
                       <span>Wishlist spots</span>
                       <span>{selectedGroupItemCount}/{WISHLIST_ITEMS_PER_GROUP_LIMIT}</span>
@@ -872,9 +872,9 @@ export default function WishlistPage() {
               return (
                 <section
                   key={group.id}
-                  className="overflow-hidden rounded-[38px] bg-white shadow-[0_24px_70px_rgba(46,52,50,0.08)]"
+                  className="holiday-panel-strong overflow-hidden rounded-[38px]"
                 >
-                  <div className="relative overflow-hidden bg-[#f2f4f2] p-5 sm:p-6">
+                  <div className="relative overflow-hidden bg-[#f2f4f2]/62 p-5 sm:p-6">
                     <div className="absolute right-6 top-5 text-[#a43c3f]/12">
                       <SnowflakeIcon className="h-20 w-20" />
                     </div>
@@ -895,7 +895,7 @@ export default function WishlistPage() {
                           )}
                         </div>
                       </div>
-                      <div className="min-w-40 rounded-3xl bg-white p-4">
+                      <div className="holiday-panel-row min-w-40 rounded-3xl p-4">
                         <div className="flex items-center justify-between text-xs font-black uppercase tracking-[0.16em] text-[#777c7a]">
                           <span>Filled</span>
                           <span>{group.items.length}/{WISHLIST_ITEMS_PER_GROUP_LIMIT}</span>
@@ -919,7 +919,7 @@ export default function WishlistPage() {
                           const tone = priorityTone(item.priority);
 
                           return editingId === item.id ? (
-                            <div key={item.id} className="rounded-[30px] bg-[#f2f4f2] p-4 sm:p-5">
+                            <div key={item.id} className="holiday-panel-soft rounded-[30px] p-4 sm:p-5">
                               <div className="mb-4 flex items-center gap-3">
                                 <div className="grid h-11 w-11 place-items-center rounded-[18px] bg-white text-[#a43c3f]">
                                   <GiftIcon className="h-6 w-6" />
@@ -1008,7 +1008,7 @@ export default function WishlistPage() {
                               </div>
                             </div>
                           ) : (
-                            <article key={item.id} className="group relative overflow-hidden rounded-[26px] bg-[#f9faf8] p-5 transition hover:-translate-y-0.5">
+                            <article key={item.id} className="holiday-panel-soft group relative overflow-hidden rounded-[26px] p-5 transition hover:-translate-y-0.5">
                               <div className={`absolute inset-x-0 top-0 h-2 bg-gradient-to-r ${tone.ribbon}`} />
                               <div className="grid gap-4 md:grid-cols-[112px_minmax(0,1fr)_170px] md:items-center">
                                 <div className="grid aspect-square place-items-center overflow-hidden rounded-[22px] bg-white text-[#a43c3f] shadow-[0_14px_34px_rgba(46,52,50,0.06)]">
@@ -1038,7 +1038,7 @@ export default function WishlistPage() {
                                     )}
                                   </div>
                                   {item.item_note && (
-                                    <p className="mt-4 rounded-[22px] bg-white px-4 py-3 text-sm leading-6 text-[#5b605e]">
+                                    <p className="holiday-panel-row mt-4 rounded-[22px] px-4 py-3 text-sm leading-6 text-[#5b605e]">
                                       {item.item_note}
                                     </p>
                                   )}
@@ -1047,14 +1047,14 @@ export default function WishlistPage() {
                                       href={item.item_link}
                                       target="_blank"
                                       rel="noopener noreferrer"
-                                      className="mt-3 inline-flex items-center gap-2 rounded-full bg-white px-4 py-2 text-xs font-black text-[#48664e]"
+                                      className="holiday-panel-row mt-3 inline-flex items-center gap-2 rounded-full px-4 py-2 text-xs font-black text-[#48664e]"
                                     >
                                       Reference link
                                       <ArrowRightIcon />
                                     </a>
                                   )}
                                 </div>
-                                <div className="rounded-[22px] bg-white px-4 py-3">
+                                <div className="holiday-panel-row rounded-[22px] px-4 py-3">
                                   <span className={`inline-flex rounded-full px-3 py-1.5 text-xs font-black ${
                                     item.item_note && (item.item_link || item.item_image_url)
                                       ? "bg-[#d7fadb] text-[#314e38]"

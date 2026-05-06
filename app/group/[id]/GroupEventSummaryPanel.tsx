@@ -46,7 +46,7 @@ export function GroupEventSummaryPanel({
   return (
     <section
       id="event-summary"
-      className="rounded-3xl bg-[#fffefa] p-4 shadow-[0_18px_44px_rgba(46,52,50,.06)] ring-1 ring-[rgba(72,102,78,.12)] sm:p-5"
+      className="holiday-panel rounded-3xl p-4 sm:p-5"
       aria-label="Event summary"
     >
       <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
@@ -65,7 +65,7 @@ export function GroupEventSummaryPanel({
         {summaryCards.map((card) => (
           <div
             key={card.meta}
-            className="rounded-2xl bg-white p-4 shadow-[inset_0_0_0_1px_rgba(72,102,78,.1)]"
+            className="holiday-panel-row rounded-2xl p-4"
           >
             <p className="text-[11px] font-black text-[#5b605e]">
               {card.meta}
@@ -76,7 +76,7 @@ export function GroupEventSummaryPanel({
             <p className="mt-2 text-xs font-semibold text-[#64748b]">{card.helper}</p>
           </div>
         ))}
-        <div className="rounded-2xl bg-white p-4 shadow-[inset_0_0_0_1px_rgba(72,102,78,.1)]">
+        <div className="holiday-panel-row rounded-2xl p-4">
           <p className="text-[11px] font-black text-[#5b605e]">Participation</p>
           <div className="mt-2 flex items-center justify-between gap-3">
             <div>

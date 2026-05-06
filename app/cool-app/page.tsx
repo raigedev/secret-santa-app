@@ -174,7 +174,7 @@ export default function CoolAppPage() {
           </div>
         </div>
 
-        <aside className="rounded-lg border border-[#d9ded3] bg-[#fbfcf7] p-5 shadow-[0_24px_70px_rgba(63,100,72,0.12)] sm:p-6">
+        <aside className="holiday-panel-soft rounded-lg p-5 sm:p-6">
           <div className="flex items-start justify-between gap-4">
             <div>
               <p className="text-xs font-bold uppercase tracking-[0.2em] text-[#6b756d]">

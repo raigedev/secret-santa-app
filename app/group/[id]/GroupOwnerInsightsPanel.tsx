@@ -94,7 +94,7 @@ export function GroupOwnerInsightsPanel({
 
   return (
     <aside
-      className="rounded-3xl bg-[#fffefa] p-4 shadow-[0_24px_70px_rgba(46,52,50,.08)] ring-1 ring-[rgba(72,102,78,.12)] xl:sticky xl:top-26"
+      className="holiday-panel rounded-3xl p-4 xl:sticky xl:top-26"
       aria-label="Exchange health"
     >
       <div className="mb-4 flex items-start gap-3">
@@ -118,7 +118,7 @@ export function GroupOwnerInsightsPanel({
         {rows.map((row) => (
           <div
             key={row.label}
-            className="rounded-2xl bg-white p-4 shadow-[inset_0_0_0_1px_rgba(72,102,78,.1)]"
+            className="holiday-panel-row rounded-2xl p-4"
           >
             <div className="flex items-start gap-3">
               <span
@@ -163,7 +163,7 @@ export function GroupOwnerInsightsPanel({
 export function GroupOwnerInsightsSkeleton() {
   return (
     <aside
-      className="rounded-3xl bg-[#fffefa] p-4 shadow-[0_24px_70px_rgba(46,52,50,.08)] ring-1 ring-[rgba(72,102,78,.12)] xl:sticky xl:top-26"
+      className="holiday-panel rounded-3xl p-4 xl:sticky xl:top-26"
       aria-label="Exchange health loading"
     >
       <div className="mb-4 flex items-start gap-3">
@@ -177,7 +177,7 @@ export function GroupOwnerInsightsSkeleton() {
         {["invites", "wishlists", "draw", "gift-day"].map((item) => (
           <div
             key={item}
-            className="rounded-2xl bg-white p-4 shadow-[inset_0_0_0_1px_rgba(72,102,78,.1)]"
+            className="holiday-panel-row rounded-2xl p-4"
           >
             <div className="flex gap-3">
               <span className="h-12 w-12 shrink-0 rounded-full bg-[#f2f4f2]" />
