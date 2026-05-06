@@ -84,8 +84,8 @@ function GroupSwitcher({
 }) {
   return (
     <div
-      className={`rounded-3xl p-2 shadow-[0_12px_30px_rgba(45,51,55,0.04)] ${
-        isDarkTheme ? "bg-slate-900/80" : "bg-white/90"
+      className={`rounded-3xl p-2 ${
+        isDarkTheme ? "holiday-panel-dark" : "holiday-panel-soft"
       }`}
       aria-label="Choose group"
     >
@@ -143,8 +143,8 @@ function GroupWorkspacePreview({
   return (
     <section className="min-w-0 space-y-5" aria-label={`${group.name} workspace preview`}>
       <div
-        className={`rounded-3xl p-5 shadow-[0_18px_44px_rgba(46,52,50,0.05)] ring-1 ring-[rgba(72,102,78,0.12)] sm:p-6 ${
-          isDarkTheme ? "bg-slate-900/85 text-slate-100" : "bg-white/95 text-[#2e3432]"
+        className={`rounded-3xl p-5 sm:p-6 ${
+          isDarkTheme ? "holiday-panel-dark text-slate-100" : "holiday-panel-strong text-[#2e3432]"
         }`}
       >
         <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
@@ -200,8 +200,8 @@ function GroupWorkspacePreview({
       </div>
 
       <section
-        className={`rounded-3xl p-5 shadow-[0_12px_30px_rgba(45,51,55,0.04)] ${
-          isDarkTheme ? "bg-slate-900/80 text-slate-100" : "bg-white/95 text-[#2e3432]"
+        className={`rounded-3xl p-5 ${
+          isDarkTheme ? "holiday-panel-dark text-slate-100" : "holiday-panel text-[#2e3432]"
         }`}
         aria-label={`${group.name} full workspace shortcuts`}
       >
@@ -272,8 +272,8 @@ function WorkspaceShortcut({
   return (
     <Link
       href={href}
-      className={`group flex min-h-28 flex-col justify-between rounded-2xl p-4 shadow-[inset_0_0_0_1px_rgba(72,102,78,0.1)] transition hover:-translate-y-0.5 ${
-        isDarkTheme ? "bg-slate-800 text-slate-100" : "bg-[#f9faf8] text-[#2e3432]"
+      className={`group flex min-h-28 flex-col justify-between rounded-2xl p-4 transition hover:-translate-y-0.5 ${
+        isDarkTheme ? "bg-slate-800 text-slate-100" : "holiday-panel-soft text-[#2e3432]"
       }`}
     >
       <span className="flex items-center justify-between gap-3">

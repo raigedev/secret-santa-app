@@ -25,14 +25,14 @@ const giftProgressSteps: { id: GiftProgressStep; label: string; shortLabel: stri
 
 export function getPanelClass(isDarkTheme: boolean): string {
   return isDarkTheme
-    ? "border border-slate-700/65 bg-slate-900/72 text-slate-100 shadow-[0_14px_36px_rgba(0,0,0,.14)] backdrop-blur-sm"
-    : "border border-white/65 bg-[#fbfcfa]/60 text-[#2e3432] shadow-[inset_0_1px_0_rgba(255,255,255,.72)] ring-1 ring-[rgba(72,102,78,.06)] backdrop-blur-sm";
+    ? "holiday-panel-dark text-slate-100"
+    : "holiday-panel text-[#2e3432]";
 }
 
 export function getSoftPanelClass(isDarkTheme: boolean): string {
   return isDarkTheme
-    ? "border border-slate-700/60 bg-slate-800/48"
-    : "border border-white/60 bg-[#f8fbf7]/40 shadow-[inset_0_1px_0_rgba(255,255,255,.58)] ring-1 ring-[rgba(72,102,78,.045)]";
+    ? "border border-slate-700/50 bg-slate-800/42"
+    : "holiday-panel-soft";
 }
 
 export function SectionHeader({

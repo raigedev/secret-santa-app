@@ -85,7 +85,7 @@ export default function InviteCard({
 
   if (status === "accepted") {
     return (
-      <div className="rounded-[28px] border border-emerald-200 bg-[linear-gradient(180deg,#ffffff,#effcf5)] p-5 shadow-[0_20px_55px_rgba(16,185,129,0.12)]">
+      <div className="holiday-panel rounded-[28px] p-5">
         <div className="inline-flex rounded-full bg-emerald-100 px-3 py-1 text-xs font-semibold text-emerald-700">
           Invitation accepted
         </div>
@@ -101,7 +101,7 @@ export default function InviteCard({
 
   if (status === "declined") {
     return (
-      <div className="rounded-[28px] border border-slate-200 bg-white p-5 shadow-[0_18px_45px_rgba(148,163,184,0.12)]">
+      <div className="holiday-panel rounded-[28px] p-5">
         <div className="inline-flex rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-600">
           Invitation declined
         </div>
@@ -114,7 +114,7 @@ export default function InviteCard({
   }
 
   return (
-    <article className="relative overflow-hidden rounded-[30px] border border-white/70 bg-white/90 p-5 shadow-[0_28px_80px_rgba(148,163,184,0.18)] backdrop-blur-md">
+    <article className="holiday-panel-strong relative overflow-hidden rounded-[30px] p-5">
       <div className="absolute inset-y-0 right-0 w-32 bg-[radial-gradient(circle_at_center,rgba(147,197,253,0.28),transparent_66%)]" />
 
       <div className="relative z-10 flex items-start justify-between gap-4">

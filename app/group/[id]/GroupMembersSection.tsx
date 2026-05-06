@@ -67,7 +67,7 @@ export function GroupMembersSection({
   return (
     <section
       id="group-members"
-      className="rounded-3xl bg-[#fffefa] p-4 shadow-[0_18px_44px_rgba(46,52,50,.06)] ring-1 ring-[rgba(72,102,78,.12)] sm:p-5"
+      className="holiday-panel rounded-3xl p-4 sm:p-5"
       aria-label="Members"
     >
       <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
@@ -98,9 +98,9 @@ export function GroupMembersSection({
           No members yet.
         </p>
       ) : (
-        <div className="overflow-hidden rounded-2xl bg-white shadow-[inset_0_0_0_1px_rgba(72,102,78,.1)]">
+        <div className="holiday-panel-row overflow-hidden rounded-2xl">
           <div
-            className={`hidden gap-3 bg-[#fffefa] px-4 py-3 text-[11px] font-black text-[#5b605e] lg:grid ${MEMBER_GRID_COLUMNS_CLASS}`}
+            className={`hidden gap-3 bg-[#fffefa]/60 px-4 py-3 text-[11px] font-black text-[#5b605e] lg:grid ${MEMBER_GRID_COLUMNS_CLASS}`}
           >
             <span>Member</span>
             <span>Status</span>

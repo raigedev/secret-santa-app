@@ -43,7 +43,7 @@ export function SantaAssistantBubble({
       role="dialog"
       aria-label="Secret Santa assistant tip"
       data-testid="santa-assistant-bubble"
-      className="santa-assistant-bubble pointer-events-auto w-[min(calc(100vw-2rem),23rem)] rounded-3xl border border-[rgba(72,102,78,.18)] bg-[#fffefa] p-4 text-left shadow-[0_24px_70px_rgba(46,52,50,.18)]"
+      className="santa-assistant-bubble holiday-panel pointer-events-auto w-[min(calc(100vw-2rem),23rem)] p-4 text-left"
     >
       <div className="flex items-start justify-between gap-4">
         <div>

@@ -159,7 +159,7 @@ export default function CreateGroupPage() {
     >
       <div className="absolute inset-0 z-0 bg-[url('/snowflakes.svg')] bg-size-[320px_320px] bg-repeat opacity-20" />
 
-      <div className="relative z-10 mx-auto mb-5 flex w-full max-w-6xl flex-col gap-4 rounded-[28px] bg-white/82 px-5 py-4 shadow-[0_18px_44px_rgba(46,52,50,.06)]">
+      <div className="holiday-panel relative z-10 mx-auto mb-5 flex w-full max-w-6xl flex-col gap-4 rounded-[28px] px-5 py-4">
         <button
           onClick={() => router.push("/dashboard")}
           className="inline-flex w-fit items-center gap-2 rounded-full px-3 py-2 text-sm font-bold text-[#48664e] transition hover:-translate-y-0.5"
@@ -205,11 +205,7 @@ export default function CreateGroupPage() {
 
       <div className="relative z-10 mx-auto grid w-full max-w-6xl gap-5 lg:grid-cols-[minmax(0,1fr)_minmax(340px,.78fr)] lg:items-start">
         <aside
-          className="rounded-[30px] p-6 shadow-[0_22px_54px_rgba(46,52,50,.07)] lg:sticky lg:top-8 lg:order-2"
-          style={{
-            background: "linear-gradient(135deg,rgba(255,255,255,.94),rgba(239,247,241,.9))",
-            border: "1px solid rgba(72,102,78,.16)",
-          }}
+          className="holiday-panel rounded-[30px] p-6 lg:sticky lg:top-8 lg:order-2"
         >
           <p className="text-[11px] font-black uppercase tracking-[0.18em] text-[#48664e]">
             Exchange preview
@@ -247,11 +243,7 @@ export default function CreateGroupPage() {
         </aside>
 
         <section
-          className="rounded-[28px] p-6 shadow-[0_22px_54px_rgba(46,52,50,.07)] sm:p-8 lg:order-1"
-          style={{
-            background: "rgba(255,255,255,.84)",
-            border: "1px solid rgba(72,102,78,.14)",
-          }}
+          className="holiday-panel-strong rounded-[28px] p-6 sm:p-8 lg:order-1"
         >
         <button
           onClick={() => router.push("/dashboard")}

@@ -1001,7 +1001,7 @@ function SummaryCard({
   value: string;
 }) {
   return (
-    <section className="rounded-[28px] border border-white/70 bg-white/88 p-5 shadow-[0_20px_60px_rgba(148,163,184,0.14)] backdrop-blur-md">
+    <section className="holiday-panel rounded-[28px] p-5">
       <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">{label}</p>
       <p className="mt-3 text-3xl font-bold text-slate-900">{value}</p>
       <p className="mt-2 text-sm leading-6 text-slate-600">{helper}</p>
@@ -1069,7 +1069,7 @@ function HealthMetric({
   value: string;
 }) {
   return (
-    <div className="rounded-[22px] border border-slate-200 bg-white/80 p-4">
+    <div className="holiday-panel-soft rounded-[22px] p-4">
       <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">{label}</p>
       <p className="mt-2 text-xl font-bold text-slate-900">{value}</p>
       <p className="mt-1 text-sm leading-5 text-slate-600">{helper}</p>
@@ -1241,7 +1241,7 @@ function LazadaHealthCheckCard({
   const healthActions = buildLazadaHealthActions(health);
 
   return (
-    <section className="mt-8 rounded-4xl border border-white/70 bg-white/88 p-5 shadow-[0_24px_70px_rgba(148,163,184,0.14)] backdrop-blur-md">
+    <section className="holiday-panel mt-8 rounded-4xl p-5">
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
           <div className="flex flex-wrap items-center gap-3">
@@ -1340,7 +1340,7 @@ function LazadaHealthCheckCard({
       </div>
 
       <div className="mt-4 grid gap-4 xl:grid-cols-[1.15fr_0.85fr]">
-        <div className="rounded-3xl border border-slate-200 bg-white/80 p-4">
+        <div className="holiday-panel-soft rounded-3xl p-4">
           <div className="flex flex-wrap items-start justify-between gap-3">
             <div>
               <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">
@@ -1417,7 +1417,7 @@ function InsightCard({ insight }: { insight: TopItemInsight }) {
       : "0%";
 
   return (
-    <section className="rounded-[28px] border border-white/70 bg-white/88 p-5 shadow-[0_20px_60px_rgba(148,163,184,0.14)] backdrop-blur-md">
+    <section className="holiday-panel rounded-[28px] p-5">
       <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">Item signal</p>
       <h3 className="mt-2 text-xl font-bold text-slate-900">{insight.suggestion_title}</h3>
       <InsightMetricGrid columns="sm:grid-cols-2">
@@ -1440,7 +1440,7 @@ function AngleInsightCard({ insight }: { insight: TopAngleInsight }) {
       : "0%";
 
   return (
-    <section className="rounded-3xl border border-white/70 bg-white/88 p-4 shadow-[0_18px_50px_rgba(148,163,184,0.12)] backdrop-blur-md">
+    <section className="holiday-panel-soft rounded-3xl p-4">
       <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">Shopping option</p>
       <h3 className="mt-2 text-lg font-bold text-slate-900">{insight.label}</h3>
       <InsightMetricGrid>
@@ -1454,7 +1454,7 @@ function AngleInsightCard({ insight }: { insight: TopAngleInsight }) {
 
 function RouteQualityCard({ insight }: { insight: RouteQualityInsight }) {
   return (
-    <section className="rounded-3xl border border-white/70 bg-white/88 p-4 shadow-[0_18px_50px_rgba(148,163,184,0.12)] backdrop-blur-md">
+    <section className="holiday-panel-soft rounded-3xl p-4">
       <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">Link quality</p>
       <h3 className="mt-2 text-lg font-bold text-slate-900">{insight.label}</h3>
       <InsightMetricGrid>
@@ -1468,7 +1468,7 @@ function RouteQualityCard({ insight }: { insight: RouteQualityInsight }) {
 
 function FamilyQualityCard({ insight }: { insight: FamilyQualityInsight }) {
   return (
-    <section className="rounded-3xl border border-white/70 bg-white/88 p-4 shadow-[0_18px_50px_rgba(148,163,184,0.12)] backdrop-blur-md">
+    <section className="holiday-panel-soft rounded-3xl p-4">
       <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">Item family</p>
       <h3 className="mt-2 text-lg font-bold text-slate-900">{insight.family}</h3>
       <InsightMetricGrid>
@@ -1485,7 +1485,7 @@ function FamilyQualityCard({ insight }: { insight: FamilyQualityInsight }) {
 
 function RecommendationCard({ insight }: { insight: OptimizationRecommendation }) {
   return (
-    <section className="rounded-3xl border border-white/70 bg-white/88 p-4 shadow-[0_18px_50px_rgba(148,163,184,0.12)] backdrop-blur-md">
+    <section className="holiday-panel-soft rounded-3xl p-4">
       <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">{insight.label}</p>
       <h3 className="mt-2 text-lg font-bold text-slate-900">{insight.title}</h3>
       <p className="mt-4 text-sm leading-6 text-slate-600">{insight.description}</p>
@@ -1542,7 +1542,7 @@ function LegacySupportCard({
   // that bucket out explicitly explains why total clicks can be larger than the
   // visible direct + search counts in all-time views.
   return (
-    <section className="rounded-3xl border border-white/70 bg-white/88 p-4 shadow-[0_18px_50px_rgba(148,163,184,0.12)] backdrop-blur-md">
+    <section className="holiday-panel-soft rounded-3xl p-4">
       <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">Older tracking support</p>
       <h3 className="mt-2 text-lg font-bold text-slate-900">{legacyRouteClicks} legacy clicks</h3>
       <p className={`mt-4 text-sm leading-6 ${LegacySupportTone(legacyRouteClicks)}`}>
@@ -1716,7 +1716,7 @@ export default async function AffiliateReportPage({
           <div className="flex flex-wrap gap-3">
             <Link
               href="/dashboard"
-              className="inline-flex items-center gap-2 rounded-full border border-white/70 bg-white/90 px-4 py-2.5 text-sm font-semibold text-slate-700 shadow-[0_18px_50px_rgba(148,163,184,0.14)] transition hover:-translate-y-0.5"
+              className="holiday-panel-soft inline-flex items-center gap-2 rounded-full px-4 py-2.5 text-sm font-semibold text-slate-700 transition hover:-translate-y-0.5"
             >
               Back to dashboard
             </Link>
@@ -1729,7 +1729,7 @@ export default async function AffiliateReportPage({
           </div>
         </div>
 
-        <section className="rounded-4xl border border-white/70 bg-white/88 p-5 shadow-[0_24px_70px_rgba(148,163,184,0.14)] backdrop-blur-md">
+        <section className="holiday-panel-strong rounded-4xl p-5">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div>
               <p className="text-sm font-semibold uppercase tracking-[0.18em] text-slate-500">
@@ -1840,7 +1840,7 @@ export default async function AffiliateReportPage({
           />
         </section>
 
-        <section className="mt-8 rounded-4xl border border-white/70 bg-white/88 p-5 shadow-[0_24px_70px_rgba(148,163,184,0.14)] backdrop-blur-md">
+        <section className="holiday-panel mt-8 rounded-4xl p-5">
           <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
             <div>
               <p className="text-sm font-semibold uppercase tracking-[0.18em] text-slate-500">
@@ -1945,7 +1945,7 @@ export default async function AffiliateReportPage({
                 {fallbackReasonInsights.map((insight) => (
                   <section
                     key={insight.label}
-                    className="rounded-3xl border border-white/70 bg-white/88 p-4 shadow-[0_18px_50px_rgba(148,163,184,0.12)] backdrop-blur-md"
+                    className="holiday-panel-soft rounded-3xl p-4"
                   >
                     <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">
                       Tracking reason
@@ -1999,7 +1999,7 @@ export default async function AffiliateReportPage({
           )}
         </section>
 
-        <section className="mt-8 rounded-4xl border border-white/70 bg-white/88 p-5 shadow-[0_24px_70px_rgba(148,163,184,0.14)] backdrop-blur-md">
+        <section className="holiday-panel mt-8 rounded-4xl p-5">
           <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
             <div>
               <p className="text-sm font-semibold uppercase tracking-[0.18em] text-slate-500">
