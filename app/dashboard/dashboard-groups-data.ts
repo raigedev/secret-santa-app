@@ -14,7 +14,7 @@ import {
   writeClientSnapshot,
   type ClientSnapshotMetadata,
 } from "@/lib/client-snapshot";
-import { normalizeGroupImageUrl } from "@/lib/groups/group-image";
+import { createSignedGroupImageUrl } from "@/lib/groups/group-image";
 import { isNullableString, isRecord } from "@/lib/validation/common";
 
 type DashboardGroupsUser = {
@@ -160,6 +160,13 @@ export async function loadDashboardGroups(
   const allAssignments = (assignmentsRes.data || []) as AssignmentRow[];
   const drawnGroupIds = new Set(allAssignments.map((assignment) => assignment.group_id));
   const membersByGroupId = new Map<string, GroupMemberRow[]>();
+  const groupImageUrlEntries = await Promise.all(
+    groupsData.map(async (group) => [
+      group.id,
+      await createSignedGroupImageUrl(supabase, group.image_url),
+    ] as const)
+  );
+  const signedGroupImageUrlById = new Map(groupImageUrlEntries);
 
   for (const member of allMembers) {
     const currentMembers = membersByGroupId.get(member.group_id) || [];
@@ -170,7 +177,7 @@ export async function loadDashboardGroups(
   return splitDashboardGroups(
     groupsData.map((group) => ({
       ...group,
-      image_url: normalizeGroupImageUrl(group.image_url),
+      image_url: signedGroupImageUrlById.get(group.id) || null,
       hasDrawn: drawnGroupIds.has(group.id),
       isOwner: roleMap[group.id] === "owner",
       members: (membersByGroupId.get(group.id) || []).map((member) => ({

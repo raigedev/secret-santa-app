@@ -30,7 +30,7 @@ import { GroupMembersSection } from "./GroupMembersSection";
 import { GroupOwnerInsightsPanel, GroupOwnerInsightsSkeleton } from "./GroupOwnerInsightsPanel";
 import { BUDGET_OPTIONS, CURRENCIES, HISTORY_PAGE_SIZE } from "./group-page-config";
 import { HistorySkeletonRows } from "./GroupPagePrimitives";
-import { normalizeGroupImageUrl } from "@/lib/groups/group-image";
+import { createSignedGroupImageUrl } from "@/lib/groups/group-image";
 import {
   clearGroupPageSnapshots,
   getVisibleGroupMemberName,
@@ -251,9 +251,13 @@ export default function GroupDetailsPage() {
         return;
       }
 
+      const signedGroupImageUrl = await createSignedGroupImageUrl(
+        supabase,
+        groupResult.data.image_url
+      );
       const group = {
         ...groupResult.data,
-        image_url: normalizeGroupImageUrl(groupResult.data.image_url),
+        image_url: signedGroupImageUrl,
       };
       setError(null);
       setGroupDataFresh(false);

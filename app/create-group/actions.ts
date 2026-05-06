@@ -166,7 +166,7 @@ async function uploadGroupImage(input: {
   actorUserId: string;
   groupId: string;
   image: PreparedGroupImage;
-}): Promise<{ imagePath: string; imageUrl: string }> {
+}): Promise<{ imagePath: string }> {
   const imagePath = `${input.actorUserId}/${input.groupId}/cover.${input.image.extension}`;
   const upload = await supabaseAdmin.storage
     .from(GROUP_IMAGE_BUCKET)
@@ -180,12 +180,7 @@ async function uploadGroupImage(input: {
     throw upload.error;
   }
 
-  const { data } = supabaseAdmin.storage.from(GROUP_IMAGE_BUCKET).getPublicUrl(imagePath);
-
-  return {
-    imagePath,
-    imageUrl: data.publicUrl,
-  };
+  return { imagePath };
 }
 
 async function sendInviteEmails(
@@ -414,7 +409,7 @@ async function createGroupWithInvitesInternal(
 
       const { error: imageUpdateError } = await supabaseAdmin
         .from("groups")
-        .update({ image_url: uploadResult.imageUrl })
+        .update({ image_url: uploadResult.imagePath })
         .eq("id", newGroup.id);
 
       if (imageUpdateError) {
