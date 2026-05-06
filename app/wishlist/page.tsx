@@ -694,7 +694,7 @@ export default function WishlistPage() {
             </div>
             <div className="relative">
               <p className="text-xs font-black uppercase tracking-[0.28em] text-white/70">Gift clues ready</p>
-              <h2 className="mt-4 font-[Plus_Jakarta_Sans] text-3xl font-black tracking-[-0.05em]">
+              <h2 className="mt-4 font-[Plus_Jakarta_Sans] text-3xl font-black tracking-tighter">
                 Your Santa shops from the details you add.
               </h2>
               <p className="mt-4 text-sm leading-7 text-white/78">
@@ -881,7 +881,7 @@ export default function WishlistPage() {
                     <div className="relative flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
                       <div>
                         <p className="text-xs font-black uppercase tracking-[0.22em] text-[#48664e]">Exchange shelf</p>
-                        <h2 className="mt-2 font-[Plus_Jakarta_Sans] text-3xl font-black tracking-[-0.05em] text-[#2e3432]">
+                        <h2 className="mt-2 font-[Plus_Jakarta_Sans] text-3xl font-black tracking-tighter text-[#2e3432]">
                           {group.name}
                         </h2>
                         <div className="mt-3 flex flex-wrap gap-2 text-xs font-bold text-[#5b605e]">
