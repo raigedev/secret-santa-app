@@ -43,8 +43,8 @@ export function DashboardGroupsWorkspace({
   }
 
   return (
-    <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_22rem] xl:items-start">
-      <div className="space-y-5">
+    <div className="grid min-w-0 gap-5 xl:grid-cols-[minmax(0,1fr)_22rem] xl:items-start">
+      <div className="min-w-0 space-y-5">
         {groups.length > 1 && (
           <GroupSwitcher
             focusedGroupId={focusedGroup.id}
@@ -145,7 +145,7 @@ function GroupWorkspacePreview({
   const roleLabel = group.isOwner ? "Owner" : "Member";
 
   return (
-    <section className="space-y-5" aria-label={`${group.name} workspace preview`}>
+    <section className="min-w-0 space-y-5" aria-label={`${group.name} workspace preview`}>
       <div
         className={`rounded-3xl p-5 shadow-[0_18px_44px_rgba(46,52,50,0.05)] ring-1 ring-[rgba(72,102,78,0.12)] sm:p-6 ${
           isDarkTheme ? "bg-slate-900/85 text-slate-100" : "bg-white/95 text-[#2e3432]"
