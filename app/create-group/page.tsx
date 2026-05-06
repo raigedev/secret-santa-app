@@ -1,15 +1,28 @@
 "use client";
 
-import { useState } from "react";
+import {
+  type ChangeEvent,
+  type DragEvent,
+  type FormEvent,
+  useEffect,
+  useRef,
+  useState,
+} from "react";
 import { useRouter } from "next/navigation";
 import {
   sanitizeGroupNickname,
   validateAnonymousGroupNickname,
 } from "@/lib/groups/nickname";
 import { sanitizePlainText } from "@/lib/validation/common";
-import { createGroupWithInvites } from "./actions";
+import { createGroupWithInvitesFromFormData } from "./actions";
 
 const BUDGET_OPTIONS = [10, 15, 25, 50, 100];
+const MAX_GROUP_IMAGE_BYTES = 2 * 1024 * 1024;
+const MAX_GROUP_IMAGE_DECODED_SIDE = 6000;
+const MAX_GROUP_IMAGE_DECODED_PIXELS = 12_000_000;
+const GROUP_IMAGE_PREVIEW_SIZE = 320;
+const GROUP_IMAGE_PREVIEW_MAX_PIXEL_RATIO = 2;
+const ALLOWED_GROUP_IMAGE_TYPES = new Set(["image/jpeg", "image/png", "image/webp"]);
 const CURRENCIES = [
   { code: "USD", symbol: "$", label: "USD - US Dollar" },
   { code: "EUR", symbol: "EUR", label: "EUR - Euro" },
@@ -29,6 +42,78 @@ function getInviteEmailCount(value: string): number {
     .split(",")
     .map((email) => email.trim())
     .filter((email) => email.length > 0 && email.includes("@")).length;
+}
+
+function validateGroupImageFile(file: File): string | null {
+  if (!ALLOWED_GROUP_IMAGE_TYPES.has(file.type)) {
+    return "Upload a JPG, PNG, or WebP image.";
+  }
+
+  if (file.size > MAX_GROUP_IMAGE_BYTES) {
+    return "Keep the group picture under 2 MB.";
+  }
+
+  return null;
+}
+
+function imageBitmapExceedsPreviewLimits(bitmap: ImageBitmap): boolean {
+  return (
+    bitmap.width > MAX_GROUP_IMAGE_DECODED_SIDE ||
+    bitmap.height > MAX_GROUP_IMAGE_DECODED_SIDE ||
+    bitmap.width * bitmap.height > MAX_GROUP_IMAGE_DECODED_PIXELS
+  );
+}
+
+function GroupImagePreviewCanvas({
+  bitmap,
+  className,
+}: {
+  bitmap: ImageBitmap;
+  className: string;
+}) {
+  const canvasRef = useRef<HTMLCanvasElement | null>(null);
+
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    const context = canvas?.getContext("2d");
+
+    if (!canvas || !context) {
+      return;
+    }
+
+    const previewSize = GROUP_IMAGE_PREVIEW_SIZE;
+    const pixelRatio = Math.min(window.devicePixelRatio || 1, GROUP_IMAGE_PREVIEW_MAX_PIXEL_RATIO);
+    canvas.width = Math.round(previewSize * pixelRatio);
+    canvas.height = Math.round(previewSize * pixelRatio);
+    context.setTransform(pixelRatio, 0, 0, pixelRatio, 0, 0);
+    context.clearRect(0, 0, previewSize, previewSize);
+
+    const scale = Math.max(previewSize / bitmap.width, previewSize / bitmap.height);
+    const sourceWidth = previewSize / scale;
+    const sourceHeight = previewSize / scale;
+    const sourceX = Math.max(0, (bitmap.width - sourceWidth) / 2);
+    const sourceY = Math.max(0, (bitmap.height - sourceHeight) / 2);
+
+    context.drawImage(
+      bitmap,
+      sourceX,
+      sourceY,
+      sourceWidth,
+      sourceHeight,
+      0,
+      0,
+      previewSize,
+      previewSize
+    );
+  }, [bitmap]);
+
+  return (
+    <canvas
+      ref={canvasRef}
+      className={className}
+      aria-label="Exchange picture preview"
+    />
+  );
 }
 
 function ChecklistMark({ done }: { done: boolean }) {
@@ -58,6 +143,10 @@ function ChecklistMark({ done }: { done: boolean }) {
 
 export default function CreateGroupPage() {
   const router = useRouter();
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const groupImagePreviewBitmapRef = useRef<ImageBitmap | null>(null);
+  const imageDecodeRequestRef = useRef(0);
+  const mountedRef = useRef(true);
 
   const [groupName, setGroupName] = useState("");
   const [description, setDescription] = useState("");
@@ -68,16 +157,122 @@ export default function CreateGroupPage() {
   const [customBudget, setCustomBudget] = useState(false);
   const [requireAnonymousNickname, setRequireAnonymousNickname] = useState(false);
   const [ownerCodename, setOwnerCodename] = useState("");
+  const [groupImageFile, setGroupImageFile] = useState<File | null>(null);
+  const [groupImagePreviewBitmap, setGroupImagePreviewBitmap] = useState<ImageBitmap | null>(null);
+  const [imageDecodePending, setImageDecodePending] = useState(false);
+  const [imageDragActive, setImageDragActive] = useState(false);
 
+  const [isHydrated, setIsHydrated] = useState(false);
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState("");
   const [statusMsg, setStatusMsg] = useState("");
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  useEffect(() => {
+    setIsHydrated(true);
+
+    return () => {
+      mountedRef.current = false;
+      imageDecodeRequestRef.current += 1;
+      groupImagePreviewBitmapRef.current?.close();
+      groupImagePreviewBitmapRef.current = null;
+    };
+  }, []);
+
+  const replaceGroupImagePreviewBitmap = (bitmap: ImageBitmap | null) => {
+    groupImagePreviewBitmapRef.current?.close();
+    groupImagePreviewBitmapRef.current = bitmap;
+    setGroupImagePreviewBitmap(bitmap);
+  };
+
+  const applyGroupImageFile = async (file: File) => {
+    const requestId = imageDecodeRequestRef.current + 1;
+    imageDecodeRequestRef.current = requestId;
+    const validationMessage = validateGroupImageFile(file);
+
+    if (validationMessage) {
+      setGroupImageFile(null);
+      replaceGroupImagePreviewBitmap(null);
+      setImageDecodePending(false);
+      setErrorMsg(validationMessage);
+      setStatusMsg("");
+      return;
+    }
+
+    setErrorMsg("");
+    setStatusMsg("");
+    setGroupImageFile(file);
+    setImageDecodePending(true);
+
+    try {
+      const previewBitmap = await createImageBitmap(file);
+
+      if (!mountedRef.current || requestId !== imageDecodeRequestRef.current) {
+        previewBitmap.close();
+        return;
+      }
+
+      if (imageBitmapExceedsPreviewLimits(previewBitmap)) {
+        previewBitmap.close();
+        setGroupImageFile(null);
+        replaceGroupImagePreviewBitmap(null);
+        setErrorMsg("Choose a smaller picture, under 6000 pixels on each side.");
+        return;
+      }
+
+      replaceGroupImagePreviewBitmap(previewBitmap);
+    } catch {
+      if (!mountedRef.current || requestId !== imageDecodeRequestRef.current) {
+        return;
+      }
+
+      setGroupImageFile(null);
+      replaceGroupImagePreviewBitmap(null);
+      setErrorMsg("We could not preview that picture. Try another JPG, PNG, or WebP image.");
+    } finally {
+      if (mountedRef.current && requestId === imageDecodeRequestRef.current) {
+        setImageDecodePending(false);
+      }
+    }
+  };
+
+  const handleGroupImageInput = async (event: ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+
+    if (file) {
+      await applyGroupImageFile(file);
+    }
+
+    event.target.value = "";
+  };
+
+  const handleGroupImageDrop = async (event: DragEvent<HTMLButtonElement>) => {
+    event.preventDefault();
+    setImageDragActive(false);
+    const file = event.dataTransfer.files?.[0];
+
+    if (file) {
+      await applyGroupImageFile(file);
+    }
+  };
+
+  const removeGroupImage = () => {
+    imageDecodeRequestRef.current += 1;
+    setGroupImageFile(null);
+    setImageDecodePending(false);
+    replaceGroupImagePreviewBitmap(null);
+  };
+
+  const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setLoading(true);
     setErrorMsg("");
     setStatusMsg("");
+
+    if (imageDecodePending) {
+      setErrorMsg("Wait for the group picture to finish previewing.");
+      setLoading(false);
+      return;
+    }
 
     // Run the fast checks in the browser for instant feedback, then let the
     // server action repeat them before any database write happens.
@@ -121,16 +316,21 @@ export default function CreateGroupPage() {
       .map((email) => sanitize(email, 100).toLowerCase())
       .filter((email) => email.length > 0 && email.includes("@"));
 
-    const result = await createGroupWithInvites({
-      name: cleanName,
-      description: cleanDesc,
-      eventDate,
-      inviteEmails: emailList,
-      budget: cleanBudget,
-      currency,
-      requireAnonymousNickname,
-      ownerCodename: cleanOwnerCodename,
-    });
+    const formData = new FormData();
+    formData.set("name", cleanName);
+    formData.set("description", cleanDesc);
+    formData.set("eventDate", eventDate);
+    formData.set("inviteEmailsJson", JSON.stringify(emailList));
+    formData.set("budget", cleanBudget.toString());
+    formData.set("currency", currency);
+    formData.set("requireAnonymousNickname", String(requireAnonymousNickname));
+    formData.set("ownerCodename", cleanOwnerCodename);
+
+    if (groupImageFile) {
+      formData.set("groupImage", groupImageFile);
+    }
+
+    const result = await createGroupWithInvitesFromFormData(formData);
 
     if (!result.success) {
       setErrorMsg(result.message);
@@ -148,6 +348,7 @@ export default function CreateGroupPage() {
 
   const currencySymbol = CURRENCIES.find((item) => item.code === currency)?.symbol || "$";
   const inviteEmailCount = getInviteEmailCount(inviteEmails);
+  const formActionDisabled = !isHydrated || loading || imageDecodePending;
   return (
     <main
       className="relative min-h-screen px-4 py-8 sm:px-6 lg:py-12"
@@ -220,8 +421,15 @@ export default function CreateGroupPage() {
             {description.trim() || "A little joy, a lot of surprises."}
           </p>
 
-          <div className="mx-auto mt-6 grid h-32 w-32 place-items-center rounded-[34px] bg-[#fff4df] text-[#48664e]">
-            <ChecklistMark done />
+          <div className="mx-auto mt-6 grid h-32 w-32 overflow-hidden rounded-[34px] bg-[#fff4df] text-[#48664e] shadow-[inset_0_0_0_1px_rgba(72,102,78,.1)]">
+            {groupImagePreviewBitmap ? (
+              <GroupImagePreviewCanvas
+                bitmap={groupImagePreviewBitmap}
+                className="h-full w-full object-cover"
+              />
+            ) : (
+              <ChecklistMark done />
+            )}
           </div>
 
           <div className="mt-8 space-y-4 border-t border-[rgba(72,102,78,.12)] pt-5">
@@ -290,6 +498,97 @@ export default function CreateGroupPage() {
                 color: "#1f2937",
               }}
             />
+          </div>
+
+          <div>
+            <label
+              className="text-[13px] font-extrabold mb-1.5 block"
+              style={{ color: "#374151" }}
+            >
+              Exchange picture{" "}
+              <span className="text-[11px] font-semibold" style={{ color: "#9ca3af" }}>
+                (optional)
+              </span>
+            </label>
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/png,image/jpeg,image/webp"
+              onChange={handleGroupImageInput}
+              className="hidden"
+            />
+            <button
+              type="button"
+              onClick={() => fileInputRef.current?.click()}
+              onDragEnter={(event) => {
+                event.preventDefault();
+                setImageDragActive(true);
+              }}
+              onDragOver={(event) => {
+                event.preventDefault();
+                setImageDragActive(true);
+              }}
+              onDragLeave={(event) => {
+                event.preventDefault();
+                setImageDragActive(false);
+              }}
+              onDrop={handleGroupImageDrop}
+              className="flex w-full flex-col gap-4 rounded-2xl p-4 text-left transition hover:-translate-y-0.5 sm:flex-row sm:items-center"
+              style={{
+                background: imageDragActive ? "#eef6ee" : "rgba(72,102,78,.045)",
+                border: imageDragActive
+                  ? "2px solid rgba(72,102,78,.42)"
+                  : "2px dashed rgba(72,102,78,.2)",
+                color: "#2e3432",
+                fontFamily: "inherit",
+              }}
+            >
+              <span className="grid h-20 w-20 shrink-0 place-items-center overflow-hidden rounded-2xl bg-white text-[#48664e] shadow-[inset_0_0_0_1px_rgba(72,102,78,.1)]">
+                {groupImagePreviewBitmap ? (
+                  <GroupImagePreviewCanvas
+                    bitmap={groupImagePreviewBitmap}
+                    className="h-full w-full object-cover"
+                  />
+                ) : (
+                  <svg viewBox="0 0 28 28" className="h-8 w-8" fill="none" aria-hidden="true">
+                    <path
+                      d="M6 11.5h16v9.2c0 1-.8 1.8-1.8 1.8H7.8c-1 0-1.8-.8-1.8-1.8v-9.2Z"
+                      stroke="currentColor"
+                      strokeWidth="1.8"
+                    />
+                    <path
+                      d="M9 11.5V9.8A3.8 3.8 0 0 1 16.2 8M14 11.5V9.8a3.8 3.8 0 0 1 7.3-1.4M5 14h18"
+                      stroke="currentColor"
+                      strokeLinecap="round"
+                      strokeWidth="1.8"
+                    />
+                    <path
+                      d="M14 4.5v5M11.5 7h5"
+                      stroke="#c0392b"
+                      strokeLinecap="round"
+                      strokeWidth="1.8"
+                    />
+                  </svg>
+                )}
+              </span>
+              <span className="min-w-0">
+                <span className="block text-[14px] font-black">
+                  {groupImageFile ? groupImageFile.name : "Drop a group picture or browse"}
+                </span>
+                <span className="mt-1 block text-[12px] font-semibold leading-5 text-slate-500">
+                  JPG, PNG, or WebP. Keep it under 2 MB. The picture appears on your group card.
+                </span>
+              </span>
+            </button>
+            {groupImageFile && (
+              <button
+                type="button"
+                onClick={removeGroupImage}
+                className="mt-2 rounded-full px-3 py-1.5 text-[12px] font-bold text-[#a43c3f] transition hover:bg-[#fff1f2]"
+              >
+                Remove picture
+              </button>
+            )}
           </div>
 
           <div>
@@ -498,8 +797,14 @@ export default function CreateGroupPage() {
               </div>
               <button
                 type="button"
+                disabled={!isHydrated}
                 onClick={() => setRequireAnonymousNickname((current) => !current)}
                 aria-pressed={requireAnonymousNickname}
+                aria-label={
+                  requireAnonymousNickname
+                    ? "Allow real names in this group"
+                    : "Use nicknames in this group"
+                }
                 className="inline-flex shrink-0 items-center rounded-full p-1 transition"
                 style={{
                   background: requireAnonymousNickname ? "#2563eb" : "#cbd5e1",
@@ -575,17 +880,18 @@ export default function CreateGroupPage() {
 
           <button
             type="submit"
-            disabled={loading}
+            disabled={formActionDisabled}
             className="w-full rounded-full py-3.5 text-[16px] font-extrabold text-white transition hover:-translate-y-0.5 disabled:hover:translate-y-0"
             style={{
-              background: loading ? "#9ca3af" : "linear-gradient(135deg,#48664e,#3c5a43)",
+              background:
+                formActionDisabled ? "#9ca3af" : "linear-gradient(135deg,#48664e,#3c5a43)",
               border: "none",
-              cursor: loading ? "not-allowed" : "pointer",
+              cursor: formActionDisabled ? "not-allowed" : "pointer",
               fontFamily: "inherit",
-              boxShadow: loading ? "none" : "0 16px 30px rgba(72,102,78,.2)",
+              boxShadow: formActionDisabled ? "none" : "0 16px 30px rgba(72,102,78,.2)",
             }}
           >
-            {loading ? "Creating group..." : "Create group"}
+            {loading ? "Creating group..." : imageDecodePending ? "Checking picture..." : "Create group"}
           </button>
         </form>
         </section>

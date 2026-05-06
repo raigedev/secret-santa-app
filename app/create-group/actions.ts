@@ -1,5 +1,10 @@
 "use server";
 
+import { GROUP_IMAGE_BUCKET } from "@/lib/groups/group-image";
+import {
+  type PreparedGroupImage,
+  prepareGroupImageUpload,
+} from "@/lib/groups/group-image-upload";
 import {
   sanitizeGroupNickname,
   validateAnonymousGroupNickname,
@@ -75,6 +80,46 @@ function normalizeInviteEmails(rawEmails: string[], ownerEmail: string | null | 
   }
 
   return [...uniqueEmails];
+}
+
+function parseInviteEmailsJson(rawValue: FormDataEntryValue | null): string[] {
+  if (typeof rawValue !== "string" || rawValue.trim().length === 0) {
+    return [];
+  }
+
+  const parsed = JSON.parse(rawValue) as unknown;
+
+  if (!Array.isArray(parsed)) {
+    return [];
+  }
+
+  return parsed.filter((value): value is string => typeof value === "string");
+}
+
+function getFormString(formData: FormData, key: string): string {
+  const value = formData.get(key);
+  return typeof value === "string" ? value : "";
+}
+
+async function uploadGroupImage(input: {
+  actorUserId: string;
+  groupId: string;
+  image: PreparedGroupImage;
+}): Promise<{ imagePath: string }> {
+  const imagePath = `${input.actorUserId}/${input.groupId}/cover.${input.image.extension}`;
+  const upload = await supabaseAdmin.storage
+    .from(GROUP_IMAGE_BUCKET)
+    .upload(imagePath, input.image.bytes, {
+      cacheControl: "3600",
+      contentType: input.image.contentType,
+      upsert: true,
+    });
+
+  if (upload.error) {
+    throw upload.error;
+  }
+
+  return { imagePath };
 }
 
 async function sendInviteEmails(
@@ -153,8 +198,42 @@ function getInviteDeliveryMessage(summary: {
   return `Group created. ${summary.emailInviteCount} invite email(s) sent.`;
 }
 
-export async function createGroupWithInvites(
-  input: CreateGroupInput
+export async function createGroupWithInvites(input: CreateGroupInput): Promise<CreateGroupResult> {
+  return createGroupWithInvitesInternal(input, null);
+}
+
+export async function createGroupWithInvitesFromFormData(
+  formData: FormData
+): Promise<CreateGroupResult> {
+  let inviteEmails: string[];
+
+  try {
+    inviteEmails = parseInviteEmailsJson(formData.get("inviteEmailsJson"));
+  } catch {
+    return { success: false, message: "Check the invite emails and try again." };
+  }
+
+  const rawImage = formData.get("groupImage");
+  const groupImage = rawImage instanceof File ? rawImage : null;
+
+  return createGroupWithInvitesInternal(
+    {
+      name: getFormString(formData, "name"),
+      description: getFormString(formData, "description"),
+      eventDate: getFormString(formData, "eventDate"),
+      inviteEmails,
+      budget: Number(getFormString(formData, "budget")),
+      currency: getFormString(formData, "currency"),
+      requireAnonymousNickname: getFormString(formData, "requireAnonymousNickname") === "true",
+      ownerCodename: getFormString(formData, "ownerCodename"),
+    },
+    groupImage
+  );
+}
+
+async function createGroupWithInvitesInternal(
+  input: CreateGroupInput,
+  groupImage: File | null
 ): Promise<CreateGroupResult> {
   const supabase = await createClient();
   const {
@@ -196,6 +275,12 @@ export async function createGroupWithInvites(
 
   if (!ALLOWED_CURRENCIES.has(cleanCurrency)) {
     return { success: false, message: "Choose a valid currency." };
+  }
+
+  const preparedGroupImage = await prepareGroupImageUpload(groupImage);
+
+  if (preparedGroupImage.message) {
+    return { success: false, message: preparedGroupImage.message };
   }
 
   if (requireAnonymousNickname) {
@@ -249,6 +334,48 @@ export async function createGroupWithInvites(
     return { success: false, message: "Failed to create group. Please try again." };
   }
 
+  let uploadedImagePath: string | null = null;
+
+  if (preparedGroupImage.image) {
+    try {
+      const uploadResult = await uploadGroupImage({
+        actorUserId: user.id,
+        groupId: newGroup.id,
+        image: preparedGroupImage.image,
+      });
+
+      uploadedImagePath = uploadResult.imagePath;
+
+      const { error: imageUpdateError } = await supabaseAdmin
+        .from("groups")
+        .update({ image_url: uploadResult.imagePath })
+        .eq("id", newGroup.id);
+
+      if (imageUpdateError) {
+        throw imageUpdateError;
+      }
+    } catch (imageError) {
+      if (uploadedImagePath) {
+        await supabaseAdmin.storage.from(GROUP_IMAGE_BUCKET).remove([uploadedImagePath]);
+      }
+
+      await supabaseAdmin.from("groups").delete().eq("id", newGroup.id);
+      await recordServerFailure({
+        actorUserId: user.id,
+        details: {
+          groupId: newGroup.id,
+        },
+        errorMessage:
+          imageError instanceof Error ? imageError.message : "Unknown group picture upload error",
+        eventType: "group.image_upload",
+        resourceId: newGroup.id,
+        resourceType: "group",
+      });
+
+      return { success: false, message: "We could not save that group picture." };
+    }
+  }
+
   const ownerEmail = (user.email || "").toLowerCase();
   const ownerNickname = requireAnonymousNickname ? cleanOwnerCodename : null;
 
@@ -291,6 +418,9 @@ export async function createGroupWithInvites(
 
     // If member creation fails after the group row exists, try to remove the
     // partially created group so the dashboard does not show an empty shell.
+    if (uploadedImagePath) {
+      await supabaseAdmin.storage.from(GROUP_IMAGE_BUCKET).remove([uploadedImagePath]);
+    }
     await supabaseAdmin.from("groups").delete().eq("id", newGroup.id);
 
     return {
@@ -305,6 +435,7 @@ export async function createGroupWithInvites(
       details: {
         failedInviteCount: 0,
         groupId: newGroup.id,
+        hasGroupImage: Boolean(uploadedImagePath),
         inviteCount: 0,
         sentInviteCount: 0,
       },
@@ -329,6 +460,7 @@ export async function createGroupWithInvites(
     details: {
       failedInviteCount: inviteDelivery.failedCount,
       groupId: newGroup.id,
+      hasGroupImage: Boolean(uploadedImagePath),
       inviteCount: inviteEmails.length,
       sentInviteCount: inviteDelivery.emailInviteCount + inviteDelivery.dashboardInviteCount,
     },

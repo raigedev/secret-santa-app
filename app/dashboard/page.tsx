@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { getProfile } from "@/app/profile/actions";
 import { claimInvitedMemberships } from "./actions";
+import { createSignedGroupImageUrl } from "@/lib/groups/group-image";
 import { isGroupInHistory } from "@/lib/groups/history";
 import { DashboardSkeleton } from "@/app/components/PageSkeleton";
 import FadeIn from "@/app/components/FadeIn";
@@ -405,7 +406,7 @@ export default function DashboardPage() {
             acceptedGroupIds.length > 0
               ? supabase
                   .from("groups")
-                  .select("id, name, description, event_date, budget, currency, owner_id, created_at, require_anonymous_nickname")
+                  .select("id, name, description, event_date, image_url, budget, currency, owner_id, created_at, require_anonymous_nickname")
                   .in("id", acceptedGroupIds)
               : createEmptyQueryResult<GroupRow>(),
             acceptedGroupIds.length > 0
@@ -501,6 +502,13 @@ export default function DashboardPage() {
           (activityNotificationsRes.data || []) as NotificationFeedRow[];
         const drawnGroupIds = new Set(allAssignments.map((assignment) => assignment.group_id));
         const membersByGroupId = new Map<string, GroupMemberRow[]>();
+        const groupImageUrlEntries = await Promise.all(
+          activeGroupsData.map(async (group) => [
+            group.id,
+            await createSignedGroupImageUrl(supabase, group.image_url),
+          ] as const)
+        );
+        const signedGroupImageUrlById = new Map(groupImageUrlEntries);
 
         for (const member of allMembers) {
           const currentMembers = membersByGroupId.get(member.group_id) || [];
@@ -511,6 +519,7 @@ export default function DashboardPage() {
         const groupsWithMembers: Group[] = activeGroupsData.map((group) => {
           return {
             ...group,
+            image_url: signedGroupImageUrlById.get(group.id) || null,
             isOwner: roleMap[group.id] === "owner",
             hasDrawn: drawnGroupIds.has(group.id),
             members: (membersByGroupId.get(group.id) || []).map((member) => ({
