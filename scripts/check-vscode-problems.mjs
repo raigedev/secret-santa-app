@@ -32,6 +32,15 @@ const roundedScale = new Map([
   ["2rem", "4xl"],
 ]);
 
+const letterSpacingScale = new Map([
+  ["-0.05em", "tighter"],
+  ["-0.025em", "tight"],
+  ["0em", "normal"],
+  ["0.025em", "wide"],
+  ["0.05em", "wider"],
+  ["0.1em", "widest"],
+]);
+
 const spacingUtilities = new Set([
   "max-h",
   "max-w",
@@ -153,6 +162,27 @@ function canonicalRoundedClass(prefix, utility, amount, unit) {
 
 function canonicalPlainNumberClass(prefix, utility, amount) {
   return `${prefix}${utility}-${amount}`;
+}
+
+function canonicalLetterSpacingClass(token) {
+  const marker = token.indexOf("-[");
+
+  if (marker <= 0 || !token.endsWith("]")) {
+    return null;
+  }
+
+  const value = token.slice(marker + 2, -1);
+  const prefixAndUtility = token.slice(0, marker);
+  const variantIndex = prefixAndUtility.lastIndexOf(":");
+  const prefix = variantIndex === -1 ? "" : prefixAndUtility.slice(0, variantIndex + 1);
+  const utility = variantIndex === -1 ? prefixAndUtility : prefixAndUtility.slice(variantIndex + 1);
+
+  if (utility !== "tracking") {
+    return null;
+  }
+
+  const canonicalValue = letterSpacingScale.get(value);
+  return canonicalValue ? `${prefix}tracking-${canonicalValue}` : null;
 }
 
 function classTokenAt(content, markerOffset) {
@@ -308,6 +338,18 @@ function checkTailwindCanonicalClasses() {
       }
 
       const { start, token } = classTokenAt(content, markerOffset);
+      const canonicalLetterSpacing = canonicalLetterSpacingClass(token);
+
+      if (canonicalLetterSpacing) {
+        reportProblem(
+          problems,
+          file,
+          content,
+          start,
+          token,
+          `Use ${canonicalLetterSpacing} instead.`,
+        );
+      }
 
       if (token.startsWith("bg-[length:") && token.endsWith("]")) {
         const backgroundSize = token.slice("bg-[length:".length, -1);

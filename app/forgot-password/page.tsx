@@ -99,7 +99,7 @@ export default function ForgotPasswordPage() {
         <div className="inline-flex items-center gap-2 rounded-full bg-[#fcce72]/28 px-3 py-1.5 text-sm font-semibold text-[#5f4500]">
           Account recovery
         </div>
-        <h1 className="mt-4 font-[Plus_Jakarta_Sans] text-3xl font-black tracking-[-0.05em] text-[#2e3432] sm:text-4xl">
+        <h1 className="mt-4 font-[Plus_Jakarta_Sans] text-3xl font-black tracking-tighter text-[#2e3432] sm:text-4xl">
           Forgot Password
         </h1>
         <p className="mt-3 text-[15px] leading-7 text-[#5b605e] sm:text-base">

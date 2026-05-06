@@ -130,7 +130,7 @@ export function AuthHeroPanel({
               <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-[#7b5902]">
                 {detailEyebrow}
               </p>
-              <DetailHeading className="mt-2 font-[Plus_Jakarta_Sans] text-2xl font-black tracking-[-0.05em] text-[#2e3432]">
+              <DetailHeading className="mt-2 font-[Plus_Jakarta_Sans] text-2xl font-black tracking-tighter text-[#2e3432]">
                 {detailTitle}
               </DetailHeading>
             </div>
