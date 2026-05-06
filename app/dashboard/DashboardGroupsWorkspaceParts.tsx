@@ -40,17 +40,15 @@ export function MembersTable({ group, isDarkTheme }: { group: Group; isDarkTheme
       <div className="hidden overflow-hidden rounded-2xl bg-white/75 shadow-[inset_0_0_0_1px_rgba(72,102,78,0.1)] md:block">
         <table className="w-full table-fixed text-left">
           <colgroup>
-            <col className="w-[34%]" />
-            <col className="w-[22%]" />
-            <col className="w-[22%]" />
-            <col className="w-[22%]" />
+            <col className="w-[44%]" />
+            <col className="w-[24%]" />
+            <col className="w-[32%]" />
           </colgroup>
           <thead>
             <tr className="text-xs font-black uppercase tracking-[0.14em] text-slate-500">
               <th scope="col" className="px-4 py-3">Member</th>
               <th scope="col" className="px-4 py-3">Status</th>
               <th scope="col" className="px-4 py-3">Wishlist</th>
-              <th scope="col" className="px-4 py-3">Messages</th>
             </tr>
           </thead>
           <tbody>
@@ -76,9 +74,6 @@ export function MembersTable({ group, isDarkTheme }: { group: Group; isDarkTheme
                 </td>
                 <td className="px-4 py-3">
                   <InlineAction href={`/group/${group.id}#group-members`} label="Open group" />
-                </td>
-                <td className="px-4 py-3">
-                  <InlineAction href="/secret-santa-chat" label="Private chat" />
                 </td>
               </tr>
             ))}
@@ -213,9 +208,8 @@ function MemberMobileCard({
           <MemberStatus role={member.role} />
         </div>
       </div>
-      <div className="mt-3 grid gap-2 sm:grid-cols-2">
+      <div className="mt-3">
         <InlineAction href={`/group/${group.id}#group-members`} label="Open group" />
-        <InlineAction href="/secret-santa-chat" label="Private chat" />
       </div>
     </div>
   );

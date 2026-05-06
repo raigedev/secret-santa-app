@@ -1874,7 +1874,7 @@ export default function GroupDetailsPage() {
                           </div>
                         </div>
 
-                        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3">
                           <div
                             className="rounded-2xl p-4"
                             style={{
@@ -1920,30 +1920,6 @@ export default function GroupDetailsPage() {
                             </div>
                             <div className="text-[12px] font-semibold mt-1" style={{ color: "#78716c" }}>
                               Members who added wishlist items before the reveal
-                            </div>
-                          </div>
-
-                          <div
-                            className="rounded-2xl p-4"
-                            style={{
-                              background: "rgba(239,246,255,.86)",
-                              border: "1px solid rgba(59,130,246,.12)",
-                            }}
-                          >
-                            <div
-                              className="text-[11px] font-extrabold uppercase tracking-[0.14em]"
-                              style={{ color: "#1d4ed8" }}
-                            >
-                              Chat Activity
-                            </div>
-                            <div
-                              className="text-[28px] font-bold mt-2"
-                              style={{ fontFamily: "'Fredoka', sans-serif", color: "#1d4ed8" }}
-                            >
-                              {groupRecap.activeChatThreadCount}/{groupRecap.totalChatThreadCount}
-                            </div>
-                            <div className="text-[12px] font-semibold mt-1" style={{ color: "#64748b" }}>
-                              Private chat threads that were used
                             </div>
                           </div>
 
@@ -2048,10 +2024,6 @@ export default function GroupDetailsPage() {
                                     ? "None"
                                     : groupRecap.wishlistMissingAliases.join(", ")}
                                 </strong>
-                              </div>
-                              <div>
-                                Chat recap stays aggregate-only to preserve the anonymous thread
-                                design even after the event.
                               </div>
                             </div>
                           </div>

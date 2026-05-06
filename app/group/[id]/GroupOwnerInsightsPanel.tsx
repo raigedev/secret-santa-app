@@ -16,7 +16,7 @@ type HealthRow = {
   action: string;
   helper: string;
   href: string;
-  icon: "calendar" | "chat" | "heart" | "invite" | "people";
+  icon: "calendar" | "heart" | "invite" | "people";
   label: string;
   meta: string;
   tone: string;
@@ -79,19 +79,6 @@ export function GroupOwnerInsightsPanel({
       label: "Draw status",
       meta: drawMeta.meta,
       tone: "rgba(252,206,114,.28)",
-    },
-    {
-      accent: "#48664e",
-      action: "View messages",
-      helper:
-        ownerInsights.totalChatThreadCount > 0
-          ? `${ownerInsights.activeChatThreadCount} active conversation${ownerInsights.activeChatThreadCount === 1 ? "" : "s"} in the last 3 days.`
-          : "No active conversations in the last 3 days.",
-      href: "/secret-santa-chat",
-      icon: "chat",
-      label: "Messages",
-      meta: ownerInsights.activeChatThreadCount > 0 ? "Active" : "Quiet",
-      tone: "rgba(72,102,78,.12)",
     },
     {
       accent: "#48664e",
@@ -187,7 +174,7 @@ export function GroupOwnerInsightsSkeleton() {
         </div>
       </div>
       <div className="space-y-3">
-        {["invites", "wishlists", "draw", "messages", "gift-day"].map((item) => (
+        {["invites", "wishlists", "draw", "gift-day"].map((item) => (
           <div
             key={item}
             className="rounded-2xl bg-white p-4 shadow-[inset_0_0_0_1px_rgba(72,102,78,.1)]"
@@ -359,20 +346,6 @@ function HealthRowIcon({ icon }: { icon: HealthRow["icon"] }) {
       <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" aria-hidden="true">
         <path
           d="M8.4 11.2a3.2 3.2 0 1 0 0-6.4 3.2 3.2 0 0 0 0 6.4ZM15.8 10.4a2.7 2.7 0 1 0 0-5.4 2.7 2.7 0 0 0 0 5.4ZM3.6 18.8c.6-3.3 2.4-5 5-5s4.4 1.7 5 5M12.8 14.2c.8-.7 1.8-1.1 3-1.1 2.4 0 4 1.5 4.6 4.5"
-          stroke="currentColor"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          strokeWidth="1.7"
-        />
-      </svg>
-    );
-  }
-
-  if (icon === "chat") {
-    return (
-      <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" aria-hidden="true">
-        <path
-          d="M6.6 6.8h10.8c1.1 0 2 .9 2 2v5.7c0 1.1-.9 2-2 2h-5.1l-3.9 2.8v-2.8H6.6c-1.1 0-2-.9-2-2V8.8c0-1.1.9-2 2-2Z"
           stroke="currentColor"
           strokeLinecap="round"
           strokeLinejoin="round"

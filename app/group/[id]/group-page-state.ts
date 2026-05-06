@@ -38,14 +38,11 @@ export type OwnerInsights = {
   acceptedCount: number;
   wishlistReadyCount: number;
   missingWishlistMemberNames: string[];
-  activeChatThreadCount: number;
-  totalChatThreadCount: number;
   confirmedGiftCount: number;
   totalGiftCount: number;
 };
 
 export type GroupRecap = {
-  activeChatThreadCount: number;
   aliasRoster: Array<{
     alias: string;
     avatarEmoji: string;
@@ -53,7 +50,6 @@ export type GroupRecap = {
   }>;
   confirmedGiftCount: number;
   participantCount: number;
-  totalChatThreadCount: number;
   totalGiftCount: number;
   wishlistMissingAliases: string[];
   wishlistReadyCount: number;

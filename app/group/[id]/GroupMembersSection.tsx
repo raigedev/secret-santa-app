@@ -25,7 +25,7 @@ type MemberDisplayRow = {
 };
 
 const MEMBER_GRID_COLUMNS_CLASS =
-  "lg:grid-cols-[minmax(190px,1.35fr)_minmax(112px,0.7fr)_minmax(128px,0.8fr)_minmax(138px,0.8fr)]";
+  "lg:grid-cols-[minmax(220px,1.45fr)_minmax(128px,0.75fr)_minmax(150px,0.9fr)]";
 
 export function GroupMembersSection({
   acceptedMembers,
@@ -103,7 +103,6 @@ export function GroupMembersSection({
             <span>Member</span>
             <span>Status</span>
             <span>Wishlist</span>
-            <span>Messages</span>
           </div>
           <div className="divide-y divide-[rgba(72,102,78,.1)]">
             {rows.map(({ member, status, index }) => {
@@ -118,7 +117,6 @@ export function GroupMembersSection({
                 status !== "accepted" || missingWishlistNames.has(normalizeMemberName(rawMemberName));
               const statusMeta = getStatusMeta(status, isWishlistMissing);
               const wishlistMeta = getWishlistMeta(status, isWishlistMissing);
-              const messageMeta = getMessageMeta(status);
               const canEditNickname = isCurrentUser && !drawDone;
               const canRemoveAcceptedMember =
                 isOwner && !drawDone && status === "accepted" && Boolean(member.user_id) && !isCurrentUser;
@@ -181,16 +179,8 @@ export function GroupMembersSection({
                     <div className="mt-0.5">{wishlistMeta.helper}</div>
                   </div>
 
-                  <div className="text-xs font-semibold text-[#64748b]">
-                    <div className="flex items-center gap-1.5 font-black" style={{ color: messageMeta.color }}>
-                      <MessageIcon />
-                      {messageMeta.label}
-                    </div>
-                    <div className="mt-0.5">{messageMeta.helper}</div>
-                  </div>
-
                   {hasRowActions && (
-                    <div className="flex min-w-0 flex-wrap justify-start gap-2 border-t border-[rgba(72,102,78,.08)] pt-3 lg:col-span-4">
+                    <div className="flex min-w-0 flex-wrap justify-start gap-2 border-t border-[rgba(72,102,78,.08)] pt-3 lg:col-span-3">
                       {canEditNickname && (
                         <NicknameForm groupId={groupId} currentNickname={member.nickname || ""} />
                       )}
@@ -293,22 +283,6 @@ function getWishlistMeta(status: MemberDisplayRow["status"], isWishlistMissing: 
   };
 }
 
-function getMessageMeta(status: MemberDisplayRow["status"]) {
-  if (status === "accepted") {
-    return {
-      color: "#48664e",
-      helper: "Recently checked",
-      label: "Read",
-    };
-  }
-
-  return {
-    color: "#64748b",
-    helper: "No recent messages",
-    label: "Quiet",
-  };
-}
-
 function MembersIcon() {
   return (
     <svg viewBox="0 0 24 24" className="h-5 w-5 text-[#48664e]" fill="none" aria-hidden="true">
@@ -391,20 +365,6 @@ function SmallStatusIcon({ tone }: { tone: string }) {
         strokeLinecap="round"
         strokeLinejoin="round"
         strokeWidth="1.6"
-      />
-    </svg>
-  );
-}
-
-function MessageIcon() {
-  return (
-    <svg viewBox="0 0 16 16" className="h-3.5 w-3.5" fill="none" aria-hidden="true">
-      <path
-        d="M3.5 4.2h9c.6 0 1.1.5 1.1 1.1V9c0 .6-.5 1.1-1.1 1.1H8.2l-2.8 2v-2H3.5c-.6 0-1.1-.5-1.1-1.1V5.3c0-.6.5-1.1 1.1-1.1Z"
-        stroke="currentColor"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        strokeWidth="1.5"
       />
     </svg>
   );
