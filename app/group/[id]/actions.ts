@@ -877,8 +877,6 @@ export async function getGroupOwnerInsights(groupId: string): Promise<{
     acceptedCount: number;
     wishlistReadyCount: number;
     missingWishlistMemberNames: string[];
-    activeChatThreadCount: number;
-    totalChatThreadCount: number;
     confirmedGiftCount: number;
     totalGiftCount: number;
   };
@@ -915,7 +913,6 @@ export async function getGroupOwnerInsights(groupId: string): Promise<{
     { data: acceptedMembers, error: acceptedMembersError },
     { data: wishlistRows, error: wishlistRowsError },
     { data: assignments, error: assignmentsError },
-    { data: messageRows, error: messageRowsError },
   ] = await Promise.all([
     supabaseAdmin
       .from("group_members")
@@ -927,14 +924,10 @@ export async function getGroupOwnerInsights(groupId: string): Promise<{
       .from("assignments")
       .select("giver_id, receiver_id, gift_received")
       .eq("group_id", groupId),
-    supabaseAdmin
-      .from("messages")
-      .select("thread_giver_id, thread_receiver_id")
-      .eq("group_id", groupId),
   ]);
 
   const firstError =
-    acceptedMembersError || wishlistRowsError || assignmentsError || messageRowsError;
+    acceptedMembersError || wishlistRowsError || assignmentsError;
 
   if (firstError) {
     await recordServerFailure({
@@ -970,18 +963,10 @@ export async function getGroupOwnerInsights(groupId: string): Promise<{
       })
     );
 
-  const assignmentThreadKeys = new Set(
-    (assignments || []).map((assignment) => `${assignment.giver_id}:${assignment.receiver_id}`)
-  );
-  const activeChatThreadKeys = new Set(
-    (messageRows || [])
-      .map((message) => `${message.thread_giver_id}:${message.thread_receiver_id}`)
-      .filter((threadKey) => assignmentThreadKeys.has(threadKey))
-  );
-
   const confirmedGiftCount = (assignments || []).filter(
     (assignment) => assignment.gift_received
   ).length;
+  const totalGiftCount = (assignments || []).length;
 
   return {
     success: true,
@@ -990,10 +975,8 @@ export async function getGroupOwnerInsights(groupId: string): Promise<{
       acceptedCount: safeAcceptedMembers.length,
       wishlistReadyCount: safeAcceptedMembers.length - missingWishlistMemberNames.length,
       missingWishlistMemberNames,
-      activeChatThreadCount: activeChatThreadKeys.size,
-      totalChatThreadCount: assignmentThreadKeys.size,
       confirmedGiftCount,
-      totalGiftCount: assignmentThreadKeys.size,
+      totalGiftCount,
     },
   };
 }
@@ -1002,7 +985,6 @@ export async function getGroupRecap(groupId: string): Promise<{
   success: boolean;
   message: string;
   recap?: {
-    activeChatThreadCount: number;
     aliasRoster: Array<{
       alias: string;
       avatarEmoji: string;
@@ -1010,7 +992,6 @@ export async function getGroupRecap(groupId: string): Promise<{
     }>;
     confirmedGiftCount: number;
     participantCount: number;
-    totalChatThreadCount: number;
     totalGiftCount: number;
     wishlistMissingAliases: string[];
     wishlistReadyCount: number;
@@ -1064,17 +1045,13 @@ export async function getGroupRecap(groupId: string): Promise<{
     return { success: false, message: "The owner has not revealed the group recap yet." };
   }
 
-  const [{ assignments, participants }, { data: wishlistRows, error: wishlistRowsError }, { data: messageRows, error: messageRowsError }] =
+  const [{ assignments, participants }, { data: wishlistRows, error: wishlistRowsError }] =
     await Promise.all([
       loadRevealSourceData(groupId),
       supabaseAdmin.from("wishlists").select("user_id").eq("group_id", groupId),
-      supabaseAdmin
-        .from("messages")
-        .select("thread_giver_id, thread_receiver_id")
-        .eq("group_id", groupId),
     ]);
 
-  const firstError = wishlistRowsError || messageRowsError;
+  const firstError = wishlistRowsError;
 
   if (firstError) {
     await recordServerFailure({
@@ -1097,14 +1074,6 @@ export async function getGroupRecap(groupId: string): Promise<{
   const wishlistMissingAliases = participants
     .filter((participant) => !membersWithWishlist.has(participant.userId))
     .map((participant) => participant.alias);
-  const assignmentThreadKeys = new Set(
-    assignments.map((assignment) => `${assignment.giver_id}:${assignment.receiver_id}`)
-  );
-  const activeChatThreadKeys = new Set(
-    (messageRows || [])
-      .map((message) => `${message.thread_giver_id}:${message.thread_receiver_id}`)
-      .filter((threadKey) => assignmentThreadKeys.has(threadKey))
-  );
   const { data: confirmedAssignments, error: confirmedAssignmentsError } = await supabaseAdmin
     .from("assignments")
     .select("gift_received")
@@ -1130,7 +1099,6 @@ export async function getGroupRecap(groupId: string): Promise<{
     success: true,
     message: "Group recap loaded.",
     recap: {
-      activeChatThreadCount: activeChatThreadKeys.size,
       aliasRoster: participants.map((participant) => ({
         alias: participant.alias,
         avatarEmoji: participant.avatarEmoji,
@@ -1138,7 +1106,6 @@ export async function getGroupRecap(groupId: string): Promise<{
       })),
       confirmedGiftCount,
       participantCount: participants.length,
-      totalChatThreadCount: assignmentThreadKeys.size,
       totalGiftCount: assignments.length,
       wishlistMissingAliases,
       wishlistReadyCount: participants.length - wishlistMissingAliases.length,

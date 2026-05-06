@@ -1,7 +1,7 @@
 import type { ReactNode } from "react";
 import Link from "next/link";
 import { formatDashboardDate, formatDashboardEventCountdown } from "./dashboard-formatters";
-import { ArrowRightIcon, ChatIcon, UserOutlineIcon, WishlistIcon } from "./dashboard-icons";
+import { ArrowRightIcon, UserOutlineIcon, WishlistIcon } from "./dashboard-icons";
 import type { Group } from "./dashboard-types";
 import { CalendarIcon } from "./DashboardGroupsWorkspaceParts";
 
@@ -67,14 +67,6 @@ export function GroupHealthRail({
           isDarkTheme={isDarkTheme}
           status={group.hasDrawn ? "Done" : "Ready soon"}
           title="Draw status"
-        />
-        <HealthRow
-          body="Open private exchange conversations."
-          href="/secret-santa-chat"
-          icon={<ChatIcon className="h-5 w-5" />}
-          isDarkTheme={isDarkTheme}
-          status="Available"
-          title="Messages"
         />
         <HealthRow
           body={countdownLabel}
