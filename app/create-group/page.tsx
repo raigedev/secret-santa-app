@@ -20,7 +20,7 @@ const BUDGET_OPTIONS = [10, 15, 25, 50, 100];
 const MAX_GROUP_IMAGE_BYTES = 2 * 1024 * 1024;
 const MAX_GROUP_IMAGE_DECODED_SIDE = 6000;
 const MAX_GROUP_IMAGE_DECODED_PIXELS = 12_000_000;
-const GROUP_IMAGE_PREVIEW_SIZE = 320;
+const GROUP_IMAGE_PREVIEW_SIZE = 384;
 const GROUP_IMAGE_PREVIEW_MAX_PIXEL_RATIO = 2;
 const ALLOWED_GROUP_IMAGE_TYPES = new Set(["image/jpeg", "image/png", "image/webp"]);
 const CURRENCIES = [
@@ -421,7 +421,7 @@ export default function CreateGroupPage() {
             {description.trim() || "A little joy, a lot of surprises."}
           </p>
 
-          <div className="mx-auto mt-6 grid h-32 w-32 overflow-hidden rounded-[34px] bg-[#fff4df] text-[#48664e] shadow-[inset_0_0_0_1px_rgba(72,102,78,.1)]">
+          <div className="mx-auto mt-6 grid h-40 w-40 overflow-hidden rounded-[38px] bg-[#fff4df] text-[#48664e] shadow-[inset_0_0_0_1px_rgba(72,102,78,.1)] sm:h-44 sm:w-44 sm:rounded-[42px]">
             {groupImagePreviewBitmap ? (
               <GroupImagePreviewCanvas
                 bitmap={groupImagePreviewBitmap}
@@ -533,7 +533,7 @@ export default function CreateGroupPage() {
                 setImageDragActive(false);
               }}
               onDrop={handleGroupImageDrop}
-              className="flex w-full flex-col gap-4 rounded-2xl p-4 text-left transition hover:-translate-y-0.5 sm:flex-row sm:items-center"
+              className="flex w-full flex-col gap-4 rounded-2xl p-4 text-left transition hover:-translate-y-0.5 sm:flex-row sm:items-center sm:p-5"
               style={{
                 background: imageDragActive ? "#eef6ee" : "rgba(72,102,78,.045)",
                 border: imageDragActive
@@ -543,7 +543,7 @@ export default function CreateGroupPage() {
                 fontFamily: "inherit",
               }}
             >
-              <span className="grid h-20 w-20 shrink-0 place-items-center overflow-hidden rounded-2xl bg-white text-[#48664e] shadow-[inset_0_0_0_1px_rgba(72,102,78,.1)]">
+              <span className="grid h-28 w-28 shrink-0 place-items-center overflow-hidden rounded-3xl bg-white text-[#48664e] shadow-[inset_0_0_0_1px_rgba(72,102,78,.1)] sm:h-32 sm:w-32 sm:rounded-[28px]">
                 {groupImagePreviewBitmap ? (
                   <GroupImagePreviewCanvas
                     bitmap={groupImagePreviewBitmap}
