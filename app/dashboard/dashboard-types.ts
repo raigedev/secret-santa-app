@@ -144,6 +144,7 @@ export type DashboardSnapshot = {
   pendingInvites: PendingInvite[];
   recipientNames: string[];
   unreadNotificationCount: number;
+  unreadPrivateUpdateCount: number;
   wishlistItemCount: number;
   wishlistGroupCount: number;
   giftProgressSummary: GiftProgressSummary | null;

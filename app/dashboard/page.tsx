@@ -81,6 +81,38 @@ type DashboardNotificationPreviewGroup = {
   latest: NotificationFeedRow;
 };
 
+type DashboardUnreadNotificationRow = {
+  id: string;
+  metadata: Record<string, unknown> | null;
+  type: string;
+};
+
+function getNotificationMetadataGroupId(
+  metadata: DashboardUnreadNotificationRow["metadata"]
+): string | null {
+  const groupId = metadata?.groupId;
+
+  return typeof groupId === "string" ? groupId : null;
+}
+
+function countUnreadPrivateUpdates(
+  notifications: DashboardUnreadNotificationRow[],
+  activeGroupIds: Set<string>
+): number {
+  if (activeGroupIds.size === 0) {
+    return 0;
+  }
+
+  return notifications.filter((notification) => {
+    if (notification.type !== "chat") {
+      return false;
+    }
+
+    const groupId = getNotificationMetadataGroupId(notification.metadata);
+    return Boolean(groupId && activeGroupIds.has(groupId));
+  }).length;
+}
+
 function getNotificationGroupKey(notification: NotificationFeedRow): string {
   return notification.type;
 }
@@ -176,6 +208,7 @@ export default function DashboardPage() {
   const [pendingInvites, setPendingInvites] = useState<PendingInvite[]>([]);
   const [recipientNames, setRecipientNames] = useState<string[]>([]);
   const [unreadNotificationCount, setUnreadNotificationCount] = useState(0);
+  const [unreadPrivateUpdateCount, setUnreadPrivateUpdateCount] = useState(0);
   const [wishlistItemCount, setWishlistItemCount] = useState(0);
   const [giftProgressSummary, setGiftProgressSummary] = useState<GiftProgressSummary | null>(null);
   const [activityFeedItems, setActivityFeedItems] = useState<DashboardActivityItem[]>([]);
@@ -188,6 +221,7 @@ export default function DashboardPage() {
     ((user: { id: string; email?: string | null }) => Promise<void>) | null
   >(null);
   const loadNotificationCountRef = useRef<((userId: string) => Promise<void>) | null>(null);
+  const activeNotificationGroupIdsRef = useRef<Set<string>>(new Set());
 
   useEffect(() => {
     const storedViewerProfile = readStoredViewerProfile();
@@ -284,6 +318,7 @@ export default function DashboardPage() {
       setPendingInvites(snapshot.pendingInvites);
       setRecipientNames(snapshot.recipientNames);
       setUnreadNotificationCount(snapshot.unreadNotificationCount);
+      setUnreadPrivateUpdateCount(snapshot.unreadPrivateUpdateCount);
       setWishlistItemCount(snapshot.wishlistItemCount);
       setGiftProgressSummary(snapshot.giftProgressSummary);
       setActivityFeedItems(snapshot.activityFeedItems);
@@ -357,6 +392,8 @@ export default function DashboardPage() {
           setInvitedGroups([]);
           setPendingInvites([]);
           setRecipientNames([]);
+          activeNotificationGroupIdsRef.current = new Set();
+          setUnreadPrivateUpdateCount(0);
           setWishlistItemCount(0);
           setGiftProgressSummary(null);
           setActivityFeedItems([]);
@@ -369,6 +406,7 @@ export default function DashboardPage() {
             pendingInvites: [],
             recipientNames: [],
             unreadNotificationCount: 0,
+            unreadPrivateUpdateCount: 0,
             wishlistItemCount: 0,
             wishlistGroupCount: 0,
             giftProgressSummary: null,
@@ -483,6 +521,7 @@ export default function DashboardPage() {
           (group) => !isGroupInHistory(group.event_date)
         );
         const activeGroupIds = new Set(activeGroupsData.map((group) => group.id));
+        activeNotificationGroupIdsRef.current = activeGroupIds;
         const allMembers = (membersRes.data || []).filter((member) =>
           activeGroupIds.has(member.group_id)
         );
@@ -691,12 +730,17 @@ export default function DashboardPage() {
           pendingInvites: nextPendingInvites,
           recipientNames: nextRecipientNames,
           unreadNotificationCount: 0,
+          unreadPrivateUpdateCount: 0,
           wishlistItemCount: wishlistSummary.length,
           wishlistGroupCount: nextWishlistGroupCount,
           giftProgressSummary: nextGiftProgressSummary,
           activityFeedItems: feedItems,
           notificationPreviewItems: nextNotificationPreviewItems,
         });
+
+        if (loadNotificationCountRef.current) {
+          void loadNotificationCountRef.current(user.id);
+        }
       } catch {
         if (!isMounted) {
           return;
@@ -776,7 +820,7 @@ export default function DashboardPage() {
     const loadNotificationCount = async (targetUserId: string) => {
       const { data, error } = await supabase
         .from("notifications")
-        .select("id")
+        .select("id, type, metadata")
         .eq("user_id", targetUserId)
         .is("read_at", null)
         .limit(NOTIFICATION_BADGE_COUNT_LIMIT);
@@ -789,7 +833,12 @@ export default function DashboardPage() {
         return;
       }
 
-      setUnreadNotificationCount(data?.length || 0);
+      const notifications = (data || []) as DashboardUnreadNotificationRow[];
+
+      setUnreadNotificationCount(notifications.length);
+      setUnreadPrivateUpdateCount(
+        countUnreadPrivateUpdates(notifications, activeNotificationGroupIdsRef.current)
+      );
     };
 
     loadNotificationCountRef.current = loadNotificationCount;
@@ -1009,6 +1058,7 @@ export default function DashboardPage() {
           recipientCount={recipientNames.length}
           revealMessage={revealMessage}
           unreadNotificationCount={unreadNotificationCount}
+          unreadPrivateUpdateCount={unreadPrivateUpdateCount}
           wishlistItemCount={wishlistItemCount}
           onCreateGroup={() => router.push("/create-group")}
           onOpenChat={() => router.push("/secret-santa-chat")}

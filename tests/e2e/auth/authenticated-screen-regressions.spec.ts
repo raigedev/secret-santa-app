@@ -332,6 +332,42 @@ test.describe("authenticated screen regressions", () => {
     await expect(page.getByTestId("secret-santa-page-shell")).toBeVisible();
   });
 
+  test("dashboard keeps general unread notifications out of private message status", async ({ page }) => {
+    await page.route("**/rest/v1/notifications?**", async (route) => {
+      const requestUrl = new URL(route.request().url());
+      const selectColumns = requestUrl.searchParams.get("select")?.replace(/\s/g, "");
+      const isUnreadCountRequest =
+        selectColumns === "id,type,metadata" &&
+        requestUrl.href.includes("read_at=is.null");
+
+      if (!isUnreadCountRequest) {
+        await route.continue();
+        return;
+      }
+
+      await route.fulfill({
+        body: JSON.stringify([
+          {
+            id: "general-unread-notification",
+            metadata: {},
+            type: "reminder_digest",
+          },
+        ]),
+        contentType: "application/json",
+        headers: { "content-range": "0-0/1" },
+        status: 200,
+      });
+    });
+
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await loginWithTestCredentials(page, credentials!);
+    await page.goto("/dashboard");
+
+    await expect(page.getByRole("heading", { name: /today.s exchange flow/i })).toBeVisible();
+    await expect(page.getByText(/private messages are quiet/i).first()).toBeVisible();
+    await expect(page.getByRole("button", { name: /open private message threads/i })).toHaveCount(0);
+  });
+
   test("sidebar my giftee navigation keeps a light loading surface", async ({ page }) => {
     await page.setViewportSize({ width: 1440, height: 900 });
     await loginWithTestCredentials(page, credentials!);

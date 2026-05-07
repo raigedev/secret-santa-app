@@ -14,6 +14,7 @@ type DashboardPreviewWorkspaceProps = {
   recipientCount: number;
   revealMessage: string;
   unreadNotificationCount: number;
+  unreadPrivateUpdateCount: number;
   wishlistItemCount: number;
   onCreateGroup: () => void;
   onOpenChat: () => void;
@@ -50,6 +51,7 @@ export function DashboardPreviewWorkspace({
   recipientCount,
   revealMessage,
   unreadNotificationCount,
+  unreadPrivateUpdateCount,
   wishlistItemCount,
   onCreateGroup,
   onOpenChat,
@@ -111,7 +113,7 @@ export function DashboardPreviewWorkspace({
       readinessPercent={lifecycle.readinessPercent}
       readyGiftCount={readyGiftCount}
       revealMessage={revealMessage}
-      unreadNotificationCount={unreadNotificationCount}
+      unreadPrivateUpdateCount={unreadPrivateUpdateCount}
       wishlistItemCount={wishlistItemCount}
       wishlistPercent={wishlistPercent}
       wishlistTarget={wishlistTarget}

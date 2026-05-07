@@ -141,7 +141,7 @@ export function HelperRail({
   helperNote,
   isDarkTheme,
   pendingInvites,
-  unreadNotificationCount,
+  unreadPrivateUpdateCount,
   onOpenPath,
 }: {
   activityFeedItems: DashboardActivityItem[];
@@ -151,12 +151,12 @@ export function HelperRail({
   helperNote: string;
   isDarkTheme: boolean;
   pendingInvites: number;
-  unreadNotificationCount: number;
+  unreadPrivateUpdateCount: number;
   onOpenPath: (path: string) => void;
 }) {
   const updates = [
     pendingInvites > 0 ? `${plural(pendingInvites, "invite")} waiting.` : "Invites are clear.",
-    unreadNotificationCount > 0 ? `${plural(unreadNotificationCount, "private update")} waiting.` : "Private messages are quiet.",
+    unreadPrivateUpdateCount > 0 ? `${plural(unreadPrivateUpdateCount, "private message")} waiting.` : "Private messages are quiet.",
     activityFeedItems[0]?.title || "No recent changes need action.",
   ];
 
