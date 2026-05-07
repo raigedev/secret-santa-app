@@ -215,6 +215,8 @@ export default function AppRouteShell({ children }: { children: ReactNode }) {
   const notificationButtonRef = useRef<HTMLButtonElement | null>(null);
   const loadedShellContextForUserRef = useRef<string | null>(null);
   const prefetchedRoutesRef = useRef<Set<string>>(new Set());
+  const mobileNavScrollerRef = useRef<HTMLDivElement | null>(null);
+  const mobileNavActiveItemRef = useRef<HTMLAnchorElement | null>(null);
 
   useEffect(() => {
     if (!shouldUseAppShell(pathname)) {
@@ -480,11 +482,33 @@ export default function AppRouteShell({ children }: { children: ReactNode }) {
     }
   }, [pathname, router]);
 
+  const navItems = createNavItems(canViewAffiliateReport);
+  const activeNavLabel = navItems.find((item) => item.match(pathname, currentHash))?.label || "";
+
+  useEffect(() => {
+    if (!shouldUseAppShell(pathname)) {
+      return;
+    }
+
+    const activeItem = mobileNavActiveItemRef.current;
+    const scroller = mobileNavScrollerRef.current;
+
+    if (!activeItem || !scroller) {
+      return;
+    }
+
+    const prefersReducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    activeItem.scrollIntoView({
+      behavior: prefersReducedMotion ? "auto" : "smooth",
+      block: "nearest",
+      inline: "center",
+    });
+  }, [activeNavLabel, pathname]);
+
   if (!shouldUseAppShell(pathname)) {
     return <>{children}</>;
   }
 
-  const navItems = createNavItems(canViewAffiliateReport);
   const displayViewerName = normalizeViewerName(viewerName);
   const profileInitial = displayViewerName.slice(0, 1).toUpperCase() || "?";
   const fallbackAvatar = viewerAvatarEmoji || profileInitial;
@@ -545,6 +569,9 @@ export default function AppRouteShell({ children }: { children: ReactNode }) {
         [data-app-shell-content] > main > [class*="absolute"][class*="inset-0"]:not([data-app-modal="true"]),
         [data-app-shell-content] > main > [class*="fixed"][class*="inset-0"]:not([data-app-modal="true"]) {
           display: none !important;
+        }
+        [data-app-shell-mobile-nav-scroller]::-webkit-scrollbar {
+          display: none;
         }
       `}</style>
       <aside
@@ -673,7 +700,87 @@ export default function AppRouteShell({ children }: { children: ReactNode }) {
           onClose={() => setNotificationsOpen(false)}
           onUnreadCountChange={setUnreadCount}
         />
-        <div data-app-shell-content className="mx-auto w-full max-w-376 px-4 py-4 sm:px-6 sm:py-6 xl:px-7 xl:py-3">
+        <nav
+          aria-label="Mobile app navigation"
+          data-testid="app-shell-mobile-nav"
+          className="fixed inset-x-0 bottom-0 z-30 overflow-hidden border-t px-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] pt-2.5 backdrop-blur-xl xl:hidden"
+          style={{
+            background: isDarkAppShell
+              ? "linear-gradient(180deg,rgba(15,23,42,.88),rgba(8,17,31,.96))"
+              : "linear-gradient(180deg,rgba(255,254,250,.88),rgba(249,250,248,.97))",
+            borderColor: shellBorderColor,
+            boxShadow: isDarkAppShell
+              ? "0 -18px 44px rgba(0,0,0,.26)"
+              : "0 -18px 44px rgba(46,52,50,.08)",
+          }}
+        >
+          <span
+            aria-hidden="true"
+            className="pointer-events-none absolute inset-y-0 left-0 z-10 w-8"
+            style={{
+              background: isDarkAppShell
+                ? "linear-gradient(90deg,rgba(8,17,31,.96),rgba(8,17,31,0))"
+                : "linear-gradient(90deg,rgba(255,254,250,.97),rgba(255,254,250,0))",
+            }}
+          />
+          <span
+            aria-hidden="true"
+            className="pointer-events-none absolute inset-y-0 right-0 z-10 w-8"
+            style={{
+              background: isDarkAppShell
+                ? "linear-gradient(270deg,rgba(8,17,31,.96),rgba(8,17,31,0))"
+                : "linear-gradient(270deg,rgba(255,254,250,.97),rgba(255,254,250,0))",
+            }}
+          />
+          <div
+            ref={mobileNavScrollerRef}
+            data-app-shell-mobile-nav-scroller=""
+            className="relative mx-auto flex max-w-3xl gap-2 overflow-x-auto px-1 pb-0.5"
+            style={{
+              msOverflowStyle: "none",
+              overscrollBehaviorX: "contain",
+              scrollbarWidth: "none",
+            }}
+          >
+            {navItems.map((item) => {
+              const active = item.match(pathname, currentHash);
+              return (
+                <Link
+                  key={`mobile-${item.label}`}
+                  ref={active ? mobileNavActiveItemRef : undefined}
+                  href={item.href}
+                  onClick={() => handleNavItemClick(item)}
+                  aria-current={active ? "page" : undefined}
+                  data-testid="app-shell-mobile-nav-link"
+                  className="flex min-h-15 w-22 shrink-0 flex-col items-center justify-center gap-1 rounded-[18px] px-2 py-1.5 text-[10px] font-black leading-tight transition hover:-translate-y-0.5 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#48664e] sm:w-24"
+                  style={{
+                    background: active
+                      ? isDarkAppShell
+                        ? "linear-gradient(180deg,rgba(252,206,114,.18),rgba(252,206,114,.1))"
+                        : "linear-gradient(180deg,rgba(72,102,78,.16),rgba(72,102,78,.1))"
+                      : isDarkAppShell
+                        ? "rgba(255,255,255,.04)"
+                        : "rgba(255,255,255,.34)",
+                    color: active ? shellNavActiveColor : shellMutedColor,
+                    textDecoration: "none",
+                    boxShadow: active
+                      ? `inset 0 0 0 1px ${shellBorderColor}, 0 8px 18px rgba(46,52,50,.08)`
+                      : `inset 0 0 0 1px ${isDarkAppShell ? "rgba(255,255,255,.05)" : "rgba(72,102,78,.08)"}`,
+                  }}
+                >
+                  <AppShellIcon name={item.icon} className="h-5 w-5 shrink-0" />
+                  <span
+                    data-app-shell-mobile-nav-label=""
+                    className="block max-h-[2.2em] w-full max-w-20 overflow-hidden whitespace-normal text-center leading-[1.05] [overflow-wrap:anywhere]"
+                  >
+                    {item.label}
+                  </span>
+                </Link>
+              );
+            })}
+          </div>
+        </nav>
+        <div data-app-shell-content className="mx-auto w-full max-w-376 px-4 pb-31 pt-4 sm:px-6 sm:pb-32 sm:pt-6 xl:px-7 xl:pb-3 xl:pt-3">
           {children}
         </div>
       </div>

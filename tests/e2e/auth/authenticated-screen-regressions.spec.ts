@@ -332,6 +332,72 @@ test.describe("authenticated screen regressions", () => {
     await expect(page.getByTestId("secret-santa-page-shell")).toBeVisible();
   });
 
+  test("mobile app shell keeps primary navigation reachable from the bottom rail", async ({ page }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await loginWithTestCredentials(page, credentials!);
+    await page.goto("/dashboard");
+
+    const appShell = page.getByTestId("app-route-shell");
+    const sidebar = page.getByTestId("app-shell-sidebar");
+    const mobileNav = page.getByTestId("app-shell-mobile-nav");
+    const dashboardLink = mobileNav.getByRole("link", { name: /^dashboard$/i });
+    const myGroupsLink = mobileNav.getByRole("link", { name: /^my groups$/i });
+
+    await expect(appShell).toBeVisible();
+    await expect(sidebar).toBeHidden();
+    await expect(mobileNav).toBeVisible();
+    await expect(dashboardLink).toHaveAttribute("aria-current", "page");
+    await expect(myGroupsLink).toBeVisible();
+
+    const mobileNavLayout = await mobileNav.evaluate((nav) => {
+      const content = document.querySelector<HTMLElement>("[data-app-shell-content]");
+      const navRect = nav.getBoundingClientRect();
+      const labels = [...nav.querySelectorAll<HTMLElement>("[data-app-shell-mobile-nav-label]")];
+      const crampedLabels = labels
+        .map((label) => ({
+          lineCount: (() => {
+            const range = document.createRange();
+            range.selectNodeContents(label);
+            const lineCount = [...range.getClientRects()].filter(
+              (rect) => rect.width > 1 && rect.height > 1
+            ).length;
+            range.detach();
+            return lineCount;
+          })(),
+          text: label.textContent?.replace(/\s+/g, " ").trim() || "",
+          textOverflow: window.getComputedStyle(label).textOverflow,
+          whiteSpace: window.getComputedStyle(label).whiteSpace,
+        }))
+        .filter(
+          (label) =>
+            label.lineCount > 2 ||
+            label.textOverflow === "ellipsis" ||
+            label.whiteSpace === "nowrap"
+        )
+        .map((label) => label.text);
+
+      return {
+        bottom: Math.round(navRect.bottom),
+        contentPaddingBottom: content
+          ? parseFloat(window.getComputedStyle(content).paddingBottom)
+          : 0,
+        crampedLabels,
+        height: navRect.height,
+        viewportHeight: window.innerHeight,
+      };
+    });
+
+    expect(mobileNavLayout.bottom).toBeGreaterThanOrEqual(mobileNavLayout.viewportHeight - 1);
+    expect(mobileNavLayout.contentPaddingBottom).toBeGreaterThan(mobileNavLayout.height);
+    expect(mobileNavLayout.crampedLabels).toEqual([]);
+
+    await Promise.all([page.waitForURL(/\/groups$/), myGroupsLink.click()]);
+    await expect(page.getByRole("heading", { name: /your groups/i })).toBeVisible();
+    await expect(
+      page.getByTestId("app-shell-mobile-nav").getByRole("link", { name: /^my groups$/i })
+    ).toHaveAttribute("aria-current", "page");
+  });
+
   test("dashboard keeps general unread notifications out of private message status", async ({ page }) => {
     await page.route("**/rest/v1/notifications?**", async (route) => {
       const requestUrl = new URL(route.request().url());
