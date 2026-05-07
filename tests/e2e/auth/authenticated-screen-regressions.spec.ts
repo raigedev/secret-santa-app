@@ -98,9 +98,10 @@ const AUTHENTICATED_SCREEN_CASES: ScreenCase[] = [
     path: "/dashboard",
     assertVisible: async (page) => {
       await expect(getVisibleProfileMenuButton(page)).toBeVisible();
-      await expect(page.getByRole("heading", { name: /active exchanges/i })).toBeVisible();
-      await expect(page.getByRole("heading", { name: /quick actions/i })).toBeVisible();
-      await expect(page.getByRole("heading", { name: /mystery envelopes/i })).toHaveCount(0);
+      await expect(page.getByText(/active exchange desk/i)).toBeVisible();
+      await expect(page.getByText(/useful shortcuts/i)).toBeVisible();
+      await expect(page.getByRole("heading", { name: /today.s exchange flow/i })).toBeVisible();
+      await expect(page.getByRole("heading", { name: /exchange ledger/i })).toBeVisible();
       await expect(page.getByText(/quick start checklist/i)).toHaveCount(0);
       await expect(page.getByText(/notification highlights/i)).toHaveCount(0);
       await expect(page.getByText(/\b0 days left\b/i)).toHaveCount(0);
@@ -428,7 +429,8 @@ test.describe("authenticated screen regressions", () => {
     await page.reload();
 
     await expect(page.getByRole("heading", { name: /welcome back/i })).toBeVisible();
-    await expect(page.getByRole("heading", { name: /active exchanges/i })).toBeVisible();
+    await expect(page.getByText(/active exchange desk/i)).toBeVisible();
+    await expect(page.getByRole("heading", { name: /today.s exchange flow/i })).toBeVisible();
 
     const textSamples = await page.evaluate(() => {
       const parseRgbColor = (color: string) => {
@@ -484,9 +486,9 @@ test.describe("authenticated screen regressions", () => {
 
       return [
         readSample("welcome heading", "h1", /welcome back/i),
-        readSample("reveal message", "p", /reveal|manage your groups|wishlists/i),
-        readSample("active exchanges heading", "h2", /active exchanges/i),
-        readSample("active exchanges summary", "p", /current groups only/i),
+        readSample("reveal message", "p", /next gift day|manage your groups|wishlists/i),
+        readSample("exchange flow heading", "h2", /today.s exchange flow/i),
+        readSample("exchange ledger heading", "h2", /exchange ledger/i),
       ];
     });
 
