@@ -61,7 +61,7 @@ type DashboardCommandDeskProps = {
   readinessPercent: number;
   readyGiftCount: number;
   revealMessage: string;
-  unreadNotificationCount: number;
+  unreadPrivateUpdateCount: number;
   wishlistItemCount: number;
   wishlistPercent: number;
   wishlistTarget: number;
@@ -103,7 +103,7 @@ export function DashboardCommandDesk({
   readinessPercent,
   readyGiftCount,
   revealMessage,
-  unreadNotificationCount,
+  unreadPrivateUpdateCount,
   wishlistItemCount,
   wishlistPercent,
   wishlistTarget,
@@ -159,17 +159,17 @@ export function DashboardCommandDesk({
       value: wishlistItemCount < wishlistTarget ? "Ready soon" : "Ready",
     },
     {
-      detail: unreadNotificationCount > 0
+      detail: unreadPrivateUpdateCount > 0
         ? "Open your private threads from Messages when you are ready."
         : "No new secret thread activity needs your attention right now.",
       icon: <ChatIcon className="h-5 w-5" />,
-      label: unreadNotificationCount > 0
-        ? `${plural(unreadNotificationCount, "private update")} waiting.`
+      label: unreadPrivateUpdateCount > 0
+        ? `${plural(unreadPrivateUpdateCount, "private message")} waiting.`
         : "Private messages are quiet.",
-      onAction: unreadNotificationCount > 0 ? onOpenChat : undefined,
+      onAction: unreadPrivateUpdateCount > 0 ? onOpenChat : undefined,
       actionAriaLabel: "Open private message threads",
-      tone: unreadNotificationCount > 0 ? "red" : "quiet",
-      value: unreadNotificationCount > 0 ? "Open" : "Private",
+      tone: unreadPrivateUpdateCount > 0 ? "red" : "quiet",
+      value: unreadPrivateUpdateCount > 0 ? "Open" : "Private",
     },
   ];
 
@@ -315,7 +315,7 @@ export function DashboardCommandDesk({
           ) : null}
           <ExchangeLedger groups={nextGroups} isDarkTheme={isDarkTheme} onOpenGroup={onOpenGroup} onOpenGroups={onOpenGroups} />
         </div>
-        <HelperRail activityFeedItems={activityFeedItems} budgetLabel={budgetLabel} focusGroup={focusGroup} giftDayLabel={giftDayLabel} helperNote={helperNote} isDarkTheme={isDarkTheme} pendingInvites={pendingInvites.length} unreadNotificationCount={unreadNotificationCount} onOpenPath={onOpenPath} />
+        <HelperRail activityFeedItems={activityFeedItems} budgetLabel={budgetLabel} focusGroup={focusGroup} giftDayLabel={giftDayLabel} helperNote={helperNote} isDarkTheme={isDarkTheme} pendingInvites={pendingInvites.length} unreadPrivateUpdateCount={unreadPrivateUpdateCount} onOpenPath={onOpenPath} />
       </section>
     </div>
   );

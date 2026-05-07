@@ -163,6 +163,7 @@ function isDashboardSnapshot(value: unknown, userId: string): value is Dashboard
     Array.isArray(value.recipientNames) &&
     value.recipientNames.every((recipientName) => typeof recipientName === "string") &&
     typeof value.unreadNotificationCount === "number" &&
+    typeof value.unreadPrivateUpdateCount === "number" &&
     typeof value.wishlistItemCount === "number" &&
     typeof value.wishlistGroupCount === "number" &&
     (value.giftProgressSummary === null || isGiftProgressSummary(value.giftProgressSummary)) &&
