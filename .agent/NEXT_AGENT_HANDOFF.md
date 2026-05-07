@@ -1,0 +1,189 @@
+# Secret Santa App Handoff - 2026-05-08
+
+Project: `C:\Users\kenda\secret-santa-app`
+
+## Read First
+
+1. Read `AGENTS.md`.
+2. Read `.agent/CONTINUITY.md`.
+3. Read `.agent/BRANCH_WORKFLOW.md`.
+4. Read `DESIGN.md`.
+5. Read `PRODUCT.md`.
+6. Run `git status --short --branch`.
+
+## Current Git State
+
+- Working branch at handoff: `dev`.
+- Before writing this handoff note, status was clean: `## dev...origin/dev`.
+- This handoff update itself modifies `.agent/CONTINUITY.md`.
+- `.agent/NEXT_AGENT_HANDOFF.md` is ignored by `.gitignore`; use `git add -f` only if the user wants this handoff committed.
+- `origin/dev`: `a47a203 Remove redundant dashboard greeting`.
+- `origin/main`: `01dc047 Merge pull request #49 from raigedev/dev`.
+- Local `main` may be stale behind `origin/main`; pull before switching/releasing.
+- No open PRs were observed after PR #49 merged.
+
+## Current Task
+
+Continue frontend/product UI refinement in small verified slices.
+
+Most recent work:
+- Dashboard command-desk redesign was implemented and merged through PR #48.
+- Redundant dashboard greeting was removed and merged through PR #49.
+- Dashboard shell now keeps the personal greeting; dashboard body uses the functional heading `Exchange at a glance`.
+
+Recommended next focus:
+- Continue applying the softer transparent/section-like surface treatment across app screens without turning every section into a card.
+- Keep dashboard useful and task-focused, not a generic card grid.
+- Watch for user screenshots calling out clipped text, redundant sections, oversized pills, badly placed buttons, or privacy leaks.
+
+## Non-Negotiable Routine
+
+- Work on `dev` for local/preview changes.
+- `main` is production and Vercel deploys from `main`.
+- Before git/push/merge/deploy talk, run `git status --short --branch`.
+- After the user says `done push` or `done pushing`, create or reuse a PR from `dev` to `main`, watch GitHub checks, and merge only when green and safe.
+- Do not ask again for PR/merge permission after `done push`; this is the agreed routine.
+- After code/config changes, run and fix:
+  - `npm.cmd run check:problems`
+  - `npm.cmd run typecheck`
+  - `npm.cmd run lint:security`
+  - `npm.cmd run build`
+  - relevant Playwright tests
+  - `git diff --check`
+- If VS Code Problems shows a diagnostic, fix it automatically when safe. If `check:problems` misses it, update `scripts/check-vscode-problems.mjs` or the matching lint/cSpell/config rule.
+- After UI/app-facing changes, start/reuse preview, render the affected route, and show a screenshot or exact URL in chat.
+- Final answers after changes must include exact `git add`, `git commit`, and `git push` commands unless Codex already performed those actions.
+
+## Design Direction
+
+- Use Stitch first for meaningful UI design/redesign.
+- Known Stitch project: `3072957204541081703`, title may show as `Process Explainer`.
+- Figma is supporting when available; use exact node/screenshot context if provided.
+- Also use `frontend-product-ui`, `DESIGN.md`, Taste/Impeccable skills, Oracle, browser preview, and Playwright.
+- Overall app direction: warm polished Secret Santa product UI.
+- Visual language: ivory/frost backgrounds, subtle green pattern, evergreen actions, Santa red accents, official Santa logo/face.
+- `/secret-santa` Shopping Ideas remains a strong visual north star.
+- Avoid generic SaaS card mosaics, neon/purple AI styling, noisy repeated cards, duplicated helper panels, backend jargon, and hidden privacy leaks.
+- User likes transparent/soft panels that feel like sections instead of heavy cards.
+- User wants previews embedded in chat, one by one when reviewing mockups.
+
+## Product And Privacy Decisions
+
+- `Wishlist` is `My Wishlist`.
+- `Gift Tracking` is `Gift Progress`.
+- `Assignments` is no longer primary nav; `/assignments` redirects to `/my-giftee`.
+- `Reminders` conceptually belongs in Settings; `/reminders` remains legacy.
+- `History` is for concluded/past exchanges.
+- Shopping Ideas is for buying gifts for recipients with affiliate support; avoid `compare` wording.
+- Region belongs with Santa helper/context, not as a random floating pill.
+- Use one persistent Santa helper, not repeated helper panels.
+- Owners/organizers must not be able to track/read member private chats.
+- Member emails should not show in dashboard/member UI; use safe display names/codenames.
+- Past events move to History; past wishlists should not remain mixed into active My Wishlist.
+- Users can delete their own past wishlist items permanently from history.
+
+## Major Work Completed In This Thread
+
+- Reduced duplicate dashboard notification surfaces and notification noise.
+- Cleaned leftover test/concluded groups (`tes`, `test`) and related scoped data from production Supabase after investigation; audit logs preserved.
+- Refined `/secret-santa-chat` copy from wrap-up jargon to Secret Messages / My giftees / My Santa.
+- Installed Scrapling official skill from `D4Vinci/Scrapling` under Codex skills when user requested it.
+- Built local Supabase testing path; local testing needs Docker Desktop running.
+- Configured local Google auth guidance; OAuth client secrets stay private in `.env.local`, never chat/docs.
+- Investigated Supabase Disk I/O warnings; user restarted Supabase cloud; IO/performance migrations were applied and migration history repaired.
+- Durable migration files include IO/perf hardening through `202605040001_post_draw_reminder_io_indexes.sql`.
+- GitHub CLI was installed/authenticated by the user; PR workflow is now established.
+- Old Copilot/stale branches/PRs were settled; long-lived branches are `dev` and `main`.
+- README was professionalized.
+- Supabase leaked password protection warning is a paid Supabase feature; on Free plan it cannot be fully enabled, so app password policy was hardened.
+- Gmail SMTP was configured by the user in Supabase dashboard using `mysecretsanta.notifications@gmail.com`; do not store the app password in repo/chat.
+- Branded invite email template was added.
+- Login was redesigned with official Secret Santa/gift-tag theme.
+- Gift progress labels and member table alignment/wrapping were repeatedly fixed.
+- Owner chat activity tracking column was removed for privacy.
+- Group member status stability and edit group modal/function were fixed.
+- `/groups` is now the launcher/summary; `/group/[id]` is the full group workspace.
+- Group cards/action buttons were refined.
+- Create Group now supports picture upload.
+- Group images were hardened to private `group-images` storage with owner/member RLS policies and signed URLs.
+- Dashboard received a useful command-desk redesign and then had duplicate greeting removed.
+- Experimental hatch-pet work for `Spark` was started then paused by user; leave `.agent/hatch-pet-*` scratch uncommitted unless asked.
+
+## Supabase Notes
+
+- GitHub/Vercel pushes do not apply database migrations.
+- Before DB/schema/RLS/advisor changes, run `npx.cmd supabase migration list` and `npx.cmd supabase db push --dry-run` when credentials allow.
+- Never run destructive production DB actions automatically.
+- Safe scoped production DB verification/advisor SQL is allowed only after target/project/SQL are checked.
+- Do not ask user to paste DB passwords or secrets in chat.
+- Latest known cloud state after user restart: production Supabase was healthy enough for previous migrations; performance advisor had no remaining IO warnings after applied migrations.
+- Latest durable migrations observed:
+  - `202605030001_io_recovery_indexes.sql`
+  - `202605030002_io_followup_indexes.sql`
+  - `202605030003_rls_auth_uid_initplan_fix.sql`
+  - `202605030004_affiliate_and_reminder_io_indexes.sql`
+  - `202605030005_drop_duplicate_notifications_index.sql`
+  - `202605040001_post_draw_reminder_io_indexes.sql`
+  - `202605070001_group_picture_uploads.sql`
+  - `202605070002_private_group_images.sql`
+
+## Security Notes
+
+- Always prioritize app security and privacy over convenience.
+- Do not disable Vercel deployment protection/SSO protection to make preview easier.
+- If Vercel preview shows 403, use the authenticated/protected workflow; do not weaken project protection.
+- Preserve Supabase RLS and ownership boundaries.
+- Never expose service-role keys to browser.
+- Keep Lazada affiliate postback validation strict.
+- Public redirects/click tracking are abuse-sensitive.
+- Keep secrets out of screenshots, docs, logs, tests, and commits.
+- Use PayloadsAllTheThings and repo-local `sqlmap` only for scoped defensive local/preview checks, not broad production scanning.
+
+## Local Development
+
+- Use `npm.cmd run dev` for app preview.
+- Local app URL is usually `http://127.0.0.1:3000` or `http://localhost:3000`.
+- Local Supabase Studio is usually around `http://127.0.0.1:54324`.
+- If local auth/Supabase/Playwright is blocked, open/check Docker Desktop and start local Supabase; the user gave standing permission.
+- Seeded local/Playwright credentials are in ignored `.env.local`; do not reveal passwords in chat.
+
+## PR Workflow Commands
+
+When user says they pushed:
+
+```cmd
+git status --short --branch
+git fetch origin main dev --prune
+gh pr list --head dev --base main --state open
+gh pr create --base main --head dev --title "<title>" --body "<summary>"
+gh pr checks <number> --watch --interval 10
+gh pr merge <number> --merge
+```
+
+After merge, verify:
+
+```cmd
+gh pr view <number> --json state,mergedAt,mergeCommit,url
+git fetch origin main dev --prune
+git status --short --branch
+```
+
+Leave the workspace on `dev`.
+
+## Latest Validation Highlights
+
+For the last dashboard greeting cleanup:
+- `npm.cmd run check:problems` passed.
+- `npm.cmd run typecheck` passed.
+- `npm.cmd run lint:security` passed.
+- `npm.cmd run build` passed.
+- Focused dashboard Playwright regressions passed.
+- `git diff --check` passed.
+- PR #49 checks passed: Validate, CodeQL, dependency review, Vercel, Vercel Preview Comments.
+
+## Files Not To Commit Unless Explicitly Asked
+
+- `.agent` scratch screenshots, logs, SQL experiments, mockup HTML, pet experiments, and archived docs.
+- `graphify-out/`.
+- Local Supabase dumps or schema scratch.
+- Secrets, `.env.local`, SMTP passwords, OAuth client secrets, DB passwords, cookies, tokens.
