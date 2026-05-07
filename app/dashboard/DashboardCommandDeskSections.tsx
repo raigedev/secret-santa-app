@@ -5,6 +5,8 @@ import { formatDashboardDate } from "./dashboard-formatters";
 import { SantaMarkIcon } from "./dashboard-icons";
 import type { DashboardActivityItem, Group } from "./dashboard-types";
 
+export type StatusChipTone = "green" | "gold" | "red" | "quiet";
+
 export function plural(value: number, singular: string, pluralLabel = `${singular}s`): string {
   return `${value} ${value === 1 ? singular : pluralLabel}`;
 }
@@ -15,13 +17,7 @@ export function getSoftClass(isDarkTheme: boolean): string {
     : "border border-[rgba(72,102,78,.14)] bg-white/45";
 }
 
-export function StatusChip({
-  children,
-  tone = "green",
-}: {
-  children: ReactNode;
-  tone?: "green" | "gold" | "red" | "quiet";
-}) {
+export function getStatusChipClass(tone: StatusChipTone = "green"): string {
   const className =
     tone === "red"
       ? "bg-[#a43c3f]/10 text-[#a43c3f]"
@@ -31,8 +27,18 @@ export function StatusChip({
           ? "bg-slate-200/70 text-slate-600"
           : "bg-[#eaf2ea] text-[#48664e]";
 
+  return `inline-flex min-h-9 items-center justify-center rounded-full px-4 text-[12px] font-black ${className}`;
+}
+
+export function StatusChip({
+  children,
+  tone = "green",
+}: {
+  children: ReactNode;
+  tone?: StatusChipTone;
+}) {
   return (
-    <span className={`inline-flex min-h-9 items-center justify-center rounded-full px-4 text-[12px] font-black ${className}`}>
+    <span className={getStatusChipClass(tone)}>
       {children}
     </span>
   );

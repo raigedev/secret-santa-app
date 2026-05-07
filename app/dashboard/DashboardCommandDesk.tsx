@@ -1,5 +1,6 @@
 "use client";
 
+import type { ReactNode } from "react";
 import Image from "next/image";
 import {
   ArrowRightIcon,
@@ -19,8 +20,10 @@ import {
   MiniStat,
   SectionTitle,
   StatusChip,
+  getStatusChipClass,
   getSoftClass,
   plural,
+  type StatusChipTone,
 } from "./DashboardCommandDeskSections";
 import InviteCard from "./InviteCard";
 import type { DashboardActivityItem, Group, PendingInvite } from "./dashboard-types";
@@ -30,6 +33,16 @@ type DeskStep = {
   id: string;
   label: string;
   status: "done" | "current" | "locked" | "attention";
+};
+
+type DashboardTaskRow = {
+  actionAriaLabel?: string;
+  detail: string;
+  icon: ReactNode;
+  label: string;
+  onAction?: () => void;
+  tone: StatusChipTone;
+  value: string;
 };
 
 type DashboardCommandDeskProps = {
@@ -122,7 +135,7 @@ export function DashboardCommandDesk({
     ? "Names are drawn. Keep your gift plan moving without exposing private details."
     : "Keep the draw locked until everyone joins and has at least one wishlist clue.";
 
-  const taskRows = [
+  const taskRows: DashboardTaskRow[] = [
     {
       detail: pendingInvites.length > 0
         ? "Accept or decline pending invites without exposing email addresses."
@@ -153,10 +166,12 @@ export function DashboardCommandDesk({
       label: unreadNotificationCount > 0
         ? `${plural(unreadNotificationCount, "private update")} waiting.`
         : "Private messages are quiet.",
+      onAction: unreadNotificationCount > 0 ? onOpenChat : undefined,
+      actionAriaLabel: "Open private message threads",
       tone: unreadNotificationCount > 0 ? "red" : "quiet",
       value: unreadNotificationCount > 0 ? "Open" : "Private",
     },
-  ] as const;
+  ];
 
   const quickActions = [
     {
@@ -274,7 +289,18 @@ export function DashboardCommandDesk({
                     <span className={`mt-1 block text-sm font-extrabold leading-6 ${statsClass}`}>{row.detail}</span>
                   </span>
                   <span className="col-start-2 justify-self-start sm:col-start-auto sm:justify-self-end">
-                    <StatusChip tone={row.tone}>{row.value}</StatusChip>
+                    {row.onAction ? (
+                      <button
+                        type="button"
+                        onClick={row.onAction}
+                        aria-label={row.actionAriaLabel}
+                        className={`${getStatusChipClass(row.tone)} min-h-11 cursor-pointer transition hover:-translate-y-0.5 hover:shadow-[0_12px_24px_rgba(164,60,63,.14)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#a43c3f]`}
+                      >
+                        {row.value}
+                      </button>
+                    ) : (
+                      <StatusChip tone={row.tone}>{row.value}</StatusChip>
+                    )}
                   </span>
                 </div>
               ))}
