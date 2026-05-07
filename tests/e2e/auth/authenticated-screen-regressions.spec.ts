@@ -428,7 +428,7 @@ test.describe("authenticated screen regressions", () => {
       .toBe("midnight");
     await page.reload();
 
-    await expect(page.getByRole("heading", { name: /welcome back/i })).toBeVisible();
+    await expect(page.getByRole("heading", { name: /exchange at a glance/i })).toBeVisible();
     await expect(page.getByText(/active exchange desk/i)).toBeVisible();
     await expect(page.getByRole("heading", { name: /today.s exchange flow/i })).toBeVisible();
 
@@ -485,7 +485,7 @@ test.describe("authenticated screen regressions", () => {
       };
 
       return [
-        readSample("welcome heading", "h1", /welcome back/i),
+        readSample("dashboard heading", "h1", /exchange at a glance/i),
         readSample("reveal message", "p", /next gift day|manage your groups|wishlists/i),
         readSample("exchange flow heading", "h2", /today.s exchange flow/i),
         readSample("exchange ledger heading", "h2", /exchange ledger/i),
@@ -645,7 +645,7 @@ test.describe("authenticated screen regressions", () => {
     expect(browserSideGroupMemberWrites).toEqual([]);
   });
 
-  test("dashboard refresh keeps the drawn recipient action stable", async ({ page }) => {
+  test("dashboard refresh keeps the command desk state stable", async ({ page }) => {
     await loginWithTestCredentials(page, credentials!);
     await page.goto("/dashboard");
     await page.evaluate(() => {
@@ -658,34 +658,23 @@ test.describe("authenticated screen regressions", () => {
       }
     });
     await page.reload();
-    await expect(page.getByRole("heading", { name: /active exchanges/i })).toBeVisible();
-
-    const viewRecipientAction = page.getByRole("button", { name: /view my giftee/i });
-    const hasDrawnRecipient = await viewRecipientAction
-      .isVisible({ timeout: 5000 })
-      .catch(() => false);
-
-    if (!hasDrawnRecipient) {
-      await page.reload();
-      await expect(page.getByRole("button", { name: /^my giftee$/i })).toBeVisible();
-      return;
-    }
+    await expect(page.getByText(/active exchange desk/i)).toBeVisible();
 
     await installBodyTextWatcher(page, {
-      flagName: "__dashboardSawNoRecipientYet",
-      includedText: ["No Recipient Yet"],
+      flagName: "__dashboardSawTransientError",
+      includedText: ["No Recipient Yet", "Failed to load the dashboard"],
     });
 
     await page.reload();
-    await expect(viewRecipientAction).toBeVisible();
+    await expect(page.getByText(/active exchange desk/i)).toBeVisible();
 
-    const sawNoRecipientYet = await page.evaluate(() =>
+    const sawTransientError = await page.evaluate(() =>
       Boolean(
-        (window as Window & { __dashboardSawNoRecipientYet?: boolean })
-          .__dashboardSawNoRecipientYet
+        (window as Window & { __dashboardSawTransientError?: boolean })
+          .__dashboardSawTransientError
       )
     );
-    expect(sawNoRecipientYet).toBe(false);
+    expect(sawTransientError).toBe(false);
   });
 
   test("secret-santa keeps shopping picks readable", async ({ page }) => {
@@ -1246,7 +1235,7 @@ test.describe("owner-only affiliate route regressions", () => {
 
     await page.waitForURL(/\/dashboard$/);
     await expect(page).toHaveURL(/\/dashboard$/);
-    await expect(page.getByRole("heading", { name: /welcome back/i })).toBeVisible();
-    await expect(page.getByRole("heading", { name: /active exchanges/i })).toBeVisible();
+    await expect(page.getByRole("heading", { name: /exchange at a glance/i })).toBeVisible();
+    await expect(page.getByText(/active exchange desk/i)).toBeVisible();
   });
 });

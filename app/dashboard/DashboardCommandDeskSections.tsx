@@ -107,7 +107,7 @@ export function ExchangeLedger({
                 <strong className="block truncate text-[14px] font-black">{group.name}</strong>
                 <span className="text-[12px] font-bold text-slate-500">{group.isOwner ? "Owner workspace" : "Participant"}</span>
                 <span className="mt-1 block text-[12px] font-bold text-slate-500 sm:hidden">
-                  {plural(group.members.length, "member")} · {formatDashboardDate(group.event_date)}
+                  {plural(group.members.length, "member")} - {formatDashboardDate(group.event_date)}
                 </span>
               </span>
               <span className="hidden sm:block">{plural(group.members.length, "member")}</span>

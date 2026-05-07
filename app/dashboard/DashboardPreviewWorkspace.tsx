@@ -43,7 +43,6 @@ function getPercent(value: number, total: number): number {
 export function DashboardPreviewWorkspace({
   activityFeedItems,
   countdownNow,
-  displayFirstName,
   giftProgressSummary,
   groups,
   isDarkTheme,
@@ -98,7 +97,6 @@ export function DashboardPreviewWorkspace({
   return (
     <DashboardCommandDesk
       activityFeedItems={activityFeedItems}
-      displayFirstName={displayFirstName}
       focusGroup={focusGroup}
       giftProgressTotal={giftProgressTotal}
       groups={groups}
