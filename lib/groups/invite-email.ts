@@ -25,7 +25,7 @@ function normalizeHttpOrigin(candidate: string | null | undefined): string | nul
   }
 }
 
-export function getConfiguredAppOrigin(): string {
+function getConfiguredAppOrigin(): string {
   return (
     normalizeHttpOrigin(process.env.NEXT_PUBLIC_APP_URL) ||
     normalizeHttpOrigin(process.env.APP_URL) ||
@@ -35,7 +35,7 @@ export function getConfiguredAppOrigin(): string {
   );
 }
 
-export function getGroupInviteRedirectUrl(nextPath = "/dashboard"): string {
+function getGroupInviteRedirectUrl(nextPath = "/dashboard"): string {
   const callbackUrl = new URL("/auth/callback", getConfiguredAppOrigin());
   callbackUrl.searchParams.set("next", normalizeSafeAppPath(nextPath, "/dashboard"));
   return callbackUrl.toString();
