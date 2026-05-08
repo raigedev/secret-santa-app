@@ -3937,23 +3937,6 @@ export function SecretSantaExperience({ mode = "shopping" }: SecretSantaExperien
           onUnreadCountChange={setUnreadNotificationCount}
         />
         <div className="mx-auto w-full max-w-376 px-4 py-4 sm:px-6 sm:py-6 xl:px-7 xl:py-3">
-        {/* Primary navigation back to the dashboard. */}
-        <button
-          type="button"
-          onClick={() => router.push("/dashboard")}
-          className="mb-4 inline-flex w-full items-center justify-center gap-2 rounded-full px-4 py-2 text-[13px] font-extrabold transition hover:-translate-y-0.5 sm:w-auto xl:hidden"
-          style={{
-            color: HOLIDAY_GREEN,
-            background: "rgba(255,255,255,.74)",
-            border: "1px solid rgba(174,179,177,.14)",
-            boxShadow: "0 18px 42px rgba(46,52,50,.06)",
-            backdropFilter: "blur(18px)",
-            fontFamily: "inherit",
-          }}
-        >
-          ← Back to Dashboard
-        </button>
-
         {isShoppingMode && (
           <section
             className="mb-4 flex flex-col gap-3 rounded-[26px] px-4 py-3 sm:flex-row sm:items-center sm:justify-between sm:px-5"
