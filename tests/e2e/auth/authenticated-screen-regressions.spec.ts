@@ -189,6 +189,24 @@ const AUTHENTICATED_SCREEN_CASES: ScreenCase[] = [
     path: "/history",
     assertVisible: async (page) => {
       await expect(page.getByRole("heading", { name: /history memory book/i })).toBeVisible();
+      await expect(page.getByRole("link", { name: /back to history/i })).toHaveCount(0);
+      await expect(page.getByRole("tab")).toHaveCount(0);
+      await expect(page.getByText(/private history notes/i)).toHaveCount(0);
+
+      const emptyHistory = page.getByRole("heading", { name: /no concluded exchanges yet/i });
+      if (await emptyHistory.isVisible().catch(() => false)) {
+        return;
+      }
+
+      await expect(page.getByRole("heading", { name: /past wishlist/i })).toBeVisible();
+      await expect(page.getByRole("button", { name: /view result card/i })).toHaveCount(1);
+      const selectedHistoryGroupButtons = page.locator(
+        '#history-exchange-list button[aria-pressed="true"]'
+      );
+      if ((await page.locator("#history-exchange-list button[aria-pressed]").count()) > 0) {
+        await expect(selectedHistoryGroupButtons).toHaveCount(1);
+      }
+
       const deleteExchangeButton = page.getByRole("button", { name: /delete exchange/i }).first();
 
       if (await deleteExchangeButton.isVisible().catch(() => false)) {
