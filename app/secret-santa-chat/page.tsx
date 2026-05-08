@@ -257,10 +257,8 @@ function getGiftTimingInfo(value: string): {
   detail: string;
   chip: string;
   phase: "planning" | "gift-day" | "wrap-up" | "history" | "unknown";
-  highlightedDay: number;
 } {
   const now = new Date();
-  const fallbackDay = Math.min(Math.max(now.getDate(), 1), 28);
 
   if (!value.trim()) {
     return {
@@ -268,7 +266,6 @@ function getGiftTimingInfo(value: string): {
       detail: "Set a group gift day to show whether this chat is in planning, gift day, or wrap-up.",
       chip: "Date needed",
       phase: "unknown",
-      highlightedDay: fallbackDay,
     };
   }
 
@@ -279,22 +276,18 @@ function getGiftTimingInfo(value: string): {
       detail: "Set a group gift day to show whether this chat is in planning, gift day, or wrap-up.",
       chip: "Date needed",
       phase: "unknown",
-      highlightedDay: fallbackDay,
     };
   }
 
   const daysUntil = Math.round(
     (getStartOfLocalDay(giftDate) - getStartOfLocalDay(now)) / 86400000
   );
-  const highlightedDay = Math.min(Math.max(giftDate.getDate(), 1), 28);
-
   if (daysUntil > 0) {
     return {
       label: "Planning time",
       detail: "Ask about sizes, colors, delivery details, or hints while identities stay protected.",
       chip: daysUntil === 1 ? "1d left" : `${daysUntil}d left`,
       phase: "planning",
-      highlightedDay,
     };
   }
 
@@ -304,7 +297,6 @@ function getGiftTimingInfo(value: string): {
       detail: "It is gift day. Use this thread for delivery updates, quick replies, or thank-you notes.",
       chip: "Gift day",
       phase: "gift-day",
-      highlightedDay,
     };
   }
 
@@ -317,7 +309,6 @@ function getGiftTimingInfo(value: string): {
       detail: "Gift day has passed, but final thank-yous and delivery notes can still be sent.",
       chip: wrapUpDaysLeft === 1 ? "1d left" : `${wrapUpDaysLeft}d left`,
       phase: "wrap-up",
-      highlightedDay,
     };
   }
 
@@ -326,7 +317,6 @@ function getGiftTimingInfo(value: string): {
     detail: "This exchange has wrapped up. Save what you need, then keep the memories in History.",
     chip: "History",
     phase: "history",
-    highlightedDay,
   };
 }
 
@@ -849,7 +839,7 @@ export default function SecretSantaChatPage() {
   const [threadFilter, setThreadFilter] = useState<ThreadFilter>("all");
   const [threadListMessage, setThreadListMessage] = useState<string | null>(null);
   const [threadMessage, setThreadMessage] = useState<string | null>(null);
-  const messagesEndRef = useRef<HTMLDivElement>(null);
+  const messagesScrollRef = useRef<HTMLDivElement | null>(null);
   const chatPanelRef = useRef<HTMLElement | null>(null);
   const activeThreadRef = useRef<Thread | null>(null);
   const userIdRef = useRef<string | null>(null);
@@ -871,7 +861,16 @@ export default function SecretSantaChatPage() {
   }, [userId]);
 
   const scrollToBottom = useCallback(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    const scrollContainer = messagesScrollRef.current;
+
+    if (!scrollContainer) {
+      return;
+    }
+
+    scrollContainer.scrollTo({
+      behavior: "smooth",
+      top: scrollContainer.scrollHeight,
+    });
   }, []);
 
   const markAsRead = useCallback(
@@ -1415,12 +1414,6 @@ export default function SecretSantaChatPage() {
     { label: "My giftees", value: "giver" },
     { label: "My Santa", value: "receiver" },
   ];
-  const statusSteps = [
-    { label: "Planning", active: selectedTiming.phase === "planning" },
-    { label: "Gift day", active: selectedTiming.phase === "gift-day" },
-    { label: "Wrap-up", active: selectedTiming.phase === "wrap-up" },
-    { label: "History", active: selectedTiming.phase === "history" },
-  ];
 
   const applyPromptChip = (chip: string) => {
     setMsgInput((current) => {
@@ -1649,12 +1642,9 @@ export default function SecretSantaChatPage() {
                     </div>
                   </div>
                 </div>
-                <div className="rounded-2xl px-4 py-3 text-xs font-extrabold leading-5" style={{ background: "rgba(252,206,114,.24)", color: "#7b5902", border: "1px solid rgba(123,89,2,.12)" }}>
-                  {selectedTiming.detail}
-                </div>
               </div>
 
-              <div className="chat-scrollbar flex min-h-105 flex-1 flex-col gap-3 overflow-y-auto p-4 sm:p-5" style={{ background: "linear-gradient(180deg,rgba(249,250,248,.78),rgba(255,255,255,.94))" }}>
+              <div ref={messagesScrollRef} className="chat-scrollbar flex min-h-105 flex-1 flex-col gap-3 overflow-y-auto p-4 sm:p-5" style={{ background: "linear-gradient(180deg,rgba(249,250,248,.78),rgba(255,255,255,.94))" }}>
                 {threadMessage && (
                   <div className="rounded-2xl px-4 py-3 text-sm font-bold" style={{ background: "rgba(164,60,63,.10)", border: "1px solid rgba(164,60,63,.18)", color: CHAT_RED }}>
                     {threadMessage}
@@ -1716,7 +1706,7 @@ export default function SecretSantaChatPage() {
                         }}
                       >
                         <span className="mb-1 text-[10px] font-black uppercase tracking-[0.14em]" style={{ color: isMine ? "rgba(255,255,255,.78)" : CHAT_TEXT_SUBTLE }}>
-                          {messageAuthor} - Group: {selectedThread.group_name}
+                          {messageAuthor}
                         </span>
                         <span style={{ wordBreak: "break-word" }}>{msg.content}</span>
                         <span className="mt-2 text-[11px] font-bold" style={{ color: isMine ? "rgba(255,255,255,.65)" : CHAT_TEXT_MUTED }}>
@@ -1731,7 +1721,6 @@ export default function SecretSantaChatPage() {
                     );
                   })
                 )}
-                <div ref={messagesEndRef} />
               </div>
 
               <div className="border-t p-4 sm:p-5" style={{ background: "rgba(255,255,255,.82)", borderColor: "rgba(72,102,78,.12)" }}>
@@ -1808,28 +1797,7 @@ export default function SecretSantaChatPage() {
                   <h2 className="text-xl font-black" style={{ color: CHAT_GREEN }}>
                     Chat timing
                   </h2>
-                  <p className="mt-1 text-xs font-bold leading-5" style={{ color: CHAT_TEXT_MUTED }}>
-                    See whether this thread is before gift day, on gift day, or in wrap-up.
-                  </p>
                 </div>
-              </div>
-
-              <div className="mt-5 grid grid-cols-7 gap-2">
-                {Array.from({ length: 28 }, (_, index) => index + 1).map((day) => {
-                  const active = day === selectedTiming.highlightedDay;
-                  return (
-                    <span
-                      key={day}
-                      className="grid h-8 w-8 place-items-center rounded-full text-[11px] font-black"
-                      style={{
-                        background: active ? CHAT_RED : "rgba(72,102,78,.08)",
-                        color: active ? "#fffefa" : "#61736a",
-                      }}
-                    >
-                      {day}
-                    </span>
-                  );
-                })}
               </div>
 
               <div className="mt-5 rounded-3xl p-4" style={{ background: CHAT_SURFACE_MUTED, border: CHAT_BORDER_SOFT }}>
@@ -1838,19 +1806,11 @@ export default function SecretSantaChatPage() {
                 </p>
                 <p className="mt-2 text-sm font-black">{selectedTiming.label}</p>
                 <p className="mt-1 text-xs font-bold leading-5" style={{ color: CHAT_TEXT_MUTED }}>
+                  {selectedTiming.detail}
+                </p>
+                <p className="mt-1 text-xs font-bold leading-5" style={{ color: CHAT_TEXT_MUTED }}>
                   Gift date: {formatGroupDate(selectedThread?.group_gift_date || "")}
                 </p>
-              </div>
-
-              <div className="mt-4 space-y-2">
-                {statusSteps.map((step) => (
-                  <div key={step.label} className="flex items-center gap-3 rounded-2xl px-3 py-2" style={{ background: step.active ? "rgba(72,102,78,.10)" : "transparent" }}>
-                    <span className="h-2.5 w-2.5 rounded-full" style={{ background: step.active ? CHAT_GREEN : "rgba(72,102,78,.20)" }} />
-                    <span className="text-xs font-black" style={{ color: step.active ? CHAT_GREEN : CHAT_TEXT_MUTED }}>
-                      {step.label}
-                    </span>
-                  </div>
-                ))}
               </div>
             </aside>
         </section>
