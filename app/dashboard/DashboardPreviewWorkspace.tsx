@@ -13,7 +13,6 @@ type DashboardPreviewWorkspaceProps = {
   pendingInvites: PendingInvite[];
   recipientCount: number;
   revealMessage: string;
-  unreadNotificationCount: number;
   unreadPrivateUpdateCount: number;
   wishlistItemCount: number;
   onCreateGroup: () => void;
@@ -50,7 +49,6 @@ export function DashboardPreviewWorkspace({
   pendingInvites,
   recipientCount,
   revealMessage,
-  unreadNotificationCount,
   unreadPrivateUpdateCount,
   wishlistItemCount,
   onCreateGroup,
@@ -94,8 +92,6 @@ export function DashboardPreviewWorkspace({
       : focusGroup.hasDrawn
         ? "Names are drawn. Keep wishlist, shopping, and gift progress moving."
         : "Review the setup, wishlists, and draw readiness for this exchange.";
-  const pendingWorkCount = pendingInvites.length + unreadNotificationCount;
-
   return (
     <DashboardCommandDesk
       activityFeedItems={activityFeedItems}
@@ -109,7 +105,6 @@ export function DashboardPreviewWorkspace({
       nextActionHref={nextActionHref}
       nextActionLabel={nextActionLabel}
       pendingInvites={pendingInvites}
-      pendingWorkCount={pendingWorkCount}
       readinessPercent={lifecycle.readinessPercent}
       readyGiftCount={readyGiftCount}
       revealMessage={revealMessage}

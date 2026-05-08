@@ -207,7 +207,6 @@ export default function DashboardPage() {
   const [invitedGroups, setInvitedGroups] = useState<Group[]>([]);
   const [pendingInvites, setPendingInvites] = useState<PendingInvite[]>([]);
   const [recipientNames, setRecipientNames] = useState<string[]>([]);
-  const [unreadNotificationCount, setUnreadNotificationCount] = useState(0);
   const [unreadPrivateUpdateCount, setUnreadPrivateUpdateCount] = useState(0);
   const [wishlistItemCount, setWishlistItemCount] = useState(0);
   const [giftProgressSummary, setGiftProgressSummary] = useState<GiftProgressSummary | null>(null);
@@ -317,7 +316,6 @@ export default function DashboardPage() {
       setInvitedGroups(activeInvitedGroups);
       setPendingInvites(snapshot.pendingInvites);
       setRecipientNames(snapshot.recipientNames);
-      setUnreadNotificationCount(snapshot.unreadNotificationCount);
       setUnreadPrivateUpdateCount(snapshot.unreadPrivateUpdateCount);
       setWishlistItemCount(snapshot.wishlistItemCount);
       setGiftProgressSummary(snapshot.giftProgressSummary);
@@ -835,7 +833,6 @@ export default function DashboardPage() {
 
       const notifications = (data || []) as DashboardUnreadNotificationRow[];
 
-      setUnreadNotificationCount(notifications.length);
       setUnreadPrivateUpdateCount(
         countUnreadPrivateUpdates(notifications, activeNotificationGroupIdsRef.current)
       );
@@ -1057,7 +1054,6 @@ export default function DashboardPage() {
           pendingInvites={pendingInvites}
           recipientCount={recipientNames.length}
           revealMessage={revealMessage}
-          unreadNotificationCount={unreadNotificationCount}
           unreadPrivateUpdateCount={unreadPrivateUpdateCount}
           wishlistItemCount={wishlistItemCount}
           onCreateGroup={() => router.push("/create-group")}

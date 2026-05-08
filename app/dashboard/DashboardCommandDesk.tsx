@@ -57,7 +57,6 @@ type DashboardCommandDeskProps = {
   nextActionHref: string;
   nextActionLabel: string;
   pendingInvites: PendingInvite[];
-  pendingWorkCount: number;
   readinessPercent: number;
   readyGiftCount: number;
   revealMessage: string;
@@ -99,7 +98,6 @@ export function DashboardCommandDesk({
   nextActionHref,
   nextActionLabel,
   pendingInvites,
-  pendingWorkCount,
   readinessPercent,
   readyGiftCount,
   revealMessage,
@@ -187,18 +185,13 @@ export function DashboardCommandDesk({
 
   return (
     <div data-fade className={`min-w-0 space-y-8 overflow-hidden ${isDarkTheme ? "text-slate-100" : "text-[#2e3432]"}`}>
-      <section className="flex min-w-0 flex-wrap items-end justify-between gap-4">
-        <div className="min-w-0">
+      <section className="min-w-0">
+        <div className="max-w-5xl">
           <p className="text-[12px] font-black uppercase tracking-[0.18em] text-[#7b5902]">Dashboard pulse</p>
           <h1 className={`mt-2 max-w-full break-words font-[var(--app-display-font)] text-[2rem] font-black leading-none tracking-tight [overflow-wrap:anywhere] sm:text-[2.45rem] ${isDarkTheme ? "text-white" : "text-[#174f2c]"}`}>
             Exchange at a glance
           </h1>
           <p className={`mt-3 max-w-3xl text-[17px] font-extrabold leading-7 ${statsClass}`}>{revealMessage}</p>
-        </div>
-        <div className="flex flex-wrap gap-2">
-          <StatusChip>{plural(groups.length, "active exchange")}</StatusChip>
-          <StatusChip tone={pendingWorkCount > 0 ? "red" : "green"}>{plural(pendingWorkCount, "update")}</StatusChip>
-          <StatusChip>{wishlistPercent}% wishlist ready</StatusChip>
         </div>
       </section>
 
