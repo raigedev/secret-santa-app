@@ -5,7 +5,7 @@ const GROUP_IMAGE_SIGNED_URL_TTL_SECONDS = 10 * 60;
 const GROUP_IMAGE_PATH_PATTERN =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\/cover\.(jpg|png|webp)$/i;
 
-export function normalizeGroupImagePath(value: string | null | undefined): string | null {
+function normalizeGroupImagePath(value: string | null | undefined): string | null {
   if (!value) {
     return null;
   }

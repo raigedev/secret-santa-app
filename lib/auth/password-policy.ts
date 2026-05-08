@@ -1,4 +1,4 @@
-export const PASSWORD_POLICY_MIN_LENGTH = 12;
+const PASSWORD_POLICY_MIN_LENGTH = 12;
 
 export const PASSWORD_POLICY_HELP_TEXT =
   "Use at least 12 characters with uppercase and lowercase letters, a number, and a symbol.";
