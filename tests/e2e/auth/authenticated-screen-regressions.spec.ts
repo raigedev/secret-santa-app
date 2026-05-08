@@ -287,6 +287,8 @@ const AUTHENTICATED_SCREEN_CASES: ScreenCase[] = [
       await expect(page.getByText(/we could not load your chats/i)).toHaveCount(0);
       await expect(page.getByText(/history ready/i)).toHaveCount(0);
       await expect(page.getByText(/ready for history/i)).toHaveCount(0);
+      await expect(page.getByText(/you as their santa - group:/i)).toHaveCount(0);
+      await expect(page.getByText(/recipient - group:/i)).toHaveCount(0);
       await expect(page.getByRole("button", { name: /^dashboard$/i })).toHaveCount(0);
 
       const headingColor = await pageHeading.evaluate(
@@ -427,6 +429,17 @@ test.describe("authenticated screen regressions", () => {
     await expect(
       page.getByTestId("app-shell-mobile-nav").getByRole("link", { name: /^my groups$/i })
     ).toHaveAttribute("aria-current", "page");
+  });
+
+  test("secret messages keeps mobile users at the top of the workspace on load", async ({ page }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await loginWithTestCredentials(page, credentials!);
+    await page.goto("/secret-santa-chat");
+    await expect(page.getByTestId("secret-santa-chat-page")).toBeVisible();
+    await expect(page.getByRole("heading", { name: /^secret messages$/i }).first()).toBeVisible();
+    await expect
+      .poll(() => page.evaluate(() => Math.round(window.scrollY)))
+      .toBeLessThanOrEqual(24);
   });
 
   test("dashboard keeps general unread notifications out of private message status", async ({ page }) => {
