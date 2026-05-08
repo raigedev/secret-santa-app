@@ -629,7 +629,6 @@ export default function WishlistPage() {
   );
   const selectedGroupAtLimit =
     selectedGroupItemCount >= WISHLIST_ITEMS_PER_GROUP_LIMIT;
-  const topPriorityCount = items.filter((item) => item.priority === 2).length;
   const selectedGroupProgress = Math.min(
     100,
     Math.round((selectedGroupItemCount / WISHLIST_ITEMS_PER_GROUP_LIMIT) * 100)
@@ -657,7 +656,7 @@ export default function WishlistPage() {
 
       <div className="relative z-10 mx-auto flex w-full max-w-7xl flex-col gap-6">
         <section className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_320px]">
-          <div className="relative overflow-hidden rounded-[42px] bg-[#ffffff] p-6 shadow-[0_28px_80px_rgba(46,52,50,0.08)] sm:p-8 lg:p-10">
+          <div className="holiday-panel-strong relative overflow-hidden rounded-[36px] p-6 sm:p-8 lg:p-10">
             <div className="absolute right-[-46px] top-[-42px] h-40 w-40 rounded-full bg-[#ffaba9]/35" />
             <div className="absolute bottom-[-80px] right-[12%] h-48 w-48 rounded-full bg-[#d7fadb]/70" />
             <div className="relative">
@@ -671,19 +670,6 @@ export default function WishlistPage() {
               <p className="mt-5 max-w-2xl text-base leading-8 text-[#5b605e] sm:text-lg">
                 Add gift ideas to help your Santa choose something you will love.
               </p>
-              <div className="mt-8 grid gap-3 sm:grid-cols-3">
-                {[
-                  { label: "Wishlist items", value: items.length, helper: "Clues ready" },
-                  { label: "Active groups", value: groups.length, helper: "Groups joined" },
-                  { label: "Top priority", value: topPriorityCount, helper: "Marked important" },
-                ].map((stat) => (
-                  <div key={stat.label} className="rounded-[28px] bg-[#f2f4f2] p-5">
-                    <p className="text-xs font-black uppercase tracking-[0.22em] text-[#777c7a]">{stat.label}</p>
-                    <p className="mt-2 text-4xl font-black text-[#2e3432]">{stat.value}</p>
-                    <p className="mt-2 text-sm font-semibold text-[#5b605e]">{stat.helper}</p>
-                  </div>
-                ))}
-              </div>
             </div>
           </div>
 

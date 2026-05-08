@@ -92,7 +92,6 @@ const CHAT_TEXT_SUBTLE = "#6f7a74";
 const CHAT_HEADER_TEXT = "#2e3432";
 const CHAT_GREEN = "#48664e";
 const CHAT_RED = "#a43c3f";
-const CHAT_GOLD = "#fcce72";
 const WRAP_UP_DAYS = 7;
 const CHAT_THREAD_MESSAGE_SCAN_LIMIT = 300;
 const CHAT_ACTIVE_THREAD_MESSAGE_LIMIT = 100;
@@ -134,24 +133,6 @@ function isChatPageSnapshot(
   );
 }
 
-function SantaMarkIcon({ className = "h-10 w-10" }: { className?: string }) {
-  return (
-    <svg viewBox="10 5 140 145" className={className} xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-      <circle cx="80" cy="82" r="50" fill="#fde8e8" />
-      <ellipse cx="80" cy="108" rx="38" ry="24" fill="#fff" />
-      <ellipse cx="80" cy="102" rx="32" ry="16" fill="#fff" />
-      <ellipse cx="66" cy="86" rx="12" ry="6" fill="#fff" />
-      <ellipse cx="94" cy="86" rx="12" ry="6" fill="#fff" />
-      <circle cx="80" cy="76" r="5" fill="#e8a8a8" />
-      <ellipse cx="64" cy="66" rx="5" ry="6" fill="#2c1810" />
-      <path d="M90 66 Q96 60 102 66" fill="none" stroke="#2c1810" strokeWidth="3.5" strokeLinecap="round" />
-      <path d="M32 58 C32 58 50 14 82 10 C114 6 128 58 128 58" fill="#c0392b" />
-      <rect x="26" y="54" width="108" height="10" rx="5" fill="#fff" />
-      <circle cx="86" cy="10" r="8" fill="#fff" />
-    </svg>
-  );
-}
-
 function ChatLineIcon({ className = "h-5 w-5" }: { className?: string }) {
   return (
     <svg viewBox="0 0 24 24" fill="none" className={className} aria-hidden="true">
@@ -162,16 +143,6 @@ function ChatLineIcon({ className = "h-5 w-5" }: { className?: string }) {
         strokeLinejoin="round"
       />
       <path d="M8 8.7h8M8 11.2h5.6" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
-    </svg>
-  );
-}
-
-function LockLineIcon({ className = "h-5 w-5" }: { className?: string }) {
-  return (
-    <svg viewBox="0 0 24 24" fill="none" className={className} aria-hidden="true">
-      <rect x="5.5" y="10" width="13" height="9" rx="2.5" stroke="currentColor" strokeWidth="1.8" />
-      <path d="M8.5 10V8a3.5 3.5 0 0 1 7 0v2" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
-      <path d="M12 13.4v2.2" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
     </svg>
   );
 }
@@ -1426,15 +1397,6 @@ export default function SecretSantaChatPage() {
 
   const giverThreads = useMemo(() => threads.filter((t) => t.role === "giver"), [threads]);
   const receiverThreads = useMemo(() => threads.filter((t) => t.role === "receiver"), [threads]);
-  const totalUnread = useMemo(
-    () => threads.reduce((total, thread) => total + thread.unread, 0),
-    [threads]
-  );
-  const uniqueGroupCount = useMemo(
-    () => new Set(threads.map((thread) => thread.group_id)).size,
-    [threads]
-  );
-
   if (loading) return <ChatSkeleton />;
 
   const selectedThread = activeThread;
@@ -1541,25 +1503,6 @@ export default function SecretSantaChatPage() {
       `}</style>
 
       <div className="relative mx-auto flex w-full max-w-376 flex-col gap-4">
-        <div className="flex flex-col gap-1 px-1 sm:flex-row sm:items-end sm:justify-between">
-          <div className="flex items-start gap-3">
-            <span className="grid h-11 w-11 shrink-0 place-items-center rounded-full" style={{ background: "rgba(255,255,255,.82)", border: CHAT_BORDER }}>
-              <SantaMarkIcon className="h-9 w-9" />
-            </span>
-            <div>
-              <h1 className="text-[22px] font-black leading-tight" style={{ fontFamily: "'Fredoka','Nunito',sans-serif" }}>
-                Secret Messages
-              </h1>
-              <p className="mt-1 text-[12px] font-extrabold" style={{ color: "#64748b" }}>
-                Message your giftees or reply to the Santa gifting you.
-              </p>
-            </div>
-          </div>
-          <div className="hidden rounded-full px-4 py-2 text-[12px] font-black sm:inline-flex" style={{ background: "rgba(255,255,255,.78)", border: CHAT_BORDER }}>
-            {totalUnread > 0 ? `${totalUnread} unread` : `${uniqueGroupCount} groups`}
-          </div>
-        </div>
-
         <section
           className="relative overflow-hidden rounded-4xl p-5 sm:p-6"
           style={{
@@ -1585,18 +1528,6 @@ export default function SecretSantaChatPage() {
               <p className="mt-2 text-sm font-extrabold" style={{ color: "#526174" }}>
                 Each thread shows the group and whether you are writing to your giftee or your Secret Santa.
               </p>
-            </div>
-            <div className="flex flex-wrap gap-2">
-              <span className="inline-flex items-center gap-2 rounded-full px-4 py-2 text-xs font-black text-white" style={{ background: CHAT_GREEN }}>
-                <LockLineIcon className="h-4 w-4" />
-                To giftees: {giverThreads.length} {giverThreads.length === 1 ? "thread" : "threads"}
-              </span>
-              <span className="rounded-full px-4 py-2 text-xs font-black" style={{ background: "rgba(164,60,63,.10)", color: CHAT_RED, border: "1px solid rgba(164,60,63,.18)" }}>
-                From my Santa: {receiverThreads.length} {receiverThreads.length === 1 ? "thread" : "threads"}
-              </span>
-              <span className="rounded-full px-4 py-2 text-xs font-black" style={{ background: "rgba(252,206,114,.35)", color: "#7b5902", border: `1px solid ${CHAT_GOLD}` }}>
-                {selectedTiming.chip}
-              </span>
             </div>
           </div>
         </section>
