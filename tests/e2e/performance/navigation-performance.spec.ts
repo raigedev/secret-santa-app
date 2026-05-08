@@ -81,7 +81,7 @@ test.describe("navigation performance smoke coverage", () => {
       "login to dashboard ready",
       () => loginWithTestCredentials(page, credentials!),
       async () => {
-        await expect(page.getByRole("heading", { name: /welcome back/i })).toBeVisible();
+        await expect(page.getByRole("heading", { name: /exchange at a glance/i })).toBeVisible();
       }
     );
 

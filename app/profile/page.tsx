@@ -571,7 +571,7 @@ export default function ProfilePage() {
             </div>
           </div>
           <div className="text-[13px] font-bold" style={{ color: "#1f2937" }}>{profile.display_name || "Set your name"}</div>
-          <div className="text-[11px] font-semibold" style={{ color: "#9ca3af" }}>{email}</div>
+          <div className="mx-auto max-w-full break-all text-[11px] font-semibold" style={{ color: "#9ca3af" }}>{email}</div>
 
           <div className="mt-4 flex flex-wrap items-center justify-center gap-2">
             <label
@@ -645,10 +645,16 @@ export default function ProfilePage() {
           </div>
 
           <div className="mb-4">
-            <label className="text-[13px] font-extrabold mb-1.5 block" style={{ color: "#374151" }}>Email</label>
-            <input value={email} disabled
-              className="w-full px-4 py-3 rounded-xl text-[14px]"
-              style={{ border: "2px solid #e5e7eb", background: "#f9fafb", color: "#9ca3af", fontFamily: "inherit" }} />
+            <label id="profile-email-label" className="text-[13px] font-extrabold mb-1.5 block" style={{ color: "#374151" }}>Email</label>
+            <div
+              aria-labelledby="profile-email-label"
+              className="w-full break-all rounded-xl px-4 py-3 text-[13px] leading-snug sm:text-[14px]"
+              role="textbox"
+              aria-readonly="true"
+              style={{ border: "2px solid #e5e7eb", background: "#f9fafb", color: "#9ca3af", fontFamily: "inherit" }}
+            >
+              {email || "Email unavailable"}
+            </div>
             <p className="text-[11px] mt-1" style={{ color: "#9ca3af" }}>Email can&apos;t be changed — it&apos;s tied to your account</p>
           </div>
 
