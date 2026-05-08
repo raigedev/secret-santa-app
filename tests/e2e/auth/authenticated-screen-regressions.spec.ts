@@ -225,6 +225,10 @@ const AUTHENTICATED_SCREEN_CASES: ScreenCase[] = [
     path: "/wishlist",
     assertVisible: async (page) => {
       await expect(page.getByRole("heading", { name: /^my wishlist$/i })).toBeVisible();
+      await expect(page.getByText(/^wishlist items$/i)).toHaveCount(0);
+      await expect(page.getByText(/^active groups$/i)).toHaveCount(0);
+      await expect(page.getByText(/^groups joined$/i)).toHaveCount(0);
+      await expect(page.getByText(/^marked important$/i)).toHaveCount(0);
       await expect(page.getByRole("button", { name: /open gift planning/i })).toHaveCount(0);
       await expect(page.getByRole("button", { name: /back to dashboard/i })).toHaveCount(0);
     },
@@ -266,10 +270,14 @@ const AUTHENTICATED_SCREEN_CASES: ScreenCase[] = [
     path: "/secret-santa-chat",
     assertVisible: async (page) => {
       const chatPage = page.getByTestId("secret-santa-chat-page");
-      const pageHeading = page.getByRole("heading", { name: /^secret messages$/i }).first();
+      const secretMessagesHeadings = page.getByRole("heading", { name: /^secret messages$/i });
+      const pageHeading = secretMessagesHeadings.first();
       await expect(chatPage).toBeVisible();
       await expect(pageHeading).toBeVisible();
+      await expect(secretMessagesHeadings).toHaveCount(1);
       await expect(page.getByText(/writing to your giftee or your Secret Santa/i)).toBeVisible();
+      await expect(page.getByText(/^to giftees:/i)).toHaveCount(0);
+      await expect(page.getByText(/^from my santa:/i)).toHaveCount(0);
       await expect(page.getByRole("heading", { name: /gift chats/i })).toBeVisible();
       await page.waitForTimeout(1000);
       await expect(page.getByText(/we could not load your chats/i)).toHaveCount(0);
@@ -280,7 +288,7 @@ const AUTHENTICATED_SCREEN_CASES: ScreenCase[] = [
       const headingColor = await pageHeading.evaluate(
         (heading) => window.getComputedStyle(heading).color
       );
-      expect(headingColor).toBe("rgb(46, 52, 50)");
+      expect(headingColor).toBe("rgb(72, 102, 78)");
     },
   },
 ];
