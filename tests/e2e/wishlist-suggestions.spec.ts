@@ -1,5 +1,6 @@
 import { expect, test } from "@playwright/test";
 
+import { isLazadaPromotionShortLinkHostname } from "../../lib/affiliate/lazada-url";
 import { buildWishlistSuggestionOptions, type SuggestionInput } from "../../lib/wishlist/suggestions";
 import { buildGiftTaxonomySuggestionTemplates } from "../../lib/wishlist/gift-taxonomy";
 
@@ -36,5 +37,12 @@ test.describe("wishlist suggestion options", () => {
       source: "base",
     });
     expect(options.some((option) => option.title === "Coffee and tea corner")).toBe(true);
+  });
+
+  test("recognizes Lazada short-link hosts used for promotion redirects", () => {
+    expect(isLazadaPromotionShortLinkHostname("c.lazada.com.ph")).toBe(true);
+    expect(isLazadaPromotionShortLinkHostname("s.lazada.com.ph")).toBe(true);
+    expect(isLazadaPromotionShortLinkHostname("www.lazada.com.ph")).toBe(false);
+    expect(isLazadaPromotionShortLinkHostname("example.com")).toBe(false);
   });
 });

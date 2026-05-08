@@ -44,3 +44,7 @@ export function normalizeLazadaProductPageUrl(url: string): string | null {
 export function isLazadaProductPageUrl(url: string): boolean {
   return normalizeLazadaProductPageUrl(url) !== null;
 }
+
+export function isLazadaPromotionShortLinkHostname(hostname: string): boolean {
+  return /^(c|s)\.lazada\.com\.ph$/i.test(hostname.trim());
+}
