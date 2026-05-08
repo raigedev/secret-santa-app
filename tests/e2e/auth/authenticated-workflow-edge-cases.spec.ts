@@ -44,7 +44,7 @@ const SHARED_NAVIGATION_CASES: NavigationCase[] = [
     expectedHref: /\/dashboard$/,
     expectedUrl: /\/dashboard$/,
     ready: async (page) => {
-      await expect(page.getByRole("heading", { name: /active exchanges/i })).toBeVisible();
+      await expect(page.getByRole("heading", { name: /exchange at a glance/i })).toBeVisible();
     },
   },
   {
@@ -215,7 +215,7 @@ async function returnToDashboard(page: Page) {
   }
 
   await expect(page).toHaveURL(/\/dashboard$/);
-  await expect(page.getByRole("heading", { name: /active exchanges/i })).toBeVisible();
+  await expect(page.getByRole("heading", { name: /exchange at a glance/i })).toBeVisible();
 }
 
 async function expectSantaAssistantClearOf(page: Page, target: Locator, label: string) {

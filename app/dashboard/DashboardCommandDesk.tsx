@@ -230,7 +230,7 @@ export function DashboardCommandDesk({
             <p className="text-[12px] font-black uppercase tracking-[0.18em] text-[#48664e]">Readiness meter</p>
             <div className="mt-4 grid gap-3 sm:grid-cols-3">
               <MiniStat isDarkTheme={isDarkTheme} label="members joined" value={`${memberCount}/${totalInviteBase}`} />
-              <MiniStat isDarkTheme={isDarkTheme} label="wishlist ready" value={`${wishlistPercent}%`} />
+              <MiniStat isDarkTheme={isDarkTheme} label="wishlist clues" value={`${wishlistPercent}%`} />
               <MiniStat isDarkTheme={isDarkTheme} label="gifts ready" value={`${readyGiftCount}/${Math.max(giftProgressTotal, 1)}`} />
             </div>
             <div className="mt-4 h-3 overflow-hidden rounded-full bg-[#dfe7df]"><span className="block h-full rounded-full bg-[#48664e]" style={{ width: `${readinessPercent}%` }} /></div>

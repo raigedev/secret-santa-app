@@ -151,7 +151,7 @@ function GroupWorkspacePreview({
             <div className="min-w-0">
               <div className="flex flex-wrap items-center gap-3">
                 <h3
-                  className={`truncate text-3xl font-black leading-tight ${
+                  className={`min-w-0 max-w-full break-words text-[26px] font-black leading-tight sm:text-3xl ${
                     isDarkTheme ? "text-white" : "text-[#48664e]"
                   }`}
                   style={{ fontFamily: "'Fredoka', sans-serif" }}

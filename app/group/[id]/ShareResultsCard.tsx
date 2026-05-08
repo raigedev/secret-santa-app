@@ -76,12 +76,16 @@ function getPreviewNameTextStyle(value: string, variant: "hero" | "detail") {
   }
 
   return {
-    fontSize: `${fontSizeRem}rem`,
-    whiteSpace: "nowrap" as const,
-    overflow: "hidden" as const,
+    fontSize:
+      variant === "hero"
+        ? `clamp(2rem, 10vw, ${fontSizeRem}rem)`
+        : `clamp(1.45rem, 7vw, ${fontSizeRem}rem)`,
+    overflowWrap: length <= 12 ? ("normal" as const) : ("anywhere" as const),
     textOverflow: "clip" as const,
     maxWidth: "100%",
-    letterSpacing: length >= 12 ? "-0.03em" : "-0.01em",
+    whiteSpace: length <= 12 ? ("nowrap" as const) : ("normal" as const),
+    wordBreak: length <= 12 ? ("normal" as const) : ("break-word" as const),
+    letterSpacing: "0",
     lineHeight: 1.08,
   };
 }
@@ -371,6 +375,7 @@ export default function ShareResultsCard(props: ShareResultsCardProps) {
                   My Alias
                 </div>
               <div
+                data-ui-guardrail-text
                 className="mt-3 font-bold text-white min-w-0 pb-1"
                 style={{
                   fontFamily: "'Fredoka', sans-serif",
@@ -393,6 +398,7 @@ export default function ShareResultsCard(props: ShareResultsCardProps) {
                   Giftee
                 </div>
               <div
+                data-ui-guardrail-text
                 className="mt-3 font-bold text-white min-w-0 pb-1"
                 style={{
                   fontFamily: "'Fredoka', sans-serif",

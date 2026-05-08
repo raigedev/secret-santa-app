@@ -411,12 +411,14 @@ export default function CreateGroupPage() {
           <p className="text-[11px] font-black uppercase tracking-[0.18em] text-[#48664e]">
             Exchange preview
           </p>
-          <h1
+          <p
+            aria-label="Group name preview"
+            aria-live="polite"
             className="mt-8 text-center text-[30px] font-black leading-tight text-[#48664e]"
             style={{ fontFamily: "'Fredoka', sans-serif" }}
           >
             {groupName.trim() || "My Office Secret Santa"}
-          </h1>
+          </p>
           <p className="mx-auto mt-2 max-w-sm text-center text-[13px] font-semibold leading-6 text-slate-600">
             {description.trim() || "A little joy, a lot of surprises."}
           </p>
