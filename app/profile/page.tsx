@@ -609,7 +609,7 @@ export default function ProfilePage() {
             )}
           </div>
           <p className="mt-2 text-[11px]" style={{ color: "#9ca3af" }}>
-            Profile photos show on group cards when available. Festive avatars stay as your fallback.
+            Profile photos show on group cards when available. Festive avatars stay ready if you remove the photo.
           </p>
 
           <p className="text-[13px] font-extrabold mt-5 mb-3 text-left" style={{ color: "#374151" }}>Choose a festive avatar</p>

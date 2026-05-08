@@ -944,7 +944,7 @@ export default function GroupDetailsPage() {
                 <div className="min-w-0">
                   <div className="flex flex-wrap items-center gap-3">
                     <h1
-                      className="truncate text-[28px] font-black leading-tight text-[#48664e] sm:text-[32px]"
+                      className="min-w-0 max-w-full break-words text-[28px] font-black leading-tight text-[#48664e] sm:text-[32px]"
                       style={{ fontFamily: "'Fredoka', sans-serif" }}
                     >
                       {groupData.name}
