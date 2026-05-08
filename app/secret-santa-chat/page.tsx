@@ -931,6 +931,9 @@ export default function SecretSantaChatPage() {
       if (membershipsError) {
         setThreadListMessage("We could not load your chats. Please refresh the page.");
         setThreads([]);
+        setActiveThread(null);
+        setMessages([]);
+        setMessagesLoading(false);
         hasLoadedThreadsRef.current = true;
         setLoading(false);
         return;
@@ -941,6 +944,9 @@ export default function SecretSantaChatPage() {
       if (groupIds.length === 0) {
         setThreadListMessage(null);
         setThreads([]);
+        setActiveThread(null);
+        setMessages([]);
+        setMessagesLoading(false);
         writeClientSnapshot(getChatPageSnapshotStorageKey(user.id), {
           createdAt: Date.now(),
           threads: [],
@@ -983,6 +989,9 @@ export default function SecretSantaChatPage() {
       ) {
         setThreadListMessage("We could not load your chats. Please refresh the page.");
         setThreads([]);
+        setActiveThread(null);
+        setMessages([]);
+        setMessagesLoading(false);
         hasLoadedThreadsRef.current = true;
         setLoading(false);
         return;
@@ -1399,11 +1408,15 @@ export default function SecretSantaChatPage() {
   if (loading) return <ChatSkeleton />;
 
   const selectedThread = activeThread;
+  const hasThreads = threads.length > 0;
   const selectedIsGiver = selectedThread?.role === "giver";
   const selectedTiming = getGiftTimingInfo(selectedThread?.group_gift_date || "");
   const selectedThreadKey = selectedThread
     ? createThreadKey(selectedThread.group_id, selectedThread.giver_id, selectedThread.receiver_id)
     : "";
+  const chatGridClass = selectedThread
+    ? "grid gap-4 xl:grid-cols-[300px_minmax(0,1fr)_270px]"
+    : "grid gap-4 xl:grid-cols-[300px_minmax(0,1fr)]";
   const showGiverThreads = threadFilter === "all" || threadFilter === "giver";
   const showReceiverThreads = threadFilter === "all" || threadFilter === "receiver";
   const promptChips = selectedIsGiver
@@ -1531,21 +1544,22 @@ export default function SecretSantaChatPage() {
           </section>
         )}
 
-        <section className="grid gap-4 xl:grid-cols-[300px_minmax(0,1fr)_270px]">
-            <aside className="rounded-4xl p-4" style={{ background: CHAT_PANEL_BACKGROUND, border: CHAT_BORDER, boxShadow: "0 18px 44px rgba(46,52,50,.06)" }}>
-              <p className="text-[11px] font-black uppercase tracking-[0.18em]" style={{ color: "#7285a1" }}>
-                Mystery mailbox
-              </p>
-              <div className="mt-2 flex items-start gap-3">
-                <EnvelopeLineIcon className="mt-1 h-6 w-6 shrink-0" />
-                <div>
-                  <h2 className="text-xl font-black">Gift chats</h2>
-                  <p className="mt-1 text-xs font-bold leading-5" style={{ color: CHAT_TEXT_MUTED }}>
-                    Pick a thread and keep the group context visible while you chat.
-                  </p>
-                </div>
+        <section className={chatGridClass}>
+          <aside className="rounded-4xl p-4" style={{ background: CHAT_PANEL_BACKGROUND, border: CHAT_BORDER, boxShadow: "0 18px 44px rgba(46,52,50,.06)" }}>
+            <p className="text-[11px] font-black uppercase tracking-[0.18em]" style={{ color: "#7285a1" }}>
+              Mystery mailbox
+            </p>
+            <div className="mt-2 flex items-start gap-3">
+              <EnvelopeLineIcon className="mt-1 h-6 w-6 shrink-0" />
+              <div>
+                <h2 className="text-xl font-black">Gift chats</h2>
+                <p className="mt-1 text-xs font-bold leading-5" style={{ color: CHAT_TEXT_MUTED }}>
+                  Pick a thread and keep the group context visible while you chat.
+                </p>
               </div>
+            </div>
 
+            {hasThreads && (
               <div className="mt-4 flex flex-wrap gap-2">
                 {filterOptions.map((option) => {
                   const active = threadFilter === option.value;
@@ -1568,51 +1582,68 @@ export default function SecretSantaChatPage() {
                   );
                 })}
               </div>
+            )}
 
-              <div className="chat-scrollbar mt-5 max-h-145 space-y-5 overflow-y-auto pr-1">
-                {showGiverThreads && (
-                  <section>
-                    <div className="mb-2 flex items-center justify-between">
-                      <p className="text-[11px] font-black uppercase tracking-[0.18em]" style={{ color: CHAT_GREEN }}>
-                        My giftees
-                      </p>
-                      <span className="text-xs font-black">{giverThreads.length}</span>
-                    </div>
-                    <div className="space-y-2">
-                      {giverThreads.length > 0 ? (
-                        giverThreads.map(renderThreadButton)
-                      ) : (
-                        <p className="rounded-2xl px-3 py-3 text-xs font-bold leading-5" style={{ background: CHAT_SURFACE_MUTED, color: CHAT_TEXT_MUTED }}>
-                          Giftee chats appear after names are drawn.
+            <div className="chat-scrollbar mt-5 max-h-145 space-y-5 overflow-y-auto pr-1">
+              {!hasThreads ? (
+                <p
+                  className="rounded-3xl px-4 py-4 text-sm font-bold leading-6"
+                  style={{
+                    background: CHAT_SURFACE_MUTED,
+                    border: CHAT_BORDER_SOFT,
+                    color: CHAT_TEXT_MUTED,
+                  }}
+                >
+                  Private chats appear after names are drawn. You will see giftee and Santa
+                  threads here.
+                </p>
+              ) : (
+                <>
+                  {showGiverThreads && (
+                    <section>
+                      <div className="mb-2 flex items-center justify-between">
+                        <p className="text-[11px] font-black uppercase tracking-[0.18em]" style={{ color: CHAT_GREEN }}>
+                          My giftees
                         </p>
-                      )}
-                    </div>
-                  </section>
-                )}
+                        <span className="text-xs font-black">{giverThreads.length}</span>
+                      </div>
+                      <div className="space-y-2">
+                        {giverThreads.length > 0 ? (
+                          giverThreads.map(renderThreadButton)
+                        ) : (
+                          <p className="rounded-2xl px-3 py-3 text-xs font-bold leading-5" style={{ background: CHAT_SURFACE_MUTED, color: CHAT_TEXT_MUTED }}>
+                            Giftee chats appear after names are drawn.
+                          </p>
+                        )}
+                      </div>
+                    </section>
+                  )}
 
-                {showReceiverThreads && (
-                  <section>
-                    <div className="mb-2 flex items-center justify-between">
-                      <p className="text-[11px] font-black uppercase tracking-[0.18em]" style={{ color: CHAT_RED }}>
-                        My Santa
-                      </p>
-                      <span className="text-xs font-black">{receiverThreads.length}</span>
-                    </div>
-                    <div className="space-y-2">
-                      {receiverThreads.length > 0 ? (
-                        receiverThreads.map(renderThreadButton)
-                      ) : (
-                        <p className="rounded-2xl px-3 py-3 text-xs font-bold leading-5" style={{ background: CHAT_SURFACE_MUTED, color: CHAT_TEXT_MUTED }}>
-                          Messages from your Santa appear here when they start a private thread.
+                  {showReceiverThreads && (
+                    <section>
+                      <div className="mb-2 flex items-center justify-between">
+                        <p className="text-[11px] font-black uppercase tracking-[0.18em]" style={{ color: CHAT_RED }}>
+                          My Santa
                         </p>
-                      )}
-                    </div>
-                  </section>
-                )}
-              </div>
-            </aside>
+                        <span className="text-xs font-black">{receiverThreads.length}</span>
+                      </div>
+                      <div className="space-y-2">
+                        {receiverThreads.length > 0 ? (
+                          receiverThreads.map(renderThreadButton)
+                        ) : (
+                          <p className="rounded-2xl px-3 py-3 text-xs font-bold leading-5" style={{ background: CHAT_SURFACE_MUTED, color: CHAT_TEXT_MUTED }}>
+                            Messages from your Santa appear here when they start a private thread.
+                          </p>
+                        )}
+                      </div>
+                    </section>
+                  )}
+                </>
+              )}
+            </div>
+          </aside>
 
-            <section ref={chatPanelRef} className="flex min-h-162.5 flex-col overflow-hidden rounded-4xl" style={{ background: CHAT_PANEL_BACKGROUND, border: CHAT_BORDER, boxShadow: "0 18px 44px rgba(46,52,50,.06)" }}>
+          <section ref={chatPanelRef} className="flex min-h-162.5 flex-col overflow-hidden rounded-4xl" style={{ background: CHAT_PANEL_BACKGROUND, border: CHAT_BORDER, boxShadow: "0 18px 44px rgba(46,52,50,.06)" }}>
               <div className="flex flex-col gap-4 border-b px-5 py-5 sm:flex-row sm:items-start sm:justify-between" style={{ borderColor: "rgba(72,102,78,.12)" }}>
                 <div className="flex min-w-0 gap-4">
                   <div className="grid h-14 w-14 shrink-0 place-items-center rounded-full" style={{ background: "rgba(252,206,114,.28)", color: CHAT_RED }}>
@@ -1626,20 +1657,24 @@ export default function SecretSantaChatPage() {
                           : "From your Secret Santa"
                         : "Choose a chat"}
                     </h2>
-                    <p className="mt-1 text-xs font-black" style={{ color: CHAT_TEXT_MUTED }}>
-                      Group: {selectedThread?.group_name || "Select a gift chat"}
-                    </p>
-                    <div className="mt-3 flex flex-wrap gap-2">
-                      <span className="rounded-full px-3 py-1.5 text-[11px] font-black text-white" style={{ background: selectedIsGiver ? CHAT_GREEN : CHAT_RED }}>
-                        {selectedIsGiver ? "You are their Secret Santa" : "Replying to your Secret Santa"}
-                      </span>
-                      <span className="rounded-full px-3 py-1.5 text-[11px] font-black" style={{ background: "rgba(72,102,78,.10)", color: CHAT_GREEN }}>
-                        Identity protected
-                      </span>
-                      <span className="rounded-full px-3 py-1.5 text-[11px] font-black" style={{ background: "rgba(164,60,63,.10)", color: CHAT_RED }}>
-                        {selectedTiming.label}
-                      </span>
-                    </div>
+                    {selectedThread && (
+                      <p className="mt-1 text-xs font-black" style={{ color: CHAT_TEXT_MUTED }}>
+                        Group: {selectedThread.group_name}
+                      </p>
+                    )}
+                    {selectedThread && (
+                      <div className="mt-3 flex flex-wrap gap-2">
+                        <span className="rounded-full px-3 py-1.5 text-[11px] font-black text-white" style={{ background: selectedIsGiver ? CHAT_GREEN : CHAT_RED }}>
+                          {selectedIsGiver ? "You are their Secret Santa" : "Replying to your Secret Santa"}
+                        </span>
+                        <span className="rounded-full px-3 py-1.5 text-[11px] font-black" style={{ background: "rgba(72,102,78,.10)", color: CHAT_GREEN }}>
+                          Identity protected
+                        </span>
+                        <span className="rounded-full px-3 py-1.5 text-[11px] font-black" style={{ background: "rgba(164,60,63,.10)", color: CHAT_RED }}>
+                          {selectedTiming.label}
+                        </span>
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>
@@ -1663,9 +1698,13 @@ export default function SecretSantaChatPage() {
                 ) : !selectedThread ? (
                   <div className="m-auto max-w-sm text-center">
                     <ChatLineIcon className="mx-auto h-10 w-10" />
-                    <p className="mt-4 text-xl font-black">Choose a gift chat</p>
+                    <p className="mt-4 text-xl font-black">
+                      {hasThreads ? "Choose a gift chat" : "No private chats yet"}
+                    </p>
                     <p className="mt-2 text-sm font-semibold leading-6" style={{ color: CHAT_TEXT_MUTED }}>
-                      Pick a giftee chat or Santa thread to start messaging.
+                      {hasThreads
+                        ? "Pick a giftee chat or Santa thread to start messaging."
+                        : "Private chats appear after names are drawn."}
                     </p>
                   </div>
                 ) : messages.length === 0 ? (
@@ -1723,70 +1762,69 @@ export default function SecretSantaChatPage() {
                 )}
               </div>
 
-              <div className="border-t p-4 sm:p-5" style={{ background: "rgba(255,255,255,.82)", borderColor: "rgba(72,102,78,.12)" }}>
-                <div className="mb-3 flex flex-wrap gap-2">
-                  {promptChips.map((chip) => (
-                    <button
-                      key={chip}
-                      type="button"
-                      disabled={!selectedThread}
-                      onClick={() => applyPromptChip(chip)}
-                      className="rounded-full px-3 py-1.5 text-[11px] font-black transition hover:-translate-y-0.5 focus-visible:outline-2 focus-visible:outline-offset-2 disabled:opacity-50"
-                      style={{ background: "rgba(72,102,78,.08)", color: CHAT_GREEN, border: "1px solid rgba(72,102,78,.10)", outlineColor: CHAT_GREEN }}
-                    >
-                      {chip}
-                    </button>
-                  ))}
-                </div>
-                <div className="flex flex-col gap-3 sm:flex-row">
-                  <input
-                    value={msgInput}
-                    onChange={(e) => setMsgInput(e.target.value)}
-                    onKeyDown={handleKeyDown}
-                    disabled={!selectedThread}
-                    aria-label={
-                      selectedThread
-                        ? `Message composer for ${selectedThread.group_name}`
-                        : "Message composer"
-                    }
-                    placeholder={
-                      selectedThread
-                        ? selectedIsGiver
+              {selectedThread ? (
+                <div className="border-t p-4 sm:p-5" style={{ background: "rgba(255,255,255,.82)", borderColor: "rgba(72,102,78,.12)" }}>
+                  <div className="mb-3 flex flex-wrap gap-2">
+                    {promptChips.map((chip) => (
+                      <button
+                        key={chip}
+                        type="button"
+                        onClick={() => applyPromptChip(chip)}
+                        className="rounded-full px-3 py-1.5 text-[11px] font-black transition hover:-translate-y-0.5 focus-visible:outline-2 focus-visible:outline-offset-2"
+                        style={{ background: "rgba(72,102,78,.08)", color: CHAT_GREEN, border: "1px solid rgba(72,102,78,.10)", outlineColor: CHAT_GREEN }}
+                      >
+                        {chip}
+                      </button>
+                    ))}
+                  </div>
+                  <div className="flex flex-col gap-3 sm:flex-row">
+                    <input
+                      value={msgInput}
+                      onChange={(e) => setMsgInput(e.target.value)}
+                      onKeyDown={handleKeyDown}
+                      aria-label={`Message composer for ${selectedThread.group_name}`}
+                      placeholder={
+                        selectedIsGiver
                           ? `Ask ${selectedThread.other_name} about their gift...`
                           : `Reply to your Santa in ${selectedThread.group_name}...`
-                        : "Choose a chat first..."
-                    }
-                    maxLength={500}
-                    className="min-h-12 w-full rounded-full px-5 text-[15px] font-semibold outline-none focus-visible:outline-2 focus-visible:outline-offset-2 disabled:cursor-not-allowed disabled:opacity-60 sm:flex-1"
-                    style={{
-                      background: "#f9faf8",
-                      border: CHAT_BORDER_SOFT,
-                      color: CHAT_HEADER_TEXT,
-                      fontFamily: "inherit",
-                      outlineColor: CHAT_GREEN,
-                    }}
-                  />
-                  <button
-                    type="button"
-                    onClick={handleSend}
-                    disabled={!selectedThread || !msgInput.trim()}
-                    className="inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-full px-6 text-sm font-black transition hover:-translate-y-0.5 focus-visible:outline-2 focus-visible:outline-offset-2 disabled:cursor-not-allowed disabled:opacity-55 sm:w-auto"
-                    style={{
-                      background: msgInput.trim() && selectedThread ? CHAT_GREEN : "rgba(72,102,78,.12)",
-                      color: msgInput.trim() && selectedThread ? "#fffefa" : "rgba(46,52,50,.48)",
-                      border: "1px solid rgba(72,102,78,.12)",
-                      fontFamily: "inherit",
-                      boxShadow: msgInput.trim() && selectedThread ? "0 16px 28px rgba(72,102,78,.18)" : "none",
-                      outlineColor: CHAT_GREEN,
-                    }}
-                  >
-                    Send
-                    <ArrowRightIcon />
-                  </button>
+                      }
+                      maxLength={500}
+                      className="min-h-12 w-full rounded-full px-5 text-[15px] font-semibold outline-none focus-visible:outline-2 focus-visible:outline-offset-2 sm:flex-1"
+                      style={{
+                        background: "#f9faf8",
+                        border: CHAT_BORDER_SOFT,
+                        color: CHAT_HEADER_TEXT,
+                        fontFamily: "inherit",
+                        outlineColor: CHAT_GREEN,
+                      }}
+                    />
+                    <button
+                      type="button"
+                      onClick={handleSend}
+                      disabled={!msgInput.trim()}
+                      className="inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-full px-6 text-sm font-black transition hover:-translate-y-0.5 focus-visible:outline-2 focus-visible:outline-offset-2 disabled:cursor-not-allowed disabled:opacity-55 sm:w-auto"
+                      style={{
+                        background: msgInput.trim() ? CHAT_GREEN : "rgba(72,102,78,.12)",
+                        color: msgInput.trim() ? "#fffefa" : "rgba(46,52,50,.48)",
+                        border: "1px solid rgba(72,102,78,.12)",
+                        fontFamily: "inherit",
+                        boxShadow: msgInput.trim() ? "0 16px 28px rgba(72,102,78,.18)" : "none",
+                        outlineColor: CHAT_GREEN,
+                      }}
+                    >
+                      Send
+                      <ArrowRightIcon />
+                    </button>
+                  </div>
                 </div>
-              </div>
-            </section>
+              ) : (
+                <div className="border-t px-5 py-4 text-sm font-bold" style={{ background: "rgba(255,255,255,.82)", borderColor: "rgba(72,102,78,.12)", color: CHAT_TEXT_MUTED }}>
+                  Select a private chat when one appears to start messaging.
+                </div>
+              )}
+          </section>
 
+          {selectedThread && (
             <aside className="rounded-4xl p-4 xl:sticky xl:top-24 xl:self-start" style={{ background: CHAT_PANEL_BACKGROUND, border: CHAT_BORDER, boxShadow: "0 18px 44px rgba(46,52,50,.06)" }}>
               <p className="text-[11px] font-black uppercase tracking-[0.18em]" style={{ color: "#7285a1" }}>
                 Gift timing
@@ -1813,6 +1851,7 @@ export default function SecretSantaChatPage() {
                 </p>
               </div>
             </aside>
+          )}
         </section>
       </div>
     </main>
