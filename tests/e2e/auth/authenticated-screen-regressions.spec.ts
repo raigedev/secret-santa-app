@@ -99,7 +99,8 @@ const AUTHENTICATED_SCREEN_CASES: ScreenCase[] = [
     assertVisible: async (page) => {
       await expect(getVisibleProfileMenuButton(page)).toBeVisible();
       await expect(page.getByText(/active exchange desk/i)).toBeVisible();
-      await expect(page.getByText(/useful shortcuts/i)).toBeVisible();
+      await expect(page.getByText(/readiness meter/i)).toBeVisible();
+      await expect(page.getByText(/useful shortcuts/i)).toHaveCount(0);
       await expect(page.getByRole("heading", { name: /today.s exchange flow/i })).toBeVisible();
       await expect(page.getByRole("heading", { name: /exchange ledger/i })).toBeVisible();
       await expect(page.getByText(/quick start checklist/i)).toHaveCount(0);

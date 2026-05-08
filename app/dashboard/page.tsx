@@ -1058,12 +1058,9 @@ export default function DashboardPage() {
           wishlistItemCount={wishlistItemCount}
           onCreateGroup={() => router.push("/create-group")}
           onOpenChat={() => router.push("/secret-santa-chat")}
-          onOpenGiftProgress={() => router.push("/gift-tracking")}
           onOpenGroup={handleOpenGroup}
           onOpenGroups={() => router.push("/groups")}
           onOpenPath={(path) => router.push(path)}
-          onOpenSecretSanta={() => router.push("/secret-santa")}
-          onOpenWishlist={() => router.push("/wishlist")}
         />
 
       </FadeIn>

@@ -6,7 +6,6 @@ import {
   ArrowRightIcon,
   ChatIcon,
   GiftIcon,
-  PlusIcon,
   SantaMarkIcon,
   WishlistIcon,
 } from "./dashboard-icons";
@@ -21,7 +20,6 @@ import {
   SectionTitle,
   StatusChip,
   getStatusChipClass,
-  getSoftClass,
   plural,
   type StatusChipTone,
 } from "./DashboardCommandDeskSections";
@@ -66,11 +64,9 @@ type DashboardCommandDeskProps = {
   wishlistTarget: number;
   onCreateGroup: () => void;
   onOpenChat: () => void;
-  onOpenGiftProgress: () => void;
   onOpenGroup: (groupId: string) => void;
   onOpenGroups: () => void;
   onOpenPath: (path: string) => void;
-  onOpenWishlist: () => void;
 };
 
 function getPanelClass(isDarkTheme: boolean): string {
@@ -107,11 +103,9 @@ export function DashboardCommandDesk({
   wishlistTarget,
   onCreateGroup,
   onOpenChat,
-  onOpenGiftProgress,
   onOpenGroup,
   onOpenGroups,
   onOpenPath,
-  onOpenWishlist,
 }: DashboardCommandDeskProps) {
   const nextGroups = groups
     .slice()
@@ -169,18 +163,6 @@ export function DashboardCommandDesk({
       tone: unreadPrivateUpdateCount > 0 ? "red" : "quiet",
       value: unreadPrivateUpdateCount > 0 ? "Open" : "Private",
     },
-  ];
-
-  const quickActions = [
-    {
-      detail: pendingInvites.length > 0 ? "Only pending members." : "No pending replies.",
-      icon: <PlusIcon />,
-      label: "Invite reminder",
-      onClick: onOpenGroups,
-    },
-    { detail: "Give Santa options.", icon: <WishlistIcon />, label: "Add wishlist clue", onClick: onOpenWishlist },
-    { detail: "Grouped by exchange.", icon: <ChatIcon />, label: "Private threads", onClick: onOpenChat },
-    { detail: `${readyGiftCount}/${Math.max(giftProgressTotal, 1)} ready`, icon: <GiftIcon />, label: "Gift progress", onClick: onOpenGiftProgress },
   ];
 
   return (
@@ -243,22 +225,10 @@ export function DashboardCommandDesk({
             </div>
           ))}
         </div>
-        <div className="relative grid gap-6 border-t border-[rgba(72,102,78,.14)] bg-white/30 p-6 lg:grid-cols-[minmax(0,1.35fr)_minmax(0,.95fr)]">
-          <div>
-            <p className="text-[12px] font-black uppercase tracking-[0.18em] text-[#48664e]">Useful shortcuts</p>
-            <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-              {quickActions.map((action) => (
-                <button key={action.label} type="button" onClick={action.onClick} className={`min-h-24 rounded-[22px] p-4 text-left transition hover:-translate-y-0.5 ${getSoftClass(isDarkTheme)}`}>
-                  <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-[#48664e]/12 text-[#48664e]">{action.icon}</span>
-                  <strong className="mt-3 block text-[13px] font-black leading-tight">{action.label}</strong>
-                  <span className={`mt-1 block text-[12px] font-extrabold leading-4 ${statsClass}`}>{action.detail}</span>
-                </button>
-              ))}
-            </div>
-          </div>
-          <div className="border-t border-[rgba(72,102,78,.14)] pt-6 lg:border-l lg:border-t-0 lg:pl-6 lg:pt-0">
+        <div className="relative border-t border-[rgba(72,102,78,.14)] bg-white/30 p-6">
+          <div className="max-w-3xl">
             <p className="text-[12px] font-black uppercase tracking-[0.18em] text-[#48664e]">Readiness meter</p>
-            <div className="mt-4 grid grid-cols-3 gap-3">
+            <div className="mt-4 grid gap-3 sm:grid-cols-3">
               <MiniStat isDarkTheme={isDarkTheme} label="members joined" value={`${memberCount}/${totalInviteBase}`} />
               <MiniStat isDarkTheme={isDarkTheme} label="wishlist ready" value={`${wishlistPercent}%`} />
               <MiniStat isDarkTheme={isDarkTheme} label="gifts ready" value={`${readyGiftCount}/${Math.max(giftProgressTotal, 1)}`} />
