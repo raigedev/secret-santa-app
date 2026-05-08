@@ -50,6 +50,7 @@ const HOLIDAY_RED = "#a43c3f";
 const TEXT_MUTED = "#64748b";
 const APP_SHELL_FALLBACK_POLL_MS = 5 * 60 * 1000;
 const NOTIFICATION_BADGE_COUNT_LIMIT = 100;
+const DEFAULT_TIME_OF_DAY_GREETING = "Welcome back";
 
 type AppNavItem = {
   href: string;
@@ -203,6 +204,7 @@ export default function AppRouteShell({ children }: { children: ReactNode }) {
   const router = useRouter();
   const [supabase] = useState(() => createClient());
   const [currentHash, setCurrentHash] = useState("");
+  const [timeOfDayGreeting, setTimeOfDayGreeting] = useState(DEFAULT_TIME_OF_DAY_GREETING);
   const [viewerName, setViewerName] = useState("");
   const [viewerAvatarUrl, setViewerAvatarUrl] = useState("");
   const [viewerAvatarEmoji, setViewerAvatarEmoji] = useState("");
@@ -217,6 +219,18 @@ export default function AppRouteShell({ children }: { children: ReactNode }) {
   const prefetchedRoutesRef = useRef<Set<string>>(new Set());
   const mobileNavScrollerRef = useRef<HTMLDivElement | null>(null);
   const mobileNavActiveItemRef = useRef<HTMLAnchorElement | null>(null);
+
+  useEffect(() => {
+    if (!shouldUseAppShell(pathname)) {
+      return;
+    }
+
+    const greetingSync = window.setTimeout(() => {
+      setTimeOfDayGreeting(getTimeOfDayGreeting());
+    }, 0);
+
+    return () => window.clearTimeout(greetingSync);
+  }, [pathname]);
 
   useEffect(() => {
     if (!shouldUseAppShell(pathname)) {
@@ -514,8 +528,8 @@ export default function AppRouteShell({ children }: { children: ReactNode }) {
   const fallbackAvatar = viewerAvatarEmoji || profileInitial;
   const fallbackAvatarIsEmoji = Boolean(viewerAvatarEmoji);
   const greetingText = displayViewerName
-    ? `${getTimeOfDayGreeting()}, ${displayViewerName}`
-    : getTimeOfDayGreeting();
+    ? `${timeOfDayGreeting}, ${displayViewerName}`
+    : timeOfDayGreeting;
   const isDarkAppShell = dashboardTheme === "midnight";
   const shellSubtitle = getShellSubtitle(pathname);
   const shellBackground = isDarkAppShell

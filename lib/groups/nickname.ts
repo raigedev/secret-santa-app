@@ -12,7 +12,7 @@ export function sanitizeGroupNickname(input: string): string {
   return sanitizePlainText(input, NICKNAME_MAX_LENGTH);
 }
 
-export function getDefaultGroupNicknameFromEmail(
+function getDefaultGroupNicknameFromEmail(
   email: string | null | undefined,
   fallbackLabel = "member"
 ): string {
