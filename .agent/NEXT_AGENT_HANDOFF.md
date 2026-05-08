@@ -1,3 +1,194 @@
+# Secret Santa App Handoff - 2026-05-09
+
+Project: `C:\Users\kenda\secret-santa-app`
+
+This top section supersedes older snapshot notes below. Keep the older history for context, but trust the current git/PR state here first.
+
+## Read First
+
+1. `AGENTS.md`
+2. `.agent/CONTINUITY.md`
+3. `.agent/NEXT_AGENT_HANDOFF.md`
+4. `.agent/BRANCH_WORKFLOW.md`
+5. `DESIGN.md`
+6. `PRODUCT.md`
+7. Run `git status --short --branch`
+
+## Current Git State
+
+- Working branch at handoff: `dev`.
+- Latest checked status: `## dev...origin/dev`.
+- Latest `origin/main`: `41d5989 Merge pull request #65 from raigedev/dev`.
+- Latest `origin/dev`: `a31a1f7 Stabilize app shell hydration and trim helper exports`.
+- Last merged PR: #65 `Stabilize app shell hydration and trim helper exports`.
+- Leave workspace on `dev`.
+- `.agent/NEXT_AGENT_HANDOFF.md` may be ignored depending on local git rules; use `git add -f .agent/NEXT_AGENT_HANDOFF.md .agent/CONTINUITY.md` only if the user explicitly wants this handoff committed.
+
+## Current User Goal
+
+The user wants ongoing UI/product polish and codebase cleanup in small, verified slices. Main theme: reduce redundant/noisy UI, keep screens useful, keep the warm Secret Santa brand, and add tests that catch bugs, duplicate surfaces, bad route states, hydration problems, and visual/product regressions earlier.
+
+## Branch Workflow
+
+- Work on `dev`.
+- `main` is production and Vercel deploys from `main`.
+- Before git/deploy/push/PR work, run `git status --short --branch`.
+- When the user says `done push`, `done pushing`, or similar:
+  - create or reuse PR `dev -> main`,
+  - watch GitHub checks,
+  - merge when checks are green and safe,
+  - fetch and verify,
+  - leave workspace on `dev`.
+- Do not ask again for PR/merge permission after `done push`; that phrase is the standing trigger.
+
+## Required Validation After Code Or Config Changes
+
+Run and fix:
+
+```powershell
+npm.cmd run check:problems
+npm.cmd run typecheck
+npm.cmd run lint:security
+npm.cmd run build
+```
+
+Then run relevant Playwright tests and:
+
+```powershell
+git diff --check
+```
+
+If VS Code Problems shows something the scanner misses, fix the source issue and update `scripts/check-vscode-problems.mjs` or the matching lint/cSpell/Tailwind config so it is caught next time.
+
+After UI/app-facing changes, start/reuse local preview, render the affected route, and provide an exact local URL or screenshot. Local preview is usually `http://127.0.0.1:3000`.
+
+Final replies after changes must include exact:
+
+```powershell
+git add ...
+git commit -m "..."
+git push origin dev
+```
+
+## Design Direction To Preserve
+
+- Use Stitch first for meaningful UI redesigns. Known Stitch project: `3072957204541081703` titled `Process Explainer`.
+- Use Figma when exact node/frame/design context is available; otherwise continue from Stitch, `DESIGN.md`, local code, browser preview, and Playwright.
+- Use `frontend-product-ui`, `DESIGN.md`, Taste/Impeccable skills, Oracle, browser preview, and Playwright when relevant.
+- Visual north star remains `/secret-santa` Shopping Ideas.
+- Preferred look: ivory/frost backgrounds, subtle green pattern, evergreen actions, Santa red accents, official Santa logo/face, warm polished product UI.
+- Prefer softer transparent section-like panels over generic card mosaics.
+- Avoid duplicate helper panels, backend jargon, neon/purple AI styling, one-note palettes, and noisy pill/status clusters.
+- Keep UI text normal-user friendly: group, member, wishlist, recipient, gift progress, shopping idea, reminder, message, report.
+
+## Important Product And Privacy Decisions
+
+- `/groups` is launcher/summary; `/group/[id]` is full group workspace.
+- `/secret-santa` is Shopping Ideas and the visual north star.
+- `/secret-santa-chat` is Secret Messages with `My giftees` and `My Santa` groupings.
+- `Assignments` is not primary nav; `/assignments` redirects to `/my-giftee`.
+- Settings owns reminder/display/Santa Buddy preferences; `/reminders` is legacy.
+- History is for concluded exchanges and past wishlist memories.
+- Owners must not read or track member private chats. Owner chat activity tracking was removed for privacy.
+- Member emails should not leak into normal group/dashboard/member UI.
+- Group images are private Supabase storage (`group-images`) with owner/member RLS and signed URLs.
+- Gmail SMTP is configured in Supabase dashboard as `mysecretsanta.notifications@gmail.com`; never store or ask for the app password in repo/chat.
+- Preserve Lazada affiliate tracking, strict postback validation, report access controls, and abuse protections.
+
+## Recent PR Timeline In This Long Chat
+
+- PR #48: Dashboard command-desk redesign.
+- PR #49: Removed redundant dashboard greeting.
+- PR #50: Recorded current agent handoff.
+- Later UI cleanup slices reduced redundant dashboard/status surfaces and other noisy repeated UI.
+- PR #57: `Reduce redundant UI panels`.
+- PR #58: `Polish secret messages workspace`.
+- PR #59: `Polish secret messages empty state`.
+- PR #60: `Polish groups launcher surface`.
+- PR #61: `Clean up profile and gift workspace noise`.
+- PR #62: `Harden Lazada short-link tracking`.
+- PR #63: `Add product UI guardrail tests`.
+- PR #64: `Trim unused helper exports`.
+- PR #65: `Stabilize app shell hydration and trim helper exports`.
+
+## Bugs And Investigations Handled
+
+- GitLens PR/reviewer indicator was handled by using the agreed PR workflow and merging green PRs.
+- Dashboard bogus `1 private update waiting` state for an account with no messages/groups was investigated and fixed earlier in the thread.
+- The `Open` pill in that private-update row was treated as evidence of noisy/non-actionable UI and subsequent dashboard cleanup removed/reduced redundant status pills.
+- Supabase status page was checked; answer was scoped to whether the app/project looked affected at that time.
+- Lazada affiliate system was reviewed and hardened; short-link tracking had a small edge that was fixed in PR #62.
+- Full UI review led to repeated cleanup passes across dashboard, groups, profile, gift workspace, and chat.
+- Playwright/product guardrail tests were added because normal E2E does not judge design taste unless assertions encode product rules.
+- PR #65 fixed a real React hydration mismatch caught by Playwright: the shared app shell rendered time-of-day greeting with `new Date()` during hydration. It now renders a deterministic initial greeting and syncs time-of-day text after mount.
+
+## Recent Code/Test State
+
+Latest local validation before PR #65:
+
+- `npm.cmd run check:problems` passed.
+- `npm.cmd run typecheck` passed.
+- `npm.cmd run lint:security` passed.
+- `npm.cmd run build` passed.
+- `npx.cmd playwright test tests/e2e/auth/authenticated-workflow-edge-cases.spec.ts --project=chromium` passed `9/9`.
+- `npm.cmd run audit:architecture` passed.
+- `npm.cmd run audit:security` passed with 0 high vulnerabilities.
+- `git diff --check` passed with only Windows CRLF normalization warnings.
+- PR #65 remote checks passed: Validate, CodeQL, Review dependency changes, Analyze JavaScript and TypeScript, Vercel, Vercel Preview Comments.
+
+`npm.cmd run audit:unused:production` still reports older cleanup leads:
+
+- Unused files:
+  - `app/dashboard/DashboardHeader.tsx`
+  - `app/dashboard/DashboardPreviewWorkspaceParts.tsx`
+  - `app/dashboard/DashboardProfileMenu.tsx`
+  - `app/dashboard/useDashboardProfileMenu.ts`
+- Unused exports:
+  - `app/create-group/actions.ts`: `createGroupWithInvites`
+  - `app/dashboard/DashboardCommandDeskSections.tsx`: `getSoftClass`
+  - `app/dashboard/dashboard-formatters.ts`: `formatRelativeTime`, `getGiftProgressStepIndex`
+  - `app/dashboard/dashboard-icons.tsx`: `PlusIcon`
+- Unused exported type:
+  - `app/dashboard/dashboard-types.ts`: `ProfileMenuPosition`
+
+Do not delete files casually. Inspect before removing and keep changes small.
+
+## Recommended Next Work
+
+1. Continue small verified UI/code cleanup slices.
+2. Inspect the `audit:unused:production` leads and remove only clearly dead files/exports.
+3. Keep strengthening product guardrail tests for:
+   - duplicate/noisy surfaces,
+   - non-actionable status pills,
+   - sidebar route contract,
+   - blank/dark page flashes,
+   - hydration/console errors,
+   - mobile overflow/overlap,
+   - privacy leaks in labels or member/message UI.
+4. Review remaining screens for redundant panels, especially dashboard descendants, group workspace rails, settings/profile surfaces, and any repeated Santa helper/context modules.
+5. For any meaningful UI redesign, use Stitch first, then local implementation and Playwright/browser verification.
+
+## Supabase And Security Guardrails
+
+- GitHub/Vercel pushes do not apply Supabase migrations.
+- Before DB/RLS/schema/advisor work, run migration checks and dry-run when credentials allow.
+- Never run destructive production DB actions automatically.
+- Do not expose service-role keys, SMTP app passwords, OAuth secrets, Lazada credentials, tokens, cookies, or DB passwords.
+- Keep production fail-closed behavior for missing secrets.
+- Preserve RLS and ownership boundaries.
+- Vercel deployment protection/SSO protection must not be weakened for convenience.
+- Local Supabase flow exists; Docker Desktop may need to be opened for local auth/testing.
+- Durable recent migrations include IO hardening through `202605040001_post_draw_reminder_io_indexes.sql` and private group images through `202605070002_private_group_images.sql`.
+
+## Files Not To Commit Unless Explicitly Asked
+
+- `.agent` scratch screenshots/logs/SQL/mockups/pet experiments.
+- `graphify-out/`.
+- local Supabase dumps.
+- secrets, `.env.local`, OAuth secrets, SMTP passwords, DB passwords, cookies, tokens.
+
+## Older Snapshot Follows
+
 # Secret Santa App Handoff - 2026-05-08
 
 Project: `C:\Users\kenda\secret-santa-app`
