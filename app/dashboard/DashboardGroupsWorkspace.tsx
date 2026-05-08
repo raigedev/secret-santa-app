@@ -1,4 +1,3 @@
-import Link from "next/link";
 import {
   formatDashboardBudget,
   formatDashboardDate,
@@ -137,7 +136,6 @@ function GroupWorkspacePreview({
   const dateLabel = formatDashboardDate(group.event_date);
   const historyState = getGroupHistoryState(group.event_date, new Date(countdownNow));
   const showHistoryNotice = historyState.isGracePeriod && historyState.daysUntilHistory !== null;
-  const groupHref = `/group/${group.id}`;
   const roleLabel = group.isOwner ? "Owner" : "Member";
 
   return (
@@ -199,52 +197,6 @@ function GroupWorkspacePreview({
         </div>
       </div>
 
-      <section
-        className={`rounded-3xl p-5 ${
-          isDarkTheme ? "holiday-panel-dark text-slate-100" : "holiday-panel text-[#2e3432]"
-        }`}
-        aria-label={`${group.name} full workspace shortcuts`}
-      >
-        <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
-          <div>
-            <h3 className="text-xl font-black">Group launcher</h3>
-            <p className={isDarkTheme ? "text-sm text-slate-300" : "text-sm text-slate-500"}>
-              This page lists your exchanges. Open the full workspace for member actions, matches, messages, and settings.
-            </p>
-          </div>
-          <span className="inline-flex min-h-9 w-fit items-center rounded-full bg-[#eaf6ec] px-3 text-xs font-black text-[#48664e]">
-            {group.members.length} member{group.members.length === 1 ? "" : "s"}
-          </span>
-        </div>
-
-        <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
-          <WorkspaceShortcut
-            href={groupHref}
-            helper="Open the full group page."
-            isDarkTheme={isDarkTheme}
-            label="Full workspace"
-          />
-          <WorkspaceShortcut
-            href={`${groupHref}#group-members`}
-            helper={group.isOwner ? "Invite and manage members." : "See your group roster."}
-            isDarkTheme={isDarkTheme}
-            label="Members"
-          />
-          <WorkspaceShortcut
-            href={`${groupHref}#draw-controls`}
-            helper={group.hasDrawn ? "Review match controls." : "Draw names when ready."}
-            isDarkTheme={isDarkTheme}
-            label="Matches"
-          />
-          <WorkspaceShortcut
-            href={group.isOwner ? `${groupHref}#owner-controls` : "/secret-santa-chat"}
-            helper={group.isOwner ? "Edit group settings." : "Open private gift chats."}
-            isDarkTheme={isDarkTheme}
-            label={group.isOwner ? "Settings" : "Messages"}
-          />
-        </div>
-      </section>
-
       {showHistoryNotice && (
         <div className="rounded-2xl bg-amber-50 px-4 py-3 text-sm font-bold leading-6 text-amber-900">
           Moves to History in {historyState.daysUntilHistory} day
@@ -255,34 +207,5 @@ function GroupWorkspacePreview({
         </div>
       )}
     </section>
-  );
-}
-
-function WorkspaceShortcut({
-  helper,
-  href,
-  isDarkTheme,
-  label,
-}: {
-  helper: string;
-  href: string;
-  isDarkTheme: boolean;
-  label: string;
-}) {
-  return (
-    <Link
-      href={href}
-      className={`group flex min-h-28 flex-col justify-between rounded-2xl p-4 transition hover:-translate-y-0.5 ${
-        isDarkTheme ? "bg-slate-800 text-slate-100" : "holiday-panel-soft text-[#2e3432]"
-      }`}
-    >
-      <span className="flex items-center justify-between gap-3">
-        <span className="text-sm font-black">{label}</span>
-        <ArrowRightIcon className="h-4 w-4 shrink-0 text-[#48664e] transition group-hover:translate-x-0.5" />
-      </span>
-      <span className={isDarkTheme ? "mt-3 text-xs text-slate-300" : "mt-3 text-xs text-slate-500"}>
-        {helper}
-      </span>
-    </Link>
   );
 }
