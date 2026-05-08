@@ -198,10 +198,6 @@ function getInviteDeliveryMessage(summary: {
   return `Group created. ${summary.emailInviteCount} invite email(s) sent.`;
 }
 
-export async function createGroupWithInvites(input: CreateGroupInput): Promise<CreateGroupResult> {
-  return createGroupWithInvitesInternal(input, null);
-}
-
 export async function createGroupWithInvitesFromFormData(
   formData: FormData
 ): Promise<CreateGroupResult> {

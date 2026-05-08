@@ -11,7 +11,7 @@ export function plural(value: number, singular: string, pluralLabel = `${singula
   return `${value} ${value === 1 ? singular : pluralLabel}`;
 }
 
-export function getSoftClass(isDarkTheme: boolean): string {
+function getSoftClass(isDarkTheme: boolean): string {
   return isDarkTheme
     ? "border border-slate-700/50 bg-slate-800/42"
     : "border border-[rgba(72,102,78,.14)] bg-white/45";
