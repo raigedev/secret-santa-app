@@ -442,6 +442,84 @@ test.describe("authenticated screen regressions", () => {
       .toBeLessThanOrEqual(24);
   });
 
+  test("secret messages keeps the no-thread state quiet", async ({ page }) => {
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await loginWithTestCredentials(page, credentials!);
+    await page.route("**/rest/v1/group_members?**", async (route) => {
+      const requestUrl = new URL(route.request().url());
+      const selectColumns = requestUrl.searchParams.get("select")?.replace(/\s/g, "");
+      const isMembershipListRequest =
+        selectColumns === "group_id" && requestUrl.searchParams.get("status") === "eq.accepted";
+
+      if (!isMembershipListRequest) {
+        await route.continue();
+        return;
+      }
+
+      await route.fulfill({
+        body: JSON.stringify([]),
+        contentType: "application/json",
+        headers: { "content-range": "0-0/0" },
+        status: 200,
+      });
+    });
+
+    await page.goto("/secret-santa-chat");
+    await expect(page.getByTestId("secret-santa-chat-page")).toBeVisible();
+    await expect(page.getByText(/private chats appear after names are drawn/i).first()).toBeVisible();
+
+    const snapshotKey = await page.evaluate(() => {
+      for (const key of Object.keys(sessionStorage)) {
+        if (key.startsWith("ss_chat_page_snapshot_v1:")) {
+          return key;
+        }
+      }
+
+      return null;
+    });
+
+    if (!snapshotKey) {
+      throw new Error("Chat page snapshot key was not found in session storage.");
+    }
+
+    await page.evaluate((storageKey) => {
+      const userId = storageKey.replace("ss_chat_page_snapshot_v1:", "");
+
+      sessionStorage.setItem(
+        storageKey,
+        JSON.stringify({
+          createdAt: Date.now(),
+          threads: [
+            {
+              giver_id: "stale-giver",
+              group_gift_date: "",
+              group_id: "stale-group",
+              group_name: "Stale Exchange",
+              last_message: "Cached message",
+              last_time: new Date().toISOString(),
+              other_name: "Stale recipient",
+              receiver_id: userId,
+              role: "receiver",
+              unread: 1,
+            },
+          ],
+          userId,
+        })
+      );
+    }, snapshotKey);
+
+    await page.reload();
+    await expect(page.getByTestId("secret-santa-chat-page")).toBeVisible();
+    await expect(page.getByText(/private chats appear after names are drawn/i).first()).toBeVisible();
+    await expect(page.getByText(/replying to your secret santa/i)).toHaveCount(0);
+    await expect(page.getByText(/identity protected/i)).toHaveCount(0);
+    await expect(page.getByText(/gift day not set/i)).toHaveCount(0);
+    await expect(page.getByRole("heading", { name: /^chat timing$/i })).toHaveCount(0);
+    await expect(page.getByRole("button", { name: /^all$/i })).toHaveCount(0);
+    await expect(page.getByText(/giftee chats appear after names are drawn/i)).toHaveCount(0);
+    await expect(page.getByText(/messages from your santa appear here/i)).toHaveCount(0);
+  });
+
   test("dashboard keeps general unread notifications out of private message status", async ({ page }) => {
     await page.route("**/rest/v1/notifications?**", async (route) => {
       const requestUrl = new URL(route.request().url());
