@@ -17,12 +17,9 @@ type DashboardPreviewWorkspaceProps = {
   wishlistItemCount: number;
   onCreateGroup: () => void;
   onOpenChat: () => void;
-  onOpenGiftProgress: () => void;
   onOpenGroup: (groupId: string) => void;
   onOpenGroups: () => void;
   onOpenPath: (path: string) => void;
-  onOpenSecretSanta: () => void;
-  onOpenWishlist: () => void;
 };
 
 function getGroupEventTime(value: string): number {
@@ -53,11 +50,9 @@ export function DashboardPreviewWorkspace({
   wishlistItemCount,
   onCreateGroup,
   onOpenChat,
-  onOpenGiftProgress,
   onOpenGroup,
   onOpenGroups,
   onOpenPath,
-  onOpenWishlist,
 }: DashboardPreviewWorkspaceProps) {
   const focusGroup = getFocusGroup(groups);
   const memberCount = focusGroup?.members.length || 0;
@@ -114,11 +109,9 @@ export function DashboardPreviewWorkspace({
       wishlistTarget={wishlistTarget}
       onCreateGroup={onCreateGroup}
       onOpenChat={onOpenChat}
-      onOpenGiftProgress={onOpenGiftProgress}
       onOpenGroup={onOpenGroup}
       onOpenGroups={onOpenGroups}
       onOpenPath={onOpenPath}
-      onOpenWishlist={onOpenWishlist}
     />
   );
 }
