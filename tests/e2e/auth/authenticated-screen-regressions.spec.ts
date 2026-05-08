@@ -174,6 +174,10 @@ const AUTHENTICATED_SCREEN_CASES: ScreenCase[] = [
     path: "/profile",
     assertVisible: async (page) => {
       await expect(page.getByText(/my profile/i).first()).toBeVisible({ timeout: 45_000 });
+      await expect(page.getByRole("button", { name: /back to dashboard/i })).toHaveCount(0);
+      await expect(page.getByRole("heading", { name: /^personal info$/i })).toBeVisible();
+      await expect(page.getByRole("heading", { name: /^preferences$/i })).toBeVisible();
+      await expect(page.getByRole("heading", { name: /^notifications$/i })).toBeVisible();
       await expect(page.getByText(/reminder settings/i)).toBeVisible({ timeout: 45_000 });
       await expect(page.getByRole("button", { name: /save changes/i })).toBeVisible({
         timeout: 45_000,
@@ -246,6 +250,7 @@ const AUTHENTICATED_SCREEN_CASES: ScreenCase[] = [
     assertVisible: async (page) => {
       await expect(page.getByRole("heading", { name: /shopping ideas/i })).toBeVisible();
       await expect(page.getByTestId("shopping-option-panel").first()).toBeVisible();
+      await expect(page.getByRole("button", { name: /back to dashboard/i })).toHaveCount(0);
 
       const notificationsButton = getVisibleNotificationsButton(page);
       await expect(notificationsButton).toBeVisible();
@@ -262,6 +267,7 @@ const AUTHENTICATED_SCREEN_CASES: ScreenCase[] = [
     assertVisible: async (page) => {
       await expect(page.getByRole("heading", { name: /my giftee/i })).toBeVisible();
       await expect(page.getByTestId("my-giftee-workspace")).toBeVisible();
+      await expect(page.getByRole("button", { name: /back to dashboard/i })).toHaveCount(0);
     },
   },
   {
@@ -270,6 +276,7 @@ const AUTHENTICATED_SCREEN_CASES: ScreenCase[] = [
     assertVisible: async (page) => {
       await expect(page.getByRole("heading", { name: /gift progress/i })).toBeVisible();
       await expect(page.getByTestId("gift-tracking-workspace")).toBeVisible();
+      await expect(page.getByRole("button", { name: /back to dashboard/i })).toHaveCount(0);
     },
   },
   {

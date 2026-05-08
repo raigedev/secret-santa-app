@@ -189,6 +189,7 @@ function ReminderToggle({
         type="button"
         onClick={onChange}
         className="relative shrink-0 transition"
+        aria-label={`Toggle ${label}`}
         style={{
           width: 48,
           height: 26,
@@ -546,16 +547,9 @@ export default function ProfilePage() {
     >
       <FadeIn className="mx-auto max-w-160 px-4 py-5 sm:px-6 sm:py-8">
 
-        {/* Back */}
-        <button data-fade onClick={() => router.push("/dashboard")}
-          className="mb-5 inline-flex w-full items-center justify-center gap-1.5 rounded-lg px-4 py-2 text-sm font-bold transition sm:w-auto"
-          style={{ color: "#4a6fa5", background: "rgba(255,255,255,.6)", border: "1px solid rgba(74,111,165,.15)", fontFamily: "inherit" }}>
-          ← Back to Dashboard
-        </button>
-
         {/* Header */}
         <div data-fade className="text-center mb-8">
-          <h1 className="mb-1 text-[24px] font-bold sm:text-[28px]" style={{ fontFamily: "'Fredoka', sans-serif", color: "#1a1a1a" }}>🎅 My Profile</h1>
+          <h1 className="mb-1 text-[24px] font-bold sm:text-[28px]" style={{ fontFamily: "'Fredoka', sans-serif", color: "#1a1a1a" }}>My Profile</h1>
           <p className="text-[14px]" style={{ color: "#6b7280" }}>Manage how your name, photo, and notifications appear in groups.</p>
         </div>
 
@@ -639,7 +633,7 @@ export default function ProfilePage() {
 
         {/* ═══ PERSONAL INFO ═══ */}
         <div data-fade className="holiday-panel mb-4 rounded-[20px] p-5 sm:p-7">
-          <h2 className="text-[18px] font-bold mb-5 flex items-center gap-2" style={{ fontFamily: "'Fredoka', sans-serif", color: "#1a1a1a" }}>👤 Personal Info</h2>
+          <h2 className="text-[18px] font-bold mb-5 flex items-center gap-2" style={{ fontFamily: "'Fredoka', sans-serif", color: "#1a1a1a" }}>Personal Info</h2>
 
           <div className="mb-4">
             <label className="text-[13px] font-extrabold mb-1.5 block" style={{ color: "#374151" }}>Display Name</label>
@@ -672,7 +666,7 @@ export default function ProfilePage() {
 
         {/* ═══ PREFERENCES ═══ */}
         <div data-fade className="holiday-panel mb-4 rounded-[20px] p-5 sm:p-7">
-          <h2 className="text-[18px] font-bold mb-5 flex items-center gap-2" style={{ fontFamily: "'Fredoka', sans-serif", color: "#1a1a1a" }}>⚙️ Preferences</h2>
+          <h2 className="text-[18px] font-bold mb-5 flex items-center gap-2" style={{ fontFamily: "'Fredoka', sans-serif", color: "#1a1a1a" }}>Preferences</h2>
 
           <div className="mb-5">
             <label className="text-[13px] font-extrabold mb-2 block" style={{ color: "#374151" }}>Default Budget</label>
@@ -723,7 +717,7 @@ export default function ProfilePage() {
 
         {/* ═══ NOTIFICATIONS ═══ */}
         <div data-fade className="holiday-panel mb-4 rounded-[20px] p-5 sm:p-7">
-          <h2 className="text-[18px] font-bold mb-5 flex items-center gap-2" style={{ fontFamily: "'Fredoka', sans-serif", color: "#1a1a1a" }}>🔔 Notifications</h2>
+          <h2 className="text-[18px] font-bold mb-5 flex items-center gap-2" style={{ fontFamily: "'Fredoka', sans-serif", color: "#1a1a1a" }}>Notifications</h2>
 
           {[
             { key: "notify_invites" as const, label: "Group invitations", desc: "Tell me when someone invites me to a group." },
@@ -740,6 +734,8 @@ export default function ProfilePage() {
               </div>
               <button onClick={() => update(item.key, !profile[item.key])}
                 className="flex-shrink-0 relative transition"
+                aria-label={`Toggle ${item.label}`}
+                aria-pressed={profile[item.key]}
                 style={{
                   width: 48, height: 26, borderRadius: 13,
                   background: profile[item.key] ? "#22c55e" : "#e5e7eb",
@@ -876,18 +872,18 @@ export default function ProfilePage() {
 
         {/* ═══ DANGER ZONE ═══ */}
         <div data-fade className="holiday-panel rounded-[20px] p-5 sm:p-7" style={{ borderColor: "rgba(220,38,38,.1)" }}>
-          <h2 className="text-[18px] font-bold mb-3" style={{ fontFamily: "'Fredoka', sans-serif", color: "#dc2626" }}>⚠️ Account actions</h2>
+          <h2 className="text-[18px] font-bold mb-3" style={{ fontFamily: "'Fredoka', sans-serif", color: "#dc2626" }}>Account actions</h2>
           <div className="flex flex-wrap gap-2">
             <button onClick={() => router.push("/reset-password")}
               className="w-full rounded-[10px] px-5 py-2.5 text-[13px] font-bold transition sm:w-auto"
               style={{ background: "rgba(220,38,38,.06)", color: "#dc2626", border: "1px solid rgba(220,38,38,.15)", cursor: "pointer", fontFamily: "inherit" }}>
-              🔑 Change Password
+              Change password
             </button>
             <button onClick={() => void handleDeleteAccount()}
               disabled={deletingAccount}
               className="w-full rounded-[10px] px-5 py-2.5 text-[13px] font-bold transition sm:w-auto"
               style={{ background: "rgba(220,38,38,.06)", color: "#dc2626", border: "1px solid rgba(220,38,38,.15)", cursor: deletingAccount ? "not-allowed" : "pointer", fontFamily: "inherit", opacity: deletingAccount ? 0.7 : 1 }}>
-              🗑️ Delete Account
+              Delete account
             </button>
           </div>
           <p className="text-[11px] mt-2" style={{ color: "#9ca3af" }}>Deleting your account will remove all your data, groups, and messages permanently.</p>

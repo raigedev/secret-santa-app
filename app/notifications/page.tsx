@@ -232,30 +232,33 @@ export default function NotificationsPage() {
 
   const unreadCount = notifications.filter((notification) => !notification.read_at).length;
 
+  const writeNotificationsSnapshot = (nextNotifications: NotificationItem[]) => {
+    if (!userId) {
+      return;
+    }
+
+    writeClientSnapshot(getNotificationsPageSnapshotStorageKey(userId), {
+      createdAt: Date.now(),
+      notifications: nextNotifications,
+      userId,
+    });
+  };
+
   const handleOpenNotification = async (notification: NotificationItem) => {
     setMessage("");
     setProcessingId(notification.id);
 
     if (!notification.read_at) {
-      setNotifications((currentNotifications) =>
-        {
-          const nextNotifications = currentNotifications.map((currentNotification) =>
+      setNotifications((currentNotifications) => {
+        const nextNotifications = currentNotifications.map((currentNotification) =>
           currentNotification.id === notification.id
             ? { ...currentNotification, read_at: new Date().toISOString() }
             : currentNotification
-          );
+        );
 
-          if (userId) {
-            writeClientSnapshot(getNotificationsPageSnapshotStorageKey(userId), {
-              createdAt: Date.now(),
-              notifications: nextNotifications,
-              userId,
-            });
-          }
-
-          return nextNotifications;
-        }
-      );
+        writeNotificationsSnapshot(nextNotifications);
+        return nextNotifications;
+      });
 
       void markNotificationRead(notification.id).then((result) => {
         if (!result.success) {
@@ -276,25 +279,16 @@ export default function NotificationsPage() {
   const handleMarkAllRead = async () => {
     setMarkingAll(true);
     setMessage("");
-    setNotifications((currentNotifications) =>
-      {
-        const nextNotifications = currentNotifications.map((notification) =>
-          notification.read_at
-            ? notification
-            : { ...notification, read_at: new Date().toISOString() }
-        );
+    setNotifications((currentNotifications) => {
+      const nextNotifications = currentNotifications.map((notification) =>
+        notification.read_at
+          ? notification
+          : { ...notification, read_at: new Date().toISOString() }
+      );
 
-        if (userId) {
-          writeClientSnapshot(getNotificationsPageSnapshotStorageKey(userId), {
-            createdAt: Date.now(),
-            notifications: nextNotifications,
-            userId,
-          });
-        }
-
-        return nextNotifications;
-      }
-    );
+      writeNotificationsSnapshot(nextNotifications);
+      return nextNotifications;
+    });
 
     const result = await markAllNotificationsRead();
 
