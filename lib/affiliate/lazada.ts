@@ -6,7 +6,10 @@ import {
   findLazadaFeedProductByItemId,
   findLazadaFeedProductByUrl,
 } from "@/lib/affiliate/lazada-feed";
-import { normalizeLazadaProductPageUrl } from "@/lib/affiliate/lazada-url";
+import {
+  isLazadaPromotionShortLinkHostname,
+  normalizeLazadaProductPageUrl,
+} from "@/lib/affiliate/lazada-url";
 import { slugifyAsciiIdentifier } from "@/lib/validation/common";
 
 const LAZADA_DEFAULT_API_BASE_URL = "https://api.lazada.com.ph/rest";
@@ -919,7 +922,7 @@ export async function resolveLazadaSearchRouteLinkTarget(options: {
   try {
     const parsedFallbackUrl = new URL(options.fallbackUrl);
 
-    if (/^c\.lazada\.com\.ph$/i.test(parsedFallbackUrl.hostname)) {
+    if (isLazadaPromotionShortLinkHostname(parsedFallbackUrl.hostname)) {
       return {
         mode: "promotion-link",
         reason: "promotion-link-ready",
