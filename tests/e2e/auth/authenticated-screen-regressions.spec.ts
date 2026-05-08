@@ -150,6 +150,7 @@ const AUTHENTICATED_SCREEN_CASES: ScreenCase[] = [
       await expect(page.getByRole("heading", { name: /^create group$/i })).toBeVisible();
       await expect(page.getByText(/exchange picture/i)).toBeVisible();
       await expect(page.getByText(/drop a group picture or browse/i)).toBeVisible();
+      await expect(page.getByRole("button", { name: /back to dashboard/i })).toHaveCount(0);
       await expect(page.getByRole("button", { name: /create group/i })).toBeVisible();
     },
   },
@@ -157,7 +158,10 @@ const AUTHENTICATED_SCREEN_CASES: ScreenCase[] = [
     name: "notifications",
     path: "/notifications",
     assertVisible: async (page) => {
-      await expect(page.getByText(/notifications/i).first()).toBeVisible();
+      await expect(page.getByRole("heading", { name: /^notifications$/i })).toBeVisible();
+      await expect(
+        page.getByRole("heading", { name: /mystery envelope notifications/i })
+      ).toHaveCount(0);
       await expect(page.getByRole("button", { name: /mark all read/i })).toBeVisible();
       await expect(page.getByText(/reminder settings/i)).toHaveCount(0);
     },

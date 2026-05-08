@@ -153,9 +153,6 @@ export function GroupOwnerInsightsPanel({
         ))}
       </div>
 
-      <div className="mt-4 rounded-[18px] bg-[#eef3ef] px-4 py-3 text-xs font-bold leading-5 text-[#48664e]">
-        Tip: send reminders early to help everyone stay on track.
-      </div>
     </aside>
   );
 }

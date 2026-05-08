@@ -453,19 +453,6 @@ export default function CreateGroupPage() {
         <section
           className="holiday-panel-strong rounded-[28px] p-6 sm:p-8 lg:order-1"
         >
-        <button
-          onClick={() => router.push("/dashboard")}
-          className="hidden"
-          style={{
-            color: "#48664e",
-            background: "rgba(255,255,255,.74)",
-            border: "1px solid rgba(72,102,78,.14)",
-            fontFamily: "inherit",
-          }}
-        >
-          Back to dashboard
-        </button>
-
         <h2
           className="mb-2 text-[24px] font-black leading-tight sm:text-[28px]"
           style={{ fontFamily: "'Fredoka', sans-serif", color: "#48664e" }}

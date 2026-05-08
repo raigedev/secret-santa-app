@@ -171,10 +171,10 @@ export function NotificationsInboxView({
                 className="mt-2 text-4xl font-black leading-none text-[#48664e] sm:text-5xl"
                 style={{ fontFamily: "'Fredoka','Nunito',sans-serif" }}
               >
-                Mystery Envelope Notifications
+                Notifications
               </h1>
               <p className="mt-3 max-w-2xl text-base font-semibold leading-7 text-slate-600">
-                Updates and important messages about your Secret Santa exchange.
+                Group updates, private messages, and reminders stay here.
               </p>
             </div>
           </div>
