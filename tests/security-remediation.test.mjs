@@ -122,3 +122,26 @@ test("group membership rows cannot be moved by browser clients", () => {
     /grant\s+(?:all|[^;]*\bupdate\b[^;]*)\s+on table public\.group_members to authenticated/i
   );
 });
+
+test("draw exclusion rules preserve assignment privacy", () => {
+  const drawActionSource = readFileSync("app/group/[id]/draw-action.ts", "utf8");
+
+  assert.match(drawActionSource, /function validateDrawRulePrivacy/);
+  assert.match(drawActionSource, /function countValidDrawOptions/);
+  assert.match(
+    drawActionSource,
+    /MIN_DRAW_VALID_ASSIGNMENT_OPTIONS\s*=\s*2/
+  );
+  assert.match(
+    drawActionSource,
+    /validateDrawRulePrivacy\(members \|\| \[\], proposedBlockedPairs\)/
+  );
+  assert.match(
+    drawActionSource,
+    /validateDrawRulePrivacy\(members, blockedPairs\)/
+  );
+  assert.match(
+    drawActionSource,
+    /Leave at least two possible recipient plans/
+  );
+});
