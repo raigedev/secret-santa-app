@@ -195,6 +195,31 @@ test("live reveal only exposes matches after each card reveal", () => {
   assert.match(groupActionsSource, /matchIndex <= lastRevealedMatchIndex/);
 });
 
+test("invite responses do not reveal whether an email has an account", () => {
+  const createGroupActionsSource = readFileSync("app/create-group/actions.ts", "utf8");
+  const groupActionsSource = readFileSync("app/group/[id]/actions.ts", "utf8");
+
+  assert.match(createGroupActionsSource, /invite\(s\) queued/);
+  assert.doesNotMatch(createGroupActionsSource, /existing member\(s\)/i);
+  assert.doesNotMatch(createGroupActionsSource, /will see it on their dashboard/i);
+
+  assert.match(groupActionsSource, /Invite queued/);
+  assert.doesNotMatch(groupActionsSource, /already have an account/i);
+  assert.doesNotMatch(groupActionsSource, /Invite email sent/i);
+});
+
+test("peer profile route always rechecks authorization before profile output", () => {
+  const peerProfilesRouteSource = readFileSync("app/api/groups/peer-profiles/route.ts", "utf8");
+
+  assert.doesNotMatch(peerProfilesRouteSource, /peerProfileCache/);
+  assert.doesNotMatch(peerProfilesRouteSource, /readPeerProfileCache/);
+  assert.doesNotMatch(peerProfilesRouteSource, /writePeerProfileCache/);
+  assert.match(
+    peerProfilesRouteSource,
+    /member\.user_id\s*===\s*null[\s\S]{0,120}member\.email\.trim\(\)\.toLowerCase\(\)\s*===\s*normalizedEmail/
+  );
+});
+
 test("done-push workflow requires explicit current release intent and safety gates", () => {
   const branchWorkflowSource = readFileSync(".agent/BRANCH_WORKFLOW.md", "utf8");
   const continuitySource = readFileSync(".agent/CONTINUITY.md", "utf8");
