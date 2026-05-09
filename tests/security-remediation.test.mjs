@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { readFileSync } from "node:fs";
+import { readdirSync, readFileSync } from "node:fs";
 import test from "node:test";
 
 import { stripReservedPostbackSecrets } from "../lib/affiliate/lazada-postback.mjs";
@@ -90,5 +90,35 @@ test("assignments RLS blocks receiver-side giver lookup before reveal", () => {
   assert.doesNotMatch(
     migrationSource,
     /or\s+receiver_id\s*=\s*\(select auth\.uid\(\)\)\s*\)/i
+  );
+});
+
+test("group membership rows cannot be moved by browser clients", () => {
+  const migrationNames = readdirSync("supabase/migrations")
+    .filter((name) => name.endsWith(".sql"))
+    .filter((name) => name >= "202603300002")
+    .sort();
+  const combinedMigrations = migrationNames
+    .map((name) => {
+      // eslint-disable-next-line security/detect-non-literal-fs-filename -- Test only reads repo-local migration files from a fixed directory.
+      return readFileSync(`supabase/migrations/${name}`, "utf8");
+    })
+    .join("\n");
+
+  assert.match(
+    combinedMigrations,
+    /drop policy if exists group_members_update_for_owner_or_self on public\.group_members/i
+  );
+  assert.match(
+    combinedMigrations,
+    /revoke update on table public\.group_members from authenticated/i
+  );
+  assert.doesNotMatch(
+    combinedMigrations,
+    /create policy group_members_update_for_owner_or_self/i
+  );
+  assert.doesNotMatch(
+    combinedMigrations,
+    /grant\s+(?:all|[^;]*\bupdate\b[^;]*)\s+on table public\.group_members to authenticated/i
   );
 });
