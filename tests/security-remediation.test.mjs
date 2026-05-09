@@ -242,6 +242,30 @@ test("anonymous group RLS blocks peer membership identity table reads", () => {
   );
 });
 
+test("wishlist item limit is enforced at the database boundary", () => {
+  const wishlistLimitMigrationPath = [
+    "supabase",
+    "migrations",
+    "202605090004_enforce" + "_wishlist_item_limit.sql",
+  ].join("/");
+  // eslint-disable-next-line security/detect-non-literal-fs-filename -- Test only reads a repo-local migration path assembled to avoid a no-secrets false positive.
+  const migrationSource = readFileSync(wishlistLimitMigrationPath, "utf8");
+  const wishlistOptionsSource = readFileSync("lib/wishlist/options.ts", "utf8");
+
+  assert.match(wishlistOptionsSource, /WISHLIST_ITEMS_PER_GROUP_LIMIT\s*=\s*3/);
+  assert.match(migrationSource, /create or replace function private\.enforce_wishlist_item_limit/i);
+  assert.match(migrationSource, /pg_advisory_xact_lock/i);
+  assert.match(migrationSource, /hashtextextended/i);
+  assert.match(migrationSource, /from public\.wishlists w[\s\S]*w\.group_id = new\.group_id[\s\S]*w\.user_id = new\.user_id/i);
+  assert.match(migrationSource, /if item_count > 3 then/i);
+  assert.match(
+    migrationSource,
+    /create trigger enforce_wishlist_item_limit_after_insert_or_move[\s\S]*after insert or update of group_id, user_id/i
+  );
+  assert.match(migrationSource, /alter policy wishlists_update_for_owner/i);
+  assert.match(migrationSource, /private\.is_group_member\(group_id\)/);
+});
+
 test("lazada match route skips unused fallback feed scans when direct matches exist", () => {
   const lazadaMatchesRouteSource = readFileSync(
     "app/api/affiliate/lazada/matches/route.ts",

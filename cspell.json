@@ -46,6 +46,7 @@
     "depcruise",
     "domcontentloaded",
     "ereader",
+    "errcode",
     "Flexbox",
     "fkey",
     "Fredoka",
@@ -60,6 +61,7 @@
     "graphify",
     "graphifyignore",
     "graphifyy",
+    "hashtextextended",
     "hotspots",
     "HSTS",
     "LazAffiliate",
@@ -141,6 +143,7 @@
     "wishlist",
     "wishlists",
     "xmloption",
+    "xact",
     "xfail"
   ],
   "ignoreWords": [
