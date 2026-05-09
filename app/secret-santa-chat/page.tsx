@@ -960,13 +960,11 @@ export default function SecretSantaChatPage() {
       const [
         { data: groupsData, error: groupsError },
         { data: giverAssignments, error: giverAssignmentsError },
-        { data: receiverAssignments, error: receiverAssignmentsError },
         { data: allMessages, error: messagesError },
         { data: readTimestamps, error: readTimestampsError },
       ] = await Promise.all([
         supabase.from("groups").select("id, name, event_date").in("id", groupIds),
         supabase.from("assignments").select("group_id, giver_id, receiver_id").eq("giver_id", user.id).in("group_id", groupIds),
-        supabase.from("assignments").select("group_id, giver_id, receiver_id").eq("receiver_id", user.id).in("group_id", groupIds),
         supabase
           .from("messages")
           .select("group_id, thread_giver_id, thread_receiver_id, sender_id, content, created_at")
@@ -983,7 +981,6 @@ export default function SecretSantaChatPage() {
       if (
         groupsError ||
         giverAssignmentsError ||
-        receiverAssignmentsError ||
         messagesError ||
         readTimestampsError
       ) {
@@ -998,7 +995,7 @@ export default function SecretSantaChatPage() {
       }
 
       const giverRows = (giverAssignments || []) as AssignmentRow[];
-      const receiverRows = (receiverAssignments || []) as AssignmentRow[];
+      const receiverRows: AssignmentRow[] = [];
       const receiverUserIds = giverRows.map((assignment) => assignment.receiver_id).filter(Boolean);
       const allUserIds = [...new Set(receiverUserIds)];
 
