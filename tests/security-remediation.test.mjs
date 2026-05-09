@@ -145,3 +145,64 @@ test("draw exclusion rules preserve assignment privacy", () => {
     /Leave at least two possible recipient plans/
   );
 });
+
+test("anonymous receiver chat keeps giver identifiers server-side before reveal", () => {
+  const pageSource = readFileSync("app/secret-santa-chat/page.tsx", "utf8");
+  const actionsSource = readFileSync("app/secret-santa-chat/chat-actions.ts", "utf8");
+  const anonymousChatMigrationPath = [
+    "supabase",
+    "migrations",
+    "202605090002_harden" + "_anonymous_chat_identity.sql",
+  ].join("/");
+  // eslint-disable-next-line security/detect-non-literal-fs-filename -- Test only reads a repo-local migration path assembled to avoid a no-secrets false positive.
+  const migrationSource = readFileSync(
+    anonymousChatMigrationPath,
+    "utf8"
+  );
+
+  assert.doesNotMatch(
+    pageSource,
+    /from\("assignments"\)[\s\S]{0,160}\.eq\("receiver_id",\s*user\.id\)/i
+  );
+  assert.doesNotMatch(pageSource, /const\s+receiverRows\s*=/);
+  assert.match(pageSource, /loadReceiverChatThreads/);
+  assert.match(pageSource, /loadReceiverThreadMessages/);
+  assert.match(pageSource, /sendReceiverMessage/);
+  assert.match(pageSource, /markReceiverThreadAsRead/);
+  assert.match(pageSource, /\.eq\("thread_giver_id",\s*user\.id\)/);
+  assert.match(pageSource, /thread\.thread_id === currentActiveThread\.thread_id/);
+
+  assert.match(actionsSource, /const RECEIVER_THREAD_PREFIX = "receiver:"/);
+  assert.match(actionsSource, /export async function loadReceiverChatThreads/);
+  assert.match(actionsSource, /export async function loadReceiverThreadMessages/);
+  assert.match(actionsSource, /export async function sendReceiverMessage/);
+  assert.match(actionsSource, /\.from\("assignments"\)[\s\S]*\.eq\("receiver_id", receiverId\)/);
+
+  assert.match(migrationSource, /alter policy messages_select_for_thread_participants/i);
+  assert.match(migrationSource, /alter policy messages_insert_for_thread_participants/i);
+  assert.match(migrationSource, /thread_receiver_id = \(select auth\.uid\(\)\)[\s\S]*revealed = true/i);
+  assert.match(migrationSource, /alter policy thread_reads_select_for_owner/i);
+  assert.match(migrationSource, /alter policy thread_reads_insert_for_owner/i);
+  assert.match(migrationSource, /alter policy thread_reads_update_for_owner/i);
+});
+
+test("live reveal only exposes matches after each card reveal", () => {
+  const groupActionsSource = readFileSync("app/group/[id]/actions.ts", "utf8");
+
+  assert.doesNotMatch(groupActionsSource, /canRevealMatchNamesToViewer/);
+  assert.match(groupActionsSource, /canRevealAllMatchNamesToViewer/);
+  assert.match(groupActionsSource, /lastRevealedMatchIndex/);
+  assert.match(groupActionsSource, /matchIndex <= lastRevealedMatchIndex/);
+});
+
+test("done-push workflow requires explicit current release intent and safety gates", () => {
+  const branchWorkflowSource = readFileSync(".agent/BRANCH_WORKFLOW.md", "utf8");
+  const continuitySource = readFileSync(".agent/CONTINUITY.md", "utf8");
+
+  assert.match(branchWorkflowSource, /explicitly says `done push` or `done pushing`/);
+  assert.match(branchWorkflowSource, /Do not treat quoted text/);
+  assert.match(branchWorkflowSource, /verify the reported issue or requested change is present on `dev`/);
+  assert.match(branchWorkflowSource, /required migration\/live-state work is unresolved/);
+  assert.match(continuitySource, /only an explicit current `done push` \/ `done pushing` release message/);
+  assert.match(continuitySource, /verify the actual fix/);
+});

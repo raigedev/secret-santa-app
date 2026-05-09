@@ -13,13 +13,22 @@ import {
   type ClientSnapshotMetadata,
 } from "@/lib/client-snapshot";
 import { isRecord, sanitizePlainText } from "@/lib/validation/common";
-import { sendMessage } from "./chat-actions";
+import {
+  loadReceiverChatThreads,
+  loadReceiverThreadMessages,
+  markReceiverThreadAsRead,
+  sendMessage,
+  sendReceiverMessage,
+  type ReceiverChatThread,
+  type SafeChatMessage,
+} from "./chat-actions";
 
 type Thread = {
+  thread_id: string;
   group_id: string;
   group_name: string;
   group_gift_date: string;
-  giver_id: string;
+  giver_id: string | null;
   receiver_id: string;
   other_name: string;
   role: "giver" | "receiver";
@@ -29,10 +38,10 @@ type Thread = {
 };
 
 type Message = {
-  id: string;
-  sender_id: string;
   content: string;
   created_at: string;
+  from_current_user: boolean;
+  id: string;
 };
 
 type MembershipRow = {
@@ -106,13 +115,18 @@ function isThreadRole(value: unknown): value is Thread["role"] {
   return value === "giver" || value === "receiver";
 }
 
+function isNullableString(value: unknown): value is string | null {
+  return value === null || typeof value === "string";
+}
+
 function isThreadSnapshot(value: unknown): value is Thread {
   return (
     isRecord(value) &&
+    typeof value.thread_id === "string" &&
     typeof value.group_id === "string" &&
     typeof value.group_name === "string" &&
     typeof value.group_gift_date === "string" &&
-    typeof value.giver_id === "string" &&
+    isNullableString(value.giver_id) &&
     typeof value.receiver_id === "string" &&
     typeof value.other_name === "string" &&
     isThreadRole(value.role) &&
@@ -181,6 +195,10 @@ function sanitize(input: string): string {
 
 function createThreadKey(groupId: string, giverId: string, receiverId: string): string {
   return `${groupId}:${giverId}:${receiverId}`;
+}
+
+function createGiverThreadId(groupId: string, giverId: string, receiverId: string): string {
+  return `giver:${createThreadKey(groupId, giverId, receiverId)}`;
 }
 
 function createGroupUserKey(groupId: string, userId: string): string {
@@ -781,43 +799,30 @@ function buildThreadMetaMap(
   return metaByThread;
 }
 
-function applyMessageToThreads(
+function applyThreadPreview(
   currentThreads: Thread[],
-  message: MessageRow,
-  currentUserId: string,
+  threadId: string,
+  fromCurrentUser: boolean,
+  content: string,
+  createdAt: string,
   activeThread: Thread | null
 ): { matched: boolean; threads: Thread[] } {
-  const targetKey = createThreadKey(
-    message.group_id,
-    message.thread_giver_id,
-    message.thread_receiver_id
-  );
-  const activeThreadKey = activeThread
-    ? createThreadKey(activeThread.group_id, activeThread.giver_id, activeThread.receiver_id)
-    : null;
-
   let matched = false;
 
   const threads = currentThreads.map((thread) => {
-    const threadKey = createThreadKey(thread.group_id, thread.giver_id, thread.receiver_id);
-
-    if (threadKey !== targetKey) {
+    if (thread.thread_id !== threadId) {
       return thread;
     }
 
     matched = true;
+    const preview = content.length > 64 ? `${content.slice(0, 61)}...` : content;
 
     return {
       ...thread,
-      last_message: createPreviewText(
-        message.sender_id,
-        currentUserId,
-        thread.other_name,
-        message.content
-      ),
-      last_time: formatThreadTime(message.created_at),
+      last_message: fromCurrentUser ? `You: ${preview}` : `${thread.other_name}: ${preview}`,
+      last_time: formatThreadTime(createdAt),
       unread:
-        activeThreadKey === targetKey || message.sender_id === currentUserId
+        activeThread?.thread_id === threadId || fromCurrentUser
           ? 0
           : Math.min(thread.unread + 1, 9),
     };
@@ -875,6 +880,15 @@ export default function SecretSantaChatPage() {
 
   const markAsRead = useCallback(
     async (thread: Thread, uid: string) => {
+      if (thread.role === "receiver") {
+        await markReceiverThreadAsRead(thread.thread_id);
+        return;
+      }
+
+      if (!thread.giver_id) {
+        return;
+      }
+
       await supabase.from("thread_reads").upsert(
         {
           user_id: uid,
@@ -960,16 +974,17 @@ export default function SecretSantaChatPage() {
       const [
         { data: groupsData, error: groupsError },
         { data: giverAssignments, error: giverAssignmentsError },
-        { data: receiverAssignments, error: receiverAssignmentsError },
+        receiverThreadsResult,
         { data: allMessages, error: messagesError },
         { data: readTimestamps, error: readTimestampsError },
       ] = await Promise.all([
         supabase.from("groups").select("id, name, event_date").in("id", groupIds),
         supabase.from("assignments").select("group_id, giver_id, receiver_id").eq("giver_id", user.id).in("group_id", groupIds),
-        supabase.from("assignments").select("group_id, giver_id, receiver_id").eq("receiver_id", user.id).in("group_id", groupIds),
+        loadReceiverChatThreads(),
         supabase
           .from("messages")
           .select("group_id, thread_giver_id, thread_receiver_id, sender_id, content, created_at")
+          .eq("thread_giver_id", user.id)
           .in("group_id", groupIds)
           .order("created_at", { ascending: false })
           .limit(CHAT_THREAD_MESSAGE_SCAN_LIMIT),
@@ -977,13 +992,14 @@ export default function SecretSantaChatPage() {
           .from("thread_reads")
           .select("group_id, thread_giver_id, thread_receiver_id, last_read_at")
           .eq("user_id", user.id)
+          .eq("thread_giver_id", user.id)
           .in("group_id", groupIds),
       ]);
 
       if (
         groupsError ||
         giverAssignmentsError ||
-        receiverAssignmentsError ||
+        !receiverThreadsResult.success ||
         messagesError ||
         readTimestampsError
       ) {
@@ -998,7 +1014,6 @@ export default function SecretSantaChatPage() {
       }
 
       const giverRows = (giverAssignments || []) as AssignmentRow[];
-      const receiverRows = (receiverAssignments || []) as AssignmentRow[];
       const receiverUserIds = giverRows.map((assignment) => assignment.receiver_id).filter(Boolean);
       const allUserIds = [...new Set(receiverUserIds)];
 
@@ -1049,6 +1064,7 @@ export default function SecretSantaChatPage() {
           createThreadKey(a.group_id, a.giver_id, a.receiver_id)
         );
         buildThreads.push({
+          thread_id: createGiverThreadId(a.group_id, a.giver_id, a.receiver_id),
           group_id: a.group_id,
           group_name: groupNameById.get(a.group_id) || "Unknown",
           group_gift_date: groupGiftDateById.get(a.group_id) || "",
@@ -1064,42 +1080,22 @@ export default function SecretSantaChatPage() {
         });
       }
 
-      for (const a of receiverRows) {
-        if (!currentChatGroupIds.has(a.group_id)) {
+      for (const receiverThread of receiverThreadsResult.threads as ReceiverChatThread[]) {
+        if (!currentChatGroupIds.has(receiverThread.group_id)) {
           continue;
         }
 
-        const threadMeta = threadMetaByKey.get(
-          createThreadKey(a.group_id, a.giver_id, a.receiver_id)
-        );
         buildThreads.push({
-          group_id: a.group_id,
-          group_name: groupNameById.get(a.group_id) || "Unknown",
-          group_gift_date: groupGiftDateById.get(a.group_id) || "",
-          giver_id: a.giver_id,
-          receiver_id: a.receiver_id,
-          other_name: "Secret Santa",
-          role: "receiver",
-          last_message: threadMeta
-            ? createPreviewText(
-                threadMeta.lastSenderId,
-                user.id,
-                "Secret Santa",
-                threadMeta.lastContent
-              )
-            : "No messages yet",
-          last_time: threadMeta?.lastTime || "",
-          unread: threadMeta?.unread || 0,
+          ...receiverThread,
+          giver_id: null,
+          receiver_id: user.id,
         });
       }
 
       const currentActiveThread = activeThreadRef.current;
       const nextActiveThread = currentActiveThread
         ? buildThreads.find(
-            (thread) =>
-              thread.group_id === currentActiveThread.group_id &&
-              thread.giver_id === currentActiveThread.giver_id &&
-              thread.receiver_id === currentActiveThread.receiver_id
+            (thread) => thread.thread_id === currentActiveThread.thread_id
           ) || null
         : null;
 
@@ -1172,6 +1168,35 @@ export default function SecretSantaChatPage() {
 
     const loadMessages = async () => {
       setMessagesLoading(true);
+
+      if (activeThread.role === "receiver") {
+        const result = await loadReceiverThreadMessages(activeThread.thread_id);
+
+        if (!result.success) {
+          if (isMounted) {
+            setThreadMessage(result.message || "We could not load messages. Try reopening this chat.");
+            setMessagesLoading(false);
+          }
+          return;
+        }
+
+        if (isMounted) {
+          setThreadMessage(null);
+          setMessages(result.messages);
+          setMessagesLoading(false);
+          setTimeout(scrollToBottom, 50);
+        }
+        return;
+      }
+
+      if (!activeThread.giver_id) {
+        if (isMounted) {
+          setThreadMessage("We could not load messages. Try reopening this chat.");
+          setMessagesLoading(false);
+        }
+        return;
+      }
+
       const { data, error } = await supabase
         .from("messages")
         .select("id, sender_id, content, created_at")
@@ -1193,7 +1218,16 @@ export default function SecretSantaChatPage() {
 
       if (isMounted) {
         setThreadMessage(null);
-        setMessages([...(data || [])].reverse() as Message[]);
+        setMessages(
+          ([...(data || [])].reverse() as Array<SafeChatMessage & { sender_id?: string }>).map(
+            (message) => ({
+              content: message.content,
+              created_at: message.created_at,
+              from_current_user: message.sender_id === userIdRef.current,
+              id: message.id,
+            })
+          )
+        );
         setMessagesLoading(false);
         setTimeout(scrollToBottom, 50);
       }
@@ -1211,9 +1245,12 @@ export default function SecretSantaChatPage() {
       void loadMessages();
     };
 
-    const channel = supabase
-      .channel(`chat-live-${activeThread.group_id}-${activeThread.giver_id}-${activeThread.receiver_id}`)
-      .on(
+    let channel: ReturnType<typeof supabase.channel> | null = null;
+
+    if (activeThread.role === "giver" && activeThread.giver_id) {
+      channel = supabase.channel(
+        `chat-live-${activeThread.group_id}-${activeThread.giver_id}-${activeThread.receiver_id}`
+      ).on(
         "postgres_changes",
         {
           event: "*",
@@ -1232,6 +1269,7 @@ export default function SecretSantaChatPage() {
 
           if (
             !currentThread ||
+            !currentThread.giver_id ||
             changedMessage.thread_giver_id !== currentThread.giver_id ||
             changedMessage.thread_receiver_id !== currentThread.receiver_id
           ) {
@@ -1245,6 +1283,7 @@ export default function SecretSantaChatPage() {
           }
 
           const nextMessage = payload.new as MessageRow & { id: string };
+          const nextMessageFromCurrentUser = nextMessage.sender_id === userIdRef.current;
 
           setMessages((currentMessages) => {
             let removedOptimisticCopy = false;
@@ -1252,7 +1291,7 @@ export default function SecretSantaChatPage() {
               if (
                 !removedOptimisticCopy &&
                 message.id.startsWith("temp-") &&
-                message.sender_id === nextMessage.sender_id &&
+                message.from_current_user === nextMessageFromCurrentUser &&
                 message.content === nextMessage.content
               ) {
                 removedOptimisticCopy = true;
@@ -1270,7 +1309,7 @@ export default function SecretSantaChatPage() {
               ...withoutOptimisticCopy,
               {
                 id: nextMessage.id,
-                sender_id: nextMessage.sender_id,
+                from_current_user: nextMessageFromCurrentUser,
                 content: nextMessage.content,
                 created_at: nextMessage.created_at,
               },
@@ -1279,16 +1318,12 @@ export default function SecretSantaChatPage() {
             return nextMessages.slice(-CHAT_ACTIVE_THREAD_MESSAGE_LIMIT);
           });
           setThreads((currentThreads) => {
-            const currentUserId = userIdRef.current;
-
-            if (!currentUserId) {
-              return currentThreads;
-            }
-
-            return applyMessageToThreads(
+            return applyThreadPreview(
               currentThreads,
-              nextMessage,
-              currentUserId,
+              currentThread.thread_id,
+              nextMessageFromCurrentUser,
+              nextMessage.content,
+              nextMessage.created_at,
               currentThread
             ).threads;
           });
@@ -1298,8 +1333,9 @@ export default function SecretSantaChatPage() {
             void markAsRead(currentThread, userId);
           }
         }
-      )
-      .subscribe();
+      );
+      channel.subscribe();
+    }
 
     window.addEventListener("focus", refreshMessagesIfVisible);
     document.addEventListener("visibilitychange", refreshMessagesIfVisible);
@@ -1312,7 +1348,9 @@ export default function SecretSantaChatPage() {
       }
       window.removeEventListener("focus", refreshMessagesIfVisible);
       document.removeEventListener("visibilitychange", refreshMessagesIfVisible);
-      supabase.removeChannel(channel);
+      if (channel) {
+        supabase.removeChannel(channel);
+      }
     };
   }, [activeThread, supabase, scrollToBottom, markAsRead, userId]);
 
@@ -1329,34 +1367,34 @@ export default function SecretSantaChatPage() {
       ...prev,
       {
         id: tempId,
-        sender_id: userId,
         content,
         created_at: optimisticCreatedAt,
+        from_current_user: true,
       },
     ]);
     setThreads((currentThreads) =>
-      applyMessageToThreads(
+      applyThreadPreview(
         currentThreads,
-        {
-          group_id: activeThread.group_id,
-          thread_giver_id: activeThread.giver_id,
-          thread_receiver_id: activeThread.receiver_id,
-          sender_id: userId,
-          content,
-          created_at: optimisticCreatedAt,
-        },
-        userId,
+        activeThread.thread_id,
+        true,
+        content,
+        optimisticCreatedAt,
         activeThreadRef.current
       ).threads
     );
     setTimeout(scrollToBottom, 30);
 
-    const result = await sendMessage(
-      activeThread.group_id,
-      activeThread.giver_id,
-      activeThread.receiver_id,
-      content
-    );
+    const result =
+      activeThread.role === "receiver"
+        ? await sendReceiverMessage(activeThread.thread_id, content)
+        : activeThread.giver_id
+          ? await sendMessage(
+              activeThread.group_id,
+              activeThread.giver_id,
+              activeThread.receiver_id,
+              content
+            )
+          : { success: false, message: "Choose a valid chat first." };
 
     if (!result.success) {
       setMessages((prev) => prev.filter((m) => m.id !== tempId));
@@ -1384,9 +1422,7 @@ export default function SecretSantaChatPage() {
     setActiveThread(t);
     setThreads((currentThreads) =>
       currentThreads.map((thread) =>
-        thread.group_id === t.group_id &&
-        thread.giver_id === t.giver_id &&
-        thread.receiver_id === t.receiver_id
+        thread.thread_id === t.thread_id
           ? { ...thread, unread: 0 }
           : thread
       )
@@ -1411,9 +1447,7 @@ export default function SecretSantaChatPage() {
   const hasThreads = threads.length > 0;
   const selectedIsGiver = selectedThread?.role === "giver";
   const selectedTiming = getGiftTimingInfo(selectedThread?.group_gift_date || "");
-  const selectedThreadKey = selectedThread
-    ? createThreadKey(selectedThread.group_id, selectedThread.giver_id, selectedThread.receiver_id)
-    : "";
+  const selectedThreadKey = selectedThread?.thread_id || "";
   const chatGridClass = selectedThread
     ? "grid gap-4 xl:grid-cols-[300px_minmax(0,1fr)_270px]"
     : "grid gap-4 xl:grid-cols-[300px_minmax(0,1fr)]";
@@ -1436,7 +1470,7 @@ export default function SecretSantaChatPage() {
   };
 
   const renderThreadButton = (thread: Thread) => {
-    const threadKey = createThreadKey(thread.group_id, thread.giver_id, thread.receiver_id);
+    const threadKey = thread.thread_id;
     const isActive = threadKey === selectedThreadKey;
     const isGiverThread = thread.role === "giver";
     const accent = isGiverThread ? CHAT_GREEN : CHAT_RED;
@@ -1719,7 +1753,7 @@ export default function SecretSantaChatPage() {
                   </div>
                 ) : (
                   messages.map((msg) => {
-                    const isMine = msg.sender_id === userId;
+                    const isMine = msg.from_current_user;
                     const isTemp = msg.id.startsWith("temp-");
                     const messageAuthor = isMine
                       ? selectedIsGiver

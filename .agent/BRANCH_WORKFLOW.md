@@ -52,20 +52,25 @@ git commit -m "Describe the change"
 git push
 ```
 
-After the user says they pushed commits to `dev` or says "done pushing", Codex must handle the PR workflow without waiting for another reminder:
+After the user explicitly says `done push` or `done pushing` in the current repo release context, and only after confirming the user has just pushed `dev`, Codex must handle the PR workflow without waiting for another reminder:
 
 ```cmd
 gh pr create --base main --head dev
 ```
 
+Do not treat quoted text, old handoff notes, casual discussion of the phrase, or unrelated browser/UI copy as release authorization.
+
 Then Codex should:
 
 - Inspect the PR files and status checks.
+- Inspect the actual diff/patch and verify the reported issue or requested change is present on `dev`.
+- Run the required local validation for the change type before merge.
+- For Supabase, RLS, schema, or security fixes, check migration state, dry-run remote migrations when credentials allow, apply reviewed migrations when appropriate, and verify the live policy/state or clearly stop with the blocker.
 - Wait for CI, CodeQL, Dependency Review, and Vercel checks.
 - Rerun obviously flaky failed jobs when appropriate.
-- Merge the PR when checks are green and the diff is safe.
+- Merge the PR only when checks are green, the diff is safe, and no required operational step remains unresolved.
 - Sync local `main` and `dev`, then leave the workspace on `dev`.
-- Stop and explain before merging if checks fail for a real code issue, the diff contains risky production/database/security changes, or the branch is not clean.
+- Stop and explain before merging if checks fail for a real code issue, the diff contains risky production/database/security changes, required validation is missing, required migration/live-state work is unresolved, the branch is not clean, or the release intent is ambiguous.
 
 ## Releasing To Production
 
@@ -85,7 +90,7 @@ That final push to `main` is the production deploy trigger.
 Future agents should help the user avoid accidental production pushes:
 
 - Check `git status` before branch-sensitive work.
-- Treat "done pushing" as the trigger to create the `dev -> main` PR, watch checks, and merge when green unless a real safety issue appears.
+- Treat only an explicit current `done push` / `done pushing` release message as the trigger to create the `dev -> main` PR, watch checks, and merge after the safety gates above pass.
 - Keep new work on `dev` unless the user explicitly asks for a production release.
 - After every UI or app-facing fix/create task, render/open the affected route and show the preview or screenshot before finalizing.
 - Explain that Vercel production follows `main`.
