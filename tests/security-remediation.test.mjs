@@ -266,6 +266,18 @@ test("wishlist item limit is enforced at the database boundary", () => {
   assert.match(migrationSource, /private\.is_group_member\(group_id\)/);
 });
 
+test("secret santa shopping does not auto-load recipient supplied wishlist images", () => {
+  const secretSantaPageSource = readFileSync("app/secret-santa/page.tsx", "utf8");
+
+  assert.doesNotMatch(secretSantaPageSource, /item_image_url/);
+  assert.doesNotMatch(secretSantaPageSource, /safeItemImageUrl/);
+  assert.doesNotMatch(secretSantaPageSource, /input\.wishlistItem\.item_image_url/);
+  assert.match(
+    secretSantaPageSource,
+    /const resolvedWishlistImageUrl = wishlistMatchedImageUrl;/
+  );
+});
+
 test("lazada match route skips unused fallback feed scans when direct matches exist", () => {
   const lazadaMatchesRouteSource = readFileSync(
     "app/api/affiliate/lazada/matches/route.ts",

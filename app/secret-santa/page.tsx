@@ -58,7 +58,6 @@ type WishlistItem = {
   group_id: string;
   item_name: string;
   item_category: string;
-  item_image_url: string;
   item_link: string;
   item_note: string;
   priority: number;
@@ -147,7 +146,6 @@ type WishlistRow = {
   user_id: string;
   item_name: string;
   item_category: string | null;
-  item_image_url: string | null;
   item_link: string | null;
   item_note: string | null;
   priority: number | null;
@@ -256,7 +254,6 @@ function isSnapshotWishlistItem(value: unknown): value is WishlistItem {
     typeof value.group_id === "string" &&
     typeof value.item_name === "string" &&
     typeof value.item_category === "string" &&
-    typeof value.item_image_url === "string" &&
     typeof value.item_link === "string" &&
     typeof value.item_note === "string" &&
     typeof value.priority === "number"
@@ -1849,7 +1846,6 @@ function toWishlistItem(row: WishlistRow): WishlistItem {
     group_id: row.group_id,
     item_name: row.item_name,
     item_category: row.item_category || "",
-    item_image_url: row.item_image_url || "",
     item_link: row.item_link || "",
     item_note: row.item_note || "",
     priority: normalizeWishlistPriorityLevel(row.priority),
@@ -2586,7 +2582,6 @@ function getRecipientWishlistCardModel(input: {
   wishlistItem: WishlistItem;
 }) {
   const wishlistPriorityMeta = getWishlistPriorityMeta(input.wishlistItem.priority);
-  const wishlistImageUrl = normalizeOptionalUrl(input.wishlistItem.item_image_url);
   const wishlistSuggestionId = input.selectedSuggestionByItem[input.wishlistItem.id] || "";
   const wishlistMatchKey = wishlistSuggestionId
     ? createLazadaMatchRequestKey(
@@ -2606,7 +2601,7 @@ function getRecipientWishlistCardModel(input: {
   });
   const wishlistAiSuggestionState =
     input.aiSuggestionStateByItem[input.wishlistItem.id] || null;
-  const resolvedWishlistImageUrl = wishlistImageUrl || wishlistMatchedImageUrl;
+  const resolvedWishlistImageUrl = wishlistMatchedImageUrl;
   const wishlistImageLoading = Boolean(
     !resolvedWishlistImageUrl &&
       (wishlistMatchedState?.loading || wishlistAiSuggestionState?.loading)
@@ -3543,7 +3538,7 @@ export function SecretSantaExperience({ mode = "shopping" }: SecretSantaExperien
             supabase
               .from("wishlists")
               .select(
-                "id, group_id, user_id, item_name, item_category, item_image_url, item_link, item_note, preferred_price_min, preferred_price_max, priority"
+                "id, group_id, user_id, item_name, item_category, item_link, item_note, preferred_price_min, preferred_price_max, priority"
               )
               .in("user_id", receiverIds)
               .in("group_id", activeGroupIdList),
@@ -4331,7 +4326,6 @@ export function SecretSantaExperience({ mode = "shopping" }: SecretSantaExperien
                       }
 
                       const item = activeItem;
-                      const safeItemImageUrl = normalizeOptionalUrl(item.item_image_url);
                       const priorityMeta = getWishlistPriorityMeta(item.priority);
                       const selectedSuggestionId =
                         selectedRecipientSuggestionByItem[item.id] || "";
@@ -4432,7 +4426,7 @@ export function SecretSantaExperience({ mode = "shopping" }: SecretSantaExperien
                           ? displayableFallbackLazadaProducts[0]
                           : featuredLazadaProducts[0]) || null;
                       const heroLazadaImageUrl = normalizeOptionalUrl(
-                        primaryFeaturedLazadaProduct?.imageUrl || safeItemImageUrl
+                        primaryFeaturedLazadaProduct?.imageUrl || ""
                       );
                       const heroLazadaTitle =
                         primaryFeaturedLazadaProduct?.title || item.item_name;
@@ -4509,9 +4503,7 @@ export function SecretSantaExperience({ mode = "shopping" }: SecretSantaExperien
                           ...displayableMatchedLazadaProducts,
                           ...featuredLazadaProducts,
                           ...displayableFallbackLazadaProducts,
-                        ]) ||
-                        heroLazadaImageUrl ||
-                        safeItemImageUrl;
+                        ]) || heroLazadaImageUrl;
 
                       return (
                         <div
