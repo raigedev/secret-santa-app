@@ -145,6 +145,59 @@ function buildRandomAssignments(
   };
 }
 
+function hasMultipleValidAssignments(
+  members: DrawMember[],
+  blockedPairs: Set<string>
+): boolean {
+  const userIds = members
+    .map((member) => member.user_id)
+    .filter((value): value is string => Boolean(value));
+
+  if (userIds.length < 3) {
+    return false;
+  }
+
+  const usedReceivers = new Set<string>();
+  let validAssignmentCount = 0;
+
+  const search = (giverIndex: number): void => {
+    if (validAssignmentCount >= 2) {
+      return;
+    }
+
+    if (giverIndex === userIds.length) {
+      validAssignmentCount += 1;
+      return;
+    }
+
+    const giverUserId = userIds[giverIndex];
+    if (!giverUserId) {
+      return;
+    }
+
+    for (const receiverUserId of userIds) {
+      if (usedReceivers.has(receiverUserId)) {
+        continue;
+      }
+
+      if (receiverUserId === giverUserId) {
+        continue;
+      }
+
+      if (blockedPairs.has(buildBlockedPairKey(giverUserId, receiverUserId))) {
+        continue;
+      }
+
+      usedReceivers.add(receiverUserId);
+      search(giverIndex + 1);
+      usedReceivers.delete(receiverUserId);
+    }
+  };
+
+  search(0);
+  return validAssignmentCount >= 2;
+}
+
 async function getLatestCycleBlockedPairs(groupId: string): Promise<Set<string>> {
   const { data: latestCycle, error: latestCycleError } = await supabaseAdmin
     .from("group_draw_cycles")
@@ -628,6 +681,13 @@ export async function drawSecretSanta(
       })
       .filter((value): value is string => Boolean(value))
   );
+
+  if (!hasMultipleValidAssignments(members, blockedPairs)) {
+    return {
+      success: false,
+      message: "Draw rules are too restrictive. Keep at least two possible outcomes before drawing.",
+    };
+  }
 
   const shouldAvoidPreviousRecipient = Boolean(options?.avoidPreviousRecipient);
   const previousCyclePairs = shouldAvoidPreviousRecipient
