@@ -78,3 +78,17 @@ test("email invite auto-claim only targets pending or accepted memberships", () 
   assert.deepEqual(ELIGIBLE_EMAIL_INVITE_STATUSES, ["pending", "accepted"]);
   assert.equal(ELIGIBLE_EMAIL_INVITE_STATUSES.includes("declined"), false);
 });
+
+test("assignments RLS blocks receiver-side giver lookup before reveal", () => {
+  const migrationSource = readFileSync(
+    "supabase/migrations/202605090001_restore_assignment_reveal_gate.sql",
+    "utf8"
+  );
+  const revealGatePattern = /receiver_id[\s\S]*auth[\s\S]*uid[\s\S]*revealed[\s\S]*true/i;
+
+  assert.match(migrationSource, revealGatePattern);
+  assert.doesNotMatch(
+    migrationSource,
+    /or\s+receiver_id\s*=\s*\(select auth\.uid\(\)\)\s*\)/i
+  );
+});
