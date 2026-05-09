@@ -3,7 +3,6 @@ import { NextRequest, NextResponse } from "next/server";
 import { canTrackWishlistAffiliateRedirect } from "@/lib/affiliate/redirect-access";
 import { recordServerFailure } from "@/lib/security/audit";
 import { enforceRateLimit } from "@/lib/security/rate-limit";
-import { extractRequestClientIp } from "@/lib/security/web";
 import { createClient } from "@/lib/supabase/server";
 
 type AffiliateRedirectAccessResult =
@@ -79,14 +78,13 @@ export async function requireWishlistAffiliateRedirectAccess({
     };
   }
 
-  const clientIp = extractRequestClientIp(request.headers) || "unknown";
   const rateLimit = await enforceRateLimit({
     action: rateLimitAction,
     actorUserId: user.id,
     maxAttempts: 100,
     resourceId: wishlistItemId,
     resourceType: "affiliate_redirect",
-    subject: `${rateLimitSubjectPrefix}:${user.id}:${clientIp}`,
+    subject: `${rateLimitSubjectPrefix}:${user.id}`,
     windowSeconds: 3600,
   });
 

@@ -220,6 +220,30 @@ test("peer profile route always rechecks authorization before profile output", (
   );
 });
 
+test("lazada match route skips unused fallback feed scans when direct matches exist", () => {
+  const lazadaMatchesRouteSource = readFileSync(
+    "app/api/affiliate/lazada/matches/route.ts",
+    "utf8"
+  );
+
+  assert.match(
+    lazadaMatchesRouteSource,
+    /if\s*\(\s*directProducts\.length\s*>\s*0\s*\)\s*{[\s\S]{0,220}return NextResponse\.json/
+  );
+  assert.doesNotMatch(lazadaMatchesRouteSource, /const\s+fallbackProducts\s*=/);
+});
+
+test("affiliate redirect rate limits do not trust spoofed client IP headers", () => {
+  const redirectRouteSource = readFileSync("lib/affiliate/redirect-route.ts", "utf8");
+
+  assert.doesNotMatch(redirectRouteSource, /extractRequestClientIp/);
+  assert.match(
+    redirectRouteSource,
+    /subject:\s*`\$\{rateLimitSubjectPrefix\}:\$\{user\.id\}`/
+  );
+  assert.doesNotMatch(redirectRouteSource, /x-forwarded-for|cf-connecting-ip|x-real-ip/i);
+});
+
 test("done-push workflow requires explicit current release intent and safety gates", () => {
   const branchWorkflowSource = readFileSync(".agent/BRANCH_WORKFLOW.md", "utf8");
   const continuitySource = readFileSync(".agent/CONTINUITY.md", "utf8");
