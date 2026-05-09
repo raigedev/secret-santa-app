@@ -859,7 +859,13 @@ export async function POST(request: NextRequest) {
     preferredPriceMax,
     preferredPriceMin,
   });
-  const fallbackProducts = addRepresentativeImagesToSearchFallbackCards({
+  if (directProducts.length > 0) {
+    return NextResponse.json({
+      products: [...directProducts, ...searchFallbackCards].slice(0, 3),
+    });
+  }
+
+  const products = addRepresentativeImagesToSearchFallbackCards({
     cards: buildSearchFallbackCards({
       currency: "PHP",
       groupBudget,
@@ -881,11 +887,6 @@ export async function POST(request: NextRequest) {
     preferredPriceMax,
     preferredPriceMin,
   });
-
-  const products =
-    directProducts.length > 0
-      ? [...directProducts, ...searchFallbackCards].slice(0, 3)
-      : fallbackProducts;
 
   return NextResponse.json({ products });
 }
