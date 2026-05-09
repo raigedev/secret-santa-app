@@ -127,10 +127,10 @@ async function sendInviteEmails(
   actorUserId: string,
   groupId: string,
   groupName: string
-): Promise<{ dashboardInviteCount: number; emailInviteCount: number; failedCount: number }> {
-  let dashboardInviteCount = 0;
-  let emailInviteCount = 0;
+): Promise<{ failedCount: number; notifiedInviteCount: number; sentInviteCount: number }> {
   let failedCount = 0;
+  let notifiedInviteCount = 0;
+  let sentInviteCount = 0;
 
   for (const email of emails) {
     const existingUserId = await findExistingInviteUserIdByEmail(email);
@@ -147,7 +147,7 @@ async function sendInviteEmails(
         },
         preferenceKey: "notify_invites",
       });
-      dashboardInviteCount += 1;
+      notifiedInviteCount += 1;
       continue;
     }
 
@@ -170,32 +170,31 @@ async function sendInviteEmails(
       continue;
     }
 
-    emailInviteCount += 1;
+    sentInviteCount += 1;
   }
 
-  return { dashboardInviteCount, emailInviteCount, failedCount };
+  return { failedCount, notifiedInviteCount, sentInviteCount };
 }
 
 function getInviteDeliveryMessage(summary: {
-  dashboardInviteCount: number;
-  emailInviteCount: number;
-  failedCount: number;
+  inviteCount: number;
 }): string {
-  const totalPrepared = summary.dashboardInviteCount + summary.emailInviteCount;
-
-  if (summary.failedCount > 0) {
-    return `Group created. ${totalPrepared} invite(s) prepared, ${summary.failedCount} could not be delivered.`;
+  if (summary.inviteCount === 0) {
+    return "Group created!";
   }
 
-  if (summary.dashboardInviteCount > 0 && summary.emailInviteCount > 0) {
-    return `Group created. ${summary.emailInviteCount} email invite(s) sent; ${summary.dashboardInviteCount} existing member(s) will see it on their dashboard.`;
-  }
+  return `Group created. ${summary.inviteCount} invite(s) queued.`;
+}
 
-  if (summary.dashboardInviteCount > 0) {
-    return `Group created. ${summary.dashboardInviteCount} existing member(s) will see it on their dashboard.`;
-  }
-
-  return `Group created. ${summary.emailInviteCount} invite email(s) sent.`;
+function summarizeInviteDelivery(summary: {
+  failedCount: number;
+  notifiedInviteCount: number;
+  sentInviteCount: number;
+}) {
+  return {
+    failedCount: summary.failedCount,
+    preparedCount: summary.notifiedInviteCount + summary.sentInviteCount,
+  };
 }
 
 export async function createGroupWithInvitesFromFormData(
@@ -450,6 +449,7 @@ async function createGroupWithInvitesInternal(
     newGroup.id,
     newGroup.name
   );
+  const inviteDeliverySummary = summarizeInviteDelivery(inviteDelivery);
 
   await recordAuditEvent({
     actorUserId: user.id,
@@ -458,7 +458,7 @@ async function createGroupWithInvitesInternal(
       groupId: newGroup.id,
       hasGroupImage: Boolean(uploadedImagePath),
       inviteCount: inviteEmails.length,
-      sentInviteCount: inviteDelivery.emailInviteCount + inviteDelivery.dashboardInviteCount,
+      sentInviteCount: inviteDeliverySummary.preparedCount,
     },
     eventType: "group.create",
     outcome: "success",
@@ -468,6 +468,8 @@ async function createGroupWithInvitesInternal(
 
   return {
     success: true,
-    message: getInviteDeliveryMessage(inviteDelivery),
+    message: getInviteDeliveryMessage({
+      inviteCount: inviteEmails.length,
+    }),
   };
 }

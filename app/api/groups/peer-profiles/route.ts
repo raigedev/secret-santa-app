@@ -8,7 +8,6 @@ import { isRecord, isUuid } from "@/lib/validation/common";
 const MAX_GROUP_PROFILE_LOOKUPS = 50;
 const PEER_PROFILE_RATE_LIMIT_MAX_REQUESTS = 120;
 const PEER_PROFILE_RATE_LIMIT_WINDOW_SECONDS = 3600;
-const PEER_PROFILE_SERVER_CACHE_TTL_MS = 5 * 60 * 1000;
 
 type GroupAccessRow = {
   id: string;
@@ -33,13 +32,6 @@ type PeerProfilePayload = {
   profilesByGroup: Record<string, ProfileRow[]>;
 };
 
-type PeerProfileCacheEntry = {
-  createdAt: number;
-  payload: PeerProfilePayload;
-};
-
-const peerProfileCache = new Map<string, PeerProfileCacheEntry>();
-
 export const dynamic = "force-dynamic";
 
 function peerProfileResponse(payload: PeerProfilePayload, init?: ResponseInit) {
@@ -58,32 +50,6 @@ function parseGroupIds(value: unknown): string[] {
   }
 
   return Array.from(new Set(value.filter(isUuid))).slice(0, MAX_GROUP_PROFILE_LOOKUPS);
-}
-
-function getPeerProfileCacheKey(userId: string, groupIds: string[]) {
-  return `${userId}:${[...groupIds].sort().join(",")}`;
-}
-
-function readPeerProfileCache(cacheKey: string): PeerProfilePayload | null {
-  const cached = peerProfileCache.get(cacheKey);
-
-  if (!cached) {
-    return null;
-  }
-
-  if (Date.now() - cached.createdAt > PEER_PROFILE_SERVER_CACHE_TTL_MS) {
-    peerProfileCache.delete(cacheKey);
-    return null;
-  }
-
-  return cached.payload;
-}
-
-function writePeerProfileCache(cacheKey: string, payload: PeerProfilePayload) {
-  peerProfileCache.set(cacheKey, {
-    createdAt: Date.now(),
-    payload,
-  });
 }
 
 export async function POST(request: Request) {
@@ -113,13 +79,6 @@ export async function POST(request: Request) {
 
   if (requestedGroupIds.length === 0) {
     return peerProfileResponse({ profilesByGroup: {} } satisfies PeerProfilePayload);
-  }
-
-  const cacheKey = getPeerProfileCacheKey(user.id, requestedGroupIds);
-  const cachedPayload = readPeerProfileCache(cacheKey);
-
-  if (cachedPayload) {
-    return peerProfileResponse(cachedPayload);
   }
 
   const rateLimit = await enforceRateLimit({
@@ -173,7 +132,9 @@ export async function POST(request: Request) {
   for (const member of (members || []) as GroupMemberProfileRow[]) {
     const isCurrentUser =
       member.user_id === user.id ||
-      (member.email ? member.email.trim().toLowerCase() === normalizedEmail : false);
+      (member.user_id === null && member.email
+        ? member.email.trim().toLowerCase() === normalizedEmail
+        : false);
 
     if (isCurrentUser) {
       accessibleGroupIds.add(member.group_id);
@@ -182,7 +143,6 @@ export async function POST(request: Request) {
 
   if (accessibleGroupIds.size === 0) {
     const payload = { profilesByGroup: {} } satisfies PeerProfilePayload;
-    writePeerProfileCache(cacheKey, payload);
     return peerProfileResponse(payload);
   }
 
@@ -193,7 +153,6 @@ export async function POST(request: Request) {
 
   if (profileUserIds.length === 0) {
     const payload = { profilesByGroup: {} } satisfies PeerProfilePayload;
-    writePeerProfileCache(cacheKey, payload);
     return peerProfileResponse(payload);
   }
 
@@ -237,7 +196,6 @@ export async function POST(request: Request) {
   }
 
   const payload = { profilesByGroup } satisfies PeerProfilePayload;
-  writePeerProfileCache(cacheKey, payload);
 
   return peerProfileResponse(payload);
 }

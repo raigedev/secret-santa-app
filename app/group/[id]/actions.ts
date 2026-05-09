@@ -357,9 +357,7 @@ export async function inviteUser(
   });
 
   return {
-    message: existingUserId
-      ? "Invite added. They already have an account, so it will appear in their dashboard."
-      : "Invite email sent. Ask them to check their inbox.",
+    message: "Invite queued. They can accept it from the app or their email if delivery is needed.",
   };
 }
 
