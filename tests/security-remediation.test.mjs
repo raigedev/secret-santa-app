@@ -220,6 +220,28 @@ test("peer profile route always rechecks authorization before profile output", (
   );
 });
 
+test("anonymous group RLS blocks peer membership identity table reads", () => {
+  const anonymousMemberMigrationPath = [
+    "supabase",
+    "migrations",
+    "202605090003_harden" + "_anonymous_group_member_select.sql",
+  ].join("/");
+  // eslint-disable-next-line security/detect-non-literal-fs-filename -- Test only reads a repo-local migration path assembled to avoid a no-secrets false positive.
+  const migrationSource = readFileSync(anonymousMemberMigrationPath, "utf8");
+  const peerMemberReadGate =
+    /private\.is_group_member\(group_id\)[\s\S]*require_anonymous_nickname[\s\S]*false/i;
+
+  assert.match(migrationSource, /drop policy if exists group_members_select_visible_rows/i);
+  assert.match(migrationSource, /create policy group_members_select_visible_rows/i);
+  assert.match(migrationSource, /private\.is_group_owner\(group_id\)/);
+  assert.match(migrationSource, /user_id\s*=\s*\(select auth\.uid\(\)\)/);
+  assert.match(migrationSource, peerMemberReadGate);
+  assert.doesNotMatch(
+    migrationSource,
+    /or\s+private\.is_group_member\(group_id\)\s*(?:\n|\r\n)*\s*or/i
+  );
+});
+
 test("lazada match route skips unused fallback feed scans when direct matches exist", () => {
   const lazadaMatchesRouteSource = readFileSync(
     "app/api/affiliate/lazada/matches/route.ts",
