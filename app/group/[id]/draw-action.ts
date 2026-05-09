@@ -17,9 +17,15 @@ const DRAW_WINDOW_SECONDS = 3600;
 const RESET_DRAW_MAX_ATTEMPTS = 5;
 const RESET_DRAW_WINDOW_SECONDS = 3600;
 const MAX_DERANGEMENT_ATTEMPTS = 50;
+const MIN_DRAW_RULE_OPTIONS_PER_MEMBER = 2;
+const MIN_DRAW_VALID_ASSIGNMENT_OPTIONS = 2;
 
 type DrawMember = {
   nickname: string | null;
+  user_id: string | null;
+};
+
+type DrawRuleMember = {
   user_id: string | null;
 };
 
@@ -54,6 +60,136 @@ type DrawCyclePairRow = {
 
 function buildBlockedPairKey(giverUserId: string, receiverUserId: string): string {
   return `${giverUserId}:${receiverUserId}`;
+}
+
+function getAcceptedDrawMemberIds(members: DrawRuleMember[]): string[] {
+  return [
+    ...new Set(
+      members
+        .map((member) => member.user_id)
+        .filter((value): value is string => Boolean(value))
+    ),
+  ];
+}
+
+function countValidDrawOptions(
+  memberIds: string[],
+  blockedPairs: Set<string>,
+  limit: number
+): number {
+  const availableReceivers = new Map<string, string[]>();
+
+  for (const giverUserId of memberIds) {
+    availableReceivers.set(
+      giverUserId,
+      memberIds.filter(
+        (receiverUserId) =>
+          receiverUserId !== giverUserId &&
+          !blockedPairs.has(buildBlockedPairKey(giverUserId, receiverUserId))
+      )
+    );
+  }
+
+  const givers = [...memberIds].sort(
+    (left, right) =>
+      (availableReceivers.get(left)?.length || 0) -
+      (availableReceivers.get(right)?.length || 0)
+  );
+  const usedReceivers = new Set<string>();
+  let optionCount = 0;
+
+  function visit(index: number): void {
+    if (optionCount >= limit) {
+      return;
+    }
+
+    const giverUserId = givers[index];
+
+    if (!giverUserId) {
+      optionCount += 1;
+      return;
+    }
+
+    for (const receiverUserId of availableReceivers.get(giverUserId) || []) {
+      if (usedReceivers.has(receiverUserId)) {
+        continue;
+      }
+
+      usedReceivers.add(receiverUserId);
+      visit(index + 1);
+      usedReceivers.delete(receiverUserId);
+
+      if (optionCount >= limit) {
+        return;
+      }
+    }
+  }
+
+  visit(0);
+  return optionCount;
+}
+
+function validateDrawRulePrivacy(
+  members: DrawRuleMember[],
+  blockedPairs: Set<string>
+): { message: string; ok: boolean } {
+  const memberIds = getAcceptedDrawMemberIds(members);
+  const minimumChoices = Math.min(
+    MIN_DRAW_RULE_OPTIONS_PER_MEMBER,
+    Math.max(0, memberIds.length - 1)
+  );
+
+  if (memberIds.length < 3) {
+    return {
+      ok: false,
+      message: "Need at least 3 accepted members before draw rules can be checked.",
+    };
+  }
+
+  for (const giverUserId of memberIds) {
+    const receiverOptions = memberIds.filter(
+      (receiverUserId) =>
+        receiverUserId !== giverUserId &&
+        !blockedPairs.has(buildBlockedPairKey(giverUserId, receiverUserId))
+    );
+
+    if (receiverOptions.length < minimumChoices) {
+      return {
+        ok: false,
+        message: "Draw rules are too narrow. Leave each member with at least two possible recipients.",
+      };
+    }
+  }
+
+  for (const receiverUserId of memberIds) {
+    const giverOptions = memberIds.filter(
+      (giverUserId) =>
+        giverUserId !== receiverUserId &&
+        !blockedPairs.has(buildBlockedPairKey(giverUserId, receiverUserId))
+    );
+
+    if (giverOptions.length < minimumChoices) {
+      return {
+        ok: false,
+        message: "Draw rules are too narrow. Leave each member with at least two possible gift givers.",
+      };
+    }
+  }
+
+  if (
+    countValidDrawOptions(
+      memberIds,
+      blockedPairs,
+      MIN_DRAW_VALID_ASSIGNMENT_OPTIONS
+    ) < MIN_DRAW_VALID_ASSIGNMENT_OPTIONS
+  ) {
+    return {
+      ok: false,
+      message: "Draw rules are too narrow. Leave at least two possible recipient plans.",
+    };
+  }
+
+  return { ok: true, message: "Draw rules keep the draw private." };
 }
 
 function shuffleInPlace<T>(items: T[]): void {
@@ -344,16 +480,29 @@ export async function addDrawExclusion(
     return { success: false, message: permission.message || "Cannot update draw rules." };
   }
 
-  const { data: members, error: membersError } = await supabaseAdmin
-    .from("group_members")
-    .select("user_id, status")
-    .eq("group_id", groupId)
-    .eq("status", "accepted");
+  const [
+    { data: members, error: membersError },
+    { data: existingExclusions, error: exclusionsError },
+  ] = await Promise.all([
+    supabaseAdmin
+      .from("group_members")
+      .select("user_id, status")
+      .eq("group_id", groupId)
+      .eq("status", "accepted"),
+    supabaseAdmin
+      .from("group_draw_exclusions")
+      .select("giver_user_id, receiver_user_id")
+      .eq("group_id", groupId),
+  ]);
 
-  if (membersError) {
+  if (membersError || exclusionsError) {
     await recordServerFailure({
       actorUserId: user.id,
-      errorMessage: membersError.message,
+      details: {
+        exclusionsError: exclusionsError?.message || null,
+        membersError: membersError?.message || null,
+      },
+      errorMessage: "Failed to validate draw rule inputs.",
       eventType: "group.add_draw_exclusion.members",
       resourceId: groupId,
       resourceType: "group",
@@ -389,6 +538,30 @@ export async function addDrawExclusion(
       receiver_user_id: giverUserId,
       created_by: user.id,
     });
+  }
+
+  const proposedBlockedPairs = new Set(
+    (existingExclusions || [])
+      .map((row) => {
+        if (!row.giver_user_id || !row.receiver_user_id) {
+          return null;
+        }
+
+        return buildBlockedPairKey(row.giver_user_id, row.receiver_user_id);
+      })
+      .filter((value): value is string => Boolean(value))
+  );
+
+  for (const row of rows) {
+    proposedBlockedPairs.add(
+      buildBlockedPairKey(row.giver_user_id, row.receiver_user_id)
+    );
+  }
+
+  const privacyCheck = validateDrawRulePrivacy(members || [], proposedBlockedPairs);
+
+  if (!privacyCheck.ok) {
+    return { success: false, message: privacyCheck.message };
   }
 
   const { error: insertError } = await supabaseAdmin
@@ -628,6 +801,23 @@ export async function drawSecretSanta(
       })
       .filter((value): value is string => Boolean(value))
   );
+
+  const privacyCheck = validateDrawRulePrivacy(members, blockedPairs);
+
+  if (!privacyCheck.ok) {
+    await recordServerFailure({
+      actorUserId: user.id,
+      details: {
+        memberCount: members.length,
+      },
+      errorMessage: privacyCheck.message,
+      eventType: "group.draw_secret_santa.rule_privacy",
+      resourceId: groupId,
+      resourceType: "group",
+    });
+
+    return { success: false, message: privacyCheck.message };
+  }
 
   const shouldAvoidPreviousRecipient = Boolean(options?.avoidPreviousRecipient);
   const previousCyclePairs = shouldAvoidPreviousRecipient

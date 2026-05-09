@@ -1808,12 +1808,15 @@ export async function getRevealPresentationData(
     normalizedSession.status === "live" ||
     normalizedSession.status === "published" ||
     group.revealed;
-  const canRevealMatchNamesToViewer =
-    isOwner ||
-    group.revealed ||
-    normalizedSession.status === "published" ||
-    (normalizedSession.status === "live" &&
-      normalizedSession.currentIndex >= sourceData.participants.length);
+  const canRevealAllMatchNamesToViewer =
+    isOwner || group.revealed || normalizedSession.status === "published";
+  const isLiveMatchPhase =
+    normalizedSession.status === "live" &&
+    normalizedSession.currentIndex >= sourceData.participants.length;
+  const currentMatchIndex = normalizedSession.currentIndex - sourceData.participants.length;
+  const lastRevealedMatchIndex = normalizedSession.cardRevealed
+    ? currentMatchIndex
+    : currentMatchIndex - 1;
   const revealMatches = sourceData.assignments
     .map((assignment) => {
       const giver = sourceData.participants.find(
@@ -1839,10 +1842,16 @@ export async function getRevealPresentationData(
         avatarEmoji: participant.avatarEmoji,
         realName: canRevealRealNamesToViewer ? participant.realName : null,
       })),
-      matchEntries: revealMatches.map((match) => ({
-        giver: canRevealMatchNamesToViewer ? match.giver : null,
-        receiver: canRevealMatchNamesToViewer ? match.receiver : null,
-      })),
+      matchEntries: revealMatches.map((match, matchIndex) => {
+        const canRevealThisMatch =
+          canRevealAllMatchNamesToViewer ||
+          (isLiveMatchPhase && matchIndex <= lastRevealedMatchIndex);
+
+        return {
+          giver: canRevealThisMatch ? match.giver : null,
+          receiver: canRevealThisMatch ? match.receiver : null,
+        };
+      }),
       canPreviewBeforeReveal: isOwner,
       groupName: group.name,
       isOwner,
