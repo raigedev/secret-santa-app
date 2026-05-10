@@ -41,6 +41,7 @@ import {
   type DashboardTheme,
 } from "@/app/components/theme-preferences";
 import { getProfile } from "@/app/profile/actions";
+import { clearAppSessionStorage } from "@/lib/client-snapshot";
 
 const APP_BACKGROUND =
   "repeating-linear-gradient(135deg,rgba(72,102,78,.045) 0 1px,transparent 1px 38px),radial-gradient(circle at 12% 8%,rgba(252,206,114,.16),transparent 24%),linear-gradient(180deg,#fffefa 0%,#f7faf5 42%,#eef4ef 100%)";
@@ -297,7 +298,7 @@ export default function AppRouteShell({ children }: { children: ReactNode }) {
       const sessionUser = data.session?.user || null;
       const userId = sessionUser?.id || null;
       const emailName = getEmailViewerName(sessionUser?.email);
-      const storedViewerProfile = readStoredViewerProfile();
+      const storedViewerProfile = readStoredViewerProfile(userId);
       setShellUserId(userId);
 
       if (storedViewerProfile.displayName) {
@@ -332,13 +333,13 @@ export default function AppRouteShell({ children }: { children: ReactNode }) {
 
           if (resolvedName) {
             setViewerName(resolvedName);
-            storeViewerName(resolvedName);
+            storeViewerName(resolvedName, userId);
           }
 
           setViewerAvatarUrl(resolvedAvatarUrl);
-          storeViewerAvatarUrl(resolvedAvatarUrl || null);
+          storeViewerAvatarUrl(resolvedAvatarUrl || null, userId);
           setViewerAvatarEmoji(resolvedAvatarEmoji);
-          storeViewerAvatarEmoji(resolvedAvatarEmoji || null);
+          storeViewerAvatarEmoji(resolvedAvatarEmoji || null, userId);
         })
         .catch(() => {
           // The shell can keep the cached/email name if the profile action is temporarily unavailable.
@@ -395,13 +396,13 @@ export default function AppRouteShell({ children }: { children: ReactNode }) {
 
           if (profileName) {
             setViewerName(profileName);
-            storeViewerName(profileName);
+            storeViewerName(profileName, shellUserId);
           }
 
           setViewerAvatarUrl(resolvedAvatarUrl);
-          storeViewerAvatarUrl(resolvedAvatarUrl || null);
+          storeViewerAvatarUrl(resolvedAvatarUrl || null, shellUserId);
           setViewerAvatarEmoji(resolvedAvatarEmoji);
-          storeViewerAvatarEmoji(resolvedAvatarEmoji || null);
+          storeViewerAvatarEmoji(resolvedAvatarEmoji || null, shellUserId);
         })
         .catch(() => {
           // Keep the cached shell profile if the background refresh is unavailable.
@@ -555,6 +556,7 @@ export default function AppRouteShell({ children }: { children: ReactNode }) {
   const shellMenuBackground = isDarkAppShell ? "#0f172a" : "#ffffff";
 
   const handleLogout = async () => {
+    clearAppSessionStorage();
     await supabase.auth.signOut();
     router.push("/login");
   };
@@ -683,7 +685,7 @@ export default function AppRouteShell({ children }: { children: ReactNode }) {
                         className="h-full w-full object-cover"
                         onError={() => {
                           setViewerAvatarUrl("");
-                          storeViewerAvatarUrl(null);
+                          storeViewerAvatarUrl(null, shellUserId);
                         }}
                       />
                     ) : (

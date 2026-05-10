@@ -71,3 +71,17 @@ export function clearClientSnapshots(storagePrefix: string) {
     }
   }
 }
+
+export function clearAppSessionStorage() {
+  if (typeof sessionStorage === "undefined") {
+    return;
+  }
+
+  for (let index = sessionStorage.length - 1; index >= 0; index -= 1) {
+    const key = sessionStorage.key(index);
+
+    if (key?.startsWith("ss_")) {
+      sessionStorage.removeItem(key);
+    }
+  }
+}

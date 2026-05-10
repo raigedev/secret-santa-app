@@ -52,6 +52,32 @@ function parseGroupIds(value: unknown): string[] {
   return Array.from(new Set(value.filter(isUuid))).slice(0, MAX_GROUP_PROFILE_LOOKUPS);
 }
 
+function normalizeProfileAvatarUrl(userId: string, avatarUrl: string | null): string | null {
+  if (!avatarUrl) {
+    return null;
+  }
+
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+
+  if (!supabaseUrl) {
+    return null;
+  }
+
+  try {
+    const candidate = new URL(avatarUrl);
+    const allowedOrigin = new URL(supabaseUrl).origin;
+    const allowedPathPrefix = `/storage/v1/object/public/profile-avatars/${userId}/`;
+
+    if (candidate.origin !== allowedOrigin || !candidate.pathname.startsWith(allowedPathPrefix)) {
+      return null;
+    }
+
+    return `${candidate.origin}${candidate.pathname}${candidate.search}`;
+  } catch {
+    return null;
+  }
+}
+
 export async function POST(request: Request) {
   const supabase = await createClient();
   const {
@@ -190,7 +216,7 @@ export async function POST(request: Request) {
     profilesByGroup[member.group_id].push({
       user_id: profile.user_id,
       avatar_emoji: profile.avatar_emoji,
-      avatar_url: hideIdentity ? null : profile.avatar_url,
+      avatar_url: hideIdentity ? null : normalizeProfileAvatarUrl(profile.user_id, profile.avatar_url),
       display_name: hideIdentity ? null : profile.display_name,
     });
   }

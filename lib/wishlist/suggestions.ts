@@ -504,22 +504,6 @@ export function buildTrackedSuggestionHref(
     params.set("itemCategory", options.itemCategory);
   }
 
-  if (options?.itemNote) {
-    params.set("itemNote", options.itemNote);
-  }
-
-  if (options?.preferredPriceMin !== null && options?.preferredPriceMin !== undefined) {
-    params.set("preferredPriceMin", String(options.preferredPriceMin));
-  }
-
-  if (options?.preferredPriceMax !== null && options?.preferredPriceMax !== undefined) {
-    params.set("preferredPriceMax", String(options.preferredPriceMax));
-  }
-
-  if (options?.groupBudget !== null && options?.groupBudget !== undefined) {
-    params.set("groupBudget", String(options.groupBudget));
-  }
-
   return `/go/suggestion?${params.toString()}`;
 }
 

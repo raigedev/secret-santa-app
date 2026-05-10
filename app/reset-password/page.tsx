@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { getPasswordPolicyMessage, PASSWORD_POLICY_HELP_TEXT } from "@/lib/auth/password-policy";
+import { clearAppSessionStorage } from "@/lib/client-snapshot";
 import { createClient } from "@/lib/supabase/client";
 
 export default function ResetPasswordPage() {
@@ -31,6 +32,7 @@ export default function ResetPasswordPage() {
 
     // Sign out after a successful password reset so the user comes back through
     // a fresh login with the new credential.
+    clearAppSessionStorage();
     await supabase.auth.signOut();
     setTimeout(() => router.push("/login"), 2000);
   };

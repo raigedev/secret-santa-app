@@ -11,12 +11,12 @@
 
 The Lazada export field `categoryLv1` is currently `N/A` for all imported rows, so this checklist is based on:
 
-1. the actual export filenames in `C:\Users\kenda\OneDrive\Documents\lazada-exports`
+1. the actual export filenames in the local Lazada export folder
 2. the app's current category-aware search templates in
-   - `C:\Users\kenda\secret-santa-app\lib\affiliate\lazada-catalog.ts`
-   - `C:\Users\kenda\secret-santa-app\lib\wishlist\suggestions.ts`
+   - `lib/affiliate/lazada-catalog.ts`
+   - `lib/wishlist/suggestions.ts`
 3. the direct-product matcher in
-   - `C:\Users\kenda\secret-santa-app\lib\affiliate\lazada-feed.ts`
+   - `lib/affiliate/lazada-feed.ts`
 
 So this is the honest coverage view of the app today, not a guess based on Lazada's missing category metadata.
 

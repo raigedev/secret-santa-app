@@ -40,10 +40,7 @@ export async function GET(request: NextRequest) {
   const fitLabel = searchParams.get("fitLabel")?.trim() || null;
   const itemName = searchParams.get("itemName")?.trim() || searchQuery;
   const itemCategory = searchParams.get("itemCategory")?.trim() || "";
-  const itemNote = searchParams.get("itemNote")?.trim() || "";
-  const preferredPriceMinRaw = searchParams.get("preferredPriceMin");
-  const preferredPriceMaxRaw = searchParams.get("preferredPriceMax");
-  const groupBudgetRaw = searchParams.get("groupBudget");
+  const itemNote = "";
   const trackingLabel = searchParams.get("trackingLabel")?.trim() || null;
   const selectedQuery = searchParams.get("selectedQuery")?.trim() || searchQuery;
   const requestedRegion = searchParams.get("region");
@@ -104,17 +101,6 @@ export async function GET(request: NextRequest) {
         })
       : null;
 
-  const preferredPriceMin =
-    preferredPriceMinRaw !== null && preferredPriceMinRaw.trim().length > 0
-      ? Number(preferredPriceMinRaw)
-      : null;
-  const preferredPriceMax =
-    preferredPriceMaxRaw !== null && preferredPriceMaxRaw.trim().length > 0
-      ? Number(preferredPriceMaxRaw)
-      : null;
-  const groupBudget =
-    groupBudgetRaw !== null && groupBudgetRaw.trim().length > 0 ? Number(groupBudgetRaw) : null;
-
   if (merchant === "lazada") {
     const lazadaTarget =
       catalogSource === "search-backed"
@@ -126,13 +112,13 @@ export async function GET(request: NextRequest) {
         : await resolveLazadaSuggestionLinkTarget({
             attribution: lazadaAttribution,
             fallbackUrl: targetUrl,
-            groupBudget: Number.isFinite(groupBudget) ? groupBudget : null,
+            groupBudget: null,
             itemCategory,
             itemName,
             itemNote,
             productId,
-            preferredPriceMax: Number.isFinite(preferredPriceMax) ? preferredPriceMax : null,
-            preferredPriceMin: Number.isFinite(preferredPriceMin) ? preferredPriceMin : null,
+            preferredPriceMax: null,
+            preferredPriceMin: null,
             searchQuery,
           });
 

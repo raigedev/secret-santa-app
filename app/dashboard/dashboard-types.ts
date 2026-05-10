@@ -60,7 +60,7 @@ export type GroupMemberRow = {
   group_id: string;
   user_id: string | null;
   nickname: string;
-  email: string;
+  email?: string | null;
   role: string;
 };
 

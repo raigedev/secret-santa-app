@@ -5,7 +5,7 @@ import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { getProfile } from "@/app/profile/actions";
-import { claimInvitedMemberships } from "./actions";
+import { getPendingEmailInvites } from "./actions";
 import { createSignedGroupImageUrl } from "@/lib/groups/group-image";
 import { isGroupInHistory } from "@/lib/groups/history";
 import { DashboardSkeleton } from "@/app/components/PageSkeleton";
@@ -34,7 +34,8 @@ import {
   applyViewerProfileChangedEvent,
   normalizeViewerAvatarEmoji,
   normalizeViewerAvatarUrl,
-  readStoredViewerProfile,
+  readStoredViewerName,
+  storeViewerName,
   storeViewerAvatarEmoji,
   storeViewerAvatarUrl,
 } from "@/app/components/viewer-profile-client";
@@ -192,9 +193,13 @@ function readStoredDashboardTheme(): DashboardTheme {
     return "default";
   }
 
-  return localStorage.getItem(DASHBOARD_THEME_STORAGE_KEY) === "midnight"
-    ? "midnight"
-    : "default";
+  try {
+    return localStorage.getItem(DASHBOARD_THEME_STORAGE_KEY) === "midnight"
+      ? "midnight"
+      : "default";
+  } catch {
+    return "default";
+  }
 }
 
 export default function DashboardPage() {
@@ -223,12 +228,6 @@ export default function DashboardPage() {
   const activeNotificationGroupIdsRef = useRef<Set<string>>(new Set());
 
   useEffect(() => {
-    const storedViewerProfile = readStoredViewerProfile();
-
-    if (storedViewerProfile.displayName) {
-      setUserName(storedViewerProfile.displayName);
-    }
-
     return addViewerProfileChangedListener((event) => {
       applyViewerProfileChangedEvent(event, {
         setViewerAvatarEmoji: () => undefined,
@@ -247,7 +246,11 @@ export default function DashboardPage() {
       return;
     }
 
-    localStorage.setItem(DASHBOARD_THEME_STORAGE_KEY, dashboardTheme);
+    try {
+      localStorage.setItem(DASHBOARD_THEME_STORAGE_KEY, dashboardTheme);
+    } catch {
+      // Storage can be unavailable in private or restricted browser contexts.
+    }
   }, [dashboardTheme, dashboardThemeReady]);
 
   useEffect(() => {
@@ -300,8 +303,6 @@ export default function DashboardPage() {
       | null = null;
 
     const applyDashboardSnapshot = (snapshot: DashboardSnapshot) => {
-      const savedUserName =
-        typeof sessionStorage !== "undefined" ? sessionStorage.getItem("ss_un") : null;
       const activeOwnedGroups = snapshot.ownedGroups.filter(
         (group) => !isGroupInHistory(group.event_date)
       );
@@ -309,8 +310,8 @@ export default function DashboardPage() {
         (group) => !isGroupInHistory(group.event_date)
       );
 
-      if (savedUserName) {
-        setUserName(savedUserName);
+      if (snapshot.userName) {
+        setUserName(snapshot.userName);
       }
       setOwnedGroups(activeOwnedGroups);
       setInvitedGroups(activeInvitedGroups);
@@ -372,6 +373,8 @@ export default function DashboardPage() {
           throw ownedGroupLookupRes.error;
         }
 
+        const emailInviteResult = await getPendingEmailInvites();
+        const emailPendingInvites = emailInviteResult.success ? emailInviteResult.invites : [];
         const memberRows = (membershipRes.data || []) as MembershipRow[];
         const ownedGroupIds = [...new Set((ownedGroupLookupRes.data || []).map((group) => group.id))];
 
@@ -379,12 +382,13 @@ export default function DashboardPage() {
           return;
         }
 
-        if ((!memberRows || memberRows.length === 0) && ownedGroupIds.length === 0) {
+        if (
+          (!memberRows || memberRows.length === 0) &&
+          ownedGroupIds.length === 0 &&
+          emailPendingInvites.length === 0
+        ) {
           const defaultDisplayName = email.split("@")[0];
-          const snapshotUserName =
-            typeof sessionStorage !== "undefined"
-              ? sessionStorage.getItem("ss_un") || defaultDisplayName
-              : defaultDisplayName;
+          const snapshotUserName = readStoredViewerName(user.id) || defaultDisplayName;
 
           setOwnedGroups([]);
           setInvitedGroups([]);
@@ -448,7 +452,7 @@ export default function DashboardPage() {
             acceptedGroupIds.length > 0
               ? supabase
                   .from("group_members")
-                  .select("group_id, user_id, nickname, email, role")
+                  .select("group_id, user_id, nickname, role")
                   .in("group_id", acceptedGroupIds)
                   .eq("status", "accepted")
               : createEmptyQueryResult<GroupMemberRow>(),
@@ -562,7 +566,7 @@ export default function DashboardPage() {
             members: (membersByGroupId.get(group.id) || []).map((member) => ({
               userId: member.user_id,
               nickname: member.nickname,
-              email: member.email,
+              email: null,
               role: member.role,
               displayName: null,
               avatarEmoji: null,
@@ -702,22 +706,26 @@ export default function DashboardPage() {
           .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
           .slice(0, 5);
 
-        const nextPendingInvites = pendingGroups.map((group) => ({
+        const linkedPendingInvites = pendingGroups.map((group) => ({
           group_id: group.id,
           group_name: group.name,
           group_description: group.description || "",
           group_event_date: group.event_date,
           require_anonymous_nickname: Boolean(group.require_anonymous_nickname),
         }));
+        const pendingInviteByGroupId = new Map<string, PendingInvite>();
+
+        for (const invite of [...linkedPendingInvites, ...emailPendingInvites]) {
+          pendingInviteByGroupId.set(invite.group_id, invite);
+        }
+
+        const nextPendingInvites = [...pendingInviteByGroupId.values()];
 
         setActivityFeedItems(feedItems);
         setPendingInvites(nextPendingInvites);
 
         const defaultDisplayName = email.split("@")[0];
-        const snapshotUserName =
-          typeof sessionStorage !== "undefined"
-            ? sessionStorage.getItem("ss_un") || defaultDisplayName
-            : defaultDisplayName;
+        const snapshotUserName = readStoredViewerName(user.id) || defaultDisplayName;
 
         writeDashboardSnapshot({
           createdAt: Date.now(),
@@ -807,11 +815,9 @@ export default function DashboardPage() {
 
         setShowProfileSetup(!profileData.profile_setup_complete);
         setUserName(resolvedName);
-        if (typeof sessionStorage !== "undefined") {
-          sessionStorage.setItem("ss_un", resolvedName);
-        }
-        storeViewerAvatarEmoji(resolvedAvatarEmoji || null);
-        storeViewerAvatarUrl(resolvedAvatarUrl || null);
+        storeViewerName(resolvedName, sessionUser.id);
+        storeViewerAvatarEmoji(resolvedAvatarEmoji || null, sessionUser.id);
+        storeViewerAvatarUrl(resolvedAvatarUrl || null, sessionUser.id);
       }
     };
 
@@ -909,34 +915,8 @@ export default function DashboardPage() {
           applyDashboardSnapshot(cachedDashboard);
         }
 
-        // claimInvitedMemberships only needs to run once per browser session.
-        // Email-linked invites don't change between visits; focus and the light
-        // fallback refresh keep brand-new invites synced without hot polling.
-        const CLAIM_KEY = "ss_mc";
-        const alreadyClaimed =
-          typeof sessionStorage !== "undefined" &&
-          sessionStorage.getItem(CLAIM_KEY) === "1";
-
-        if (!alreadyClaimed) {
-          void claimInvitedMemberships().then((claimResult) => {
-            if (claimResult.success && typeof sessionStorage !== "undefined") {
-              sessionStorage.setItem(CLAIM_KEY, "1");
-            }
-
-            if (
-              claimResult.success &&
-              claimResult.linkedCount > 0 &&
-              isMounted &&
-              sessionUser &&
-              loadDashboardDataRef.current
-            ) {
-              void loadDashboardDataRef.current(sessionUser);
-            }
-          });
-        }
-
         // The main dashboard content should not wait on secondary polish like
-        // invite claiming, owner report access, or the unread bell count.
+        // owner report access or the unread bell count.
         // Kick those off in the background so the cards can render as soon as
         // the core data is ready.
         void loadProfileData();

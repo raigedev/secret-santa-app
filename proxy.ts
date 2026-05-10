@@ -13,12 +13,18 @@ export async function proxy(req: NextRequest) {
   // through the callback handler first so the session is exchanged before any UI renders.
   const hasOAuthCode = req.nextUrl.searchParams.has("code");
   const isCallbackRoute = req.nextUrl.pathname === "/auth/callback";
+  const shouldForwardOAuthCode =
+    hasOAuthCode &&
+    !isCallbackRoute &&
+    // Some OAuth providers can land on the site root. Password recovery also
+    // uses a `code` query param, so only the root fallback is rewritten here.
+    req.nextUrl.pathname === "/";
 
   if (!isCallbackRoute && hasOAuthCallbackError(req.nextUrl.searchParams)) {
     return NextResponse.redirect(createOAuthCallbackErrorLoginUrl(req.url));
   }
 
-  if (hasOAuthCode && !isCallbackRoute) {
+  if (shouldForwardOAuthCode) {
     const callbackUrl = req.nextUrl.clone();
     callbackUrl.pathname = "/auth/callback";
 

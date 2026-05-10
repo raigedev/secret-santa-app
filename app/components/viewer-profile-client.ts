@@ -1,6 +1,7 @@
 const VIEWER_NAME_STORAGE_KEY = "ss_un";
 const VIEWER_AVATAR_STORAGE_KEY = "ss_uav";
 const VIEWER_AVATAR_EMOJI_STORAGE_KEY = "ss_uae";
+const VIEWER_PROFILE_STORAGE_PREFIX = "ss_viewer_profile_v2:";
 const VIEWER_PROFILE_CHANGED_EVENT = "ss-profile-updated";
 
 type ViewerProfileChangedDetail = {
@@ -13,6 +14,12 @@ type ViewerProfileSetters = {
   setViewerAvatarEmoji: (value: string) => void;
   setViewerAvatarUrl: (value: string) => void;
   setViewerName: (value: string) => void;
+};
+
+type StoredViewerProfile = {
+  avatarEmoji: string;
+  avatarUrl: string;
+  displayName: string;
 };
 
 export function normalizeViewerName(value: string | null | undefined) {
@@ -58,72 +65,160 @@ export function getEmailViewerName(email: string | null | undefined) {
   return normalizeViewerName(email?.split("@")[0]?.replace(/[._-]+/g, " "));
 }
 
-export function readStoredViewerName() {
-  if (typeof sessionStorage === "undefined") {
-    return "";
-  }
+function getViewerProfileStorageKey(userId: string | null | undefined) {
+  const normalizedUserId = (userId || "").trim();
 
-  return normalizeViewerName(sessionStorage.getItem(VIEWER_NAME_STORAGE_KEY));
+  return normalizedUserId ? `${VIEWER_PROFILE_STORAGE_PREFIX}${normalizedUserId}` : null;
 }
 
-function readStoredViewerAvatarUrl() {
-  if (typeof sessionStorage === "undefined") {
-    return "";
-  }
-
-  return normalizeViewerAvatarUrl(sessionStorage.getItem(VIEWER_AVATAR_STORAGE_KEY));
-}
-
-function readStoredViewerAvatarEmoji() {
-  if (typeof sessionStorage === "undefined") {
-    return "";
-  }
-
-  return normalizeViewerAvatarEmoji(sessionStorage.getItem(VIEWER_AVATAR_EMOJI_STORAGE_KEY));
-}
-
-export function readStoredViewerProfile() {
+function getEmptyStoredViewerProfile(): StoredViewerProfile {
   return {
-    avatarEmoji: readStoredViewerAvatarEmoji(),
-    avatarUrl: readStoredViewerAvatarUrl(),
-    displayName: readStoredViewerName(),
+    avatarEmoji: "",
+    avatarUrl: "",
+    displayName: "",
   };
 }
 
-export function storeViewerName(value: string) {
-  const normalized = normalizeViewerName(value);
+function readStoredViewerProfileForUser(userId: string | null | undefined): StoredViewerProfile {
+  if (typeof sessionStorage === "undefined") {
+    return getEmptyStoredViewerProfile();
+  }
 
-  if (normalized && typeof sessionStorage !== "undefined") {
-    sessionStorage.setItem(VIEWER_NAME_STORAGE_KEY, normalized);
+  const storageKey = getViewerProfileStorageKey(userId);
+
+  if (!storageKey) {
+    return getEmptyStoredViewerProfile();
+  }
+
+  const rawProfile = sessionStorage.getItem(storageKey);
+
+  if (!rawProfile) {
+    return getEmptyStoredViewerProfile();
+  }
+
+  try {
+    const parsed = JSON.parse(rawProfile) as {
+      avatarEmoji?: unknown;
+      avatarUrl?: unknown;
+      displayName?: unknown;
+    };
+
+    return {
+      avatarEmoji:
+        typeof parsed.avatarEmoji === "string"
+          ? normalizeViewerAvatarEmoji(parsed.avatarEmoji)
+          : "",
+      avatarUrl:
+        typeof parsed.avatarUrl === "string" ? normalizeViewerAvatarUrl(parsed.avatarUrl) : "",
+      displayName:
+        typeof parsed.displayName === "string" ? normalizeViewerName(parsed.displayName) : "",
+    };
+  } catch {
+    sessionStorage.removeItem(storageKey);
+    return getEmptyStoredViewerProfile();
   }
 }
 
-export function storeViewerAvatarUrl(value: string | null | undefined) {
+function writeStoredViewerProfileForUser(
+  userId: string | null | undefined,
+  profile: StoredViewerProfile
+) {
   if (typeof sessionStorage === "undefined") {
+    return;
+  }
+
+  const storageKey = getViewerProfileStorageKey(userId);
+
+  if (!storageKey) {
+    return;
+  }
+
+  try {
+    sessionStorage.setItem(storageKey, JSON.stringify(profile));
+  } catch {
+    // Profile cache is only a speed-up; server profile data remains authoritative.
+  }
+}
+
+export function readStoredViewerName(userId?: string | null) {
+  if (userId) {
+    return readStoredViewerProfileForUser(userId).displayName;
+  }
+
+  if (typeof sessionStorage === "undefined") {
+    return "";
+  }
+
+  return "";
+}
+
+function readStoredViewerAvatarUrl(userId?: string | null) {
+  if (userId) {
+    return readStoredViewerProfileForUser(userId).avatarUrl;
+  }
+
+  return "";
+}
+
+function readStoredViewerAvatarEmoji(userId?: string | null) {
+  if (userId) {
+    return readStoredViewerProfileForUser(userId).avatarEmoji;
+  }
+
+  return "";
+}
+
+export function readStoredViewerProfile(userId?: string | null) {
+  return {
+    avatarEmoji: readStoredViewerAvatarEmoji(userId),
+    avatarUrl: readStoredViewerAvatarUrl(userId),
+    displayName: readStoredViewerName(userId),
+  };
+}
+
+export function storeViewerName(value: string, userId?: string | null) {
+  const normalized = normalizeViewerName(value);
+
+  if (normalized && userId) {
+    writeStoredViewerProfileForUser(userId, {
+      ...readStoredViewerProfileForUser(userId),
+      displayName: normalized,
+    });
+  }
+}
+
+export function storeViewerAvatarUrl(value: string | null | undefined, userId?: string | null) {
+  if (!userId) {
     return;
   }
 
   const normalized = normalizeViewerAvatarUrl(value);
-
-  if (normalized) {
-    sessionStorage.setItem(VIEWER_AVATAR_STORAGE_KEY, normalized);
-  } else {
-    sessionStorage.removeItem(VIEWER_AVATAR_STORAGE_KEY);
-  }
+  writeStoredViewerProfileForUser(userId, {
+    ...readStoredViewerProfileForUser(userId),
+    avatarUrl: normalized,
+  });
 }
 
-export function storeViewerAvatarEmoji(value: string | null | undefined) {
-  if (typeof sessionStorage === "undefined") {
+export function storeViewerAvatarEmoji(value: string | null | undefined, userId?: string | null) {
+  if (!userId) {
     return;
   }
 
   const normalized = normalizeViewerAvatarEmoji(value);
+  writeStoredViewerProfileForUser(userId, {
+    ...readStoredViewerProfileForUser(userId),
+    avatarEmoji: normalized,
+  });
+}
 
-  if (normalized) {
-    sessionStorage.setItem(VIEWER_AVATAR_EMOJI_STORAGE_KEY, normalized);
-  } else {
-    sessionStorage.removeItem(VIEWER_AVATAR_EMOJI_STORAGE_KEY);
+export function clearLegacyViewerProfileStorage() {
+  if (typeof sessionStorage === "undefined") {
+    return;
   }
+
+  sessionStorage.removeItem(VIEWER_NAME_STORAGE_KEY);
+  sessionStorage.removeItem(VIEWER_AVATAR_STORAGE_KEY);
+  sessionStorage.removeItem(VIEWER_AVATAR_EMOJI_STORAGE_KEY);
 }
 
 function readViewerProfileChangedDetail(event: Event): ViewerProfileChangedDetail | null {

@@ -978,21 +978,6 @@ export async function resetSecretSantaDraw(
     return { success: false, message: "Invalid group ID." };
   }
 
-  const trimmedReason = reason.trim();
-  if (trimmedReason.length < 8) {
-    return {
-      success: false,
-      message: "Please provide at least 8 characters explaining why you are resetting the draw.",
-    };
-  }
-
-  if (trimmedReason.length > 300) {
-    return {
-      success: false,
-      message: "Reset reason is too long. Please keep it under 300 characters.",
-    };
-  }
-
   const context = await requireRateLimitedAction({
     action: "group.reset_secret_santa",
     maxAttempts: RESET_DRAW_MAX_ATTEMPTS,
@@ -1007,6 +992,21 @@ export async function resetSecretSantaDraw(
   }
 
   const { supabase, user } = context;
+  const trimmedReason = typeof reason === "string" ? reason.trim() : "";
+  if (trimmedReason.length < 8) {
+    return {
+      success: false,
+      message: "Please provide at least 8 characters explaining why you are resetting the draw.",
+    };
+  }
+
+  if (trimmedReason.length > 300) {
+    return {
+      success: false,
+      message: "Reset reason is too long. Please keep it under 300 characters.",
+    };
+  }
+
   const { data: group } = await supabase
     .from("groups")
     .select("owner_id, revealed")

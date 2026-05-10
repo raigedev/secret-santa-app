@@ -24,6 +24,7 @@ type AffiliateReportPageProps = {
 };
 
 type AffiliateClickRow = {
+  click_token: string | null;
   id: string;
   catalog_source: string | null;
   created_at: string;
@@ -448,21 +449,34 @@ function buildPerformanceRows(
   profilesByUserId: Map<string, ProfileRow>
 ): AffiliatePerformanceRow[] {
   const conversionsByClickId = new Map<string, AffiliateConversionRow>();
+  const conversionsByClickToken = new Map<string, AffiliateConversionRow>();
 
   for (const conversion of conversions) {
-    if (!conversion.affiliate_click_id) {
-      continue;
+    if (conversion.affiliate_click_id) {
+      const existing = conversionsByClickId.get(conversion.affiliate_click_id);
+
+      if (!existing || new Date(conversion.received_at).getTime() > new Date(existing.received_at).getTime()) {
+        conversionsByClickId.set(conversion.affiliate_click_id, conversion);
+      }
     }
 
-    const existing = conversionsByClickId.get(conversion.affiliate_click_id);
+    const conversionClickToken = conversion.click_token?.trim().toLowerCase();
 
-    if (!existing || new Date(conversion.received_at).getTime() > new Date(existing.received_at).getTime()) {
-      conversionsByClickId.set(conversion.affiliate_click_id, conversion);
+    if (conversionClickToken) {
+      const existing = conversionsByClickToken.get(conversionClickToken);
+
+      if (!existing || new Date(conversion.received_at).getTime() > new Date(existing.received_at).getTime()) {
+        conversionsByClickToken.set(conversionClickToken, conversion);
+      }
     }
   }
 
   return clicks.map((click) => {
-    const matchingConversion = conversionsByClickId.get(click.id) || null;
+    const clickToken = click.click_token?.trim().toLowerCase();
+    const matchingConversion =
+      conversionsByClickId.get(click.id) ||
+      (clickToken ? conversionsByClickToken.get(clickToken) : null) ||
+      null;
     const convertedProduct = extractConversionProductSummary(matchingConversion?.raw_payload);
 
     return {
@@ -824,7 +838,7 @@ async function loadAffiliateClickRows(input: {
   let clicksQuery = supabaseAdmin
     .from("affiliate_clicks")
     .select(
-      "id, catalog_source, created_at, fit_label, merchant, resolution_mode, resolution_reason, search_query, selected_query, suggestion_title, tracking_label, user_id"
+      "id, catalog_source, click_token, created_at, fit_label, merchant, resolution_mode, resolution_reason, search_query, selected_query, suggestion_title, tracking_label, user_id"
     )
     .eq("merchant", "lazada")
     .order("created_at", { ascending: false })
@@ -950,7 +964,7 @@ async function loadAffiliateClickRows(input: {
   let fallbackClicksQuery = supabaseAdmin
     .from("affiliate_clicks")
     .select(
-      "id, catalog_source, created_at, fit_label, merchant, resolution_mode, resolution_reason, search_query, suggestion_title, tracking_label, user_id"
+      "id, catalog_source, click_token, created_at, fit_label, merchant, resolution_mode, resolution_reason, search_query, suggestion_title, tracking_label, user_id"
     )
     .eq("merchant", "lazada")
     .order("created_at", { ascending: false })
@@ -1593,6 +1607,13 @@ export default async function AffiliateReportPage({
   });
   const lazadaHealth = await loadLazadaHealthStatus();
   const clickIds = clickRows.map((row) => row.id);
+  const clickTokens = [
+    ...new Set(
+      clickRows
+        .map((row) => row.click_token?.trim())
+        .filter((value): value is string => Boolean(value))
+    ),
+  ];
   // Only the latest table rows show actor labels, so we can scope profile lookups
   // to the visible slice instead of all sampled clicks.
   const visibleClickRows = clickRows.slice(0, REPORT_TABLE_LIMIT);
@@ -1623,20 +1644,46 @@ export default async function AffiliateReportPage({
 
   let conversionRows: AffiliateConversionRow[] = [];
 
-  if (clickIds.length > 0) {
-    const { data: conversions, error: conversionsError } = await supabaseAdmin
-      .from("affiliate_conversions")
-      .select(
-        "id, affiliate_click_id, amount, click_token, conversion_status, external_order_id, payout, raw_payload, received_at"
-      )
-      .in("affiliate_click_id", clickIds)
-      .order("received_at", { ascending: false });
+  if (clickIds.length > 0 || clickTokens.length > 0) {
+    const conversionRowsById = new Map<string, AffiliateConversionRow>();
 
-    if (conversionsError) {
-      throw new Error("Failed to load affiliate conversions.");
+    if (clickIds.length > 0) {
+      const { data: conversionsById, error: conversionsByIdError } = await supabaseAdmin
+        .from("affiliate_conversions")
+        .select(
+          "id, affiliate_click_id, amount, click_token, conversion_status, external_order_id, payout, raw_payload, received_at"
+        )
+        .in("affiliate_click_id", clickIds)
+        .order("received_at", { ascending: false });
+
+      if (conversionsByIdError) {
+        throw new Error("Failed to load affiliate conversions.");
+      }
+
+      for (const conversion of (conversionsById || []) as AffiliateConversionRow[]) {
+        conversionRowsById.set(conversion.id, conversion);
+      }
     }
 
-    conversionRows = (conversions || []) as AffiliateConversionRow[];
+    if (clickTokens.length > 0) {
+      const { data: conversionsByToken, error: conversionsByTokenError } = await supabaseAdmin
+        .from("affiliate_conversions")
+        .select(
+          "id, affiliate_click_id, amount, click_token, conversion_status, external_order_id, payout, raw_payload, received_at"
+        )
+        .in("click_token", clickTokens)
+        .order("received_at", { ascending: false });
+
+      if (conversionsByTokenError) {
+        throw new Error("Failed to load affiliate conversions.");
+      }
+
+      for (const conversion of (conversionsByToken || []) as AffiliateConversionRow[]) {
+        conversionRowsById.set(conversion.id, conversion);
+      }
+    }
+
+    conversionRows = [...conversionRowsById.values()];
   }
 
   const hiddenTestConversions = conversionRows.filter(isLikelyTestConversion);

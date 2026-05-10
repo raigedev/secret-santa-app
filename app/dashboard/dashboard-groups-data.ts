@@ -134,7 +134,7 @@ export async function loadDashboardGroups(
     acceptedGroupIds.length > 0
       ? supabase
           .from("group_members")
-          .select("group_id, user_id, nickname, email, role")
+          .select("group_id, user_id, nickname, role")
           .in("group_id", acceptedGroupIds)
           .eq("status", "accepted")
       : createEmptyQueryResult<GroupMemberRow>(),
@@ -184,7 +184,7 @@ export async function loadDashboardGroups(
         avatarEmoji: null,
         avatarUrl: null,
         displayName: null,
-        email: member.email,
+        email: null,
         nickname: member.nickname,
         role: member.role,
         userId: member.user_id,
@@ -238,11 +238,20 @@ function applyPeerProfilesToGroups(
       members: group.members.map((member) => {
         const profile = member.userId ? groupProfileMap.get(member.userId) : null;
 
+        if (group.require_anonymous_nickname) {
+          return {
+            ...member,
+            avatarEmoji: null,
+            avatarUrl: null,
+            displayName: null,
+          };
+        }
+
         return {
           ...member,
           avatarEmoji: profile?.avatarEmoji || member.avatarEmoji,
-          avatarUrl: group.require_anonymous_nickname ? null : profile?.avatarUrl || member.avatarUrl,
-          displayName: group.require_anonymous_nickname ? null : profile?.displayName || member.displayName,
+          avatarUrl: profile?.avatarUrl || member.avatarUrl,
+          displayName: profile?.displayName || member.displayName,
         };
       }),
     };

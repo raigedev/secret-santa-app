@@ -3,7 +3,7 @@ param(
 
   [string]$SourceDirectory,
 
-  [string]$OutputPath = "C:\Users\kenda\secret-santa-app\lib\affiliate\lazada-feed-data.generated.json",
+  [string]$OutputPath = (Join-Path $PSScriptRoot "..\lib\affiliate\lazada-feed-data.generated.json"),
 
   [string]$ProvenancePath,
 

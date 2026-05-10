@@ -1,7 +1,6 @@
 "use server";
 
 import { recordServerFailure } from "@/lib/security/audit";
-import { ELIGIBLE_EMAIL_INVITE_STATUSES } from "@/lib/groups/invite-claim.mjs";
 import {
   sanitizeGroupNickname,
   validateAnonymousGroupNickname,
@@ -15,6 +14,7 @@ import {
 import { supabaseAdmin } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 import { isUuid } from "@/lib/validation/common";
+import type { PendingInvite } from "./dashboard-types";
 
 type MembershipActionResult = {
   success: boolean;
@@ -91,8 +91,8 @@ async function notifyOwnerAboutInviteResponse(options: {
   });
 }
 
-export async function claimInvitedMemberships(): Promise<{
-  linkedCount: number;
+export async function getPendingEmailInvites(): Promise<{
+  invites: PendingInvite[];
   success: boolean;
 }> {
   const supabase = await createClient();
@@ -101,88 +101,62 @@ export async function claimInvitedMemberships(): Promise<{
   } = await supabase.auth.getUser();
 
   if (!user?.id || !user.email) {
-    return { success: false, linkedCount: 0 };
+    return { success: false, invites: [] };
   }
 
-  const normalizedEmail = user.email.toLowerCase();
+  const normalizedEmail = user.email.trim().toLowerCase();
 
   const { data: memberships, error: membershipError } = await supabaseAdmin
     .from("group_members")
-    .select("id, group_id, status")
+    .select("group_id")
     .eq("email", normalizedEmail)
     .is("user_id", null)
-    .in("status", ELIGIBLE_EMAIL_INVITE_STATUSES);
+    .eq("status", "pending");
 
   if (membershipError) {
     await recordServerFailure({
       actorUserId: user.id,
       errorMessage: membershipError.message,
-      eventType: "dashboard.claim_invited_memberships.read",
+      eventType: "dashboard.pending_email_invites.read",
       resourceType: "group_membership",
     });
 
-    return { success: false, linkedCount: 0 };
+    return { success: false, invites: [] };
   }
 
-  const linkedCount = memberships?.length || 0;
+  const groupIds = [...new Set((memberships || []).map((membership) => membership.group_id))];
 
-  if (linkedCount === 0) {
-    return { success: true, linkedCount: 0 };
+  if (groupIds.length === 0) {
+    return { success: true, invites: [] };
   }
 
-  const { error: updateError } = await supabaseAdmin
-    .from("group_members")
-    .update({ user_id: user.id })
-    .eq("email", normalizedEmail)
-    .is("user_id", null)
-    .in("status", ELIGIBLE_EMAIL_INVITE_STATUSES);
+  const { data: groups, error: groupError } = await supabaseAdmin
+    .from("groups")
+    .select("id, name, description, event_date, require_anonymous_nickname")
+    .in("id", groupIds);
 
-  if (updateError) {
+  if (groupError) {
     await recordServerFailure({
       actorUserId: user.id,
-      details: { linkedCount },
-      errorMessage: updateError.message,
-      eventType: "dashboard.claim_invited_memberships.update",
-      resourceType: "group_membership",
+      details: { groupCount: groupIds.length },
+      errorMessage: groupError.message,
+      eventType: "dashboard.pending_email_invites.groups",
+      resourceType: "group",
     });
 
-    return { success: false, linkedCount: 0 };
+    return { success: false, invites: [] };
   }
 
-  const pendingMemberships = (memberships || []).filter(
-    (membership) => membership.status === "pending"
-  );
-
-  if (pendingMemberships.length > 0) {
-    const pendingGroupIds = [...new Set(pendingMemberships.map((membership) => membership.group_id))];
-    const { data: groups } = await supabase
-      .from("groups")
-      .select("id, name")
-      .in("id", pendingGroupIds);
-
-    const groupNameById = new Map(
-      (groups || []).map((group) => [group.id, group.name || "Secret Santa Group"])
-    );
-
-    await Promise.all(
-      pendingMemberships.map((membership) =>
-        createNotification({
-          userId: user.id,
-          type: "invite",
-          title: `New group invite: ${groupNameById.get(membership.group_id) || "Secret Santa Group"}`,
-          body: "You have a pending group invitation. Open your dashboard to accept or decline it.",
-          linkPath: "/dashboard",
-          metadata: {
-            groupId: membership.group_id,
-            membershipId: membership.id,
-          },
-          preferenceKey: "notify_invites",
-        })
-      )
-    );
-  }
-
-  return { success: true, linkedCount };
+  return {
+    success: true,
+    invites: (groups || []).map((group) => ({
+      group_id: group.id,
+      group_name: group.name || "Secret Santa Group",
+      group_description: group.description || "",
+      group_event_date: group.event_date,
+      require_anonymous_nickname: Boolean(group.require_anonymous_nickname),
+    })),
+  };
 }
 
 export async function acceptInvite(

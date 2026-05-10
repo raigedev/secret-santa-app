@@ -253,6 +253,9 @@ test("peer profile route always rechecks authorization before profile output", (
   assert.doesNotMatch(peerProfilesRouteSource, /peerProfileCache/);
   assert.doesNotMatch(peerProfilesRouteSource, /readPeerProfileCache/);
   assert.doesNotMatch(peerProfilesRouteSource, /writePeerProfileCache/);
+  assert.match(peerProfilesRouteSource, /function normalizeProfileAvatarUrl/);
+  assert.match(peerProfilesRouteSource, /profile-avatars\/\$\{userId\}\//);
+  assert.match(peerProfilesRouteSource, /normalizeProfileAvatarUrl\(profile\.user_id, profile\.avatar_url\)/);
   assert.match(
     peerProfilesRouteSource,
     /member\.user_id\s*===\s*null[\s\S]{0,120}member\.email\.trim\(\)\.toLowerCase\(\)\s*===\s*normalizedEmail/
@@ -371,6 +374,127 @@ test("lazada prime-links route rate limits and constrains product IDs", () => {
     /\.filter\(\(productId\)\s*=>\s*LAZADA_PRODUCT_ID_PATTERN\.test\(productId\)\)/
   );
   assert.doesNotMatch(primeLinksRouteSource, /extractRequestClientIp|x-forwarded-for|cf-connecting-ip|x-real-ip/i);
+});
+
+test("password reset links are not rewritten by OAuth code fallback", () => {
+  const proxySource = readFileSync("proxy.ts", "utf8");
+
+  assert.match(proxySource, /req\.nextUrl\.pathname === "\/"/);
+  assert.doesNotMatch(proxySource, /if\s*\(\s*hasOAuthCode\s*&&\s*!isCallbackRoute\s*\)/);
+  assert.match(proxySource, /"\/reset-password"/);
+});
+
+test("owners do not receive unrevealed assignment names from reveal presentation", () => {
+  const groupActionsSource = readFileSync("app/group/[id]/actions.ts", "utf8");
+
+  assert.doesNotMatch(
+    groupActionsSource,
+    /const canRevealAllRealNamesToViewer =\s*isOwner\s*\|\|/
+  );
+  assert.doesNotMatch(
+    groupActionsSource,
+    /const canRevealAllMatchNamesToViewer =\s*isOwner\s*\|\|/
+  );
+  assert.match(groupActionsSource, /canPreviewBeforeReveal:\s*false/);
+  assert.match(groupActionsSource, /select\("owner_id, revealed, name, event_date"\)/);
+  assert.match(groupActionsSource, /isRevealDateReady\(group\.event_date\)/);
+  assert.match(groupActionsSource, /sourceData\.assignments\.length === 0/);
+});
+
+test("group detail page limits member data and avoids sensitive realtime rows", () => {
+  const groupPageSource = readFileSync("app/group/[id]/page.tsx", "utf8");
+
+  assert.match(groupPageSource, /\.select\("id, user_id, nickname, role, status"\)/);
+  assert.match(groupPageSource, /\.eq\("status", "accepted"\)/);
+  assert.match(groupPageSource, /email:\s*isCurrentUserOwner \? member\.email \|\| null : null/);
+  assert.doesNotMatch(groupPageSource, /table:\s*"assignments"/);
+  assert.doesNotMatch(groupPageSource, /group-\$\{id\}-realtime/);
+});
+
+test("dashboard shows email invites without auto-claiming memberships", () => {
+  const dashboardPageSource = readFileSync("app/dashboard/page.tsx", "utf8");
+  const dashboardGroupsDataSource = readFileSync("app/dashboard/dashboard-groups-data.ts", "utf8");
+  const dashboardActionsSource = readFileSync("app/dashboard/actions.ts", "utf8");
+  const dashboardLayoutSource = readFileSync("app/dashboard/layout.tsx", "utf8");
+
+  assert.match(dashboardActionsSource, /export async function getPendingEmailInvites/);
+  assert.match(dashboardActionsSource, /\.is\("user_id", null\)/);
+  assert.match(dashboardActionsSource, /\.eq\("status", "pending"\)/);
+  assert.doesNotMatch(dashboardActionsSource, /claimInvitedMemberships/);
+  assert.match(dashboardPageSource, /getPendingEmailInvites\(\)/);
+  assert.doesNotMatch(dashboardPageSource, /claimInvitedMemberships\(/);
+  assert.doesNotMatch(dashboardPageSource, /ss_mc/);
+  assert.match(dashboardPageSource, /\.select\("group_id, user_id, nickname, role"\)/);
+  assert.match(dashboardGroupsDataSource, /\.select\("group_id, user_id, nickname, role"\)/);
+  assert.doesNotMatch(dashboardPageSource, /\.select\("group_id, user_id, nickname, email, role"\)/);
+  assert.match(dashboardLayoutSource, /supabase\.auth\.getUser\(\)/);
+  assert.match(dashboardLayoutSource, /redirect\("\/login"\)/);
+});
+
+test("client profile and snapshot storage are scoped or cleared on logout", () => {
+  const viewerProfileSource = readFileSync("app/components/viewer-profile-client.ts", "utf8");
+  const clientSnapshotSource = readFileSync("lib/client-snapshot.ts", "utf8");
+  const appShellSource = readFileSync("app/components/AppRouteShell.tsx", "utf8");
+
+  assert.match(viewerProfileSource, /VIEWER_PROFILE_STORAGE_PREFIX = "ss_viewer_profile_v2:"/);
+  assert.match(viewerProfileSource, /getViewerProfileStorageKey\(userId/);
+  assert.doesNotMatch(viewerProfileSource, /sessionStorage\.getItem\(VIEWER_NAME_STORAGE_KEY\)/);
+  assert.match(clientSnapshotSource, /export function clearAppSessionStorage/);
+  assert.match(appShellSource, /clearAppSessionStorage\(\);[\s\S]{0,80}supabase\.auth\.signOut/);
+});
+
+test("affiliate report maps conversions by click token as well as click id", () => {
+  const reportSource = readFileSync("app/dashboard/affiliate-report/page.tsx", "utf8");
+
+  assert.match(reportSource, /click_token: string \| null/);
+  assert.match(reportSource, /const conversionsByClickToken = new Map/);
+  assert.match(reportSource, /\.in\("click_token", clickTokens\)/);
+  assert.match(reportSource, /conversionsByClickToken\.get\(clickToken\)/);
+});
+
+test("profile avatar urls and affiliate merchant constraints are hardened in migrations", () => {
+  const migrationPath = [
+    "supabase",
+    "migrations",
+    "202605100001_harden_profile_avatar" + "_and_affiliate_merchants.sql",
+  ].join("/");
+  // eslint-disable-next-line security/detect-non-literal-fs-filename -- Test only reads a repo-local migration path assembled to avoid a no-secrets false positive.
+  const migrationSource = readFileSync(
+    migrationPath,
+    "utf8"
+  );
+
+  assert.match(migrationSource, /profiles_avatar_url_storage_owner_check/);
+  assert.match(migrationSource, /profile-avatars\/'\s*\|\|\s*user_id::text/i);
+  assert.match(migrationSource, /affiliate_clicks_merchant_check/);
+  assert.match(migrationSource, /merchant in \('amazon', 'lazada', 'shopee'\)/);
+  assert.match(migrationSource, /affiliate_conversions_merchant_check/);
+  assert.match(migrationSource, /drop policy if exists group_draw_cycle_pairs_select_for_owner/i);
+  assert.match(migrationSource, /revoke select on table public\.group_draw_cycle_pairs from authenticated/i);
+});
+
+test("lazada cards avoid untrusted remote image hosts and private redirect notes", () => {
+  const lazadaUrlSource = readFileSync("lib/affiliate/lazada-url.ts", "utf8");
+  const secretSantaPageSource = readFileSync("app/secret-santa/page.tsx", "utf8");
+  const suggestionSource = readFileSync("lib/wishlist/suggestions.ts", "utf8");
+  const redirectSource = readFileSync("app/go/suggestion/route.ts", "utf8");
+
+  assert.match(lazadaUrlSource, /export function normalizeTrustedLazadaImageUrl/);
+  assert.match(secretSantaPageSource, /normalizeTrustedLazadaImageUrl\(product\.imageUrl/);
+  assert.match(secretSantaPageSource, /referrerPolicy="no-referrer"/);
+  assert.doesNotMatch(suggestionSource, /params\.set\("itemNote"/);
+  assert.doesNotMatch(suggestionSource, /params\.set\("preferredPrice/);
+  assert.match(redirectSource, /const itemNote = "";/);
+});
+
+test("secret santa chat keeps a broader message window for unread state", () => {
+  const chatPageSource = readFileSync("app/secret-santa-chat/page.tsx", "utf8");
+  const chatActionsSource = readFileSync("app/secret-santa-chat/chat-actions.ts", "utf8");
+
+  assert.match(chatPageSource, /CHAT_THREAD_MESSAGE_SCAN_LIMIT = 1000/);
+  assert.match(chatPageSource, /CHAT_ACTIVE_THREAD_MESSAGE_LIMIT = 250/);
+  assert.match(chatActionsSource, /CHAT_THREAD_MESSAGE_SCAN_LIMIT = 1000/);
+  assert.match(chatActionsSource, /CHAT_ACTIVE_THREAD_MESSAGE_LIMIT = 250/);
 });
 
 test("done-push workflow requires explicit current release intent and safety gates", () => {

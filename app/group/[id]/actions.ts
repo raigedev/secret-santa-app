@@ -1635,6 +1635,14 @@ async function getStoredRevealSession(groupId: string) {
   return data;
 }
 
+function isRevealDateReady(eventDate: string | null | undefined, now = new Date()): boolean {
+  if (!eventDate) {
+    return true;
+  }
+
+  return eventDate <= now.toISOString().slice(0, 10);
+}
+
 async function upsertRevealSession(options: {
   cardRevealed: boolean;
   countdownSeconds?: number;
@@ -1801,14 +1809,14 @@ export async function getRevealPresentationData(
   // Keep real names hidden from non-owners until each identity card is actually
   // revealed. The countdown is only a synchronized waiting state, not a reveal.
   const canRevealAllRealNamesToViewer =
-    isOwner || normalizedSession.status === "published" || group.revealed;
+    normalizedSession.status === "published" || group.revealed;
   const canRevealAliasRealNameToViewer = (aliasIndex: number) =>
     canRevealAllRealNamesToViewer ||
     (normalizedSession.status === "live" &&
       (aliasIndex < normalizedSession.currentIndex ||
         (aliasIndex === normalizedSession.currentIndex && normalizedSession.cardRevealed)));
   const canRevealAllMatchNamesToViewer =
-    isOwner || group.revealed || normalizedSession.status === "published";
+    group.revealed || normalizedSession.status === "published";
   const isLiveMatchPhase =
     normalizedSession.status === "live" &&
     normalizedSession.currentIndex >= sourceData.participants.length;
@@ -1851,7 +1859,7 @@ export async function getRevealPresentationData(
           receiver: canRevealThisMatch ? match.receiver : null,
         };
       }),
-      canPreviewBeforeReveal: isOwner,
+      canPreviewBeforeReveal: false,
       groupName: group.name,
       isOwner,
       revealed: group.revealed,
@@ -2250,7 +2258,7 @@ export async function triggerReveal(
 
   const { data: group } = await supabase
     .from("groups")
-    .select("owner_id, revealed, name")
+    .select("owner_id, revealed, name, event_date")
     .eq("id", groupId)
     .single();
 
@@ -2260,6 +2268,16 @@ export async function triggerReveal(
 
   if (group.revealed) {
     return { success: false, message: "This group has already been revealed." };
+  }
+
+  if (!isRevealDateReady(group.event_date)) {
+    return { success: false, message: "The full reveal opens on the gift day." };
+  }
+
+  const sourceData = await loadRevealSourceData(groupId);
+
+  if (sourceData.assignments.length === 0) {
+    return { success: false, message: "Names have not been drawn yet." };
   }
 
   const revealedAt = new Date().toISOString();
