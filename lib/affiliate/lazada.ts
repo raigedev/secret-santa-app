@@ -8,6 +8,7 @@ import {
 } from "@/lib/affiliate/lazada-feed";
 import {
   isLazadaPromotionShortLinkHostname,
+  normalizeLazadaPromotionLinkUrl,
   normalizeLazadaProductPageUrl,
 } from "@/lib/affiliate/lazada-url";
 import { slugifyAsciiIdentifier } from "@/lib/validation/common";
@@ -167,14 +168,20 @@ function getLazadaPromotionLinkCache(): Map<string, LazadaCachedPromotionLinkEnt
   return lazadaGlobalCache.__lazadaPromotionLinkCache;
 }
 
-function appendLazadaSubIdsToPromotionLink(
+function buildSafeLazadaPromotionLinkTarget(
   targetUrl: string,
   subIds: LazadaSubIds
-): string {
+): string | null {
+  const safeTargetUrl = normalizeLazadaPromotionLinkUrl(targetUrl);
+
+  if (!safeTargetUrl) {
+    return null;
+  }
+
   const safeSubIds = sanitizeLazadaSubIds(subIds);
 
   try {
-    const parsed = new URL(targetUrl);
+    const parsed = new URL(safeTargetUrl);
 
     for (const [key, value] of Object.entries(safeSubIds)) {
       if (!parsed.searchParams.has(key)) {
@@ -184,7 +191,7 @@ function appendLazadaSubIdsToPromotionLink(
 
     return parsed.toString();
   } catch {
-    return targetUrl;
+    return null;
   }
 }
 
@@ -203,13 +210,27 @@ function buildLazadaPromotionLinkResolution({
     return null;
   }
 
+  const targetUrl = buildSafeLazadaPromotionLinkTarget(link.promotionLink, subIds);
+
+  if (!targetUrl) {
+    return null;
+  }
+
   return {
     mode: "promotion-link",
     reason: "promotion-link-ready",
     resolvedProductId: link.productId || fallbackProductId,
     resolvedTitle: link.productName || link.offerName || fallbackTitle,
-    targetUrl: appendLazadaSubIdsToPromotionLink(link.promotionLink, subIds),
+    targetUrl,
   };
+}
+
+function hasSafeLazadaFeedPromotionLink(product: {
+  promoShortLink?: string | null;
+} | null): boolean {
+  return Boolean(
+    product?.promoShortLink && normalizeLazadaPromotionLinkUrl(product.promoShortLink)
+  );
 }
 
 function isResolvableLazadaUrl(value: string): boolean {
@@ -482,17 +503,17 @@ export async function primeLazadaPromotionLinks(options: {
         .filter((url): url is string => Boolean(url))
     )
   );
-  const productFeedHits = uniqueProductIds.filter(
-    (productId) => Boolean(findLazadaFeedProductByItemId(productId)?.promoShortLink)
+  const productFeedHits = uniqueProductIds.filter((productId) =>
+    hasSafeLazadaFeedPromotionLink(findLazadaFeedProductByItemId(productId))
   );
   const productIdsNeedingApiFetch = uniqueProductIds.filter(
-    (productId) => !findLazadaFeedProductByItemId(productId)?.promoShortLink
+    (productId) => !hasSafeLazadaFeedPromotionLink(findLazadaFeedProductByItemId(productId))
   );
-  const urlFeedHits = uniqueUrls.filter(
-    (url) => Boolean(findLazadaFeedProductByUrl(url)?.promoShortLink)
+  const urlFeedHits = uniqueUrls.filter((url) =>
+    hasSafeLazadaFeedPromotionLink(findLazadaFeedProductByUrl(url))
   );
   const urlsNeedingApiFetch = uniqueUrls.filter(
-    (url) => !findLazadaFeedProductByUrl(url)?.promoShortLink
+    (url) => !hasSafeLazadaFeedPromotionLink(findLazadaFeedProductByUrl(url))
   );
 
   let productIdsPrimed = 0;
@@ -635,13 +656,20 @@ async function resolveLazadaPromotionLinkTarget(options: {
   const feedProduct = findLazadaFeedProductByItemId(options.productId);
 
   if (feedProduct?.promoShortLink) {
-    return {
-      mode: "promotion-link",
-      reason: "feed-promo-link-ready",
-      resolvedProductId: feedProduct.itemId,
-      resolvedTitle: feedProduct.productName || null,
-      targetUrl: appendLazadaSubIdsToPromotionLink(feedProduct.promoShortLink, wishlistSubIds),
-    };
+    const targetUrl = buildSafeLazadaPromotionLinkTarget(
+      feedProduct.promoShortLink,
+      wishlistSubIds
+    );
+
+    if (targetUrl) {
+      return {
+        mode: "promotion-link",
+        reason: "feed-promo-link-ready",
+        resolvedProductId: feedProduct.itemId,
+        resolvedTitle: feedProduct.productName || null,
+        targetUrl,
+      };
+    }
   }
 
   const openApiStatus = getLazadaOpenApiStatus();
@@ -769,13 +797,20 @@ export async function resolveLazadaSuggestionLinkTarget(options: {
   });
 
   if (topMatch.product.promoShortLink) {
-    return {
-      mode: "promotion-link",
-      reason: "feed-promo-link-ready",
-      resolvedProductId: topMatch.product.itemId,
-      resolvedTitle: topMatch.product.productName,
-      targetUrl: appendLazadaSubIdsToPromotionLink(topMatch.product.promoShortLink, wishlistSubIds),
-    };
+    const targetUrl = buildSafeLazadaPromotionLinkTarget(
+      topMatch.product.promoShortLink,
+      wishlistSubIds
+    );
+
+    if (targetUrl) {
+      return {
+        mode: "promotion-link",
+        reason: "feed-promo-link-ready",
+        resolvedProductId: topMatch.product.itemId,
+        resolvedTitle: topMatch.product.productName,
+        targetUrl,
+      };
+    }
   }
 
   return resolveLazadaPromotionLinkTarget({
@@ -811,13 +846,20 @@ export async function resolveLazadaWishlistItemLinkTarget(options: {
   const feedProduct = findLazadaFeedProductByUrl(normalizedItemUrl);
 
   if (feedProduct?.promoShortLink) {
-    return {
-      mode: "promotion-link",
-      reason: "feed-promo-link-ready",
-      resolvedProductId: feedProduct.itemId,
-      resolvedTitle: feedProduct.productName || options.itemName,
-      targetUrl: appendLazadaSubIdsToPromotionLink(feedProduct.promoShortLink, wishlistSubIds),
-    };
+    const targetUrl = buildSafeLazadaPromotionLinkTarget(
+      feedProduct.promoShortLink,
+      wishlistSubIds
+    );
+
+    if (targetUrl) {
+      return {
+        mode: "promotion-link",
+        reason: "feed-promo-link-ready",
+        resolvedProductId: feedProduct.itemId,
+        resolvedTitle: feedProduct.productName || options.itemName,
+        targetUrl,
+      };
+    }
   }
 
   const openApiStatus = getLazadaOpenApiStatus();
@@ -923,12 +965,24 @@ export async function resolveLazadaSearchRouteLinkTarget(options: {
     const parsedFallbackUrl = new URL(options.fallbackUrl);
 
     if (isLazadaPromotionShortLinkHostname(parsedFallbackUrl.hostname)) {
+      const targetUrl = buildSafeLazadaPromotionLinkTarget(options.fallbackUrl, wishlistSubIds);
+
+      if (!targetUrl) {
+        return {
+          mode: "search-fallback",
+          reason: "invalid-search-url",
+          resolvedProductId: null,
+          resolvedTitle: null,
+          targetUrl: options.fallbackUrl,
+        };
+      }
+
       return {
         mode: "promotion-link",
         reason: "promotion-link-ready",
         resolvedProductId: null,
         resolvedTitle: null,
-        targetUrl: appendLazadaSubIdsToPromotionLink(options.fallbackUrl, wishlistSubIds),
+        targetUrl,
       };
     }
   } catch {
