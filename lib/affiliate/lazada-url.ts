@@ -4,6 +4,13 @@ const LAZADA_ALLOWED_HOSTS = [
   "pages.lazada.com.ph",
 ];
 
+const LAZADA_ALLOWED_IMAGE_HOSTS = [
+  "img.lazcdn.com",
+  "lazcdn.com",
+  "slatic.net",
+  "lazada.com.ph",
+];
+
 function normalizeHostname(hostname: string): string {
   return hostname.toLowerCase().replace(/^www\./, "");
 }
@@ -65,6 +72,31 @@ export function normalizeLazadaPromotionLinkUrl(url: string): string | null {
       !isLazadaPromotionShortLinkHostname(parsed.hostname) &&
       !(isLazadaHostname(parsed.hostname) && isLazadaProductPath(parsed.pathname))
     ) {
+      return null;
+    }
+
+    parsed.hash = "";
+
+    return parsed.toString();
+  } catch {
+    return null;
+  }
+}
+
+export function normalizeTrustedLazadaImageUrl(url: string): string | null {
+  try {
+    const parsed = new URL(url.trim());
+
+    if (parsed.protocol !== "https:") {
+      return null;
+    }
+
+    const hostname = normalizeHostname(parsed.hostname);
+    const isAllowedHost = LAZADA_ALLOWED_IMAGE_HOSTS.some(
+      (allowedHost) => hostname === allowedHost || hostname.endsWith(`.${allowedHost}`)
+    );
+
+    if (!isAllowedHost) {
       return null;
     }
 

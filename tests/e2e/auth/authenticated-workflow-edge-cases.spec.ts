@@ -341,7 +341,7 @@ test.describe("authenticated workflow edge cases", () => {
     });
     expect(appModalDisplay).not.toBe("none");
 
-    const deleteButton = page.getByRole("button", { name: /^delete$/i }).first();
+    const deleteButton = page.getByRole("button", { name: /delete group/i }).first();
     if (!(await deleteButton.isVisible({ timeout: 5000 }).catch(() => false))) {
       testInfo.annotations.push({
         type: "edge-case-note",

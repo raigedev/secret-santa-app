@@ -219,17 +219,11 @@ export default function GroupDetailsPage() {
         }
       }
 
-      const [groupResult, membersResult] = await Promise.all([
-        supabase
-          .from("groups")
-          .select("name, description, event_date, image_url, owner_id, budget, currency, require_anonymous_nickname, revealed, revealed_at")
-          .eq("id", id)
-          .maybeSingle(),
-        supabase
-          .from("group_members")
-          .select("id, user_id, nickname, email, role, status")
-          .eq("group_id", id),
-      ]);
+      const groupResult = await supabase
+        .from("groups")
+        .select("name, description, event_date, image_url, owner_id, budget, currency, require_anonymous_nickname, revealed, revealed_at")
+        .eq("id", id)
+        .maybeSingle();
 
       if (!isMounted) return;
 
@@ -245,12 +239,6 @@ export default function GroupDetailsPage() {
         return;
       }
 
-      if (membersResult.error) {
-        setError("Error loading members.");
-        setLoading(false);
-        return;
-      }
-
       const signedGroupImageUrl = await createSignedGroupImageUrl(
         supabase,
         groupResult.data.image_url
@@ -259,6 +247,26 @@ export default function GroupDetailsPage() {
         ...groupResult.data,
         image_url: signedGroupImageUrl,
       };
+      const isCurrentUserOwner = user.id === group.owner_id;
+      const membersResult = isCurrentUserOwner
+        ? await supabase
+            .from("group_members")
+            .select("id, user_id, nickname, email, role, status")
+            .eq("group_id", id)
+        : await supabase
+            .from("group_members")
+            .select("id, user_id, nickname, role, status")
+            .eq("group_id", id)
+            .eq("status", "accepted");
+
+      if (!isMounted || currentLoadVersion !== loadVersion) return;
+
+      if (membersResult.error) {
+        setError("Error loading members.");
+        setLoading(false);
+        return;
+      }
+
       setError(null);
       setGroupDataFresh(false);
       setRevealMatches([]);
@@ -268,11 +276,17 @@ export default function GroupDetailsPage() {
       setHasMoreDrawCycles(false);
       setHasMoreDrawResets(false);
       setGroupData(group);
-      const isCurrentUserOwner = user.id === group.owner_id;
       setIsOwner(isCurrentUserOwner);
       setDrawRulesReady(!isCurrentUserOwner);
 
-      const safeMembers = (membersResult.data ?? []) as Member[];
+      const safeMembers = ((membersResult.data ?? []) as Partial<Member>[]).map((member) => ({
+        id: member.id || "",
+        user_id: member.user_id || null,
+        nickname: member.nickname || null,
+        email: isCurrentUserOwner ? member.email || null : null,
+        role: member.role || "member",
+        status: member.status || "accepted",
+      }));
       setMembers(safeMembers);
 
       const { data: myAssignment } = await supabase
@@ -404,76 +418,8 @@ export default function GroupDetailsPage() {
       }
     };
 
-    const matchesGroupChange = (
-      payload: {
-        new: Record<string, string | null | undefined>;
-        old: Record<string, string | null | undefined>;
-      },
-      key: "group_id" | "id" = "group_id"
-    ) => {
-      const nextValue = payload.new?.[key];
-      const previousValue = payload.old?.[key];
-
-      // Delete events can be sparse depending on the table settings. When we
-      // cannot tell which row changed, prefer a safe reload over stale owner
-      // insights that would make the page feel broken.
-      if (!nextValue && !previousValue) {
-        return true;
-      }
-
-      return nextValue === id || previousValue === id;
-    };
-
-    // Refresh the page state whenever members, the group record, or
-    // assignments change so the owner does not have to manually reload.
-    const channel = supabase
-      .channel(`group-${id}-realtime`)
-      .on(
-        "postgres_changes",
-        { event: "*", schema: "public", table: "group_members", filter: `group_id=eq.${id}` },
-        (payload) => {
-          if (matchesGroupChange(payload)) {
-            scheduleReload();
-          }
-        }
-      )
-      .on(
-        "postgres_changes",
-        { event: "*", schema: "public", table: "groups", filter: `id=eq.${id}` },
-        (payload) => {
-          if (matchesGroupChange(payload, "id")) {
-            scheduleReload();
-          }
-        }
-      )
-      .on(
-        "postgres_changes",
-        { event: "*", schema: "public", table: "assignments", filter: `group_id=eq.${id}` },
-        (payload) => {
-          if (matchesGroupChange(payload)) {
-            scheduleReload();
-          }
-        }
-      )
-      .on(
-        "postgres_changes",
-        { event: "*", schema: "public", table: "wishlists", filter: `group_id=eq.${id}` },
-        (payload) => {
-          if (matchesGroupChange(payload)) {
-            scheduleReload();
-          }
-        }
-      )
-      .on(
-        "postgres_changes",
-        { event: "*", schema: "public", table: "group_draw_exclusions", filter: `group_id=eq.${id}` },
-        (payload) => {
-          if (matchesGroupChange(payload)) {
-            scheduleReload();
-          }
-        }
-      )
-      .subscribe();
+    // Avoid browser subscriptions on assignment and membership tables. Local
+    // actions still signal storage refreshes, with focus and polling as backup.
 
     window.addEventListener("storage", handleStorageRefresh);
     window.addEventListener("focus", refreshIfVisible);
@@ -491,7 +437,6 @@ export default function GroupDetailsPage() {
       window.removeEventListener("storage", handleStorageRefresh);
       window.removeEventListener("focus", refreshIfVisible);
       document.removeEventListener("visibilitychange", refreshIfVisible);
-      supabase.removeChannel(channel);
     };
   }, [id, router, supabase]);
 

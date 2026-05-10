@@ -188,7 +188,7 @@ Act as a senior full-stack engineer and software architect. Code this project wi
 - Keep CSP/security headers in `next.config.ts` restrictive. Only add external sources when required by the implemented feature and scoped as tightly as practical.
 - Keep `eslint-plugin-security` and `eslint-plugin-no-secrets` checks passing; do not suppress security warnings without a specific reason documented in the change.
 - Use CodeRabbit or an equivalent AI code reviewer on every pull request when available. Treat it as an additional security/reliability gate for SQL injection, exposed credentials, broken auth, unsafe redirects, race conditions, and other common regressions; it is not a replacement for tests, typecheck, linting, build, or human review.
-- When using `sqlmap`, prefer the ignored local checkout at `.agent/tools/sqlmap/sqlmap.py` through the bundled Codex Python runtime. Use it alongside Playwright, PayloadsAllTheThings references, security skills, and manual code review for targeted input-validation checks; do not let scanner output replace authorization, rate-limit, or RLS verification.
+- When using `sqlmap`, do not blindly trust an ignored local checkout. Verify the tool path and provenance first, prefer a reviewed pinned copy or official release, and run it through the bundled Codex Python runtime only for scoped local/app-owned targets. Use it alongside Playwright, PayloadsAllTheThings references, security skills, and manual code review for targeted input-validation checks; do not let scanner output replace authorization, rate-limit, or RLS verification.
 
 ### Security Playbook
 

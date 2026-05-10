@@ -24,8 +24,8 @@ import { createClient } from "@/lib/supabase/server";
 import { isUuid, sanitizePlainText } from "@/lib/validation/common";
 
 const RECEIVER_THREAD_PREFIX = "receiver:";
-const CHAT_THREAD_MESSAGE_SCAN_LIMIT = 300;
-const CHAT_ACTIVE_THREAD_MESSAGE_LIMIT = 100;
+const CHAT_THREAD_MESSAGE_SCAN_LIMIT = 1000;
+const CHAT_ACTIVE_THREAD_MESSAGE_LIMIT = 250;
 
 type ReceiverAssignmentRow = {
   giver_id: string;

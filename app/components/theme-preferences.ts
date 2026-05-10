@@ -10,9 +10,13 @@ export function readStoredDashboardTheme(): DashboardTheme {
     return "default";
   }
 
-  return window.localStorage.getItem(DASHBOARD_THEME_STORAGE_KEY) === "midnight"
-    ? "midnight"
-    : "default";
+  try {
+    return window.localStorage.getItem(DASHBOARD_THEME_STORAGE_KEY) === "midnight"
+      ? "midnight"
+      : "default";
+  } catch {
+    return "default";
+  }
 }
 
 export function writeStoredDashboardTheme(theme: DashboardTheme): void {
@@ -20,6 +24,10 @@ export function writeStoredDashboardTheme(theme: DashboardTheme): void {
     return;
   }
 
-  window.localStorage.setItem(DASHBOARD_THEME_STORAGE_KEY, theme);
+  try {
+    window.localStorage.setItem(DASHBOARD_THEME_STORAGE_KEY, theme);
+  } catch {
+    // Theme persistence is best-effort when browser storage is restricted.
+  }
   window.dispatchEvent(new CustomEvent(DASHBOARD_THEME_CHANGED_EVENT));
 }

@@ -2,7 +2,7 @@
 
 ## Parent Lockfile Warning
 
-Next.js may warn that it inferred the workspace root from `C:\Users\kenda\package-lock.json` because another lockfile exists above this project.
+Next.js may warn that it inferred the workspace root from a parent `package-lock.json` because another lockfile exists above this project.
 
 This is currently a warning, not a build blocker. Keep watching it during builds.
 

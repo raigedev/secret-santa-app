@@ -241,6 +241,8 @@ export async function loadLazadaHealthStatus(now = new Date()): Promise<LazadaHe
   const [
     { data: latestClicks, error: latestClicksError },
     { count: clicksLast24Hours, error: clicksLast24HoursError },
+    { count: totalConversions, error: totalConversionsError },
+    { count: unmappedConversions, error: unmappedConversionsError },
     { data: conversionRows, error: conversionRowsError },
   ] = await Promise.all([
     supabaseAdmin
@@ -256,6 +258,15 @@ export async function loadLazadaHealthStatus(now = new Date()): Promise<LazadaHe
       .gte("created_at", last24Hours.toISOString()),
     supabaseAdmin
       .from("affiliate_conversions")
+      .select("id", { count: "exact", head: true })
+      .eq("merchant", "lazada"),
+    supabaseAdmin
+      .from("affiliate_conversions")
+      .select("id", { count: "exact", head: true })
+      .eq("merchant", "lazada")
+      .is("affiliate_click_id", null),
+    supabaseAdmin
+      .from("affiliate_conversions")
       .select(
         "id, affiliate_click_id, amount, click_token, conversion_status, external_order_id, payout, received_at"
       )
@@ -264,13 +275,18 @@ export async function loadLazadaHealthStatus(now = new Date()): Promise<LazadaHe
       .limit(500),
   ]);
 
-  if (latestClicksError || clicksLast24HoursError || conversionRowsError) {
+  if (
+    latestClicksError ||
+    clicksLast24HoursError ||
+    totalConversionsError ||
+    unmappedConversionsError ||
+    conversionRowsError
+  ) {
     throw new Error("Failed to load Lazada health check.");
   }
 
   const healthConversionRows = (conversionRows || []) as AffiliateConversionRow[];
   const testConversionRows = healthConversionRows.filter(isLikelyTestConversion);
-  const realConversionRows = healthConversionRows.filter((row) => !isLikelyTestConversion(row));
 
   return buildHealthStatus({
     checkedAt: now.toISOString(),
@@ -280,7 +296,7 @@ export async function loadLazadaHealthStatus(now = new Date()): Promise<LazadaHe
     openApiMissingEnvVars: openApiStatus.missingEnvVars,
     openApiReady: openApiStatus.ready,
     postbackSecretConfigured: Boolean(process.env.LAZADA_POSTBACK_SECRET?.trim()),
-    totalConversions: realConversionRows.length,
-    unmappedConversions: realConversionRows.filter((row) => !row.affiliate_click_id).length,
+    totalConversions: Math.max((totalConversions || 0) - testConversionRows.length, 0),
+    unmappedConversions: unmappedConversions || 0,
   });
 }

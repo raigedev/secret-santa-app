@@ -36,7 +36,10 @@ import {
   writeClientSnapshot,
   type ClientSnapshotMetadata,
 } from "@/lib/client-snapshot";
-import { isLazadaProductPageUrl } from "@/lib/affiliate/lazada-url";
+import {
+  isLazadaProductPageUrl,
+  normalizeTrustedLazadaImageUrl,
+} from "@/lib/affiliate/lazada-url";
 import { isGroupInHistory } from "@/lib/groups/history";
 import { isNullableNumber, isNullableString, isRecord } from "@/lib/validation/common";
 import { formatPriceRange } from "@/lib/wishlist/pricing";
@@ -2534,7 +2537,7 @@ function getDisplayableLazadaProducts(
 
 function getFirstProductImageUrl(products: WishlistFeaturedProductCard[]): string {
   for (const product of products) {
-    const imageUrl = normalizeOptionalUrl(product.imageUrl || "");
+    const imageUrl = normalizeTrustedLazadaImageUrl(product.imageUrl || "");
 
     if (imageUrl) {
       return imageUrl;
@@ -2665,13 +2668,9 @@ export function SecretSantaExperience({ mode = "shopping" }: SecretSantaExperien
   const [assignments, setAssignments] = useState<RecipientData[]>([]);
   const [receivedGifts, setReceivedGifts] = useState<ReceivedGiftData[]>([]);
   const [loading, setLoading] = useState(true);
-  const [viewerName, setViewerName] = useState(() => readStoredViewerProfile().displayName);
-  const [viewerAvatarUrl, setViewerAvatarUrl] = useState(
-    () => readStoredViewerProfile().avatarUrl
-  );
-  const [viewerAvatarEmoji, setViewerAvatarEmoji] = useState(
-    () => readStoredViewerProfile().avatarEmoji
-  );
+  const [viewerName, setViewerName] = useState("");
+  const [viewerAvatarUrl, setViewerAvatarUrl] = useState("");
+  const [viewerAvatarEmoji, setViewerAvatarEmoji] = useState("");
   const [viewerUserId, setViewerUserId] = useState<string | null>(null);
   const [canViewAffiliateReport, setCanViewAffiliateReport] = useState(false);
 
@@ -3322,6 +3321,23 @@ export function SecretSantaExperience({ mode = "shopping" }: SecretSantaExperien
 
     return () => {
       cancelled = true;
+      setMatchedLazadaProductsByKey((current) => {
+        let changed = false;
+        const nextState = { ...current };
+
+        for (const request of pendingRequests) {
+          if (nextState[request.requestKey]?.loading) {
+            delete nextState[request.requestKey];
+            changed = true;
+          }
+        }
+
+        if (changed) {
+          matchedLazadaProductsByKeyRef.current = nextState;
+        }
+
+        return changed ? nextState : current;
+      });
     };
   }, [
     aiSuggestionStateByItem,
@@ -3359,9 +3375,16 @@ export function SecretSantaExperience({ mode = "shopping" }: SecretSantaExperien
         const user = session.user;
         setViewerUserId(user.id);
         void loadUnreadNotificationCount(user.id);
-        const resolvedViewerName = readStoredViewerName();
+        const storedViewerProfile = readStoredViewerProfile(user.id);
+        const resolvedViewerName = storedViewerProfile.displayName;
         if (resolvedViewerName) {
           setViewerName(resolvedViewerName);
+        }
+        if (storedViewerProfile.avatarUrl) {
+          setViewerAvatarUrl(storedViewerProfile.avatarUrl);
+        }
+        if (storedViewerProfile.avatarEmoji) {
+          setViewerAvatarEmoji(storedViewerProfile.avatarEmoji);
         }
 
         void getProfile()
@@ -3374,20 +3397,20 @@ export function SecretSantaExperience({ mode = "shopping" }: SecretSantaExperien
               user.email,
               user.user_metadata as Record<string, unknown>,
               profile?.display_name || "",
-              readStoredViewerName() || resolvedViewerName
+              readStoredViewerName(user.id) || resolvedViewerName
             );
 
             if (profileViewerName) {
               setViewerName(profileViewerName);
-              storeViewerName(profileViewerName);
+              storeViewerName(profileViewerName, user.id);
             }
 
             const profileAvatarUrl = normalizeViewerAvatarUrl(profile?.avatar_url);
             const profileAvatarEmoji = normalizeViewerAvatarEmoji(profile?.avatar_emoji);
             setViewerAvatarUrl(profileAvatarUrl);
-            storeViewerAvatarUrl(profileAvatarUrl || null);
+            storeViewerAvatarUrl(profileAvatarUrl || null, user.id);
             setViewerAvatarEmoji(profileAvatarEmoji);
-            storeViewerAvatarEmoji(profileAvatarEmoji || null);
+            storeViewerAvatarEmoji(profileAvatarEmoji || null, user.id);
           })
           .catch(() => {
             // Name refresh is non-blocking; keep the cached/email name if the profile action is unavailable.
@@ -3466,7 +3489,7 @@ export function SecretSantaExperience({ mode = "shopping" }: SecretSantaExperien
             createdAt: Date.now(),
             receivedGifts: [],
             userId: user.id,
-            viewerName: readStoredViewerName() || resolvedViewerName,
+            viewerName: readStoredViewerName(user.id) || resolvedViewerName,
           });
           hasAppliedPageSnapshotRef.current = true;
           setLoading(false);
@@ -3569,7 +3592,7 @@ export function SecretSantaExperience({ mode = "shopping" }: SecretSantaExperien
           createdAt: Date.now(),
           receivedGifts: receivedGiftData,
           userId: user.id,
-          viewerName: readStoredViewerName() || resolvedViewerName,
+          viewerName: readStoredViewerName(user.id) || resolvedViewerName,
         });
         hasAppliedPageSnapshotRef.current = true;
       } catch {
@@ -3916,7 +3939,7 @@ export function SecretSantaExperience({ mode = "shopping" }: SecretSantaExperien
           notificationsPanelOpen={notificationsPanelOpen}
           onViewerAvatarError={() => {
             setViewerAvatarUrl("");
-            storeViewerAvatarUrl(null);
+            storeViewerAvatarUrl(null, viewerUserId);
           }}
           unreadNotificationCount={unreadNotificationCount}
           viewerAvatarEmoji={viewerAvatarEmoji}
@@ -5275,7 +5298,7 @@ export function SecretSantaExperience({ mode = "shopping" }: SecretSantaExperien
                                                 getCuratedProductPriceLabel(product);
                                               const buttonLabel =
                                                 getFeaturedLazadaButtonLabel(product);
-                                              const productImageUrl = normalizeOptionalUrl(
+                                              const productImageUrl = normalizeTrustedLazadaImageUrl(
                                                 product.imageUrl ||
                                                   curatedFallbackImageUrl
                                               );
@@ -5352,6 +5375,7 @@ export function SecretSantaExperience({ mode = "shopping" }: SecretSantaExperien
                                                       <img
                                                         src={productImageUrl}
                                                         alt={product.title}
+                                                        referrerPolicy="no-referrer"
                                                         className="relative z-0 h-full max-h-47.5 w-full object-contain object-center transition duration-700 hover:scale-[1.03]"
                                                       />
                                                     ) : (

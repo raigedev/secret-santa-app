@@ -15,6 +15,7 @@ import { ProfileSkeleton } from "@/app/components/PageSkeleton";
 import FadeIn from "@/app/components/FadeIn";
 import {
   clearClientSnapshots,
+  clearAppSessionStorage,
   hasFreshClientSnapshotMetadata,
   readClientSnapshot,
   writeClientSnapshot,
@@ -526,6 +527,7 @@ export default function ProfilePage() {
     }
 
     try {
+      clearAppSessionStorage();
       await supabase.auth.signOut({ scope: "local" });
     } catch {
       // The auth user may already be gone on the server. A redirect is enough.
