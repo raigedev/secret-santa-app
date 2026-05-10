@@ -41,7 +41,7 @@ function sanitizeUrls(value: unknown): string[] {
 }
 
 export async function POST(request: NextRequest) {
-  const auth = await requireAuthenticatedAffiliateRoute({
+  const auth = await requireAuthenticatedAffiliateRoute(request, {
     action: "affiliate.lazada.prime_links",
     maxAttempts: 60,
     resourceId: "lazada",

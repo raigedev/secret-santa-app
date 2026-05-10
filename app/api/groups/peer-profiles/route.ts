@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 
 import { enforceRateLimit } from "@/lib/security/rate-limit";
+import { isTrustedRequestOrigin } from "@/lib/security/web";
 import { supabaseAdmin } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 import { isRecord, isUuid } from "@/lib/validation/common";
@@ -79,6 +80,10 @@ function normalizeProfileAvatarUrl(userId: string, avatarUrl: string | null): st
 }
 
 export async function POST(request: Request) {
+  if (!isTrustedRequestOrigin(request)) {
+    return peerProfileResponse({ profilesByGroup: {} }, { status: 403 });
+  }
+
   const supabase = await createClient();
   const {
     data: { user },
