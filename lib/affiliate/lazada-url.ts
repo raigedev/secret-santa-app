@@ -16,6 +16,10 @@ function isLazadaHostname(hostname: string): boolean {
   );
 }
 
+function isLazadaProductPath(pathname: string): boolean {
+  return pathname.toLowerCase().includes("/products/");
+}
+
 export function normalizeLazadaProductPageUrl(url: string): string | null {
   try {
     const parsed = new URL(url.trim());
@@ -28,7 +32,7 @@ export function normalizeLazadaProductPageUrl(url: string): string | null {
       return null;
     }
 
-    if (!parsed.pathname.toLowerCase().includes("/products/")) {
+    if (!isLazadaProductPath(parsed.pathname)) {
       return null;
     }
 
@@ -47,4 +51,27 @@ export function isLazadaProductPageUrl(url: string): boolean {
 
 export function isLazadaPromotionShortLinkHostname(hostname: string): boolean {
   return /^(c|s)\.lazada\.com\.ph$/i.test(hostname.trim());
+}
+
+export function normalizeLazadaPromotionLinkUrl(url: string): string | null {
+  try {
+    const parsed = new URL(url.trim());
+
+    if (parsed.protocol !== "http:" && parsed.protocol !== "https:") {
+      return null;
+    }
+
+    if (
+      !isLazadaPromotionShortLinkHostname(parsed.hostname) &&
+      !(isLazadaHostname(parsed.hostname) && isLazadaProductPath(parsed.pathname))
+    ) {
+      return null;
+    }
+
+    parsed.hash = "";
+
+    return parsed.toString();
+  } catch {
+    return null;
+  }
 }

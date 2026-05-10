@@ -302,6 +302,38 @@ test("affiliate redirect rate limits do not trust spoofed client IP headers", ()
   assert.doesNotMatch(redirectRouteSource, /x-forwarded-for|cf-connecting-ip|x-real-ip/i);
 });
 
+test("lazada promotion redirect targets are allowlisted", () => {
+  const lazadaUrlSource = readFileSync("lib/affiliate/lazada-url.ts", "utf8");
+  const lazadaSource = readFileSync("lib/affiliate/lazada.ts", "utf8");
+
+  assert.match(lazadaUrlSource, /export function normalizeLazadaPromotionLinkUrl/);
+  assert.match(lazadaUrlSource, /isLazadaPromotionShortLinkHostname\(parsed\.hostname\)/);
+  assert.match(lazadaUrlSource, /isLazadaHostname\(parsed\.hostname\)[\s\S]*isLazadaProductPath\(parsed\.pathname\)/);
+  assert.match(lazadaSource, /function buildSafeLazadaPromotionLinkTarget/);
+  assert.match(lazadaSource, /normalizeLazadaPromotionLinkUrl\(targetUrl\)/);
+  assert.doesNotMatch(lazadaSource, /targetUrl:\s*appendLazadaSubIdsToPromotionLink/);
+});
+
+test("lazada prime-links route rate limits and constrains product IDs", () => {
+  const primeLinksRouteSource = readFileSync(
+    "app/api/affiliate/lazada/prime-links/route.ts",
+    "utf8"
+  );
+
+  assert.match(primeLinksRouteSource, /requireAuthenticatedAffiliateRoute/);
+  assert.match(primeLinksRouteSource, /action:\s*"affiliate\.lazada\.prime_links"/);
+  assert.match(primeLinksRouteSource, /maxAttempts:\s*60/);
+  assert.match(
+    primeLinksRouteSource,
+    /LAZADA_PRODUCT_ID_PATTERN\s*=\s*\/\^\[0-9\]\{1,20\}\$\/;/
+  );
+  assert.match(
+    primeLinksRouteSource,
+    /\.filter\(\(productId\)\s*=>\s*LAZADA_PRODUCT_ID_PATTERN\.test\(productId\)\)/
+  );
+  assert.doesNotMatch(primeLinksRouteSource, /extractRequestClientIp|x-forwarded-for|cf-connecting-ip|x-real-ip/i);
+});
+
 test("done-push workflow requires explicit current release intent and safety gates", () => {
   const branchWorkflowSource = readFileSync(".agent/BRANCH_WORKFLOW.md", "utf8");
   const continuitySource = readFileSync(".agent/CONTINUITY.md", "utf8");

@@ -5,6 +5,7 @@ import { normalizeLazadaProductPageUrl } from "@/lib/affiliate/lazada-url";
 import { requireAuthenticatedAffiliateRoute } from "../_shared/authenticated-affiliate-route";
 
 const MAX_BATCH_INPUTS = 100;
+const LAZADA_PRODUCT_ID_PATTERN = /^[0-9]{1,20}$/;
 
 type PrimeLinksBody = {
   productIds?: unknown;
@@ -20,7 +21,7 @@ function sanitizeProductIds(value: unknown): string[] {
     new Set(
       value
         .map((productId) => (typeof productId === "string" ? productId.trim() : ""))
-        .filter((productId) => productId.length > 0)
+        .filter((productId) => LAZADA_PRODUCT_ID_PATTERN.test(productId))
     )
   ).slice(0, MAX_BATCH_INPUTS);
 }
