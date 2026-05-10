@@ -449,6 +449,25 @@ test("group detail page limits member data and avoids sensitive realtime rows", 
   assert.doesNotMatch(groupPageSource, /group-\$\{id\}-realtime/);
 });
 
+test("group detail clears stale owner insights before applying fresh group data", () => {
+  const groupPageSource = readFileSync("app/group/[id]/page.tsx", "utf8");
+  const freshGroupApplyBlock = groupPageSource.match(
+    /setError\(null\);[\s\S]*?setMembers\(safeMembers\);/
+  )?.[0];
+
+  assert.ok(freshGroupApplyBlock, "Expected fresh group data apply block to be present.");
+  assert.match(freshGroupApplyBlock, /setOwnerInsights\(null\);/);
+  assert.ok(
+    freshGroupApplyBlock.indexOf("setOwnerInsights(null);") <
+      freshGroupApplyBlock.indexOf("setGroupData(group);"),
+    "Owner insights must clear before fresh group data can render."
+  );
+  assert.match(
+    groupPageSource,
+    /wishlistReadinessLoaded=\{!isOwner \|\| Boolean\(ownerInsights\)\}/
+  );
+});
+
 test("dashboard shows email invites without auto-claiming memberships", () => {
   const dashboardPageSource = readFileSync("app/dashboard/page.tsx", "utf8");
   const dashboardGroupsDataSource = readFileSync("app/dashboard/dashboard-groups-data.ts", "utf8");
