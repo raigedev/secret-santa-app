@@ -314,6 +314,26 @@ test("lazada promotion redirect targets are allowlisted", () => {
   assert.doesNotMatch(lazadaSource, /targetUrl:\s*appendLazadaSubIdsToPromotionLink/);
 });
 
+test("lazada prime-links route rate limits and constrains product IDs", () => {
+  const primeLinksRouteSource = readFileSync(
+    "app/api/affiliate/lazada/prime-links/route.ts",
+    "utf8"
+  );
+
+  assert.match(primeLinksRouteSource, /requireAuthenticatedAffiliateRoute/);
+  assert.match(primeLinksRouteSource, /action:\s*"affiliate\.lazada\.prime_links"/);
+  assert.match(primeLinksRouteSource, /maxAttempts:\s*60/);
+  assert.match(
+    primeLinksRouteSource,
+    /LAZADA_PRODUCT_ID_PATTERN\s*=\s*\/\^\[0-9\]\{1,20\}\$\/;/
+  );
+  assert.match(
+    primeLinksRouteSource,
+    /\.filter\(\(productId\)\s*=>\s*LAZADA_PRODUCT_ID_PATTERN\.test\(productId\)\)/
+  );
+  assert.doesNotMatch(primeLinksRouteSource, /extractRequestClientIp|x-forwarded-for|cf-connecting-ip|x-real-ip/i);
+});
+
 test("done-push workflow requires explicit current release intent and safety gates", () => {
   const branchWorkflowSource = readFileSync(".agent/BRANCH_WORKFLOW.md", "utf8");
   const continuitySource = readFileSync(".agent/CONTINUITY.md", "utf8");
