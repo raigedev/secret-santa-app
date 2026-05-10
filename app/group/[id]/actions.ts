@@ -1601,6 +1601,7 @@ function normalizeRevealSession(options: {
       : fallbackStatus;
   const maxIndex = Math.max(options.entryCount - 1, 0);
   const rawIndex = options.session?.current_index ?? 0;
+  const storedCardRevealed = options.session?.card_revealed;
 
   return {
     status: safeStatus,
@@ -1611,8 +1612,8 @@ function normalizeRevealSession(options: {
     currentIndex: Math.min(Math.max(rawIndex, 0), maxIndex),
     cardRevealed:
       safeStatus === "published"
-        ? true
-        : Boolean(options.session?.card_revealed) && options.entryCount > 0,
+        ? storedCardRevealed !== false
+        : Boolean(storedCardRevealed) && options.entryCount > 0,
     startedAt: options.session?.started_at || null,
     lastUpdatedAt: options.session?.last_updated_at || options.groupRevealedAt,
     publishedAt: options.session?.published_at || options.groupRevealedAt,
