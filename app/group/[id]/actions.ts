@@ -1798,14 +1798,15 @@ export async function getRevealPresentationData(
     session: storedSession,
   });
 
-  // Keep real names hidden from non-owners until the shared reveal actually starts.
-  // Owners can always preview locally before the public reveal begins.
-  const canRevealRealNamesToViewer =
-    isOwner ||
-    normalizedSession.status === "countdown" ||
-    normalizedSession.status === "live" ||
-    normalizedSession.status === "published" ||
-    group.revealed;
+  // Keep real names hidden from non-owners until each identity card is actually
+  // revealed. The countdown is only a synchronized waiting state, not a reveal.
+  const canRevealAllRealNamesToViewer =
+    isOwner || normalizedSession.status === "published" || group.revealed;
+  const canRevealAliasRealNameToViewer = (aliasIndex: number) =>
+    canRevealAllRealNamesToViewer ||
+    (normalizedSession.status === "live" &&
+      (aliasIndex < normalizedSession.currentIndex ||
+        (aliasIndex === normalizedSession.currentIndex && normalizedSession.cardRevealed)));
   const canRevealAllMatchNamesToViewer =
     isOwner || group.revealed || normalizedSession.status === "published";
   const isLiveMatchPhase =
@@ -1835,10 +1836,10 @@ export async function getRevealPresentationData(
     success: true,
     message: "Reveal screen loaded.",
     data: {
-      aliasEntries: sourceData.participants.map((participant) => ({
+      aliasEntries: sourceData.participants.map((participant, aliasIndex) => ({
         alias: participant.alias,
         avatarEmoji: participant.avatarEmoji,
-        realName: canRevealRealNamesToViewer ? participant.realName : null,
+        realName: canRevealAliasRealNameToViewer(aliasIndex) ? participant.realName : null,
       })),
       matchEntries: revealMatches.map((match, matchIndex) => {
         const canRevealThisMatch =

@@ -195,6 +195,22 @@ test("live reveal only exposes matches after each card reveal", () => {
   assert.match(groupActionsSource, /matchIndex <= lastRevealedMatchIndex/);
 });
 
+test("countdown reveal keeps alias real names redacted", () => {
+  const groupActionsSource = readFileSync("app/group/[id]/actions.ts", "utf8");
+
+  assert.doesNotMatch(groupActionsSource, /canRevealRealNamesToViewer/);
+  assert.match(groupActionsSource, /canRevealAllRealNamesToViewer/);
+  assert.match(groupActionsSource, /canRevealAliasRealNameToViewer/);
+  assert.doesNotMatch(
+    groupActionsSource,
+    /normalizedSession\.status === "countdown"[\s\S]{0,180}realName/
+  );
+  assert.match(
+    groupActionsSource,
+    /aliasIndex === normalizedSession\.currentIndex && normalizedSession\.cardRevealed/
+  );
+});
+
 test("hidden reveal match cards keep DOM labels redacted", () => {
   const revealPageSource = readFileSync("app/group/[id]/reveal/page.tsx", "utf8");
 
