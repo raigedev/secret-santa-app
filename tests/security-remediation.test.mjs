@@ -554,6 +554,18 @@ test("secret santa chat keeps a broader message window for unread state", () => 
   assert.match(chatActionsSource, /CHAT_ACTIVE_THREAD_MESSAGE_LIMIT = 250/);
 });
 
+test("sqlmap guidance does not trust ignored local tooling by default", () => {
+  const agentsSource = readFileSync("AGENTS.md", "utf8");
+
+  assert.doesNotMatch(agentsSource, /Use the repo-local `sqlmap` install automatically/);
+  assert.match(agentsSource, /Use `sqlmap` only after the tool source is reviewed or verified/);
+  assert.match(
+    agentsSource,
+    /Do not execute the ignored `\.agent\/tools\/sqlmap\/sqlmap\.py` path automatically/
+  );
+  assert.match(agentsSource, /prefer a reviewed pinned copy or official release/);
+});
+
 test("done-push workflow requires explicit current release intent and safety gates", () => {
   const branchWorkflowSource = readFileSync(".agent/BRANCH_WORKFLOW.md", "utf8");
   const continuitySource = readFileSync(".agent/CONTINUITY.md", "utf8");
