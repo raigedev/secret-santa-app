@@ -3506,12 +3506,7 @@ export function SecretSantaExperience({ mode = "shopping" }: SecretSantaExperien
             .select("id, name, event_date, budget, currency")
             .in("id", groupIds),
           supabase
-            .from("assignments")
-            .select(
-              "group_id, receiver_id, gift_prep_status, gift_prep_updated_at, gift_received, gift_received_at"
-            )
-            .eq("giver_id", user.id)
-            .in("group_id", groupIds),
+            .rpc("list_my_assignment_gift_prep", { p_group_ids: groupIds }),
           supabase
             .from("assignments")
             .select("group_id, gift_received, gift_received_at")

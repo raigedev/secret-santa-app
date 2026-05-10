@@ -461,12 +461,9 @@ export default function DashboardPage() {
               : createEmptyQueryResult<AssignmentRow>(),
             acceptedGroupIds.length > 0
               ? supabase
-                  .from("assignments")
-                  .select(
-                    "group_id, receiver_id, gift_prep_status, gift_prep_updated_at"
-                  )
-                  .eq("giver_id", user.id)
-                  .in("group_id", acceptedGroupIds)
+                  .rpc("list_my_assignment_gift_prep", {
+                    p_group_ids: acceptedGroupIds,
+                  })
               : createEmptyQueryResult<MyAssignmentRow>(),
             pendingGroupIds.length > 0
               ? supabase
@@ -530,7 +527,7 @@ export default function DashboardPage() {
         const allAssignments = (assignmentsRes.data || []).filter((assignment) =>
           activeGroupIds.has(assignment.group_id)
         );
-        const myAssignments = (myAssignRes.data || []).filter((assignment) =>
+        const myAssignments = ((myAssignRes.data || []) as MyAssignmentRow[]).filter((assignment) =>
           activeGroupIds.has(assignment.group_id)
         );
         const pendingGroups = (pendingRes.data || []).filter(

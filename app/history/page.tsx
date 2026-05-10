@@ -90,10 +90,9 @@ export default function HistoryPage() {
                   .eq("user_id", user.id)
                   .in("group_id", historyGroupIds),
                 supabase
-                  .from("assignments")
-                  .select("group_id, receiver_id, gift_prep_status, gift_received")
-                  .eq("giver_id", user.id)
-                  .in("group_id", historyGroupIds),
+                  .rpc("list_my_assignment_gift_prep", {
+                    p_group_ids: historyGroupIds,
+                  }),
               ])
             : [
                 { data: [], error: null },

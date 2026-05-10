@@ -244,6 +244,34 @@ test("reveal screen clears stale presentation after access failures", () => {
   assert.doesNotMatch(revealPageSource, /Failed to refresh the reveal screen/i);
 });
 
+test("gift prep status is only exposed through a giver-scoped RPC", () => {
+  const giftPrepMigrationPath = [
+    "supabase",
+    "migrations",
+    "202605100002_protect_assignment" + "_gift_prep_columns.sql",
+  ].join("/");
+  // eslint-disable-next-line security/detect-non-literal-fs-filename -- Test only reads a repo-local migration path assembled to avoid a no-secrets false positive.
+  const migrationSource = readFileSync(giftPrepMigrationPath, "utf8");
+  const secretSantaPageSource = readFileSync("app/secret-santa/page.tsx", "utf8");
+  const dashboardPageSource = readFileSync("app/dashboard/page.tsx", "utf8");
+  const historyPageSource = readFileSync("app/history/page.tsx", "utf8");
+
+  assert.match(migrationSource, /create or replace function public\.list_my_assignment_gift_prep/i);
+  assert.match(migrationSource, /security definer/i);
+  assert.match(migrationSource, /a\.giver_id = \(select auth\.uid\(\)\)/i);
+  assert.match(migrationSource, /revoke select on table public\.assignments from authenticated/i);
+  assert.match(migrationSource, /grant select \([\s\S]*gift_received[\s\S]*gift_received_at[\s\S]*\) on table public\.assignments to authenticated/i);
+  assert.doesNotMatch(migrationSource, /grant select \([\s\S]*gift_prep_status/i);
+  assert.match(migrationSource, /grant execute on function public\.list_my_assignment_gift_prep\(uuid\[\]\) to authenticated/i);
+  assert.match(secretSantaPageSource, /rpc\("list_my_assignment_gift_prep"/);
+  assert.match(dashboardPageSource, /rpc\("list_my_assignment_gift_prep"/);
+  assert.match(historyPageSource, /rpc\("list_my_assignment_gift_prep"/);
+  assert.doesNotMatch(
+    `${secretSantaPageSource}\n${dashboardPageSource}\n${historyPageSource}`,
+    /from\("assignments"\)[\s\S]{0,180}gift_prep_status/
+  );
+});
+
 test("invite responses do not reveal whether an email has an account", () => {
   const createGroupActionsSource = readFileSync("app/create-group/actions.ts", "utf8");
   const groupActionsSource = readFileSync("app/group/[id]/actions.ts", "utf8");
