@@ -561,6 +561,7 @@ let ok = true;
 
 ok = checkTailwindCanonicalClasses() && ok;
 ok = checkSupabaseMigrationCliSafety() && ok;
+ok = runCommand("Security regression guardrails", npmCommand, ["run", "test:security"]) && ok;
 ok = runCommand("TypeScript", npmCommand, ["run", "typecheck"]) && ok;
 ok = runCommand("ESLint security", npmCommand, ["run", "lint:security"]) && ok;
 ok = runCommand("cSpell", npxCommand, ["--yes", "cspell@8", "--no-progress", "."]) && ok;
