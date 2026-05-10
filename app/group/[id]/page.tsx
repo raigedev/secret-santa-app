@@ -269,6 +269,7 @@ export default function GroupDetailsPage() {
 
       setError(null);
       setGroupDataFresh(false);
+      setOwnerInsights(null);
       setRevealMatches([]);
       setGroupRecap(null);
       setDrawCycleHistory([]);
