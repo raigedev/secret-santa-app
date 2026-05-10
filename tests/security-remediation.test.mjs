@@ -195,6 +195,29 @@ test("live reveal only exposes matches after each card reveal", () => {
   assert.match(groupActionsSource, /matchIndex <= lastRevealedMatchIndex/);
 });
 
+test("hidden reveal match cards keep DOM labels redacted", () => {
+  const revealPageSource = readFileSync("app/group/[id]/reveal/page.tsx", "utf8");
+
+  assert.match(
+    revealPageSource,
+    /const activeMatchGiverLabel = revealedCard \? activeMatchGiver : "\?\?\?";/
+  );
+  assert.match(
+    revealPageSource,
+    /const activeMatchReceiverLabel = revealedCard \? activeMatchReceiver : "\?\?\?";/
+  );
+  assert.match(
+    revealPageSource,
+    /getRevealNameTextStyle\(activeMatchGiverLabel, "match"\)/
+  );
+  assert.match(
+    revealPageSource,
+    /getRevealNameTextStyle\(activeMatchReceiverLabel, "match"\)/
+  );
+  assert.doesNotMatch(revealPageSource, /title=\{activeMatchGiver\}/);
+  assert.doesNotMatch(revealPageSource, /title=\{activeMatchReceiver\}/);
+});
+
 test("invite responses do not reveal whether an email has an account", () => {
   const createGroupActionsSource = readFileSync("app/create-group/actions.ts", "utf8");
   const groupActionsSource = readFileSync("app/group/[id]/actions.ts", "utf8");
