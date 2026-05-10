@@ -7,6 +7,7 @@ import {
 } from "@/lib/ai/openrouter";
 import { enforceRateLimit } from "@/lib/security/rate-limit";
 import { recordServerFailure } from "@/lib/security/audit";
+import { isTrustedRequestOrigin } from "@/lib/security/web";
 import { createClient } from "@/lib/supabase/server";
 import {
   isUuid,
@@ -88,6 +89,10 @@ async function generateWishlistSuggestionDrafts(input: {
 }
 
 export async function POST(request: NextRequest) {
+  if (!isTrustedRequestOrigin(request)) {
+    return NextResponse.json({ error: "Forbidden", suggestions: [], usedAi: false }, { status: 403 });
+  }
+
   const supabase = await createClient();
   const {
     data: { user },

@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 
 import { enforceRateLimit } from "@/lib/security/rate-limit";
+import { isTrustedRequestOrigin } from "@/lib/security/web";
 import { createClient } from "@/lib/supabase/server";
 
 type AffiliateRouteRateLimitOptions = {
@@ -14,6 +15,7 @@ type AffiliateRouteRateLimitOptions = {
 };
 
 export async function requireAuthenticatedAffiliateRoute(
+  request: Request,
   options: AffiliateRouteRateLimitOptions
 ): Promise<
   | {
@@ -25,6 +27,13 @@ export async function requireAuthenticatedAffiliateRoute(
       response: NextResponse;
     }
 > {
+  if (!isTrustedRequestOrigin(request)) {
+    return {
+      ok: false,
+      response: NextResponse.json({ error: "Forbidden" }, { status: 403 }),
+    };
+  }
+
   const supabase = await createClient();
   const {
     data: { user },

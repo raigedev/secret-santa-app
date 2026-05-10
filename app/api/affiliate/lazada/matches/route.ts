@@ -589,7 +589,7 @@ function addRepresentativeImagesToSearchFallbackCards(input: {
 }
 
 export async function POST(request: NextRequest) {
-  const auth = await requireAuthenticatedAffiliateRoute({
+  const auth = await requireAuthenticatedAffiliateRoute(request, {
     action: "affiliate.lazada.matches",
     maxAttempts: 120,
     resourceType: "affiliate_match",

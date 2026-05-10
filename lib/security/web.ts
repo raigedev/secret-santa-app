@@ -96,3 +96,23 @@ export function resolveTrustedAppOrigin(requestUrl: URL): string {
 
   return configuredOrigins[0] || requestOrigin || requestUrl.origin;
 }
+
+export function isTrustedRequestOrigin(request: Request): boolean {
+  const providedOrigin = normalizeHttpOrigin(request.headers.get("origin"));
+
+  if (!providedOrigin) {
+    return true;
+  }
+
+  const requestUrl = new URL(request.url);
+  const requestOrigin = normalizeHttpOrigin(requestUrl.origin);
+  const trustedOrigins = uniqueOrigins([
+    requestOrigin,
+    normalizeHttpOrigin(process.env.NEXT_PUBLIC_APP_URL),
+    normalizeHttpOrigin(process.env.APP_URL),
+    normalizeHttpOrigin(process.env.VERCEL_URL),
+    normalizeHttpOrigin(process.env.VERCEL_PROJECT_PRODUCTION_URL),
+  ]);
+
+  return trustedOrigins.includes(providedOrigin);
+}

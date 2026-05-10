@@ -591,3 +591,30 @@ test("done-push workflow requires explicit current release intent and safety gat
   assert.match(continuitySource, /only an explicit current `done push` \/ `done pushing` release message/);
   assert.match(continuitySource, /verify the actual fix/);
 });
+
+test("authenticated browser POST routes reject untrusted origins", () => {
+  const webSecuritySource = readFileSync("lib/security/web.ts", "utf8");
+  const aiSuggestionsSource = readFileSync("app/api/ai/wishlist-suggestions/route.ts", "utf8");
+  const peerProfilesSource = readFileSync("app/api/groups/peer-profiles/route.ts", "utf8");
+  const affiliateAuthSource = readFileSync(
+    "app/api/affiliate/lazada/_shared/authenticated-affiliate-route.ts",
+    "utf8"
+  );
+  const lazadaMatchesSource = readFileSync("app/api/affiliate/lazada/matches/route.ts", "utf8");
+  const lazadaPrimeLinksSource = readFileSync("app/api/affiliate/lazada/prime-links/route.ts", "utf8");
+  const lazadaPostbackSource = readFileSync("app/api/affiliate/lazada/postback/route.ts", "utf8");
+  const reminderProcessorSource = readFileSync(
+    "app/api/notifications/process-reminders/route.ts",
+    "utf8"
+  );
+
+  assert.match(webSecuritySource, /export function isTrustedRequestOrigin\(request: Request\)/);
+  assert.match(webSecuritySource, /request\.headers\.get\("origin"\)/);
+  assert.match(aiSuggestionsSource, /isTrustedRequestOrigin\(request\)/);
+  assert.match(peerProfilesSource, /isTrustedRequestOrigin\(request\)/);
+  assert.match(affiliateAuthSource, /isTrustedRequestOrigin\(request\)/);
+  assert.match(lazadaMatchesSource, /requireAuthenticatedAffiliateRoute\(request,/);
+  assert.match(lazadaPrimeLinksSource, /requireAuthenticatedAffiliateRoute\(request,/);
+  assert.doesNotMatch(lazadaPostbackSource, /isTrustedRequestOrigin/);
+  assert.doesNotMatch(reminderProcessorSource, /isTrustedRequestOrigin/);
+});
