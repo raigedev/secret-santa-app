@@ -234,6 +234,16 @@ test("hidden reveal match cards keep DOM labels redacted", () => {
   assert.doesNotMatch(revealPageSource, /title=\{activeMatchReceiver\}/);
 });
 
+test("reveal screen clears stale presentation after access failures", () => {
+  const revealPageSource = readFileSync("app/group/[id]/reveal/page.tsx", "utf8");
+  const failedLoadBranch =
+    /if \(!result\.success \|\| !result\.data\) \{[\s\S]{0,260}setPresentation\(null\);[\s\S]{0,160}hasLoadedPresentationRef\.current = false;[\s\S]{0,260}setError\(result\.message \|\| "Failed to load the reveal screen\."\);/;
+
+  assert.match(revealPageSource, failedLoadBranch);
+  assert.doesNotMatch(revealPageSource, /background sync should preserve the current/i);
+  assert.doesNotMatch(revealPageSource, /Failed to refresh the reveal screen/i);
+});
+
 test("invite responses do not reveal whether an email has an account", () => {
   const createGroupActionsSource = readFileSync("app/create-group/actions.ts", "utf8");
   const groupActionsSource = readFileSync("app/group/[id]/actions.ts", "utf8");

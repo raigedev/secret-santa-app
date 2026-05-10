@@ -239,16 +239,12 @@ export default function GroupRevealPage() {
       }
 
       if (!result.success || !result.data) {
-        // Only replace the whole screen with an error if the first blocking load fails.
-        // Once the reveal is on screen, background sync should preserve the current
-        // presentation and fail softly instead of flashing users back to a loader.
-        if (!hasLoadedPresentationRef.current) {
-          setError(result.message || "Failed to load the reveal screen.");
-          setLoading(false);
-        } else {
-          setActionMessage(result.message || "Failed to refresh the reveal screen.");
-          setRefreshing(false);
-        }
+        setPresentation(null);
+        hasLoadedPresentationRef.current = false;
+        setError(result.message || "Failed to load the reveal screen.");
+        setActionMessage("");
+        setLoading(false);
+        setRefreshing(false);
         return;
       }
 
