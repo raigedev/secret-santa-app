@@ -234,6 +234,20 @@ test("hidden reveal match cards keep DOM labels redacted", () => {
   assert.doesNotMatch(revealPageSource, /title=\{activeMatchReceiver\}/);
 });
 
+test("published reveal replay can reset the current card to hidden", () => {
+  const groupActionsSource = readFileSync("app/group/[id]/actions.ts", "utf8");
+  const revealPageSource = readFileSync("app/group/[id]/reveal/page.tsx", "utf8");
+
+  assert.match(groupActionsSource, /const storedCardRevealed = options\.session\?\.card_revealed;/);
+  assert.doesNotMatch(groupActionsSource, /safeStatus === "published"\s*\?\s*true/);
+  assert.match(
+    groupActionsSource,
+    /safeStatus === "published"\s*\?\s*storedCardRevealed !== false/
+  );
+  assert.match(revealPageSource, /updateRevealSessionState\(id, 0, false\)/);
+  assert.match(revealPageSource, /Event presentation reset to the first hidden card\./);
+});
+
 test("reveal screen clears stale presentation after access failures", () => {
   const revealPageSource = readFileSync("app/group/[id]/reveal/page.tsx", "utf8");
   const failedLoadBranch =
