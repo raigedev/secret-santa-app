@@ -474,9 +474,11 @@ export default function GroupRevealPage() {
       : "Nickname hidden";
   const activeMatchGiver = activeMatchEntry?.giver || "Member";
   const activeMatchReceiver = activeMatchEntry?.receiver || "Member";
+  const activeMatchGiverLabel = revealedCard ? activeMatchGiver : "???";
+  const activeMatchReceiverLabel = revealedCard ? activeMatchReceiver : "???";
   const activeAliasTitleStyle = getRevealNameTextStyle(activeCardTitle, "alias");
-  const activeMatchGiverStyle = getRevealNameTextStyle(activeMatchGiver, "match");
-  const activeMatchReceiverStyle = getRevealNameTextStyle(activeMatchReceiver, "match");
+  const activeMatchGiverStyle = getRevealNameTextStyle(activeMatchGiverLabel, "match");
+  const activeMatchReceiverStyle = getRevealNameTextStyle(activeMatchReceiverLabel, "match");
 
   const applySharedSession = (nextSession: RevealSession | undefined) => {
     if (!nextSession) {
@@ -1076,9 +1078,9 @@ export default function GroupRevealPage() {
                                 fontFamily: "'Fredoka', sans-serif",
                                 ...activeMatchGiverStyle,
                               }}
-                              title={activeMatchGiver}
+                              title={activeMatchGiverLabel}
                             >
-                              {revealedCard ? activeMatchGiver : "???"}
+                              {activeMatchGiverLabel}
                             </div>
                           </div>
 
@@ -1104,9 +1106,9 @@ export default function GroupRevealPage() {
                                 fontFamily: "'Fredoka', sans-serif",
                                 ...activeMatchReceiverStyle,
                               }}
-                              title={activeMatchReceiver}
+                              title={activeMatchReceiverLabel}
                             >
-                              {revealedCard ? activeMatchReceiver : "???"}
+                              {activeMatchReceiverLabel}
                             </div>
                           </div>
                         </div>
