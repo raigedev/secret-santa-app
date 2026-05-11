@@ -8,6 +8,11 @@ import {
   type SantaAssistantAnswer,
   type SantaAssistantTip,
 } from "@/lib/santaAssistantTips";
+import {
+  readLocalStorageItem,
+  removeLocalStorageItem,
+  writeLocalStorageItem,
+} from "@/lib/client-snapshot";
 
 const SEEN_STORAGE_KEY = "secret-santa-assistant-seen-v1";
 const MINIMIZED_STORAGE_KEY = "secret-santa-assistant-minimized-v1";
@@ -52,11 +57,7 @@ type SantaAssistantState = {
 };
 
 export function readSantaAssistantHiddenPreference(): boolean {
-  if (typeof window === "undefined") {
-    return false;
-  }
-
-  return window.localStorage.getItem(HIDDEN_STORAGE_KEY) === "true";
+  return readLocalStorageItem(HIDDEN_STORAGE_KEY) === "true";
 }
 
 export function setSantaAssistantHiddenPreference(hidden: boolean): void {
@@ -65,10 +66,10 @@ export function setSantaAssistantHiddenPreference(hidden: boolean): void {
   }
 
   if (hidden) {
-    window.localStorage.setItem(HIDDEN_STORAGE_KEY, "true");
+    writeLocalStorageItem(HIDDEN_STORAGE_KEY, "true");
   } else {
-    window.localStorage.removeItem(HIDDEN_STORAGE_KEY);
-    window.localStorage.setItem(MINIMIZED_STORAGE_KEY, "false");
+    removeLocalStorageItem(HIDDEN_STORAGE_KEY);
+    writeLocalStorageItem(MINIMIZED_STORAGE_KEY, "false");
   }
 
   window.dispatchEvent(
@@ -116,14 +117,14 @@ export function useSantaAssistant(): SantaAssistantState {
         return;
       }
 
-      const minimized = window.localStorage.getItem(MINIMIZED_STORAGE_KEY) === "true";
-      const seen = window.localStorage.getItem(SEEN_STORAGE_KEY) === "true";
+      const minimized = readLocalStorageItem(MINIMIZED_STORAGE_KEY) === "true";
+      const seen = readLocalStorageItem(SEEN_STORAGE_KEY) === "true";
 
       setIsMinimized(minimized);
       setIsOpen(!minimized && !seen);
 
       if (!seen) {
-        window.localStorage.setItem(SEEN_STORAGE_KEY, "true");
+        writeLocalStorageItem(SEEN_STORAGE_KEY, "true");
       }
     }, 0);
 
@@ -146,7 +147,7 @@ export function useSantaAssistant(): SantaAssistantState {
   }, [isOpen]);
 
   const open = useCallback(() => {
-    window.localStorage.setItem(MINIMIZED_STORAGE_KEY, "false");
+    writeLocalStorageItem(MINIMIZED_STORAGE_KEY, "false");
     setIsMinimized(false);
     setIsOpen(true);
   }, []);
@@ -157,7 +158,7 @@ export function useSantaAssistant(): SantaAssistantState {
   }, []);
 
   const minimize = useCallback(() => {
-    window.localStorage.setItem(MINIMIZED_STORAGE_KEY, "true");
+    writeLocalStorageItem(MINIMIZED_STORAGE_KEY, "true");
     setIsMinimized(true);
     setIsOpen(false);
   }, []);

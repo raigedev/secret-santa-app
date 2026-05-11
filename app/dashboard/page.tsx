@@ -25,6 +25,10 @@ import { DashboardStatusMessage } from "./DashboardStatusMessage";
 import { useDashboardRoutePrefetch } from "./useDashboardRoutePrefetch";
 import { fetchMyAssignmentGiftPrep } from "@/lib/assignments/gift-prep-client";
 import {
+  removeSessionStorageItem,
+  writeSessionStorageItem,
+} from "@/lib/client-snapshot";
+import {
   clearDashboardSnapshots,
   readDashboardSnapshot,
   sanitizeGroupsForDashboardSnapshot,
@@ -774,12 +778,10 @@ export default function DashboardPage() {
         const payload = (await response.json()) as { allowed?: boolean };
         const allowed = Boolean(payload.allowed);
 
-        if (typeof sessionStorage !== "undefined") {
-          if (allowed) {
-            sessionStorage.setItem("ss_ara", "1");
-          } else {
-            sessionStorage.removeItem("ss_ara");
-          }
+        if (allowed) {
+          writeSessionStorageItem("ss_ara", "1");
+        } else {
+          removeSessionStorageItem("ss_ara");
         }
 
         if (isMounted) {

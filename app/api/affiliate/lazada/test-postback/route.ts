@@ -2,6 +2,8 @@ import { createHash } from "crypto";
 import { NextRequest, NextResponse } from "next/server";
 
 import { canViewAffiliateReport } from "@/lib/affiliate/report-access";
+import { enforceRateLimit } from "@/lib/security/rate-limit";
+import { isTrustedRequestOrigin } from "@/lib/security/web";
 import { supabaseAdmin } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 
@@ -23,12 +25,6 @@ function buildPayloadHash(payload: Record<string, string>): string {
   return createHash("sha256").update(JSON.stringify(normalized)).digest("hex");
 }
 
-function isSameOriginRequest(request: NextRequest): boolean {
-  const origin = request.headers.get("origin");
-
-  return !origin || origin === request.nextUrl.origin;
-}
-
 function redirectToReport(request: NextRequest, status: string): NextResponse {
   const target = new URL("/dashboard/affiliate-report", request.url);
   target.searchParams.set("testPostback", status);
@@ -37,7 +33,7 @@ function redirectToReport(request: NextRequest, status: string): NextResponse {
 }
 
 export async function POST(request: NextRequest) {
-  if (!isSameOriginRequest(request)) {
+  if (!isTrustedRequestOrigin(request)) {
     return new NextResponse("Forbidden", { status: 403 });
   }
 
@@ -46,8 +42,21 @@ export async function POST(request: NextRequest) {
     data: { user },
   } = await supabase.auth.getUser();
 
-  if (!canViewAffiliateReport(user?.email)) {
+  if (!user || !canViewAffiliateReport(user.email)) {
     return new NextResponse("Forbidden", { status: 403 });
+  }
+
+  const rateLimit = await enforceRateLimit({
+    action: "affiliate.lazada.test_postback",
+    actorUserId: user.id,
+    maxAttempts: 5,
+    resourceType: "affiliate_test_postback",
+    subject: user.id,
+    windowSeconds: 300,
+  });
+
+  if (!rateLimit.allowed) {
+    return redirectToReport(request, "rate_limited");
   }
 
   const { data: latestClick, error: clickError } = await supabaseAdmin
@@ -79,7 +88,7 @@ export async function POST(request: NextRequest) {
     payout: "0",
     status: "debug-test",
     sub_id6: click.click_token,
-    transaction_id: `debug-${click.id.slice(0, 8)}-${Date.now()}`,
+    transaction_id: `debug-${click.id.slice(0, 8)}-${new Date().toISOString().slice(0, 10)}`,
   };
 
   const { error: conversionError } = await supabaseAdmin.from("affiliate_conversions").upsert(
