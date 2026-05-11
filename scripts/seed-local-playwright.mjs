@@ -214,7 +214,6 @@ async function seed() {
         description: "Local seeded exchange for authenticated Playwright coverage.",
         event_date: getEventDate(),
         id: groupId,
-        invites: [],
         name: "Playwright Gift Lab",
         owner_id: giver.id,
         revealed: true,
