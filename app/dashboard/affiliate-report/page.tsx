@@ -1143,8 +1143,7 @@ function buildLazadaPostbackUrl(headersList: Awaited<ReturnType<typeof headers>>
   const fallbackOrigin = safeHeaderHost
     ? `${headersList.get("x-forwarded-proto") === "http" ? "http" : "https"}://${safeHeaderHost}`
     : "";
-  const tokenPlaceholder = ["YOUR", "LAZADA", "POSTBACK", "SECRET"].join("_");
-  const path = `/api/affiliate/lazada/postback?token=${tokenPlaceholder}`;
+  const path = "/api/affiliate/lazada/postback";
 
   try {
     const origin = originCandidate
@@ -1361,8 +1360,8 @@ function LazadaHealthCheckCard({
                 Lazada reporting URL
               </p>
               <p className="mt-2 text-sm leading-5 text-slate-600">
-                Use this format in Lazada, then replace the placeholder with the report key saved
-                only in Vercel.
+                Use this URL in Lazada and send the shared report key as a request header or form
+                field named token.
               </p>
             </div>
             <CopyPostbackUrlButton value={postbackUrl} />

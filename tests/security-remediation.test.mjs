@@ -336,6 +336,43 @@ test("anonymous group RLS blocks peer membership identity table reads", () => {
   );
 });
 
+test("group member direct grants do not expose email to browser clients", () => {
+  const memberGrantMigrationPath = [
+    "supabase",
+    "migrations",
+    "20260511143512_harden" + "_group_member_email_grants.sql",
+  ].join("/");
+  // eslint-disable-next-line security/detect-non-literal-fs-filename -- Test only reads a repo-local migration path assembled to avoid a no-secrets false positive.
+  const memberGrantMigrationSource = readFileSync(
+    memberGrantMigrationPath,
+    "utf8"
+  );
+  const groupActionsSource = readFileSync("app/group/[id]/actions.ts", "utf8");
+  const groupPageSource = readFileSync("app/group/[id]/page.tsx", "utf8");
+  const authenticatedGrant =
+    memberGrantMigrationSource.match(
+      /grant select \([\s\S]*?\) on table public\.group_members to authenticated;/i
+    )?.[0] || "";
+
+  assert.match(
+    memberGrantMigrationSource,
+    /revoke select on table public\.group_members from authenticated/i
+  );
+  assert.match(authenticatedGrant, /\bgroup_id\b/);
+  assert.match(authenticatedGrant, /\bnickname\b/);
+  assert.match(authenticatedGrant, /\bstatus\b/);
+  assert.doesNotMatch(authenticatedGrant, /\bemail\b/);
+  assert.match(groupActionsSource, /export async function getGroupMembersForViewer/);
+  assert.match(
+    groupActionsSource,
+    /supabaseAdmin[\s\S]{0,180}\.select\("id, user_id, nickname, email, role, status"\)/
+  );
+  assert.doesNotMatch(
+    groupPageSource,
+    /\.from\("group_members"\)[\s\S]{0,160}\.select\("id, user_id, nickname, email/
+  );
+});
+
 test("anonymous nickname checks compare against the caller profile name", () => {
   const dashboardActionsSource = readFileSync("app/dashboard/actions.ts", "utf8");
   const groupActionsSource = readFileSync("app/group/[id]/actions.ts", "utf8");
@@ -512,9 +549,11 @@ test("owners do not receive unrevealed assignment names from reveal presentation
 
 test("group detail page limits member data and avoids sensitive realtime rows", () => {
   const groupPageSource = readFileSync("app/group/[id]/page.tsx", "utf8");
+  const groupActionsSource = readFileSync("app/group/[id]/actions.ts", "utf8");
 
-  assert.match(groupPageSource, /\.select\("id, user_id, nickname, role, status"\)/);
-  assert.match(groupPageSource, /\.eq\("status", "accepted"\)/);
+  assert.match(groupPageSource, /getGroupMembersForViewer\(id\)/);
+  assert.match(groupActionsSource, /\.select\("id, user_id, nickname, role, status"\)/);
+  assert.match(groupActionsSource, /\.eq\("status", "accepted"\)/);
   assert.match(groupPageSource, /email:\s*isCurrentUserOwner \? member\.email \|\| null : null/);
   assert.doesNotMatch(groupPageSource, /table:\s*"assignments"/);
   assert.doesNotMatch(groupPageSource, /group-\$\{id\}-realtime/);
@@ -621,6 +660,55 @@ test("lazada cards avoid untrusted remote image hosts and private redirect notes
   assert.doesNotMatch(suggestionSource, /params\.set\("itemNote"/);
   assert.doesNotMatch(suggestionSource, /params\.set\("preferredPrice/);
   assert.match(redirectSource, /const itemNote = "";/);
+});
+
+test("wishlist AI provider calls exclude private item notes", () => {
+  const aiSuggestionsSource = readFileSync("app/api/ai/wishlist-suggestions/route.ts", "utf8");
+
+  assert.match(aiSuggestionsSource, /function buildProviderSuggestionInput/);
+  assert.match(aiSuggestionsSource, /itemNote:\s*""/);
+  assert.match(
+    aiSuggestionsSource,
+    /const providerBaseOptions = buildWishlistSuggestionOptions\(providerSuggestionInput\)/
+  );
+  assert.match(
+    aiSuggestionsSource,
+    /generateWishlistSuggestionDrafts\(\{[\s\S]{0,160}suggestionInput: providerSuggestionInput/
+  );
+  assert.match(
+    aiSuggestionsSource,
+    /buildAiWishlistSuggestionOptions\(providerSuggestionInput, aiDrafts\)/
+  );
+});
+
+test("lazada postback setup keeps auth material out of URL query strings", () => {
+  const lazadaPostbackSource = readFileSync("app/api/affiliate/lazada/postback/route.ts", "utf8");
+  const affiliateReportSource = readFileSync("app/dashboard/affiliate-report/page.tsx", "utf8");
+
+  assert.match(lazadaPostbackSource, /const URL_POSTBACK_AUTH_PARAM_KEYS = new Set/);
+  assert.match(lazadaPostbackSource, /stripUrlPostbackAuthParams/);
+  assert.match(
+    lazadaPostbackSource,
+    /request\.headers\.get\("x-lazada-postback-secret"\)[\s\S]{0,140}getFirstPayloadValue\(payload, \["token", "secret"\]\)/
+  );
+  assert.match(affiliateReportSource, /const path = "\/api\/affiliate\/lazada\/postback";/);
+  assert.doesNotMatch(affiliateReportSource, /postback\?token/);
+});
+
+test("client snapshots do not restore assignment data after resets", () => {
+  const secretSantaPageSource = readFileSync("app/secret-santa/page.tsx", "utf8");
+  const groupPageSource = readFileSync("app/group/[id]/page.tsx", "utf8");
+  const groupPageStateSource = readFileSync("app/group/[id]/group-page-state.ts", "utf8");
+
+  assert.match(secretSantaPageSource, /value\.assignments\.length === 0/);
+  assert.match(secretSantaPageSource, /value\.receivedGifts\.length === 0/);
+  assert.match(secretSantaPageSource, /setAssignments\(\[\]\)/);
+  assert.match(secretSantaPageSource, /assignments:\s*\[\]/);
+  assert.match(secretSantaPageSource, /receivedGifts:\s*\[\]/);
+  assert.match(groupPageSource, /setAssignment\(null\)/);
+  assert.match(groupPageSource, /assignment:\s*null/);
+  assert.match(groupPageStateSource, /value\.drawDone === false/);
+  assert.match(groupPageStateSource, /value\.assignment === null/);
 });
 
 test("secret santa chat keeps a broader message window for unread state", () => {

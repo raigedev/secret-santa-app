@@ -10,6 +10,7 @@ import { extractRequestClientIp, safeEqualSecret } from "@/lib/security/web";
 export const dynamic = "force-dynamic";
 
 type PostbackPayload = Record<string, string>;
+const URL_POSTBACK_AUTH_PARAM_KEYS = new Set(["secret", "token"]);
 
 function normalizePayloadValue(value: unknown): string | null {
   if (value === null || value === undefined) {
@@ -85,14 +86,27 @@ function buildPayloadHash(payload: PostbackPayload): string {
 
 function getProvidedPostbackSecret(request: NextRequest, payload: PostbackPayload): string | null {
   return (
-    getFirstPayloadValue(payload, ["token", "secret"]) ||
     request.headers.get("x-lazada-postback-secret") ||
-    request.headers.get("x-postback-secret")
+    request.headers.get("x-postback-secret") ||
+    getFirstPayloadValue(payload, ["token", "secret"])
   )?.trim() || null;
 }
 
+function stripUrlPostbackAuthParams(payload: PostbackPayload): PostbackPayload {
+  return Object.entries(payload).reduce<PostbackPayload>((sanitizedPayload, [key, value]) => {
+    if (URL_POSTBACK_AUTH_PARAM_KEYS.has(key.trim().toLowerCase())) {
+      return sanitizedPayload;
+    }
+
+    sanitizedPayload[key] = value;
+    return sanitizedPayload;
+  }, {});
+}
+
 async function readPostbackPayload(request: NextRequest): Promise<PostbackPayload> {
-  const queryPayload = normalizePayloadObject(Object.fromEntries(request.nextUrl.searchParams.entries()));
+  const queryPayload = stripUrlPostbackAuthParams(
+    normalizePayloadObject(Object.fromEntries(request.nextUrl.searchParams.entries()))
+  );
 
   if (request.method === "GET") {
     return queryPayload;
