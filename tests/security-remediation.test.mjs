@@ -336,6 +336,41 @@ test("anonymous group RLS blocks peer membership identity table reads", () => {
   );
 });
 
+test("anonymous nickname checks compare against the caller profile name", () => {
+  const dashboardActionsSource = readFileSync("app/dashboard/actions.ts", "utf8");
+  const groupActionsSource = readFileSync("app/group/[id]/actions.ts", "utf8");
+  const invitePageSource = readFileSync("app/invite/[token]/page.tsx", "utf8");
+  const profileQueryPattern =
+    /\.from\("profiles"\)[\s\S]{0,180}\.select\("display_name"\)[\s\S]{0,180}\.eq\("user_id", user\.id\)/;
+  const staleProfileIdPattern =
+    /\.from\("profiles"\)[\s\S]{0,180}\.select\("display_name"\)[\s\S]{0,180}\.eq\("id", user\.id\)/;
+
+  assert.match(dashboardActionsSource, profileQueryPattern);
+  assert.match(groupActionsSource, profileQueryPattern);
+  assert.match(invitePageSource, profileQueryPattern);
+  assert.doesNotMatch(dashboardActionsSource, staleProfileIdPattern);
+  assert.doesNotMatch(groupActionsSource, staleProfileIdPattern);
+  assert.doesNotMatch(invitePageSource, staleProfileIdPattern);
+});
+
+test("create group action enforces email verification before privileged writes", () => {
+  const createGroupActionsSource = readFileSync("app/create-group/actions.ts", "utf8");
+  const verificationIndex = createGroupActionsSource.indexOf("isUserEmailVerified(user)");
+  const rateLimitIndex = createGroupActionsSource.indexOf("enforceRateLimit({");
+  const adminInsertIndex = createGroupActionsSource.indexOf(".from(\"groups\")");
+
+  assert.match(createGroupActionsSource, /getEmailVerificationMessage/);
+  assert.ok(verificationIndex > 0, "Expected create-group action to check email verification.");
+  assert.ok(
+    verificationIndex < rateLimitIndex,
+    "Email verification should be checked before consuming create-group quota."
+  );
+  assert.ok(
+    verificationIndex < adminInsertIndex,
+    "Email verification should be checked before service-role group writes."
+  );
+});
+
 test("wishlist item limit is enforced at the database boundary", () => {
   const wishlistLimitMigrationPath = [
     "supabase",
@@ -426,6 +461,28 @@ test("lazada prime-links route rate limits and constrains product IDs", () => {
     /\.filter\(\(productId\)\s*=>\s*LAZADA_PRODUCT_ID_PATTERN\.test\(productId\)\)/
   );
   assert.doesNotMatch(primeLinksRouteSource, /extractRequestClientIp|x-forwarded-for|cf-connecting-ip|x-real-ip/i);
+});
+
+test("lazada match route requires access to the wishlist item before matching or priming", () => {
+  const lazadaMatchesRouteSource = readFileSync(
+    "app/api/affiliate/lazada/matches/route.ts",
+    "utf8"
+  );
+  const accessCheckIndex = lazadaMatchesRouteSource.indexOf("canAccessRecipientWishlistItem");
+  const feedMatchIndex = lazadaMatchesRouteSource.indexOf("findBestLazadaFeedMatches({");
+  const primingIndex = lazadaMatchesRouteSource.indexOf("primeLazadaPromotionLinks({");
+
+  assert.match(lazadaMatchesRouteSource, /canAccessRecipientWishlistItem/);
+  assert.match(lazadaMatchesRouteSource, /userId:\s*auth\.userId/);
+  assert.match(lazadaMatchesRouteSource, /status:\s*403/);
+  assert.ok(
+    accessCheckIndex > 0 && accessCheckIndex < feedMatchIndex,
+    "Wishlist access must be checked before feed matching."
+  );
+  assert.ok(
+    accessCheckIndex < primingIndex,
+    "Wishlist access must be checked before Lazada promotion-link priming."
+  );
 });
 
 test("password reset links are not rewritten by OAuth code fallback", () => {
@@ -551,6 +608,14 @@ test("lazada cards avoid untrusted remote image hosts and private redirect notes
   const redirectSource = readFileSync("app/go/suggestion/route.ts", "utf8");
 
   assert.match(lazadaUrlSource, /export function normalizeTrustedLazadaImageUrl/);
+  assert.match(
+    secretSantaPageSource,
+    /const heroLazadaImageUrl = normalizeTrustedLazadaImageUrl\(/
+  );
+  assert.doesNotMatch(
+    secretSantaPageSource,
+    /const heroLazadaImageUrl = normalizeOptionalUrl\(/
+  );
   assert.match(secretSantaPageSource, /normalizeTrustedLazadaImageUrl\(product\.imageUrl/);
   assert.match(secretSantaPageSource, /referrerPolicy="no-referrer"/);
   assert.doesNotMatch(suggestionSource, /params\.set\("itemNote"/);

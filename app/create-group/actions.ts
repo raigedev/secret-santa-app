@@ -14,6 +14,7 @@ import {
   sendGroupInviteEmail,
 } from "@/lib/groups/invite-email";
 import { createNotification } from "@/lib/notifications";
+import { getEmailVerificationMessage, isUserEmailVerified } from "@/lib/auth/user-status";
 import { recordAuditEvent, recordServerFailure } from "@/lib/security/audit";
 import { MAX_GROUP_CREATION_INVITES } from "@/lib/groups/capacity";
 import { enforceRateLimit } from "@/lib/security/rate-limit";
@@ -237,6 +238,10 @@ async function createGroupWithInvitesInternal(
 
   if (!user) {
     return { success: false, message: "You must be logged in." };
+  }
+
+  if (!isUserEmailVerified(user)) {
+    return { success: false, message: getEmailVerificationMessage() };
   }
 
   const rateLimit = await enforceRateLimit({
