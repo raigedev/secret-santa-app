@@ -2,6 +2,12 @@ import {
   getAnonymousGroupDisplayName,
   isEmailDerivedGroupNickname,
 } from "@/lib/groups/nickname";
+import {
+  forEachSessionStorageKey,
+  readSessionStorageItem,
+  removeSessionStorageItem,
+  writeSessionStorageItem,
+} from "@/lib/client-snapshot";
 import { isNullableNumber, isNullableString, isRecord } from "@/lib/validation/common";
 
 export type Member = {
@@ -160,12 +166,8 @@ function isGroupPageSnapshot(
 }
 
 export function readGroupPageSnapshot(groupId: string, userId: string): GroupPageSnapshot | null {
-  if (typeof sessionStorage === "undefined") {
-    return null;
-  }
-
   const storageKey = getGroupPageSnapshotStorageKey(groupId, userId);
-  const rawSnapshot = sessionStorage.getItem(storageKey);
+  const rawSnapshot = readSessionStorageItem(storageKey);
 
   if (!rawSnapshot) {
     return null;
@@ -178,40 +180,30 @@ export function readGroupPageSnapshot(groupId: string, userId: string): GroupPag
       return parsedSnapshot;
     }
   } catch {
-    sessionStorage.removeItem(storageKey);
+    removeSessionStorageItem(storageKey);
     return null;
   }
 
-  sessionStorage.removeItem(storageKey);
+  removeSessionStorageItem(storageKey);
   return null;
 }
 
 export function writeGroupPageSnapshot(snapshot: GroupPageSnapshot) {
-  if (typeof sessionStorage === "undefined") {
-    return;
-  }
-
-  sessionStorage.setItem(
+  writeSessionStorageItem(
     getGroupPageSnapshotStorageKey(snapshot.groupId, snapshot.userId),
     JSON.stringify(snapshot)
   );
 }
 
 export function clearGroupPageSnapshots(groupId?: string) {
-  if (typeof sessionStorage === "undefined") {
-    return;
-  }
-
-  for (let index = sessionStorage.length - 1; index >= 0; index -= 1) {
-    const key = sessionStorage.key(index);
-
+  forEachSessionStorageKey((key) => {
     if (
       key?.startsWith(GROUP_PAGE_SNAPSHOT_STORAGE_PREFIX) &&
       (!groupId || key.startsWith(`${GROUP_PAGE_SNAPSHOT_STORAGE_PREFIX}${groupId}:`))
     ) {
-      sessionStorage.removeItem(key);
+      removeSessionStorageItem(key);
     }
-  }
+  });
 }
 
 export function sanitizeMembersForGroupPageSnapshot(

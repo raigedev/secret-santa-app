@@ -7,6 +7,134 @@ export type ClientSnapshotMetadata = {
   userId: string;
 };
 
+function getSessionStorage(): Storage | null {
+  if (typeof window === "undefined") {
+    return null;
+  }
+
+  try {
+    return window.sessionStorage;
+  } catch {
+    return null;
+  }
+}
+
+function getLocalStorage(): Storage | null {
+  if (typeof window === "undefined") {
+    return null;
+  }
+
+  try {
+    return window.localStorage;
+  } catch {
+    return null;
+  }
+}
+
+export function readSessionStorageItem(storageKey: string): string | null {
+  const storage = getSessionStorage();
+
+  if (!storage) {
+    return null;
+  }
+
+  try {
+    return storage.getItem(storageKey);
+  } catch {
+    return null;
+  }
+}
+
+export function readLocalStorageItem(storageKey: string): string | null {
+  const storage = getLocalStorage();
+
+  if (!storage) {
+    return null;
+  }
+
+  try {
+    return storage.getItem(storageKey);
+  } catch {
+    return null;
+  }
+}
+
+export function writeSessionStorageItem(storageKey: string, value: string): void {
+  const storage = getSessionStorage();
+
+  if (!storage) {
+    return;
+  }
+
+  try {
+    storage.setItem(storageKey, value);
+  } catch {
+    // Client snapshots are a best-effort speed-up. Fresh server reads stay authoritative.
+  }
+}
+
+export function writeLocalStorageItem(storageKey: string, value: string): void {
+  const storage = getLocalStorage();
+
+  if (!storage) {
+    return;
+  }
+
+  try {
+    storage.setItem(storageKey, value);
+  } catch {
+    // Browser preferences are best-effort when storage is restricted.
+  }
+}
+
+export function removeSessionStorageItem(storageKey: string): void {
+  const storage = getSessionStorage();
+
+  if (!storage) {
+    return;
+  }
+
+  try {
+    storage.removeItem(storageKey);
+  } catch {
+    // Ignore browsers that deny storage access.
+  }
+}
+
+export function removeLocalStorageItem(storageKey: string): void {
+  const storage = getLocalStorage();
+
+  if (!storage) {
+    return;
+  }
+
+  try {
+    storage.removeItem(storageKey);
+  } catch {
+    // Ignore browsers that deny storage access.
+  }
+}
+
+export function forEachSessionStorageKey(callback: (key: string) => void): void {
+  const storage = getSessionStorage();
+
+  if (!storage) {
+    return;
+  }
+
+  try {
+    for (let index = storage.length - 1; index >= 0; index -= 1) {
+      const key = storage.key(index);
+
+      if (key) {
+        callback(key);
+      }
+    }
+  } catch {
+    // Ignore browsers that deny storage access.
+  }
+}
+
 export function hasFreshClientSnapshotMetadata(
   value: unknown,
   userId: string,
@@ -25,11 +153,7 @@ export function readClientSnapshot<T>(
   userId: string,
   isSnapshot: (value: unknown, userId: string) => value is T
 ): T | null {
-  if (typeof sessionStorage === "undefined") {
-    return null;
-  }
-
-  const rawSnapshot = sessionStorage.getItem(storageKey);
+  const rawSnapshot = readSessionStorageItem(storageKey);
 
   if (!rawSnapshot) {
     return null;
@@ -42,46 +166,30 @@ export function readClientSnapshot<T>(
       return parsedSnapshot;
     }
   } catch {
-    sessionStorage.removeItem(storageKey);
+    removeSessionStorageItem(storageKey);
     return null;
   }
 
-  sessionStorage.removeItem(storageKey);
+  removeSessionStorageItem(storageKey);
   return null;
 }
 
 export function writeClientSnapshot<T>(storageKey: string, snapshot: T) {
-  if (typeof sessionStorage === "undefined") {
-    return;
-  }
-
-  sessionStorage.setItem(storageKey, JSON.stringify(snapshot));
+  writeSessionStorageItem(storageKey, JSON.stringify(snapshot));
 }
 
 export function clearClientSnapshots(storagePrefix: string) {
-  if (typeof sessionStorage === "undefined") {
-    return;
-  }
-
-  for (let index = sessionStorage.length - 1; index >= 0; index -= 1) {
-    const key = sessionStorage.key(index);
-
+  forEachSessionStorageKey((key) => {
     if (key?.startsWith(storagePrefix)) {
-      sessionStorage.removeItem(key);
+      removeSessionStorageItem(key);
     }
-  }
+  });
 }
 
 export function clearAppSessionStorage() {
-  if (typeof sessionStorage === "undefined") {
-    return;
-  }
-
-  for (let index = sessionStorage.length - 1; index >= 0; index -= 1) {
-    const key = sessionStorage.key(index);
-
+  forEachSessionStorageKey((key) => {
     if (key?.startsWith("ss_")) {
-      sessionStorage.removeItem(key);
+      removeSessionStorageItem(key);
     }
-  }
+  });
 }

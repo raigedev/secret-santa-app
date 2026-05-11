@@ -637,11 +637,28 @@ test("dashboard shows email invites without auto-claiming memberships", () => {
 test("client profile and snapshot storage are scoped or cleared on logout", () => {
   const viewerProfileSource = readFileSync("app/components/viewer-profile-client.ts", "utf8");
   const clientSnapshotSource = readFileSync("lib/client-snapshot.ts", "utf8");
+  const dashboardSnapshotSource = readFileSync("app/dashboard/dashboard-snapshot.ts", "utf8");
+  const groupPageStateSource = readFileSync("app/group/[id]/group-page-state.ts", "utf8");
+  const affiliateReportAccessSource = readFileSync(
+    "app/components/affiliate-report-access-client.ts",
+    "utf8"
+  );
+  const santaAssistantSource = readFileSync("app/hooks/useSantaAssistant.ts", "utf8");
   const appShellSource = readFileSync("app/components/AppRouteShell.tsx", "utf8");
 
   assert.match(viewerProfileSource, /VIEWER_PROFILE_STORAGE_PREFIX = "ss_viewer_profile_v2:"/);
   assert.match(viewerProfileSource, /getViewerProfileStorageKey\(userId/);
   assert.doesNotMatch(viewerProfileSource, /sessionStorage\.getItem\(VIEWER_NAME_STORAGE_KEY\)/);
+  assert.match(clientSnapshotSource, /function getSessionStorage\(\)/);
+  assert.match(clientSnapshotSource, /function getLocalStorage\(\)/);
+  assert.match(clientSnapshotSource, /export function readSessionStorageItem/);
+  assert.match(clientSnapshotSource, /export function writeSessionStorageItem/);
+  assert.match(clientSnapshotSource, /export function readLocalStorageItem/);
+  assert.match(clientSnapshotSource, /export function writeLocalStorageItem/);
+  assert.match(dashboardSnapshotSource, /readSessionStorageItem\(storageKey\)/);
+  assert.match(groupPageStateSource, /readSessionStorageItem\(storageKey\)/);
+  assert.match(affiliateReportAccessSource, /readSessionStorageItem\(AFFILIATE_REPORT_ACCESS_STORAGE_KEY\)/);
+  assert.match(santaAssistantSource, /readLocalStorageItem\(HIDDEN_STORAGE_KEY\)/);
   assert.match(clientSnapshotSource, /export function clearAppSessionStorage/);
   assert.match(appShellSource, /clearAppSessionStorage\(\);[\s\S]{0,80}supabase\.auth\.signOut/);
 });
@@ -792,6 +809,10 @@ test("authenticated browser POST routes reject untrusted origins", () => {
   const lazadaMatchesSource = readFileSync("app/api/affiliate/lazada/matches/route.ts", "utf8");
   const lazadaPrimeLinksSource = readFileSync("app/api/affiliate/lazada/prime-links/route.ts", "utf8");
   const lazadaPostbackSource = readFileSync("app/api/affiliate/lazada/postback/route.ts", "utf8");
+  const lazadaTestPostbackSource = readFileSync(
+    "app/api/affiliate/lazada/test-postback/route.ts",
+    "utf8"
+  );
   const reminderProcessorSource = readFileSync(
     "app/api/notifications/process-reminders/route.ts",
     "utf8"
@@ -804,6 +825,23 @@ test("authenticated browser POST routes reject untrusted origins", () => {
   assert.match(affiliateAuthSource, /isTrustedRequestOrigin\(request\)/);
   assert.match(lazadaMatchesSource, /requireAuthenticatedAffiliateRoute\(request,/);
   assert.match(lazadaPrimeLinksSource, /requireAuthenticatedAffiliateRoute\(request,/);
+  assert.match(lazadaTestPostbackSource, /isTrustedRequestOrigin\(request\)/);
   assert.doesNotMatch(lazadaPostbackSource, /isTrustedRequestOrigin/);
   assert.doesNotMatch(reminderProcessorSource, /isTrustedRequestOrigin/);
+});
+
+test("lazada test postback is rate limited and idempotent by day", () => {
+  const lazadaTestPostbackSource = readFileSync(
+    "app/api/affiliate/lazada/test-postback/route.ts",
+    "utf8"
+  );
+
+  assert.match(lazadaTestPostbackSource, /enforceRateLimit\(\{/);
+  assert.match(lazadaTestPostbackSource, /action: "affiliate\.lazada\.test_postback"/);
+  assert.match(lazadaTestPostbackSource, /maxAttempts: 5/);
+  assert.match(lazadaTestPostbackSource, /windowSeconds: 300/);
+  assert.match(lazadaTestPostbackSource, /redirectToReport\(request, "rate_limited"\)/);
+  assert.match(lazadaTestPostbackSource, /toISOString\(\)\.slice\(0, 10\)/);
+  assert.doesNotMatch(lazadaTestPostbackSource, /transaction_id: `debug-\$\{click\.id\.slice\(0, 8\)\}-\$\{Date\.now\(\)\}`/);
+  assert.doesNotMatch(lazadaTestPostbackSource, /function isSameOriginRequest/);
 });

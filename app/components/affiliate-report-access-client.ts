@@ -1,31 +1,25 @@
+import {
+  readSessionStorageItem,
+  removeSessionStorageItem,
+  writeSessionStorageItem,
+} from "@/lib/client-snapshot";
+
 const AFFILIATE_REPORT_ACCESS_STORAGE_KEY = "ss_ara";
 
 function storeAffiliateReportAccess(allowed: boolean) {
-  if (typeof window === "undefined") {
-    return;
-  }
-
   if (allowed) {
-    sessionStorage.setItem(AFFILIATE_REPORT_ACCESS_STORAGE_KEY, "1");
+    writeSessionStorageItem(AFFILIATE_REPORT_ACCESS_STORAGE_KEY, "1");
   } else {
-    sessionStorage.removeItem(AFFILIATE_REPORT_ACCESS_STORAGE_KEY);
+    removeSessionStorageItem(AFFILIATE_REPORT_ACCESS_STORAGE_KEY);
   }
 }
 
 export function readStoredAffiliateReportAccess() {
-  if (typeof window === "undefined") {
-    return false;
-  }
-
-  return sessionStorage.getItem(AFFILIATE_REPORT_ACCESS_STORAGE_KEY) === "1";
+  return readSessionStorageItem(AFFILIATE_REPORT_ACCESS_STORAGE_KEY) === "1";
 }
 
 export function clearAffiliateReportAccess() {
-  if (typeof window === "undefined") {
-    return;
-  }
-
-  sessionStorage.removeItem(AFFILIATE_REPORT_ACCESS_STORAGE_KEY);
+  removeSessionStorageItem(AFFILIATE_REPORT_ACCESS_STORAGE_KEY);
 }
 
 export async function fetchAffiliateReportAccess() {

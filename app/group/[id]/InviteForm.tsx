@@ -7,6 +7,7 @@ import {
   inviteUser,
   revokeInviteLink,
 } from "./actions";
+import { writeLocalStorageItem } from "@/lib/client-snapshot";
 
 type State = {
   message: string;
@@ -85,7 +86,7 @@ export default function InviteForm({ groupId }: { groupId: string }) {
     const nextLink = `${window.location.origin}/invite/${encodeURIComponent(result.token)}`;
     setInviteLink(nextLink);
     setHasActiveLink(true);
-    localStorage.setItem(
+    writeLocalStorageItem(
       `group-invite-link:${groupId}`,
       JSON.stringify({ link: nextLink, updatedAt: Date.now() })
     );
@@ -109,7 +110,7 @@ export default function InviteForm({ groupId }: { groupId: string }) {
     if (result.success) {
       setInviteLink("");
       setHasActiveLink(false);
-      localStorage.setItem(
+      writeLocalStorageItem(
         `group-invite-link:${groupId}`,
         JSON.stringify({ link: "", updatedAt: Date.now() })
       );

@@ -32,7 +32,9 @@ import { SecretSantaSkeleton } from "@/app/components/PageSkeleton";
 import {
   clearClientSnapshots,
   hasFreshClientSnapshotMetadata,
+  readLocalStorageItem,
   readClientSnapshot,
+  writeLocalStorageItem,
   writeClientSnapshot,
   type ClientSnapshotMetadata,
 } from "@/lib/client-snapshot";
@@ -2848,7 +2850,7 @@ export function SecretSantaExperience({ mode = "shopping" }: SecretSantaExperien
       return;
     }
 
-    const savedRegion = window.localStorage.getItem(SHOPPING_REGION_STORAGE_KEY);
+    const savedRegion = readLocalStorageItem(SHOPPING_REGION_STORAGE_KEY);
     const nextRegion =
       savedRegion && SHOPPING_REGION_OPTIONS.some((option) => option.value === savedRegion)
         ? (savedRegion as ShoppingRegion)
@@ -2863,7 +2865,7 @@ export function SecretSantaExperience({ mode = "shopping" }: SecretSantaExperien
       return;
     }
 
-    window.localStorage.setItem(SHOPPING_REGION_STORAGE_KEY, shoppingRegion);
+    writeLocalStorageItem(SHOPPING_REGION_STORAGE_KEY, shoppingRegion);
   }, [shoppingRegion, shoppingRegionInitialized]);
 
   useEffect(() => {

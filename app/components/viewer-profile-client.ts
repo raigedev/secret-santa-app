@@ -1,3 +1,9 @@
+import {
+  readSessionStorageItem,
+  removeSessionStorageItem,
+  writeSessionStorageItem,
+} from "@/lib/client-snapshot";
+
 const VIEWER_NAME_STORAGE_KEY = "ss_un";
 const VIEWER_AVATAR_STORAGE_KEY = "ss_uav";
 const VIEWER_AVATAR_EMOJI_STORAGE_KEY = "ss_uae";
@@ -80,17 +86,13 @@ function getEmptyStoredViewerProfile(): StoredViewerProfile {
 }
 
 function readStoredViewerProfileForUser(userId: string | null | undefined): StoredViewerProfile {
-  if (typeof sessionStorage === "undefined") {
-    return getEmptyStoredViewerProfile();
-  }
-
   const storageKey = getViewerProfileStorageKey(userId);
 
   if (!storageKey) {
     return getEmptyStoredViewerProfile();
   }
 
-  const rawProfile = sessionStorage.getItem(storageKey);
+  const rawProfile = readSessionStorageItem(storageKey);
 
   if (!rawProfile) {
     return getEmptyStoredViewerProfile();
@@ -114,7 +116,7 @@ function readStoredViewerProfileForUser(userId: string | null | undefined): Stor
         typeof parsed.displayName === "string" ? normalizeViewerName(parsed.displayName) : "",
     };
   } catch {
-    sessionStorage.removeItem(storageKey);
+    removeSessionStorageItem(storageKey);
     return getEmptyStoredViewerProfile();
   }
 }
@@ -123,30 +125,18 @@ function writeStoredViewerProfileForUser(
   userId: string | null | undefined,
   profile: StoredViewerProfile
 ) {
-  if (typeof sessionStorage === "undefined") {
-    return;
-  }
-
   const storageKey = getViewerProfileStorageKey(userId);
 
   if (!storageKey) {
     return;
   }
 
-  try {
-    sessionStorage.setItem(storageKey, JSON.stringify(profile));
-  } catch {
-    // Profile cache is only a speed-up; server profile data remains authoritative.
-  }
+  writeSessionStorageItem(storageKey, JSON.stringify(profile));
 }
 
 export function readStoredViewerName(userId?: string | null) {
   if (userId) {
     return readStoredViewerProfileForUser(userId).displayName;
-  }
-
-  if (typeof sessionStorage === "undefined") {
-    return "";
   }
 
   return "";
@@ -212,13 +202,9 @@ export function storeViewerAvatarEmoji(value: string | null | undefined, userId?
 }
 
 export function clearLegacyViewerProfileStorage() {
-  if (typeof sessionStorage === "undefined") {
-    return;
-  }
-
-  sessionStorage.removeItem(VIEWER_NAME_STORAGE_KEY);
-  sessionStorage.removeItem(VIEWER_AVATAR_STORAGE_KEY);
-  sessionStorage.removeItem(VIEWER_AVATAR_EMOJI_STORAGE_KEY);
+  removeSessionStorageItem(VIEWER_NAME_STORAGE_KEY);
+  removeSessionStorageItem(VIEWER_AVATAR_STORAGE_KEY);
+  removeSessionStorageItem(VIEWER_AVATAR_EMOJI_STORAGE_KEY);
 }
 
 function readViewerProfileChangedDetail(event: Event): ViewerProfileChangedDetail | null {

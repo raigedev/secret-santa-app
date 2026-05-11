@@ -8,6 +8,12 @@ import type {
   GroupMember,
   PendingInvite,
 } from "./dashboard-types";
+import {
+  forEachSessionStorageKey,
+  readSessionStorageItem,
+  removeSessionStorageItem,
+  writeSessionStorageItem,
+} from "@/lib/client-snapshot";
 import { isNullableNumber, isNullableString, isRecord } from "@/lib/validation/common";
 
 const DASHBOARD_SNAPSHOT_TTL_MS = 5 * 60 * 1000;
@@ -175,11 +181,8 @@ function isDashboardSnapshot(value: unknown, userId: string): value is Dashboard
 }
 
 export function readDashboardSnapshot(userId: string): DashboardSnapshot | null {
-  if (typeof sessionStorage === "undefined") {
-    return null;
-  }
-
-  const rawSnapshot = sessionStorage.getItem(getDashboardSnapshotStorageKey(userId));
+  const storageKey = getDashboardSnapshotStorageKey(userId);
+  const rawSnapshot = readSessionStorageItem(storageKey);
 
   if (!rawSnapshot) {
     return null;
@@ -192,37 +195,27 @@ export function readDashboardSnapshot(userId: string): DashboardSnapshot | null 
       return parsedSnapshot;
     }
   } catch {
-    sessionStorage.removeItem(getDashboardSnapshotStorageKey(userId));
+    removeSessionStorageItem(storageKey);
     return null;
   }
 
-  sessionStorage.removeItem(getDashboardSnapshotStorageKey(userId));
+  removeSessionStorageItem(storageKey);
   return null;
 }
 
 export function writeDashboardSnapshot(snapshot: DashboardSnapshot) {
-  if (typeof sessionStorage === "undefined") {
-    return;
-  }
-
-  sessionStorage.setItem(
+  writeSessionStorageItem(
     getDashboardSnapshotStorageKey(snapshot.userId),
     JSON.stringify(snapshot)
   );
 }
 
 export function clearDashboardSnapshots() {
-  if (typeof sessionStorage === "undefined") {
-    return;
-  }
-
-  for (let index = sessionStorage.length - 1; index >= 0; index -= 1) {
-    const key = sessionStorage.key(index);
-
+  forEachSessionStorageKey((key) => {
     if (key?.startsWith(DASHBOARD_SNAPSHOT_STORAGE_PREFIX)) {
-      sessionStorage.removeItem(key);
+      removeSessionStorageItem(key);
     }
-  }
+  });
 }
 
 export function sanitizeGroupsForDashboardSnapshot(groups: Group[]): Group[] {
