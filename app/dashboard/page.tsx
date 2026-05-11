@@ -23,6 +23,7 @@ import { DashboardBackdrop } from "./DashboardBackdrop";
 import { DashboardPreviewWorkspace } from "./DashboardPreviewWorkspace";
 import { DashboardStatusMessage } from "./DashboardStatusMessage";
 import { useDashboardRoutePrefetch } from "./useDashboardRoutePrefetch";
+import { fetchMyAssignmentGiftPrep } from "@/lib/assignments/gift-prep-client";
 import {
   clearDashboardSnapshots,
   readDashboardSnapshot,
@@ -460,10 +461,7 @@ export default function DashboardPage() {
               ? supabase.from("assignments").select("group_id").in("group_id", acceptedGroupIds)
               : createEmptyQueryResult<AssignmentRow>(),
             acceptedGroupIds.length > 0
-              ? supabase
-                  .rpc("list_my_assignment_gift_prep", {
-                    p_group_ids: acceptedGroupIds,
-                  })
+              ? fetchMyAssignmentGiftPrep(acceptedGroupIds)
               : createEmptyQueryResult<MyAssignmentRow>(),
             pendingGroupIds.length > 0
               ? supabase

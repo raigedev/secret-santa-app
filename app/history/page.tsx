@@ -25,6 +25,7 @@ import {
   createGroupUserKey,
   getDashboardMemberLabel,
 } from "@/app/dashboard/dashboard-formatters";
+import { fetchMyAssignmentGiftPrep } from "@/lib/assignments/gift-prep-client";
 
 type HistoryPageUser = {
   id: string;
@@ -89,10 +90,7 @@ export default function HistoryPage() {
                   .select("id, group_id, item_name, item_category, item_link, item_note, priority")
                   .eq("user_id", user.id)
                   .in("group_id", historyGroupIds),
-                supabase
-                  .rpc("list_my_assignment_gift_prep", {
-                    p_group_ids: historyGroupIds,
-                  }),
+                fetchMyAssignmentGiftPrep(historyGroupIds),
               ])
             : [
                 { data: [], error: null },

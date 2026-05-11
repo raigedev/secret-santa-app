@@ -40,6 +40,7 @@ import {
   isLazadaProductPageUrl,
   normalizeTrustedLazadaImageUrl,
 } from "@/lib/affiliate/lazada-url";
+import { fetchMyAssignmentGiftPrep } from "@/lib/assignments/gift-prep-client";
 import { isGroupInHistory } from "@/lib/groups/history";
 import { isNullableNumber, isNullableString, isRecord } from "@/lib/validation/common";
 import { formatPriceRange } from "@/lib/wishlist/pricing";
@@ -3445,8 +3446,7 @@ export function SecretSantaExperience({ mode = "shopping" }: SecretSantaExperien
             .from("groups")
             .select("id, name, event_date, budget, currency")
             .in("id", groupIds),
-          supabase
-            .rpc("list_my_assignment_gift_prep", { p_group_ids: groupIds }),
+          fetchMyAssignmentGiftPrep(groupIds),
           supabase
             .from("assignments")
             .select("group_id, gift_received, gift_received_at")
