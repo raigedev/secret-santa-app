@@ -62,6 +62,13 @@ function buildSuggestionInput(body: WishlistSuggestionBody): SuggestionInput | n
   };
 }
 
+function buildProviderSuggestionInput(input: SuggestionInput): SuggestionInput {
+  return {
+    ...input,
+    itemNote: "",
+  };
+}
+
 function isWishlistAiConfigured(): boolean {
   return isGeminiWishlistConfigured() || isOpenRouterWishlistConfigured();
 }
@@ -178,11 +185,13 @@ export async function POST(request: NextRequest) {
   }
 
   const baseOptions = buildWishlistSuggestionOptions(suggestionInput);
+  const providerSuggestionInput = buildProviderSuggestionInput(suggestionInput);
+  const providerBaseOptions = buildWishlistSuggestionOptions(providerSuggestionInput);
   const { drafts: aiDrafts, provider: aiProvider } = await generateWishlistSuggestionDrafts({
-    suggestionInput,
-    baseOptions,
+    suggestionInput: providerSuggestionInput,
+    baseOptions: providerBaseOptions,
   }).catch(() => ({ drafts: [], provider: null }));
-  const aiSuggestions = buildAiWishlistSuggestionOptions(suggestionInput, aiDrafts);
+  const aiSuggestions = buildAiWishlistSuggestionOptions(providerSuggestionInput, aiDrafts);
   const suggestions = aiSuggestions.length > 0 ? aiSuggestions : baseOptions;
 
   return NextResponse.json({

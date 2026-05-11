@@ -172,7 +172,7 @@ export async function acceptInvite(
   const { supabase, user } = preparedAction;
   const normalizedEmail = (user.email || "").toLowerCase();
   const [membershipsResult, groupResult, profileResult] = await Promise.all([
-    supabase
+    supabaseAdmin
       .from("group_members")
       .select("id, user_id, email, nickname")
       .eq("group_id", groupId)
@@ -273,9 +273,9 @@ export async function declineInvite(groupId: string): Promise<MembershipActionRe
     return { success: false, message: preparedAction.message };
   }
 
-  const { supabase, user } = preparedAction;
+  const { user } = preparedAction;
   const normalizedEmail = (user.email || "").toLowerCase();
-  const { data: memberships, error: membershipError } = await supabase
+  const { data: memberships, error: membershipError } = await supabaseAdmin
     .from("group_members")
     .select("id, user_id, email")
     .eq("group_id", groupId)

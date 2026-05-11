@@ -34,6 +34,15 @@ const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const ALLOWED_CURRENCIES = new Set(["USD", "EUR", "GBP", "PHP", "JPY", "AUD", "CAD"]);
 const GROUP_DELETE_CONFIRM_MAX_LENGTH = 100;
 
+export type GroupMemberForViewer = {
+  id: string;
+  user_id: string | null;
+  nickname: string | null;
+  email: string | null;
+  role: string;
+  status: string;
+};
+
 function getSafeMemberDisplayValue(
   value: string | null | undefined,
   email: string | null | undefined
@@ -150,6 +159,75 @@ async function assertOwnerCanManageInvites(
   }
 
   return { ok: true };
+}
+
+export async function getGroupMembersForViewer(groupId: string): Promise<{
+  isOwner: boolean;
+  members: GroupMemberForViewer[];
+  message?: string;
+  success: boolean;
+}> {
+  if (!isUuid(groupId)) {
+    return { success: false, isOwner: false, members: [], message: "Group not found." };
+  }
+
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    return { success: false, isOwner: false, members: [], message: "You must be logged in." };
+  }
+
+  const { data: group, error: groupError } = await supabase
+    .from("groups")
+    .select("owner_id")
+    .eq("id", groupId)
+    .maybeSingle();
+
+  if (groupError || !group) {
+    return { success: false, isOwner: false, members: [], message: "Group not found." };
+  }
+
+  const isOwner = group.owner_id === user.id;
+  const membersResult = isOwner
+    ? await supabaseAdmin
+        .from("group_members")
+        .select("id, user_id, nickname, email, role, status")
+        .eq("group_id", groupId)
+    : await supabase
+        .from("group_members")
+        .select("id, user_id, nickname, role, status")
+        .eq("group_id", groupId)
+        .eq("status", "accepted");
+
+  if (membersResult.error) {
+    await recordServerFailure({
+      actorUserId: user.id,
+      errorMessage: membersResult.error.message,
+      eventType: "group.load_members_for_viewer",
+      resourceId: groupId,
+      resourceType: "group_membership",
+    });
+
+    return { success: false, isOwner, members: [], message: "Error loading members." };
+  }
+
+  return {
+    success: true,
+    isOwner,
+    members: ((membersResult.data || []) as Array<Partial<GroupMemberForViewer>>).map(
+      (member) => ({
+        id: member.id || "",
+        user_id: member.user_id || null,
+        nickname: member.nickname || null,
+        email: isOwner ? member.email || null : null,
+        role: member.role || "member",
+        status: member.status || "accepted",
+      })
+    ),
+  };
 }
 
 async function prepareInviteLinkAction(
@@ -811,7 +889,7 @@ export async function revokePendingInvite(
     return { success: false, message: permission.message || "Invite unavailable." };
   }
 
-  const { data: membership, error: membershipError } = await supabase
+  const { data: membership, error: membershipError } = await supabaseAdmin
     .from("group_members")
     .select("id, role, status, email")
     .eq("group_id", groupId)

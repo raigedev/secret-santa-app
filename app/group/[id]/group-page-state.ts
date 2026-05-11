@@ -135,10 +135,6 @@ function isSnapshotMember(value: unknown): value is Member {
   );
 }
 
-function isSnapshotAssignment(value: unknown): value is Assignment {
-  return isRecord(value) && typeof value.receiver_nickname === "string";
-}
-
 function isGroupPageSnapshot(
   value: unknown,
   groupId: string,
@@ -155,11 +151,11 @@ function isGroupPageSnapshot(
     Date.now() - value.createdAt < GROUP_PAGE_SNAPSHOT_TTL_MS &&
     typeof value.currentUserId === "string" &&
     typeof value.isOwner === "boolean" &&
-    typeof value.drawDone === "boolean" &&
+    value.drawDone === false &&
     isSnapshotGroupData(value.groupData) &&
     Array.isArray(value.members) &&
     value.members.every(isSnapshotMember) &&
-    (value.assignment === null || isSnapshotAssignment(value.assignment))
+    value.assignment === null
   );
 }
 

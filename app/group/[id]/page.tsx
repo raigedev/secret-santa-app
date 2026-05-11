@@ -15,6 +15,7 @@ import {
 import {
   deleteGroup,
   editGroup,
+  getGroupMembersForViewer,
   getGroupRecap,
   getRevealMatches,
   getGroupOwnerInsights,
@@ -177,8 +178,8 @@ export default function GroupDetailsPage() {
       setGroupData(snapshot.groupData);
       setMembers(snapshot.members);
       setIsOwner(snapshot.isOwner);
-      setAssignment(snapshot.assignment);
-      setDrawDone(snapshot.drawDone);
+      setAssignment(null);
+      setDrawDone(false);
       setDrawExclusions([]);
       setDrawRulesReady(!snapshot.isOwner);
       setGroupDataFresh(false);
@@ -248,21 +249,12 @@ export default function GroupDetailsPage() {
         image_url: signedGroupImageUrl,
       };
       const isCurrentUserOwner = user.id === group.owner_id;
-      const membersResult = isCurrentUserOwner
-        ? await supabase
-            .from("group_members")
-            .select("id, user_id, nickname, email, role, status")
-            .eq("group_id", id)
-        : await supabase
-            .from("group_members")
-            .select("id, user_id, nickname, role, status")
-            .eq("group_id", id)
-            .eq("status", "accepted");
+      const membersResult = await getGroupMembersForViewer(id);
 
       if (!isMounted || currentLoadVersion !== loadVersion) return;
 
-      if (membersResult.error) {
-        setError("Error loading members.");
+      if (!membersResult.success) {
+        setError(membersResult.message || "Error loading members.");
         setLoading(false);
         return;
       }
@@ -280,7 +272,7 @@ export default function GroupDetailsPage() {
       setIsOwner(isCurrentUserOwner);
       setDrawRulesReady(!isCurrentUserOwner);
 
-      const safeMembers = ((membersResult.data ?? []) as Partial<Member>[]).map((member) => ({
+      const safeMembers = (membersResult.members as Partial<Member>[]).map((member) => ({
         id: member.id || "",
         user_id: member.user_id || null,
         nickname: member.nickname || null,
@@ -312,16 +304,10 @@ export default function GroupDetailsPage() {
 
       setGroupDataFresh(true);
       writeGroupPageSnapshot({
-        assignment: myAssignment
-          ? {
-              receiver_nickname:
-                safeMembers.find((member) => member.user_id === myAssignment.receiver_id)?.nickname ||
-                "Secret Member",
-            }
-          : null,
+        assignment: null,
         createdAt: Date.now(),
         currentUserId: user.id,
-        drawDone: Boolean(myAssignment),
+        drawDone: false,
         groupData: group,
         groupId: id,
         isOwner: isCurrentUserOwner,

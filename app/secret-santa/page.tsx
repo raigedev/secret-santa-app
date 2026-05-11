@@ -241,57 +241,6 @@ function getSecretSantaPageSnapshotStorageKey(userId: string): string {
   return `${SECRET_SANTA_PAGE_SNAPSHOT_STORAGE_PREFIX}${userId}`;
 }
 
-function isGiftPrepStatus(value: unknown): value is GiftPrepStatus {
-  return (
-    value === "planning" ||
-    value === "purchased" ||
-    value === "wrapped" ||
-    value === "ready_to_give"
-  );
-}
-
-function isSnapshotWishlistItem(value: unknown): value is WishlistItem {
-  return (
-    isRecord(value) &&
-    typeof value.id === "string" &&
-    typeof value.group_id === "string" &&
-    typeof value.item_name === "string" &&
-    typeof value.item_category === "string" &&
-    typeof value.item_link === "string" &&
-    typeof value.item_note === "string" &&
-    typeof value.priority === "number"
-  );
-}
-
-function isSnapshotRecipientData(value: unknown): value is RecipientData {
-  return (
-    isRecord(value) &&
-    typeof value.group_id === "string" &&
-    typeof value.group_name === "string" &&
-    typeof value.group_event_date === "string" &&
-    isNullableNumber(value.group_budget) &&
-    isNullableString(value.group_currency) &&
-    typeof value.receiver_nickname === "string" &&
-    Array.isArray(value.receiver_wishlist) &&
-    value.receiver_wishlist.every(isSnapshotWishlistItem) &&
-    (value.gift_prep_status === null || isGiftPrepStatus(value.gift_prep_status)) &&
-    isNullableString(value.gift_prep_updated_at) &&
-    typeof value.gift_received === "boolean" &&
-    isNullableString(value.gift_received_at)
-  );
-}
-
-function isSnapshotReceivedGiftData(value: unknown): value is ReceivedGiftData {
-  return (
-    isRecord(value) &&
-    typeof value.group_id === "string" &&
-    typeof value.group_name === "string" &&
-    typeof value.group_event_date === "string" &&
-    typeof value.gift_received === "boolean" &&
-    isNullableString(value.gift_received_at)
-  );
-}
-
 function isSnapshotGroupOption(value: unknown): value is GroupOption {
   return (
     isRecord(value) &&
@@ -313,9 +262,9 @@ function isSecretSantaPageSnapshot(
     Array.isArray(value.availableGroups) &&
     value.availableGroups.every(isSnapshotGroupOption) &&
     Array.isArray(value.assignments) &&
-    value.assignments.every(isSnapshotRecipientData) &&
+    value.assignments.length === 0 &&
     Array.isArray(value.receivedGifts) &&
-    value.receivedGifts.every(isSnapshotReceivedGiftData)
+    value.receivedGifts.length === 0
   );
 }
 
@@ -3427,19 +3376,10 @@ export function SecretSantaExperience({ mode = "shopping" }: SecretSantaExperien
             const activeCachedGroups = cachedSecretSanta.availableGroups.filter(
               (group) => !isGroupInHistory(group.eventDate)
             );
-            const activeCachedGroupIds = new Set(activeCachedGroups.map((group) => group.id));
             hasAppliedPageSnapshotRef.current = true;
             setAvailableGroups(activeCachedGroups);
-            setAssignments(
-              cachedSecretSanta.assignments.filter((assignment) =>
-                activeCachedGroupIds.has(assignment.group_id)
-              )
-            );
-            setReceivedGifts(
-              cachedSecretSanta.receivedGifts.filter((gift) =>
-                activeCachedGroupIds.has(gift.group_id)
-              )
-            );
+            setAssignments([]);
+            setReceivedGifts([]);
             setLoading(false);
           }
         }
@@ -3582,10 +3522,10 @@ export function SecretSantaExperience({ mode = "shopping" }: SecretSantaExperien
         setAssignments(recipientData);
         setReceivedGifts(receivedGiftData);
         writeClientSnapshot(getSecretSantaPageSnapshotStorageKey(user.id), {
-          assignments: recipientData,
+          assignments: [],
           availableGroups: groupOptions,
           createdAt: Date.now(),
-          receivedGifts: receivedGiftData,
+          receivedGifts: [],
           userId: user.id,
           viewerName: readStoredViewerName(user.id) || resolvedViewerName,
         });
