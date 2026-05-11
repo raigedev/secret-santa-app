@@ -468,6 +468,18 @@ test("secret santa shopping does not auto-load recipient supplied wishlist image
   );
 });
 
+test("secret santa gift day banner requires a near assigned giftee", () => {
+  const secretSantaPageSource = readFileSync("app/secret-santa/page.tsx", "utf8");
+
+  assert.match(secretSantaPageSource, /const giftDayReminderCopy = getGiftDayReminderCopy\(primaryAssignment\);/);
+  assert.match(
+    secretSantaPageSource,
+    /daysUntilEvent === null \|\|[\s\S]*daysUntilEvent < 0 \|\|[\s\S]*daysUntilEvent > GIFT_DAY_REMINDER_WINDOW_DAYS/
+  );
+  assert.match(secretSantaPageSource, /\{isShoppingMode && giftDayReminderCopy && \(/);
+  assert.doesNotMatch(secretSantaPageSource, /\{isShoppingMode && \(\s*<section[\s\S]*Gift day is close/);
+});
+
 test("lazada match route skips unused fallback feed scans when direct matches exist", () => {
   const lazadaMatchesRouteSource = readFileSync(
     "app/api/affiliate/lazada/matches/route.ts",

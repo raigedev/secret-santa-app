@@ -226,6 +226,8 @@ const LAZADA_AFFILIATE_DISCLOSURE =
   "Some Lazada links are affiliate links.";
 const SHOPPING_REGION_STORAGE_KEY = "gift-shopping-region";
 const SECRET_SANTA_PAGE_SNAPSHOT_STORAGE_PREFIX = "ss_secret_santa_page_snapshot_v1:";
+const GIFT_DAY_REMINDER_WINDOW_DAYS = 2;
+const DAY_MS = 24 * 60 * 60 * 1000;
 
 async function runLimitedBatches<T>(
   items: T[],
@@ -1985,6 +1987,84 @@ function formatDisplayDate(value: string | null): string {
   return DATE_FORMATTER.format(parsedDate);
 }
 
+function getCalendarDayKey(timestamp: number): number {
+  const date = new Date(timestamp);
+  return Date.UTC(date.getFullYear(), date.getMonth(), date.getDate());
+}
+
+function getDaysUntilEventDate(value: string | null | undefined): number | null {
+  if (!value) {
+    return null;
+  }
+
+  const [datePart] = value.split("T");
+  const [yearPart, monthPart, dayPart] = datePart.split("-");
+  const year = Number(yearPart);
+  const month = Number(monthPart);
+  const day = Number(dayPart);
+
+  if (
+    !Number.isInteger(year) ||
+    !Number.isInteger(month) ||
+    !Number.isInteger(day) ||
+    yearPart.length !== 4 ||
+    month < 1 ||
+    month > 12 ||
+    day < 1 ||
+    day > 31
+  ) {
+    return null;
+  }
+
+  const parsedDate = new Date(year, month - 1, day);
+
+  if (
+    parsedDate.getFullYear() !== year ||
+    parsedDate.getMonth() !== month - 1 ||
+    parsedDate.getDate() !== day
+  ) {
+    return null;
+  }
+
+  return Math.round(
+    (getCalendarDayKey(parsedDate.getTime()) - getCalendarDayKey(Date.now())) / DAY_MS
+  );
+}
+
+function getGiftDayReminderCopy(assignment: RecipientData | null): {
+  detail: string;
+  title: string;
+} | null {
+  const daysUntilEvent = getDaysUntilEventDate(assignment?.group_event_date);
+
+  if (
+    daysUntilEvent === null ||
+    daysUntilEvent < 0 ||
+    daysUntilEvent > GIFT_DAY_REMINDER_WINDOW_DAYS
+  ) {
+    return null;
+  }
+
+  if (daysUntilEvent === 0) {
+    return {
+      detail: "Quick ideas that fit your region and budget.",
+      title: "Gift day is today",
+    };
+  }
+
+  if (daysUntilEvent === 1) {
+    return {
+      detail: "Fast ideas that fit your region and budget.",
+      title: "Gift day is tomorrow",
+    };
+  }
+
+  return {
+    detail: "Fast ideas that fit your region and budget.",
+    title: "Gift day is close",
+  };
+}
+
 function getGiftPrepLabel(status: GiftPrepStatus | null): string {
   if (!status) {
     return "No update yet";
@@ -3714,6 +3794,7 @@ export function SecretSantaExperience({ mode = "shopping" }: SecretSantaExperien
     SHOPPING_REGION_OPTIONS.find((option) => option.value === shoppingRegion)?.label ||
     shoppingRegion;
   const primaryAssignment = assignments[0] || null;
+  const giftDayReminderCopy = getGiftDayReminderCopy(primaryAssignment);
   const activeGroupId = primaryAssignment?.group_id || availableGroups[0]?.id || "";
   const activeGroupHref = activeGroupId ? `/group/${activeGroupId}` : "/dashboard";
   const activeGroupName =
@@ -3896,7 +3977,7 @@ export function SecretSantaExperience({ mode = "shopping" }: SecretSantaExperien
           onUnreadCountChange={setUnreadNotificationCount}
         />
         <div className="mx-auto w-full max-w-376 px-4 py-4 sm:px-6 sm:py-6 xl:px-7 xl:py-3">
-        {isShoppingMode && (
+        {isShoppingMode && giftDayReminderCopy && (
           <section
             className="mb-4 flex flex-col gap-3 rounded-[26px] px-4 py-3 sm:flex-row sm:items-center sm:justify-between sm:px-5"
             style={{
@@ -3917,10 +3998,10 @@ export function SecretSantaExperience({ mode = "shopping" }: SecretSantaExperien
               </span>
               <div className="min-w-0">
                 <p className="text-[15px] font-black leading-tight" style={{ color: HOLIDAY_RED }}>
-                  Gift day is close
+                  {giftDayReminderCopy.title}
                 </p>
                 <p className="mt-1 text-[11px] font-semibold leading-tight" style={{ color: TEXT_MUTED }}>
-                  Fast ideas that fit your region and budget.
+                  {giftDayReminderCopy.detail}
                 </p>
               </div>
             </div>
