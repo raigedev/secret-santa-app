@@ -24,6 +24,7 @@ import {
   type ShoppingRegion,
   type WishlistFeaturedProductCard,
 } from "@/lib/wishlist/suggestions";
+import { canAccessRecipientWishlistItem } from "@/lib/wishlist/recipient-access";
 import { requireAuthenticatedAffiliateRoute } from "../_shared/authenticated-affiliate-route";
 
 type MatchProductsBody = {
@@ -627,6 +628,19 @@ export async function POST(request: NextRequest) {
     region !== "PH"
   ) {
     return NextResponse.json({ products: [] satisfies WishlistFeaturedProductCard[] });
+  }
+
+  const accessCheck = await canAccessRecipientWishlistItem({
+    groupId,
+    userId: auth.userId,
+    wishlistItemId,
+  });
+
+  if (!accessCheck.allowed) {
+    return NextResponse.json(
+      { error: "Forbidden", products: [] satisfies WishlistFeaturedProductCard[] },
+      { status: 403 }
+    );
   }
 
   const normalizedPriceBounds = normalizePriceBounds({

@@ -4450,7 +4450,7 @@ export function SecretSantaExperience({ mode = "shopping" }: SecretSantaExperien
                         (lazadaMatchesLoading
                           ? displayableFallbackLazadaProducts[0]
                           : featuredLazadaProducts[0]) || null;
-                      const heroLazadaImageUrl = normalizeOptionalUrl(
+                      const heroLazadaImageUrl = normalizeTrustedLazadaImageUrl(
                         primaryFeaturedLazadaProduct?.imageUrl || ""
                       );
                       const heroLazadaTitle =
@@ -5085,6 +5085,7 @@ export function SecretSantaExperience({ mode = "shopping" }: SecretSantaExperien
                                           src={heroLazadaImageUrl}
                                           alt={heroLazadaTitle}
                                           className="h-full max-h-27 w-full object-contain object-center transition duration-700 group-hover:scale-[1.02] sm:max-h-29 lg:max-h-31"
+                                          referrerPolicy="no-referrer"
                                         />
                                       ) : (
                                         <div
@@ -5302,7 +5303,8 @@ export function SecretSantaExperience({ mode = "shopping" }: SecretSantaExperien
                                                 getFeaturedLazadaButtonLabel(product);
                                               const productImageUrl = normalizeTrustedLazadaImageUrl(
                                                 product.imageUrl ||
-                                                  curatedFallbackImageUrl
+                                                  curatedFallbackImageUrl ||
+                                                  ""
                                               );
                                               const fallbackVisualLabel =
                                                 summarizeCardCopy(product.title, 46);

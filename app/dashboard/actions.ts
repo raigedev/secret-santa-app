@@ -186,7 +186,7 @@ export async function acceptInvite(
     supabase
       .from("profiles")
       .select("display_name")
-      .eq("id", user.id)
+      .eq("user_id", user.id)
       .maybeSingle(),
   ]);
 
