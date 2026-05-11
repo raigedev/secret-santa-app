@@ -49,6 +49,7 @@ docs/archived-codex-thread-*.md
 .codex/get-shit-done/
 .codex/skills/gsd-*/
 .codex/gsd-file-manifest.json
+.codex/config.toml
 .codex/VERSION
 .codex/package.json
 .planning/
