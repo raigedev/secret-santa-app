@@ -174,6 +174,7 @@ Act as a senior full-stack engineer and software architect. Code this project wi
 ## Security Rules
 
 - Before marking code changes done, run `npm.cmd run typecheck`, `npm.cmd run lint:security`, and `npm.cmd run build` unless the change is documentation-only or there is a clear blocker.
+- After code or config changes, and during security-sensitive validation, use `[@codex-security](plugin://codex-security@openai-curated)` / the Codex Security plugin automatically when it is available. Do not wait for the user to grant separate permission; treat it as part of the normal repo validation stack alongside `check:problems`, tests, Playwright, CodeQL, and CodeRabbit.
 - Always prioritize app security and privacy over convenience. Do not weaken Vercel, Supabase, auth, deployment protection, privacy boundaries, or security headers just to make previews, testing, or debugging easier; use authenticated or scoped bypass workflows instead.
 - Never commit secrets, API keys, access tokens, Supabase service-role keys, webhook secrets, Lazada/Open API credentials, postback secrets, or private user data.
 - Do not paste secrets into docs, screenshots, logs, comments, fixtures, or example output.

@@ -3778,6 +3778,12 @@ export function SecretSantaExperience({ mode = "shopping" }: SecretSantaExperien
   const activeGroupHref = activeGroupId ? `/group/${activeGroupId}` : "/dashboard";
   const activeGroupName =
     primaryAssignment?.group_name || availableGroups[0]?.name || "Secret Santa group";
+  const giftDayDetailsButtonLabel = activeGroupId
+    ? "See gift day details"
+    : "Open dashboard";
+  const giftDayDetailsButtonAriaLabel = activeGroupId
+    ? `See gift day details for ${activeGroupName}`
+    : "Open dashboard";
   const dashboardBudgetLabel =
     primaryAssignment?.group_budget !== null &&
     typeof primaryAssignment?.group_budget === "number"
@@ -3980,6 +3986,7 @@ export function SecretSantaExperience({ mode = "shopping" }: SecretSantaExperien
             </div>
             <button
               type="button"
+              aria-label={giftDayDetailsButtonAriaLabel}
               onClick={() => router.push(activeGroupHref)}
               className="inline-flex min-h-9 items-center justify-center gap-2 rounded-full px-3 text-[11px] font-black transition hover:-translate-y-0.5 focus-visible:outline-2 focus-visible:outline-offset-2"
               style={{
@@ -3990,7 +3997,7 @@ export function SecretSantaExperience({ mode = "shopping" }: SecretSantaExperien
                 outlineColor: HOLIDAY_RED,
               }}
             >
-              See gift day details
+              {giftDayDetailsButtonLabel}
               <ChevronRightMark className="h-3.5 w-3.5" />
             </button>
           </section>
