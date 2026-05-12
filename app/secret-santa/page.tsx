@@ -268,6 +268,49 @@ function GiftMark({ className = "h-5 w-5" }: { className?: string }) {
   );
 }
 
+function GiftTagMark({ className = "h-5 w-5" }: { className?: string }) {
+  return (
+    <svg
+      aria-hidden="true"
+      className={className}
+      viewBox="0 0 24 24"
+      fill="none"
+    >
+      <path
+        d="M5.2 6.3h7.1l6.5 6.5-6 6-6.5-6.5V6.3Z"
+        stroke="currentColor"
+        strokeLinejoin="round"
+        strokeWidth="1.8"
+      />
+      <circle cx="9" cy="10" r="1.5" fill="currentColor" />
+      <path
+        d="M12.7 13.2h4.1v3.6h-4.1v-3.6ZM14.75 13.2v3.6M12.7 15h4.1"
+        stroke="currentColor"
+        strokeLinejoin="round"
+        strokeWidth="1.5"
+      />
+    </svg>
+  );
+}
+
+function ModeEyebrowIcon({
+  className = "h-3.5 w-3.5",
+  mode,
+}: {
+  className?: string;
+  mode: SecretSantaExperienceMode;
+}) {
+  if (mode === "giftee") {
+    return <GiftTagMark className={className} />;
+  }
+
+  if (mode === "tracking") {
+    return <CheckCircleMark className={className} />;
+  }
+
+  return <GiftMark className={className} />;
+}
+
 function SparkleMark({ className = "h-5 w-5" }: { className?: string }) {
   return (
     <svg
@@ -396,6 +439,10 @@ function ShoppingNavIcon({
     return <HeartMark className={className} />;
   }
 
+  if (name === "giftee") {
+    return <GiftTagMark className={className} />;
+  }
+
   if (name === "reminders") {
     return (
       <svg {...commonProps}>
@@ -448,15 +495,14 @@ function ShoppingNavIcon({
   }
 
   const paths: Record<
-    Exclude<ShoppingIdeasNavItem["icon"], "shopping" | "wishlist" | "reminders" | "history" | "settings">,
+    Exclude<
+      ShoppingIdeasNavItem["icon"],
+      "shopping" | "wishlist" | "giftee" | "reminders" | "history" | "settings"
+    >,
     string[]
   > = {
     dashboard: [
       "M5 5.4h6.2v6.2H5V5.4ZM12.8 5.4H19v6.2h-6.2V5.4ZM5 13.4h6.2v5.2H5v-5.2ZM12.8 13.4H19v5.2h-6.2v-5.2Z",
-    ],
-    giftee: [
-      "M12 12.6a4 4 0 1 0 0-8 4 4 0 0 0 0 8Z",
-      "M4.8 20c1-3.6 3.5-5.4 7.2-5.4s6.2 1.8 7.2 5.4",
     ],
     group: [
       "M8.3 11.4a3 3 0 1 0 0-6 3 3 0 0 0 0 6ZM15.7 11.4a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z",
@@ -526,24 +572,32 @@ function ShoppingIdeasHeroMark({ className = "h-12 w-12" }: { className?: string
 function GifteeHeroMark({ className = "h-12 w-12" }: { className?: string }) {
   return (
     <svg aria-hidden="true" className={className} viewBox="0 0 72 72" fill="none">
-      <circle cx="36" cy="25" r="12" fill="#fffefa" stroke="#48664e" strokeWidth="3" />
+      <ellipse cx="39" cy="62" rx="23" ry="6" fill="rgba(46,52,50,.08)" />
       <path
-        d="M17 60c4.2-12.4 11-18.6 19-18.6S50.8 47.6 55 60"
+        d="M19 23h30l8 8v23a5 5 0 0 1-5 5H19V23Z"
+        fill="#fffefa"
         stroke="#48664e"
-        strokeLinecap="round"
+        strokeLinejoin="round"
         strokeWidth="3"
       />
-      <path d="M20 54h32v11H20V54Z" fill="#a43c3f" />
-      <path d="M36 54v11M20 59.5h32" stroke="#fcce72" strokeWidth="3" />
+      <path d="M49 23v8h8" stroke="#48664e" strokeLinejoin="round" strokeWidth="3" />
+      <path d="M20 44h33v13H20V44Z" fill="#a43c3f" />
+      <path d="M36.5 44v13M20 50.5h33" stroke="#fcce72" strokeWidth="3" />
       <path
-        d="M29 53c-5-7 4-12 7-2 3-10 12-5 7 2"
+        d="M29.5 43.8c-5-6.9 4.2-11.9 7-1.9 3-10 12-5 7.1 1.9"
         stroke="#fcce72"
         strokeLinecap="round"
         strokeWidth="3"
       />
-      <circle cx="30" cy="25" r="2" fill="#2e3432" />
-      <circle cx="42" cy="25" r="2" fill="#2e3432" />
-      <path d="M31 32c3.4 2.6 7.2 2.6 10 0" stroke="#a43c3f" strokeLinecap="round" strokeWidth="2.4" />
+      <circle cx="31" cy="32" r="5.4" fill="#edf5ef" stroke="#48664e" strokeWidth="2.4" />
+      <path
+        d="M22.4 42.2c1.5-5 4.4-7.4 8.6-7.4s7.1 2.4 8.6 7.4"
+        stroke="#48664e"
+        strokeLinecap="round"
+        strokeWidth="2.4"
+      />
+      <circle cx="57" cy="18" r="2.7" fill="#a43c3f" />
+      <circle cx="15" cy="34" r="2.2" fill="#fcce72" />
     </svg>
   );
 }
@@ -745,6 +799,49 @@ function GiftBoxIllustration({ className = "h-16 w-16" }: { className?: string }
         stroke="#fcce72"
         strokeLinecap="round"
         strokeWidth="1.8"
+      />
+    </svg>
+  );
+}
+
+function EmptyGifteeIllustration({ className = "h-20 w-20" }: { className?: string }) {
+  return (
+    <svg
+      aria-hidden="true"
+      className={className}
+      viewBox="0 0 92 92"
+      fill="none"
+    >
+      <ellipse cx="47" cy="76" rx="28" ry="8" fill="rgba(46,52,50,.08)" />
+      <path
+        d="M19 34h43l11 11v25a6 6 0 0 1-6 6H19V34Z"
+        fill="#fffefa"
+        stroke="#48664e"
+        strokeLinejoin="round"
+        strokeWidth="3"
+      />
+      <path d="M62 34v11h11" stroke="#48664e" strokeLinejoin="round" strokeWidth="3" />
+      <rect x="22" y="54" width="43" height="14" rx="4" fill="#a43c3f" />
+      <path d="M43.5 54v14M22 61h43" stroke="#fcce72" strokeWidth="3" />
+      <path
+        d="M36 53.5c-6-7.2 4.4-13 7.5-2 3.5-11 14-5.2 8 2"
+        stroke="#fcce72"
+        strokeLinecap="round"
+        strokeWidth="3"
+      />
+      <path
+        d="M39.2 45.4c0-3.2 2.3-5.3 5.7-5.3 3.1 0 5.5 1.8 5.5 4.6 0 2.1-1.2 3.3-3.2 4.4-1.5.8-2.1 1.5-2.1 3.1"
+        stroke="#48664e"
+        strokeLinecap="round"
+        strokeWidth="3"
+      />
+      <circle cx="45.1" cy="59.4" r="1.9" fill="#48664e" />
+      <circle cx="75" cy="30" r="2.5" fill="#a43c3f" opacity=".85" />
+      <path
+        d="M17 48c-3.1 1.1-5 3.1-5.8 6.2M12.6 46.8c1.2 3.6 3.4 5.6 6.8 6.2"
+        stroke="#fcce72"
+        strokeLinecap="round"
+        strokeWidth="2"
       />
     </svg>
   );
@@ -3361,7 +3458,7 @@ export function SecretSantaExperience({ mode = "shopping" }: SecretSantaExperien
                       color: HOLIDAY_GREEN,
                     }}
                   >
-                    <GiftMark className="h-3.5 w-3.5" />
+                    <ModeEyebrowIcon mode={mode} className="h-3.5 w-3.5" />
                     {heroEyebrow}
                   </span>
                   <span
@@ -3507,7 +3604,16 @@ export function SecretSantaExperience({ mode = "shopping" }: SecretSantaExperien
               boxShadow: SURFACE_SHADOW,
             }}
           >
-            <div className="text-[48px] mb-3">🎲</div>
+            <div
+              className="mx-auto mb-4 flex h-24 w-24 items-center justify-center rounded-[30px]"
+              style={{
+                background:
+                  "radial-gradient(circle at 30% 25%,rgba(252,206,114,.18),transparent 4rem), linear-gradient(180deg,rgba(255,254,250,.96),rgba(239,247,240,.9))",
+                border: "1px solid rgba(72,102,78,.14)",
+              }}
+            >
+              <EmptyGifteeIllustration className="h-20 w-20" />
+            </div>
             <div
               className="text-[18px] font-bold"
               style={{
