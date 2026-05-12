@@ -31,12 +31,12 @@ http://127.0.0.1:3000/**
 
 ## Knip Cleanup Baseline
 
-`npm.cmd run audit:unused` and `npm.cmd run audit:unused:production` are advisory. Current known cleanup findings include:
+`npm.cmd run audit:unused` and `npm.cmd run audit:unused:production` are advisory. Current
+cleanup findings should be reviewed before deleting files or removing exports because some
+symbols may be intentionally kept for tests, future provider support, or route-local conventions.
 
-- `app/dashboard/SecretSantaCard.tsx` appears unused.
-- Some exported helpers/types are currently not referenced by static imports.
-
-Review each finding before deleting files or removing exports. Some exported symbols may be intentionally kept for tests, future provider support, or route-local conventions.
+Last reviewed cleanup: removed the Knip-confirmed dashboard leftovers and unused helper/type
+exports from the May 2026 cleanup pass.
 
 ## Sentry Not Wired Yet
 

@@ -1,6 +1,6 @@
 import { isNullableString, isRecord, isUuid } from "@/lib/validation/common";
 
-export type MyAssignmentGiftPrepRow = {
+type MyAssignmentGiftPrepRow = {
   gift_prep_status: string | null;
   gift_prep_updated_at: string | null;
   gift_received: boolean | null;
@@ -13,7 +13,7 @@ type GiftPrepResponsePayload = {
   rows?: unknown;
 };
 
-export type MyAssignmentGiftPrepResult = {
+type MyAssignmentGiftPrepResult = {
   data: MyAssignmentGiftPrepRow[];
   error: Error | null;
 };

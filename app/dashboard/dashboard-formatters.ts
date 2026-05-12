@@ -230,38 +230,6 @@ export function getDashboardMemberLabel(
   return safeDisplayName || safeNickname || fallbackLabel;
 }
 
-export function formatRelativeTime(value: string): string {
-  const timestamp = new Date(value).getTime();
-
-  if (Number.isNaN(timestamp)) {
-    return "Recently";
-  }
-
-  const diffMs = Date.now() - timestamp;
-  const diffMinutes = Math.max(1, Math.floor(diffMs / (1000 * 60)));
-
-  if (diffMinutes < 60) {
-    return `${diffMinutes}m ago`;
-  }
-
-  const diffHours = Math.floor(diffMinutes / 60);
-
-  if (diffHours < 24) {
-    return `${diffHours}h ago`;
-  }
-
-  const diffDays = Math.floor(diffHours / 24);
-
-  if (diffDays < 7) {
-    return `${diffDays}d ago`;
-  }
-
-  return new Date(value).toLocaleDateString(undefined, {
-    day: "numeric",
-    month: "short",
-  });
-}
-
 export function formatGiftPrepStatusLabel(status: string | null): string {
   switch (status) {
     case "planning":
@@ -288,21 +256,6 @@ export function normalizeGiftProgressStep(status: string | null): GiftProgressSt
     case "planning":
     default:
       return "planning";
-  }
-}
-
-export function getGiftProgressStepIndex(step: GiftProgressStep): number {
-  switch (step) {
-    case "planning":
-      return 0;
-    case "purchased":
-      return 1;
-    case "wrapped":
-      return 2;
-    case "ready_to_give":
-      return 3;
-    default:
-      return 0;
   }
 }
 
