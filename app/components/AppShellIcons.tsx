@@ -30,7 +30,23 @@ export function AppShellIcon({ name, className = "h-5 w-5" }: AppShellIconProps)
   }
 
   if (name === "giftee") {
-    return <svg {...common}><path d="M12 12a3.4 3.4 0 1 0 0-6.8 3.4 3.4 0 0 0 0 6.8ZM5.6 20c1-3.2 3.4-5 6.4-5s5.4 1.8 6.4 5" stroke="currentColor" strokeLinecap="round" strokeWidth="1.7" /></svg>;
+    return (
+      <svg {...common}>
+        <path
+          d="M5.2 6.3h7.1l6.5 6.5-6 6-6.5-6.5V6.3Z"
+          stroke="currentColor"
+          strokeLinejoin="round"
+          strokeWidth="1.7"
+        />
+        <circle cx="9" cy="10" r="1.4" fill="currentColor" />
+        <path
+          d="M12.7 13.2h4.1v3.6h-4.1v-3.6ZM14.75 13.2v3.6M12.7 15h4.1"
+          stroke="currentColor"
+          strokeLinejoin="round"
+          strokeWidth="1.4"
+        />
+      </svg>
+    );
   }
 
   if (name === "wishlist") {
