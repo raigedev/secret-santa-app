@@ -142,13 +142,13 @@ Current cleanup/refactor slice:
 
 - Removed Knip-confirmed unused dashboard files and unused helper/type exports.
 - Updated stale cleanup docs.
-- Began the first structural split of `SecretSantaExperience` by moving shopping region, AI suggestion, Lazada priming, and Lazada match-loading state into `app/secret-santa/use-shopping-lazada-state.ts`.
+- Began behavior-preserving screen splits by moving shopping region, AI suggestion, Lazada priming, and Lazada match-loading state into `app/secret-santa/use-shopping-lazada-state.ts`, and group page refresh/cache retry logic into `app/group/[id]/useGroupPageRefresh.ts`.
 - Preserved behavior; this slice is organization/cleanup only.
 
 ## Recommended Next Work
 
 1. Continue small verified UI/code cleanup slices.
-2. Continue splitting `SecretSantaExperience` in behavior-preserving steps, likely next by extracting the recipient wishlist rail or featured Lazada card UI.
+2. Continue splitting large screens in behavior-preserving steps. Best next candidates are the affiliate report's pure report-metric helpers, then `SecretSantaExperience` recipient wishlist rail or featured Lazada card UI.
 3. Keep strengthening product guardrail tests for:
    - duplicate/noisy surfaces,
    - non-actionable status pills,

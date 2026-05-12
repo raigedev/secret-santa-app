@@ -184,6 +184,10 @@ export function useShoppingLazadaState({
   >({});
   const [shoppingRegion, setShoppingRegion] = useState<ShoppingRegion>("GLOBAL");
   const [shoppingRegionInitialized, setShoppingRegionInitialized] = useState(false);
+
+  // These refs mirror state that async effects read after network boundaries.
+  // Keeping the latest value in a ref prevents duplicate requests without
+  // making every in-flight state update restart the same effect.
   const aiSuggestionStartedItemsRef = useRef<Set<string>>(new Set());
   const lazadaPrimedKeysRef = useRef<Set<string>>(new Set());
   const selectedRecipientSuggestionByItemRef = useRef(selectedRecipientSuggestionByItem);
@@ -283,6 +287,9 @@ export function useShoppingLazadaState({
       return;
     }
 
+    // AI suggestions are only loaded for the visible item on each recipient
+    // card. That keeps provider calls bounded when a giver has several
+    // recipients with long wishlists.
     const pendingTargets: Array<{
       assignment: RecipientData;
       item: WishlistItem;
@@ -545,6 +552,9 @@ export function useShoppingLazadaState({
       return;
     }
 
+    // Lazada matching depends on the selected shopping angle. The request key
+    // includes item, angle, and region so changing one card does not overwrite
+    // another card's in-flight result.
     const pendingRequests: Array<{
       body: Record<string, string | number | null>;
       requestKey: string;
