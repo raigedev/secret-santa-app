@@ -1,4 +1,4 @@
-# Secret Santa App Handoff - 2026-05-09
+# Secret Santa App Handoff - 2026-05-12
 
 Project: `C:\Users\kenda\secret-santa-app`
 
@@ -18,9 +18,9 @@ This top section supersedes older snapshot notes below. Keep the older history f
 
 - Working branch at handoff: `dev`.
 - Latest checked status: `## dev...origin/dev`.
-- Latest `origin/main`: `41d5989 Merge pull request #65 from raigedev/dev`.
-- Latest `origin/dev`: `a31a1f7 Stabilize app shell hydration and trim helper exports`.
-- Last merged PR: #65 `Stabilize app shell hydration and trim helper exports`.
+- Latest synced baseline before the current cleanup slice: `b8699060fd28a1a5fb4ceab39109aa0fa6338e13`.
+- At that baseline, `dev`, `main`, `origin/dev`, and `origin/main` all point to PR #106.
+- Last merged PR: #106 `Document verified done push workflow`.
 - Leave workspace on `dev`.
 - `.agent/NEXT_AGENT_HANDOFF.md` may be ignored depending on local git rules; use `git add -f .agent/NEXT_AGENT_HANDOFF.md .agent/CONTINUITY.md` only if the user explicitly wants this handoff committed.
 
@@ -113,6 +113,8 @@ git push origin dev
 - PR #63: `Add product UI guardrail tests`.
 - PR #64: `Trim unused helper exports`.
 - PR #65: `Stabilize app shell hydration and trim helper exports`.
+- PR #105: `Harden gift-day and storage security flows`.
+- PR #106: `Document verified done push workflow`.
 
 ## Bugs And Investigations Handled
 
@@ -127,39 +129,26 @@ git push origin dev
 
 ## Recent Code/Test State
 
-Latest local validation before PR #65:
+Latest verified baseline before the 2026-05-12 cleanup/refactor slice:
 
 - `npm.cmd run check:problems` passed.
-- `npm.cmd run typecheck` passed.
-- `npm.cmd run lint:security` passed.
-- `npm.cmd run build` passed.
-- `npx.cmd playwright test tests/e2e/auth/authenticated-workflow-edge-cases.spec.ts --project=chromium` passed `9/9`.
+- `npm.cmd run typecheck` passed during the cleanup/refactor slice.
+- `npm.cmd run audit:unused` and `npm.cmd run audit:unused:production` now report no findings after removing the Knip-confirmed dashboard leftovers and unused helper/type exports.
 - `npm.cmd run audit:architecture` passed.
 - `npm.cmd run audit:security` passed with 0 high vulnerabilities.
-- `git diff --check` passed with only Windows CRLF normalization warnings.
-- PR #65 remote checks passed: Validate, CodeQL, Review dependency changes, Analyze JavaScript and TypeScript, Vercel, Vercel Preview Comments.
+- PR #106 remote checks passed: Validate, CodeQL, Dependency Review, Vercel, Vercel Preview Comments.
 
-`npm.cmd run audit:unused:production` still reports older cleanup leads:
+Current cleanup/refactor slice:
 
-- Unused files:
-  - `app/dashboard/DashboardHeader.tsx`
-  - `app/dashboard/DashboardPreviewWorkspaceParts.tsx`
-  - `app/dashboard/DashboardProfileMenu.tsx`
-  - `app/dashboard/useDashboardProfileMenu.ts`
-- Unused exports:
-  - `app/create-group/actions.ts`: `createGroupWithInvites`
-  - `app/dashboard/DashboardCommandDeskSections.tsx`: `getSoftClass`
-  - `app/dashboard/dashboard-formatters.ts`: `formatRelativeTime`, `getGiftProgressStepIndex`
-  - `app/dashboard/dashboard-icons.tsx`: `PlusIcon`
-- Unused exported type:
-  - `app/dashboard/dashboard-types.ts`: `ProfileMenuPosition`
-
-Do not delete files casually. Inspect before removing and keep changes small.
+- Removed Knip-confirmed unused dashboard files and unused helper/type exports.
+- Updated stale cleanup docs.
+- Began behavior-preserving screen splits by moving shopping region, AI suggestion, Lazada priming, and Lazada match-loading state into `app/secret-santa/use-shopping-lazada-state.ts`, and group page refresh/cache retry logic into `app/group/[id]/useGroupPageRefresh.ts`.
+- Preserved behavior; this slice is organization/cleanup only.
 
 ## Recommended Next Work
 
 1. Continue small verified UI/code cleanup slices.
-2. Inspect the `audit:unused:production` leads and remove only clearly dead files/exports.
+2. Continue splitting large screens in behavior-preserving steps. Best next candidates are the affiliate report's pure report-metric helpers, then `SecretSantaExperience` recipient wishlist rail or featured Lazada card UI.
 3. Keep strengthening product guardrail tests for:
    - duplicate/noisy surfaces,
    - non-actionable status pills,

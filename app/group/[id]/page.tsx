@@ -49,6 +49,7 @@ import {
   type OwnerInsights,
   type RevealMatch,
 } from "./group-page-state";
+import { useGroupPageRefresh } from "./useGroupPageRefresh";
 import { useGroupRoutePrefetch } from "./useGroupRoutePrefetch";
 
 type ShareResultsCardProps = {
@@ -127,40 +128,11 @@ export default function GroupDetailsPage() {
   const [actionSaving, setActionSaving] = useState(false);
   const [actionMsg, setActionMsg] = useState("");
   const loadGroupDataRef = useRef<(() => Promise<void>) | null>(null);
-
-  const notifyGroupRefresh = () => {
-    clearGroupPageSnapshots(id);
-
-    try {
-      localStorage.setItem(`group-refresh:${id}`, Date.now().toString());
-    } catch {
-      // Best-effort same-browser tab sync only.
-    }
-
-    if (loadGroupDataRef.current) {
-      void loadGroupDataRef.current();
-    }
-  };
-
-  const forceGroupRefresh = () => {
-    notifyGroupRefresh();
-    router.refresh();
-
-    // Some changes can take a moment to show up in the next read. A short
-    // retry sequence makes the page settle into the final state without
-    // asking the user to refresh manually.
-    window.setTimeout(() => {
-      if (loadGroupDataRef.current) {
-        void loadGroupDataRef.current();
-      }
-    }, 250);
-
-    window.setTimeout(() => {
-      if (loadGroupDataRef.current) {
-        void loadGroupDataRef.current();
-      }
-    }, 900);
-  };
+  const { forceGroupRefresh, notifyGroupRefresh } = useGroupPageRefresh({
+    groupId: id,
+    loadGroupDataRef,
+    router,
+  });
 
   useEffect(() => {
     if (!id) return;

@@ -37,12 +37,6 @@ export type ActionMessage = {
   text: string;
 } | null;
 
-export type ProfileMenuPosition = {
-  top: number;
-  left: number;
-  width: number;
-} | null;
-
 export type GroupRow = {
   id: string;
   name: string;

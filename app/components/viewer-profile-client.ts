@@ -4,9 +4,6 @@ import {
   writeSessionStorageItem,
 } from "@/lib/client-snapshot";
 
-const VIEWER_NAME_STORAGE_KEY = "ss_un";
-const VIEWER_AVATAR_STORAGE_KEY = "ss_uav";
-const VIEWER_AVATAR_EMOJI_STORAGE_KEY = "ss_uae";
 const VIEWER_PROFILE_STORAGE_PREFIX = "ss_viewer_profile_v2:";
 const VIEWER_PROFILE_CHANGED_EVENT = "ss-profile-updated";
 
@@ -199,12 +196,6 @@ export function storeViewerAvatarEmoji(value: string | null | undefined, userId?
     ...readStoredViewerProfileForUser(userId),
     avatarEmoji: normalized,
   });
-}
-
-export function clearLegacyViewerProfileStorage() {
-  removeSessionStorageItem(VIEWER_NAME_STORAGE_KEY);
-  removeSessionStorageItem(VIEWER_AVATAR_STORAGE_KEY);
-  removeSessionStorageItem(VIEWER_AVATAR_EMOJI_STORAGE_KEY);
 }
 
 function readViewerProfileChangedDetail(event: Event): ViewerProfileChangedDetail | null {

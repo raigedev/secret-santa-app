@@ -34,7 +34,7 @@ const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const ALLOWED_CURRENCIES = new Set(["USD", "EUR", "GBP", "PHP", "JPY", "AUD", "CAD"]);
 const GROUP_DELETE_CONFIRM_MAX_LENGTH = 100;
 
-export type GroupMemberForViewer = {
+type GroupMemberForViewer = {
   id: string;
   user_id: string | null;
   nickname: string | null;
