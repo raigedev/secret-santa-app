@@ -48,7 +48,9 @@ import {
   mergeWishlistSuggestionOptions,
   SHOPPING_REGION_OPTIONS,
   type ShoppingRegion,
+  type SuggestionMerchant,
   type WishlistFeaturedProductCard,
+  type WishlistMerchantLink,
 } from "@/lib/wishlist/suggestions";
 import {
   applySuggestionDisplayOrder,
@@ -184,8 +186,8 @@ const HOLIDAY_GOLD = "#7b5902";
 const SECRET_SANTA_FALLBACK_POLL_MS = 5 * 60 * 1000;
 const NOTIFICATION_BADGE_COUNT_LIMIT = 100;
 const HOLIDAY_BLUE = "#58748e";
-const LAZADA_AFFILIATE_DISCLOSURE =
-  "Some Lazada links are affiliate links.";
+const SHOPPING_AFFILIATE_DISCLOSURE =
+  "We may earn from qualifying purchases.";
 const SECRET_SANTA_PAGE_SNAPSHOT_STORAGE_PREFIX = "ss_secret_santa_page_snapshot_v1:";
 const GIFT_DAY_REMINDER_WINDOW_DAYS = 2;
 const DAY_MS = 24 * 60 * 60 * 1000;
@@ -572,32 +574,40 @@ function ShoppingIdeasHeroMark({ className = "h-12 w-12" }: { className?: string
 function GifteeHeroMark({ className = "h-12 w-12" }: { className?: string }) {
   return (
     <svg aria-hidden="true" className={className} viewBox="0 0 72 72" fill="none">
-      <ellipse cx="39" cy="62" rx="23" ry="6" fill="rgba(46,52,50,.08)" />
+      <ellipse cx="36" cy="62" rx="21" ry="6" fill="rgba(46,52,50,.08)" />
       <path
-        d="M19 23h30l8 8v23a5 5 0 0 1-5 5H19V23Z"
+        d="M18 18.5h36c4.7 0 8.5 3.8 8.5 8.5v25c0 4.7-3.8 8.5-8.5 8.5H18c-4.7 0-8.5-3.8-8.5-8.5V27c0-4.7 3.8-8.5 8.5-8.5Z"
         fill="#fffefa"
         stroke="#48664e"
-        strokeLinejoin="round"
-        strokeWidth="3"
+        strokeOpacity=".2"
+        strokeWidth="2.4"
       />
-      <path d="M49 23v8h8" stroke="#48664e" strokeLinejoin="round" strokeWidth="3" />
-      <path d="M20 44h33v13H20V44Z" fill="#a43c3f" />
-      <path d="M36.5 44v13M20 50.5h33" stroke="#fcce72" strokeWidth="3" />
       <path
-        d="M29.5 43.8c-5-6.9 4.2-11.9 7-1.9 3-10 12-5 7.1 1.9"
+        d="M20 23h32c3 0 5.5 2.5 5.5 5.5v18"
         stroke="#fcce72"
         strokeLinecap="round"
         strokeWidth="3"
       />
-      <circle cx="31" cy="32" r="5.4" fill="#edf5ef" stroke="#48664e" strokeWidth="2.4" />
+      <circle cx="34.5" cy="37" r="8" fill="#dcefe0" stroke="#48664e" strokeWidth="2.8" />
       <path
-        d="M22.4 42.2c1.5-5 4.4-7.4 8.6-7.4s7.1 2.4 8.6 7.4"
+        d="M20.7 55.5c2.6-7.3 7.2-11 13.8-11 6.7 0 11.3 3.7 13.9 11"
+        fill="#edf5ef"
         stroke="#48664e"
         strokeLinecap="round"
-        strokeWidth="2.4"
+        strokeLinejoin="round"
+        strokeWidth="2.8"
       />
-      <circle cx="57" cy="18" r="2.7" fill="#a43c3f" />
-      <circle cx="15" cy="34" r="2.2" fill="#fcce72" />
+      <path d="M47.3 23.2c-2.4-6.2 4.8-10.5 8.9-5.2" stroke="#a43c3f" strokeLinecap="round" strokeWidth="3" />
+      <path d="M45 25.5h14" stroke="#a43c3f" strokeLinecap="round" strokeWidth="5" />
+      <circle cx="56.8" cy="17.8" r="2.8" fill="#fcce72" />
+      <path
+        d="M51.7 39.8c0-3.8 2.6-6 6.1-6 3.3 0 5.8 1.9 5.8 4.8 0 2.3-1.2 3.5-3.2 4.6-1.5.9-2.1 1.6-2.1 3.3"
+        stroke="#a43c3f"
+        strokeLinecap="round"
+        strokeWidth="2.8"
+      />
+      <circle cx="58.3" cy="52.3" r="2.2" fill="#a43c3f" />
+      <circle cx="15" cy="18" r="2.2" fill="#fcce72" />
     </svg>
   );
 }
@@ -638,6 +648,53 @@ function HeroModeMark({
   }
 
   return <ShoppingIdeasHeroMark className={className} />;
+}
+
+function GifteeMatchCardMark({ className = "h-12 w-12" }: { className?: string }) {
+  return (
+    <svg aria-hidden="true" className={className} viewBox="0 0 72 72" fill="none">
+      <ellipse cx="38" cy="61" rx="21" ry="6" fill="rgba(46,52,50,.08)" />
+      <path
+        d="M17 22.5 39.8 16l12.8 44.7-22.8 6.5L17 22.5Z"
+        fill="#edf5ef"
+        stroke="#48664e"
+        strokeOpacity=".22"
+        strokeWidth="2.4"
+      />
+      <path
+        d="M29.2 17.8 53 20.7l-5.7 46.1-23.8-2.9 5.7-46.1Z"
+        fill="#fffefa"
+        stroke="#48664e"
+        strokeOpacity=".22"
+        strokeWidth="2.4"
+      />
+      <path d="m31.5 29.8 14.2 1.7M30.4 39.3l17.3 2.1M29.3 48.9l11.7 1.4" stroke="#48664e" strokeLinecap="round" strokeOpacity=".32" strokeWidth="3" />
+      <circle cx="44.8" cy="52" r="7.3" fill="#a43c3f" />
+      <path d="m41.2 52 2.5 2.4 5-5.4" stroke="#fffefa" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.6" />
+      <path
+        d="M33 19.5c-4.5-5.4 3.5-10.1 6.6-1.6 4-7.9 11.1-1.7 5.4 2"
+        stroke="#fcce72"
+        strokeLinecap="round"
+        strokeWidth="3"
+      />
+      <circle cx="17" cy="18" r="2.4" fill="#fcce72" />
+      <circle cx="56" cy="26" r="2" fill="#a43c3f" opacity=".75" />
+    </svg>
+  );
+}
+
+function SummaryModeMark({
+  className = "h-14 w-14",
+  mode,
+}: {
+  className?: string;
+  mode: SecretSantaExperienceMode;
+}) {
+  if (mode === "giftee") {
+    return <GifteeMatchCardMark className={className} />;
+  }
+
+  return <HeroModeMark mode={mode} className={className} />;
 }
 
 function NotificationBellMark({ className = "h-5 w-5" }: { className?: string }) {
@@ -808,41 +865,114 @@ function EmptyGifteeIllustration({ className = "h-20 w-20" }: { className?: stri
   return (
     <svg
       aria-hidden="true"
-      className={className}
-      viewBox="0 0 92 92"
+      className={`${className} overflow-visible drop-shadow-[0_24px_28px_rgba(72,102,78,.14)]`}
       fill="none"
+      viewBox="0 0 360 220"
     >
-      <ellipse cx="47" cy="76" rx="28" ry="8" fill="rgba(46,52,50,.08)" />
-      <path
-        d="M19 34h43l11 11v25a6 6 0 0 1-6 6H19V34Z"
-        fill="#fffefa"
-        stroke="#48664e"
-        strokeLinejoin="round"
-        strokeWidth="3"
-      />
-      <path d="M62 34v11h11" stroke="#48664e" strokeLinejoin="round" strokeWidth="3" />
-      <rect x="22" y="54" width="43" height="14" rx="4" fill="#a43c3f" />
-      <path d="M43.5 54v14M22 61h43" stroke="#fcce72" strokeWidth="3" />
-      <path
-        d="M36 53.5c-6-7.2 4.4-13 7.5-2 3.5-11 14-5.2 8 2"
-        stroke="#fcce72"
-        strokeLinecap="round"
-        strokeWidth="3"
-      />
-      <path
-        d="M39.2 45.4c0-3.2 2.3-5.3 5.7-5.3 3.1 0 5.5 1.8 5.5 4.6 0 2.1-1.2 3.3-3.2 4.4-1.5.8-2.1 1.5-2.1 3.1"
-        stroke="#48664e"
-        strokeLinecap="round"
-        strokeWidth="3"
-      />
-      <circle cx="45.1" cy="59.4" r="1.9" fill="#48664e" />
-      <circle cx="75" cy="30" r="2.5" fill="#a43c3f" opacity=".85" />
-      <path
-        d="M17 48c-3.1 1.1-5 3.1-5.8 6.2M12.6 46.8c1.2 3.6 3.4 5.6 6.8 6.2"
-        stroke="#fcce72"
-        strokeLinecap="round"
-        strokeWidth="2"
-      />
+      <defs>
+        <linearGradient id="mystery-gift-lid" x1="81" x2="280" y1="63" y2="116" gradientUnits="userSpaceOnUse">
+          <stop stopColor="#c85055" />
+          <stop offset="1" stopColor="#8f252b" />
+        </linearGradient>
+        <linearGradient id="mystery-gift-box" x1="91" x2="279" y1="92" y2="184" gradientUnits="userSpaceOnUse">
+          <stop stopColor="#a43c3f" />
+          <stop offset="1" stopColor="#6f1c22" />
+        </linearGradient>
+        <linearGradient id="mystery-gift-ribbon" x1="146" x2="213" y1="61" y2="184" gradientUnits="userSpaceOnUse">
+          <stop stopColor="#ffe09a" />
+          <stop offset=".52" stopColor="#fcce72" />
+          <stop offset="1" stopColor="#b98620" />
+        </linearGradient>
+        <linearGradient id="mystery-gift-tag" x1="218" x2="280" y1="54" y2="126" gradientUnits="userSpaceOnUse">
+          <stop stopColor="#ffffff" />
+          <stop offset="1" stopColor="#edf5ef" />
+        </linearGradient>
+        <radialGradient id="mystery-gift-glow" cx="0" cy="0" r="1" gradientTransform="matrix(126 0 0 68 181 122)" gradientUnits="userSpaceOnUse">
+          <stop stopColor="#fcce72" stopOpacity=".22" />
+          <stop offset=".72" stopColor="#fcce72" stopOpacity=".06" />
+          <stop offset="1" stopColor="#fcce72" stopOpacity="0" />
+        </radialGradient>
+        <filter id="mystery-gift-shadow" colorInterpolationFilters="sRGB" filterUnits="userSpaceOnUse" height="174" width="246" x="58" y="34">
+          <feDropShadow dx="0" dy="16" floodColor="#2e3432" floodOpacity=".13" stdDeviation="14" />
+        </filter>
+      </defs>
+
+      <ellipse cx="181" cy="184" fill="#2e3432" opacity=".08" rx="116" ry="17" />
+      <path d="M72 54c34-15 77-17 126-9 49 8 78 25 92 52 10 20 5 48-14 63-27 21-78 25-132 19-47-5-86-20-101-42-16-24-5-67 29-83Z" fill="url(#mystery-gift-glow)" />
+
+      <g filter="url(#mystery-gift-shadow)">
+        <path
+          d="M91 102h178v57c0 14-11 25-25 25H116c-14 0-25-11-25-25v-57Z"
+          fill="url(#mystery-gift-box)"
+        />
+        <path
+          d="M95 104h170v14H95v-14Z"
+          fill="#6e1d23"
+          opacity=".25"
+        />
+        <path
+          d="M81 78c0-9 7-16 16-16h166c9 0 16 7 16 16v29H81V78Z"
+          fill="url(#mystery-gift-lid)"
+        />
+        <path
+          d="M161 62h38v122h-38V62Z"
+          fill="url(#mystery-gift-ribbon)"
+        />
+        <path
+          d="M81 98h198"
+          stroke="#fffefa"
+          strokeOpacity=".22"
+          strokeWidth="4"
+        />
+        <path
+          d="M176 62c-14-25-43-16-34 3 5 10 22 8 34-3Zm7 0c16-24 43-12 32 5-6 9-21 6-32-5Z"
+          fill="#fcce72"
+        />
+        <path
+          d="M151 64c4.8 2.6 13.2 2 25-2M184 62c11.6 8 22.2 9.2 31.5 4.6"
+          stroke="#b98620"
+          strokeLinecap="round"
+          strokeOpacity=".38"
+          strokeWidth="2"
+        />
+        <path
+          d="M107 160c35-17 82-20 139-8"
+          stroke="#fffefa"
+          strokeLinecap="round"
+          strokeOpacity=".26"
+          strokeWidth="4"
+        />
+        <path
+          d="M106 184h148"
+          stroke="#48664e"
+          strokeLinecap="round"
+          strokeOpacity=".1"
+          strokeWidth="4"
+        />
+
+        <g transform="rotate(8 251 95)">
+          <path
+            d="M228 49h52c9 0 16 7 16 16v46c0 9-7 16-16 16h-52c-9 0-16-7-16-16V65c0-9 7-16 16-16Z"
+            fill="url(#mystery-gift-tag)"
+            stroke="#48664e"
+            strokeOpacity=".16"
+            strokeWidth="2"
+          />
+          <circle cx="231" cy="69" fill="#fcce72" r="4.5" />
+          <path d="M241 70h34M227 94h43" stroke="#48664e" strokeLinecap="round" strokeOpacity=".24" strokeWidth="5" />
+          <path
+            d="M251 103c0-5.8 4.1-9.4 9.8-9.4 5.3 0 9.4 3 9.4 7.6 0 3.4-1.9 5.4-5.1 7.2-2.5 1.4-3.4 2.5-3.4 5.1"
+            stroke="#a43c3f"
+            strokeLinecap="round"
+            strokeWidth="4"
+          />
+          <circle cx="261.8" cy="122.5" r="3" fill="#a43c3f" />
+        </g>
+      </g>
+
+      <path d="M62 90h-11M56.5 84.5v11M303 60h12M309 54v12" stroke="#fcce72" strokeLinecap="round" strokeWidth="4" />
+      <circle cx="291" cy="151" fill="#a43c3f" opacity=".72" r="4" />
+      <circle cx="68" cy="151" fill="#48664e" opacity=".32" r="3" />
     </svg>
   );
 }
@@ -1126,22 +1256,24 @@ function getTimeOfDayGreeting(): string {
   return "Good evening";
 }
 
-function LazadaCtaLink({
+function ShoppingCtaLink({
   href,
   label,
   fullWidth = false,
+  testId = "shopping-cta-link",
 }: {
   href: string;
   label: string;
   fullWidth?: boolean;
+  testId?: string;
 }) {
   return (
     <a
       href={href}
       target="_blank"
       rel="noopener noreferrer"
-      data-testid="lazada-cta-link"
-      className={`group/lazada relative z-45 inline-flex min-h-11 min-w-38.5 items-center justify-center gap-2 rounded-full px-4 py-2 text-center text-[13px] font-extrabold leading-none tracking-[0.01em] transition duration-200 hover:-translate-y-0.5 active:translate-y-0 focus-visible:outline-2 focus-visible:outline-offset-2 ${
+      data-testid={testId}
+      className={`group/shopping relative z-45 inline-flex min-h-11 min-w-38.5 items-center justify-center gap-2 rounded-full px-4 py-2 text-center text-[13px] font-extrabold leading-none tracking-[0.01em] transition duration-200 hover:-translate-y-0.5 active:translate-y-0 focus-visible:outline-2 focus-visible:outline-offset-2 ${
         fullWidth ? "w-full" : "w-full sm:w-auto"
       }`}
       style={{
@@ -1158,7 +1290,7 @@ function LazadaCtaLink({
       <span className="min-w-0 truncate">{label}</span>
       <span
         aria-hidden="true"
-        className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full transition group-hover/lazada:translate-x-0.5"
+        className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full transition group-hover/shopping:translate-x-0.5"
         style={{
           background: "rgba(255,253,247,.18)",
           border: "1px solid rgba(255,253,247,.34)",
@@ -1169,6 +1301,117 @@ function LazadaCtaLink({
         <LazadaArrowIcon />
       </span>
     </a>
+  );
+}
+
+function LazadaCtaLink({
+  href,
+  label,
+  fullWidth = false,
+}: {
+  href: string;
+  label: string;
+  fullWidth?: boolean;
+}) {
+  return (
+    <ShoppingCtaLink
+      href={href}
+      label={label}
+      fullWidth={fullWidth}
+      testId="lazada-cta-link"
+    />
+  );
+}
+
+function getShoppingMerchantHelper(merchant: SuggestionMerchant): string {
+  switch (merchant) {
+    case "amazon":
+      return "Intl option";
+    case "lazada":
+      return "Local match";
+    case "shopee":
+      return "More local deals";
+    default:
+      return "Shopping option";
+  }
+}
+
+function getShoppingMerchantCtaLabel(merchantLabel: string): string {
+  return `Open in ${merchantLabel}`;
+}
+
+function ShoppingMerchantSelector({
+  merchantLinks,
+  onSelect,
+  selectedMerchant,
+}: {
+  merchantLinks: WishlistMerchantLink[];
+  onSelect: (merchant: SuggestionMerchant) => void;
+  selectedMerchant: SuggestionMerchant;
+}) {
+  if (merchantLinks.length <= 1) {
+    return null;
+  }
+
+  return (
+    <div data-testid="shopping-merchant-selector" className="min-w-0">
+      <div
+        className="mb-2 text-[10px] font-black uppercase tracking-[0.14em]"
+        style={{ color: TEXT_MUTED }}
+      >
+        Shop at
+      </div>
+      <div className="grid min-w-0 grid-cols-1 gap-2 sm:grid-cols-3">
+        {merchantLinks.map((merchantLink) => {
+          const isSelected = merchantLink.merchant === selectedMerchant;
+          const helper = getShoppingMerchantHelper(merchantLink.merchant);
+
+          return (
+            <button
+              key={merchantLink.id}
+              type="button"
+              aria-pressed={isSelected}
+              onClick={() => onSelect(merchantLink.merchant)}
+              className="inline-flex min-h-13 min-w-0 items-center gap-2 rounded-2xl px-3 py-2 text-left transition hover:-translate-y-0.5 focus-visible:outline-2 focus-visible:outline-offset-2"
+              style={{
+                background: isSelected ? HOLIDAY_GREEN : "#ffffff",
+                border: isSelected
+                  ? "1px solid rgba(72,102,78,.5)"
+                  : "1px solid rgba(72,102,78,.18)",
+                boxShadow: isSelected
+                  ? "0 14px 28px rgba(72,102,78,.18)"
+                  : "0 10px 22px rgba(46,52,50,.04)",
+                color: isSelected ? "#fffdf7" : PAGE_TEXT_COLOR,
+                cursor: "pointer",
+                outlineColor: HOLIDAY_GREEN,
+              }}
+            >
+              <span
+                aria-hidden="true"
+                className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-[11px] font-black"
+                style={{
+                  background: isSelected ? "rgba(255,255,255,.18)" : "rgba(72,102,78,.08)",
+                  color: isSelected ? "#fffdf7" : HOLIDAY_GREEN,
+                }}
+              >
+                {isSelected ? <CheckCircleMark className="h-4 w-4" /> : merchantLink.merchantLabel.slice(0, 1)}
+              </span>
+              <span className="min-w-0">
+                <span className="block truncate text-[12px] font-extrabold">
+                  {merchantLink.merchantLabel}
+                </span>
+                <span
+                  className="mt-0.5 block truncate text-[10px] font-semibold"
+                  style={{ color: isSelected ? "rgba(255,253,247,.78)" : TEXT_MUTED }}
+                >
+                  {helper}
+                </span>
+              </span>
+            </button>
+          );
+        })}
+      </div>
+    </div>
   );
 }
 
@@ -2607,44 +2850,6 @@ function getRecipientWishlistCardModel(input: {
   };
 }
 
-function getMerchantBadgeStyle(
-  merchant: string,
-  isPartnerLink: boolean
-): {
-  background: string;
-  color: string;
-} {
-  if (!isPartnerLink) {
-    return {
-      background: "rgba(88,116,142,.1)",
-      color: HOLIDAY_BLUE,
-    };
-  }
-
-  switch (merchant) {
-    case "amazon":
-      return {
-        background: "rgba(245,158,11,.14)",
-        color: "#92400e",
-      };
-    case "lazada":
-      return {
-        background: "rgba(245,158,11,.14)",
-        color: "#b45309",
-      };
-    case "shopee":
-      return {
-        background: "rgba(238,77,45,.12)",
-        color: "#c2410c",
-      };
-    default:
-      return {
-        background: "rgba(47,107,86,.12)",
-        color: HOLIDAY_GREEN,
-      };
-  }
-}
-
 export function SecretSantaExperience({ mode = "shopping" }: SecretSantaExperienceProps) {
   const router = useRouter();
 
@@ -2676,6 +2881,9 @@ export function SecretSantaExperience({ mode = "shopping" }: SecretSantaExperien
     expandedRecipientWishlistByAssignment,
     setExpandedRecipientWishlistByAssignment,
   ] = useState<Record<string, boolean>>({});
+  const [selectedShoppingMerchantByItem, setSelectedShoppingMerchantByItem] = useState<
+    Record<string, SuggestionMerchant>
+  >({});
   const [activeGuideTabByAssignment, setActiveGuideTabByAssignment] = useState<
     Record<string, GuideTabId>
   >({});
@@ -3442,7 +3650,7 @@ export function SecretSantaExperience({ mode = "shopping" }: SecretSantaExperien
                   border: "1px solid rgba(72,102,78,.12)",
                 }}
               >
-                <HeroModeMark mode={mode} className="h-12 w-12" />
+                <HeroModeMark mode={mode} className="h-14 w-14" />
               </span>
               <div className="min-w-0">
                 <div
@@ -3501,16 +3709,16 @@ export function SecretSantaExperience({ mode = "shopping" }: SecretSantaExperien
             >
               <div
                 aria-hidden="true"
-                className="absolute -right-3 -top-4 opacity-95"
+                className="absolute right-4 top-4 opacity-90"
               >
-                <GiftBoxIllustration className="h-20 w-20" />
+                <SummaryModeMark mode={mode} className="h-14 w-14" />
               </div>
               <div className="flex items-center justify-between gap-3">
                 <span className="text-[12px] font-black" style={{ color: PAGE_TEXT_COLOR }}>
                   {heroText.cardLabel}
                 </span>
               </div>
-              <div className="relative mt-2 grid grid-cols-[minmax(0,1fr)_72px] gap-3">
+              <div className="relative mt-2 grid grid-cols-[minmax(0,1fr)_62px] gap-3">
                 <div>
                   <div className="text-[24px] font-black leading-none">
                     {heroText.cardValue}
@@ -3605,14 +3813,14 @@ export function SecretSantaExperience({ mode = "shopping" }: SecretSantaExperien
             }}
           >
             <div
-              className="mx-auto mb-4 flex h-24 w-24 items-center justify-center rounded-[30px]"
+              className="mx-auto mb-5 flex h-44 w-72 max-w-[calc(100%-2rem)] items-center justify-center rounded-[28px] sm:w-80"
               style={{
                 background:
                   "radial-gradient(circle at 30% 25%,rgba(252,206,114,.18),transparent 4rem), linear-gradient(180deg,rgba(255,254,250,.96),rgba(239,247,240,.9))",
                 border: "1px solid rgba(72,102,78,.14)",
               }}
             >
-              <EmptyGifteeIllustration className="h-20 w-20" />
+              <EmptyGifteeIllustration className="h-36 w-64 sm:w-72" />
             </div>
             <div
               className="text-[18px] font-bold"
@@ -3800,9 +4008,26 @@ export function SecretSantaExperience({ mode = "shopping" }: SecretSantaExperien
                             shoppingRegion
                           )
                         : [];
-                      const backupMerchantLinks = merchantLinks.filter(
-                        (merchantLink) => merchantLink.merchant !== "lazada"
+                      const shoppingMerchantLinks = merchantLinks.filter(
+                        (merchantLink) => merchantLink.isAffiliateReady
                       );
+                      const preferredShoppingMerchant =
+                        selectedShoppingMerchantByItem[item.id] || "lazada";
+                      const selectedShoppingMerchant = shoppingMerchantLinks.some(
+                        (merchantLink) =>
+                          merchantLink.merchant === preferredShoppingMerchant
+                      )
+                        ? preferredShoppingMerchant
+                        : shoppingMerchantLinks[0]?.merchant || "lazada";
+                      const selectedShoppingMerchantLink =
+                        shoppingMerchantLinks.find(
+                          (merchantLink) =>
+                            merchantLink.merchant === selectedShoppingMerchant
+                        ) || null;
+                      const selectedShoppingMerchantLabel =
+                        selectedShoppingMerchantLink?.merchantLabel || "Lazada";
+                      const selectedShoppingMerchantHelper =
+                        getShoppingMerchantHelper(selectedShoppingMerchant);
                       const fallbackFeaturedLazadaProducts = selectedSuggestion
                         ? buildWishlistFeaturedLazadaProducts({
                             option: selectedSuggestion,
@@ -3909,6 +4134,12 @@ export function SecretSantaExperience({ mode = "shopping" }: SecretSantaExperien
                       const heroLazadaButtonLabel = primaryFeaturedLazadaProduct
                         ? getFeaturedLazadaButtonLabel(primaryFeaturedLazadaProduct)
                         : "Browse Lazada";
+                      const selectedShoppingCtaHref =
+                        selectedShoppingMerchant === "lazada"
+                          ? heroLazadaHref || selectedShoppingMerchantLink?.href || null
+                          : selectedShoppingMerchantLink?.href || null;
+                      const selectedShoppingCtaLabel =
+                        getShoppingMerchantCtaLabel(selectedShoppingMerchantLabel);
                       const directLazadaMatchCount =
                         displayableMatchedLazadaProducts.filter(
                           (product) => product.catalogSource === "catalog-product"
@@ -4160,7 +4391,7 @@ export function SecretSantaExperience({ mode = "shopping" }: SecretSantaExperien
                                   className="mt-1 text-[11px] font-semibold leading-relaxed sm:text-[12px]"
                                   style={{ color: TEXT_MUTED }}
                                 >
-                                  {LAZADA_AFFILIATE_DISCLOSURE}
+                                  {SHOPPING_AFFILIATE_DISCLOSURE}
                                 </p>
                               </div>
 
@@ -4967,7 +5198,7 @@ export function SecretSantaExperience({ mode = "shopping" }: SecretSantaExperien
                                         </section>
                                       )}
 
-                                      {backupMerchantLinks.length > 0 && (
+                                      {shoppingMerchantLinks.length > 0 && (
                                         <div
                                           data-testid="backup-merchant-links"
                                           className="rounded-[22px] px-4 py-3"
@@ -4978,7 +5209,7 @@ export function SecretSantaExperience({ mode = "shopping" }: SecretSantaExperien
                                             color: PAGE_TEXT_COLOR,
                                           }}
                                         >
-                                          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                                          <div className="grid min-w-0 gap-4 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-end">
                                             <div className="flex min-w-0 items-center gap-3">
                                               <span
                                                 className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full"
@@ -4994,53 +5225,44 @@ export function SecretSantaExperience({ mode = "shopping" }: SecretSantaExperien
                                                   className="text-[13px] font-extrabold"
                                                   style={{ color: PAGE_TEXT_COLOR }}
                                                 >
-                                                  More places to shop
+                                                  Choose where to shop
                                                 </div>
                                                 <div
                                                   className="mt-0.5 text-[11px]"
                                                   style={{ color: TEXT_MUTED }}
                                                 >
-                                                  Check other platforms with fast delivery or pickup.
+                                                  {selectedShoppingMerchant === "amazon"
+                                                    ? "Amazon opens an international search for this gift idea."
+                                                    : `${selectedShoppingMerchantLabel} is selected for this gift idea.`}
                                                 </div>
                                               </div>
                                             </div>
-                                            <div className="flex flex-wrap gap-2">
-                                              {backupMerchantLinks.map((merchantLink) => {
-                                                const merchantBadgeStyle =
-                                                  getMerchantBadgeStyle(
-                                                    merchantLink.merchant,
-                                                    merchantLink.isAffiliateReady
-                                                  );
-
-                                                return (
-                                                  <a
-                                                    key={merchantLink.id}
-                                                    href={merchantLink.href}
-                                                    target="_blank"
-                                                    rel="noopener noreferrer"
-                                                    className="inline-flex min-h-10 min-w-0 items-center gap-2 rounded-full px-3 py-2 text-[12px] font-extrabold transition hover:-translate-y-0.5 focus-visible:outline-2 focus-visible:outline-offset-2"
-                                                    style={{
-                                                      background: "#ffffff",
-                                                      color: PAGE_TEXT_COLOR,
-                                                      textDecoration: "none",
-                                                      boxShadow:
-                                                        "0 10px 22px rgba(46,52,50,.04)",
-                                                      outlineColor: HOLIDAY_GREEN,
-                                                    }}
-                                                  >
-                                                    <span
-                                                      className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-[10px] font-extrabold"
-                                                      style={merchantBadgeStyle}
-                                                    >
-                                                      {merchantLink.merchantLabel.slice(0, 1)}
-                                                    </span>
-                                                    <span className="max-w-36 truncate">
-                                                      {merchantLink.merchantLabel}
-                                                    </span>
-                                                    <LazadaArrowIcon className="h-3 w-3 shrink-0" />
-                                                  </a>
-                                                );
-                                              })}
+                                            <ShoppingMerchantSelector
+                                              merchantLinks={shoppingMerchantLinks}
+                                              selectedMerchant={selectedShoppingMerchant}
+                                              onSelect={(merchant) =>
+                                                setSelectedShoppingMerchantByItem(
+                                                  (current) => ({
+                                                    ...current,
+                                                    [item.id]: merchant,
+                                                  })
+                                                )
+                                              }
+                                            />
+                                            <div className="flex min-w-0 flex-col gap-2 lg:items-end">
+                                              {selectedShoppingCtaHref && (
+                                                <ShoppingCtaLink
+                                                  href={selectedShoppingCtaHref}
+                                                  label={selectedShoppingCtaLabel}
+                                                  testId="shopping-selected-store-cta"
+                                                />
+                                              )}
+                                              <div
+                                                className="text-[10px] font-semibold"
+                                                style={{ color: TEXT_SOFT }}
+                                              >
+                                                {selectedShoppingMerchantHelper}
+                                              </div>
                                             </div>
                                           </div>
                                         </div>
