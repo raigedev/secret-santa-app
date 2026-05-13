@@ -266,7 +266,7 @@ export default function Landing() {
         .footer-col h4{font-size:13px;font-weight:800;color:#fff;margin-bottom:12px;text-transform:uppercase;letter-spacing:.08em;}
         .footer-col a{display:block;font-size:13px;color:#a9b7ce;text-decoration:none;padding:4px 0;transition:color .2s;cursor:pointer;}
         .footer-col a:hover{color:#fff;}
-        .footer-bottom{max-width:1000px;margin:32px auto 0;padding-top:24px;border-top:1px solid rgba(255,255,255,.06);text-align:center;font-size:12px;color:#9cabc4;}
+        .footer-bottom{max-width:1000px;margin:32px auto 0;padding-top:24px;border-top:1px solid rgba(255,255,255,.06);text-align:center;font-size:12px;color:#9cabc4;display:flex;flex-direction:column;gap:8px;align-items:center;}
 
         .fade-up{opacity:0;transform:translateY(24px);animation:fadeUp .7s ease forwards;}
         .d1{animation-delay:.1s}.d2{animation-delay:.2s}.d3{animation-delay:.3s}
@@ -545,7 +545,10 @@ export default function Landing() {
             <a href="#">Contact Us</a>
           </div>
         </div>
-        <div className="footer-bottom">© 2026 My Secret Santa. All rights reserved.</div>
+        <div className="footer-bottom">
+          <span>© 2026 My Secret Santa. All rights reserved.</span>
+          <span>As an Amazon Associate I earn from qualifying purchases.</span>
+        </div>
       </footer>
     </>
   );

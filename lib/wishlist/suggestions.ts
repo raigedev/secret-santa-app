@@ -41,7 +41,7 @@ export type WishlistSuggestionOption = {
   source: "ai" | "base";
 };
 
-type WishlistMerchantLink = {
+export type WishlistMerchantLink = {
   id: string;
   merchant: SuggestionMerchant;
   merchantLabel: string;
@@ -438,6 +438,46 @@ function getMerchantSearchUrl(
         : `https://www.walmart.com/search?q=${encodedQuery}`;
     default:
       return `https://www.google.com/search?q=${encodedQuery}`;
+  }
+}
+
+const AFFILIATE_DESTINATION_HOSTS: Partial<Record<SuggestionMerchant, readonly string[]>> = {
+  amazon: [
+    "amazon.co.jp",
+    "amazon.co.uk",
+    "amazon.ca",
+    "amazon.com",
+    "amazon.com.au",
+    "www.amazon.co.jp",
+    "www.amazon.co.uk",
+    "www.amazon.ca",
+    "www.amazon.com",
+    "www.amazon.com.au",
+  ],
+  lazada: [
+    "c.lazada.com.ph",
+    "lazada.com.ph",
+    "pages.lazada.com.ph",
+    "s.lazada.com.ph",
+    "www.lazada.com.ph",
+  ],
+  shopee: ["shopee.ph", "www.shopee.ph"],
+};
+
+function isAllowedMerchantDestinationUrl(merchant: SuggestionMerchant, url: string): boolean {
+  const allowedHosts = AFFILIATE_DESTINATION_HOSTS[merchant];
+
+  if (!allowedHosts) {
+    return false;
+  }
+
+  try {
+    const parsed = new URL(url);
+    const hostname = parsed.hostname.toLowerCase();
+
+    return parsed.protocol === "https:" && allowedHosts.includes(hostname);
+  } catch {
+    return false;
   }
 }
 
@@ -979,17 +1019,38 @@ export function buildMerchantDestinationUrl(
     return fallbackUrl;
   }
 
-  return template
+  const destinationUrl = template
     .replace("{query}", encodeURIComponent(searchQuery))
     .replace("{url}", encodeURIComponent(fallbackUrl));
+
+  return isAllowedMerchantDestinationUrl(merchant, destinationUrl)
+    ? destinationUrl
+    : fallbackUrl;
 }
 
 export function detectShoppingRegionFromLocale(
   locale: string | null | undefined,
   currency: string | null | undefined
 ): ShoppingRegion {
-  // Locale is the friendliest first hint for region-specific merchants.
-  // Currency stays as a fallback when the browser locale is too generic.
+  // The exchange budget is a stronger shopping hint than browser language:
+  // many PH users keep an en-US browser but still need Lazada/Shopee first.
+  switch ((currency || "").toUpperCase()) {
+    case "PHP":
+      return "PH";
+    case "USD":
+      return "US";
+    case "GBP":
+      return "UK";
+    case "CAD":
+      return "CA";
+    case "AUD":
+      return "AU";
+    case "JPY":
+      return "JP";
+    default:
+      break;
+  }
+
   const normalizedLocale = (locale || "").toUpperCase();
   const localeRegion = normalizedLocale.split("-")[1] || "";
 
@@ -1006,23 +1067,6 @@ export function detectShoppingRegionFromLocale(
     case "AU":
       return "AU";
     case "JP":
-      return "JP";
-    default:
-      break;
-  }
-
-  switch ((currency || "").toUpperCase()) {
-    case "PHP":
-      return "PH";
-    case "USD":
-      return "US";
-    case "GBP":
-      return "UK";
-    case "CAD":
-      return "CA";
-    case "AUD":
-      return "AU";
-    case "JPY":
       return "JP";
     default:
       return "GLOBAL";

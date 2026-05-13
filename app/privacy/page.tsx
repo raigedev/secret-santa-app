@@ -25,7 +25,8 @@ const policySections = [
     title: "Shopping And Affiliate Links",
     copy: [
       "Some shopping links may be affiliate links. When you open one, the app can record the click, the related group or wishlist context, and any conversion details later reported by the affiliate network.",
-      "Affiliate reporting is owner-only and is used to understand which links were opened or reported by Lazada. Search-style links do not tell the app which exact product you choose inside Lazada unless Lazada later reports a matching conversion.",
+      "Affiliate reporting is owner-only and is used to understand which shopping links were opened or later reported by a shopping partner such as Lazada, Shopee, or Amazon. Search-style links do not tell the app which exact product you choose inside the store unless the partner later reports a matching conversion.",
+      "As an Amazon Associate I earn from qualifying purchases.",
     ],
   },
   {

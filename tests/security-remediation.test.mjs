@@ -715,6 +715,18 @@ test("lazada cards avoid untrusted remote image hosts and private redirect notes
   assert.match(redirectSource, /const itemNote = "";/);
 });
 
+test("affiliate search templates are constrained to expected merchant hosts", () => {
+  const suggestionSource = readFileSync("lib/wishlist/suggestions.ts", "utf8");
+
+  assert.match(suggestionSource, /const AFFILIATE_DESTINATION_HOSTS/);
+  assert.match(suggestionSource, /amazon\.com/);
+  assert.match(suggestionSource, /shopee\.ph/);
+  assert.match(suggestionSource, /lazada\.com\.ph/);
+  assert.match(suggestionSource, /function isAllowedMerchantDestinationUrl/);
+  assert.match(suggestionSource, /parsed\.protocol === "https:"/);
+  assert.match(suggestionSource, /return isAllowedMerchantDestinationUrl\(merchant, destinationUrl\)/);
+});
+
 test("wishlist AI provider calls exclude private item notes", () => {
   const aiSuggestionsSource = readFileSync("app/api/ai/wishlist-suggestions/route.ts", "utf8");
 

@@ -53,9 +53,15 @@ High-level categories used by this app:
 - Supabase public URL and publishable anon key for browser-safe client setup.
 - Supabase service-role or secret keys only for server-side admin paths.
 - Cron and reminder processor secrets.
-- Lazada affiliate app, user-token, postback, and health-check secrets.
+- Affiliate settings, including Lazada app/user-token/postback/health-check secrets and partner search templates such as `AMAZON_AFFILIATE_SEARCH_TEMPLATE`.
 - AI provider keys for wishlist suggestions.
 - Playwright seeded account values in local ignored `.env.local` only.
+
+Amazon search links use a server-side template. Keep the real tracking tag in Vercel/local environment variables, not source:
+
+```text
+AMAZON_AFFILIATE_SEARCH_TEMPLATE=https://www.amazon.com/s?k={query}&tag=yourtag-20
+```
 
 Never paste real values into screenshots, docs, test fixtures, logs, or final answers.
 

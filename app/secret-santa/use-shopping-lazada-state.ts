@@ -184,6 +184,7 @@ export function useShoppingLazadaState({
   >({});
   const [shoppingRegion, setShoppingRegion] = useState<ShoppingRegion>("GLOBAL");
   const [shoppingRegionInitialized, setShoppingRegionInitialized] = useState(false);
+  const manuallySelectedShoppingRegionRef = useRef(false);
 
   // These refs mirror state that async effects read after network boundaries.
   // Keeping the latest value in a ref prevents duplicate requests without
@@ -200,20 +201,38 @@ export function useShoppingLazadaState({
     }
 
     const savedRegion = readLocalStorageItem(SHOPPING_REGION_STORAGE_KEY);
-    const nextRegion =
-      savedRegion && SHOPPING_REGION_OPTIONS.some((option) => option.value === savedRegion)
-        ? (savedRegion as ShoppingRegion)
-        : detectShoppingRegionFromLocale(navigator.language, availableGroups[0]?.currency || null);
+    if (
+      savedRegion &&
+      SHOPPING_REGION_OPTIONS.some((option) => option.value === savedRegion)
+    ) {
+      manuallySelectedShoppingRegionRef.current = true;
+      setShoppingRegion((current) =>
+        current === savedRegion ? current : (savedRegion as ShoppingRegion)
+      );
+      setShoppingRegionInitialized(true);
+      return;
+    }
+
+    if (availableGroups.length === 0) {
+      return;
+    }
+
+    const nextRegion = detectShoppingRegionFromLocale(
+      navigator.language,
+      availableGroups[0]?.currency || null
+    );
 
     setShoppingRegion((current) => (current === nextRegion ? current : nextRegion));
     setShoppingRegionInitialized(true);
   }, [availableGroups, shoppingRegionInitialized]);
 
   useEffect(() => {
-    if (!shoppingRegionInitialized) {
+    if (!shoppingRegionInitialized || !manuallySelectedShoppingRegionRef.current) {
       return;
     }
 
+    // Persist only explicit choices; automatic defaults should stay free to
+    // follow the exchange currency when group data arrives.
     writeLocalStorageItem(SHOPPING_REGION_STORAGE_KEY, shoppingRegion);
   }, [shoppingRegion, shoppingRegionInitialized]);
 
@@ -751,6 +770,7 @@ export function useShoppingLazadaState({
   }, []);
 
   const handleShoppingRegionChange = useCallback((nextRegion: ShoppingRegion) => {
+    manuallySelectedShoppingRegionRef.current = true;
     setShoppingRegionInitialized(true);
     setShoppingRegion((current) => (current === nextRegion ? current : nextRegion));
   }, []);
