@@ -128,6 +128,7 @@ test("auth callback creates one-time welcome notifications and welcome email", (
   assert.match(welcomeEmailSource, /function normalizeSmtpPassword\(host: string, password: string\): string/);
   assert.match(welcomeEmailSource, /host\.toLowerCase\(\) === "smtp\.gmail\.com"/);
   assert.match(welcomeEmailSource, /return password\.replace\(\/\\s\+\/g, ""\);/);
+  assert.match(welcomeEmailSource, /port < 1 \|\| port > 65535/);
   assert.match(welcomeEmailSource, /nodemailer\.createTransport\(/);
   assert.match(welcomeEmailSource, /eventType: "email\.welcome\.send"/);
   assert.match(welcomeEmailSource, /eventType: "email\.welcome\.config_missing"/);

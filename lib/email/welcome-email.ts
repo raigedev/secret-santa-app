@@ -56,7 +56,7 @@ function readSmtpConfig(): SmtpConfigReadResult {
   const pass = normalizeSmtpPassword(host, rawPass);
   const rawPort = readTrimmedEnv("SMTP_PORT");
   const port = rawPort ? Number(rawPort) : DEFAULT_SMTP_PORT;
-  const invalidPort = !Number.isInteger(port) || port <= 0;
+  const invalidPort = !Number.isInteger(port) || port < 1 || port > 65535;
   const senderName =
     readTrimmedEnv("SMTP_FROM_NAME") ||
     readTrimmedEnv("EMAIL_FROM_NAME") ||
