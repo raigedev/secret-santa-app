@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import { NextResponse } from "next/server";
 import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
@@ -13,33 +14,23 @@ import { normalizeSafeAppPath, resolveTrustedAppOrigin } from "@/lib/security/we
 import { supabaseAdmin } from "@/lib/supabase/admin";
 
 const WELCOME_NOTIFICATION_TYPE = "welcome";
+const WELCOME_NOTIFICATION_ID_NAMESPACE = "secret-santa:welcome-notification";
+
+function buildWelcomeNotificationId(userId: string): string {
+  const hex = createHash("sha256")
+    .update(`${WELCOME_NOTIFICATION_ID_NAMESPACE}:${userId}`)
+    .digest("hex");
+  const variant = ((Number.parseInt(hex[16], 16) & 0x3) | 0x8).toString(16);
+
+  // A stable primary key lets callback retries race safely without a new table constraint.
+  return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-5${hex.slice(13, 16)}-${variant}${hex.slice(17, 20)}-${hex.slice(20, 32)}`;
+}
 
 async function createWelcomeNotificationIfNeeded(userId: string): Promise<void> {
-  const { data, error } = await supabaseAdmin
-    .from("notifications")
-    .select("id")
-    .eq("user_id", userId)
-    .eq("type", WELCOME_NOTIFICATION_TYPE)
-    .limit(1)
-    .maybeSingle();
-
-  if (error) {
-    await recordServerFailure({
-      actorUserId: userId,
-      errorMessage: error.message,
-      eventType: "auth.callback.welcome_notification_lookup",
-      resourceId: userId,
-      resourceType: "notification",
-    });
-    return;
-  }
-
-  if (data?.id) {
-    return;
-  }
-
   await createNotification({
     body: "Your account is ready. Create a group, add wishlist ideas, or open any invites waiting on your dashboard.",
+    id: buildWelcomeNotificationId(userId),
+    ignoreDuplicate: true,
     linkPath: "/dashboard",
     metadata: {
       source: "auth_callback",
