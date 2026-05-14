@@ -138,6 +138,10 @@ test("auth callback creates one-time welcome notifications and welcome email", (
   assert.match(welcomeEmailSource, /host\.toLowerCase\(\) === "smtp\.gmail\.com"/);
   assert.match(welcomeEmailSource, /return password\.replace\(\/\\s\+\/g, ""\);/);
   assert.match(welcomeEmailSource, /port < 1 \|\| port > 65535/);
+  assert.match(welcomeEmailSource, /function getEmailAssetUrl\(baseUrl: string, path: string\): string/);
+  assert.match(welcomeEmailSource, /secret-santa-logo\.png/);
+  assert.match(welcomeEmailSource, /shhh, it's a secret/);
+  assert.match(welcomeEmailSource, /Welcome Gift Tag/);
   assert.match(welcomeEmailSource, /nodemailer\.createTransport\(/);
   assert.match(welcomeEmailSource, /eventType: "email\.welcome\.sent"/);
   assert.match(welcomeEmailSource, /outcome: "success"/);
