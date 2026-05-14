@@ -14,6 +14,8 @@ export function getActivityFeedVisual(type: string): Pick<DashboardActivityItem,
       return { icon: "🎉", tone: "rose" };
     case "invite":
       return { icon: "✉️", tone: "amber" };
+    case "welcome":
+      return { icon: "OK", tone: "emerald" };
     case "affiliate_lazada_health":
       return { icon: "📊", tone: "amber" };
     default:

@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
+import { createNotification } from "@/lib/notifications";
 import { recordServerFailure } from "@/lib/security/audit";
 import {
   createOAuthCallbackErrorLoginUrl,
@@ -10,6 +11,44 @@ import {
 import { ELIGIBLE_EMAIL_INVITE_STATUSES } from "@/lib/groups/invite-claim.mjs";
 import { normalizeSafeAppPath, resolveTrustedAppOrigin } from "@/lib/security/web";
 import { supabaseAdmin } from "@/lib/supabase/admin";
+
+const WELCOME_NOTIFICATION_TYPE = "welcome";
+
+async function createWelcomeNotificationIfNeeded(userId: string): Promise<void> {
+  const { data, error } = await supabaseAdmin
+    .from("notifications")
+    .select("id")
+    .eq("user_id", userId)
+    .eq("type", WELCOME_NOTIFICATION_TYPE)
+    .limit(1)
+    .maybeSingle();
+
+  if (error) {
+    await recordServerFailure({
+      actorUserId: userId,
+      errorMessage: error.message,
+      eventType: "auth.callback.welcome_notification_lookup",
+      resourceId: userId,
+      resourceType: "notification",
+    });
+    return;
+  }
+
+  if (data?.id) {
+    return;
+  }
+
+  await createNotification({
+    body: "Your account is ready. Create a group, add wishlist ideas, or open any invites waiting on your dashboard.",
+    linkPath: "/dashboard",
+    metadata: {
+      source: "auth_callback",
+    },
+    title: "Welcome to My Secret Santa",
+    type: WELCOME_NOTIFICATION_TYPE,
+    userId,
+  });
+}
 
 export async function GET(request: Request) {
   const requestUrl = new URL(request.url);
@@ -99,6 +138,8 @@ export async function GET(request: Request) {
         resourceType: "group_membership",
       });
     }
+
+    await createWelcomeNotificationIfNeeded(user.id);
   }
 
   return redirectResponse;

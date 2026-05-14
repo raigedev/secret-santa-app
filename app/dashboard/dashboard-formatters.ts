@@ -271,6 +271,8 @@ export function getNotificationPreviewTitle(type: string, title: string): string
       return "Reveal time";
     case "invite":
       return "Invite";
+    case "welcome":
+      return "Welcome";
     case "affiliate_lazada_health":
       return "Lazada health";
     default:
