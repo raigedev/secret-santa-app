@@ -94,9 +94,16 @@ test("auth callback creates one-time welcome notifications and welcome email", (
   assert.match(callbackSource, /import \{ createNotification \} from "@\/lib\/notifications";/);
   assert.match(callbackSource, /const WELCOME_NOTIFICATION_TYPE = "welcome";/);
   assert.match(callbackSource, /const WELCOME_NOTIFICATION_ID_NAMESPACE = "secret-santa:welcome-notification";/);
+  assert.match(callbackSource, /const WELCOME_EMAIL_SENT_METADATA_KEY = "welcomeEmailSentAt";/);
   assert.match(callbackSource, /function buildWelcomeNotificationId\(userId: string\): string/);
   assert.match(callbackSource, /createHash\("sha256"\)/);
-  assert.match(callbackSource, /async function createWelcomeNotificationIfNeeded\(userId: string\): Promise<boolean>/);
+  assert.match(
+    callbackSource,
+    /async function ensureWelcomeNotification\(userId: string\): Promise<WelcomeNotificationState \| null>/
+  );
+  assert.match(callbackSource, /async function loadWelcomeNotification\(/);
+  assert.match(callbackSource, /function getWelcomeEmailSentAt\(metadata: Record<string, unknown>\): string \| null/);
+  assert.match(callbackSource, /eventType: "email\.welcome\.mark_sent"/);
   assert.match(callbackSource, /const \{ data: authData, error \} = await supabase\.auth\.exchangeCodeForSession\(code\);/);
   assert.match(callbackSource, /const user = authData\.user;/);
   assert.doesNotMatch(callbackSource, /await supabase\.auth\.getUser\(\)/);
@@ -106,13 +113,14 @@ test("auth callback creates one-time welcome notifications and welcome email", (
   assert.match(callbackSource, /return NextResponse\.redirect\(new URL\("\/login\?error=missing_email", origin\)\);/);
   assert.match(
     callbackSource,
-    /await createNotification\(\{[\s\S]{0,160}id: buildWelcomeNotificationId\(userId\)[\s\S]{0,80}ignoreDuplicate: true[\s\S]{0,160}linkPath: "\/dashboard"[\s\S]{0,160}type: WELCOME_NOTIFICATION_TYPE[\s\S]{0,80}userId/
+    /const welcomeNotificationId = buildWelcomeNotificationId\(userId\);[\s\S]{0,220}await createNotification\(\{[\s\S]{0,160}id: welcomeNotificationId[\s\S]{0,80}ignoreDuplicate: true[\s\S]{0,160}linkPath: "\/dashboard"[\s\S]{0,160}type: WELCOME_NOTIFICATION_TYPE[\s\S]{0,80}userId/
   );
   assert.match(
     callbackSource,
-    /const welcomeNotificationCreated = await createWelcomeNotificationIfNeeded\(user\.id\);[\s\S]{0,120}if \(welcomeNotificationCreated\)/
+    /const welcomeNotification = await ensureWelcomeNotification\(user\.id\);[\s\S]{0,260}if \(welcomeNotification && !welcomeNotification\.emailSentAt\)/
   );
-  assert.match(callbackSource, /await sendWelcomeEmail\(\{[\s\S]{0,120}dashboardUrl: new URL\("\/dashboard", origin\)\.toString\(\)[\s\S]{0,160}email: user\.email/);
+  assert.match(callbackSource, /const welcomeEmailResult = await sendWelcomeEmail\(\{[\s\S]{0,120}dashboardUrl: new URL\("\/dashboard", origin\)\.toString\(\)[\s\S]{0,160}email: user\.email/);
+  assert.match(callbackSource, /if \(welcomeEmailResult === "sent"\) \{[\s\S]{0,80}await markWelcomeEmailSent\(user\.id, welcomeNotification\);/);
   assert.match(notificationsSource, /id\?: string;/);
   assert.match(notificationsSource, /const id = isUuid\(input\.id\) \? input\.id : undefined;/);
   assert.match(notificationsSource, /\.\.\.\(id \? \{ id \} : \{\}\)/);
@@ -122,6 +130,7 @@ test("auth callback creates one-time welcome notifications and welcome email", (
   );
   assert.match(welcomeEmailSource, /import "server-only";/);
   assert.match(welcomeEmailSource, /import nodemailer from "nodemailer";/);
+  assert.match(welcomeEmailSource, /import \{ recordAuditEvent, recordServerFailure \} from "@\/lib\/security\/audit";/);
   assert.match(welcomeEmailSource, /readTrimmedEnv\("SMTP_HOST"\)/);
   assert.match(welcomeEmailSource, /readTrimmedEnv\("SMTP_PASSWORD"\)/);
   assert.match(welcomeEmailSource, /readTrimmedEnv\("GMAIL_APP_PASSWORD"\)/);
@@ -130,6 +139,8 @@ test("auth callback creates one-time welcome notifications and welcome email", (
   assert.match(welcomeEmailSource, /return password\.replace\(\/\\s\+\/g, ""\);/);
   assert.match(welcomeEmailSource, /port < 1 \|\| port > 65535/);
   assert.match(welcomeEmailSource, /nodemailer\.createTransport\(/);
+  assert.match(welcomeEmailSource, /eventType: "email\.welcome\.sent"/);
+  assert.match(welcomeEmailSource, /outcome: "success"/);
   assert.match(welcomeEmailSource, /eventType: "email\.welcome\.send"/);
   assert.match(welcomeEmailSource, /eventType: "email\.welcome\.config_missing"/);
   assert.match(welcomeEmailSource, /eventType: "email\.welcome\.invalid_recipient"/);

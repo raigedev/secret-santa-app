@@ -1,7 +1,7 @@
 import "server-only";
 
 import nodemailer from "nodemailer";
-import { recordServerFailure } from "@/lib/security/audit";
+import { recordAuditEvent, recordServerFailure } from "@/lib/security/audit";
 import { sanitizePlainText } from "@/lib/validation/common";
 
 type WelcomeEmailInput = {
@@ -194,6 +194,18 @@ export async function sendWelcomeEmail(input: WelcomeEmailInput): Promise<Welcom
       subject: "Welcome to My Secret Santa",
       text: message.text,
       to: email,
+    });
+
+    await recordAuditEvent({
+      actorUserId: input.userId,
+      details: {
+        smtpHost: config.host,
+        smtpPort: config.port,
+      },
+      eventType: "email.welcome.sent",
+      outcome: "success",
+      resourceId: input.userId,
+      resourceType: "email",
     });
 
     return "sent";
