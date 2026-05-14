@@ -17,6 +17,13 @@ import { supabaseAdmin } from "@/lib/supabase/admin";
 
 const WELCOME_NOTIFICATION_TYPE = "welcome";
 const WELCOME_NOTIFICATION_ID_NAMESPACE = "secret-santa:welcome-notification";
+const WELCOME_EMAIL_SENT_METADATA_KEY = "welcomeEmailSentAt";
+
+type WelcomeNotificationState = {
+  emailSentAt: string | null;
+  id: string;
+  metadata: Record<string, unknown>;
+};
 
 function buildWelcomeNotificationId(userId: string): string {
   const hex = createHash("sha256")
@@ -33,10 +40,65 @@ function getWelcomeEmailDisplayName(user: User): string | null {
   return typeof metadataName === "string" ? metadataName : null;
 }
 
-async function createWelcomeNotificationIfNeeded(userId: string): Promise<boolean> {
-  const notificationId = await createNotification({
+function normalizeWelcomeNotificationMetadata(
+  value: Record<string, unknown> | null | undefined
+): Record<string, unknown> {
+  if (!value || Array.isArray(value)) {
+    return {};
+  }
+
+  return value;
+}
+
+function getWelcomeEmailSentAt(metadata: Record<string, unknown>): string | null {
+  const sentAt = metadata[WELCOME_EMAIL_SENT_METADATA_KEY];
+  return typeof sentAt === "string" && sentAt.trim() ? sentAt : null;
+}
+
+async function loadWelcomeNotification(
+  userId: string,
+  notificationId: string
+): Promise<WelcomeNotificationState | null> {
+  const { data, error } = await supabaseAdmin
+    .from("notifications")
+    .select("id, metadata")
+    .eq("id", notificationId)
+    .eq("user_id", userId)
+    .maybeSingle();
+
+  if (error) {
+    await recordServerFailure({
+      actorUserId: userId,
+      errorMessage: error.message,
+      eventType: "auth.callback.load_welcome_notification",
+      resourceId: userId,
+      resourceType: "notification",
+    });
+
+    return null;
+  }
+
+  if (!data?.id) {
+    return null;
+  }
+
+  const metadata = normalizeWelcomeNotificationMetadata(
+    data.metadata as Record<string, unknown> | null | undefined
+  );
+
+  return {
+    emailSentAt: getWelcomeEmailSentAt(metadata),
+    id: data.id as string,
+    metadata,
+  };
+}
+
+async function ensureWelcomeNotification(userId: string): Promise<WelcomeNotificationState | null> {
+  const welcomeNotificationId = buildWelcomeNotificationId(userId);
+
+  await createNotification({
     body: "Your account is ready. Create a group, add wishlist ideas, or open any invites waiting on your dashboard.",
-    id: buildWelcomeNotificationId(userId),
+    id: welcomeNotificationId,
     ignoreDuplicate: true,
     linkPath: "/dashboard",
     metadata: {
@@ -47,7 +109,47 @@ async function createWelcomeNotificationIfNeeded(userId: string): Promise<boolea
     userId,
   });
 
-  return Boolean(notificationId);
+  const loadedNotification = await loadWelcomeNotification(userId, welcomeNotificationId);
+
+  if (loadedNotification) {
+    return loadedNotification;
+  }
+
+  await recordServerFailure({
+    actorUserId: userId,
+    errorMessage: "Welcome notification was not created or found",
+    eventType: "auth.callback.welcome_notification_missing",
+    resourceId: userId,
+    resourceType: "notification",
+  });
+
+  return null;
+}
+
+async function markWelcomeEmailSent(
+  userId: string,
+  notification: WelcomeNotificationState
+): Promise<void> {
+  const { error } = await supabaseAdmin
+    .from("notifications")
+    .update({
+      metadata: {
+        ...notification.metadata,
+        [WELCOME_EMAIL_SENT_METADATA_KEY]: new Date().toISOString(),
+      },
+    })
+    .eq("id", notification.id)
+    .eq("user_id", userId);
+
+  if (error) {
+    await recordServerFailure({
+      actorUserId: userId,
+      errorMessage: error.message,
+      eventType: "email.welcome.mark_sent",
+      resourceId: userId,
+      resourceType: "email",
+    });
+  }
 }
 
 export async function GET(request: Request) {
@@ -158,15 +260,21 @@ export async function GET(request: Request) {
     });
   }
 
-  const welcomeNotificationCreated = await createWelcomeNotificationIfNeeded(user.id);
+  const welcomeNotification = await ensureWelcomeNotification(user.id);
 
-  if (welcomeNotificationCreated) {
-    await sendWelcomeEmail({
+  // Older accounts may already have the welcome notification but no record that
+  // the email was sent, so the email marker must be separate from row creation.
+  if (welcomeNotification && !welcomeNotification.emailSentAt) {
+    const welcomeEmailResult = await sendWelcomeEmail({
       dashboardUrl: new URL("/dashboard", origin).toString(),
       displayName: getWelcomeEmailDisplayName(user),
       email: user.email,
       userId: user.id,
     });
+
+    if (welcomeEmailResult === "sent") {
+      await markWelcomeEmailSent(user.id, welcomeNotification);
+    }
   }
 
   return redirectResponse;

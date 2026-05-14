@@ -1,7 +1,7 @@
 import "server-only";
 
 import nodemailer from "nodemailer";
-import { recordServerFailure } from "@/lib/security/audit";
+import { recordAuditEvent, recordServerFailure } from "@/lib/security/audit";
 import { sanitizePlainText } from "@/lib/validation/common";
 
 type WelcomeEmailInput = {
@@ -195,6 +195,22 @@ export async function sendWelcomeEmail(input: WelcomeEmailInput): Promise<Welcom
       text: message.text,
       to: email,
     });
+
+    try {
+      await recordAuditEvent({
+        actorUserId: input.userId,
+        details: {
+          smtpHost: config.host,
+          smtpPort: config.port,
+        },
+        eventType: "email.welcome.sent",
+        outcome: "success",
+        resourceId: input.userId,
+        resourceType: "email",
+      });
+    } catch {
+      // The email already sent; audit availability must not change that result.
+    }
 
     return "sent";
   } catch (error) {
