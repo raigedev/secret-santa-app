@@ -721,7 +721,10 @@ test("affiliate search templates are constrained to expected merchant hosts", ()
   assert.match(suggestionSource, /const AFFILIATE_DESTINATION_HOSTS/);
   assert.match(suggestionSource, /amazon\.com/);
   assert.match(suggestionSource, /shopee\.ph/);
+  assert.match(suggestionSource, /shope\.ee/);
+  assert.match(suggestionSource, /s\.shopee\.ph/);
   assert.match(suggestionSource, /lazada\.com\.ph/);
+  assert.match(suggestionSource, /SHOPEE_AFFILIATE_LINK_TEMPLATE/);
   assert.match(suggestionSource, /function isAllowedMerchantDestinationUrl/);
   assert.match(suggestionSource, /parsed\.protocol === "https:"/);
   assert.match(suggestionSource, /return isAllowedMerchantDestinationUrl\(merchant, destinationUrl\)/);
