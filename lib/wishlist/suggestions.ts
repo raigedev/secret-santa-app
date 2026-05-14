@@ -461,7 +461,7 @@ const AFFILIATE_DESTINATION_HOSTS: Partial<Record<SuggestionMerchant, readonly s
     "s.lazada.com.ph",
     "www.lazada.com.ph",
   ],
-  shopee: ["shopee.ph", "www.shopee.ph"],
+  shopee: ["s.shopee.ph", "shope.ee", "shopee.ph", "www.shopee.ph"],
 };
 
 function isAllowedMerchantDestinationUrl(merchant: SuggestionMerchant, url: string): boolean {
@@ -1013,7 +1013,8 @@ export function buildMerchantDestinationUrl(
       ? process.env.AMAZON_AFFILIATE_SEARCH_TEMPLATE
       : merchant === "lazada"
         ? process.env.LAZADA_AFFILIATE_SEARCH_TEMPLATE
-        : process.env.SHOPEE_AFFILIATE_SEARCH_TEMPLATE;
+        : process.env.SHOPEE_AFFILIATE_SEARCH_TEMPLATE ||
+          process.env.SHOPEE_AFFILIATE_LINK_TEMPLATE;
 
   if (!template) {
     return fallbackUrl;

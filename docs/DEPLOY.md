@@ -63,6 +63,20 @@ Amazon search links use a server-side template. Keep the real tracking tag in Ve
 AMAZON_AFFILIATE_SEARCH_TEMPLATE=https://www.amazon.com/s?k={query}&tag=yourtag-20
 ```
 
+Shopee affiliate links are generated inside Shopee's affiliate portal/app. If you only have one generated short link, set it as a fixed server-side link:
+
+```text
+SHOPEE_AFFILIATE_LINK_TEMPLATE=https://shope.ee/your-generated-link
+```
+
+If Shopee later gives you API access or a query-preserving link template, prefer:
+
+```text
+SHOPEE_AFFILIATE_SEARCH_TEMPLATE=<affiliate-generated-template-that-preserves-{query}>
+```
+
+Do not use a plain Shopee search URL here and expect commission; the value must come from Shopee's affiliate link tooling or API.
+
 Never paste real values into screenshots, docs, test fixtures, logs, or final answers.
 
 ## Vercel Manual Smoke Test
