@@ -79,8 +79,9 @@ test("email invite auto-claim only targets pending or accepted memberships", () 
   assert.equal(ELIGIBLE_EMAIL_INVITE_STATUSES.includes("declined"), false);
 });
 
-test("auth callback creates one-time welcome notifications", () => {
+test("auth callback creates one-time welcome notifications and welcome email", () => {
   const callbackSource = readFileSync("app/auth/callback/route.ts", "utf8");
+  const welcomeEmailSource = readFileSync("lib/email/welcome-email.ts", "utf8");
   const notificationsSource = readFileSync("lib/notifications.ts", "utf8");
   const notificationDisplaySource = readFileSync(
     "app/notifications/notification-display.ts",
@@ -88,17 +89,22 @@ test("auth callback creates one-time welcome notifications", () => {
   );
 
   assert.match(callbackSource, /import \{ createHash \} from "node:crypto";/);
+  assert.match(callbackSource, /import \{ sendWelcomeEmail \} from "@\/lib\/email\/welcome-email";/);
   assert.match(callbackSource, /import \{ createNotification \} from "@\/lib\/notifications";/);
   assert.match(callbackSource, /const WELCOME_NOTIFICATION_TYPE = "welcome";/);
   assert.match(callbackSource, /const WELCOME_NOTIFICATION_ID_NAMESPACE = "secret-santa:welcome-notification";/);
   assert.match(callbackSource, /function buildWelcomeNotificationId\(userId: string\): string/);
   assert.match(callbackSource, /createHash\("sha256"\)/);
-  assert.match(callbackSource, /async function createWelcomeNotificationIfNeeded\(userId: string\)/);
+  assert.match(callbackSource, /async function createWelcomeNotificationIfNeeded\(userId: string\): Promise<boolean>/);
   assert.match(
     callbackSource,
     /await createNotification\(\{[\s\S]{0,160}id: buildWelcomeNotificationId\(userId\)[\s\S]{0,80}ignoreDuplicate: true[\s\S]{0,160}linkPath: "\/dashboard"[\s\S]{0,160}type: WELCOME_NOTIFICATION_TYPE[\s\S]{0,80}userId/
   );
-  assert.match(callbackSource, /await createWelcomeNotificationIfNeeded\(user\.id\);/);
+  assert.match(
+    callbackSource,
+    /const welcomeNotificationCreated = await createWelcomeNotificationIfNeeded\(user\.id\);[\s\S]{0,120}if \(welcomeNotificationCreated\)/
+  );
+  assert.match(callbackSource, /await sendWelcomeEmail\(\{[\s\S]{0,120}dashboardUrl: new URL\("\/dashboard", origin\)\.toString\(\)[\s\S]{0,160}email: user\.email/);
   assert.match(notificationsSource, /id\?: string;/);
   assert.match(notificationsSource, /const id = isUuid\(input\.id\) \? input\.id : undefined;/);
   assert.match(notificationsSource, /\.\.\.\(id \? \{ id \} : \{\}\)/);
@@ -106,6 +112,15 @@ test("auth callback creates one-time welcome notifications", () => {
     notificationsSource,
     /if \(input\.ignoreDuplicate && error\.code === "23505"\) \{[\s\S]{0,80}return null;/
   );
+  assert.match(welcomeEmailSource, /import "server-only";/);
+  assert.match(welcomeEmailSource, /import nodemailer from "nodemailer";/);
+  assert.match(welcomeEmailSource, /readTrimmedEnv\("SMTP_HOST"\)/);
+  assert.match(welcomeEmailSource, /readTrimmedEnv\("SMTP_PASSWORD"\)/);
+  assert.match(welcomeEmailSource, /readTrimmedEnv\("GMAIL_APP_PASSWORD"\)/);
+  assert.match(welcomeEmailSource, /nodemailer\.createTransport\(/);
+  assert.match(welcomeEmailSource, /eventType: "email\.welcome\.send"/);
+  assert.match(welcomeEmailSource, /EMAIL_ADDRESS_PATTERN/);
+  assert.doesNotMatch(welcomeEmailSource, /NEXT_PUBLIC_.*SMTP/);
   assert.match(notificationDisplaySource, /case "welcome":[\s\S]{0,40}return "Get Started";/);
 });
 

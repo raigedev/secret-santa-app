@@ -1,7 +1,9 @@
 import { createHash } from "node:crypto";
 import { NextResponse } from "next/server";
 import { createServerClient } from "@supabase/ssr";
+import type { User } from "@supabase/supabase-js";
 import { cookies } from "next/headers";
+import { sendWelcomeEmail } from "@/lib/email/welcome-email";
 import { createNotification } from "@/lib/notifications";
 import { recordServerFailure } from "@/lib/security/audit";
 import {
@@ -26,8 +28,13 @@ function buildWelcomeNotificationId(userId: string): string {
   return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-5${hex.slice(13, 16)}-${variant}${hex.slice(17, 20)}-${hex.slice(20, 32)}`;
 }
 
-async function createWelcomeNotificationIfNeeded(userId: string): Promise<void> {
-  await createNotification({
+function getWelcomeEmailDisplayName(user: User): string | null {
+  const metadataName = user.user_metadata?.name || user.user_metadata?.full_name;
+  return typeof metadataName === "string" ? metadataName : null;
+}
+
+async function createWelcomeNotificationIfNeeded(userId: string): Promise<boolean> {
+  const notificationId = await createNotification({
     body: "Your account is ready. Create a group, add wishlist ideas, or open any invites waiting on your dashboard.",
     id: buildWelcomeNotificationId(userId),
     ignoreDuplicate: true,
@@ -39,6 +46,8 @@ async function createWelcomeNotificationIfNeeded(userId: string): Promise<void> 
     type: WELCOME_NOTIFICATION_TYPE,
     userId,
   });
+
+  return Boolean(notificationId);
 }
 
 export async function GET(request: Request) {
@@ -130,7 +139,16 @@ export async function GET(request: Request) {
       });
     }
 
-    await createWelcomeNotificationIfNeeded(user.id);
+    const welcomeNotificationCreated = await createWelcomeNotificationIfNeeded(user.id);
+
+    if (welcomeNotificationCreated) {
+      await sendWelcomeEmail({
+        dashboardUrl: new URL("/dashboard", origin).toString(),
+        displayName: getWelcomeEmailDisplayName(user),
+        email: user.email,
+        userId: user.id,
+      });
+    }
   }
 
   return redirectResponse;
