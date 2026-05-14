@@ -55,6 +55,8 @@ const LOGIN_TAG_STYLE: CSSProperties = {
 const AUTH_ERROR_MESSAGES: Record<string, string> = {
   confirm_email: "Please confirm your email address before signing in.",
   auth_failed: "We could not sign you in. Please try again.",
+  missing_email:
+    "Google did not share an email address. Please choose a Google account with an email address.",
   no_code: "The sign-in link did not work. Please try again.",
   [OAUTH_CALLBACK_FAILED_ERROR]: "Google sign-in expired. Please start again.",
 };

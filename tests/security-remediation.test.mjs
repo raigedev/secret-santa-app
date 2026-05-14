@@ -87,6 +87,7 @@ test("auth callback creates one-time welcome notifications and welcome email", (
     "app/notifications/notification-display.ts",
     "utf8"
   );
+  const loginSource = readFileSync("app/login/page.tsx", "utf8");
 
   assert.match(callbackSource, /import \{ createHash \} from "node:crypto";/);
   assert.match(callbackSource, /import \{ sendWelcomeEmail \} from "@\/lib\/email\/welcome-email";/);
@@ -96,6 +97,13 @@ test("auth callback creates one-time welcome notifications and welcome email", (
   assert.match(callbackSource, /function buildWelcomeNotificationId\(userId: string\): string/);
   assert.match(callbackSource, /createHash\("sha256"\)/);
   assert.match(callbackSource, /async function createWelcomeNotificationIfNeeded\(userId: string\): Promise<boolean>/);
+  assert.match(callbackSource, /const \{ data: authData, error \} = await supabase\.auth\.exchangeCodeForSession\(code\);/);
+  assert.match(callbackSource, /const user = authData\.user;/);
+  assert.doesNotMatch(callbackSource, /await supabase\.auth\.getUser\(\)/);
+  assert.match(callbackSource, /eventType: "auth\.callback\.missing_user"/);
+  assert.match(callbackSource, /eventType: "auth\.callback\.missing_user_email"/);
+  assert.match(callbackSource, /return NextResponse\.redirect\(new URL\("\/login\?error=auth_failed", origin\)\);/);
+  assert.match(callbackSource, /return NextResponse\.redirect\(new URL\("\/login\?error=missing_email", origin\)\);/);
   assert.match(
     callbackSource,
     /await createNotification\(\{[\s\S]{0,160}id: buildWelcomeNotificationId\(userId\)[\s\S]{0,80}ignoreDuplicate: true[\s\S]{0,160}linkPath: "\/dashboard"[\s\S]{0,160}type: WELCOME_NOTIFICATION_TYPE[\s\S]{0,80}userId/
@@ -117,10 +125,17 @@ test("auth callback creates one-time welcome notifications and welcome email", (
   assert.match(welcomeEmailSource, /readTrimmedEnv\("SMTP_HOST"\)/);
   assert.match(welcomeEmailSource, /readTrimmedEnv\("SMTP_PASSWORD"\)/);
   assert.match(welcomeEmailSource, /readTrimmedEnv\("GMAIL_APP_PASSWORD"\)/);
+  assert.match(welcomeEmailSource, /function normalizeSmtpPassword\(host: string, password: string\): string/);
+  assert.match(welcomeEmailSource, /host\.toLowerCase\(\) === "smtp\.gmail\.com"/);
+  assert.match(welcomeEmailSource, /return password\.replace\(\/\\s\+\/g, ""\);/);
   assert.match(welcomeEmailSource, /nodemailer\.createTransport\(/);
   assert.match(welcomeEmailSource, /eventType: "email\.welcome\.send"/);
+  assert.match(welcomeEmailSource, /eventType: "email\.welcome\.config_missing"/);
+  assert.match(welcomeEmailSource, /eventType: "email\.welcome\.invalid_recipient"/);
+  assert.match(welcomeEmailSource, /missingKeys/);
   assert.match(welcomeEmailSource, /EMAIL_ADDRESS_PATTERN/);
   assert.doesNotMatch(welcomeEmailSource, /NEXT_PUBLIC_.*SMTP/);
+  assert.match(loginSource, /missing_email:[\s\S]{0,120}Google did not share an email address/);
   assert.match(notificationDisplaySource, /case "welcome":[\s\S]{0,40}return "Get Started";/);
 });
 

@@ -20,6 +20,12 @@ type SmtpConfig = {
   user: string;
 };
 
+type SmtpConfigReadResult = {
+  config: SmtpConfig | null;
+  invalidPort: boolean;
+  missingKeys: string[];
+};
+
 type WelcomeEmailResult = "failed" | "sent" | "skipped";
 
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -31,15 +37,26 @@ function readTrimmedEnv(name: string): string {
   return process.env[name]?.trim() || "";
 }
 
-function readSmtpConfig(): SmtpConfig | null {
+function normalizeSmtpPassword(host: string, password: string): string {
+  if (host.toLowerCase() === "smtp.gmail.com") {
+    // Gmail app passwords are displayed in groups; SMTP auth expects the compact token.
+    return password.replace(/\s+/g, "");
+  }
+
+  return password;
+}
+
+function readSmtpConfig(): SmtpConfigReadResult {
   const host = readTrimmedEnv("SMTP_HOST");
   const user = readTrimmedEnv("SMTP_USER");
-  const pass =
+  const rawPass =
     readTrimmedEnv("SMTP_PASSWORD") ||
     readTrimmedEnv("SMTP_PASS") ||
     readTrimmedEnv("GMAIL_APP_PASSWORD");
+  const pass = normalizeSmtpPassword(host, rawPass);
   const rawPort = readTrimmedEnv("SMTP_PORT");
   const port = rawPort ? Number(rawPort) : DEFAULT_SMTP_PORT;
+  const invalidPort = !Number.isInteger(port) || port <= 0;
   const senderName =
     readTrimmedEnv("SMTP_FROM_NAME") ||
     readTrimmedEnv("EMAIL_FROM_NAME") ||
@@ -49,18 +66,27 @@ function readSmtpConfig(): SmtpConfig | null {
     readTrimmedEnv("EMAIL_FROM") ||
     readTrimmedEnv("SMTP_FROM_EMAIL");
   const from = explicitFrom || `${senderName} <${user}>`;
+  const missingKeys = [
+    !host ? "SMTP_HOST" : null,
+    !user ? "SMTP_USER" : null,
+    !rawPass ? "SMTP_PASSWORD" : null,
+  ].filter(Boolean) as string[];
 
-  if (!host || !user || !pass || !from || !Number.isInteger(port) || port <= 0) {
-    return null;
+  if (missingKeys.length > 0 || !pass || !from || invalidPort) {
+    return { config: null, invalidPort, missingKeys };
   }
 
   return {
-    from,
-    host,
-    pass,
-    port,
-    secure: readTrimmedEnv("SMTP_SECURE") === "true" || port === DEFAULT_SMTP_PORT,
-    user,
+    config: {
+      from,
+      host,
+      pass,
+      port,
+      secure: readTrimmedEnv("SMTP_SECURE") === "true" || port === DEFAULT_SMTP_PORT,
+      user,
+    },
+    invalidPort,
+    missingKeys,
   };
 }
 
@@ -119,10 +145,34 @@ function buildWelcomeEmail(input: WelcomeEmailInput): { html: string; text: stri
 }
 
 export async function sendWelcomeEmail(input: WelcomeEmailInput): Promise<WelcomeEmailResult> {
-  const config = readSmtpConfig();
+  const { config, invalidPort, missingKeys } = readSmtpConfig();
   const email = input.email.trim().toLowerCase();
 
-  if (!config || !EMAIL_PATTERN.test(email)) {
+  if (!EMAIL_PATTERN.test(email)) {
+    await recordServerFailure({
+      actorUserId: input.userId,
+      errorMessage: "Welcome email skipped because the recipient address was missing or invalid",
+      eventType: "email.welcome.invalid_recipient",
+      resourceId: input.userId,
+      resourceType: "email",
+    });
+
+    return "skipped";
+  }
+
+  if (!config) {
+    await recordServerFailure({
+      actorUserId: input.userId,
+      details: {
+        invalidPort,
+        missingKeys,
+      },
+      errorMessage: "Welcome email skipped because SMTP configuration is incomplete",
+      eventType: "email.welcome.config_missing",
+      resourceId: input.userId,
+      resourceType: "email",
+    });
+
     return "skipped";
   }
 
