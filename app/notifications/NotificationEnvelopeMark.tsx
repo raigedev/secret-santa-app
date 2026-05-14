@@ -15,6 +15,8 @@ function getEnvelopeTone(type: string) {
       return { accent: "#7b5902", paper: "#fff7df", seal: "#a43c3f" };
     case "gift_received":
       return { accent: "#48664e", paper: "#f4faf4", seal: "#fcce72" };
+    case "welcome":
+      return { accent: "#48664e", paper: "#f4faf4", seal: "#d8a945" };
     case "reminder_event_tomorrow":
       return { accent: "#a43c3f", paper: "#fff0f0", seal: "#fcce72" };
     case "reminder_wishlist_incomplete":

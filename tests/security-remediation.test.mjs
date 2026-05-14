@@ -79,6 +79,36 @@ test("email invite auto-claim only targets pending or accepted memberships", () 
   assert.equal(ELIGIBLE_EMAIL_INVITE_STATUSES.includes("declined"), false);
 });
 
+test("auth callback creates one-time welcome notifications", () => {
+  const callbackSource = readFileSync("app/auth/callback/route.ts", "utf8");
+  const notificationsSource = readFileSync("lib/notifications.ts", "utf8");
+  const notificationDisplaySource = readFileSync(
+    "app/notifications/notification-display.ts",
+    "utf8"
+  );
+
+  assert.match(callbackSource, /import \{ createHash \} from "node:crypto";/);
+  assert.match(callbackSource, /import \{ createNotification \} from "@\/lib\/notifications";/);
+  assert.match(callbackSource, /const WELCOME_NOTIFICATION_TYPE = "welcome";/);
+  assert.match(callbackSource, /const WELCOME_NOTIFICATION_ID_NAMESPACE = "secret-santa:welcome-notification";/);
+  assert.match(callbackSource, /function buildWelcomeNotificationId\(userId: string\): string/);
+  assert.match(callbackSource, /createHash\("sha256"\)/);
+  assert.match(callbackSource, /async function createWelcomeNotificationIfNeeded\(userId: string\)/);
+  assert.match(
+    callbackSource,
+    /await createNotification\(\{[\s\S]{0,160}id: buildWelcomeNotificationId\(userId\)[\s\S]{0,80}ignoreDuplicate: true[\s\S]{0,160}linkPath: "\/dashboard"[\s\S]{0,160}type: WELCOME_NOTIFICATION_TYPE[\s\S]{0,80}userId/
+  );
+  assert.match(callbackSource, /await createWelcomeNotificationIfNeeded\(user\.id\);/);
+  assert.match(notificationsSource, /id\?: string;/);
+  assert.match(notificationsSource, /const id = isUuid\(input\.id\) \? input\.id : undefined;/);
+  assert.match(notificationsSource, /\.\.\.\(id \? \{ id \} : \{\}\)/);
+  assert.match(
+    notificationsSource,
+    /if \(input\.ignoreDuplicate && error\.code === "23505"\) \{[\s\S]{0,80}return null;/
+  );
+  assert.match(notificationDisplaySource, /case "welcome":[\s\S]{0,40}return "Get Started";/);
+});
+
 test("assignments RLS blocks receiver-side giver lookup before reveal", () => {
   const migrationSource = readFileSync(
     "supabase/migrations/202605090001_restore_assignment_reveal_gate.sql",

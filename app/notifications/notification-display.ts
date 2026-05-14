@@ -58,6 +58,8 @@ export function getNotificationActionLabel(notification: NotificationItem): stri
       return "Open Messages";
     case "invite":
       return "View Invite";
+    case "welcome":
+      return "Get Started";
     case "affiliate_lazada_health":
       return "Open report";
     case "gift_received":

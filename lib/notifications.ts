@@ -1,6 +1,6 @@
 import { recordServerFailure } from "@/lib/security/audit";
 import { supabaseAdmin } from "@/lib/supabase/admin";
-import { sanitizePlainText } from "@/lib/validation/common";
+import { isUuid, sanitizePlainText } from "@/lib/validation/common";
 
 type NotificationPreferenceKey =
   | "notify_invites"
@@ -16,6 +16,7 @@ type ReminderType =
 export type ReminderDeliveryMode = "immediate" | "daily_digest";
 
 type NotificationInput = {
+  id?: string;
   userId: string;
   type: string;
   title: string;
@@ -23,6 +24,7 @@ type NotificationInput = {
   linkPath?: string | null;
   metadata?: Record<string, unknown>;
   preferenceKey?: NotificationPreferenceKey | null;
+  ignoreDuplicate?: boolean;
 };
 
 type NotificationPreferenceRow = Partial<Record<NotificationPreferenceKey, boolean>>;
@@ -314,6 +316,7 @@ export async function createNotification(input: NotificationInput): Promise<stri
   const title = sanitizeNotificationText(input.title, 120);
   const body = sanitizeNotificationText(input.body, 240);
   const linkPath = input.linkPath ? sanitizeNotificationText(input.linkPath, 200) : null;
+  const id = isUuid(input.id) ? input.id : undefined;
 
   if (!title) {
     return null;
@@ -323,6 +326,7 @@ export async function createNotification(input: NotificationInput): Promise<stri
     .from("notifications")
     .insert({
       body,
+      ...(id ? { id } : {}),
       link_path: linkPath,
       metadata: sanitizeMetadata(input.metadata),
       title,
@@ -333,6 +337,10 @@ export async function createNotification(input: NotificationInput): Promise<stri
     .maybeSingle();
 
   if (error) {
+    if (input.ignoreDuplicate && error.code === "23505") {
+      return null;
+    }
+
     await recordServerFailure({
       actorUserId: userId,
       details: {
