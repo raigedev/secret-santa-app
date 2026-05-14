@@ -104,7 +104,7 @@ export async function GET(request: Request) {
     }
   );
 
-  const { error } = await supabase.auth.exchangeCodeForSession(code);
+  const { data: authData, error } = await supabase.auth.exchangeCodeForSession(code);
 
   if (error) {
     await recordServerFailure({
@@ -116,39 +116,57 @@ export async function GET(request: Request) {
     return NextResponse.redirect(new URL("/login?error=auth_failed", origin));
   }
 
+  const user = authData.user;
+
+  if (!user?.id) {
+    await recordServerFailure({
+      errorMessage: "OAuth code exchange completed without a user",
+      eventType: "auth.callback.missing_user",
+      resourceType: "auth_callback",
+    });
+
+    return NextResponse.redirect(new URL("/login?error=auth_failed", origin));
+  }
+
+  if (!user.email) {
+    await recordServerFailure({
+      actorUserId: user.id,
+      errorMessage: "OAuth user did not include an email address",
+      eventType: "auth.callback.missing_user_email",
+      resourceId: user.id,
+      resourceType: "auth_callback",
+    });
+
+    return NextResponse.redirect(new URL("/login?error=missing_email", origin));
+  }
+
   // Preserve the old behavior that links a freshly authenticated account to
   // any email-based pending invites that already existed for that address.
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const { error: linkMembershipsError } = await supabaseAdmin
+    .from("group_members")
+    .update({ user_id: user.id })
+    .eq("email", user.email.toLowerCase())
+    .is("user_id", null)
+    .in("status", ELIGIBLE_EMAIL_INVITE_STATUSES);
 
-  if (user?.email && user?.id) {
-    const { error: linkMembershipsError } = await supabaseAdmin
-      .from("group_members")
-      .update({ user_id: user.id })
-      .eq("email", user.email.toLowerCase())
-      .is("user_id", null)
-      .in("status", ELIGIBLE_EMAIL_INVITE_STATUSES);
+  if (linkMembershipsError) {
+    await recordServerFailure({
+      actorUserId: user.id,
+      errorMessage: linkMembershipsError.message,
+      eventType: "auth.callback.link_invited_memberships",
+      resourceType: "group_membership",
+    });
+  }
 
-    if (linkMembershipsError) {
-      await recordServerFailure({
-        actorUserId: user.id,
-        errorMessage: linkMembershipsError.message,
-        eventType: "auth.callback.link_invited_memberships",
-        resourceType: "group_membership",
-      });
-    }
+  const welcomeNotificationCreated = await createWelcomeNotificationIfNeeded(user.id);
 
-    const welcomeNotificationCreated = await createWelcomeNotificationIfNeeded(user.id);
-
-    if (welcomeNotificationCreated) {
-      await sendWelcomeEmail({
-        dashboardUrl: new URL("/dashboard", origin).toString(),
-        displayName: getWelcomeEmailDisplayName(user),
-        email: user.email,
-        userId: user.id,
-      });
-    }
+  if (welcomeNotificationCreated) {
+    await sendWelcomeEmail({
+      dashboardUrl: new URL("/dashboard", origin).toString(),
+      displayName: getWelcomeEmailDisplayName(user),
+      email: user.email,
+      userId: user.id,
+    });
   }
 
   return redirectResponse;
