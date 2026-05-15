@@ -17,13 +17,13 @@ import { supabaseAdmin } from "@/lib/supabase/admin";
 
 const WELCOME_NOTIFICATION_TYPE = "welcome";
 const WELCOME_NOTIFICATION_ID_NAMESPACE = "secret-santa:welcome-notification";
-const WELCOME_EMAIL_SENT_METADATA_KEY = "welcomeEmailSentAt";
+const WELCOME_EMAIL_RECEIPTS_TABLE = "welcome_email_receipts";
 
 type WelcomeNotificationState = {
-  emailSentAt: string | null;
   id: string;
-  metadata: Record<string, unknown>;
 };
+
+type WelcomeEmailReceiptState = "missing" | "present" | "unknown";
 
 function buildWelcomeNotificationId(userId: string): string {
   const hex = createHash("sha256")
@@ -31,7 +31,7 @@ function buildWelcomeNotificationId(userId: string): string {
     .digest("hex");
   const variant = ((Number.parseInt(hex[16], 16) & 0x3) | 0x8).toString(16);
 
-  // A stable primary key lets callback retries race safely without a new table constraint.
+  // A stable primary key lets callback retries race without duplicate notification rows.
   return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-5${hex.slice(13, 16)}-${variant}${hex.slice(17, 20)}-${hex.slice(20, 32)}`;
 }
 
@@ -40,28 +40,13 @@ function getWelcomeEmailDisplayName(user: User): string | null {
   return typeof metadataName === "string" ? metadataName : null;
 }
 
-function normalizeWelcomeNotificationMetadata(
-  value: Record<string, unknown> | null | undefined
-): Record<string, unknown> {
-  if (!value || Array.isArray(value)) {
-    return {};
-  }
-
-  return value;
-}
-
-function getWelcomeEmailSentAt(metadata: Record<string, unknown>): string | null {
-  const sentAt = metadata[WELCOME_EMAIL_SENT_METADATA_KEY];
-  return typeof sentAt === "string" && sentAt.trim() ? sentAt : null;
-}
-
 async function loadWelcomeNotification(
   userId: string,
   notificationId: string
 ): Promise<WelcomeNotificationState | null> {
   const { data, error } = await supabaseAdmin
     .from("notifications")
-    .select("id, metadata")
+    .select("id")
     .eq("id", notificationId)
     .eq("user_id", userId)
     .maybeSingle();
@@ -82,14 +67,8 @@ async function loadWelcomeNotification(
     return null;
   }
 
-  const metadata = normalizeWelcomeNotificationMetadata(
-    data.metadata as Record<string, unknown> | null | undefined
-  );
-
   return {
-    emailSentAt: getWelcomeEmailSentAt(metadata),
     id: data.id as string,
-    metadata,
   };
 }
 
@@ -126,27 +105,45 @@ async function ensureWelcomeNotification(userId: string): Promise<WelcomeNotific
   return null;
 }
 
-async function markWelcomeEmailSent(
-  userId: string,
-  notification: WelcomeNotificationState
-): Promise<void> {
-  const { error } = await supabaseAdmin
-    .from("notifications")
-    .update({
-      metadata: {
-        ...notification.metadata,
-        [WELCOME_EMAIL_SENT_METADATA_KEY]: new Date().toISOString(),
-      },
-    })
-    .eq("id", notification.id)
-    .eq("user_id", userId);
+async function getWelcomeEmailReceiptState(userId: string): Promise<WelcomeEmailReceiptState> {
+  const { data, error } = await supabaseAdmin
+    .from(WELCOME_EMAIL_RECEIPTS_TABLE)
+    .select("user_id")
+    .eq("user_id", userId)
+    .maybeSingle();
 
   if (error) {
     await recordServerFailure({
       actorUserId: userId,
       errorMessage: error.message,
-      eventType: "email.welcome.mark_sent",
+      eventType: "email.welcome.receipt_lookup",
       resourceId: userId,
+      resourceType: "email",
+    });
+
+    return "unknown";
+  }
+
+  return data?.user_id ? "present" : "missing";
+}
+
+async function recordWelcomeEmailReceipt(input: {
+  email: string;
+  notificationId: string;
+  userId: string;
+}): Promise<void> {
+  const { error } = await supabaseAdmin.from(WELCOME_EMAIL_RECEIPTS_TABLE).insert({
+    email: input.email.trim().toLowerCase(),
+    notification_id: input.notificationId,
+    user_id: input.userId,
+  });
+
+  if (error && error.code !== "23505") {
+    await recordServerFailure({
+      actorUserId: input.userId,
+      errorMessage: error.message,
+      eventType: "email.welcome.receipt_record",
+      resourceId: input.userId,
       resourceType: "email",
     });
   }
@@ -261,10 +258,11 @@ export async function GET(request: Request) {
   }
 
   const welcomeNotification = await ensureWelcomeNotification(user.id);
+  const welcomeEmailReceiptState = await getWelcomeEmailReceiptState(user.id);
 
-  // Older accounts may already have the welcome notification but no record that
-  // the email was sent, so the email marker must be separate from row creation.
-  if (welcomeNotification && !welcomeNotification.emailSentAt) {
+  // The sent marker lives in a server-only table because notification rows are
+  // user-visible and may be affected by future notification-center behavior.
+  if (welcomeNotification && welcomeEmailReceiptState === "missing") {
     const welcomeEmailResult = await sendWelcomeEmail({
       dashboardUrl: new URL("/dashboard", origin).toString(),
       displayName: getWelcomeEmailDisplayName(user),
@@ -273,7 +271,11 @@ export async function GET(request: Request) {
     });
 
     if (welcomeEmailResult === "sent") {
-      await markWelcomeEmailSent(user.id, welcomeNotification);
+      await recordWelcomeEmailReceipt({
+        email: user.email,
+        notificationId: welcomeNotification.id,
+        userId: user.id,
+      });
     }
   }
 

@@ -94,7 +94,7 @@ test("auth callback creates one-time welcome notifications and welcome email", (
   assert.match(callbackSource, /import \{ createNotification \} from "@\/lib\/notifications";/);
   assert.match(callbackSource, /const WELCOME_NOTIFICATION_TYPE = "welcome";/);
   assert.match(callbackSource, /const WELCOME_NOTIFICATION_ID_NAMESPACE = "secret-santa:welcome-notification";/);
-  assert.match(callbackSource, /const WELCOME_EMAIL_SENT_METADATA_KEY = "welcomeEmailSentAt";/);
+  assert.match(callbackSource, /const WELCOME_EMAIL_RECEIPTS_TABLE = "welcome_email_receipts";/);
   assert.match(callbackSource, /function buildWelcomeNotificationId\(userId: string\): string/);
   assert.match(callbackSource, /createHash\("sha256"\)/);
   assert.match(
@@ -102,8 +102,13 @@ test("auth callback creates one-time welcome notifications and welcome email", (
     /async function ensureWelcomeNotification\(userId: string\): Promise<WelcomeNotificationState \| null>/
   );
   assert.match(callbackSource, /async function loadWelcomeNotification\(/);
-  assert.match(callbackSource, /function getWelcomeEmailSentAt\(metadata: Record<string, unknown>\): string \| null/);
-  assert.match(callbackSource, /eventType: "email\.welcome\.mark_sent"/);
+  assert.match(callbackSource, /async function getWelcomeEmailReceiptState\(userId: string\): Promise<WelcomeEmailReceiptState>/);
+  assert.match(callbackSource, /\.from\(WELCOME_EMAIL_RECEIPTS_TABLE\)[\s\S]{0,120}\.select\("user_id"\)[\s\S]{0,120}\.maybeSingle\(\)/);
+  assert.match(callbackSource, /async function recordWelcomeEmailReceipt\(input: \{[\s\S]{0,120}notificationId: string;[\s\S]{0,80}userId: string;[\s\S]{0,80}\}\): Promise<void>/);
+  assert.match(callbackSource, /\.from\(WELCOME_EMAIL_RECEIPTS_TABLE\)\.insert\(\{[\s\S]{0,120}notification_id: input\.notificationId[\s\S]{0,80}user_id: input\.userId/);
+  assert.match(callbackSource, /error && error\.code !== "23505"/);
+  assert.match(callbackSource, /eventType: "email\.welcome\.receipt_lookup"/);
+  assert.match(callbackSource, /eventType: "email\.welcome\.receipt_record"/);
   assert.match(callbackSource, /const \{ data: authData, error \} = await supabase\.auth\.exchangeCodeForSession\(code\);/);
   assert.match(callbackSource, /const user = authData\.user;/);
   assert.doesNotMatch(callbackSource, /await supabase\.auth\.getUser\(\)/);
@@ -117,10 +122,12 @@ test("auth callback creates one-time welcome notifications and welcome email", (
   );
   assert.match(
     callbackSource,
-    /const welcomeNotification = await ensureWelcomeNotification\(user\.id\);[\s\S]{0,260}if \(welcomeNotification && !welcomeNotification\.emailSentAt\)/
+    /const welcomeNotification = await ensureWelcomeNotification\(user\.id\);[\s\S]{0,120}const welcomeEmailReceiptState = await getWelcomeEmailReceiptState\(user\.id\);[\s\S]{0,220}if \(welcomeNotification && welcomeEmailReceiptState === "missing"\)/
   );
   assert.match(callbackSource, /const welcomeEmailResult = await sendWelcomeEmail\(\{[\s\S]{0,120}dashboardUrl: new URL\("\/dashboard", origin\)\.toString\(\)[\s\S]{0,160}email: user\.email/);
-  assert.match(callbackSource, /if \(welcomeEmailResult === "sent"\) \{[\s\S]{0,80}await markWelcomeEmailSent\(user\.id, welcomeNotification\);/);
+  assert.match(callbackSource, /if \(welcomeEmailResult === "sent"\) \{[\s\S]{0,80}await recordWelcomeEmailReceipt\(\{[\s\S]{0,80}email: user\.email[\s\S]{0,80}notificationId: welcomeNotification\.id[\s\S]{0,80}userId: user\.id/);
+  assert.doesNotMatch(callbackSource, /welcomeEmailSentAt/);
+  assert.doesNotMatch(callbackSource, /markWelcomeEmailSent/);
   assert.match(notificationsSource, /id\?: string;/);
   assert.match(notificationsSource, /const id = isUuid\(input\.id\) \? input\.id : undefined;/);
   assert.match(notificationsSource, /\.\.\.\(id \? \{ id \} : \{\}\)/);
@@ -153,6 +160,73 @@ test("auth callback creates one-time welcome notifications and welcome email", (
   assert.doesNotMatch(welcomeEmailSource, /NEXT_PUBLIC_.*SMTP/);
   assert.match(loginSource, /missing_email:[\s\S]{0,120}Google did not share an email address/);
   assert.match(notificationDisplaySource, /case "welcome":[\s\S]{0,40}return "Get Started";/);
+});
+
+test("welcome email receipts are server-only and notification edits are narrowed", () => {
+  const receiptMigrationName = [
+    "20260515125250",
+    "server",
+    "only",
+    "welcome",
+    "email",
+    "receipts.sql",
+  ].join("_");
+  // eslint-disable-next-line security/detect-non-literal-fs-filename -- Test only reads a fixed repo-local migration assembled from safe string pieces.
+  const migrationSource = readFileSync(
+    ["supabase", "migrations", receiptMigrationName].join("/"),
+    "utf8"
+  );
+
+  assert.match(migrationSource, /create table if not exists public\.welcome_email_receipts/i);
+  assert.match(migrationSource, /user_id uuid primary key references auth\.users\(id\) on delete cascade/i);
+  assert.match(
+    migrationSource,
+    /notification_id uuid references public\.notifications\(id\) on delete set null/i
+  );
+  assert.match(migrationSource, /alter table public\.welcome_email_receipts enable row level security/i);
+  assert.match(
+    migrationSource,
+    /create policy welcome_email_receipts_no_client_access[\s\S]{0,220}using \(false\)[\s\S]{0,80}with check \(false\)/i
+  );
+  assert.match(migrationSource, /revoke all on table public\.welcome_email_receipts from anon/i);
+  assert.match(
+    migrationSource,
+    /revoke all on table public\.welcome_email_receipts from authenticated/i
+  );
+  assert.match(
+    migrationSource,
+    /grant select, insert, update, delete on table public\.welcome_email_receipts to service_role/i
+  );
+  assert.match(migrationSource, /revoke update on table public\.notifications from authenticated/i);
+  assert.match(migrationSource, /revoke delete on table public\.notifications from authenticated/i);
+  assert.match(
+    migrationSource,
+    /grant update \(read_at\) on table public\.notifications to authenticated/i
+  );
+});
+
+test("welcome email receipt backfill preserves already-sent users", () => {
+  const backfillMigrationName = [
+    "20260515131122",
+    "backfill",
+    "welcome",
+    "email",
+    "receipts.sql",
+  ].join("_");
+  // eslint-disable-next-line security/detect-non-literal-fs-filename -- Test only reads a fixed repo-local migration assembled from safe string pieces.
+  const migrationSource = readFileSync(
+    ["supabase", "migrations", backfillMigrationName].join("/"),
+    "utf8"
+  );
+
+  assert.match(
+    migrationSource,
+    /insert into public\.welcome_email_receipts[\s\S]{0,220}select[\s\S]{0,220}notifications\.user_id/i
+  );
+  assert.match(migrationSource, /notifications\.metadata->>'welcomeEmailSentAt'/);
+  assert.match(migrationSource, /where notifications\.type = 'welcome'/i);
+  assert.match(migrationSource, /auth_users\.email is not null/i);
+  assert.match(migrationSource, /on conflict \(user_id\) do nothing/i);
 });
 
 test("assignments RLS blocks receiver-side giver lookup before reveal", () => {
