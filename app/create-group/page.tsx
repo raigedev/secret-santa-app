@@ -488,7 +488,7 @@ export default function CreateGroupPage() {
             Set up your Secret Santa exchange in a few simple steps.
           </p>
         </div>
-        <div className="grid gap-3 sm:grid-cols-5">
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
           {setupSteps.map((step, index) => {
             const status = getStepStatus(index);
             const isComplete = status === "complete";
@@ -520,7 +520,7 @@ export default function CreateGroupPage() {
                 </span>
                 <span className="min-w-0">
                   <span className="block text-xs font-black text-[#2e3432]">{step.label}</span>
-                  <span className="mt-0.5 block truncate text-[11px] font-bold text-slate-500">
+                  <span className="mt-0.5 block text-[11px] font-bold leading-tight text-slate-500">
                     {step.helper}
                   </span>
                 </span>
@@ -879,14 +879,14 @@ export default function CreateGroupPage() {
                     ? "Allow real names in this group"
                     : "Use nicknames in this group"
                 }
-                className="inline-flex min-h-8 shrink-0 items-center rounded-full p-1 transition focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[#d9ae56]/25 disabled:cursor-not-allowed disabled:opacity-50"
+                className="inline-flex h-11 w-16 shrink-0 items-center rounded-full p-1 transition focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[#d9ae56]/25 disabled:cursor-not-allowed disabled:opacity-50"
                 style={{
-                  background: requireAnonymousNickname ? "#48664e" : "#cbd5e1",
-                  width: "52px",
+                  background: requireAnonymousNickname ? "#48664e" : "#dce4de",
+                  border: "1px solid rgba(72,102,78,.14)",
                 }}
               >
                 <span
-                  className="block h-5 w-5 rounded-full bg-white shadow-sm transition"
+                  className="block h-8 w-8 rounded-full bg-white shadow-sm transition"
                   style={{
                     transform: requireAnonymousNickname ? "translateX(24px)" : "translateX(0)",
                   }}

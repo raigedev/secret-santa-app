@@ -640,8 +640,18 @@ export default function AppRouteShell({ children }: { children: ReactNode }) {
           <p className="mt-2 text-[12px] font-semibold leading-relaxed" style={{ color: shellMutedColor }}>
             Invite friends, add wishlists, and keep the exchange moving from one place.
           </p>
-          <Link href="/create-group" className="mt-4 inline-flex rounded-full px-4 py-2 text-[12px] font-extrabold" style={{ border: `1px solid ${shellBorderColor}`, color: isDarkAppShell ? "#fde68a" : HOLIDAY_GREEN, textDecoration: "none" }}>
-            Create group
+          <Link
+            href="/create-group"
+            className="mt-4 inline-flex min-h-11 items-center gap-2 rounded-full px-4 text-[12px] font-extrabold transition hover:-translate-y-0.5 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#48664e]"
+            style={{
+              background: isDarkAppShell ? "rgba(252,206,114,.12)" : "rgba(72,102,78,.08)",
+              border: `1px solid ${shellBorderColor}`,
+              color: isDarkAppShell ? "#fde68a" : HOLIDAY_GREEN,
+              textDecoration: "none",
+            }}
+          >
+            <AppShellIcon name="group" className="h-4 w-4" />
+            Start exchange
           </Link>
         </div>
       </aside>
