@@ -1603,7 +1603,7 @@ export default function SecretSantaChatPage() {
                       type="button"
                       aria-pressed={active}
                       onClick={() => setThreadFilter(option.value)}
-                      className="rounded-full px-3 py-2 text-[11px] font-black transition hover:-translate-y-0.5 focus-visible:outline-2 focus-visible:outline-offset-2"
+                      className="inline-flex min-h-11 items-center rounded-full px-4 text-[11px] font-black transition hover:-translate-y-0.5 focus-visible:outline-2 focus-visible:outline-offset-2"
                       style={{
                         background: active ? CHAT_GREEN : "rgba(252,206,114,.20)",
                         border: active ? "1px solid rgba(72,102,78,.22)" : "1px solid rgba(123,89,2,.12)",
@@ -1804,7 +1804,7 @@ export default function SecretSantaChatPage() {
                         key={chip}
                         type="button"
                         onClick={() => applyPromptChip(chip)}
-                        className="rounded-full px-3 py-1.5 text-[11px] font-black transition hover:-translate-y-0.5 focus-visible:outline-2 focus-visible:outline-offset-2"
+                        className="inline-flex min-h-11 items-center rounded-full px-4 text-[11px] font-black transition hover:-translate-y-0.5 focus-visible:outline-2 focus-visible:outline-offset-2"
                         style={{ background: "rgba(72,102,78,.08)", color: CHAT_GREEN, border: "1px solid rgba(72,102,78,.10)", outlineColor: CHAT_GREEN }}
                       >
                         {chip}

@@ -189,25 +189,19 @@ function ReminderToggle({
       <button
         type="button"
         onClick={onChange}
-        className="relative shrink-0 transition"
+        className="relative flex h-11 w-16 shrink-0 items-center rounded-full p-1 transition focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[#d9ae56]/25"
         aria-label={`Toggle ${label}`}
         style={{
-          width: 48,
-          height: 26,
-          borderRadius: 13,
-          background: checked ? "#22c55e" : "#e5e7eb",
-          border: "none",
+          background: checked ? "#48664e" : "#dce4de",
+          border: "1px solid rgba(72,102,78,.14)",
           cursor: "pointer",
         }}
         aria-pressed={checked}
       >
         <span
-          className="absolute rounded-full bg-white transition-all"
+          className="block h-8 w-8 rounded-full bg-white transition-all"
           style={{
-            width: 22,
-            height: 22,
-            top: 2,
-            left: checked ? 24 : 2,
+            transform: checked ? "translateX(24px)" : "translateX(0)",
             boxShadow: "0 1px 4px rgba(0,0,0,.15)",
           }}
         />
@@ -741,20 +735,20 @@ export default function ProfilePage() {
                 <div className="text-[12px]" style={{ color: "#9ca3af" }}>{item.desc}</div>
               </div>
               <button onClick={() => update(item.key, !profile[item.key])}
-                className="flex-shrink-0 relative transition"
+                className="relative flex h-11 w-16 flex-shrink-0 items-center rounded-full p-1 transition focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[#d9ae56]/25"
                 aria-label={`Toggle ${item.label}`}
                 aria-pressed={profile[item.key]}
                 style={{
-                  width: 48, height: 26, borderRadius: 13,
-                  background: profile[item.key] ? "#22c55e" : "#e5e7eb",
-                  border: "none", cursor: "pointer",
+                  background: profile[item.key] ? "#48664e" : "#dce4de",
+                  border: "1px solid rgba(72,102,78,.14)",
+                  cursor: "pointer",
                 }}>
                 <div style={{
-                  width: 22, height: 22, borderRadius: "50%",
-                  background: "#fff", position: "absolute", top: 2,
-                  left: profile[item.key] ? 24 : 2,
+                  width: 32, height: 32, borderRadius: "50%",
+                  background: "#fff",
+                  transform: profile[item.key] ? "translateX(24px)" : "translateX(0)",
                   boxShadow: "0 1px 4px rgba(0,0,0,.15)",
-                  transition: "left .2s",
+                  transition: "transform .2s",
                 }} />
               </button>
             </div>
