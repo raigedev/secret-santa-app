@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState, type RefObject } from "react";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { DashboardNotificationsPanel } from "@/app/dashboard/DashboardNotificationsPanel";
 import { SantaMarkIcon } from "@/app/dashboard/dashboard-icons";
@@ -2850,7 +2850,7 @@ function getRecipientWishlistCardModel(input: {
   };
 }
 
-export function SecretSantaExperience({ mode = "shopping" }: SecretSantaExperienceProps) {
+function SecretSantaExperience({ mode = "shopping" }: SecretSantaExperienceProps) {
   const router = useRouter();
 
   // The Supabase client is created once for the lifetime of this page.
@@ -5611,7 +5611,14 @@ export function SecretSantaExperience({ mode = "shopping" }: SecretSantaExperien
 }
 
 export default function SecretSantaPage() {
-  return <SecretSantaExperience mode="shopping" />;
+  const pathname = usePathname();
+  const mode: SecretSantaExperienceMode = pathname.includes("/gift-tracking")
+    ? "tracking"
+    : pathname.includes("/my-giftee")
+      ? "giftee"
+      : "shopping";
+
+  return <SecretSantaExperience mode={mode} />;
 }
 
 function SnowEffect() {

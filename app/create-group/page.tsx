@@ -116,30 +116,77 @@ function GroupImagePreviewCanvas({
   );
 }
 
-function ChecklistMark({ done }: { done: boolean }) {
+function StepCompleteIcon() {
+  return (
+    <svg viewBox="0 0 16 16" className="h-3.5 w-3.5" fill="none" aria-hidden="true">
+      <path
+        d="m3.5 8.2 3 3 6-6.4"
+        stroke="currentColor"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeWidth="2"
+      />
+    </svg>
+  );
+}
+
+function BackArrowIcon() {
+  return (
+    <svg viewBox="0 0 16 16" className="h-4 w-4" fill="none" aria-hidden="true">
+      <path
+        d="M9.8 3.5 5.3 8l4.5 4.5M5.8 8h6.7"
+        stroke="currentColor"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeWidth="1.8"
+      />
+    </svg>
+  );
+}
+
+function SparkIcon() {
+  return (
+    <svg viewBox="0 0 16 16" className="h-4 w-4" fill="none" aria-hidden="true">
+      <path
+        d="M8 1.8 9.5 6l4.2 1.5L9.5 9 8 13.2 6.5 9 2.3 7.5 6.5 6 8 1.8Z"
+        fill="currentColor"
+      />
+    </svg>
+  );
+}
+
+function GiftBoxPlaceholder() {
   return (
     <span
-      className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full border text-[12px] font-black ${
-        done
-          ? "border-[#48664e]/20 bg-[#48664e] text-white"
-          : "border-[rgba(72,102,78,.18)] bg-white text-slate-400"
-      }`}
+      className="relative grid h-full w-full place-items-center overflow-hidden rounded-[inherit]"
       aria-hidden="true"
     >
-      {done && (
-        <svg viewBox="0 0 16 16" className="h-3.5 w-3.5" fill="none">
-          <path
-            d="m3.5 8.2 3 3 6-6.4"
-            stroke="currentColor"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            strokeWidth="2"
-          />
-        </svg>
-      )}
+      <span className="absolute inset-0 bg-[radial-gradient(circle_at_50%_35%,rgba(252,206,114,.34),transparent_34%),linear-gradient(135deg,#fff7e6,#f4faf4)]" />
+      <svg viewBox="0 0 112 112" className="relative h-24 w-24 drop-shadow-[0_18px_24px_rgba(72,102,78,.12)]">
+        <rect x="23" y="46" width="66" height="47" rx="11" fill="#ed4a54" />
+        <rect x="53" y="46" width="10" height="47" fill="#fcce72" />
+        <rect x="18" y="36" width="76" height="20" rx="9" fill="#ff7a7f" />
+        <rect x="53" y="36" width="10" height="20" fill="#ffe29a" />
+        <path
+          d="M52 36c-11-14-24-13-27-5-3 9 11 11 27 5ZM60 36c11-14 24-13 27-5 3 9-11 11-27 5Z"
+          fill="#48664e"
+        />
+        <circle cx="25" cy="37" r="3" fill="#fcce72" />
+        <circle cx="91" cy="57" r="2.5" fill="#a43c3f" />
+        <path d="M16 68c5 2 7 2 12 0" stroke="#fcce72" strokeLinecap="round" strokeWidth="3" />
+      </svg>
     </span>
   );
 }
+
+type SetupStep = {
+  id: string;
+  label: string;
+  helper: string;
+  ready: boolean;
+};
+
+type SetupStepStatus = "complete" | "current" | "upcoming";
 
 export default function CreateGroupPage() {
   const router = useRouter();
@@ -155,6 +202,7 @@ export default function CreateGroupPage() {
   const [budget, setBudget] = useState(25);
   const [currency, setCurrency] = useState("USD");
   const [customBudget, setCustomBudget] = useState(false);
+  const [budgetReviewed, setBudgetReviewed] = useState(false);
   const [requireAnonymousNickname, setRequireAnonymousNickname] = useState(false);
   const [ownerCodename, setOwnerCodename] = useState("");
   const [groupImageFile, setGroupImageFile] = useState<File | null>(null);
@@ -349,6 +397,66 @@ export default function CreateGroupPage() {
   const currencySymbol = CURRENCIES.find((item) => item.code === currency)?.symbol || "$";
   const inviteEmailCount = getInviteEmailCount(inviteEmails);
   const formActionDisabled = !isHydrated || loading || imageDecodePending;
+  const basicsReady = groupName.trim().length > 0 && eventDate.length > 0;
+  const rawBudgetReady = budget > 0 && currency.length > 0;
+  const budgetStepReady = budgetReviewed && rawBudgetReady;
+  const ownerNicknameMessage = requireAnonymousNickname
+    ? validateAnonymousGroupNickname({ nickname: sanitizeGroupNickname(ownerCodename) })
+    : null;
+  const privacyReady = ownerNicknameMessage === null;
+  const setupSteps: SetupStep[] = [
+    {
+      id: "1",
+      label: "Basics",
+      helper: basicsReady ? "Name and gift day set" : "Start here",
+      ready: basicsReady,
+    },
+    {
+      id: "2",
+      label: "Budget",
+      helper: budgetStepReady ? `${currencySymbol}${budget || 0} per person` : "Confirm the amount",
+      ready: budgetStepReady,
+    },
+    {
+      id: "3",
+      label: "Privacy",
+      helper: requireAnonymousNickname ? "Nicknames on" : "Names visible",
+      ready: privacyReady,
+    },
+    {
+      id: "4",
+      label: "Invites",
+      helper: inviteEmailCount > 0 ? `${inviteEmailCount} invited` : "Optional",
+      ready: inviteEmailCount > 0,
+    },
+    {
+      id: "5",
+      label: "Review",
+      helper: "Create exchange",
+      ready: basicsReady && rawBudgetReady && privacyReady,
+    },
+  ];
+  const nextIncompleteStepIndex = setupSteps.findIndex(
+    (step, index) => index < setupSteps.length - 1 && !step.ready
+  );
+  const activeStepIndex =
+    nextIncompleteStepIndex === -1 ? setupSteps.length - 1 : nextIncompleteStepIndex;
+  const getStepStatus = (index: number): SetupStepStatus => {
+    if (index < activeStepIndex) {
+      return "complete";
+    }
+
+    if (index === activeStepIndex) {
+      return "current";
+    }
+
+    return "upcoming";
+  };
+  const fieldClassName =
+    "w-full rounded-[18px] border border-[rgba(72,102,78,.18)] bg-white/90 px-4 py-3.5 text-[14px] font-semibold text-[#1f2937] shadow-[inset_0_1px_0_rgba(255,255,255,.75)] outline-none transition focus:border-[#d9ae56] focus:bg-white focus:ring-4 focus:ring-[#d9ae56]/20";
+  const labelClassName =
+    "mb-2 block text-[12px] font-black uppercase tracking-[0.08em] text-[#48664e]";
+
   return (
     <main
       className="relative min-h-screen px-4 py-8 sm:px-6 lg:py-12"
@@ -363,9 +471,10 @@ export default function CreateGroupPage() {
       <div className="holiday-panel relative z-10 mx-auto mb-5 flex w-full max-w-6xl flex-col gap-4 rounded-[28px] px-5 py-4">
         <button
           onClick={() => router.push("/dashboard")}
-          className="inline-flex w-fit items-center gap-2 rounded-full px-3 py-2 text-sm font-bold text-[#48664e] transition hover:-translate-y-0.5"
+          className="inline-flex min-h-11 w-fit items-center gap-2 rounded-full border border-[rgba(72,102,78,.14)] bg-white/75 px-4 text-sm font-black text-[#48664e] shadow-[0_10px_24px_rgba(72,102,78,.08)] transition hover:-translate-y-0.5 hover:bg-[#eef6ee] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[#d9ae56]/25"
           style={{ fontFamily: "inherit" }}
         >
+          <BackArrowIcon />
           Back
         </button>
         <div>
@@ -380,27 +489,44 @@ export default function CreateGroupPage() {
           </p>
         </div>
         <div className="grid gap-3 sm:grid-cols-5">
-          {([
-            ["1", "Basics", groupName.trim().length > 0],
-            ["2", "Budget", true],
-            ["3", "Privacy", requireAnonymousNickname],
-            ["4", "Invites", inviteEmailCount > 0],
-            ["5", "Review", groupName.trim().length > 0 && eventDate.length > 0],
-          ] as Array<[string, string, boolean]>).map(([step, label, done]) => (
-            <div key={label} className="flex items-center gap-3">
-              <span
-                className="grid h-11 w-11 shrink-0 place-items-center rounded-full text-sm font-black"
-                style={{
-                  background: done ? "#48664e" : "#ffffff",
-                  border: "1px solid rgba(72,102,78,.16)",
-                  color: done ? "#ffffff" : "#2e3432",
-                }}
+          {setupSteps.map((step, index) => {
+            const status = getStepStatus(index);
+            const isComplete = status === "complete";
+            const isCurrent = status === "current";
+
+            return (
+              <div
+                key={step.label}
+                className={`flex min-h-16 items-center gap-3 rounded-[22px] border px-3 py-2 transition ${
+                  isCurrent
+                    ? "border-[#48664e]/25 bg-[#eef6ee] shadow-[0_14px_30px_rgba(72,102,78,.1)]"
+                    : isComplete
+                      ? "border-[#48664e]/12 bg-white/70"
+                      : "border-transparent bg-transparent"
+                }`}
+                aria-current={isCurrent ? "step" : undefined}
               >
-                {step}
-              </span>
-              <span className="text-xs font-black text-[#2e3432]">{label}</span>
-            </div>
-          ))}
+                <span
+                  className="grid h-11 w-11 shrink-0 place-items-center rounded-full text-sm font-black"
+                  style={{
+                    background: isComplete || isCurrent ? "#48664e" : "#ffffff",
+                    border: isCurrent
+                      ? "2px solid rgba(217,174,86,.72)"
+                      : "1px solid rgba(72,102,78,.16)",
+                    color: isComplete || isCurrent ? "#ffffff" : "#2e3432",
+                  }}
+                >
+                  {isComplete ? <StepCompleteIcon /> : step.id}
+                </span>
+                <span className="min-w-0">
+                  <span className="block text-xs font-black text-[#2e3432]">{step.label}</span>
+                  <span className="mt-0.5 block truncate text-[11px] font-bold text-slate-500">
+                    {step.helper}
+                  </span>
+                </span>
+              </div>
+            );
+          })}
         </div>
       </div>
 
@@ -430,7 +556,7 @@ export default function CreateGroupPage() {
                 className="h-full w-full object-cover"
               />
             ) : (
-              <ChecklistMark done />
+              <GiftBoxPlaceholder />
             )}
           </div>
 
@@ -459,18 +585,15 @@ export default function CreateGroupPage() {
           className="mb-2 text-[24px] font-black leading-tight sm:text-[28px]"
           style={{ fontFamily: "'Fredoka', sans-serif", color: "#48664e" }}
         >
-          Set your budget
+          Start with the basics
         </h2>
         <p className="mb-6 text-[13px] font-semibold leading-6 text-slate-600">
-          Add the key details about your exchange budget.
+          Name the exchange, choose the gift day, then confirm budget, privacy, and invites.
         </p>
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label
-              className="text-[13px] font-extrabold mb-1.5 block"
-              style={{ color: "#374151" }}
-            >
+            <label className={labelClassName}>
               Group name *
             </label>
             <input
@@ -480,20 +603,13 @@ export default function CreateGroupPage() {
               onChange={(e) => setGroupName(e.target.value)}
               maxLength={100}
               required
-              className="w-full px-4 py-3 rounded-xl text-[14px] outline-none transition"
-              style={{
-                border: "2px solid #e5e7eb",
-                fontFamily: "inherit",
-                color: "#1f2937",
-              }}
+              className={fieldClassName}
+              style={{ fontFamily: "inherit" }}
             />
           </div>
 
           <div>
-            <label
-              className="text-[13px] font-extrabold mb-1.5 block"
-              style={{ color: "#374151" }}
-            >
+            <label className={labelClassName}>
               Exchange picture{" "}
               <span className="text-[11px] font-semibold" style={{ color: "#9ca3af" }}>
                 (optional)
@@ -522,7 +638,7 @@ export default function CreateGroupPage() {
                 setImageDragActive(false);
               }}
               onDrop={handleGroupImageDrop}
-              className="flex w-full flex-col gap-4 rounded-2xl p-4 text-left transition hover:-translate-y-0.5 sm:flex-row sm:items-center sm:p-5"
+              className="flex w-full flex-col gap-4 rounded-3xl p-4 text-left transition hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[#d9ae56]/25 sm:flex-row sm:items-center sm:p-5"
               style={{
                 background: imageDragActive ? "#eef6ee" : "rgba(72,102,78,.045)",
                 border: imageDragActive
@@ -539,33 +655,15 @@ export default function CreateGroupPage() {
                     className="h-full w-full object-cover"
                   />
                 ) : (
-                  <svg viewBox="0 0 28 28" className="h-8 w-8" fill="none" aria-hidden="true">
-                    <path
-                      d="M6 11.5h16v9.2c0 1-.8 1.8-1.8 1.8H7.8c-1 0-1.8-.8-1.8-1.8v-9.2Z"
-                      stroke="currentColor"
-                      strokeWidth="1.8"
-                    />
-                    <path
-                      d="M9 11.5V9.8A3.8 3.8 0 0 1 16.2 8M14 11.5V9.8a3.8 3.8 0 0 1 7.3-1.4M5 14h18"
-                      stroke="currentColor"
-                      strokeLinecap="round"
-                      strokeWidth="1.8"
-                    />
-                    <path
-                      d="M14 4.5v5M11.5 7h5"
-                      stroke="#c0392b"
-                      strokeLinecap="round"
-                      strokeWidth="1.8"
-                    />
-                  </svg>
+                  <SparkIcon />
                 )}
               </span>
               <span className="min-w-0">
                 <span className="block text-[14px] font-black">
-                  {groupImageFile ? groupImageFile.name : "Drop a group picture or browse"}
+                  {groupImageFile ? groupImageFile.name : "Add an exchange picture"}
                 </span>
                 <span className="mt-1 block text-[12px] font-semibold leading-5 text-slate-500">
-                  JPG, PNG, or WebP. Keep it under 2 MB. The picture appears on your group card.
+                  Drop an image here, or choose a file. JPG, PNG, or WebP under 2 MB.
                 </span>
               </span>
             </button>
@@ -573,7 +671,7 @@ export default function CreateGroupPage() {
               <button
                 type="button"
                 onClick={removeGroupImage}
-                className="mt-2 rounded-full px-3 py-1.5 text-[12px] font-bold text-[#a43c3f] transition hover:bg-[#fff1f2]"
+                className="mt-2 min-h-10 rounded-full px-4 text-[12px] font-black text-[#a43c3f] transition hover:bg-[#fff1f2] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[#a43c3f]/15"
               >
                 Remove picture
               </button>
@@ -581,10 +679,7 @@ export default function CreateGroupPage() {
           </div>
 
           <div>
-            <label
-              className="text-[13px] font-extrabold mb-1.5 block"
-              style={{ color: "#374151" }}
-            >
+            <label className={labelClassName}>
               Group notes or rules{" "}
               <span className="text-[11px] font-semibold" style={{ color: "#9ca3af" }}>
                 (optional)
@@ -596,21 +691,16 @@ export default function CreateGroupPage() {
               onChange={(e) => setDescription(e.target.value)}
               maxLength={300}
               rows={3}
-              className="w-full px-4 py-3 rounded-xl text-[14px] outline-none transition resize-y"
+              className={`${fieldClassName} resize-y`}
               style={{
-                border: "2px solid #e5e7eb",
                 fontFamily: "inherit",
-                color: "#1f2937",
                 minHeight: "70px",
               }}
             />
           </div>
 
           <div>
-            <label
-              className="text-[13px] font-extrabold mb-1.5 block"
-              style={{ color: "#374151" }}
-            >
+            <label className={labelClassName}>
               Gift exchange date *
             </label>
             <input
@@ -618,25 +708,20 @@ export default function CreateGroupPage() {
               value={eventDate}
               onChange={(e) => setEventDate(e.target.value)}
               required
-              className="w-full px-4 py-3 rounded-xl text-[14px] outline-none transition"
-              style={{
-                border: "2px solid #e5e7eb",
-                fontFamily: "inherit",
-                color: "#1f2937",
-              }}
+              className={fieldClassName}
+              style={{ fontFamily: "inherit" }}
             />
           </div>
 
           <div
-            className="rounded-xl p-4"
+            className="rounded-3xl p-4 sm:p-5"
             style={{
-              background: "rgba(192,57,43,.04)",
-              border: "1px solid rgba(192,57,43,.1)",
+              background: "linear-gradient(135deg,rgba(72,102,78,.06),rgba(217,174,86,.1))",
+              border: "1px solid rgba(72,102,78,.12)",
             }}
           >
             <label
-              className="text-[13px] font-extrabold mb-2 block"
-              style={{ color: "#c0392b" }}
+              className={labelClassName}
             >
               Gift budget
             </label>
@@ -648,16 +733,22 @@ export default function CreateGroupPage() {
                   onClick={() => {
                     setBudget(amount);
                     setCustomBudget(false);
+                    setBudgetReviewed(true);
                   }}
-                  className="px-4 py-2 rounded-[10px] text-[13px] font-bold transition"
+                  aria-pressed={!customBudget && budget === amount}
+                  className="min-h-11 rounded-full px-4 text-[13px] font-black transition hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[#d9ae56]/25"
                   style={{
-                    border: `2px solid ${
-                      !customBudget && budget === amount ? "#c0392b" : "#e5e7eb"
+                    border: `1px solid ${
+                      !customBudget && budget === amount ? "#48664e" : "rgba(72,102,78,.16)"
                     }`,
-                    background: !customBudget && budget === amount ? "#fef2f2" : "#fff",
-                    color: !customBudget && budget === amount ? "#c0392b" : "#6b7280",
+                    background: !customBudget && budget === amount ? "#48664e" : "#fff",
+                    color: !customBudget && budget === amount ? "#fff" : "#48664e",
                     cursor: "pointer",
                     fontFamily: "inherit",
+                    boxShadow:
+                      !customBudget && budget === amount
+                        ? "0 12px 24px rgba(72,102,78,.18)"
+                        : "none",
                   }}
                 >
                   {currencySymbol}
@@ -666,38 +757,42 @@ export default function CreateGroupPage() {
               ))}
               <button
                 type="button"
-                onClick={() => setCustomBudget(true)}
-                className="px-4 py-2 rounded-[10px] text-[13px] font-bold transition"
+                onClick={() => {
+                  setCustomBudget(true);
+                  setBudgetReviewed(true);
+                }}
+                aria-pressed={customBudget}
+                className="min-h-11 rounded-full px-4 text-[13px] font-black transition hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[#d9ae56]/25"
                 style={{
-                  border: `2px solid ${customBudget ? "#c0392b" : "#e5e7eb"}`,
-                  background: customBudget ? "#fef2f2" : "#fff",
-                  color: customBudget ? "#c0392b" : "#6b7280",
+                  border: `1px ${customBudget ? "solid" : "dashed"} ${
+                    customBudget ? "#48664e" : "rgba(72,102,78,.24)"
+                  }`,
+                  background: customBudget ? "#48664e" : "#fff",
+                  color: customBudget ? "#fff" : "#48664e",
                   cursor: "pointer",
                   fontFamily: "inherit",
-                  borderStyle: customBudget ? "solid" : "dashed",
                 }}
               >
-                Custom
+                Custom amount
               </button>
             </div>
             {customBudget && (
               <div className="mt-2 flex flex-col gap-2 sm:flex-row sm:items-center">
-                <span className="text-[14px] font-bold" style={{ color: "#c0392b" }}>
+                <span className="text-[14px] font-black" style={{ color: "#48664e" }}>
                   {currencySymbol}
                 </span>
                 <input
                   type="number"
                   value={budget}
-                  onChange={(e) => setBudget(parseInt(e.target.value, 10) || 0)}
+                  onChange={(e) => {
+                    setBudget(parseInt(e.target.value, 10) || 0);
+                    setBudgetReviewed(true);
+                  }}
                   min={0}
                   max={100000}
                   placeholder="Enter amount..."
-                  className="w-full rounded-lg px-3 py-2 text-[14px] outline-none sm:w-32"
-                  style={{
-                    border: "2px solid #c0392b",
-                    fontFamily: "inherit",
-                    color: "#1f2937",
-                  }}
+                  className={`${fieldClassName} sm:w-36`}
+                  style={{ fontFamily: "inherit" }}
                 />
               </div>
             )}
@@ -707,22 +802,19 @@ export default function CreateGroupPage() {
           </div>
 
           <div>
-            <label
-              className="text-[13px] font-extrabold mb-1.5 block"
-              style={{ color: "#374151" }}
-            >
+            <label className={labelClassName}>
               Currency
             </label>
             <select
               value={currency}
-              onChange={(e) => setCurrency(e.target.value)}
-              className="w-full px-4 py-3 rounded-xl text-[14px] outline-none"
+              onChange={(e) => {
+                setCurrency(e.target.value);
+                setBudgetReviewed(true);
+              }}
+              className={fieldClassName}
               style={{
-                border: "2px solid #e5e7eb",
                 fontFamily: "inherit",
-                color: "#1f2937",
                 cursor: "pointer",
-                background: "#fff",
               }}
             >
               {CURRENCIES.map((item) => (
@@ -734,10 +826,7 @@ export default function CreateGroupPage() {
           </div>
 
           <div>
-            <label
-              className="text-[13px] font-extrabold mb-1.5 block"
-              style={{ color: "#374151" }}
-            >
+            <label className={labelClassName}>
               Invite members{" "}
               <span className="text-[11px] font-semibold" style={{ color: "#9ca3af" }}>
                 (optional)
@@ -748,12 +837,8 @@ export default function CreateGroupPage() {
               placeholder="email1@example.com, email2@example.com"
               value={inviteEmails}
               onChange={(e) => setInviteEmails(e.target.value)}
-              className="w-full px-4 py-3 rounded-xl text-[14px] outline-none transition"
-              style={{
-                border: "2px solid #e5e7eb",
-                fontFamily: "inherit",
-                color: "#1f2937",
-              }}
+              className={fieldClassName}
+              style={{ fontFamily: "inherit" }}
             />
             <p className="text-[11px] mt-1" style={{ color: "#9ca3af" }}>
               Add more than one email by separating them with commas.
@@ -761,13 +846,13 @@ export default function CreateGroupPage() {
           </div>
 
           <div
-            className="rounded-xl p-4"
+            className="rounded-3xl p-4 sm:p-5"
             style={{
               background: requireAnonymousNickname
-                ? "rgba(37,99,235,.08)"
+                ? "rgba(72,102,78,.08)"
                 : "rgba(15,23,42,.03)",
               border: requireAnonymousNickname
-                ? "1px solid rgba(37,99,235,.18)"
+                ? "1px solid rgba(72,102,78,.18)"
                 : "1px solid rgba(148,163,184,.16)",
             }}
           >
@@ -794,9 +879,9 @@ export default function CreateGroupPage() {
                     ? "Allow real names in this group"
                     : "Use nicknames in this group"
                 }
-                className="inline-flex shrink-0 items-center rounded-full p-1 transition"
+                className="inline-flex min-h-8 shrink-0 items-center rounded-full p-1 transition focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[#d9ae56]/25 disabled:cursor-not-allowed disabled:opacity-50"
                 style={{
-                  background: requireAnonymousNickname ? "#2563eb" : "#cbd5e1",
+                  background: requireAnonymousNickname ? "#48664e" : "#cbd5e1",
                   width: "52px",
                 }}
               >
@@ -813,7 +898,7 @@ export default function CreateGroupPage() {
                 className="inline-flex rounded-full px-3 py-1 text-[11px] font-bold"
                 style={{
                   background: requireAnonymousNickname ? "#dbeafe" : "#e2e8f0",
-                  color: requireAnonymousNickname ? "#1d4ed8" : "#475569",
+                  color: requireAnonymousNickname ? "#48664e" : "#475569",
                 }}
               >
                 {requireAnonymousNickname ? "Nicknames required" : "Names visible"}
@@ -836,17 +921,14 @@ export default function CreateGroupPage() {
                 </label>
                 <input
                   type="text"
-                  placeholder="e.g. Moonlight Fox"
+                  placeholder="e.g. Ribbon Keeper"
                   value={ownerCodename}
                   onChange={(e) => setOwnerCodename(e.target.value)}
                   maxLength={30}
                   autoComplete="off"
-                  className="w-full rounded-xl px-4 py-3 text-[14px] outline-none transition"
+                  className={fieldClassName}
                   style={{
-                    border: "2px solid rgba(37,99,235,.16)",
-                    background: "#fff",
                     fontFamily: "inherit",
-                    color: "#1f2937",
                   }}
                 />
                 <p className="mt-1 text-[11px]" style={{ color: "#64748b" }}>
@@ -862,7 +944,7 @@ export default function CreateGroupPage() {
             </p>
           )}
           {statusMsg && (
-            <p className="text-[13px] font-bold text-center" style={{ color: "#2563eb" }}>
+            <p className="text-[13px] font-bold text-center" style={{ color: "#48664e" }}>
               {statusMsg}
             </p>
           )}
@@ -870,7 +952,7 @@ export default function CreateGroupPage() {
           <button
             type="submit"
             disabled={formActionDisabled}
-            className="w-full rounded-full py-3.5 text-[16px] font-extrabold text-white transition hover:-translate-y-0.5 disabled:hover:translate-y-0"
+            className="min-h-13 w-full rounded-full px-5 py-4 text-[16px] font-black text-white transition hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[#d9ae56]/30 disabled:hover:translate-y-0"
             style={{
               background:
                 formActionDisabled ? "#9ca3af" : "linear-gradient(135deg,#48664e,#3c5a43)",
@@ -880,7 +962,7 @@ export default function CreateGroupPage() {
               boxShadow: formActionDisabled ? "none" : "0 16px 30px rgba(72,102,78,.2)",
             }}
           >
-            {loading ? "Creating group..." : imageDecodePending ? "Checking picture..." : "Create group"}
+            {loading ? "Creating exchange..." : imageDecodePending ? "Checking picture..." : "Create exchange"}
           </button>
         </form>
         </section>
