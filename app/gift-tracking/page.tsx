@@ -1,5 +1,5 @@
-import { SecretSantaExperience } from "@/app/secret-santa/page";
+import SecretSantaPage from "@/app/secret-santa/page";
 
 export default function GiftTrackingPage() {
-  return <SecretSantaExperience mode="tracking" />;
+  return <SecretSantaPage />;
 }
