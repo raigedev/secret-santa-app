@@ -126,6 +126,18 @@ export function DashboardCommandDesk({
   const helperNote = focusGroup?.hasDrawn
     ? "Names are drawn. Keep your gift plan moving without exposing private details."
     : "Keep the draw locked until everyone joins and has at least one wishlist clue.";
+  const wishlistCluesNeeded = Math.max(wishlistTarget - wishlistItemCount, 0);
+  const wishlistNeedsClues = wishlistCluesNeeded > 0;
+  const wishlistTaskLabel = wishlistNeedsClues
+    ? wishlistItemCount === 0
+      ? "Wishlist has no clues yet."
+      : `Wishlist needs ${plural(wishlistCluesNeeded, "more clue")}.`
+    : "Wishlist clues are ready.";
+  const wishlistTaskDetail = wishlistNeedsClues
+    ? wishlistItemCount === 0
+      ? "Add at least one gift clue so your Santa has options."
+      : "Add a few more clues so your Santa has options."
+    : "Your Santa has enough clues to start planning.";
 
   const taskRows: DashboardTaskRow[] = [
     {
@@ -135,29 +147,25 @@ export function DashboardCommandDesk({
       icon: <GiftIcon className="h-5 w-5" />,
       label: pendingInvites.length > 0
         ? `${plural(pendingInvites.length, "invite")} waiting.`
-        : "Invites are quiet.",
+        : "No invite updates.",
       tone: pendingInvites.length > 0 ? "red" : "green",
       value: pendingInvites.length > 0 ? "Needs reply" : "Clear",
     },
     {
-      detail: wishlistItemCount < wishlistTarget
-        ? "Add a few more clues so your Santa has options."
-        : "Your Santa has enough clues to start planning.",
+      detail: wishlistTaskDetail,
       icon: <WishlistIcon className="h-5 w-5" />,
-      label: wishlistItemCount < wishlistTarget
-        ? `Your wishlist has ${plural(wishlistItemCount, "clue")}.`
-        : "Wishlist clues are ready.",
-      tone: wishlistItemCount < wishlistTarget ? "gold" : "green",
-      value: wishlistItemCount < wishlistTarget ? "Ready soon" : "Ready",
+      label: wishlistTaskLabel,
+      tone: wishlistNeedsClues ? "gold" : "green",
+      value: wishlistNeedsClues ? "Needs clues" : "Ready",
     },
     {
       detail: unreadPrivateUpdateCount > 0
         ? "Open your private threads from Messages when you are ready."
-        : "No new secret thread activity needs your attention right now.",
+        : "No new private message activity needs your attention right now.",
       icon: <ChatIcon className="h-5 w-5" />,
       label: unreadPrivateUpdateCount > 0
         ? `${plural(unreadPrivateUpdateCount, "private message")} waiting.`
-        : "Private messages are quiet.",
+        : "No private message updates.",
       onAction: unreadPrivateUpdateCount > 0 ? onOpenChat : undefined,
       actionAriaLabel: "Open private message threads",
       tone: unreadPrivateUpdateCount > 0 ? "red" : "quiet",
