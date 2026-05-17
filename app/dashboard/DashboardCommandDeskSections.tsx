@@ -155,8 +155,8 @@ export function HelperRail({
   onOpenPath: (path: string) => void;
 }) {
   const updates = [
-    pendingInvites > 0 ? `${plural(pendingInvites, "invite")} waiting.` : "Invites are clear.",
-    unreadPrivateUpdateCount > 0 ? `${plural(unreadPrivateUpdateCount, "private message")} waiting.` : "Private messages are quiet.",
+    pendingInvites > 0 ? `${plural(pendingInvites, "invite")} waiting.` : "No invite updates.",
+    unreadPrivateUpdateCount > 0 ? `${plural(unreadPrivateUpdateCount, "private message")} waiting.` : "No private message updates.",
     activityFeedItems[0]?.title || "No recent changes need action.",
   ];
 
