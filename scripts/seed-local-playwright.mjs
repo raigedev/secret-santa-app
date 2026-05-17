@@ -163,6 +163,18 @@ async function seed() {
     email: recipientEmail,
     password,
   });
+  const rateLimitSubjects = [
+    giver.id,
+    recipient.id,
+    giverEmail.toLowerCase(),
+    recipientEmail.toLowerCase(),
+    groupId,
+  ];
+
+  await failOnError(
+    admin.from("security_rate_limits").delete().in("subject", rateLimitSubjects),
+    "Clear test rate limits"
+  );
 
   await failOnError(
     admin.from("profiles").upsert(

@@ -562,7 +562,7 @@ test.describe("authenticated screen regressions", () => {
     await page.goto("/dashboard");
 
     await expect(page.getByRole("heading", { name: /today.s exchange flow/i })).toBeVisible();
-    await expect(page.getByText(/private messages are quiet/i).first()).toBeVisible();
+    await expect(page.getByText(/no private message updates/i).first()).toBeVisible();
     await expect(page.getByRole("button", { name: /open private message threads/i })).toHaveCount(0);
   });
 

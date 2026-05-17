@@ -1,6 +1,6 @@
 "use client";
 
-import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { useState, type ReactNode } from "react";
 
 import {
@@ -53,7 +53,6 @@ function ForgotPasswordLayout({
 }
 
 export default function ForgotPasswordPage() {
-  const router = useRouter();
   const supabase = createClient();
   const [email, setEmail] = useState("");
   const [message, setMessage] = useState("");
@@ -159,13 +158,12 @@ export default function ForgotPasswordPage() {
 
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <p className="text-sm leading-6 text-[#5b605e]">Remember your password?</p>
-            <button
-              type="button"
-              onClick={() => router.push("/login")}
+            <Link
+              href="/login"
               className="gift-button gift-button-primary gift-button-compact text-sm"
             >
               Back to login
-            </button>
+            </Link>
           </div>
         </form>
       </div>

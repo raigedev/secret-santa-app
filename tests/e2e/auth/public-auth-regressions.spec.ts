@@ -81,7 +81,7 @@ test.describe("public auth regressions", () => {
 
   test("forgot-password can return to login without breaking the flow", async ({ page }) => {
     await page.goto("/forgot-password");
-    await page.getByRole("button", { name: /back to login/i }).click();
+    await page.getByRole("link", { name: /back to login/i }).click();
     await expect(page).toHaveURL(/\/login$/);
     await expect(page.getByRole("button", { name: /^log in$/i })).toBeVisible();
   });
