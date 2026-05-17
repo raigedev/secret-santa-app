@@ -178,7 +178,11 @@ test.describe("navigation performance smoke coverage", () => {
       "logout to login ready",
       async () => {
         await page.goto("/dashboard");
-        await getVisibleProfileMenuButton(page).click();
+        await expect(page.getByRole("heading", { name: /exchange at a glance/i })).toBeVisible();
+        const profileMenuButton = getVisibleProfileMenuButton(page);
+        await expect(profileMenuButton).toBeVisible();
+        await profileMenuButton.click();
+        await expect(page.getByRole("menu")).toBeVisible();
         await page.getByRole("menuitem", { name: /logout/i }).click();
       },
       () => waitForLoginReady(page)

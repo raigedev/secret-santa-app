@@ -552,7 +552,7 @@ test.describe("authenticated workflow edge cases", () => {
 
     await page.goto("/create-group");
     await expect(page.getByRole("heading", { name: /^create group$/i })).toBeVisible();
-    await page.getByRole("button", { name: /^create group$/i }).click();
+    await page.getByRole("button", { name: /^create exchange$/i }).click();
     await expect(page.locator("input:invalid")).toHaveCount(2);
 
     const createGroupForm = page.locator("form").first();
@@ -566,7 +566,7 @@ test.describe("authenticated workflow edge cases", () => {
     await eventDateInput.fill(futureDate);
     await expect(groupNameInput).toHaveValue("Playwright validation check");
     await expect(eventDateInput).toHaveValue(futureDate);
-    await page.getByRole("button", { name: /^create group$/i }).click();
+    await page.getByRole("button", { name: /^create exchange$/i }).click();
 
     await expect(page.getByText(/enter a group nickname to continue/i)).toBeVisible();
     await expect(page).toHaveURL(/\/create-group$/);

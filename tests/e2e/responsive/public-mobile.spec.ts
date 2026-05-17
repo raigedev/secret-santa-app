@@ -36,7 +36,7 @@ test.describe("public mobile coverage", () => {
   test("reset-password form remains usable on mobile", async ({ page }) => {
     await page.goto("/reset-password");
 
-    await expect(page.getByRole("textbox", { name: /enter your new password/i })).toBeVisible();
+    await expect(page.getByLabel(/new password/i)).toBeVisible();
     await expect(page.getByRole("button", { name: /save new password/i })).toBeVisible();
   });
 });
