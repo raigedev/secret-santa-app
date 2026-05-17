@@ -310,7 +310,7 @@ function ModeEyebrowIcon({
     return <CheckCircleMark className={className} />;
   }
 
-  return <GiftMark className={className} />;
+  return <ShoppingBagMark className={className} />;
 }
 
 function SparkleMark({ className = "h-5 w-5" }: { className?: string }) {
@@ -975,6 +975,177 @@ function EmptyGifteeIllustration({ className = "h-20 w-20" }: { className?: stri
       <circle cx="68" cy="151" fill="#48664e" opacity=".32" r="3" />
     </svg>
   );
+}
+
+function EmptyShoppingIdeasIllustration({ className = "h-20 w-20" }: { className?: string }) {
+  return (
+    <svg
+      aria-hidden="true"
+      className={`${className} overflow-visible drop-shadow-[0_24px_28px_rgba(72,102,78,.12)]`}
+      fill="none"
+      viewBox="0 0 360 220"
+    >
+      <defs>
+        <linearGradient id="shopping-empty-board" x1="69" x2="290" y1="42" y2="166" gradientUnits="userSpaceOnUse">
+          <stop stopColor="#fffefa" />
+          <stop offset="1" stopColor="#edf5ef" />
+        </linearGradient>
+        <linearGradient id="shopping-empty-bag" x1="83" x2="164" y1="72" y2="183" gradientUnits="userSpaceOnUse">
+          <stop stopColor="#f5fbf2" />
+          <stop offset="1" stopColor="#dcefe0" />
+        </linearGradient>
+        <linearGradient id="shopping-empty-gift" x1="178" x2="270" y1="88" y2="170" gradientUnits="userSpaceOnUse">
+          <stop stopColor="#c85055" />
+          <stop offset="1" stopColor="#8f252b" />
+        </linearGradient>
+        <radialGradient id="shopping-empty-glow" cx="0" cy="0" r="1" gradientTransform="matrix(126 0 0 70 178 116)" gradientUnits="userSpaceOnUse">
+          <stop stopColor="#fcce72" stopOpacity=".24" />
+          <stop offset=".7" stopColor="#fcce72" stopOpacity=".07" />
+          <stop offset="1" stopColor="#fcce72" stopOpacity="0" />
+        </radialGradient>
+      </defs>
+
+      <ellipse cx="180" cy="183" fill="#2e3432" opacity=".08" rx="116" ry="17" />
+      <path d="M70 53c37-17 87-19 141-8 44 9 75 27 86 54 9 23-3 47-31 62-38 20-105 22-157 8-46-13-71-37-69-67 1-21 11-40 30-49Z" fill="url(#shopping-empty-glow)" />
+
+      <path
+        d="M76 56h168c15 0 28 12 28 28v73c0 15-13 28-28 28H104c-15 0-28-13-28-28V56Z"
+        fill="url(#shopping-empty-board)"
+        stroke="#48664e"
+        strokeOpacity=".12"
+        strokeWidth="2"
+      />
+      <path d="M103 82h72M103 102h49M103 122h65" stroke="#48664e" strokeLinecap="round" strokeOpacity=".22" strokeWidth="6" />
+      <circle cx="229" cy="82" r="8" fill="#fcce72" opacity=".8" />
+      <path d="m224.5 82 3.1 3.2 7-7.5" stroke="#48664e" strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" />
+
+      <path
+        d="M78 95h78l8 90H70l8-90Z"
+        fill="url(#shopping-empty-bag)"
+        stroke="#48664e"
+        strokeOpacity=".24"
+        strokeLinejoin="round"
+        strokeWidth="4"
+      />
+      <path
+        d="M94 95c0-24 9.5-37 24-37s24 13 24 37"
+        stroke="#48664e"
+        strokeLinecap="round"
+        strokeWidth="5"
+      />
+      <path d="M100 123h37v35h-37v-35Z" fill="#a43c3f" />
+      <path d="M118.5 123v35M100 140.5h37" stroke="#fcce72" strokeWidth="5" />
+      <path d="M107 121c-8-12 6-20 11.5-3 6-17 20-9 11.5 3" stroke="#fcce72" strokeLinecap="round" strokeWidth="5" />
+
+      <g transform="translate(173 82)">
+        <rect x="0" y="30" width="95" height="67" rx="10" fill="url(#shopping-empty-gift)" />
+        <rect x="-8" y="17" width="111" height="26" rx="9" fill="#fcce72" />
+        <path d="M41 17h16v80H41V17Z" fill="#fff8de" opacity=".92" />
+        <path d="M-8 39h111" stroke="#2e3432" strokeOpacity=".12" strokeWidth="4" />
+        <path
+          d="M47 17c-11-17-31-9-24 4 3.5 7 15 5 24-4Zm6 0c12-17 31-8 23 5-4 6-15 4-23-5Z"
+          fill="#a43c3f"
+        />
+        <path d="M14 78c18-8 42-10 70-4" stroke="#fffefa" strokeLinecap="round" strokeOpacity=".28" strokeWidth="4" />
+      </g>
+
+      <path d="M283 74h12M289 68v12M55 86h-10M50 81v10" stroke="#fcce72" strokeLinecap="round" strokeWidth="4" />
+      <circle cx="289" cy="151" fill="#a43c3f" opacity=".72" r="4" />
+      <circle cx="64" cy="159" fill="#48664e" opacity=".32" r="3" />
+    </svg>
+  );
+}
+
+function EmptyGiftProgressIllustration({ className = "h-20 w-20" }: { className?: string }) {
+  return (
+    <svg
+      aria-hidden="true"
+      className={`${className} overflow-visible drop-shadow-[0_24px_28px_rgba(72,102,78,.12)]`}
+      fill="none"
+      viewBox="0 0 360 220"
+    >
+      <defs>
+        <linearGradient id="progress-empty-card" x1="78" x2="264" y1="45" y2="184" gradientUnits="userSpaceOnUse">
+          <stop stopColor="#ffffff" />
+          <stop offset="1" stopColor="#eef6f0" />
+        </linearGradient>
+        <linearGradient id="progress-empty-gift" x1="70" x2="173" y1="99" y2="174" gradientUnits="userSpaceOnUse">
+          <stop stopColor="#b9474c" />
+          <stop offset="1" stopColor="#7f2228" />
+        </linearGradient>
+        <linearGradient id="progress-empty-ribbon" x1="110" x2="138" y1="82" y2="174" gradientUnits="userSpaceOnUse">
+          <stop stopColor="#ffe09a" />
+          <stop offset=".55" stopColor="#fcce72" />
+          <stop offset="1" stopColor="#b98620" />
+        </linearGradient>
+        <radialGradient id="progress-empty-glow" cx="0" cy="0" r="1" gradientTransform="matrix(126 0 0 70 179 116)" gradientUnits="userSpaceOnUse">
+          <stop stopColor="#d7fadb" stopOpacity=".62" />
+          <stop offset=".72" stopColor="#d7fadb" stopOpacity=".14" />
+          <stop offset="1" stopColor="#d7fadb" stopOpacity="0" />
+        </radialGradient>
+      </defs>
+
+      <ellipse cx="180" cy="183" fill="#2e3432" opacity=".08" rx="116" ry="17" />
+      <path d="M67 59c41-24 99-28 158-15 46 11 79 33 87 64 7 28-13 51-48 63-42 14-106 10-153-6-45-15-70-39-70-67 0-17 8-31 26-39Z" fill="url(#progress-empty-glow)" />
+
+      <path
+        d="M144 48h100c16 0 29 13 29 29v90c0 16-13 29-29 29H144c-16 0-29-13-29-29V77c0-16 13-29 29-29Z"
+        fill="url(#progress-empty-card)"
+        stroke="#48664e"
+        strokeOpacity=".14"
+        strokeWidth="2"
+      />
+      <path d="M168 86h69M168 121h69M168 156h53" stroke="#48664e" strokeLinecap="round" strokeOpacity=".2" strokeWidth="6" />
+      <circle cx="146" cy="86" r="11" fill="#d7fadb" />
+      <circle cx="146" cy="121" r="11" fill="#d7fadb" />
+      <circle cx="146" cy="156" r="11" fill="#fff1cc" />
+      <path d="m141 86 3.8 3.8 8-8.6M141 121l3.8 3.8 8-8.6" stroke="#48664e" strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" />
+      <path d="M142 156h8" stroke="#b98620" strokeLinecap="round" strokeWidth="3" />
+
+      <g transform="translate(49 78)">
+        <path
+          d="M30 44h100v51c0 10-8 18-18 18H48c-10 0-18-8-18-18V44Z"
+          fill="url(#progress-empty-gift)"
+        />
+        <path d="M23 24h114c8 0 14 6 14 14v16H23V38c0-8 6-14 14-14Z" fill="#fcce72" />
+        <path d="M72 24h22v89H72V24Z" fill="url(#progress-empty-ribbon)" />
+        <path d="M23 50h128" stroke="#2e3432" strokeOpacity=".12" strokeWidth="4" />
+        <path d="M78 24c-11-17-31-9-24 4 3 7 15 5 24-4Zm8 0c12-17 31-8 23 5-4 6-15 4-23-5Z" fill="#a43c3f" />
+        <path d="M45 91c20-9 46-11 77-5" stroke="#fffefa" strokeLinecap="round" strokeOpacity=".28" strokeWidth="4" />
+      </g>
+
+      <path
+        d="M235 108c24 4 43 17 58 40"
+        stroke="#48664e"
+        strokeDasharray="7 9"
+        strokeLinecap="round"
+        strokeOpacity=".28"
+        strokeWidth="5"
+      />
+      <path d="M295 154l11 12 20-24" stroke="#48664e" strokeLinecap="round" strokeLinejoin="round" strokeWidth="6" />
+      <path d="M295 75h12M301 69v12M52 68h-10M47 63v10" stroke="#fcce72" strokeLinecap="round" strokeWidth="4" />
+      <circle cx="291" cy="92" fill="#a43c3f" opacity=".72" r="4" />
+      <circle cx="64" cy="164" fill="#48664e" opacity=".32" r="3" />
+    </svg>
+  );
+}
+
+function EmptySecretSantaIllustration({
+  className = "h-20 w-20",
+  mode,
+}: {
+  className?: string;
+  mode: SecretSantaExperienceMode;
+}) {
+  if (mode === "shopping") {
+    return <EmptyShoppingIdeasIllustration className={className} />;
+  }
+
+  if (mode === "tracking") {
+    return <EmptyGiftProgressIllustration className={className} />;
+  }
+
+  return <EmptyGifteeIllustration className={className} />;
 }
 
 function ProductFallbackIllustration({
@@ -3485,6 +3656,36 @@ function SecretSantaExperience({ mode = "shopping" }: SecretSantaExperienceProps
     },
   };
   const heroText = modeHeroText[mode];
+  const emptyStateText: Record<
+    SecretSantaExperienceMode,
+    { title: string; description: string; actionLabel: string; visualBackground: string }
+  > = {
+    shopping: {
+      title: "Shopping starts after the draw",
+      description:
+        "Once names are drawn, wishlist clues and budget-based gift ideas will appear here.",
+      actionLabel: "Review groups",
+      visualBackground:
+        "radial-gradient(circle at 28% 22%,rgba(252,206,114,.2),transparent 4.5rem), linear-gradient(180deg,rgba(255,254,250,.96),rgba(239,247,240,.9))",
+    },
+    giftee: {
+      title: "No giftee yet",
+      description:
+        "When a group owner draws names, the people you are gifting will appear here.",
+      actionLabel: "Open groups",
+      visualBackground:
+        "radial-gradient(circle at 30% 25%,rgba(252,206,114,.18),transparent 4rem), linear-gradient(180deg,rgba(255,254,250,.96),rgba(239,247,240,.9))",
+    },
+    tracking: {
+      title: "Gift progress starts after the draw",
+      description:
+        "After you receive a giftee, you can mark planned, bought, wrapped, and received here.",
+      actionLabel: "Check groups",
+      visualBackground:
+        "radial-gradient(circle at 70% 20%,rgba(215,250,219,.46),transparent 4.8rem), linear-gradient(180deg,rgba(255,254,250,.96),rgba(238,246,240,.9))",
+    },
+  };
+  const activeEmptyState = emptyStateText[mode];
   const sidebarNavItems: ShoppingIdeasNavItem[] = [
     { label: "Dashboard", href: "/dashboard", icon: "dashboard" },
     { label: "My Groups", href: "/groups", icon: "group" },
@@ -3815,12 +4016,14 @@ function SecretSantaExperience({ mode = "shopping" }: SecretSantaExperienceProps
             <div
               className="mx-auto mb-5 flex h-44 w-72 max-w-[calc(100%-2rem)] items-center justify-center rounded-[28px] sm:w-80"
               style={{
-                background:
-                  "radial-gradient(circle at 30% 25%,rgba(252,206,114,.18),transparent 4rem), linear-gradient(180deg,rgba(255,254,250,.96),rgba(239,247,240,.9))",
+                background: activeEmptyState.visualBackground,
                 border: "1px solid rgba(72,102,78,.14)",
               }}
             >
-              <EmptyGifteeIllustration className="h-36 w-64 sm:w-72" />
+              <EmptySecretSantaIllustration
+                className="h-36 w-64 sm:w-72"
+                mode={mode}
+              />
             </div>
             <div
               className="text-[18px] font-bold"
@@ -3829,14 +4032,29 @@ function SecretSantaExperience({ mode = "shopping" }: SecretSantaExperienceProps
                 color: HOLIDAY_RED,
               }}
             >
-              No giftee yet
+              {activeEmptyState.title}
             </div>
             <p
               className="text-[13px] mt-1"
               style={{ color: TEXT_MUTED }}
             >
-              When a group owner draws names, the people you are gifting will appear here.
+              {activeEmptyState.description}
             </p>
+            <a
+              href="/groups"
+              className="mt-5 inline-flex min-h-10 items-center justify-center gap-2 rounded-full px-4 text-[12px] font-black transition hover:-translate-y-0.5 focus-visible:outline-2 focus-visible:outline-offset-2"
+              style={{
+                background: "rgba(255,255,255,.9)",
+                border: "1px solid rgba(72,102,78,.22)",
+                boxShadow: "0 12px 26px rgba(46,52,50,.06)",
+                color: HOLIDAY_GREEN,
+                outlineColor: HOLIDAY_GREEN,
+                textDecoration: "none",
+              }}
+            >
+              {activeEmptyState.actionLabel}
+              <ChevronRightMark className="h-3.5 w-3.5" />
+            </a>
           </div>
         ) : isShoppingMode ? (
           <div className="mb-8 grid min-w-0 gap-6 xl:grid-cols-[minmax(0,1fr)_300px] 2xl:grid-cols-[minmax(0,1fr)_320px]">
