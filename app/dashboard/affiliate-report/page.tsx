@@ -1750,7 +1750,7 @@ export default async function AffiliateReportPage({
             <p className="text-sm font-semibold uppercase tracking-[0.18em] text-sky-600">
               Affiliate Performance
             </p>
-            <h1 className="mt-2 text-4xl font-bold tracking-tight text-slate-900">
+            <h1 className="mt-2 text-4xl font-bold tracking-normal text-slate-900">
               Lazada affiliate report
             </h1>
             <p className="mt-3 max-w-3xl text-sm leading-6 text-slate-600">

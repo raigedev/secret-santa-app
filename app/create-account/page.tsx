@@ -174,7 +174,7 @@ function CreateAccountPageInner() {
         <div className="inline-flex items-center gap-2 rounded-full bg-[#fcce72]/28 px-3 py-1.5 text-sm font-semibold text-[#5f4500]">
           New account
         </div>
-        <h2 className="mt-4 font-[Plus_Jakarta_Sans] text-3xl font-black tracking-tighter text-[#2e3432] sm:text-4xl">
+        <h2 className="mt-4 font-[Plus_Jakarta_Sans] text-3xl font-black tracking-normal text-[#2e3432] sm:text-4xl">
           {confirmation ? "Check your inbox" : "Create your account"}
         </h2>
         <p className="mt-3 text-[15px] leading-7 text-[#5b605e] sm:text-base">
@@ -242,13 +242,13 @@ function CreateAccountPageInner() {
               />
             </div>
 
-            <div className="rounded-[1.35rem] bg-[#f2f4f2] px-4 py-3 text-sm leading-6 text-[#5b605e]">
+            <div className="gift-alert gift-alert-warning text-sm">
               {PASSWORD_POLICY_HELP_TEXT} A short phrase is usually easier to remember and harder
               to guess.
             </div>
 
             {error ? (
-              <div role="alert" className="rounded-[1.35rem] bg-[#fff1ef] px-4 py-3 text-sm leading-6 text-[#821a01]">
+              <div role="alert" className="gift-alert gift-alert-error text-sm">
                 {error}
               </div>
             ) : null}
@@ -283,11 +283,11 @@ function CreateAccountPageInner() {
           </form>
         ) : (
           <div className="mt-8 space-y-5">
-            <div className="rounded-[1.75rem] bg-[#f2f4f2] p-5 sm:p-6">
+            <div className="gift-surface-muted rounded-[1.75rem] p-5 sm:p-6">
               <div className="inline-flex items-center gap-2 rounded-full bg-[#d7fadb] px-3 py-1 text-sm font-semibold text-[#43614a]">
                 Account created
               </div>
-              <h3 className="mt-4 font-[Plus_Jakarta_Sans] text-2xl font-black tracking-[-0.04em] text-[#2e3432]">
+              <h3 className="mt-4 font-[Plus_Jakarta_Sans] text-2xl font-black tracking-normal text-[#2e3432]">
                 Confirm your email, then sign in.
               </h3>
               <p className="mt-3 text-sm leading-7 text-[#5b605e] sm:text-base">
@@ -297,7 +297,7 @@ function CreateAccountPageInner() {
               </p>
             </div>
 
-            <div className="rounded-[1.75rem] bg-[#fff8f1] p-5 sm:p-6">
+            <div className="gift-alert gift-alert-warning p-5 text-left sm:p-6">
               <p className="text-sm font-semibold uppercase tracking-[0.18em] text-[#7b5902]">Next up</p>
               <div className="mt-3 space-y-3 text-sm leading-6 text-[#5b605e] sm:text-base">
                 <p>1. Open the confirmation email.</p>
@@ -327,7 +327,7 @@ function CreateAccountFallback() {
         <div className="inline-flex items-center gap-2 rounded-full bg-[#fcce72]/28 px-3 py-1.5 text-sm font-semibold text-[#5f4500]">
           New account
         </div>
-        <h2 className="mt-4 font-[Plus_Jakarta_Sans] text-3xl font-black tracking-tighter text-[#2e3432] sm:text-4xl">
+        <h2 className="mt-4 font-[Plus_Jakarta_Sans] text-3xl font-black tracking-normal text-[#2e3432] sm:text-4xl">
           Create your account
         </h2>
         <p className="mt-3 text-[15px] leading-7 text-[#5b605e] sm:text-base">Loading account setup...</p>

@@ -7,7 +7,7 @@ type AuthPageMarker = {
 };
 
 export const AUTH_FIELD_CLASS_NAME =
-  "mt-2 w-full rounded-3xl bg-[#e5e9e6] px-4 py-3.5 text-[15px] text-[#2e3432] outline outline-1 outline-[#aeb3b1]/30 transition placeholder:text-[#777c7a] focus:bg-white focus:outline-[#a43c3f]/35 focus:outline-2 focus:outline-offset-0 focus:outline";
+  "gift-field mt-2 w-full px-4 py-3.5 text-[15px] font-semibold";
 
 const AUTH_PAGE_BACKGROUND_IMAGE =
   "radial-gradient(circle at top left, rgba(252,206,114,0.32), transparent 34%), radial-gradient(circle at bottom right, rgba(164,60,63,0.16), transparent 32%), linear-gradient(180deg, #fbfcfa 0%, #f2f4f2 100%)";
@@ -23,7 +23,7 @@ const AUTH_HERO_BACKGROUND_STYLE = { backgroundImage: AUTH_HERO_BACKGROUND_IMAGE
 const AUTH_INFO_CARD_BACKGROUND_STYLE = { backgroundImage: AUTH_INFO_CARD_BACKGROUND_IMAGE };
 
 function AuthPageBackground({
-  showDecorativeBlobs = true,
+  showDecorativeBlobs = false,
 }: {
   showDecorativeBlobs?: boolean;
 }) {
@@ -44,7 +44,7 @@ function AuthPageBackground({
 export function AuthPageFrame({
   children,
   gridClassName = "lg:grid-cols-[1.02fr_0.98fr]",
-  showDecorativeBlobs = true,
+  showDecorativeBlobs = false,
 }: {
   children: ReactNode;
   gridClassName?: string;
@@ -108,7 +108,7 @@ export function AuthHeroPanel({
             {badge}
           </div>
           <Heading
-            className={`mt-6 max-w-xl font-[Plus_Jakarta_Sans] text-4xl font-black tracking-[-0.06em] text-[#2e3432] sm:text-5xl ${titleClassName} lg:leading-[1.02]`}
+            className={`mt-6 max-w-xl font-[Plus_Jakarta_Sans] text-4xl font-black tracking-normal text-[#2e3432] sm:text-5xl ${titleClassName} lg:leading-[1.02]`}
           >
             {title}
           </Heading>
@@ -130,7 +130,7 @@ export function AuthHeroPanel({
               <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-[#7b5902]">
                 {detailEyebrow}
               </p>
-              <DetailHeading className="mt-2 font-[Plus_Jakarta_Sans] text-2xl font-black tracking-tighter text-[#2e3432]">
+              <DetailHeading className="mt-2 font-[Plus_Jakarta_Sans] text-2xl font-black tracking-normal text-[#2e3432]">
                 {detailTitle}
               </DetailHeading>
             </div>

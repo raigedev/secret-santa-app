@@ -740,7 +740,7 @@ export async function createInviteLink(
 
   return {
     success: true,
-    message: "✅ Invite link ready.",
+    message: "Invite link ready.",
     token,
   };
 }
@@ -792,7 +792,7 @@ export async function revokeInviteLink(
     resourceType: "group",
   });
 
-  return { success: true, message: "✅ Invite link revoked." };
+  return { success: true, message: "Invite link revoked." };
 }
 
 export async function getActiveInviteLink(
@@ -943,7 +943,7 @@ export async function revokePendingInvite(
     resourceType: "group_membership",
   });
 
-  return { success: true, message: "✅ Invite revoked." };
+  return { success: true, message: "Invite revoked." };
 }
 
 export async function getGroupOwnerInsights(groupId: string): Promise<{

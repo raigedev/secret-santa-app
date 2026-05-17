@@ -433,16 +433,16 @@ export default function GroupRevealPage() {
     : revealedCard
       ? "Identity revealed"
       : "Mystery nickname";
-  const activeCardIcon = isMatchPhase
+  const activeCardBadgeLabel = isMatchPhase
     ? revealedCard
-      ? "🎁"
-      : "🎲"
+      ? "Match"
+      : "Draw"
     : revealedCard
-      ? activeAliasEntry?.avatarEmoji || "🎁"
-      : "🎭";
+      ? "Name"
+      : "Alias";
   const activeCardTitle = isMatchPhase
     ? revealedCard
-      ? `${activeMatchEntry?.giver || "Member"} → ${activeMatchEntry?.receiver || "Member"}`
+      ? `${activeMatchEntry?.giver || "Member"} gives to ${activeMatchEntry?.receiver || "Member"}`
       : "Who gets who?"
     : revealedCard
       ? activeAliasEntry?.realName || activeAliasEntry?.alias || "Member"
@@ -456,11 +456,11 @@ export default function GroupRevealPage() {
       : "Keep the nickname on screen first, then flip when the room is ready.";
   const revealToggleLabel = revealedCard
     ? isMatchPhase
-      ? "Hide Match"
-      : "Show Nickname Again"
+      ? "Hide match"
+      : "Show nickname again"
     : isMatchPhase
-      ? "Reveal Match"
-      : "Reveal Owner";
+      ? "Reveal match"
+      : "Reveal owner";
   const activeVisibilityBadgeLabel = revealedCard
     ? isMatchPhase
       ? "Match revealed"
@@ -1020,7 +1020,18 @@ export default function GroupRevealPage() {
                   <div className="text-center px-2 md:px-8">
                     {isMatchPhase ? (
                       <div className="max-w-210 mx-auto">
-                        <div className="text-[64px] md:text-[82px] mb-6">{activeCardIcon}</div>
+                        <div
+                          className="mx-auto mb-6 flex h-20 w-20 items-center justify-center rounded-[28px] text-[13px] font-extrabold uppercase tracking-normal md:h-24 md:w-24"
+                          style={{
+                            background: revealedCard
+                              ? "linear-gradient(145deg, rgba(252,211,77,.96), rgba(251,146,60,.88))"
+                              : "linear-gradient(145deg, rgba(219,234,254,.94), rgba(147,197,253,.82))",
+                            boxShadow: "inset 0 1px 0 rgba(255,255,255,.45), 0 18px 40px rgba(15,23,42,.18)",
+                            color: revealedCard ? "#422006" : "#1e3a8a",
+                          }}
+                        >
+                          {activeCardBadgeLabel}
+                        </div>
 
                         {/* Match reveals need a structured layout so long names wrap cleanly
                             inside their own panels instead of fighting for one oversized title line. */}
@@ -1047,10 +1058,11 @@ export default function GroupRevealPage() {
                           </div>
 
                           <div
-                            className="text-[42px] md:text-[66px] leading-none font-bold"
+                            aria-hidden="true"
+                            className="text-[12px] font-extrabold uppercase tracking-normal md:text-[13px]"
                             style={{ color: revealedCard ? "#fcd34d" : "#bfdbfe" }}
                           >
-                            →
+                            gives
                           </div>
 
                           <div
@@ -1084,8 +1096,17 @@ export default function GroupRevealPage() {
                       </div>
                     ) : (
                       <>
-                        <div className="text-[64px] md:text-[82px] mb-6">
-                          {activeCardIcon}
+                        <div
+                          className="mx-auto mb-6 flex h-20 w-20 items-center justify-center rounded-[28px] text-[13px] font-extrabold uppercase tracking-normal md:h-24 md:w-24"
+                          style={{
+                            background: revealedCard
+                              ? "linear-gradient(145deg, rgba(252,211,77,.96), rgba(251,146,60,.88))"
+                              : "linear-gradient(145deg, rgba(219,234,254,.94), rgba(147,197,253,.82))",
+                            boxShadow: "inset 0 1px 0 rgba(255,255,255,.45), 0 18px 40px rgba(15,23,42,.18)",
+                            color: revealedCard ? "#422006" : "#1e3a8a",
+                          }}
+                        >
+                          {activeCardBadgeLabel}
                         </div>
                         <div
                           className="leading-[0.95] font-bold text-white max-w-full"

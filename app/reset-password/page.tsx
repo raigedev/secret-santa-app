@@ -75,8 +75,8 @@ export default function ResetPasswordPage() {
           <div className="inline-flex items-center gap-2 rounded-full bg-[#fcce72]/28 px-3 py-1.5 text-sm font-semibold text-[#5f4500]">
             Account security
           </div>
-          <h1 className="mt-4 font-[Plus_Jakarta_Sans] text-3xl font-black tracking-tighter text-[#2e3432] sm:text-4xl">
-            Reset Password
+          <h1 className="mt-4 font-[Plus_Jakarta_Sans] text-3xl font-black tracking-normal text-[#2e3432] sm:text-4xl">
+            Reset password
           </h1>
           <p className="mt-3 text-[15px] leading-7 text-[#5b605e] sm:text-base">
             Enter the new password you want to use for your Secret Santa account.
@@ -98,7 +98,7 @@ export default function ResetPasswordPage() {
               />
             </div>
 
-            <div className="rounded-[1.35rem] bg-[#f2f4f2] px-4 py-3 text-sm leading-6 text-[#5b605e]">
+            <div className="gift-alert gift-alert-warning text-sm">
               {PASSWORD_POLICY_HELP_TEXT}
             </div>
 
@@ -107,13 +107,15 @@ export default function ResetPasswordPage() {
               onClick={handleUpdatePassword}
               className="gift-button gift-button-red gift-button-full gift-button-wide py-4 text-base"
             >
-              Save New Password
+              Save new password
             </button>
 
             {message && (
               <div
                 role={message.includes("could not") ? "alert" : "status"}
-                className="rounded-[1.35rem] bg-[#eef8f0] px-4 py-3 text-sm leading-6 text-[#315238]"
+                className={`gift-alert text-sm ${
+                  message.includes("could not") ? "gift-alert-error" : "gift-alert-success"
+                }`}
               >
                 {message}
               </div>

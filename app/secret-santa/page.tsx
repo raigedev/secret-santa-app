@@ -139,7 +139,7 @@ type SecretSantaPageSnapshot = ClientSnapshotMetadata & {
 const GUIDE_TABS: Array<{ id: GuideTabId; label: string }> = [
   { id: "wishlist", label: "Wishlist" },
   { id: "matches", label: "Shopping Picks" },
-  { id: "direction", label: "Gift Guide" },
+  { id: "direction", label: "Gift guide" },
   { id: "prep", label: "Exchanges" },
 ];
 
@@ -1963,7 +1963,7 @@ const GIFT_PREP_OPTIONS: Array<{
   },
   {
     value: "ready_to_give",
-    label: "Ready to Give",
+    label: "Ready to give",
     helper: "You are fully ready, no matter how you hand it off.",
   },
 ];
@@ -1972,7 +1972,7 @@ const GIFT_PREP_LABELS: Record<GiftPrepStatus, string> = {
   planning: "Planning",
   purchased: "Purchased",
   wrapped: "Wrapped",
-  ready_to_give: "Ready to Give",
+  ready_to_give: "Ready to give",
 };
 
 const ICON_COLORS = [
@@ -1982,7 +1982,7 @@ const ICON_COLORS = [
   "rgba(88,116,142,.14)",
 ];
 
-const ICON_EMOJIS = ["🏢", "👨‍👩‍👧‍👦", "🍻", "🎄"];
+const EVENT_ICON_LABELS = ["Office", "Family", "Friends", "Gift"];
 
 const DATE_FORMATTER = new Intl.DateTimeFormat(undefined, {
   year: "numeric",
@@ -2437,7 +2437,7 @@ function MyGifteeWorkspace({ assignments }: { assignments: RecipientData[] }) {
                   <p className="mt-3 text-[11px] font-semibold" style={{ color: TEXT_SOFT }}>
                     {assignment.gift_received
                       ? "Recipient confirmed that this gift arrived."
-                      : "Update progress on Gift Progress when your plan changes."}
+                      : "Update progress on Gift progress when your plan changes."}
                   </p>
                 </div>
               </article>
@@ -3470,14 +3470,14 @@ function SecretSantaExperience({ mode = "shopping" }: SecretSantaExperienceProps
       cardHelper: groupBudgetHelper,
     },
     giftee: {
-      title: "My Giftee",
+      title: "My giftee",
       description: "See who you are gifting, their wishlist, gift day, and group budget.",
       cardLabel: "Your matches",
       cardValue: `${assignments.length}`,
       cardHelper: `${assignmentGroupCount} group${assignmentGroupCount === 1 ? "" : "s"}`,
     },
     tracking: {
-      title: "Gift Progress",
+      title: "Gift progress",
       description: "Update your gift progress and confirm gifts only after they arrive.",
       cardLabel: "Gift progress",
       cardValue: `${assignments.length}`,
@@ -3489,7 +3489,7 @@ function SecretSantaExperience({ mode = "shopping" }: SecretSantaExperienceProps
     { label: "Dashboard", href: "/dashboard", icon: "dashboard" },
     { label: "My Groups", href: "/groups", icon: "group" },
     {
-      label: "My Giftee",
+      label: "My giftee",
       href: "/my-giftee",
       icon: "giftee",
       active: mode === "giftee",
@@ -3503,7 +3503,7 @@ function SecretSantaExperience({ mode = "shopping" }: SecretSantaExperienceProps
       active: isShoppingMode,
     },
     {
-      label: "Gift Progress",
+      label: "Gift progress",
       href: "/gift-tracking",
       icon: "tracking",
       active: mode === "tracking",
@@ -3754,7 +3754,7 @@ function SecretSantaExperience({ mode = "shopping" }: SecretSantaExperienceProps
               textShadow: "0 2px 8px rgba(185,56,47,.08)",
             }}
           >
-            🎅 Your Secret Santa
+            Your Secret Santa
           </h1>
           <p
             className="text-[14px] font-semibold"
@@ -3771,7 +3771,7 @@ function SecretSantaExperience({ mode = "shopping" }: SecretSantaExperienceProps
                 border: "1px solid rgba(185,56,47,.16)",
               }}
             >
-              🎁 {assignments.length} Recipient{assignments.length > 1 ? "s" : ""} across{" "}
+              {assignments.length} recipient{assignments.length > 1 ? "s" : ""} across{" "}
               {assignmentGroupCount} group{assignmentGroupCount !== 1 ? "s" : ""}
             </div>
           )}
@@ -3865,10 +3865,10 @@ function SecretSantaExperience({ mode = "shopping" }: SecretSantaExperienceProps
                 >
                   <div className="flex items-center gap-3">
                     <div
-                      className="flex h-14 w-14 items-center justify-center rounded-[22px] text-[24px]"
+                      className="flex h-14 w-14 items-center justify-center rounded-[22px] px-2 text-center text-[10px] font-extrabold uppercase leading-none tracking-normal"
                       style={{ background: ICON_COLORS[index % ICON_COLORS.length] }}
                     >
-                      {ICON_EMOJIS[index % ICON_EMOJIS.length]}
+                      {EVENT_ICON_LABELS[index % EVENT_ICON_LABELS.length]}
                     </div>
                     <div>
                       <div
@@ -3881,7 +3881,7 @@ function SecretSantaExperience({ mode = "shopping" }: SecretSantaExperienceProps
                         className="text-[11px] font-semibold"
                         style={{ color: TEXT_MUTED }}
                       >
-                        📅 {formatDisplayDate(assignment.group_event_date)}
+                          Gift day: {formatDisplayDate(assignment.group_event_date)}
                       </div>
                     </div>
                   </div>
@@ -3892,7 +3892,7 @@ function SecretSantaExperience({ mode = "shopping" }: SecretSantaExperienceProps
                       boxShadow: "0 16px 34px rgba(164,60,63,.16)",
                     }}
                   >
-                    🎁→ {assignment.receiver_nickname}
+                    Giftee: {assignment.receiver_nickname}
                   </div>
                 </div>
 
@@ -3936,7 +3936,7 @@ function SecretSantaExperience({ mode = "shopping" }: SecretSantaExperienceProps
                       className="text-[15px] font-extrabold"
                       style={{ color: HOLIDAY_GREEN }}
                     >
-                      🎅 {assignment.receiver_nickname}&apos;s wishlist
+                      {assignment.receiver_nickname}&apos;s wishlist
                     </p>
                     <span
                       className="rounded-full px-3 py-1 text-[10px] font-extrabold"
@@ -5403,8 +5403,8 @@ function SecretSantaExperience({ mode = "shopping" }: SecretSantaExperienceProps
                         }}
                       >
                         {assignment.gift_received
-                          ? "✅ Recipient confirmed receipt"
-                          : "🎁 Waiting for your recipient to confirm"}
+                          ? "Recipient confirmed receipt"
+                          : "Waiting for your recipient to confirm"}
                       </div>
                       <div
                         className="text-[11px] mt-0.5"
@@ -5471,7 +5471,7 @@ function SecretSantaExperience({ mode = "shopping" }: SecretSantaExperienceProps
                   textShadow: "0 2px 8px rgba(31,122,77,.08)",
                 }}
               >
-                🎁 Gifts You Received
+                Gifts you received
               </h2>
               <p
                 className="text-[13px] font-semibold mt-1"
@@ -5502,10 +5502,10 @@ function SecretSantaExperience({ mode = "shopping" }: SecretSantaExperienceProps
                   >
                     <div className="flex items-center gap-3">
                       <div
-                        className="w-11 h-11 rounded-xl flex items-center justify-center text-[22px]"
+                        className="flex h-11 w-11 items-center justify-center rounded-xl text-[10px] font-extrabold uppercase tracking-normal"
                         style={{ background: "rgba(31,122,77,.12)" }}
                       >
-                        🎄
+                        Gift
                       </div>
                       <div>
                         <div className="text-[16px] font-extrabold">{gift.group_name}</div>
@@ -5513,7 +5513,7 @@ function SecretSantaExperience({ mode = "shopping" }: SecretSantaExperienceProps
                           className="text-[11px] font-semibold"
                           style={{ color: TEXT_MUTED }}
                         >
-                          📅 {formatDisplayDate(gift.group_event_date)}
+                          Gift day: {formatDisplayDate(gift.group_event_date)}
                         </div>
                       </div>
                     </div>
@@ -5550,8 +5550,8 @@ function SecretSantaExperience({ mode = "shopping" }: SecretSantaExperienceProps
                           style={{ color: gift.gift_received ? HOLIDAY_GREEN : HOLIDAY_GOLD }}
                         >
                           {gift.gift_received
-                            ? "✅ You already confirmed your gift"
-                            : "🎁 Did you receive your gift?"}
+                            ? "You already confirmed your gift"
+                            : "Did you receive your gift?"}
                         </div>
                         <div
                           className="text-[11px] mt-0.5"
@@ -5571,26 +5571,18 @@ function SecretSantaExperience({ mode = "shopping" }: SecretSantaExperienceProps
                             color: HOLIDAY_GREEN,
                           }}
                         >
-                          ✅ Confirmed
+                          Confirmed
                         </div>
                       ) : (
                         <button
                           type="button"
                           onClick={() => handleConfirmGift(gift.group_id)}
                           disabled={confirmingGroup === gift.group_id}
-                          className="px-4 py-2 rounded-xl text-[12px] font-extrabold text-white transition"
-                          style={{
-                            background: "linear-gradient(135deg,#5e9479,#2f6b56)",
-                            boxShadow: "0 3px 12px rgba(47,107,86,.2)",
-                            border: "none",
-                            cursor: confirmingGroup === gift.group_id ? "wait" : "pointer",
-                            fontFamily: "inherit",
-                            opacity: confirmingGroup === gift.group_id ? 0.75 : 1,
-                          }}
+                          className="gift-button gift-button-primary gift-button-compact text-[12px]"
                         >
                           {confirmingGroup === gift.group_id
                             ? "Confirming..."
-                            : "✅ I got my gift!"}
+                            : "I got my gift"}
                         </button>
                       )}
                     </div>

@@ -67,7 +67,7 @@ export default function PrivacyPage() {
           Privacy
         </div>
 
-        <h1 className="mt-5 font-[Plus_Jakarta_Sans] text-4xl font-black tracking-[-0.04em] text-[#26312b] sm:text-5xl">
+        <h1 className="mt-5 font-[Plus_Jakarta_Sans] text-4xl font-black tracking-normal text-[#26312b] sm:text-5xl">
           Privacy Policy
         </h1>
 
@@ -82,7 +82,7 @@ export default function PrivacyPage() {
         <div className="mt-9 space-y-7">
           {policySections.map((section) => (
             <section key={section.title} className="border-t border-[#edf2ee] pt-7">
-              <h2 className="font-[Plus_Jakarta_Sans] text-xl font-black tracking-[-0.03em] text-[#26312b]">
+              <h2 className="font-[Plus_Jakarta_Sans] text-xl font-black tracking-normal text-[#26312b]">
                 {section.title}
               </h2>
               <div className="mt-3 space-y-3 text-[15px] leading-7 text-[#5b605e]">

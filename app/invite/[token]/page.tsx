@@ -516,7 +516,7 @@ export default async function InviteLinkPage({
           style={{ background: "linear-gradient(135deg,#14532d,#166534)" }}
         >
           <div className="text-[30px] font-bold" style={{ fontFamily: "'Fredoka', sans-serif" }}>
-            🎁 Join Secret Santa group
+            Join Secret Santa group
           </div>
           <p className="text-[13px] mt-1" style={{ color: "rgba(255,255,255,.82)" }}>
             Join before names are drawn. For safety, invite links expire after 7 days.
@@ -654,7 +654,7 @@ export default async function InviteLinkPage({
                   href={`/create-account?next=${authNext}`}
                   className="gift-button gift-button-secondary gift-button-wide w-full text-sm sm:w-auto"
                 >
-                  Create Account
+                  Create account
                 </Link>
               </div>
             </div>

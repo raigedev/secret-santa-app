@@ -136,7 +136,7 @@ function rememberPostLoginNextPath(nextPath: string) {
 function AuthHeading({ description }: { description: string }) {
   return (
     <>
-      <h1 className="text-center font-[Plus_Jakarta_Sans] text-4xl font-black tracking-[-0.055em] text-[#334d39] sm:text-5xl lg:text-left">
+      <h1 className="text-center font-[Plus_Jakarta_Sans] text-4xl font-black tracking-normal text-[#334d39] sm:text-5xl lg:text-left">
         Log in
       </h1>
       <p className="mx-auto mt-3 max-w-md text-center text-[15px] font-semibold leading-7 text-[#5b605e] sm:text-base lg:mx-0 lg:text-left">
@@ -200,7 +200,7 @@ function OfficialSantaLogo() {
       <OfficialSantaMark className="h-13 w-13 shrink-0" />
       <div className="leading-[1.08]">
         <span className="block text-[14px] font-black text-[#c0392b]">My Secret</span>
-        <span className="block font-[Plus_Jakarta_Sans] text-[25px] font-black tracking-[-0.04em] text-[#1a1a1a]">
+        <span className="block font-[Plus_Jakarta_Sans] text-[25px] font-black tracking-normal text-[#1a1a1a]">
           Santa
         </span>
         <span className="mt-0.5 block text-[10px] font-black italic text-[#c0392b]">
@@ -233,7 +233,7 @@ function LoginGiftTagHero() {
               Secret Santa pass
             </div>
 
-            <h2 className="mt-4 max-w-124 font-serif text-[2.1rem] font-black leading-[0.94] tracking-[-0.055em] text-[#2e3432] sm:text-[2.55rem]">
+            <h2 className="mt-4 max-w-124 font-serif text-[2.1rem] font-black leading-[0.94] tracking-normal text-[#2e3432] sm:text-[2.55rem]">
               The best gifts start with a little mystery.
             </h2>
             <p className="mt-3 max-w-126 text-sm font-extrabold leading-6 text-[#5d665f]">
@@ -484,7 +484,7 @@ function LoginPageInner() {
           <div className="absolute inset-0 z-50 flex rounded-[1.9rem] bg-[#f9faf8]/92 backdrop-blur-sm">
             <div className="m-auto flex max-w-xs flex-col items-center rounded-[1.75rem] bg-white px-6 py-7 text-center shadow-[0_24px_55px_rgba(46,52,50,0.1)]">
               <div className="h-12 w-12 animate-spin rounded-full border-[3px] border-[#d7fadb] border-t-[#48664e]" />
-              <p className="mt-4 font-[Plus_Jakarta_Sans] text-xl font-black tracking-[-0.04em] text-[#2e3432]">
+              <p className="mt-4 font-[Plus_Jakarta_Sans] text-xl font-black tracking-normal text-[#2e3432]">
                 Opening Google sign-in
               </p>
               <p className="mt-2 text-sm leading-6 text-[#5b605e]">
@@ -576,7 +576,7 @@ function LoginPageInner() {
           {activeError ? (
             <div
               role="alert"
-              className="rounded-[1.35rem] bg-[#fff1ef] px-4 py-3 text-sm leading-6 text-[#821a01]"
+              className="gift-alert gift-alert-error text-sm"
             >
               {activeError}
             </div>
@@ -616,7 +616,7 @@ function LoginPageInner() {
               disabled={!formReady || loading || redirecting}
               className="gift-button gift-button-primary gift-button-compact text-sm"
             >
-              Create Account
+              Create account
             </button>
           </div>
         </form>

@@ -99,8 +99,8 @@ export default function ForgotPasswordPage() {
         <div className="inline-flex items-center gap-2 rounded-full bg-[#fcce72]/28 px-3 py-1.5 text-sm font-semibold text-[#5f4500]">
           Account recovery
         </div>
-        <h1 className="mt-4 font-[Plus_Jakarta_Sans] text-3xl font-black tracking-tighter text-[#2e3432] sm:text-4xl">
-          Forgot Password
+        <h1 className="mt-4 font-[Plus_Jakarta_Sans] text-3xl font-black tracking-normal text-[#2e3432] sm:text-4xl">
+          Forgot password
         </h1>
         <p className="mt-3 text-[15px] leading-7 text-[#5b605e] sm:text-base">
           Enter the email address for your account. If we find it, we will send a password reset
@@ -137,8 +137,8 @@ export default function ForgotPasswordPage() {
               role={messageTone === "error" ? "alert" : "status"}
               className={
                 messageTone === "error"
-                  ? "rounded-[1.35rem] bg-[#fff1ef] px-4 py-3 text-sm leading-6 text-[#821a01]"
-                  : "rounded-[1.35rem] bg-[#eef8f0] px-4 py-3 text-sm leading-6 text-[#315238]"
+                  ? "gift-alert gift-alert-error text-sm"
+                  : "gift-alert gift-alert-success text-sm"
               }
             >
               {message}
@@ -150,10 +150,10 @@ export default function ForgotPasswordPage() {
             disabled={isSubmitting}
             className="gift-button gift-button-red gift-button-full gift-button-wide py-4 text-base"
           >
-            {isSubmitting ? "Sending reset link..." : "Email Reset Link"}
+            {isSubmitting ? "Sending reset link..." : "Email reset link"}
           </button>
 
-          <div className="rounded-[1.35rem] bg-[#f2f4f2] px-4 py-4 text-sm leading-6 text-[#5b605e]">
+          <div className="gift-alert gift-alert-warning text-sm">
             For your safety, the password reset happens from the email link.
           </div>
 
@@ -164,7 +164,7 @@ export default function ForgotPasswordPage() {
               onClick={() => router.push("/login")}
               className="gift-button gift-button-primary gift-button-compact text-sm"
             >
-              Back to Login
+              Back to login
             </button>
           </div>
         </form>

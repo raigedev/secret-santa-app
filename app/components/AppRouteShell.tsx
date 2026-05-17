@@ -124,7 +124,7 @@ function createNavItems(canViewAffiliateReport: boolean): AppNavItem[] {
     {
       href: "/my-giftee",
       icon: "giftee",
-      label: "My Giftee",
+      label: "My giftee",
       match: (path) => path === "/my-giftee" || path.endsWith("/reveal"),
     },
     {
@@ -148,7 +148,7 @@ function createNavItems(canViewAffiliateReport: boolean): AppNavItem[] {
     {
       href: "/gift-tracking",
       icon: "tracking",
-      label: "Gift Progress",
+      label: "Gift progress",
       match: (path) => path === "/gift-tracking",
     },
     {
@@ -635,7 +635,7 @@ export default function AppRouteShell({ children }: { children: ReactNode }) {
           })}
         </nav>
 
-        <div className="mt-auto rounded-3xl p-4" style={{ background: isDarkAppShell ? "rgba(255,255,255,.06)" : "rgba(255,255,255,.72)", border: `1px solid ${shellBorderColor}` }}>
+        <div className="gift-surface-muted mt-auto rounded-3xl p-4" style={{ background: isDarkAppShell ? "rgba(255,255,255,.06)" : undefined, borderColor: shellBorderColor }}>
           <div className="text-[15px] font-black" style={{ color: isDarkAppShell ? "#fffefa" : HOLIDAY_GREEN }}>Share the magic</div>
           <p className="mt-2 text-[12px] font-semibold leading-relaxed" style={{ color: shellMutedColor }}>
             Invite friends, add wishlists, and keep the exchange moving from one place.
@@ -669,12 +669,12 @@ export default function AppRouteShell({ children }: { children: ReactNode }) {
               </div>
             </div>
             <div className="flex items-center gap-3">
-              <button ref={notificationButtonRef} type="button" onClick={() => setNotificationsOpen((open) => !open)} aria-label={unreadCount > 0 ? `Open notifications, ${unreadCount} unread` : "Open notifications"} className="relative flex h-12 w-12 items-center justify-center rounded-full transition hover:-translate-y-0.5" style={{ background: shellControlBackground, border: `1px solid ${shellBorderColor}`, color: shellTextColor }}>
+              <button ref={notificationButtonRef} type="button" onClick={() => setNotificationsOpen((open) => !open)} aria-label={unreadCount > 0 ? `Open notifications, ${unreadCount} unread` : "Open notifications"} className="gift-shell-control relative h-12 w-12 rounded-full" style={{ background: shellControlBackground, borderColor: shellBorderColor, color: shellTextColor }}>
                 <BellIcon className="h-5 w-5" />
                 {unreadCount > 0 && <span data-testid="app-shell-notification-badge" className="pointer-events-none absolute -right-2 -top-2.5 flex h-5 min-w-5 items-center justify-center rounded-full border-2 border-white px-1.5 text-[9px] font-black leading-none text-white shadow-[0_6px_14px_rgba(164,60,63,.24)]" style={{ background: HOLIDAY_RED }}>{unreadCount > 99 ? "99+" : unreadCount}</span>}
               </button>
               <div className="relative">
-                <button type="button" onClick={() => setProfileOpen((open) => !open)} aria-haspopup="menu" aria-expanded={profileOpen} aria-label="Open profile menu" className="flex items-center gap-3 rounded-full py-1.5 pl-2 pr-4 transition hover:-translate-y-0.5" style={{ background: shellControlBackground, border: `1px solid ${shellBorderColor}`, color: shellTextColor, boxShadow: isDarkAppShell ? "0 12px 26px rgba(0,0,0,.18)" : "0 12px 26px rgba(46,52,50,.06)" }}>
+                <button type="button" onClick={() => setProfileOpen((open) => !open)} aria-haspopup="menu" aria-expanded={profileOpen} aria-label="Open profile menu" className="gift-shell-control gap-3 rounded-full py-1.5 pl-2 pr-4" style={{ background: shellControlBackground, borderColor: shellBorderColor, color: shellTextColor, boxShadow: isDarkAppShell ? "0 12px 26px rgba(0,0,0,.18)" : undefined }}>
                   <span
                     data-testid="app-shell-viewer-avatar"
                     className={`flex h-12 w-12 items-center justify-center overflow-hidden rounded-full ${
@@ -711,9 +711,9 @@ export default function AppRouteShell({ children }: { children: ReactNode }) {
                   <UserOutlineIcon className="hidden h-4 w-4 lg:block" />
                 </button>
                 {profileOpen && (
-                  <div role="menu" className="absolute right-0 mt-2 w-48 rounded-[18px] p-2 shadow-[0_18px_42px_rgba(46,52,50,.16)] ring-1" style={{ background: shellMenuBackground, borderColor: shellBorderColor }}>
-                    <Link role="menuitem" href="/profile" onClick={() => setProfileOpen(false)} className="block rounded-xl px-3 py-2 text-[13px] font-extrabold" style={{ color: shellTextColor, textDecoration: "none" }}>Profile settings</Link>
-                    <button type="button" role="menuitem" onClick={() => void handleLogout()} className="mt-1 block w-full rounded-xl px-3 py-2 text-left text-[13px] font-extrabold text-[#a43c3f]">
+                  <div role="menu" className="gift-menu-panel absolute right-0 mt-2 w-48 p-2" style={{ background: shellMenuBackground, borderColor: shellBorderColor }}>
+                    <Link role="menuitem" href="/profile" onClick={() => setProfileOpen(false)} className="gift-menu-item block px-3 py-2 text-[13px] font-extrabold" style={{ color: shellTextColor, textDecoration: "none" }}>Profile settings</Link>
+                    <button type="button" role="menuitem" onClick={() => void handleLogout()} className="gift-menu-item mt-1 block w-full px-3 py-2 text-left text-[13px] font-extrabold text-[#a43c3f]">
                       Logout
                     </button>
                   </div>

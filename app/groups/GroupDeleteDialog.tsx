@@ -84,7 +84,7 @@ export function GroupDeleteDialog({
   return (
     <div
       data-app-modal="true"
-      className="fixed inset-0 z-50 flex items-center justify-center bg-[#2e3432]/35 px-4 py-6 backdrop-blur-sm"
+      className="gift-modal-backdrop fixed inset-0 z-50 flex items-center justify-center px-4 py-6"
       role="presentation"
     >
       <section
@@ -92,7 +92,7 @@ export function GroupDeleteDialog({
         aria-labelledby="delete-group-title"
         aria-describedby="delete-group-description"
         aria-modal="true"
-        className="holiday-panel w-full max-w-lg p-6 text-[#2e3432]"
+        className="gift-modal-panel gift-surface-strong w-full max-w-lg p-6 text-[#2e3432]"
         role="dialog"
       >
         <p className="text-[11px] font-black uppercase tracking-[0.18em] text-[#a43c3f]">
@@ -124,7 +124,7 @@ export function GroupDeleteDialog({
           value={confirmName}
           onChange={(event) => onConfirmNameChange(event.target.value)}
           disabled={deleting}
-          className="mt-2 min-h-12 w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 text-sm font-bold text-slate-900 outline-none transition focus:border-[#48664e] focus:bg-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#48664e] disabled:cursor-not-allowed disabled:opacity-60"
+          className="gift-field mt-2 w-full px-4 text-sm font-bold"
           autoComplete="off"
           placeholder={target.name}
         />
@@ -135,10 +135,10 @@ export function GroupDeleteDialog({
         )}
         {message && (
           <p
-            className={`mt-3 rounded-2xl px-4 py-3 text-sm font-bold ${
+            className={`gift-alert mt-3 text-sm ${
               message.type === "success"
-                ? "bg-emerald-50 text-emerald-700"
-                : "bg-rose-50 text-rose-700"
+                ? "gift-alert-success"
+                : "gift-alert-error"
             }`}
             role="status"
           >

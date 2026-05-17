@@ -593,8 +593,8 @@ export async function addDrawExclusion(
   return {
     success: true,
     message: bidirectional
-      ? "✅ Draw exclusion rule saved in both directions."
-      : "✅ Draw exclusion rule saved.",
+      ? "Draw rule saved in both directions."
+      : "Draw rule saved.",
   };
 }
 
@@ -661,7 +661,7 @@ export async function removeDrawExclusion(
     resourceType: "group",
   });
 
-  return { success: true, message: "✅ Draw exclusion rule removed." };
+  return { success: true, message: "Draw rule removed." };
 }
 
 export async function drawSecretSanta(
@@ -965,8 +965,8 @@ export async function drawSecretSanta(
   return {
     success: true,
     message: repeatAvoidanceRelaxed
-      ? `✅ Names drawn! ${assignments.length} members received a recipient. The repeat-recipient preference was relaxed because the current rules left no valid draw.`
-      : `✅ Names drawn! ${assignments.length} members received a recipient.`,
+      ? `Names drawn. ${assignments.length} members received a recipient. The repeat-recipient preference was relaxed because the current rules left no valid draw.`
+      : `Names drawn. ${assignments.length} members received a recipient.`,
   };
 }
 
@@ -1176,7 +1176,7 @@ export async function resetSecretSantaDraw(
 
   return {
     success: true,
-    message: `✅ Draw reset. Removed ${assignmentCount} recipient pairing(s) and cleared private chat history.`,
+    message: `Draw reset. Removed ${assignmentCount} recipient pairing(s) and cleared private chat history.`,
   };
 }
 

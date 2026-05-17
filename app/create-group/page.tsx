@@ -453,7 +453,7 @@ export default function CreateGroupPage() {
     return "upcoming";
   };
   const fieldClassName =
-    "w-full rounded-[18px] border border-[rgba(72,102,78,.18)] bg-white/90 px-4 py-3.5 text-[14px] font-semibold text-[#1f2937] shadow-[inset_0_1px_0_rgba(255,255,255,.75)] outline-none transition focus:border-[#d9ae56] focus:bg-white focus:ring-4 focus:ring-[#d9ae56]/20";
+    "gift-field w-full px-4 py-3.5 text-[14px] font-semibold";
   const labelClassName =
     "mb-2 block text-[12px] font-black uppercase tracking-[0.08em] text-[#48664e]";
 
@@ -484,7 +484,7 @@ export default function CreateGroupPage() {
             className="text-[28px] font-black leading-tight text-[#2e3432]"
             style={{ fontFamily: "'Fredoka', sans-serif" }}
           >
-            Create Group
+            Create group
           </h1>
           <p className="mt-1 text-[13px] font-semibold text-slate-600">
             Set up your Secret Santa exchange in a few simple steps.
