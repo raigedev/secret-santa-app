@@ -81,10 +81,12 @@ export function GroupHealthRail({
       <button
         type="button"
         onClick={() => onOpenGroup(group.id)}
-        className="mt-4 inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-full bg-[#48664e] px-4 text-sm font-black text-white shadow-[0_14px_28px_rgba(72,102,78,0.18)] transition hover:-translate-y-0.5"
+        className="gift-button gift-button-primary gift-button-full gift-button-compact mt-4 text-sm"
       >
         Open full workspace
-        <ArrowRightIcon className="h-4 w-4" />
+        <span className="gift-button-icon" aria-hidden="true">
+          <ArrowRightIcon className="h-4 w-4" />
+        </span>
       </button>
     </aside>
   );

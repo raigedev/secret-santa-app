@@ -96,12 +96,8 @@ function GroupSwitcher({
               key={group.id}
               type="button"
               onClick={() => onSelectGroup(group.id)}
-              className={`inline-flex min-h-11 shrink-0 items-center gap-2 rounded-full px-4 text-sm font-black transition hover:-translate-y-0.5 ${
-                selected
-                  ? "bg-[#48664e] text-white shadow-[0_12px_22px_rgba(72,102,78,0.18)]"
-                  : isDarkTheme
-                    ? "bg-slate-800 text-slate-200"
-                    : "bg-slate-50 text-slate-700"
+              className={`gift-button gift-button-compact shrink-0 text-sm ${
+                selected ? "gift-button-primary" : "gift-button-secondary"
               }`}
               aria-pressed={selected}
             >
@@ -178,17 +174,19 @@ function GroupWorkspacePreview({
             <button
               type="button"
               onClick={() => onOpenGroup(group.id)}
-              className="inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-full bg-[#48664e] px-5 text-sm font-black text-white shadow-[0_14px_28px_rgba(72,102,78,0.18)] transition hover:-translate-y-0.5 sm:w-auto sm:min-w-52"
+              className="gift-button gift-button-primary gift-button-wide w-full text-sm sm:w-auto sm:min-w-52"
             >
               Open overview
-              <ArrowRightIcon className="h-4 w-4" />
+              <span className="gift-button-icon" aria-hidden="true">
+                <ArrowRightIcon className="h-4 w-4" />
+              </span>
             </button>
             {group.isOwner && (
               <button
                 type="button"
                 onClick={() => void onDeleteGroup(group.id, group.name)}
                 disabled={deletingGroupId === group.id}
-                className="inline-flex min-h-10 w-full items-center justify-center rounded-full border border-[#f5caca] bg-[#fff8f8] px-4 text-sm font-black text-[#a43c3f] transition hover:-translate-y-0.5 hover:border-[#e6a9aa] hover:bg-[#fff1f2] hover:text-[#812227] disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto"
+                className="gift-button gift-button-danger gift-button-compact w-full text-sm sm:w-auto"
               >
                 {deletingGroupId === group.id ? "Deleting" : "Delete group"}
               </button>

@@ -47,12 +47,8 @@ function ModalCancelButton({ children, onClick }: { children: string; onClick: (
     <button
       type="button"
       onClick={onClick}
-      className="px-4 py-2 rounded-lg text-[13px] font-bold"
+      className="gift-button gift-button-secondary gift-button-compact text-[13px]"
       style={{
-        background: "#f3f4f6",
-        color: "#6b7280",
-        border: "none",
-        cursor: "pointer",
         fontFamily: "inherit",
       }}
     >
@@ -150,16 +146,12 @@ export function GroupActionModals({
                 type="button"
                 onClick={onDelete}
                 disabled={deleteSaving}
-                className="px-5 py-2 rounded-lg text-[13px] font-extrabold"
+                className="gift-button gift-button-danger gift-button-compact text-[13px]"
                 style={{
-                  background: "rgba(220,38,38,.06)",
-                  color: "#dc2626",
-                  border: "1px solid rgba(220,38,38,.15)",
-                  cursor: deleteSaving ? "not-allowed" : "pointer",
                   fontFamily: "inherit",
                 }}
               >
-                {deleteSaving ? "Deleting..." : "\uD83D\uDDD1\uFE0F Delete Forever"}
+                {deleteSaving ? "Deleting..." : "Delete Forever"}
               </button>
             </div>
           </div>
@@ -189,15 +181,12 @@ export function GroupActionModals({
                 type="button"
                 onClick={onLeave}
                 disabled={actionSaving}
-                className="px-5 py-2 rounded-lg text-[13px] font-extrabold text-white"
+                className="gift-button gift-button-gold gift-button-compact text-[13px]"
                 style={{
-                  background: actionSaving ? "#9ca3af" : "linear-gradient(135deg,#b45309,#f59e0b)",
-                  border: "none",
-                  cursor: actionSaving ? "not-allowed" : "pointer",
                   fontFamily: "inherit",
                 }}
               >
-                {actionSaving ? "Leaving..." : "\uD83D\uDEAA Leave Group"}
+                {actionSaving ? "Leaving..." : "Leave Group"}
               </button>
             </div>
           </div>
@@ -233,16 +222,12 @@ export function GroupActionModals({
                 type="button"
                 onClick={onRemoveMember}
                 disabled={actionSaving}
-                className="px-5 py-2 rounded-lg text-[13px] font-extrabold"
+                className="gift-button gift-button-danger gift-button-compact text-[13px]"
                 style={{
-                  background: "rgba(220,38,38,.06)",
-                  color: "#dc2626",
-                  border: "1px solid rgba(220,38,38,.15)",
-                  cursor: actionSaving ? "not-allowed" : "pointer",
                   fontFamily: "inherit",
                 }}
               >
-                {actionSaving ? "Removing..." : "\u2715 Remove Member"}
+                {actionSaving ? "Removing..." : "Remove Member"}
               </button>
             </div>
           </div>

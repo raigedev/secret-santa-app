@@ -201,9 +201,11 @@ export function DashboardCommandDesk({
                   Private exchange details stay separated by group. No email names or private thread previews are shown here.
                 </span>
               </div>
-              <button type="button" onClick={actionTarget} className="inline-flex min-h-13 items-center justify-center gap-2 rounded-full bg-[#48664e] px-6 text-sm font-black text-white shadow-[0_18px_34px_rgba(72,102,78,.22)] transition hover:-translate-y-0.5">
+              <button type="button" onClick={actionTarget} className="gift-button gift-button-primary gift-button-wide min-h-13 text-sm">
                 {nextActionLabel}
-                <ArrowRightIcon className="h-4 w-4" />
+                <span className="gift-button-icon" aria-hidden="true">
+                  <ArrowRightIcon className="h-4 w-4" />
+                </span>
               </button>
             </div>
           </div>

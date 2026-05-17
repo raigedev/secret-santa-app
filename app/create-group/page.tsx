@@ -471,10 +471,12 @@ export default function CreateGroupPage() {
       <div className="holiday-panel relative z-10 mx-auto mb-5 flex w-full max-w-6xl flex-col gap-4 rounded-[28px] px-5 py-4">
         <button
           onClick={() => router.push("/dashboard")}
-          className="inline-flex min-h-11 w-fit items-center gap-2 rounded-full border border-[rgba(72,102,78,.14)] bg-white/75 px-4 text-sm font-black text-[#48664e] shadow-[0_10px_24px_rgba(72,102,78,.08)] transition hover:-translate-y-0.5 hover:bg-[#eef6ee] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[#d9ae56]/25"
+          className="gift-button gift-button-secondary gift-button-compact w-fit text-sm"
           style={{ fontFamily: "inherit" }}
         >
-          <BackArrowIcon />
+          <span className="gift-button-icon" aria-hidden="true">
+            <BackArrowIcon />
+          </span>
           Back
         </button>
         <div>
@@ -671,7 +673,7 @@ export default function CreateGroupPage() {
               <button
                 type="button"
                 onClick={removeGroupImage}
-                className="mt-2 min-h-10 rounded-full px-4 text-[12px] font-black text-[#a43c3f] transition hover:bg-[#fff1f2] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[#a43c3f]/15"
+                className="gift-button gift-button-danger gift-button-compact mt-2 text-[12px]"
               >
                 Remove picture
               </button>
@@ -736,7 +738,7 @@ export default function CreateGroupPage() {
                     setBudgetReviewed(true);
                   }}
                   aria-pressed={!customBudget && budget === amount}
-                  className="min-h-11 rounded-full px-4 text-[13px] font-black transition hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[#d9ae56]/25"
+                  className="gift-button gift-button-compact text-[13px]"
                   style={{
                     border: `1px solid ${
                       !customBudget && budget === amount ? "#48664e" : "rgba(72,102,78,.16)"
@@ -762,7 +764,7 @@ export default function CreateGroupPage() {
                   setBudgetReviewed(true);
                 }}
                 aria-pressed={customBudget}
-                className="min-h-11 rounded-full px-4 text-[13px] font-black transition hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[#d9ae56]/25"
+                className="gift-button gift-button-compact text-[13px]"
                 style={{
                   border: `1px ${customBudget ? "solid" : "dashed"} ${
                     customBudget ? "#48664e" : "rgba(72,102,78,.24)"
@@ -952,15 +954,7 @@ export default function CreateGroupPage() {
           <button
             type="submit"
             disabled={formActionDisabled}
-            className="min-h-13 w-full rounded-full px-5 py-4 text-[16px] font-black text-white transition hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[#d9ae56]/30 disabled:hover:translate-y-0"
-            style={{
-              background:
-                formActionDisabled ? "#9ca3af" : "linear-gradient(135deg,#48664e,#3c5a43)",
-              border: "none",
-              cursor: formActionDisabled ? "not-allowed" : "pointer",
-              fontFamily: "inherit",
-              boxShadow: formActionDisabled ? "none" : "0 16px 30px rgba(72,102,78,.2)",
-            }}
+            className="gift-button gift-button-primary gift-button-full gift-button-wide min-h-13 py-4 text-[16px]"
           >
             {loading ? "Creating exchange..." : imageDecodePending ? "Checking picture..." : "Create exchange"}
           </button>

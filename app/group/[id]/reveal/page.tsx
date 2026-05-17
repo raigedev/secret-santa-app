@@ -691,8 +691,7 @@ export default function GroupRevealPage() {
           <button
             type="button"
             onClick={() => router.push(`/group/${id}`)}
-            className="mt-5 px-5 py-2.5 rounded-xl text-sm font-extrabold text-white"
-            style={{ background: "linear-gradient(135deg,#2563eb,#3b82f6)", border: "none" }}
+            className="gift-button gift-button-secondary gift-button-compact mt-5 text-sm"
           >
             Back to Group
           </button>
@@ -746,12 +745,7 @@ export default function GroupRevealPage() {
             <button
               type="button"
               onClick={handleFullscreen}
-              className="px-4 py-2 rounded-xl text-sm font-bold"
-              style={{
-                color: "#dbeafe",
-                background: "rgba(29,78,216,.24)",
-                border: "1px solid rgba(96,165,250,.18)",
-              }}
+              className="gift-button gift-button-secondary gift-button-compact text-sm"
             >
               TV Mode
             </button>
@@ -761,14 +755,7 @@ export default function GroupRevealPage() {
                 type="button"
                 onClick={handleStartLiveReveal}
                 disabled={sessionLoading}
-                className="px-5 py-2 rounded-xl text-sm font-extrabold text-white"
-                style={{
-                  background: sessionLoading
-                    ? "#64748b"
-                    : "linear-gradient(135deg,#7e22ce,#a855f7)",
-                  border: "none",
-                  cursor: sessionLoading ? "not-allowed" : "pointer",
-                }}
+                className="gift-button gift-button-red gift-button-compact text-sm"
               >
                 {sessionLoading ? "Starting..." : liveRevealButtonLabel}
               </button>
@@ -779,14 +766,7 @@ export default function GroupRevealPage() {
                 type="button"
                 onClick={handleStartCountdown}
                 disabled={sessionLoading}
-                className="px-5 py-2 rounded-xl text-sm font-extrabold text-white"
-                style={{
-                  background: sessionLoading
-                    ? "#64748b"
-                    : "linear-gradient(135deg,#f59e0b,#f97316)",
-                  border: "none",
-                  cursor: sessionLoading ? "not-allowed" : "pointer",
-                }}
+                className="gift-button gift-button-gold gift-button-compact text-sm"
               >
                 {sessionLoading ? "Starting..." : "Start Countdown"}
               </button>
@@ -797,14 +777,7 @@ export default function GroupRevealPage() {
                 type="button"
                 onClick={handleRestartPublishedPresentation}
                 disabled={sessionLoading}
-                className="px-5 py-2 rounded-xl text-sm font-extrabold text-white"
-                style={{
-                  background: sessionLoading
-                    ? "#64748b"
-                    : "linear-gradient(135deg,#0f766e,#14b8a6)",
-                  border: "none",
-                  cursor: sessionLoading ? "not-allowed" : "pointer",
-                }}
+                className="gift-button gift-button-primary gift-button-compact text-sm"
               >
                 {sessionLoading ? "Resetting..." : "Restart Event Presentation"}
               </button>
@@ -815,14 +788,7 @@ export default function GroupRevealPage() {
                 type="button"
                 onClick={handlePublishReveal}
                 disabled={publishing}
-                className="px-5 py-2 rounded-xl text-sm font-extrabold text-white"
-                style={{
-                  background: publishing
-                    ? "#64748b"
-                    : "linear-gradient(135deg,#16a34a,#22c55e)",
-                  border: "none",
-                  cursor: publishing ? "not-allowed" : "pointer",
-                }}
+                className="gift-button gift-button-primary gift-button-compact text-sm"
               >
                 {publishing ? "Publishing..." : "Publish Group Reveal"}
               </button>
@@ -1147,15 +1113,7 @@ export default function GroupRevealPage() {
                         type="button"
                         onClick={handleToggleReveal}
                         disabled={sessionLoading || showCountdown}
-                        className="px-6 py-3 rounded-2xl text-sm font-extrabold text-white"
-                        style={{
-                          background: revealedCard
-                            ? "linear-gradient(135deg,#1d4ed8,#3b82f6)"
-                            : "linear-gradient(135deg,#7e22ce,#a855f7)",
-                          border: "none",
-                          cursor: sessionLoading || showCountdown ? "not-allowed" : "pointer",
-                          opacity: sessionLoading || showCountdown ? 0.7 : 1,
-                        }}
+                        className="gift-button gift-button-red gift-button-wide text-sm"
                       >
                         {revealToggleLabel}
                       </button>
@@ -1183,16 +1141,7 @@ export default function GroupRevealPage() {
                     type="button"
                     onClick={() => void handlePrevious()}
                     disabled={safeIndex === 0 || sessionLoading || showCountdown}
-                    className="px-5 py-2.5 rounded-2xl text-sm font-extrabold"
-                    style={{
-                      color: safeIndex === 0 || sessionLoading || showCountdown ? "#94a3b8" : "#fff",
-                      background:
-                        safeIndex === 0 || sessionLoading || showCountdown
-                          ? "rgba(148,163,184,.16)"
-                          : "rgba(15,23,42,.48)",
-                      border: "1px solid rgba(255,255,255,.08)",
-                      cursor: safeIndex === 0 || sessionLoading || showCountdown ? "not-allowed" : "pointer",
-                    }}
+                    className="gift-button gift-button-secondary gift-button-compact text-sm"
                   >
                     Previous
                   </button>
@@ -1216,20 +1165,7 @@ export default function GroupRevealPage() {
                     type="button"
                     onClick={() => void handleNext()}
                     disabled={safeIndex >= totalRevealSteps - 1 || sessionLoading || showCountdown}
-                    className="px-5 py-2.5 rounded-2xl text-sm font-extrabold"
-                    style={{
-                      color:
-                        safeIndex >= totalRevealSteps - 1 || sessionLoading || showCountdown ? "#94a3b8" : "#fff",
-                      background:
-                        safeIndex >= totalRevealSteps - 1 || sessionLoading || showCountdown
-                          ? "rgba(148,163,184,.16)"
-                          : "rgba(15,23,42,.48)",
-                      border: "1px solid rgba(255,255,255,.08)",
-                      cursor:
-                        safeIndex >= totalRevealSteps - 1 || sessionLoading || showCountdown
-                          ? "not-allowed"
-                          : "pointer",
-                    }}
+                    className="gift-button gift-button-secondary gift-button-compact text-sm"
                   >
                     Next
                   </button>

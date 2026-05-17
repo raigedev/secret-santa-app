@@ -5433,16 +5433,15 @@ function SecretSantaExperience({ mode = "shopping" }: SecretSantaExperienceProps
                   <button
                     type="button"
                     onClick={() => router.push(`/group/${assignment.group_id}`)}
-                    className="w-full text-center py-2.5 mt-3 rounded-lg text-[12px] font-bold transition"
+                    className="gift-button gift-button-gold gift-button-full gift-button-compact mt-3 text-[12px]"
                     style={{
-                      color: HOLIDAY_GOLD,
-                      background: "rgba(255,255,255,.82)",
-                      border: "1px solid rgba(184,131,29,.18)",
                       fontFamily: "inherit",
-                      cursor: "pointer",
                     }}
                   >
-                    View group →
+                    View group
+                    <span className="gift-button-icon" aria-hidden="true">
+                      <LazadaArrowIcon />
+                    </span>
                   </button>
                     </>
                   )}

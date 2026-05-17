@@ -343,15 +343,7 @@ export function DashboardNotificationsPanel({
           type="button"
           onClick={() => void handleMarkAllRead()}
           disabled={unreadCount === 0 || markingAll}
-          className={`rounded-full px-3 py-1.5 text-xs font-extrabold transition ${
-            unreadCount === 0 || markingAll
-              ? isDarkTheme
-                ? "bg-slate-800 text-slate-600"
-                : "bg-slate-100 text-slate-400"
-              : isDarkTheme
-                ? "bg-slate-800 text-slate-100 hover:bg-slate-700"
-                : "bg-slate-100 text-slate-700 hover:bg-slate-200"
-          }`}
+          className="gift-button gift-button-secondary gift-button-compact text-xs"
         >
           {markingAll ? "Updating..." : "Mark all read"}
         </button>
@@ -480,7 +472,7 @@ export function DashboardNotificationsPanel({
         <button
           type="button"
           onClick={handleOpenInbox}
-          className={`w-full rounded-full px-3 py-2 text-xs font-extrabold transition ${itemHoverClass}`}
+          className="gift-button gift-button-secondary gift-button-compact gift-button-full text-xs"
         >
           View all notifications
         </button>

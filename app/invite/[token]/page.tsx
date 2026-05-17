@@ -591,8 +591,7 @@ export default async function InviteLinkPage({
             <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap">
               <Link
                 href="/dashboard"
-                className="w-full rounded-xl px-5 py-3 text-center text-sm font-bold text-white sm:w-auto"
-                style={{ background: "linear-gradient(135deg,#2563eb,#3b82f6)" }}
+                className="gift-button gift-button-primary gift-button-wide w-full text-sm sm:w-auto"
               >
                 Go to Dashboard
               </Link>
@@ -608,8 +607,7 @@ export default async function InviteLinkPage({
                   href={`/login?next=${authNext}&error=confirm_email&message=${encodeURIComponent(
                     getEmailVerificationMessage()
                   )}`}
-                  className="w-full rounded-xl px-5 py-3 text-center text-sm font-bold text-white sm:w-auto"
-                  style={{ background: "linear-gradient(135deg,#2563eb,#3b82f6)" }}
+                  className="gift-button gift-button-primary gift-button-wide w-full text-sm sm:w-auto"
                 >
                   Confirm Email First
                 </Link>
@@ -619,19 +617,13 @@ export default async function InviteLinkPage({
             <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap">
               <Link
                 href={`/group/${preview.groupId}`}
-                className="w-full rounded-xl px-5 py-3 text-center text-sm font-bold text-white sm:w-auto"
-                style={{ background: "linear-gradient(135deg,#16a34a,#22c55e)" }}
+                className="gift-button gift-button-primary gift-button-wide w-full text-sm sm:w-auto"
               >
                 Open Group
               </Link>
               <Link
                 href="/dashboard"
-                className="w-full rounded-xl px-5 py-3 text-center text-sm font-bold sm:w-auto"
-                style={{
-                  background: "rgba(59,130,246,.08)",
-                  color: "#1d4ed8",
-                  border: "1px solid rgba(59,130,246,.14)",
-                }}
+                className="gift-button gift-button-secondary gift-button-wide w-full text-sm sm:w-auto"
               >
                 Back to Dashboard
               </Link>
@@ -640,8 +632,7 @@ export default async function InviteLinkPage({
             <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap">
               <Link
                 href="/dashboard"
-                className="w-full rounded-xl px-5 py-3 text-center text-sm font-bold text-white sm:w-auto"
-                style={{ background: "linear-gradient(135deg,#2563eb,#3b82f6)" }}
+                className="gift-button gift-button-primary gift-button-wide w-full text-sm sm:w-auto"
               >
                 Go to Dashboard
               </Link>
@@ -655,19 +646,13 @@ export default async function InviteLinkPage({
               <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap">
                 <Link
                   href={`/login?next=${authNext}`}
-                  className="w-full rounded-xl px-5 py-3 text-center text-sm font-bold text-white sm:w-auto"
-                  style={{ background: "linear-gradient(135deg,#2563eb,#3b82f6)" }}
+                  className="gift-button gift-button-primary gift-button-wide w-full text-sm sm:w-auto"
                 >
                   Log in to Join
                 </Link>
                 <Link
                   href={`/create-account?next=${authNext}`}
-                  className="w-full rounded-xl px-5 py-3 text-center text-sm font-bold sm:w-auto"
-                  style={{
-                    background: "rgba(34,197,94,.08)",
-                    color: "#166534",
-                    border: "1px solid rgba(22,163,74,.14)",
-                  }}
+                  className="gift-button gift-button-secondary gift-button-wide w-full text-sm sm:w-auto"
                 >
                   Create Account
                 </Link>
@@ -705,8 +690,7 @@ export default async function InviteLinkPage({
               )}
               <button
                 type="submit"
-                className="w-full rounded-xl px-5 py-3 text-center text-sm font-bold text-white sm:w-auto"
-                style={{ background: "linear-gradient(135deg,#16a34a,#22c55e)" }}
+                className="gift-button gift-button-primary gift-button-wide w-full text-sm sm:w-auto"
               >
                 {preview.membershipStatus === "declined"
                   ? "Join Again"

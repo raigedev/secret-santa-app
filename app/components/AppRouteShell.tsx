@@ -642,7 +642,7 @@ export default function AppRouteShell({ children }: { children: ReactNode }) {
           </p>
           <Link
             href="/create-group"
-            className="mt-4 inline-flex min-h-11 items-center gap-2 rounded-full px-4 text-[12px] font-extrabold transition hover:-translate-y-0.5 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#48664e]"
+            className="gift-button gift-button-compact mt-4 text-[12px]"
             style={{
               background: isDarkAppShell ? "rgba(252,206,114,.12)" : "rgba(72,102,78,.08)",
               border: `1px solid ${shellBorderColor}`,
@@ -650,7 +650,9 @@ export default function AppRouteShell({ children }: { children: ReactNode }) {
               textDecoration: "none",
             }}
           >
-            <AppShellIcon name="group" className="h-4 w-4" />
+            <span className="gift-button-icon" aria-hidden="true">
+              <AppShellIcon name="group" className="h-4 w-4" />
+            </span>
             Start exchange
           </Link>
         </div>

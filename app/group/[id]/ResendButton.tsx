@@ -38,11 +38,7 @@ export default function ResendButton({ groupId, memberEmail }: Props) {
       type="button"
       onClick={handleResend}
       disabled={status === "loading"}
-      className={`inline-flex min-h-8 items-center rounded-full px-3 text-xs font-black transition ${
-        status === "loading"
-          ? "cursor-not-allowed bg-slate-100 text-slate-400"
-          : "bg-[#fff4df] text-[#7b5902] hover:-translate-y-0.5 hover:bg-[#ffedc1]"
-      }`}
+      className="gift-button gift-button-gold gift-button-compact text-xs"
     >
       {status === "loading" ? "Sending..." : "Resend invite"}
     </button>

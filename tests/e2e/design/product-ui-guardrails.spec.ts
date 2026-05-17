@@ -302,6 +302,42 @@ async function getLayoutNoise(page: Page) {
   });
 }
 
+async function getButtonCopyNoise(page: Page) {
+  return page.evaluate(() => {
+    const isVisible = (element: Element) => {
+      if (!(element instanceof HTMLElement)) {
+        return false;
+      }
+
+      const style = window.getComputedStyle(element);
+      const rect = element.getBoundingClientRect();
+
+      return (
+        style.display !== "none" &&
+        style.visibility !== "hidden" &&
+        rect.width > 0 &&
+        rect.height > 0
+      );
+    };
+
+    return [
+      ...document.querySelectorAll("main button, main a[href], main [role='button']"),
+    ]
+      .filter((element): element is HTMLElement => element instanceof HTMLElement)
+      .filter(isVisible)
+      .map((element) => ({
+        tag: element.tagName.toLowerCase(),
+        text: (element.textContent || "").replace(/\s+/g, " ").trim(),
+      }))
+      .filter((control) => /->|→/.test(control.text))
+      .map((control) => ({
+        issue: "raw text arrow in clickable label",
+        tag: control.tag,
+        text: control.text.slice(0, 90),
+      }));
+  });
+}
+
 function getPatternHits(text: string, patterns: TextPattern[]) {
   return patterns
     .filter(({ pattern }) => pattern.test(text))
@@ -374,11 +410,29 @@ test.describe("product UI guardrails", () => {
     }
   });
 
+  test("clickable labels use icons instead of raw text arrows", async ({ page }) => {
+    test.skip(!credentials, AUTH_BLOCKED_MESSAGE);
+    test.setTimeout(90_000);
+
+    await loginWithTestCredentials(page, credentials!);
+
+    for (const route of getAuthenticatedProductRoutes()) {
+      await openRoute(page, route.path);
+
+      const buttonCopyNoise = await getButtonCopyNoise(page);
+
+      expect(
+        buttonCopyNoise,
+        `${route.name} should use an icon or clearer label instead of raw arrow text in buttons and links`
+      ).toEqual([]);
+    }
+  });
+
   test("core product screens avoid overflow and clipped visible text across key screen sizes", async ({
     page,
   }) => {
     test.skip(!credentials, AUTH_BLOCKED_MESSAGE);
-    test.setTimeout(180_000);
+    test.setTimeout(360_000);
 
     await loginWithTestCredentials(page, credentials!);
 

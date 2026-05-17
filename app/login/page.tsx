@@ -501,7 +501,7 @@ function LoginPageInner() {
                     {oauthUrl ? (
                       <a
                         href={oauthUrl}
-                        className="rounded-full bg-[#48664e] px-4 py-2 font-semibold text-white transition hover:bg-[#3c5a43]"
+                        className="gift-button gift-button-primary gift-button-compact text-sm"
                       >
                         Open Google sign-in again
                       </a>
@@ -509,7 +509,7 @@ function LoginPageInner() {
                     <button
                       type="button"
                       onClick={cancelGoogleRedirect}
-                      className="rounded-full bg-white px-4 py-2 font-semibold text-[#48664e] ring-1 ring-[#d8dfd7] transition hover:bg-[#f7faf7]"
+                      className="gift-button gift-button-secondary gift-button-compact text-sm"
                     >
                       Back to sign in
                     </button>
@@ -585,7 +585,7 @@ function LoginPageInner() {
           <button
             type="submit"
             disabled={!formReady || loading || redirecting}
-            className="w-full rounded-full bg-[linear-gradient(135deg,#a43c3f_0%,#943034_100%)] px-6 py-4 text-base font-semibold text-[#fff7f6] shadow-[0_24px_55px_rgba(164,60,63,0.18)] transition hover:-translate-y-0.5 hover:shadow-[0_30px_60px_rgba(164,60,63,0.24)] disabled:translate-y-0 disabled:cursor-not-allowed disabled:opacity-70 disabled:shadow-none"
+            className="gift-button gift-button-red gift-button-full gift-button-wide py-4 text-base"
           >
             {loading ? "Logging in..." : "Log in"}
           </button>
@@ -602,7 +602,7 @@ function LoginPageInner() {
             type="button"
             onClick={() => void handleGoogleLogin()}
             disabled={!formReady || loading || redirecting}
-            className="flex w-full items-center justify-center gap-3 rounded-3xl bg-[#f2f4f2] px-5 py-4 text-base font-semibold text-[#2e3432] shadow-[0_16px_35px_rgba(46,52,50,0.06)] transition hover:-translate-y-0.5 hover:bg-white hover:shadow-[0_24px_48px_rgba(46,52,50,0.1)] disabled:translate-y-0 disabled:cursor-not-allowed disabled:opacity-70 disabled:shadow-none"
+            className="gift-button gift-button-neutral gift-button-full py-4 text-base"
           >
             <Image src="/google-logo.svg" alt="Google" width={24} height={24} />
             <span>{redirecting ? "Redirecting..." : "Continue with Google"}</span>
@@ -614,7 +614,7 @@ function LoginPageInner() {
               type="button"
               onClick={() => router.push(`/create-account?next=${encodeURIComponent(nextPath)}`)}
               disabled={!formReady || loading || redirecting}
-              className="rounded-full bg-[linear-gradient(135deg,#48664e_0%,#3c5a43_100%)] px-5 py-3 text-sm font-semibold text-[#f7fbf8] shadow-[0_18px_38px_rgba(60,90,67,0.18)] transition hover:-translate-y-0.5 hover:shadow-[0_24px_46px_rgba(60,90,67,0.24)]"
+              className="gift-button gift-button-primary gift-button-compact text-sm"
             >
               Create Account
             </button>
