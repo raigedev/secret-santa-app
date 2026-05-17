@@ -58,20 +58,21 @@ export function SantaAssistantBubble({
           <button
             type="button"
             onClick={onMinimize}
-            className="flex h-9 w-9 items-center justify-center rounded-full border border-[rgba(72,102,78,.14)] bg-white text-[15px] font-black text-[#48664e] transition hover:-translate-y-0.5 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#48664e]"
+            className="gift-shell-control h-9 w-9 rounded-full text-[#48664e]"
             aria-label="Minimize Santa Buddy"
             title="Minimize"
           >
-            -
+            <span aria-hidden="true" className="h-0.5 w-3 rounded-full bg-current" />
           </button>
           <button
             type="button"
             onClick={onClose}
-            className="flex h-9 w-9 items-center justify-center rounded-full border border-[rgba(72,102,78,.14)] bg-white text-[15px] font-black text-[#48664e] transition hover:-translate-y-0.5 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#48664e]"
+            className="gift-shell-control relative h-9 w-9 rounded-full text-[#48664e]"
             aria-label="Close Santa Buddy tip"
             title="Close"
           >
-            x
+            <span aria-hidden="true" className="absolute h-0.5 w-3.5 rotate-45 rounded-full bg-current" />
+            <span aria-hidden="true" className="absolute h-0.5 w-3.5 -rotate-45 rounded-full bg-current" />
           </button>
         </div>
       </div>
@@ -85,7 +86,7 @@ export function SantaAssistantBubble({
           <button
             type="button"
             onClick={onPrevious}
-            className="min-h-10 rounded-full border border-[rgba(72,102,78,.14)] bg-white px-4 text-[12px] font-extrabold text-[#48664e] transition hover:-translate-y-0.5 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#48664e]"
+            className="gift-button gift-button-secondary gift-button-compact text-[12px]"
             aria-label="Show previous Santa Buddy tip"
           >
             Previous
@@ -93,7 +94,7 @@ export function SantaAssistantBubble({
           <button
             type="button"
             onClick={onNext}
-            className="min-h-10 rounded-full bg-[#48664e] px-4 text-[12px] font-extrabold text-white transition hover:-translate-y-0.5 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#48664e]"
+            className="gift-button gift-button-primary gift-button-compact text-[12px]"
             aria-label="Show next Santa Buddy tip"
           >
             Next
@@ -113,7 +114,7 @@ export function SantaAssistantBubble({
           value={question}
           onChange={(event) => setQuestion(event.target.value)}
           placeholder="Ask about gifts..."
-          className="min-h-11 min-w-0 flex-1 rounded-full border border-[rgba(72,102,78,.16)] bg-white px-4 text-[13px] font-semibold text-[#2e3432] outline-none transition placeholder:text-[#94a3b8] focus:border-[#48664e] focus:ring-2 focus:ring-[rgba(72,102,78,.18)]"
+          className="gift-field gift-field-pill min-w-0 flex-1 px-4 text-[13px] font-semibold"
         />
         <button
           type="submit"

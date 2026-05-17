@@ -170,7 +170,7 @@ export function DashboardCommandDesk({
       <section className="min-w-0">
         <div className="max-w-5xl">
           <p className="text-[12px] font-black uppercase tracking-[0.18em] text-[#7b5902]">Dashboard pulse</p>
-          <h1 className={`mt-2 max-w-full break-words font-[var(--app-display-font)] text-[2rem] font-black leading-none tracking-tight [overflow-wrap:anywhere] sm:text-[2.45rem] ${isDarkTheme ? "text-white" : "text-[#174f2c]"}`}>
+          <h1 className={`mt-2 max-w-full break-words font-[var(--app-display-font)] text-[2rem] font-black leading-none tracking-normal [overflow-wrap:anywhere] sm:text-[2.45rem] ${isDarkTheme ? "text-white" : "text-[#174f2c]"}`}>
             Exchange at a glance
           </h1>
           <p className={`mt-3 max-w-3xl text-[17px] font-extrabold leading-7 ${statsClass}`}>{revealMessage}</p>

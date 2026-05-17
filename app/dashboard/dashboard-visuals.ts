@@ -3,21 +3,21 @@ import type { DashboardActivityItem } from "./dashboard-types";
 export function getActivityFeedVisual(type: string): Pick<DashboardActivityItem, "icon" | "tone"> {
   switch (type) {
     case "gift_progress":
-      return { icon: "✓", tone: "amber" };
+      return { icon: "Done", tone: "amber" };
     case "gift_received":
-      return { icon: "🎁", tone: "emerald" };
+      return { icon: "Gift", tone: "emerald" };
     case "chat":
-      return { icon: "💬", tone: "blue" };
+      return { icon: "Chat", tone: "blue" };
     case "draw":
-      return { icon: "🎲", tone: "violet" };
+      return { icon: "Draw", tone: "violet" };
     case "reveal":
-      return { icon: "🎉", tone: "rose" };
+      return { icon: "Live", tone: "rose" };
     case "invite":
-      return { icon: "✉️", tone: "amber" };
+      return { icon: "Mail", tone: "amber" };
     case "welcome":
       return { icon: "OK", tone: "emerald" };
     case "affiliate_lazada_health":
-      return { icon: "📊", tone: "amber" };
+      return { icon: "Stats", tone: "amber" };
     default:
       return { icon: "•", tone: "blue" };
   }

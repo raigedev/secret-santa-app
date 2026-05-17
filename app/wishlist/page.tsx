@@ -664,7 +664,7 @@ export default function WishlistPage() {
                 <GiftIcon className="h-5 w-5" />
                 My Wishlist
               </div>
-              <h1 className="max-w-3xl font-[Plus_Jakarta_Sans] text-4xl font-black tracking-[-0.06em] text-[#2e3432] sm:text-6xl">
+              <h1 className="max-w-3xl font-[Plus_Jakarta_Sans] text-4xl font-black tracking-normal text-[#2e3432] sm:text-6xl">
                 My Wishlist
               </h1>
               <p className="mt-5 max-w-2xl text-base leading-8 text-[#5b605e] sm:text-lg">
@@ -680,7 +680,7 @@ export default function WishlistPage() {
             </div>
             <div className="relative">
               <p className="text-xs font-black uppercase tracking-[0.28em] text-white/70">Gift clues ready</p>
-              <h2 className="mt-4 font-[Plus_Jakarta_Sans] text-3xl font-black tracking-tighter">
+              <h2 className="mt-4 font-[Plus_Jakarta_Sans] text-3xl font-black tracking-normal">
                 Your Santa shops from the details you add.
               </h2>
               <p className="mt-4 text-sm leading-7 text-white/78">
@@ -723,7 +723,7 @@ export default function WishlistPage() {
               <div className="mb-5 flex items-start justify-between gap-4">
                 <div>
                   <p className="text-xs font-black uppercase tracking-[0.22em] text-[#7b5902]">Gift workshop</p>
-                  <h2 className="mt-2 font-[Plus_Jakarta_Sans] text-2xl font-black tracking-[-0.04em] text-[#2e3432]">
+                  <h2 className="mt-2 font-[Plus_Jakarta_Sans] text-2xl font-black tracking-normal text-[#2e3432]">
                     Add an idea
                   </h2>
                   <p className="mt-2 text-sm leading-6 text-[#5b605e]">
@@ -869,7 +869,7 @@ export default function WishlistPage() {
                     <div className="relative flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
                       <div>
                         <p className="text-xs font-black uppercase tracking-[0.22em] text-[#48664e]">Exchange shelf</p>
-                        <h2 className="mt-2 font-[Plus_Jakarta_Sans] text-3xl font-black tracking-tighter text-[#2e3432]">
+                        <h2 className="mt-2 font-[Plus_Jakarta_Sans] text-3xl font-black tracking-normal text-[#2e3432]">
                           {group.name}
                         </h2>
                         <div className="mt-3 flex flex-wrap gap-2 text-xs font-bold text-[#5b605e]">
@@ -1012,7 +1012,7 @@ export default function WishlistPage() {
                                   )}
                                 </div>
                                 <div className="min-w-0 flex-1">
-                                  <h3 className="break-words font-[Plus_Jakarta_Sans] text-xl font-black tracking-[-0.04em] text-[#2e3432]">
+                                  <h3 className="break-words font-[Plus_Jakarta_Sans] text-xl font-black tracking-normal text-[#2e3432]">
                                     {item.item_name}
                                   </h3>
                                   <div className="mt-3 flex flex-wrap gap-2">

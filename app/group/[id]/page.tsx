@@ -92,6 +92,7 @@ export default function GroupDetailsPage() {
   const [newExclusionReceiver, setNewExclusionReceiver] = useState("");
   const [newExclusionBidirectional, setNewExclusionBidirectional] = useState(true);
   const [drawRuleMessage, setDrawRuleMessage] = useState("");
+  const [drawRuleMessageTone, setDrawRuleMessageTone] = useState<"success" | "error" | null>(null);
   const [drawRuleSaving, setDrawRuleSaving] = useState(false);
   const [avoidPreviousRecipient, setAvoidPreviousRecipient] = useState(true);
   const [resetReason, setResetReason] = useState("");
@@ -106,6 +107,7 @@ export default function GroupDetailsPage() {
   const [groupRecap, setGroupRecap] = useState<GroupRecap | null>(null);
   const [revealLoading, setRevealLoading] = useState(false);
   const [revealMessage, setRevealMessage] = useState("");
+  const [drawMessageTone, setDrawMessageTone] = useState<"success" | "error" | null>(null);
 
   const [showEditModal, setShowEditModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
@@ -313,6 +315,7 @@ export default function GroupDetailsPage() {
             setDrawExclusions([]);
             setDrawRulesReady(false);
             setDrawRuleMessage("We could not load pairing rules. Refresh this page before drawing names.");
+            setDrawRuleMessageTone("error");
           }
         } else {
           setDrawExclusions([]);
@@ -515,6 +518,7 @@ export default function GroupDetailsPage() {
   const handleDraw = async () => {
     if (!drawRulesReady) {
       setDrawMessage("Pairing rules are still loading. Please wait a moment before drawing names.");
+      setDrawMessageTone("error");
       return;
     }
 
@@ -528,12 +532,14 @@ export default function GroupDetailsPage() {
 
     setDrawLoading(true);
     setDrawMessage("");
+    setDrawMessageTone(null);
 
     try {
       const result = await drawSecretSanta(id, {
         avoidPreviousRecipient,
       });
       setDrawMessage(result.message);
+      setDrawMessageTone(result.success ? "success" : "error");
       if (result.success) {
         notifyGroupRefresh();
       }
@@ -545,11 +551,13 @@ export default function GroupDetailsPage() {
   const handleAddDrawRule = async () => {
     if (!newExclusionGiver || !newExclusionReceiver) {
       setDrawRuleMessage("Choose both members for this draw rule.");
+      setDrawRuleMessageTone("error");
       return;
     }
 
     setDrawRuleSaving(true);
     setDrawRuleMessage("");
+    setDrawRuleMessageTone(null);
 
     try {
       const result = await addDrawExclusion(
@@ -559,6 +567,7 @@ export default function GroupDetailsPage() {
         newExclusionBidirectional
       );
       setDrawRuleMessage(result.message);
+      setDrawRuleMessageTone(result.success ? "success" : "error");
 
       if (result.success) {
         setNewExclusionGiver("");
@@ -573,10 +582,12 @@ export default function GroupDetailsPage() {
   const handleRemoveDrawRule = async (exclusionId: string) => {
     setDrawRuleSaving(true);
     setDrawRuleMessage("");
+    setDrawRuleMessageTone(null);
 
     try {
       const result = await removeDrawExclusion(id, exclusionId);
       setDrawRuleMessage(result.message);
+      setDrawRuleMessageTone(result.success ? "success" : "error");
 
       if (result.success) {
         notifyGroupRefresh();
@@ -591,6 +602,7 @@ export default function GroupDetailsPage() {
 
     if (trimmedReason.length < 8) {
       setDrawMessage("Please provide at least 8 characters for reset reason.");
+      setDrawMessageTone("error");
       return;
     }
 
@@ -604,10 +616,12 @@ export default function GroupDetailsPage() {
 
     setResetLoading(true);
     setDrawMessage("");
+    setDrawMessageTone(null);
 
     try {
       const result = await resetSecretSantaDraw(id, trimmedReason);
       setDrawMessage(result.message);
+      setDrawMessageTone(result.success ? "success" : "error");
       if (result.success) {
         setResetReason("");
         setRevealMatches([]);
@@ -962,8 +976,7 @@ export default function GroupDetailsPage() {
 
             <div
               id="draw-controls"
-              className="text-center my-5 py-5 rounded-2xl"
-              style={{ background: "rgba(127,29,29,.03)", border: "1px solid rgba(127,29,29,.08)" }}
+              className="gift-surface-strong my-5 rounded-3xl px-4 py-5 text-center"
             >
               {drawDone && assignment ? (
                 <div>
@@ -971,7 +984,7 @@ export default function GroupDetailsPage() {
                     className="text-lg font-bold mb-2"
                     style={{ fontFamily: "'Fredoka', sans-serif", color: "#1d4ed8" }}
                   >
-                    🎲 Names have been drawn!
+                    Names have been drawn
                   </div>
 
                   <div
@@ -983,7 +996,7 @@ export default function GroupDetailsPage() {
                   >
                     {groupData.revealed
                       ? "Reveal live - everyone can see the pairings"
-                      : "🎲 Names drawn - recipient details are ready"}
+                      : "Names drawn - recipient details are ready"}
                   </div>
 
                   <div
@@ -993,7 +1006,7 @@ export default function GroupDetailsPage() {
                       boxShadow: "0 4px 20px rgba(251,191,36,.3)",
                     }}
                   >
-                    <div className="text-sm opacity-85 mb-1">🎁 You are giving a gift to:</div>
+                    <div className="mb-1 text-sm opacity-85">You are giving a gift to</div>
                     <div
                       className="text-3xl font-bold"
                       style={{
@@ -1001,7 +1014,7 @@ export default function GroupDetailsPage() {
                         textShadow: "0 2px 4px rgba(0,0,0,.15)",
                       }}
                     >
-                      🎄 {assignment.receiver_nickname} 🎄
+                      {assignment.receiver_nickname}
                     </div>
                     <div className="text-xs opacity-75 mt-2">
                       {groupData.revealed
@@ -1050,7 +1063,7 @@ export default function GroupDetailsPage() {
                     className="text-lg font-bold mb-2"
                     style={{ fontFamily: "'Fredoka', sans-serif", color: "#7f1d1d" }}
                   >
-                    🎲 Secret Santa Name Draw
+                    Secret Santa name draw
                   </div>
 
                   {allAccepted ? (
@@ -1058,14 +1071,14 @@ export default function GroupDetailsPage() {
                       className="inline-flex items-center gap-1.5 text-xs font-bold px-3 py-1.5 rounded-lg mb-3"
                       style={{ background: "#dcfce7", color: "#15803d" }}
                     >
-                      ✅ All {acceptedMembers.length} members accepted - ready to draw names!
+                      All {acceptedMembers.length} members accepted - ready to draw names.
                     </div>
                   ) : (
                     <div
                       className="inline-flex items-center gap-1.5 text-xs font-bold px-3 py-1.5 rounded-lg mb-3"
                       style={{ background: "#fef3c7", color: "#92400e" }}
                     >
-                      ⏳ Waiting for all members to accept...
+                      Waiting for all members to accept.
                     </div>
                   )}
 
@@ -1199,7 +1212,7 @@ export default function GroupDetailsPage() {
                           disabled={drawRuleControlsDisabled}
                           className="gift-button gift-button-danger gift-button-compact text-[13px]"
                         >
-                          {drawRuleSaving ? "Saving..." : "Add Rule"}
+                          {drawRuleSaving ? "Saving..." : "Add rule"}
                         </button>
                       </div>
 
@@ -1219,7 +1232,7 @@ export default function GroupDetailsPage() {
                       {drawRuleMessage && (
                         <p
                           className={`text-[12px] font-bold mt-2 ${
-                            drawRuleMessage.startsWith("✅") ? "text-green-600" : "text-red-600"
+                            drawRuleMessageTone === "success" ? "text-green-600" : "text-red-600"
                           }`}
                         >
                           {drawRuleMessage}
@@ -1238,7 +1251,7 @@ export default function GroupDetailsPage() {
                               }}
                             >
                               <span className="text-[12px] font-bold" style={{ color: "#334155" }}>
-                                {rule.giverNickname} → {rule.receiverNickname}
+                                {rule.giverNickname} gives to {rule.receiverNickname}
                               </span>
                               <button
                                 type="button"
@@ -1411,7 +1424,7 @@ export default function GroupDetailsPage() {
               {drawMessage && (
                 <p
                   className={`text-sm font-bold mt-4 ${
-                    drawMessage.startsWith("✅") ? "text-green-600" : "text-red-600"
+                    drawMessageTone === "success" ? "text-green-600" : "text-red-600"
                   }`}
                 >
                   {drawMessage}
@@ -1443,7 +1456,7 @@ export default function GroupDetailsPage() {
                         color: groupData.revealed ? "#166534" : "#7c2d12",
                       }}
                     >
-                      {groupData.revealed ? "🎉 Reveal Board" : "🎁 Gift Exchange Reveal"}
+                      {groupData.revealed ? "Reveal board" : "Gift exchange reveal"}
                     </div>
                     <div className="text-[12px] font-semibold mt-1" style={{ color: "#64748b" }}>
                       {groupData.revealed
@@ -1571,8 +1584,12 @@ export default function GroupDetailsPage() {
                             </div>
                           </div>
 
-                          <div className="text-[18px] font-black" style={{ color: "#f59e0b" }}>
-                            →
+                          <div
+                            aria-hidden="true"
+                            className="text-[12px] font-extrabold uppercase tracking-normal"
+                            style={{ color: "#f59e0b" }}
+                          >
+                            gives
                           </div>
 
                           <div className="text-right">

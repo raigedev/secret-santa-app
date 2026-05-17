@@ -361,7 +361,7 @@ export default function Landing() {
 
         <div className="hero-inner">
           <div className="hero-text">
-            <div className="hero-badge fade-up d1">🎅 Free Secret Santa Organizer</div>
+            <div className="hero-badge fade-up d1">Free Secret Santa organizer</div>
             <h1 className="hero-title fade-up d2">
               Draw names and<br /><span>plan better gifts</span>
             </h1>
@@ -369,13 +369,13 @@ export default function Landing() {
               Create a group, invite members, share wishlist ideas, and privately see who you are gifting.
             </p>
             <div className="hero-buttons fade-up d4">
-              <button className="btn-primary" onClick={() => router.push("/login")}>Start Drawing Names 🎲</button>
-              <a className="btn-secondary" href="#how">See How It Works</a>
+              <button className="btn-primary" onClick={() => router.push("/login")}>Start drawing names</button>
+              <a className="btn-secondary" href="#how">See how it works</a>
             </div>
             <div className="hero-stats fade-up d5">
               <div><div className="hero-stat-num">100%</div><div className="hero-stat-label">Free to start</div></div>
-              <div><div className="hero-stat-num">3 min</div><div className="hero-stat-label">Setup Time</div></div>
-              <div><div className="hero-stat-num">🔒</div><div className="hero-stat-label">Private details</div></div>
+              <div><div className="hero-stat-num">3 min</div><div className="hero-stat-label">Setup time</div></div>
+              <div><div className="hero-stat-num">Private</div><div className="hero-stat-label">Recipient details</div></div>
             </div>
           </div>
 
@@ -413,28 +413,28 @@ export default function Landing() {
 
       {/* How It Works */}
       <section className="how-section" id="how">
-        <div className="section-label fade-up">How It Works</div>
-        <div className="section-title fade-up d1">Set Up Your Gift Exchange in Three Steps</div>
+        <div className="section-label fade-up">How it works</div>
+        <div className="section-title fade-up d1">Set up your gift exchange in three steps</div>
         <div className="section-desc fade-up d2">Create a group, invite members, then draw names when everyone is ready.</div>
         <div className="steps">
           <div className="step fade-up d3">
             <div className="step-num step-num-1">1</div>
             <div className="step-icon">📋</div>
-            <div className="step-title">Create a Group</div>
+            <div className="step-title">Create a group</div>
             <div className="step-desc">Choose a group name, budget, and gift date. Invite friends, family, or coworkers by email.</div>
           </div>
           <div className="step-arrow fade-up d3">→</div>
           <div className="step fade-up d4">
             <div className="step-num step-num-2">2</div>
             <div className="step-icon">🎲</div>
-            <div className="step-title">Draw Names</div>
+            <div className="step-title">Draw names</div>
             <div className="step-desc">Draw names fairly when the group is ready. Each member privately sees who they are gifting.</div>
           </div>
           <div className="step-arrow fade-up d4">→</div>
           <div className="step fade-up d5">
             <div className="step-num step-num-3">3</div>
             <div className="step-icon">🎁</div>
-            <div className="step-title">Exchange Gifts</div>
+            <div className="step-title">Exchange gifts</div>
             <div className="step-desc">Use their wishlist, ask private questions, and mark your gift progress as you prepare.</div>
           </div>
         </div>
@@ -443,7 +443,7 @@ export default function Landing() {
       {/* Features */}
       <section className="features-section" id="features">
         <div className="section-label fade-up">Features</div>
-        <div className="section-title fade-up d1">Everything Your Group Needs</div>
+        <div className="section-title fade-up d1">Everything your group needs</div>
         <div className="section-desc fade-up d2">Clear tools for invites, wishlists, private messages, and the final gift exchange.</div>
         <div className="features-grid">
           <div className="feature-card fade-up d3"><div className="feature-icon fi-red">🎲</div><div className="feature-title">Fair Name Draw</div><div className="feature-desc">Draw names in one click. The app keeps members from drawing themselves.</div></div>
@@ -489,7 +489,7 @@ export default function Landing() {
           </div>
           <div className="cta-title fade-up d1">Ready to Start Your<br />Secret Santa?</div>
           <div className="cta-desc fade-up d2">Create a group, invite members, and draw names when everyone is ready.</div>
-          <button className="btn-cta fade-up d3" onClick={() => router.push("/login")}>🎅 Start Drawing Names — It&apos;s Free</button>
+          <button className="btn-cta fade-up d3" onClick={() => router.push("/login")}>Start drawing names — it&apos;s free</button>
           <div className="cta-note fade-up d4">No credit card needed.</div>
         </div>
       </section>
@@ -514,7 +514,7 @@ export default function Landing() {
               <div className="app-badge-text"><span className="app-badge-small">GET IT ON</span><span className="app-badge-big">Google Play</span></div>
             </a>
           </div>
-          <div className="app-coming fade-up d4">🚀 Coming Soon — Join the waitlist!</div>
+          <div className="app-coming fade-up d4">Coming soon — join the waitlist</div>
         </div>
       </section>
 

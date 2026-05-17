@@ -109,13 +109,13 @@ export default function CoolAppPage() {
             <p className="text-xs font-bold uppercase tracking-[0.22em] text-[#6b756d]">
               Gift Radar
             </p>
-            <h1 className="mt-2 font-[Plus_Jakarta_Sans] text-3xl font-black tracking-[-0.04em] text-[#243229] sm:text-5xl">
+            <h1 className="mt-2 font-[Plus_Jakarta_Sans] text-3xl font-black tracking-normal text-[#243229] sm:text-5xl">
               Build a gift plan that feels intentional.
             </h1>
           </div>
           <Link
             href="/"
-            className="inline-flex w-fit items-center justify-center rounded-full border border-[#aeb9ad] px-5 py-3 text-sm font-bold text-[#3f6448] transition hover:bg-[#edf6ee]"
+            className="gift-button gift-button-secondary gift-button-compact w-fit text-sm"
           >
             Back to home
           </Link>
@@ -138,7 +138,7 @@ export default function CoolAppPage() {
               <p className="text-xs font-bold uppercase tracking-[0.22em] text-[#cfd8cb]">
                 Live plan
               </p>
-              <h2 className="mt-4 max-w-2xl font-[Plus_Jakarta_Sans] text-4xl font-black tracking-[-0.04em] sm:text-6xl">
+              <h2 className="mt-4 max-w-2xl font-[Plus_Jakarta_Sans] text-4xl font-black tracking-normal sm:text-6xl">
                 {selectedMood.label} gift route for {recipient.trim() || "someone"}
               </h2>
               <p className="mt-5 max-w-xl text-base leading-8 text-[#dce4d9]">
@@ -174,13 +174,13 @@ export default function CoolAppPage() {
           </div>
         </div>
 
-        <aside className="holiday-panel-soft rounded-lg p-5 sm:p-6">
+        <aside className="gift-surface rounded-[28px] p-5 sm:p-6">
           <div className="flex items-start justify-between gap-4">
             <div>
               <p className="text-xs font-bold uppercase tracking-[0.2em] text-[#6b756d]">
                 Control panel
               </p>
-              <h2 className="mt-2 font-[Plus_Jakarta_Sans] text-2xl font-black tracking-[-0.04em]">
+              <h2 className="mt-2 font-[Plus_Jakarta_Sans] text-2xl font-black tracking-normal">
                 Shape the vibe
               </h2>
             </div>
@@ -196,7 +196,7 @@ export default function CoolAppPage() {
             id="recipient"
             value={recipient}
             onChange={(event) => setRecipient(event.target.value)}
-            className="mt-2 w-full rounded-lg border border-[#cdd6cc] bg-white px-4 py-3 text-base font-semibold outline-none transition focus:border-[#3f6448] focus:ring-4 focus:ring-[#dfece1]"
+            className="gift-field mt-2 w-full px-4 py-3 text-base font-semibold"
             placeholder="Name"
           />
 
@@ -210,7 +210,7 @@ export default function CoolAppPage() {
                     key={item.id}
                     type="button"
                     onClick={() => setMood(item.id)}
-                    className="rounded-lg border px-4 py-3 text-sm font-black transition active:translate-y-px"
+                    className="gift-option px-4 py-3 text-center text-sm font-black"
                     style={{
                       background: isActive ? item.accent : item.tint,
                       borderColor: isActive ? item.accent : "#d9ded3",
@@ -231,7 +231,7 @@ export default function CoolAppPage() {
             id="occasion"
             value={occasion}
             onChange={(event) => setOccasion(event.target.value as (typeof OCCASIONS)[number])}
-            className="mt-2 w-full rounded-lg border border-[#cdd6cc] bg-white px-4 py-3 text-base font-semibold outline-none transition focus:border-[#3f6448] focus:ring-4 focus:ring-[#dfece1]"
+            className="gift-field mt-2 w-full px-4 py-3 text-base font-semibold"
           >
             {OCCASIONS.map((item) => (
               <option key={item}>{item}</option>
@@ -253,7 +253,7 @@ export default function CoolAppPage() {
             className="mt-3 w-full accent-[#3f6448]"
           />
 
-          <div className="mt-6 rounded-lg border border-[#e2d8be] bg-[#fff9ea] p-4">
+          <div className="gift-alert gift-alert-warning mt-6 text-sm">
             <p className="text-xs font-bold uppercase tracking-[0.18em] text-[#7a5700]">
               Shopping brief
             </p>
@@ -271,9 +271,9 @@ export default function CoolAppPage() {
           ["Sweet spot", peso(Math.round(budget * 0.72)), "Best amount for the main gift."],
           ["Tone", selectedMood.label, selectedMood.copy],
         ].map(([label, value, detail]) => (
-          <article key={label} className="rounded-lg border border-[#d9ded3] bg-[#fbfcf7] p-5">
+          <article key={label} className="gift-surface-row rounded-[22px] p-5">
             <p className="text-xs font-bold uppercase tracking-[0.18em] text-[#6b756d]">{label}</p>
-            <p className="mt-3 font-[Plus_Jakarta_Sans] text-3xl font-black tracking-[-0.04em]">
+            <p className="mt-3 font-[Plus_Jakarta_Sans] text-3xl font-black tracking-normal">
               {value}
             </p>
             <p className="mt-2 text-sm leading-6 text-[#5b635c]">{detail}</p>

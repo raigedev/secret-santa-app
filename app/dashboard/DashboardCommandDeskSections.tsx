@@ -55,7 +55,7 @@ export function SectionTitle({
 }) {
   return (
     <div className="border-b border-[rgba(72,102,78,.14)] pb-4">
-      <h2 className={`font-[var(--app-display-font)] text-[28px] font-black leading-none tracking-tight ${isDarkTheme ? "text-white" : "text-slate-950"}`}>
+      <h2 className={`font-[var(--app-display-font)] text-[28px] font-black leading-none tracking-normal ${isDarkTheme ? "text-white" : "text-slate-950"}`}>
         {children}
       </h2>
       {kicker ? <p className={`mt-2 max-w-2xl text-[14px] font-extrabold leading-6 ${isDarkTheme ? "text-slate-400" : "text-slate-600"}`}>{kicker}</p> : null}

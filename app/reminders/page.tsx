@@ -49,10 +49,7 @@ function ReminderToggle({
       type="button"
       disabled={disabled}
       onClick={onChange}
-      className="group flex min-h-26 w-full items-center justify-between gap-4 rounded-[22px] border bg-white/86 px-4 py-4 text-left shadow-[0_14px_32px_rgba(46,52,50,.05)] transition hover:-translate-y-0.5 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#48664e] disabled:cursor-wait disabled:opacity-70 disabled:hover:translate-y-0 sm:px-5"
-      style={{
-        borderColor: checked ? "rgba(72,102,78,.28)" : "rgba(148,163,184,.18)",
-      }}
+      className="gift-option flex min-h-26 w-full items-center justify-between gap-4 px-4 py-4 sm:px-5"
       aria-pressed={checked}
     >
       <span className="min-w-0">
@@ -62,14 +59,11 @@ function ReminderToggle({
         </span>
       </span>
       <span
-        className="relative h-8 w-14 shrink-0 rounded-full transition"
-        style={{ background: checked ? "#48664e" : "#e2e8f0" }}
+        className="gift-switch shrink-0"
+        data-checked={checked ? "true" : "false"}
         aria-hidden="true"
       >
-        <span
-          className="absolute top-1 h-6 w-6 rounded-full bg-white shadow-[0_3px_10px_rgba(15,23,42,.18)] transition"
-          style={{ left: checked ? 26 : 4 }}
-        />
+        <span className="gift-switch-knob" />
       </span>
     </button>
   );
@@ -94,11 +88,7 @@ function DeliveryOption({
       disabled={disabled}
       onClick={onSelect}
       aria-pressed={selected}
-      className="rounded-[20px] border px-5 py-4 text-left transition hover:-translate-y-0.5 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#48664e] disabled:cursor-wait disabled:opacity-70 disabled:hover:translate-y-0"
-      style={{
-        background: selected ? "rgba(72,102,78,.1)" : "#fff",
-        borderColor: selected ? "rgba(72,102,78,.32)" : "rgba(148,163,184,.18)",
-      }}
+      className="gift-option px-5 py-4"
     >
       <span className="block text-[14px] font-black text-[#2e3432]">{label}</span>
       <span className="mt-1 block text-[12px] font-semibold leading-5 text-[#64748b]">
@@ -263,7 +253,7 @@ export default function RemindersPage() {
         {loadingPreferences && (
           <div
             role="status"
-            className="holiday-panel-soft mt-5 rounded-[18px] px-4 py-3 text-[13px] font-extrabold text-[#48664e]"
+            className="gift-alert gift-alert-success mt-5 text-[13px]"
           >
             Loading your saved reminder choices...
           </div>
@@ -272,7 +262,9 @@ export default function RemindersPage() {
         {message && (
           <div
             role={message.includes("could not") ? "alert" : "status"}
-            className="holiday-panel-soft mt-5 rounded-[18px] px-4 py-3 text-[13px] font-extrabold text-[#48664e]"
+            className={`gift-alert mt-5 text-[13px] ${
+              message.includes("could not") ? "gift-alert-error" : "gift-alert-success"
+            }`}
           >
             {message}
           </div>

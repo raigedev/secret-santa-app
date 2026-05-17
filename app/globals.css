@@ -75,6 +75,252 @@ body {
   backdrop-filter: blur(16px);
 }
 
+.gift-surface {
+  background:
+    linear-gradient(145deg, rgba(255, 255, 255, 0.86), rgba(248, 251, 247, 0.68)),
+    linear-gradient(180deg, rgba(255, 254, 250, 0.68), rgba(242, 244, 242, 0.42));
+  border: 1px solid rgba(255, 255, 255, 0.68);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.72),
+    0 18px 46px rgba(46, 52, 50, 0.055);
+  backdrop-filter: blur(14px);
+}
+
+.gift-surface-strong {
+  background:
+    linear-gradient(145deg, rgba(255, 255, 255, 0.94), rgba(251, 252, 250, 0.82)),
+    linear-gradient(180deg, rgba(255, 254, 250, 0.82), rgba(242, 244, 242, 0.56));
+  border: 1px solid rgba(255, 255, 255, 0.78);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.82),
+    0 24px 70px rgba(46, 52, 50, 0.072);
+  backdrop-filter: blur(18px);
+}
+
+.gift-surface-muted {
+  background: rgba(248, 251, 247, 0.76);
+  border: 1px solid rgba(72, 102, 78, 0.12);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.64);
+}
+
+.gift-surface-row {
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.66), rgba(248, 251, 247, 0.42));
+  border: 1px solid rgba(72, 102, 78, 0.1);
+  box-shadow: 0 8px 22px rgba(46, 52, 50, 0.032);
+}
+
+.gift-modal-backdrop {
+  background: rgba(46, 52, 50, 0.38);
+  backdrop-filter: blur(10px);
+}
+
+.gift-modal-panel {
+  animation: gift-modal-in 180ms ease-out;
+  border-radius: 28px;
+}
+
+@keyframes gift-modal-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px) scale(0.985);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.gift-field {
+  background: linear-gradient(180deg, rgba(248, 251, 247, 0.92), rgba(242, 244, 242, 0.78));
+  border: 1px solid rgba(72, 102, 78, 0.16);
+  border-radius: 18px;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.78),
+    0 8px 18px rgba(46, 52, 50, 0.028);
+  color: #2e3432;
+  min-height: 48px;
+  outline: none;
+  transition:
+    background 160ms ease,
+    border-color 160ms ease,
+    box-shadow 160ms ease;
+}
+
+.gift-field::placeholder {
+  color: #7b827f;
+}
+
+.gift-field:focus,
+.gift-field:focus-visible {
+  background: #ffffff;
+  border-color: rgba(72, 102, 78, 0.42);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.82),
+    0 0 0 4px rgba(72, 102, 78, 0.12);
+}
+
+.gift-field:disabled {
+  cursor: not-allowed;
+  opacity: 0.66;
+}
+
+.gift-field-pill {
+  border-radius: 999px;
+}
+
+.gift-alert {
+  border-radius: 18px;
+  border: 1px solid transparent;
+  font-weight: 800;
+  line-height: 1.5;
+  padding: 0.8rem 1rem;
+}
+
+.gift-alert-success {
+  background: rgba(215, 250, 219, 0.62);
+  border-color: rgba(72, 102, 78, 0.18);
+  color: #315238;
+}
+
+.gift-alert-error {
+  background: rgba(255, 241, 239, 0.86);
+  border-color: rgba(164, 60, 63, 0.18);
+  color: #812227;
+}
+
+.gift-alert-warning {
+  background: rgba(255, 248, 234, 0.88);
+  border-color: rgba(217, 174, 86, 0.24);
+  color: #7b5902;
+}
+
+.gift-option {
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.92), rgba(248, 251, 247, 0.74));
+  border: 1px solid rgba(72, 102, 78, 0.13);
+  border-radius: 22px;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.74),
+    0 12px 28px rgba(46, 52, 50, 0.04);
+  text-align: left;
+  transition:
+    transform 160ms ease,
+    background 160ms ease,
+    border-color 160ms ease,
+    box-shadow 160ms ease;
+}
+
+.gift-option:hover:not(:disabled) {
+  border-color: rgba(72, 102, 78, 0.22);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.8),
+    0 16px 34px rgba(46, 52, 50, 0.06);
+  transform: translateY(-1px);
+}
+
+.gift-option[aria-pressed="true"],
+.gift-option-selected {
+  background: linear-gradient(180deg, rgba(239, 246, 238, 0.96), rgba(215, 250, 219, 0.46));
+  border-color: rgba(72, 102, 78, 0.34);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.82),
+    0 16px 34px rgba(72, 102, 78, 0.095);
+}
+
+.gift-option:focus-visible {
+  outline: 3px solid rgba(217, 174, 86, 0.32);
+  outline-offset: 3px;
+}
+
+.gift-option:disabled {
+  cursor: wait;
+  opacity: 0.7;
+  transform: none;
+}
+
+.gift-option-circle {
+  border-radius: 999px;
+}
+
+.gift-switch {
+  background: #e2e8f0;
+  border-radius: 999px;
+  display: inline-flex;
+  height: 32px;
+  padding: 4px;
+  position: relative;
+  transition: background 160ms ease;
+  width: 56px;
+}
+
+.gift-switch[data-checked="true"] {
+  background: #48664e;
+}
+
+.gift-switch-knob {
+  background: #ffffff;
+  border-radius: 999px;
+  box-shadow: 0 3px 10px rgba(15, 23, 42, 0.18);
+  height: 24px;
+  transform: translateX(0);
+  transition: transform 160ms ease;
+  width: 24px;
+}
+
+.gift-switch[data-checked="true"] .gift-switch-knob {
+  transform: translateX(24px);
+}
+
+.gift-shell-control {
+  align-items: center;
+  border: 1px solid rgba(72, 102, 78, 0.14);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.62),
+    0 12px 26px rgba(46, 52, 50, 0.06);
+  display: inline-flex;
+  justify-content: center;
+  transition:
+    transform 160ms ease,
+    border-color 160ms ease,
+    box-shadow 160ms ease,
+    background 160ms ease;
+}
+
+.gift-shell-control:hover {
+  border-color: rgba(72, 102, 78, 0.24);
+  transform: translateY(-1px);
+}
+
+.gift-shell-control:active {
+  transform: translateY(0) scale(0.985);
+}
+
+.gift-shell-control:focus-visible {
+  outline: 3px solid rgba(217, 174, 86, 0.32);
+  outline-offset: 3px;
+}
+
+.gift-menu-panel {
+  border: 1px solid rgba(72, 102, 78, 0.12);
+  border-radius: 20px;
+  box-shadow: 0 18px 42px rgba(46, 52, 50, 0.16);
+}
+
+.gift-menu-item {
+  border-radius: 14px;
+  transition:
+    background 150ms ease,
+    color 150ms ease,
+    transform 150ms ease;
+}
+
+.gift-menu-item:hover,
+.gift-menu-item:focus-visible {
+  background: rgba(72, 102, 78, 0.08);
+  outline: none;
+  transform: translateY(-1px);
+}
+
 .gift-button {
   align-items: center;
   border: 1px solid transparent;
@@ -277,7 +523,13 @@ body {
 @media (prefers-reduced-motion: reduce) {
   .gift-button,
   .gift-button:hover:not(:disabled):not([aria-disabled="true"]),
-  .gift-button:active:not(:disabled):not([aria-disabled="true"]) {
+  .gift-button:active:not(:disabled):not([aria-disabled="true"]),
+  .gift-modal-panel,
+  .gift-option,
+  .gift-option:hover:not(:disabled),
+  .gift-switch,
+  .gift-switch-knob {
+    animation: none;
     transform: none;
     transition: none;
   }
