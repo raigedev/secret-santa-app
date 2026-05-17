@@ -58,14 +58,14 @@ export function DashboardGroupsSection({
           <button
             type="button"
             onClick={onCreateGroup}
-            className={`inline-flex min-h-11 items-center justify-center gap-2 rounded-full px-4 text-sm font-extrabold transition hover:-translate-y-0.5 active:translate-y-0 ${
-              isDarkTheme
-                ? "bg-red-500/12 text-red-200"
-                : "bg-white text-[#48664e] shadow-[inset_0_0_0_1px_rgba(72,102,78,0.18),0_10px_24px_rgba(46,52,50,0.05)]"
+            className={`gift-button gift-button-compact ${
+              isDarkTheme ? "gift-button-gold" : "gift-button-secondary"
             }`}
           >
             New group
-            <ArrowRightIcon className="h-3.5 w-3.5" />
+            <span className="gift-button-icon" aria-hidden="true">
+              <ArrowRightIcon className="h-3.5 w-3.5" />
+            </span>
           </button>
         )}
       </div>
@@ -95,10 +95,12 @@ export function DashboardGroupsSection({
               <button
                 type="button"
                 onClick={onCreateGroup}
-                className="mt-7 inline-flex min-h-12 items-center justify-center gap-2 rounded-full bg-[#48664e] px-6 text-[15px] font-extrabold text-white shadow-[0_16px_32px_rgba(72,102,78,0.18)] transition hover:-translate-y-0.5 active:translate-y-0"
+                className="gift-button gift-button-primary gift-button-wide mt-7 text-[15px]"
               >
                 Create group
-                <ArrowRightIcon />
+                <span className="gift-button-icon" aria-hidden="true">
+                  <ArrowRightIcon />
+                </span>
               </button>
             </div>
 

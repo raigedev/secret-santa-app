@@ -2,9 +2,29 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import {
+  AUTH_FIELD_CLASS_NAME,
+  AuthHeroPanel,
+  AuthPageFrame,
+} from "@/app/components/AuthPageShell";
 import { getPasswordPolicyMessage, PASSWORD_POLICY_HELP_TEXT } from "@/lib/auth/password-policy";
 import { clearAppSessionStorage } from "@/lib/client-snapshot";
 import { createClient } from "@/lib/supabase/client";
+
+const RESET_PASSWORD_MARKERS = [
+  {
+    title: "Choose a fresh password",
+    copy: "Use a phrase you do not reuse on other sites.",
+  },
+  {
+    title: "We sign you out",
+    copy: "After saving, you will log in again with the new password.",
+  },
+  {
+    title: "Keep it private",
+    copy: "Never share reset links or passwords with anyone.",
+  },
+] as const;
 
 export default function ResetPasswordPage() {
   const router = useRouter();
@@ -38,31 +58,69 @@ export default function ResetPasswordPage() {
   };
 
   return (
-    <main className="flex min-h-screen flex-col items-center justify-center bg-gradient-to-br from-blue-100 to-white px-4 py-12 sm:px-6">
-      <div className="w-full max-w-md rounded-lg bg-white p-5 text-center shadow-lg sm:p-6">
-        <h1 className="mb-4 flex items-center justify-center text-2xl font-bold text-red-600 sm:text-[28px]">
-          Reset Password
-        </h1>
+    <AuthPageFrame>
+      <AuthHeroPanel
+        badge="Password reset"
+        title="Choose your new password."
+        titleClassName="lg:text-[3.2rem]"
+        description="Set a strong password, then sign in again with the new one."
+        supportingCopy="This page only works from a valid reset email link."
+        detailEyebrow="Account safety"
+        detailTitle="A longer password phrase is easier to remember and harder to guess."
+        markers={RESET_PASSWORD_MARKERS}
+      />
 
-        <input
-          type="password"
-          placeholder="Enter your new password"
-          className="mb-3 w-full rounded border-2 border-red-600 bg-white p-3 text-black shadow-sm focus:outline-none focus:ring-2 focus:ring-red-500"
-          value={newPassword}
-          onChange={(event) => setNewPassword(event.target.value)}
-        />
+      <section className="rounded-[1.9rem] bg-white px-5 py-6 sm:px-8 sm:py-8 lg:px-10 lg:py-10">
+        <div className="mx-auto w-full max-w-xl">
+          <div className="inline-flex items-center gap-2 rounded-full bg-[#fcce72]/28 px-3 py-1.5 text-sm font-semibold text-[#5f4500]">
+            Account security
+          </div>
+          <h1 className="mt-4 font-[Plus_Jakarta_Sans] text-3xl font-black tracking-tighter text-[#2e3432] sm:text-4xl">
+            Reset Password
+          </h1>
+          <p className="mt-3 text-[15px] leading-7 text-[#5b605e] sm:text-base">
+            Enter the new password you want to use for your Secret Santa account.
+          </p>
 
-        <p className="mb-4 text-xs text-gray-500">{PASSWORD_POLICY_HELP_TEXT}</p>
+          <div className="mt-8 space-y-5">
+            <div>
+              <label htmlFor="reset-password-new-password" className="text-sm font-semibold text-[#2e3432]">
+                New password
+              </label>
+              <input
+                id="reset-password-new-password"
+                type="password"
+                autoComplete="new-password"
+                placeholder="Enter your new password"
+                className={AUTH_FIELD_CLASS_NAME}
+                value={newPassword}
+                onChange={(event) => setNewPassword(event.target.value)}
+              />
+            </div>
 
-        <button
-          onClick={handleUpdatePassword}
-          className="w-full rounded bg-red-600 px-4 py-2 text-white transition hover:bg-red-700"
-        >
-          Save New Password
-        </button>
+            <div className="rounded-[1.35rem] bg-[#f2f4f2] px-4 py-3 text-sm leading-6 text-[#5b605e]">
+              {PASSWORD_POLICY_HELP_TEXT}
+            </div>
 
-        {message && <p className="mt-4 text-green-600">{message}</p>}
-      </div>
-    </main>
+            <button
+              type="button"
+              onClick={handleUpdatePassword}
+              className="gift-button gift-button-red gift-button-full gift-button-wide py-4 text-base"
+            >
+              Save New Password
+            </button>
+
+            {message && (
+              <div
+                role={message.includes("could not") ? "alert" : "status"}
+                className="rounded-[1.35rem] bg-[#eef8f0] px-4 py-3 text-sm leading-6 text-[#315238]"
+              >
+                {message}
+              </div>
+            )}
+          </div>
+        </div>
+      </section>
+    </AuthPageFrame>
   );
 }

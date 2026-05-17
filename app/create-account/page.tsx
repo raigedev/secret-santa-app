@@ -256,7 +256,7 @@ function CreateAccountPageInner() {
             <button
               type="submit"
               disabled={!formReady || isSubmitting}
-              className="w-full rounded-full bg-[linear-gradient(135deg,#48664e_0%,#3c5a43_100%)] px-6 py-4 text-base font-semibold text-[#f7fbf8] shadow-[0_24px_55px_rgba(60,90,67,0.18)] transition hover:-translate-y-0.5 hover:shadow-[0_30px_60px_rgba(60,90,67,0.24)] disabled:translate-y-0 disabled:cursor-not-allowed disabled:opacity-70 disabled:shadow-none"
+              className="gift-button gift-button-primary gift-button-full gift-button-wide py-4 text-base"
             >
               {isSubmitting ? "Sending confirmation..." : "Sign up"}
             </button>
@@ -309,7 +309,7 @@ function CreateAccountPageInner() {
             <button
               type="button"
               onClick={() => router.push(`/login?next=${encodeURIComponent(nextPath)}`)}
-              className="w-full rounded-full bg-[linear-gradient(135deg,#a43c3f_0%,#943034_100%)] px-6 py-4 text-base font-semibold text-[#fff7f6] shadow-[0_24px_55px_rgba(164,60,63,0.18)] transition hover:-translate-y-0.5 hover:shadow-[0_30px_60px_rgba(164,60,63,0.24)]"
+              className="gift-button gift-button-red gift-button-full gift-button-wide py-4 text-base"
             >
               Continue to sign in
             </button>

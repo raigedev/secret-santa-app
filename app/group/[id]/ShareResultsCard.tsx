@@ -429,12 +429,7 @@ export default function ShareResultsCard(props: ShareResultsCardProps) {
           type="button"
           onClick={handleDownload}
           disabled={busyAction !== null}
-          className="px-5 py-2.5 rounded-xl text-sm font-extrabold text-white"
-          style={{
-            background: busyAction === "download" ? "#94a3b8" : "linear-gradient(135deg,#1d4ed8,#3b82f6)",
-            border: "none",
-            cursor: busyAction !== null ? "not-allowed" : "pointer",
-          }}
+          className="gift-button gift-button-primary gift-button-compact text-sm"
         >
           {busyAction === "download" ? "Preparing..." : "Download Card"}
         </button>
@@ -443,12 +438,7 @@ export default function ShareResultsCard(props: ShareResultsCardProps) {
           type="button"
           onClick={handleShare}
           disabled={busyAction !== null}
-          className="px-5 py-2.5 rounded-xl text-sm font-extrabold text-white"
-          style={{
-            background: busyAction === "share" ? "#94a3b8" : "linear-gradient(135deg,#15803d,#22c55e)",
-            border: "none",
-            cursor: busyAction !== null ? "not-allowed" : "pointer",
-          }}
+          className="gift-button gift-button-red gift-button-compact text-sm"
         >
           {busyAction === "share" ? "Preparing..." : "Share Card"}
         </button>
@@ -457,13 +447,7 @@ export default function ShareResultsCard(props: ShareResultsCardProps) {
           type="button"
           onClick={handleCopyCaption}
           disabled={busyAction !== null}
-          className="px-5 py-2.5 rounded-xl text-sm font-extrabold"
-          style={{
-            background: "rgba(15,23,42,.05)",
-            color: "#14532d",
-            border: "1px solid rgba(21,128,61,.16)",
-            cursor: busyAction !== null ? "not-allowed" : "pointer",
-          }}
+          className="gift-button gift-button-secondary gift-button-compact text-sm"
         >
           {busyAction === "copy" ? "Copying..." : "Copy Caption"}
         </button>

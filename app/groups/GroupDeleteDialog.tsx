@@ -150,7 +150,7 @@ export function GroupDeleteDialog({
             type="button"
             onClick={onCancel}
             disabled={deleting}
-            className="inline-flex min-h-11 items-center justify-center rounded-full bg-slate-100 px-5 text-sm font-black text-slate-700 transition hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-60"
+            className="gift-button gift-button-secondary gift-button-compact text-sm"
           >
             Keep group
           </button>
@@ -158,7 +158,7 @@ export function GroupDeleteDialog({
             type="button"
             onClick={onConfirm}
             disabled={deleting || !confirmationMatches}
-            className="inline-flex min-h-11 items-center justify-center rounded-full bg-[#a43c3f] px-5 text-sm font-black text-white shadow-[0_14px_28px_rgba(164,60,63,0.18)] transition hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-60"
+            className="gift-button gift-button-red gift-button-compact text-sm"
           >
             {deleting ? "Deleting" : "Delete forever"}
           </button>

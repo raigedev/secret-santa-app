@@ -1282,7 +1282,7 @@ function LazadaHealthCheckCard({
         <form action="/api/affiliate/lazada/test-postback" method="post">
           <button
             type="submit"
-            className="inline-flex items-center rounded-full bg-slate-900 px-5 py-3 text-sm font-semibold text-white shadow-[0_14px_35px_rgba(15,23,42,0.18)] transition hover:-translate-y-0.5"
+            className="gift-button gift-button-primary gift-button-compact text-sm"
           >
             Run test report
           </button>
@@ -1768,7 +1768,7 @@ export default async function AffiliateReportPage({
             </Link>
             <Link
               href="/secret-santa"
-              className="inline-flex items-center gap-2 rounded-full bg-[linear-gradient(135deg,#2f80ff,#1f66e5)] px-4 py-2.5 text-sm font-semibold text-white shadow-[0_14px_35px_rgba(37,99,235,0.22)] transition hover:-translate-y-0.5"
+              className="gift-button gift-button-primary gift-button-compact text-sm"
             >
               Open shopping flow
             </Link>
@@ -1816,7 +1816,7 @@ export default async function AffiliateReportPage({
 
             <button
               type="submit"
-              className="inline-flex items-center rounded-full bg-[linear-gradient(135deg,#2f80ff,#1f66e5)] px-5 py-3 text-sm font-semibold text-white shadow-[0_14px_35px_rgba(37,99,235,0.22)] transition hover:-translate-y-0.5"
+              className="gift-button gift-button-primary gift-button-compact text-sm"
             >
               Apply filters
             </button>
@@ -1824,7 +1824,7 @@ export default async function AffiliateReportPage({
             {(windowFilter !== "30d" || routeFilter !== "all") && (
               <Link
                 href="/dashboard/affiliate-report"
-                className="inline-flex items-center rounded-full border border-slate-200 bg-white px-5 py-3 text-sm font-semibold text-slate-700 shadow-sm transition hover:-translate-y-0.5"
+                className="gift-button gift-button-secondary gift-button-compact text-sm"
               >
                 Reset
               </Link>

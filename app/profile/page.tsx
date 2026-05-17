@@ -571,11 +571,8 @@ export default function ProfilePage() {
 
           <div className="mt-4 flex flex-wrap items-center justify-center gap-2">
             <label
-              className="w-full cursor-pointer rounded-[10px] px-4 py-2 text-[13px] font-bold transition sm:w-auto"
+              className="gift-button gift-button-secondary gift-button-compact w-full cursor-pointer text-[13px] sm:w-auto"
               style={{
-                background: "rgba(59,130,246,.08)",
-                color: "#2563eb",
-                border: "1px solid rgba(37,99,235,.15)",
                 fontFamily: "inherit",
               }}
             >
@@ -592,11 +589,8 @@ export default function ProfilePage() {
               <button
                 type="button"
                 onClick={handleRemovePhoto}
-                className="w-full rounded-[10px] px-4 py-2 text-[13px] font-bold transition sm:w-auto"
+                className="gift-button gift-button-secondary gift-button-compact w-full text-[13px] sm:w-auto"
                 style={{
-                  background: "rgba(0,0,0,.03)",
-                  color: "#6b7280",
-                  border: "1px solid rgba(0,0,0,.06)",
                   fontFamily: "inherit",
                 }}
               >
@@ -675,7 +669,7 @@ export default function ProfilePage() {
             <div className="flex gap-2 flex-wrap">
               {BUDGET_OPTIONS.map((amount) => (
                 <button key={amount} onClick={() => { update("default_budget", amount); setCustomBudget(false); }}
-                  className="px-4 py-2 rounded-[10px] text-[13px] font-bold transition"
+                  className="gift-button gift-button-compact text-[13px]"
                   style={{
                     border: `2px solid ${!customBudget && profile.default_budget === amount ? "#c0392b" : "#e5e7eb"}`,
                     background: !customBudget && profile.default_budget === amount ? "#fef2f2" : "#fff",
@@ -686,7 +680,7 @@ export default function ProfilePage() {
                 </button>
               ))}
               <button onClick={() => setCustomBudget(true)}
-                className="px-4 py-2 rounded-[10px] text-[13px] font-bold transition"
+                className="gift-button gift-button-compact text-[13px]"
                 style={{
                   border: `2px solid ${customBudget ? "#c0392b" : "#e5e7eb"}`,
                   background: customBudget ? "#fef2f2" : "#fff",
@@ -860,12 +854,9 @@ export default function ProfilePage() {
             </p>
           )}
           <button onClick={handleSave} disabled={saving}
-            className="w-full rounded-[14px] px-8 py-3.5 text-[16px] font-extrabold text-white transition sm:w-auto sm:px-12"
+            className="gift-button gift-button-primary gift-button-wide w-full py-3.5 text-[16px] sm:w-auto sm:px-12"
             style={{
-              background: saving ? "#9ca3af" : "linear-gradient(135deg,#c0392b,#e74c3c)",
-              border: "none", cursor: saving ? "not-allowed" : "pointer",
               fontFamily: "inherit",
-              boxShadow: saving ? "none" : "0 4px 20px rgba(192,57,43,.25)",
             }}>
             {saving ? "Saving..." : "Save Changes"}
           </button>
@@ -877,14 +868,14 @@ export default function ProfilePage() {
           <h2 className="text-[18px] font-bold mb-3" style={{ fontFamily: "'Fredoka', sans-serif", color: "#dc2626" }}>Account actions</h2>
           <div className="flex flex-wrap gap-2">
             <button onClick={() => router.push("/reset-password")}
-              className="w-full rounded-[10px] px-5 py-2.5 text-[13px] font-bold transition sm:w-auto"
-              style={{ background: "rgba(220,38,38,.06)", color: "#dc2626", border: "1px solid rgba(220,38,38,.15)", cursor: "pointer", fontFamily: "inherit" }}>
+              className="gift-button gift-button-danger gift-button-compact w-full text-[13px] sm:w-auto"
+              style={{ fontFamily: "inherit" }}>
               Change password
             </button>
             <button onClick={() => void handleDeleteAccount()}
               disabled={deletingAccount}
-              className="w-full rounded-[10px] px-5 py-2.5 text-[13px] font-bold transition sm:w-auto"
-              style={{ background: "rgba(220,38,38,.06)", color: "#dc2626", border: "1px solid rgba(220,38,38,.15)", cursor: deletingAccount ? "not-allowed" : "pointer", fontFamily: "inherit", opacity: deletingAccount ? 0.7 : 1 }}>
+              className="gift-button gift-button-red gift-button-compact w-full text-[13px] sm:w-auto"
+              style={{ fontFamily: "inherit" }}>
               Delete account
             </button>
           </div>

@@ -75,6 +75,214 @@ body {
   backdrop-filter: blur(16px);
 }
 
+.gift-button {
+  align-items: center;
+  border: 1px solid transparent;
+  border-radius: 999px;
+  cursor: pointer;
+  display: inline-flex;
+  font-weight: 900;
+  gap: 0.55rem;
+  isolation: isolate;
+  justify-content: center;
+  letter-spacing: 0;
+  line-height: 1.1;
+  min-height: 44px;
+  padding: 0.72rem 1.1rem;
+  position: relative;
+  text-align: center;
+  text-decoration: none;
+  transform: translateZ(0);
+  transition:
+    transform 160ms ease,
+    box-shadow 160ms ease,
+    background 160ms ease,
+    border-color 160ms ease,
+    color 160ms ease,
+    opacity 160ms ease;
+  white-space: normal;
+}
+
+.gift-button::before {
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.36), rgba(255, 255, 255, 0));
+  border-radius: inherit;
+  content: "";
+  height: 46%;
+  inset: 1px 2px auto;
+  opacity: 0.72;
+  pointer-events: none;
+  position: absolute;
+}
+
+.gift-button:hover:not(:disabled):not([aria-disabled="true"]) {
+  transform: translateY(-1px);
+}
+
+.gift-button:active:not(:disabled):not([aria-disabled="true"]) {
+  transform: translateY(0) scale(0.985);
+}
+
+.gift-button:focus-visible {
+  outline: 3px solid rgba(217, 174, 86, 0.32);
+  outline-offset: 3px;
+}
+
+.gift-button:disabled,
+.gift-button[aria-disabled="true"] {
+  cursor: not-allowed;
+  filter: saturate(0.78);
+  opacity: 0.62;
+  transform: none;
+}
+
+.gift-button-primary {
+  background: linear-gradient(180deg, #5b7a62 0%, #48664e 55%, #344d3a 100%);
+  border-color: rgba(46, 52, 50, 0.1);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.28),
+    inset 0 -2px 0 rgba(31, 49, 36, 0.18),
+    0 15px 30px rgba(72, 102, 78, 0.22);
+  color: #fffdf7;
+}
+
+.gift-button-primary:hover:not(:disabled):not([aria-disabled="true"]) {
+  background: linear-gradient(180deg, #63866a 0%, #4f7156 54%, #395641 100%);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.32),
+    inset 0 -2px 0 rgba(31, 49, 36, 0.18),
+    0 18px 36px rgba(72, 102, 78, 0.26);
+}
+
+.gift-button-red {
+  background: linear-gradient(180deg, #bd5050 0%, #a43c3f 56%, #812b2f 100%);
+  border-color: rgba(129, 34, 39, 0.12);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.26),
+    inset 0 -2px 0 rgba(129, 34, 39, 0.18),
+    0 15px 30px rgba(164, 60, 63, 0.22);
+  color: #fff7f6;
+}
+
+.gift-button-red:hover:not(:disabled):not([aria-disabled="true"]) {
+  background: linear-gradient(180deg, #ca5a5a 0%, #af4548 56%, #8b3035 100%);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.3),
+    inset 0 -2px 0 rgba(129, 34, 39, 0.18),
+    0 18px 36px rgba(164, 60, 63, 0.26);
+}
+
+.gift-button-gold {
+  background: linear-gradient(180deg, #ffe39c 0%, #d9ae56 56%, #b8822e 100%);
+  border-color: rgba(123, 89, 2, 0.12);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.45),
+    inset 0 -2px 0 rgba(123, 89, 2, 0.16),
+    0 15px 30px rgba(217, 174, 86, 0.24);
+  color: #3f2b00;
+}
+
+.gift-button-secondary {
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.94), rgba(248, 251, 247, 0.78));
+  border-color: rgba(72, 102, 78, 0.17);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.72),
+    0 10px 24px rgba(46, 52, 50, 0.06);
+  color: #48664e;
+}
+
+.gift-button-secondary:hover:not(:disabled):not([aria-disabled="true"]) {
+  background: linear-gradient(180deg, rgba(255, 255, 255, 1), rgba(239, 247, 240, 0.9));
+  border-color: rgba(72, 102, 78, 0.26);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.78),
+    0 14px 28px rgba(46, 52, 50, 0.08);
+}
+
+.gift-button-neutral {
+  background: linear-gradient(180deg, #ffffff, #f4f6f3);
+  border-color: rgba(46, 52, 50, 0.1);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.76),
+    0 12px 26px rgba(46, 52, 50, 0.07);
+  color: #2e3432;
+}
+
+.gift-button-danger {
+  background: linear-gradient(180deg, #fffdfd, #fff3f3);
+  border-color: rgba(164, 60, 63, 0.18);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.78),
+    0 10px 24px rgba(164, 60, 63, 0.08);
+  color: #a43c3f;
+}
+
+.gift-button-danger:hover:not(:disabled):not([aria-disabled="true"]) {
+  background: linear-gradient(180deg, #fff8f8, #ffecec);
+  border-color: rgba(164, 60, 63, 0.28);
+  color: #812227;
+}
+
+.gift-button-ghost {
+  background: transparent;
+  border-color: transparent;
+  box-shadow: none;
+  color: #a43c3f;
+}
+
+.gift-button-ghost::before {
+  display: none;
+}
+
+.gift-button-ghost:hover:not(:disabled):not([aria-disabled="true"]) {
+  background: rgba(164, 60, 63, 0.08);
+  box-shadow: none;
+}
+
+.gift-button-full {
+  width: 100%;
+}
+
+.gift-button-wide {
+  padding-inline: 1.5rem;
+}
+
+.gift-button-compact {
+  min-height: 44px;
+  padding: 0.55rem 0.9rem;
+}
+
+.gift-button-icon {
+  align-items: center;
+  background: rgba(255, 255, 255, 0.18);
+  border-radius: 999px;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.14);
+  display: inline-flex;
+  height: 28px;
+  justify-content: center;
+  min-width: 28px;
+}
+
+.gift-button-secondary .gift-button-icon,
+.gift-button-neutral .gift-button-icon {
+  background: rgba(72, 102, 78, 0.09);
+  box-shadow: inset 0 0 0 1px rgba(72, 102, 78, 0.1);
+}
+
+.gift-button-danger .gift-button-icon,
+.gift-button-ghost .gift-button-icon {
+  background: rgba(164, 60, 63, 0.1);
+  box-shadow: inset 0 0 0 1px rgba(164, 60, 63, 0.09);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .gift-button,
+  .gift-button:hover:not(:disabled):not([aria-disabled="true"]),
+  .gift-button:active:not(:disabled):not([aria-disabled="true"]) {
+    transform: none;
+    transition: none;
+  }
+}
+
 button,
 [role="button"],
 a[href],

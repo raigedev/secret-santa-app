@@ -113,16 +113,14 @@ export function GroupRouteError({
           <button
             type="button"
             onClick={reset}
-            className="px-5 py-2.5 rounded-xl text-sm font-extrabold text-white"
-            style={{ background: "linear-gradient(135deg,#2563eb,#3b82f6)", border: "none" }}
+            className="gift-button gift-button-red gift-button-compact text-sm"
           >
             Try again
           </button>
           <button
             type="button"
             onClick={handleSecondaryAction}
-            className="px-5 py-2.5 rounded-xl text-sm font-extrabold"
-            style={copy.secondaryButtonStyle}
+            className="gift-button gift-button-secondary gift-button-compact text-sm"
           >
             {copy.secondaryLabel}
           </button>

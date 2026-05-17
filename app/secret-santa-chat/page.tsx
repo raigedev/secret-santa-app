@@ -1836,15 +1836,7 @@ export default function SecretSantaChatPage() {
                       type="button"
                       onClick={handleSend}
                       disabled={!msgInput.trim()}
-                      className="inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-full px-6 text-sm font-black transition hover:-translate-y-0.5 focus-visible:outline-2 focus-visible:outline-offset-2 disabled:cursor-not-allowed disabled:opacity-55 sm:w-auto"
-                      style={{
-                        background: msgInput.trim() ? CHAT_GREEN : "rgba(72,102,78,.12)",
-                        color: msgInput.trim() ? "#fffefa" : "rgba(46,52,50,.48)",
-                        border: "1px solid rgba(72,102,78,.12)",
-                        fontFamily: "inherit",
-                        boxShadow: msgInput.trim() ? "0 16px 28px rgba(72,102,78,.18)" : "none",
-                        outlineColor: CHAT_GREEN,
-                      }}
+                      className="gift-button gift-button-primary gift-button-wide w-full text-sm sm:w-auto"
                     >
                       Send
                       <ArrowRightIcon />

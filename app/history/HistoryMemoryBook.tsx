@@ -157,12 +157,12 @@ export function HistoryMemoryBook({
                             )}
                           </div>
                         </div>
-                        <button
-                          type="button"
-                          onClick={() => void onDeleteWishlistItem(item.id, item.item_name)}
-                          disabled={deletingWishlistItemId === item.id}
-                          className="inline-flex min-h-10 shrink-0 items-center justify-center gap-2 rounded-full px-4 text-sm font-black text-[#a43c3f] transition hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-55"
-                        >
+                <button
+                  type="button"
+                  onClick={() => void onDeleteWishlistItem(item.id, item.item_name)}
+                  disabled={deletingWishlistItemId === item.id}
+                  className="gift-button gift-button-danger gift-button-compact shrink-0 text-sm"
+                >
                           <TrashIcon />
                           {deletingWishlistItemId === item.id ? "Deleting" : "Delete permanently"}
                         </button>
@@ -219,7 +219,7 @@ export function HistoryMemoryBook({
                 ))}
               </div>
 
-              <button type="button" onClick={() => onOpenGroup(selectedGroup.id)} className="mt-6 inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-full bg-[#48664e] px-5 text-sm font-black text-white shadow-[0_14px_30px_rgba(72,102,78,.22)] transition hover:-translate-y-0.5">
+              <button type="button" onClick={() => onOpenGroup(selectedGroup.id)} className="gift-button gift-button-primary gift-button-full mt-6 text-sm">
                 View result card
                 <ArrowRightIcon />
               </button>
@@ -228,7 +228,7 @@ export function HistoryMemoryBook({
                   type="button"
                   onClick={() => void onDeleteGroup(selectedGroup.id, selectedGroup.name)}
                   disabled={deletingGroupId === selectedGroup.id}
-                  className="mt-3 inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-full bg-[#a43c3f]/10 px-5 text-sm font-black text-[#a43c3f] transition hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-60"
+                  className="gift-button gift-button-danger gift-button-full mt-3 text-sm"
                 >
                   <TrashIcon />
                   {deletingGroupId === selectedGroup.id ? "Deleting exchange" : "Delete exchange"}

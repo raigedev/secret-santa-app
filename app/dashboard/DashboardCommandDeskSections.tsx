@@ -187,7 +187,7 @@ export function HelperRail({
           </div>
         ))}
       </div>
-      <button type="button" onClick={() => onOpenPath("/notifications")} className={`mt-6 inline-flex min-h-11 w-full items-center justify-center rounded-full text-sm font-black ${getSoftClass(isDarkTheme)}`}>
+      <button type="button" onClick={() => onOpenPath("/notifications")} className="gift-button gift-button-secondary gift-button-full gift-button-compact mt-6 text-sm">
         Open notification center
       </button>
     </aside>

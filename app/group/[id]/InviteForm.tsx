@@ -149,7 +149,7 @@ export default function InviteForm({ groupId }: { groupId: string }) {
             />
             <button
               type="submit"
-              className="inline-flex min-h-11 items-center justify-center rounded-full bg-[#48664e] px-5 text-sm font-black text-white shadow-[0_14px_28px_rgba(72,102,78,.18)] transition hover:-translate-y-0.5 hover:bg-[#3c5a43]"
+              className="gift-button gift-button-primary gift-button-compact text-sm"
             >
               Invite
             </button>
@@ -198,11 +198,7 @@ export default function InviteForm({ groupId }: { groupId: string }) {
             type="button"
             onClick={handleCreateInviteLink}
             disabled={linkLoading !== "idle"}
-            className={`min-h-10 rounded-full px-4 text-sm font-black text-white transition ${
-              linkLoading === "idle"
-                ? "bg-[#48664e] hover:-translate-y-0.5 hover:bg-[#3c5a43]"
-                : "cursor-not-allowed bg-slate-400"
-            }`}
+            className="gift-button gift-button-primary gift-button-compact text-sm"
           >
             {linkLoading === "creating"
               ? "Creating..."
@@ -215,11 +211,7 @@ export default function InviteForm({ groupId }: { groupId: string }) {
             type="button"
             onClick={handleRevokeInviteLink}
             disabled={linkLoading !== "idle"}
-            className={`min-h-10 rounded-full px-4 text-sm font-black transition ${
-              linkLoading === "idle"
-                ? "bg-[#fff7f6] text-[#a43c3f] ring-1 ring-[#a43c3f]/15 hover:-translate-y-0.5"
-                : "cursor-not-allowed bg-slate-100 text-slate-400"
-            }`}
+            className="gift-button gift-button-danger gift-button-compact text-sm"
           >
             {linkLoading === "revoking" ? "Turning off..." : "Turn off link"}
           </button>

@@ -253,7 +253,7 @@ export default function RemindersPage() {
               type="button"
               onClick={handleSave}
               disabled={saving || loadingPreferences}
-              className="inline-flex min-h-12 items-center justify-center rounded-full bg-[#48664e] px-6 text-[14px] font-black text-white shadow-[0_18px_34px_rgba(72,102,78,.18)] transition hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-60"
+              className="gift-button gift-button-primary gift-button-wide text-[14px]"
             >
               {loadingPreferences ? "Loading choices..." : saving ? "Saving..." : "Save settings"}
             </button>
@@ -356,7 +356,7 @@ export default function RemindersPage() {
                 type="button"
                 data-testid="dashboard-theme-preference-toggle"
                 onClick={toggleDashboardTheme}
-                className="mt-5 inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-full border px-4 text-[13px] font-black transition hover:-translate-y-0.5"
+                className="gift-button gift-button-full gift-button-compact mt-5 text-[13px]"
                 style={{
                   background: isMidnightTheme ? "rgba(252,206,114,.14)" : "#fff",
                   borderColor: isMidnightTheme ? "rgba(252,206,114,.24)" : "rgba(72,102,78,.18)",
@@ -364,7 +364,9 @@ export default function RemindersPage() {
                 }}
                 aria-pressed={isMidnightTheme}
               >
-                <ThemeIcon dark={isMidnightTheme} className="h-4 w-4" />
+                <span className="gift-button-icon" aria-hidden="true">
+                  <ThemeIcon dark={isMidnightTheme} className="h-4 w-4" />
+                </span>
                 {isMidnightTheme ? "Use light mode" : "Use dark mode"}
               </button>
             </div>
@@ -380,7 +382,7 @@ export default function RemindersPage() {
                 type="button"
                 data-testid="santa-assistant-preference-toggle"
                 onClick={toggleAssistant}
-                className="mt-5 inline-flex min-h-11 w-full items-center justify-center rounded-full border px-4 text-[13px] font-black transition hover:-translate-y-0.5"
+                className="gift-button gift-button-full gift-button-compact mt-5 text-[13px]"
                 style={{
                   background: isMidnightTheme ? "rgba(255,255,255,.08)" : "#fff",
                   borderColor: isMidnightTheme ? "rgba(148,163,184,.24)" : "rgba(72,102,78,.18)",

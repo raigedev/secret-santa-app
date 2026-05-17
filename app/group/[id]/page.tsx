@@ -823,15 +823,14 @@ export default function GroupDetailsPage() {
       <FadeIn className="relative z-10 mx-auto max-w-376 px-4 py-5 sm:px-6 sm:py-6">
         <button
           onClick={() => router.push("/groups")}
-          className="mb-4 inline-flex min-h-10 w-full items-center justify-center gap-2 rounded-full px-4 text-sm font-bold transition hover:-translate-y-0.5 sm:w-auto"
+          className="gift-button gift-button-secondary gift-button-compact mb-4 w-full text-sm sm:w-auto"
           style={{
-            color: "#48664e",
-            background: "rgba(255,255,255,.72)",
-            border: "1px solid rgba(72,102,78,.15)",
             fontFamily: "inherit",
           }}
         >
-          <ChevronLeftIcon />
+          <span className="gift-button-icon" aria-hidden="true">
+            <ChevronLeftIcon />
+          </span>
           Back to groups
         </button>
 
@@ -880,9 +879,11 @@ export default function GroupDetailsPage() {
                 <button
                   type="button"
                   onClick={openEditModal}
-                  className="inline-flex min-h-11 items-center justify-center gap-2 rounded-full bg-white px-5 text-sm font-black text-[#2e3432] shadow-[inset_0_0_0_1px_rgba(72,102,78,.12)] transition hover:-translate-y-0.5"
+                  className="gift-button gift-button-secondary gift-button-compact text-sm"
                 >
-                  <EditPencilIcon />
+                  <span className="gift-button-icon" aria-hidden="true">
+                    <EditPencilIcon />
+                  </span>
                   Edit group
                 </button>
               ) : (
@@ -890,7 +891,7 @@ export default function GroupDetailsPage() {
                   type="button"
                   onClick={openLeaveModal}
                   disabled={drawDone}
-                  className="inline-flex min-h-11 items-center justify-center rounded-full bg-[#fff4df] px-5 text-sm font-black text-[#7b5902] transition hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-60"
+                  className="gift-button gift-button-gold gift-button-compact text-sm"
                 >
                   {drawDone ? "Group locked" : "Leave group"}
                 </button>
@@ -1036,22 +1037,9 @@ export default function GroupDetailsPage() {
                       <button
                         onClick={handleResetDraw}
                         disabled={resetLoading || drawLoading}
-                        className="px-6 py-2.5 rounded-xl text-sm font-extrabold text-white transition"
-                        style={{
-                          background:
-                            resetLoading || drawLoading
-                              ? "#9ca3af"
-                              : "linear-gradient(135deg,#dc2626,#ef4444)",
-                          boxShadow:
-                            resetLoading || drawLoading
-                              ? "none"
-                              : "0 4px 16px rgba(220,38,38,.25)",
-                          cursor: resetLoading || drawLoading ? "not-allowed" : "pointer",
-                          fontFamily: "inherit",
-                          border: "none",
-                        }}
+                        className="gift-button gift-button-danger gift-button-compact text-sm"
                       >
-                        {resetLoading ? "↺ Resetting..." : "↺ Reset Draw"}
+                        {resetLoading ? "Resetting..." : "Reset draw"}
                       </button>
                     </div>
                   )}
@@ -1209,18 +1197,7 @@ export default function GroupDetailsPage() {
                           type="button"
                           onClick={handleAddDrawRule}
                           disabled={drawRuleControlsDisabled}
-                          className="px-4 py-2.5 rounded-xl text-[13px] font-extrabold text-white"
-                          style={{
-                            background:
-                              drawRuleControlsDisabled
-                                ? "#9ca3af"
-                                : "linear-gradient(135deg,#b91c1c,#ef4444)",
-                            border: "none",
-                            cursor:
-                              drawRuleControlsDisabled
-                                ? "not-allowed"
-                                : "pointer",
-                          }}
+                          className="gift-button gift-button-danger gift-button-compact text-[13px]"
                         >
                           {drawRuleSaving ? "Saving..." : "Add Rule"}
                         </button>
@@ -1353,13 +1330,7 @@ export default function GroupDetailsPage() {
                                   type="button"
                                   onClick={handleLoadMoreCycleHistory}
                                   disabled={drawCycleHistoryLoadingMore}
-                                  className="w-full rounded-lg px-3 py-2 text-[11px] font-extrabold"
-                                  style={{
-                                    background: "rgba(37,99,235,.08)",
-                                    color: "#1d4ed8",
-                                    border: "1px solid rgba(37,99,235,.18)",
-                                    cursor: drawCycleHistoryLoadingMore ? "not-allowed" : "pointer",
-                                  }}
+                                  className="gift-button gift-button-secondary gift-button-compact gift-button-full text-[11px]"
                                 >
                                   {drawCycleHistoryLoadingMore ? "Loading..." : "Load more draws"}
                                 </button>
@@ -1393,13 +1364,7 @@ export default function GroupDetailsPage() {
                                   type="button"
                                   onClick={handleLoadMoreResetHistory}
                                   disabled={drawResetHistoryLoadingMore}
-                                  className="w-full rounded-lg px-3 py-2 text-[11px] font-extrabold"
-                                  style={{
-                                    background: "rgba(249,115,22,.08)",
-                                    color: "#c2410c",
-                                    border: "1px solid rgba(249,115,22,.2)",
-                                    cursor: drawResetHistoryLoadingMore ? "not-allowed" : "pointer",
-                                  }}
+                                  className="gift-button gift-button-secondary gift-button-compact gift-button-full text-[11px]"
                                 >
                                   {drawResetHistoryLoadingMore ? "Loading..." : "Load more resets"}
                                 </button>
@@ -1426,38 +1391,13 @@ export default function GroupDetailsPage() {
                       <button
                         onClick={handleDraw}
                         disabled={!canDrawNames}
-                        className="relative overflow-hidden px-8 py-3 rounded-xl text-base font-extrabold text-white transition"
-                        style={{
-                          background:
-                            canDrawNames
-                              ? "linear-gradient(135deg,#7f1d1d,#991b1b)"
-                              : "#9ca3af",
-                          boxShadow:
-                            canDrawNames
-                              ? "0 4px 20px rgba(127,29,29,.3)"
-                              : "none",
-                          cursor:
-                            canDrawNames
-                              ? "pointer"
-                              : "not-allowed",
-                          fontFamily: "inherit",
-                        }}
+                        className="gift-button gift-button-red gift-button-wide text-base"
                       >
                         {drawLoading
-                          ? "🎰 Drawing..."
+                          ? "Drawing..."
                           : drawRulesReady
-                            ? "🎲 Draw Names"
+                            ? "Draw names"
                             : "Loading draw rules..."}
-                        {canDrawNames && (
-                          <span
-                            className="absolute inset-0"
-                            style={{
-                              background:
-                                "linear-gradient(90deg,transparent,rgba(255,255,255,.15),transparent)",
-                              animation: "shimmer 2s infinite",
-                            }}
-                          />
-                        )}
                       </button>
                     </div>
                   ) : (
@@ -1553,25 +1493,9 @@ export default function GroupDetailsPage() {
                         <button
                           onClick={handleTriggerReveal}
                           disabled={revealLoading || drawLoading || resetLoading}
-                          className="px-6 py-2.5 rounded-xl text-sm font-extrabold text-white transition"
-                          style={{
-                            background:
-                              revealLoading || drawLoading || resetLoading
-                                ? "#9ca3af"
-                                : "linear-gradient(135deg,#15803d,#22c55e)",
-                            boxShadow:
-                              revealLoading || drawLoading || resetLoading
-                                ? "none"
-                                : "0 4px 16px rgba(34,197,94,.22)",
-                            cursor:
-                              revealLoading || drawLoading || resetLoading
-                                ? "not-allowed"
-                                : "pointer",
-                            border: "none",
-                            fontFamily: "inherit",
-                          }}
+                          className="gift-button gift-button-primary gift-button-compact text-sm"
                         >
-                          {revealLoading ? "🎉 Revealing..." : "🎉 Reveal Matches"}
+                          {revealLoading ? "Revealing..." : "Reveal matches"}
                         </button>
 
                         <span className="text-[11px] font-semibold" style={{ color: "#64748b" }}>
@@ -1581,13 +1505,7 @@ export default function GroupDetailsPage() {
                         <button
                           type="button"
                           onClick={() => router.push(`/group/${id}/reveal`)}
-                          className="px-5 py-2.5 rounded-xl text-sm font-extrabold"
-                          style={{
-                            background: "rgba(15,23,42,.05)",
-                            color: "#14532d",
-                            border: "1px solid rgba(21,128,61,.16)",
-                            fontFamily: "inherit",
-                          }}
+                          className="gift-button gift-button-secondary gift-button-compact text-sm"
                         >
                           Open Event Reveal Screen
                         </button>
@@ -1616,13 +1534,7 @@ export default function GroupDetailsPage() {
                       <button
                         type="button"
                         onClick={() => router.push(`/group/${id}/reveal`)}
-                        className="mt-4 px-5 py-2.5 rounded-xl text-sm font-extrabold"
-                        style={{
-                          background: "rgba(29,78,216,.08)",
-                          color: "#1d4ed8",
-                          border: "1px solid rgba(59,130,246,.16)",
-                          fontFamily: "inherit",
-                        }}
+                        className="gift-button gift-button-secondary gift-button-compact mt-4 text-sm"
                       >
                         Join Event Reveal Screen
                       </button>
@@ -1943,7 +1855,7 @@ export default function GroupDetailsPage() {
                 <button
                   type="button"
                   onClick={openDeleteModal}
-                  className="rounded-full bg-[#fff7f6] px-4 py-2 text-xs font-black text-[#a43c3f] transition hover:-translate-y-0.5"
+                  className="gift-button gift-button-danger gift-button-compact text-xs"
                 >
                   Delete group
                 </button>

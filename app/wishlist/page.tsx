@@ -833,14 +833,16 @@ export default function WishlistPage() {
                     type="button"
                     onClick={handleAdd}
                     disabled={adding || selectedGroupAtLimit}
-                    className="inline-flex w-full items-center justify-center gap-2 rounded-full bg-[linear-gradient(135deg,#a43c3f,#943034)] px-5 py-3.5 text-sm font-black text-white shadow-[0_18px_42px_rgba(164,60,63,0.2)] transition hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-50"
+                    className="gift-button gift-button-red gift-button-full text-sm"
                   >
                     {adding
                       ? "Saving..."
                       : selectedGroupAtLimit
                         ? "Group full"
                         : "Add to Wishlist"}
-                    <ArrowRightIcon />
+                    <span className="gift-button-icon" aria-hidden="true">
+                      <ArrowRightIcon />
+                    </span>
                   </button>
                 </div>
               )}
@@ -978,7 +980,7 @@ export default function WishlistPage() {
                                   <button
                                     type="button"
                                     onClick={() => setEditingId(null)}
-                                    className="rounded-full bg-white px-5 py-2.5 text-sm font-black text-[#5b605e]"
+                                    className="gift-button gift-button-secondary gift-button-compact text-sm"
                                   >
                                     Cancel
                                   </button>
@@ -986,7 +988,7 @@ export default function WishlistPage() {
                                     type="button"
                                     onClick={() => handleEdit(item.id)}
                                     disabled={savingEditId === item.id}
-                                    className="rounded-full bg-[#48664e] px-5 py-2.5 text-sm font-black text-white disabled:opacity-50"
+                                    className="gift-button gift-button-primary gift-button-compact text-sm"
                                   >
                                     {savingEditId === item.id ? "Saving..." : "Save changes"}
                                   </button>
@@ -1033,10 +1035,12 @@ export default function WishlistPage() {
                                       href={item.item_link}
                                       target="_blank"
                                       rel="noopener noreferrer"
-                                      className="holiday-panel-row mt-3 inline-flex items-center gap-2 rounded-full px-4 py-2 text-xs font-black text-[#48664e]"
+                                      className="gift-button gift-button-secondary gift-button-compact mt-3 text-xs"
                                     >
                                       Reference link
-                                      <ArrowRightIcon />
+                                      <span className="gift-button-icon" aria-hidden="true">
+                                        <ArrowRightIcon />
+                                      </span>
                                     </a>
                                   )}
                                 </div>
@@ -1059,7 +1063,7 @@ export default function WishlistPage() {
                                     <button
                                       type="button"
                                       onClick={() => startEdit(item)}
-                                      className="rounded-full bg-[#ecefec] px-4 py-2 text-xs font-black text-[#48664e]"
+                                      className="gift-button gift-button-secondary gift-button-compact text-xs"
                                     >
                                       Edit
                                     </button>
@@ -1067,7 +1071,7 @@ export default function WishlistPage() {
                                       type="button"
                                       onClick={() => handleDelete(item.id)}
                                       disabled={deletingId === item.id}
-                                      className="rounded-full bg-[#fff7f6] px-4 py-2 text-xs font-black text-[#a43c3f] disabled:opacity-50"
+                                      className="gift-button gift-button-danger gift-button-compact text-xs"
                                     >
                                       {deletingId === item.id ? "Deleting..." : "Delete"}
                                     </button>

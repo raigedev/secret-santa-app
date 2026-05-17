@@ -49,8 +49,9 @@ export default function NicknameForm({ groupId, currentNickname }: Props) {
     <div className="w-full min-w-0 max-w-44">
       {!isEditing ? (
         <button
+          type="button"
           onClick={() => setIsEditing(true)}
-          className="inline-flex min-h-8 w-full items-center justify-center rounded-full bg-white/70 px-3 py-1 text-xs font-bold text-[#48664e] shadow-[inset_0_0_0_1px_rgba(72,102,78,.14)] transition hover:bg-white"
+          className="gift-button gift-button-secondary gift-button-compact w-full text-xs"
           title={`Change nickname: ${displayNickname}`}
         >
           Change nickname
@@ -68,24 +69,22 @@ export default function NicknameForm({ groupId, currentNickname }: Props) {
             />
 
             <button
+              type="button"
               onClick={handleSave}
               disabled={saving}
-              className={`rounded-lg px-2 py-2 text-xs font-bold shadow transition ${
-                saving
-                  ? "bg-gray-400 text-white cursor-not-allowed"
-                  : "bg-green-600 text-white hover:bg-green-700"
-              }`}
+              className="gift-button gift-button-primary gift-button-compact text-xs"
             >
               {saving ? "Saving..." : "Save"}
             </button>
 
             <button
+              type="button"
               onClick={() => {
                 setIsEditing(false);
                 setNickname(currentNickname);
                 setMessage("");
               }}
-              className="rounded-lg bg-gray-300 px-2 py-2 text-xs font-bold text-gray-700 transition hover:bg-gray-400"
+              className="gift-button gift-button-secondary gift-button-compact text-xs"
             >
               Cancel
             </button>

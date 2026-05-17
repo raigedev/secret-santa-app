@@ -86,20 +86,18 @@ export default function ProfileSetupModal({ defaultName, onComplete, onSkip }: P
 
         {/* Buttons */}
         <div className="flex flex-col gap-2 mt-5">
-          <button onClick={handleContinue} disabled={saving}
-            className="w-full py-3.5 rounded-xl text-[15px] font-extrabold text-white transition"
-            style={{
-              background: saving ? "#9ca3af" : "linear-gradient(135deg,#c0392b,#e74c3c)",
-              border: "none", cursor: saving ? "not-allowed" : "pointer",
-              fontFamily: "inherit",
-              boxShadow: saving ? "none" : "0 4px 16px rgba(192,57,43,.25)",
-            }}>
+          <button
+            onClick={handleContinue}
+            disabled={saving}
+            className="gift-button gift-button-red gift-button-full py-3.5 text-[15px]"
+          >
             {saving ? "Saving..." : "Continue"}
           </button>
-          <button onClick={onSkip}
-            className="text-[13px] font-bold py-2 transition"
-            style={{ background: "none", border: "none", color: "#9ca3af", cursor: "pointer", fontFamily: "inherit" }}>
-            Skip for now — I&apos;ll do it later
+          <button
+            onClick={onSkip}
+            className="gift-button gift-button-ghost gift-button-full gift-button-compact text-[13px]"
+          >
+            Skip for now
           </button>
         </div>
       </div>

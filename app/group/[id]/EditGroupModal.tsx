@@ -113,7 +113,7 @@ export function EditGroupModal({
                   setEditBudget(amount);
                   setEditCustom(false);
                 }}
-                className="px-3 py-1.5 rounded-lg text-[12px] font-bold"
+                className="gift-button gift-button-compact text-[12px]"
                 style={{
                   border: `2px solid ${
                     !editCustom && editBudget === amount ? "#c0392b" : "#e5e7eb"
@@ -132,7 +132,7 @@ export function EditGroupModal({
             <button
               type="button"
               onClick={() => setEditCustom(true)}
-              className="px-3 py-1.5 rounded-lg text-[12px] font-bold"
+              className="gift-button gift-button-compact text-[12px]"
               style={{
                 border: `2px solid ${editCustom ? "#c0392b" : "#e5e7eb"}`,
                 background: editCustom ? "#fef2f2" : "#fff",
@@ -187,12 +187,8 @@ export function EditGroupModal({
           <button
             type="button"
             onClick={onClose}
-            className="px-4 py-2 rounded-lg text-[13px] font-bold"
+            className="gift-button gift-button-secondary gift-button-compact text-[13px]"
             style={{
-              background: "#f3f4f6",
-              color: "#6b7280",
-              border: "none",
-              cursor: "pointer",
               fontFamily: "inherit",
             }}
           >
@@ -203,11 +199,8 @@ export function EditGroupModal({
             type="button"
             onClick={onSave}
             disabled={editSaving}
-            className="px-5 py-2 rounded-lg text-[13px] font-extrabold text-white"
+            className="gift-button gift-button-primary gift-button-compact text-[13px]"
             style={{
-              background: editSaving ? "#9ca3af" : "linear-gradient(135deg,#c0392b,#e74c3c)",
-              border: "none",
-              cursor: editSaving ? "not-allowed" : "pointer",
               fontFamily: "inherit",
             }}
           >

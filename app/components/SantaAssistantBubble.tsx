@@ -117,7 +117,7 @@ export function SantaAssistantBubble({
         />
         <button
           type="submit"
-          className="min-h-11 rounded-full bg-[#48664e] px-4 text-[12px] font-extrabold text-white transition hover:-translate-y-0.5 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#48664e]"
+          className="gift-button gift-button-primary gift-button-compact text-[12px]"
         >
           Ask
         </button>
@@ -126,7 +126,7 @@ export function SantaAssistantBubble({
       {activeMessage.href && activeMessage.actionLabel && (
         <Link
           href={activeMessage.href}
-          className="mt-3 inline-flex min-h-10 w-full items-center justify-center rounded-full bg-[#c71824] px-4 text-[12px] font-extrabold text-white no-underline transition hover:-translate-y-0.5 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#a43c3f]"
+          className="gift-button gift-button-red gift-button-full gift-button-compact mt-3 text-[12px]"
         >
           {activeMessage.actionLabel}
         </Link>
@@ -139,7 +139,7 @@ export function SantaAssistantBubble({
         <button
           type="button"
           onClick={onHide}
-          className="rounded-full border border-[rgba(72,102,78,.16)] bg-white px-3 py-2 text-[11px] font-extrabold text-[#48664e] transition hover:-translate-y-0.5 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#48664e]"
+          className="gift-button gift-button-secondary gift-button-compact text-[11px]"
         >
           Hide Santa Buddy
         </button>

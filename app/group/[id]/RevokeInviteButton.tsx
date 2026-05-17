@@ -41,13 +41,10 @@ export default function RevokeInviteButton({
 
   return (
     <button
+      type="button"
       onClick={handleRevoke}
       disabled={status === "loading"}
-      className={`inline-flex min-h-8 items-center justify-center rounded-full px-3 text-xs font-bold transition ${
-        status === "loading"
-          ? "bg-gray-300 text-gray-500 cursor-not-allowed"
-          : "bg-red-100 text-red-700 hover:bg-red-200"
-      }`}
+      className="gift-button gift-button-danger gift-button-compact text-xs"
     >
       {status === "loading" ? "Revoking..." : "Revoke invite"}
     </button>
