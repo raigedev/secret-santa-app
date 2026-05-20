@@ -5,12 +5,13 @@ import { stripReservedPostbackSecrets } from "@/lib/affiliate/lazada-postback.mj
 import { supabaseAdmin } from "@/lib/supabase/admin";
 import { recordAuditEvent } from "@/lib/security/audit";
 import { enforceRateLimit } from "@/lib/security/rate-limit";
-import { extractRequestClientIp, safeEqualSecret } from "@/lib/security/web";
+import { safeEqualSecret } from "@/lib/security/web";
 
 export const dynamic = "force-dynamic";
 
 type PostbackPayload = Record<string, string>;
 const URL_POSTBACK_AUTH_PARAM_KEYS = new Set(["secret", "token"]);
+const UNAUTHORIZED_POSTBACK_RATE_LIMIT_SUBJECT = "lazada-postback:unauthorized";
 
 function normalizePayloadValue(value: unknown): string | null {
   if (value === null || value === undefined) {
@@ -165,12 +166,13 @@ async function buildUnauthorizedPostbackResponse(
   request: NextRequest,
   payload: PostbackPayload
 ): Promise<NextResponse> {
-  const clientIp = extractRequestClientIp(request.headers) || "unknown";
   const rateLimit = await enforceRateLimit({
     action: "affiliate.lazada.postback.unauthorized",
     maxAttempts: 100,
     resourceType: "affiliate_postback",
-    subject: `lazada-postback:${clientIp}`,
+    // Public forwarding headers are not a reliable identity signal, so keep
+    // unauthenticated postback failures in one route-wide abuse bucket.
+    subject: UNAUTHORIZED_POSTBACK_RATE_LIMIT_SUBJECT,
     windowSeconds: 3600,
   });
 

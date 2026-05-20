@@ -686,6 +686,20 @@ test("lazada prime-links route rate limits and constrains product IDs", () => {
   assert.doesNotMatch(primeLinksRouteSource, /extractRequestClientIp|x-forwarded-for|cf-connecting-ip|x-real-ip/i);
 });
 
+test("lazada postback unauthorized rate limit does not trust spoofed client IP headers", () => {
+  const postbackRouteSource = readFileSync(
+    "app/api/affiliate/lazada/postback/route.ts",
+    "utf8"
+  );
+
+  assert.doesNotMatch(postbackRouteSource, /extractRequestClientIp/);
+  assert.doesNotMatch(postbackRouteSource, /x-forwarded-for|cf-connecting-ip|x-real-ip/i);
+  assert.match(
+    postbackRouteSource,
+    /subject:\s*UNAUTHORIZED_POSTBACK_RATE_LIMIT_SUBJECT/
+  );
+});
+
 test("lazada match route requires access to the wishlist item before matching or priming", () => {
   const lazadaMatchesRouteSource = readFileSync(
     "app/api/affiliate/lazada/matches/route.ts",
