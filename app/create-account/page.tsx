@@ -8,10 +8,12 @@ import {
   AuthPageFrame,
 } from "@/app/components/AuthPageShell";
 import { getPasswordPolicyMessage, PASSWORD_POLICY_HELP_TEXT } from "@/lib/auth/password-policy";
+import { buildPostLoginNextCookie } from "@/lib/auth/post-login-next-cookie";
 import { normalizeSafeAppPath } from "@/lib/security/safe-app-path";
 import { createClient } from "@/lib/supabase/client";
 
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const POST_LOGIN_NEXT_COOKIE_MAX_AGE_SECONDS = 86400;
 
 const TRUST_MARKERS = [
   {
@@ -107,7 +109,11 @@ function CreateAccountPageInner() {
   })();
 
   const rememberNextPath = () => {
-    document.cookie = `post_login_next=${encodeURIComponent(nextPath)}; Path=/; Max-Age=86400; SameSite=Lax`;
+    document.cookie = buildPostLoginNextCookie(
+      nextPath,
+      POST_LOGIN_NEXT_COOKIE_MAX_AGE_SECONDS,
+      window.location.protocol === "https:"
+    );
   };
 
   useEffect(() => {

@@ -716,6 +716,19 @@ test("password reset links are not rewritten by OAuth code fallback", () => {
   assert.match(proxySource, /"\/reset-password"/);
 });
 
+test("post-login next cookies are marked secure on HTTPS clients", () => {
+  const cookieSource = readFileSync("lib/auth/post-login-next-cookie.ts", "utf8");
+  const loginSource = readFileSync("app/login/page.tsx", "utf8");
+  const createAccountSource = readFileSync("app/create-account/page.tsx", "utf8");
+
+  assert.match(cookieSource, /SameSite=Lax/);
+  assert.match(cookieSource, /isHttps \? "; Secure" : ""/);
+  assert.match(loginSource, /buildPostLoginNextCookie\(/);
+  assert.match(createAccountSource, /buildPostLoginNextCookie\(/);
+  assert.doesNotMatch(loginSource, /document\.cookie = `post_login_next=/);
+  assert.doesNotMatch(createAccountSource, /document\.cookie = `post_login_next=/);
+});
+
 test("owners do not receive unrevealed assignment names from reveal presentation", () => {
   const groupActionsSource = readFileSync("app/group/[id]/actions.ts", "utf8");
 
