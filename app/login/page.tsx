@@ -16,9 +16,11 @@ import {
   AuthPageFrame,
 } from "@/app/components/AuthPageShell";
 import { OAUTH_CALLBACK_FAILED_ERROR } from "@/lib/auth/oauth-callback-errors";
+import { buildPostLoginNextCookie } from "@/lib/auth/post-login-next-cookie";
 import { normalizeSafeAppPath } from "@/lib/security/safe-app-path";
 import { createClient } from "@/lib/supabase/client";
 
+const POST_LOGIN_NEXT_COOKIE_MAX_AGE_SECONDS = 1800;
 const LOGIN_FEATURES = [
   {
     title: "Groups and invites",
@@ -130,7 +132,11 @@ function getSupportingCopy(nextPath: string): string {
 }
 
 function rememberPostLoginNextPath(nextPath: string) {
-  document.cookie = `post_login_next=${encodeURIComponent(nextPath)}; Path=/; Max-Age=1800; SameSite=Lax`;
+  document.cookie = buildPostLoginNextCookie(
+    nextPath,
+    POST_LOGIN_NEXT_COOKIE_MAX_AGE_SECONDS,
+    window.location.protocol === "https:"
+  );
 }
 
 function AuthHeading({ description }: { description: string }) {

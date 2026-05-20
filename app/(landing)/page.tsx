@@ -103,7 +103,9 @@ export default function Landing() {
         sw.appendChild(s);
       }
     }
-    return () => { if (sw) sw.innerHTML = ""; };
+    return () => {
+      sw?.replaceChildren();
+    };
   }, []);
 
   useEffect(() => {
