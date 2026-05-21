@@ -1,3 +1,5 @@
+import { normalizeSafeAppPath } from "@/lib/security/safe-app-path";
+
 export type NotificationItem = {
   id: string;
   type: string;
@@ -74,5 +76,11 @@ export function getNotificationTargetPath(notification: NotificationItem): strin
     return "/wishlist";
   }
 
-  return notification.link_path;
+  if (!notification.link_path) {
+    return null;
+  }
+
+  const candidate = notification.link_path.trim();
+  const normalized = normalizeSafeAppPath(candidate, "");
+  return normalized === candidate ? normalized : null;
 }

@@ -122,7 +122,7 @@ export async function recordServerFailure(params: {
     actorUserId: params.actorUserId,
     details: {
       ...sanitizeDetails(params.details),
-      errorMessage: params.errorMessage.slice(0, 500),
+      errorMessage: redactSensitiveString(params.errorMessage).slice(0, 500),
     },
     eventType: params.eventType,
     outcome: "failure",
