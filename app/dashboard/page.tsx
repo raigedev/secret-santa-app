@@ -24,6 +24,7 @@ import { DashboardPreviewWorkspace } from "./DashboardPreviewWorkspace";
 import { DashboardStatusMessage } from "./DashboardStatusMessage";
 import { useDashboardRoutePrefetch } from "./useDashboardRoutePrefetch";
 import { fetchMyAssignmentGiftPrep } from "@/lib/assignments/gift-prep-client";
+import { normalizeSafeAppPath } from "@/lib/security/safe-app-path";
 import {
   removeSessionStorageItem,
   writeSessionStorageItem,
@@ -186,11 +187,21 @@ function buildNotificationPreviewItems(
       return {
         id: count > 1 ? `${latest.type}:${latest.id}:${count}` : latest.id,
         title: getGroupedNotificationPreviewTitle(latest, count),
-        href: count > 1 ? "/notifications" : latest.link_path,
+        href: count > 1 ? "/notifications" : normalizeDashboardNotificationHref(latest.link_path),
         createdAt: latest.created_at,
         ...visual,
       };
     });
+}
+
+function normalizeDashboardNotificationHref(linkPath: string | null): string | null {
+  if (!linkPath) {
+    return null;
+  }
+
+  const candidate = linkPath.trim();
+  const normalized = normalizeSafeAppPath(candidate, "");
+  return normalized === candidate ? normalized : null;
 }
 
 function readStoredDashboardTheme(): DashboardTheme {

@@ -1,4 +1,5 @@
 import { recordServerFailure } from "@/lib/security/audit";
+import { normalizeSafeAppPath } from "@/lib/security/safe-app-path";
 import { supabaseAdmin } from "@/lib/supabase/admin";
 import { isUuid, sanitizePlainText } from "@/lib/validation/common";
 
@@ -149,6 +150,17 @@ const REMINDER_TYPE_TO_PROFILE_KEY: Record<
 
 function sanitizeNotificationText(value: string, maxLength: number): string {
   return sanitizePlainText(value, maxLength);
+}
+
+function sanitizeNotificationLinkPath(value: string | null | undefined): string | null {
+  const candidate = value ? sanitizeNotificationText(value, 200) : "";
+
+  if (!candidate) {
+    return null;
+  }
+
+  const normalized = normalizeSafeAppPath(candidate, "");
+  return normalized === candidate ? normalized : null;
 }
 
 function sanitizeMetadata(
@@ -315,7 +327,7 @@ export async function createNotification(input: NotificationInput): Promise<stri
 
   const title = sanitizeNotificationText(input.title, 120);
   const body = sanitizeNotificationText(input.body, 240);
-  const linkPath = input.linkPath ? sanitizeNotificationText(input.linkPath, 200) : null;
+  const linkPath = sanitizeNotificationLinkPath(input.linkPath);
   const id = isUuid(input.id) ? input.id : undefined;
 
   if (!title) {

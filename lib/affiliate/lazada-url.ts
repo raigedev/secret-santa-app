@@ -43,6 +43,8 @@ export function normalizeLazadaProductPageUrl(url: string): string | null {
       return null;
     }
 
+    // Partner redirects should never downgrade a signed-in user to plaintext HTTP.
+    parsed.protocol = "https:";
     parsed.hash = "";
     parsed.search = "";
 
@@ -75,6 +77,8 @@ export function normalizeLazadaPromotionLinkUrl(url: string): string | null {
       return null;
     }
 
+    // Partner redirects should never downgrade a signed-in user to plaintext HTTP.
+    parsed.protocol = "https:";
     parsed.hash = "";
 
     return parsed.toString();

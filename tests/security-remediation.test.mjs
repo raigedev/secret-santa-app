@@ -20,6 +20,24 @@ test("shared UUID validation accepts standard Supabase UUID values", () => {
   assert.equal(uuidPattern.test("93805fae-1f6c-41d2-0636e39ae375"), false);
 });
 
+test("live reveal group actions reject malformed group IDs before side effects", () => {
+  const groupActionsSource = readFileSync("app/group/[id]/actions.ts", "utf8");
+
+  for (const functionName of [
+    "startRevealCountdown",
+    "updateRevealSessionState",
+    "getRevealMatches",
+    "triggerReveal",
+  ]) {
+    const functionStart = groupActionsSource.indexOf(`export async function ${functionName}(`);
+    assert.notEqual(functionStart, -1, `Expected ${functionName} to be exported.`);
+    assert.match(
+      groupActionsSource.slice(functionStart, functionStart + 1200),
+      /if \(!isUuid\(groupId\)\)/
+    );
+  }
+});
+
 test("invite links expire seven days after creation", () => {
   const createdAt = new Date("2026-04-23T00:00:00.000Z");
   const expiresAt = new Date(buildInviteLinkExpiresAt(createdAt));
@@ -72,6 +90,18 @@ test("postback payload storage drops token-like secret fields", () => {
       offer_id: "abc",
     }
   );
+});
+
+test("server failure audit logging redacts token-like error text", () => {
+  const auditSource = readFileSync("lib/security/audit.ts", "utf8");
+
+  assert.match(auditSource, /const SENSITIVE_STRING_PATTERNS = \[/);
+  assert.match(auditSource, /function redactSensitiveString\(value: string\): string/);
+  assert.match(
+    auditSource,
+    /errorMessage: redactSensitiveString\(params\.errorMessage\)\.slice\(0, 500\)/
+  );
+  assert.doesNotMatch(auditSource, /errorMessage: params\.errorMessage\.slice\(0, 500\)/);
 });
 
 test("email invite auto-claim only targets pending or accepted memberships", () => {
@@ -160,6 +190,25 @@ test("auth callback creates one-time welcome notifications and welcome email", (
   assert.doesNotMatch(welcomeEmailSource, /NEXT_PUBLIC_.*SMTP/);
   assert.match(loginSource, /missing_email:[\s\S]{0,120}Google did not share an email address/);
   assert.match(notificationDisplaySource, /case "welcome":[\s\S]{0,40}return "Get Started";/);
+});
+
+test("notification links are normalized to app-local paths before navigation", () => {
+  const notificationsSource = readFileSync("lib/notifications.ts", "utf8");
+  const dashboardSource = readFileSync("app/dashboard/page.tsx", "utf8");
+  const notificationDisplaySource = readFileSync(
+    "app/notifications/notification-display.ts",
+    "utf8"
+  );
+
+  assert.match(notificationsSource, /import \{ normalizeSafeAppPath \} from "@\/lib\/security\/safe-app-path";/);
+  assert.match(notificationsSource, /function sanitizeNotificationLinkPath/);
+  assert.match(notificationsSource, /const linkPath = sanitizeNotificationLinkPath\(input\.linkPath\);/);
+  assert.doesNotMatch(notificationsSource, /const linkPath = input\.linkPath \? sanitizeNotificationText/);
+  assert.match(notificationDisplaySource, /normalizeSafeAppPath\(candidate, ""\)/);
+  assert.doesNotMatch(notificationDisplaySource, /return notification\.link_path;/);
+  assert.match(dashboardSource, /function normalizeDashboardNotificationHref/);
+  assert.match(dashboardSource, /normalizeSafeAppPath\(candidate, ""\)/);
+  assert.doesNotMatch(dashboardSource, /href: count > 1 \? "\/notifications" : latest\.link_path/);
 });
 
 test("welcome email receipts are server-only and notification edits are narrowed", () => {
@@ -606,6 +655,60 @@ test("wishlist item limit is enforced at the database boundary", () => {
   assert.match(migrationSource, /private\.is_group_member\(group_id\)/);
 });
 
+test("security definer helper functions use constrained search paths", () => {
+  const hardenedSearchPathMigrationName = [
+    "202605210001",
+    "harden",
+    "security",
+    "definer",
+    "search",
+    "paths.sql",
+  ].join("_");
+  // eslint-disable-next-line security/detect-non-literal-fs-filename -- Fixed repo-local migration path assembled from literal pieces for no-secrets scanning.
+  const migrationSource = readFileSync(
+    ["supabase", "migrations", hardenedSearchPathMigrationName].join("/"),
+    "utf8"
+  );
+
+  assert.match(
+    migrationSource,
+    /create or replace function public\.list_my_assignment_gift_prep\(p_group_ids uuid\[\]\)[\s\S]{0,260}security definer[\s\S]{0,80}set search_path = ''/i
+  );
+  assert.match(
+    migrationSource,
+    /create or replace function private\.enforce_wishlist_item_limit\(\)[\s\S]{0,160}security definer[\s\S]{0,80}set search_path = ''/i
+  );
+  for (const publicHelperPattern of [
+    /create or replace function public\.is_group_owner\([\s\S]{0,420}security definer[\s\S]{0,80}set search_path = ''/i,
+    /create or replace function public\.is_group_member\([\s\S]{0,420}security definer[\s\S]{0,80}set search_path = ''/i,
+    /create or replace function public\.is_group_member_or_invited\([\s\S]{0,420}security definer[\s\S]{0,80}set search_path = ''/i,
+    /create or replace function public\.can_view_wishlist\([\s\S]{0,420}security definer[\s\S]{0,80}set search_path = ''/i,
+    /create or replace function public\.list_group_peer_profiles\([\s\S]{0,420}security definer[\s\S]{0,80}set search_path = ''/i,
+    /create or replace function public\.cleanup_security_rate_limits\([\s\S]{0,420}security definer[\s\S]{0,80}set search_path = ''/i,
+    /create or replace function public\.consume_rate_limit\([\s\S]{0,420}security definer[\s\S]{0,80}set search_path = ''/i,
+    /create or replace function public\.write_audit_log\([\s\S]{0,420}security definer[\s\S]{0,80}set search_path = ''/i,
+  ]) {
+    assert.match(migrationSource, publicHelperPattern);
+  }
+  assert.match(
+    migrationSource,
+    /revoke all on function public\.list_my_assignment_gift_prep\(uuid\[\]\) from public, anon, authenticated/i
+  );
+  assert.match(
+    migrationSource,
+    /revoke all on function public\.consume_rate_limit\(text, text, integer, integer\) from public, anon, authenticated/i
+  );
+  assert.match(
+    migrationSource,
+    /revoke all on function public\.write_audit_log\(uuid, text, text, text, text, jsonb\) from public, anon, authenticated/i
+  );
+  assert.match(migrationSource, /private\.is_group_member_or_invited/);
+  assert.match(migrationSource, /RLS policies still reference public or unqualified auth helper functions/);
+  assert.match(migrationSource, /pg_catalog\.pg_advisory_xact_lock/i);
+  assert.match(migrationSource, /pg_catalog\.hashtextextended/i);
+  assert.doesNotMatch(migrationSource, /set search_path = public/i);
+});
+
 test("secret santa shopping does not auto-load recipient supplied wishlist images", () => {
   const secretSantaPageSource = readFileSync("app/secret-santa/page.tsx", "utf8");
 
@@ -645,7 +748,9 @@ test("lazada match route skips unused fallback feed scans when direct matches ex
 
 test("affiliate redirect rate limits do not trust spoofed client IP headers", () => {
   const redirectRouteSource = readFileSync("lib/affiliate/redirect-route.ts", "utf8");
+  const webSecuritySource = readFileSync("lib/security/web.ts", "utf8");
 
+  assert.doesNotMatch(webSecuritySource, /extractRequestClientIp|x-forwarded-for|cf-connecting-ip|x-real-ip/i);
   assert.doesNotMatch(redirectRouteSource, /extractRequestClientIp/);
   assert.match(
     redirectRouteSource,
@@ -661,6 +766,7 @@ test("lazada promotion redirect targets are allowlisted", () => {
   assert.match(lazadaUrlSource, /export function normalizeLazadaPromotionLinkUrl/);
   assert.match(lazadaUrlSource, /isLazadaPromotionShortLinkHostname\(parsed\.hostname\)/);
   assert.match(lazadaUrlSource, /isLazadaHostname\(parsed\.hostname\)[\s\S]*isLazadaProductPath\(parsed\.pathname\)/);
+  assert.match(lazadaUrlSource, /parsed\.protocol = "https:";/);
   assert.match(lazadaSource, /function buildSafeLazadaPromotionLinkTarget/);
   assert.match(lazadaSource, /normalizeLazadaPromotionLinkUrl\(targetUrl\)/);
   assert.doesNotMatch(lazadaSource, /targetUrl:\s*appendLazadaSubIdsToPromotionLink/);
@@ -988,6 +1094,20 @@ test("done-push workflow requires explicit current release intent and safety gat
   assert.match(branchWorkflowSource, /required migration\/live-state work is unresolved/);
   assert.match(continuitySource, /only an explicit current `done push` \/ `done pushing` release message/);
   assert.match(continuitySource, /verify the actual fix/);
+});
+
+test("github workflow actions are pinned to immutable commit SHAs", () => {
+  const workflowSource = [
+    readFileSync(".github/workflows/ci.yml", "utf8"),
+    readFileSync(".github/workflows/codeql.yml", "utf8"),
+    readFileSync(".github/workflows/dependency-review.yml", "utf8"),
+  ].join("\n");
+
+  assert.doesNotMatch(workflowSource, /uses:\s+[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+@v\d+(?:\s|$)/);
+  assert.match(workflowSource, /uses:\s+actions\/checkout@[a-f0-9]{40}\s+# v6/);
+  assert.match(workflowSource, /uses:\s+actions\/setup-node@[a-f0-9]{40}\s+# v6/);
+  assert.match(workflowSource, /uses:\s+github\/codeql-action\/init@[a-f0-9]{40}\s+# v4/);
+  assert.match(workflowSource, /uses:\s+actions\/dependency-review-action@[a-f0-9]{40}\s+# v4\.9\.0/);
 });
 
 test("authenticated browser POST routes reject untrusted origins", () => {

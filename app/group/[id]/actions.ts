@@ -2054,7 +2054,7 @@ export async function startRevealCountdown(
   message: string;
   session?: RevealSessionState;
 }> {
-  if (!groupId) {
+  if (!isUuid(groupId)) {
     return { success: false, message: "Missing group ID." };
   }
 
@@ -2154,7 +2154,7 @@ export async function updateRevealSessionState(
   message: string;
   session?: RevealSessionState;
 }> {
-  if (!groupId) {
+  if (!isUuid(groupId)) {
     return { success: false, message: "Missing group ID." };
   }
 
@@ -2240,7 +2240,7 @@ export async function getRevealMatches(
   matches?: RevealMatch[];
   revealedAt?: string | null;
 }> {
-  if (!groupId) {
+  if (!isUuid(groupId)) {
     return { success: false, message: "Missing group ID." };
   }
 
@@ -2312,6 +2312,10 @@ export async function triggerReveal(
   message: string;
   matches?: RevealMatch[];
 }> {
+  if (!isUuid(groupId)) {
+    return { success: false, message: "Missing group ID." };
+  }
+
   const supabase = await createClient();
   const {
     data: { user },

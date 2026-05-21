@@ -2,6 +2,7 @@ import { expect, test } from "@playwright/test";
 
 import {
   isLazadaPromotionShortLinkHostname,
+  normalizeLazadaProductPageUrl,
   normalizeLazadaPromotionLinkUrl,
 } from "../../lib/affiliate/lazada-url";
 import { buildWishlistSuggestionOptions, type SuggestionInput } from "../../lib/wishlist/suggestions";
@@ -54,6 +55,9 @@ test.describe("wishlist suggestion options", () => {
       normalizeLazadaPromotionLinkUrl("https://c.lazada.com.ph/t/c.sample?subId1=existing#frag")
     ).toBe("https://c.lazada.com.ph/t/c.sample?subId1=existing");
     expect(
+      normalizeLazadaPromotionLinkUrl("http://c.lazada.com.ph/t/c.sample?subId1=existing#frag")
+    ).toBe("https://c.lazada.com.ph/t/c.sample?subId1=existing");
+    expect(
       normalizeLazadaPromotionLinkUrl(
         "https://pages.lazada.com.ph/products/pdp-i123-s456.html?exlaz=promo#reviews"
       )
@@ -61,5 +65,11 @@ test.describe("wishlist suggestion options", () => {
     expect(normalizeLazadaPromotionLinkUrl("https://www.lazada.com.ph/catalog/?q=coffee")).toBeNull();
     expect(normalizeLazadaPromotionLinkUrl("lazada://ph/pdp?itemId=123")).toBeNull();
     expect(normalizeLazadaPromotionLinkUrl("https://lazada.com.ph.evil.example/t/c.sample")).toBeNull();
+  });
+
+  test("normalizes Lazada product pages to HTTPS before redirecting", () => {
+    expect(
+      normalizeLazadaProductPageUrl("http://www.lazada.com.ph/products/pdp-i123-s456.html?spm=tracking#reviews")
+    ).toBe("https://www.lazada.com.ph/products/pdp-i123-s456.html");
   });
 });
