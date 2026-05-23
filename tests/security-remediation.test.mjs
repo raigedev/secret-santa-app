@@ -976,6 +976,30 @@ test("profile avatar urls and affiliate merchant constraints are hardened in mig
   assert.match(migrationSource, /revoke select on table public\.group_draw_cycle_pairs from authenticated/i);
 });
 
+test("profile avatar cache-busting stays out of persisted avatar urls", () => {
+  const profileActionsSource = readFileSync("app/profile/actions.ts", "utf8");
+  const profilePageSource = readFileSync("app/profile/page.tsx", "utf8");
+  const viewerProfileSource = readFileSync("app/components/viewer-profile-client.ts", "utf8");
+  const peerProfilesRouteSource = readFileSync("app/api/groups/peer-profiles/route.ts", "utf8");
+
+  assert.match(profileActionsSource, /return `\$\{candidate\.origin\}\$\{candidate\.pathname\}`;/);
+  assert.doesNotMatch(profileActionsSource, /\$\{candidate\.search\}/);
+  assert.match(viewerProfileSource, /return `\$\{candidate\.origin\}\$\{candidate\.pathname\}`;/);
+  assert.match(peerProfilesRouteSource, /return `\$\{candidate\.origin\}\$\{candidate\.pathname\}`;/);
+  assert.doesNotMatch(peerProfilesRouteSource, /\$\{candidate\.search\}/);
+  assert.match(profilePageSource, /function normalizeProfileAvatarUrlForUser/);
+  assert.match(profilePageSource, /avatar_url: normalizeProfileAvatarUrlForUser\(data\.user_id/);
+  assert.match(profilePageSource, /const nextCachedProfile = normalizeCachedProfileForUser/);
+  assert.match(profilePageSource, /const profileForSave = \{/);
+  assert.match(profilePageSource, /avatar_url: normalizeProfileAvatarUrlForUser\(userId, profile\.avatar_url\)/);
+  assert.match(profilePageSource, /function buildAvatarPreviewUrl/);
+  assert.match(profilePageSource, /previewUrl\.searchParams\.set\("v", String\(previewVersion\)\)/);
+  assert.match(profilePageSource, /PROFILE_AVATAR_EXTENSIONS_BY_TYPE\.get\(file\.type\)/);
+  assert.doesNotMatch(profilePageSource, /file\.name\.split/);
+  assert.match(profilePageSource, /const nextAvatarUrl = data\.publicUrl;/);
+  assert.doesNotMatch(profilePageSource, /data\.publicUrl\}\?v=/);
+});
+
 test("lazada cards avoid untrusted remote image hosts and private redirect notes", () => {
   const lazadaUrlSource = readFileSync("lib/affiliate/lazada-url.ts", "utf8");
   const secretSantaPageSource = readFileSync("app/secret-santa/page.tsx", "utf8");

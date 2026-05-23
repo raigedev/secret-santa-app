@@ -58,7 +58,7 @@ export function normalizeViewerAvatarUrl(value: string | null | undefined) {
       return "";
     }
 
-    return `${candidate.origin}${candidate.pathname}${candidate.search}`;
+    return `${candidate.origin}${candidate.pathname}`;
   } catch {
     return "";
   }
