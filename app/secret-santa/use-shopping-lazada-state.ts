@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { isLazadaProductPageUrl } from "@/lib/affiliate/lazada-url";
 import { readLocalStorageItem, writeLocalStorageItem } from "@/lib/client-snapshot";
+import { normalizeOptionalWishlistUrl } from "@/lib/wishlist/url";
 import {
   type ShoppingRegion,
   type SuggestionInput,
@@ -65,7 +66,6 @@ type UseShoppingLazadaStateInput = {
 const AI_SUGGESTION_REQUEST_TIMEOUT_MS = 18000;
 const AI_SUGGESTION_BATCH_SIZE = 3;
 const LAZADA_MATCH_BATCH_SIZE = 4;
-const ITEM_LINK_MAX_LENGTH = 500;
 const SHOPPING_REGION_STORAGE_KEY = "gift-shopping-region";
 
 async function runLimitedBatches<T>(
@@ -143,26 +143,6 @@ export function getActiveRecipientWishlistItemId(
     assignment.receiver_wishlist[0]?.id ||
     ""
   );
-}
-
-function normalizeOptionalUrl(value: string): string {
-  const trimmed = value.trim();
-
-  if (!trimmed) {
-    return "";
-  }
-
-  try {
-    const parsed = new URL(trimmed);
-
-    if (parsed.protocol !== "http:" && parsed.protocol !== "https:") {
-      return "";
-    }
-
-    return trimmed.slice(0, ITEM_LINK_MAX_LENGTH);
-  } catch {
-    return "";
-  }
 }
 
 export function useShoppingLazadaState({
@@ -253,7 +233,7 @@ export function useShoppingLazadaState({
 
     for (const assignment of assignments) {
       for (const item of assignment.receiver_wishlist) {
-        const safeItemLink = normalizeOptionalUrl(item.item_link);
+        const safeItemLink = normalizeOptionalWishlistUrl(item.item_link);
 
         if (safeItemLink && isLazadaProductPageUrl(safeItemLink)) {
           urlsToPrime.add(safeItemLink);

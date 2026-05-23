@@ -4,6 +4,7 @@ import { recordServerFailure } from "@/lib/security/audit";
 import { enforceRateLimit } from "@/lib/security/rate-limit";
 import { createClient } from "@/lib/supabase/server";
 import { isUuid, sanitizePlainText } from "@/lib/validation/common";
+import { normalizeOptionalWishlistUrl } from "@/lib/wishlist/url";
 import {
   isWishlistCategory,
   WishlistCategory,
@@ -20,26 +21,6 @@ function sanitizeText(input: string, maxLength: number): string {
     .replace(/&amp;/g, "&");
 
   return sanitizePlainText(decodedInput, maxLength);
-}
-
-function normalizeOptionalUrl(url: string): string {
-  const trimmed = url.trim();
-
-  if (!trimmed) {
-    return "";
-  }
-
-  try {
-    const parsed = new URL(trimmed);
-
-    if (parsed.protocol === "http:" || parsed.protocol === "https:") {
-      return trimmed.slice(0, 500);
-    }
-
-    return "";
-  } catch {
-    return "";
-  }
 }
 
 function normalizeWishlistCategory(category: string): WishlistCategory | null {
@@ -91,8 +72,8 @@ type PreparedWishlistItemAction =
 function normalizeWishlistItemInput(input: WishlistItemInputFields): NormalizedWishlistItemInput {
   const cleanName = sanitizeText(input.itemName, 100);
   const cleanNote = sanitizeText(input.itemNote, 200);
-  const cleanLink = normalizeOptionalUrl(input.itemLink);
-  const cleanImageUrl = normalizeOptionalUrl(input.itemImageUrl);
+  const cleanLink = normalizeOptionalWishlistUrl(input.itemLink);
+  const cleanImageUrl = normalizeOptionalWishlistUrl(input.itemImageUrl);
   const cleanCategory = normalizeWishlistCategory(input.itemCategory);
   const cleanPriority = Math.min(Math.max(Math.floor(input.priority || 0), 0), 10);
 

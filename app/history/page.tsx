@@ -26,6 +26,7 @@ import {
   getDashboardMemberLabel,
 } from "@/app/dashboard/dashboard-formatters";
 import { fetchMyAssignmentGiftPrep } from "@/lib/assignments/gift-prep-client";
+import { normalizeOptionalWishlistUrl } from "@/lib/wishlist/url";
 
 type HistoryPageUser = {
   id: string;
@@ -111,7 +112,7 @@ export default function HistoryPage() {
           const nextItem = {
             id: item.id,
             item_category: item.item_category,
-            item_link: item.item_link,
+            item_link: normalizeOptionalWishlistUrl(item.item_link),
             item_name: item.item_name,
             item_note: item.item_note,
             priority: item.priority,

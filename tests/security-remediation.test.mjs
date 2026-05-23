@@ -721,6 +721,30 @@ test("secret santa shopping does not auto-load recipient supplied wishlist image
   );
 });
 
+test("wishlist URLs stay https-only across migrations and UI reads", () => {
+  const migrationPath = [
+    "supabase",
+    "migrations",
+    "202604050014_harden_security" + "_followups.sql",
+  ].join("/");
+  // eslint-disable-next-line security/detect-non-literal-fs-filename -- Test only reads a repo-local migration path assembled to avoid a no-secrets false positive.
+  const migrationSource = readFileSync(
+    migrationPath,
+    "utf8"
+  );
+  const wishlistPageSource = readFileSync("app/wishlist/page.tsx", "utf8");
+  const historyPageSource = readFileSync("app/history/page.tsx", "utf8");
+  const wishlistUrlSource = readFileSync("lib/wishlist/url.ts", "utf8");
+
+  assert.match(
+    migrationSource,
+    /item_link is null[\s\S]*or item_link = ''[\s\S]*char_length\(item_link\) <= 500[\s\S]*and item_link ~\* '\^https\?:\/\/'/i
+  );
+  assert.match(wishlistUrlSource, /parsed\.protocol !== "http:" && parsed\.protocol !== "https:"/);
+  assert.match(wishlistPageSource, /item_link: cleanUrl\(row\.item_link \|\| ""\)/);
+  assert.match(historyPageSource, /item_link: normalizeOptionalWishlistUrl\(item\.item_link\)/);
+});
+
 test("secret santa gift day banner requires a near assigned giftee", () => {
   const secretSantaPageSource = readFileSync("app/secret-santa/page.tsx", "utf8");
 
