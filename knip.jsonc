@@ -1,6 +1,7 @@
 {
   "$schema": "https://unpkg.com/knip@6/schema-jsonc.json",
   "ignore": [
+    ".agent/**",
     ".agents/skills/**",
     "scripts/repair-local-supabase-schema.mjs",
     "scripts/seed-local-playwright.mjs",

@@ -60,7 +60,7 @@ function normalizeAvatarUrl(userId: string, avatarUrl: string | null): string | 
       return null;
     }
 
-    return `${candidate.origin}${candidate.pathname}${candidate.search}`;
+    return `${candidate.origin}${candidate.pathname}`;
   } catch {
     return null;
   }

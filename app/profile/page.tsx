@@ -37,6 +37,11 @@ const DEFAULT_REMINDER_PREFERENCES: ReminderPreferenceFormState = {
   reminder_post_draw: true,
   reminder_wishlist_incomplete: true,
 };
+const PROFILE_AVATAR_EXTENSIONS_BY_TYPE = new Map([
+  ["image/jpeg", "jpg"],
+  ["image/png", "png"],
+  ["image/webp", "webp"],
+]);
 
 const CURRENCIES = [
   { code: "USD", label: "$ USD — US Dollar" },
@@ -137,11 +142,47 @@ function isProfilePageSnapshot(
   );
 }
 
+function normalizeProfileAvatarUrlForUser(
+  userId: string | null | undefined,
+  avatarUrl: string | null
+): string | null {
+  if (!userId || !avatarUrl) {
+    return null;
+  }
+
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+
+  if (!supabaseUrl) {
+    return null;
+  }
+
+  try {
+    const candidate = new URL(avatarUrl);
+    const allowedOrigin = new URL(supabaseUrl).origin;
+    const allowedPathPrefix = `/storage/v1/object/public/profile-avatars/${userId}/`;
+
+    if (candidate.origin !== allowedOrigin || !candidate.pathname.startsWith(allowedPathPrefix)) {
+      return null;
+    }
+
+    return `${candidate.origin}${candidate.pathname}`;
+  } catch {
+    return null;
+  }
+}
+
+function normalizeCachedProfileForUser(profile: Profile, userId: string): Profile {
+  return {
+    ...profile,
+    avatar_url: normalizeProfileAvatarUrlForUser(userId, profile.avatar_url),
+  };
+}
+
 function normalizeProfile(data: ProfileRecord): Profile {
   return {
     display_name: data.display_name || "",
     avatar_emoji: data.avatar_emoji || DEFAULT_AVATAR_EMOJI,
-    avatar_url: data.avatar_url || null,
+    avatar_url: normalizeProfileAvatarUrlForUser(data.user_id, data.avatar_url || null),
     bio: data.bio || "",
     default_budget: data.default_budget || 25,
     currency: data.currency || "USD",
@@ -160,6 +201,26 @@ function notifyShellProfileChanged(profile: Profile) {
     avatarUrl: profile.avatar_url?.trim() || null,
     displayName: profile.display_name,
   });
+}
+
+// Cache-busting belongs only on the local image preview; persisted profile
+// avatar URLs must stay canonical to satisfy the storage-owner constraint.
+function buildAvatarPreviewUrl(avatarUrl: string | null, previewVersion: number): string | null {
+  if (!avatarUrl) {
+    return null;
+  }
+
+  if (previewVersion <= 0) {
+    return avatarUrl;
+  }
+
+  try {
+    const previewUrl = new URL(avatarUrl);
+    previewUrl.searchParams.set("v", String(previewVersion));
+    return previewUrl.toString();
+  } catch {
+    return avatarUrl;
+  }
 }
 
 function ReminderToggle({
@@ -221,6 +282,7 @@ export default function ProfilePage() {
   const [deletingAccount, setDeletingAccount] = useState(false);
   const [message, setMessage] = useState("");
   const [customBudget, setCustomBudget] = useState(false);
+  const [avatarPreviewVersion, setAvatarPreviewVersion] = useState(0);
   const [reminderPreferences, setReminderPreferences] = useState<ReminderPreferenceFormState>(
     DEFAULT_REMINDER_PREFERENCES
   );
@@ -252,7 +314,11 @@ export default function ProfilePage() {
       );
 
       if (cachedProfile) {
-        setProfile(cachedProfile.profile);
+        const nextCachedProfile = normalizeCachedProfileForUser(
+          cachedProfile.profile,
+          session.user.id
+        );
+        setProfile(nextCachedProfile);
         setCustomBudget(cachedProfile.customBudget);
         setReminderPreferences(cachedProfile.reminderPreferences);
         setEmail(cachedProfile.email);
@@ -383,11 +449,23 @@ export default function ProfilePage() {
   const handleSave = async () => {
     setSaving(true);
     setMessage("");
+    const profileForSave = {
+      ...profile,
+      avatar_url: normalizeProfileAvatarUrlForUser(userId, profile.avatar_url),
+    };
     const profileResult = await updateProfile(
-      profile.display_name, profile.avatar_emoji, profile.avatar_url, profile.bio,
-      profile.default_budget, profile.currency,
-      profile.notify_invites, profile.notify_draws, profile.notify_chat,
-      profile.notify_wishlist, profile.notify_marketing, true
+      profileForSave.display_name,
+      profileForSave.avatar_emoji,
+      profileForSave.avatar_url,
+      profileForSave.bio,
+      profileForSave.default_budget,
+      profileForSave.currency,
+      profileForSave.notify_invites,
+      profileForSave.notify_draws,
+      profileForSave.notify_chat,
+      profileForSave.notify_wishlist,
+      profileForSave.notify_marketing,
+      true
     );
 
     if (!profileResult.success) {
@@ -397,7 +475,7 @@ export default function ProfilePage() {
     }
 
     const savedProfile = {
-      ...profile,
+      ...profileForSave,
       profile_setup_complete: true,
     };
     notifyShellProfileChanged(savedProfile);
@@ -446,7 +524,9 @@ export default function ProfilePage() {
       return;
     }
 
-    if (!["image/jpeg", "image/png", "image/webp"].includes(file.type)) {
+    const extension = PROFILE_AVATAR_EXTENSIONS_BY_TYPE.get(file.type);
+
+    if (!extension) {
       setMessage("Please upload a JPG, PNG, or WebP image.");
       event.target.value = "";
       return;
@@ -462,7 +542,6 @@ export default function ProfilePage() {
     setMessage("");
 
     try {
-      const extension = file.name.split(".").pop()?.toLowerCase() || "jpg";
       const path = `${userId}/avatar.${extension}`;
       const uploadResult = await supabase.storage
         .from("profile-avatars")
@@ -478,7 +557,8 @@ export default function ProfilePage() {
       }
 
       const { data } = supabase.storage.from("profile-avatars").getPublicUrl(path);
-      const nextAvatarUrl = `${data.publicUrl}?v=${Date.now()}`;
+      const nextAvatarUrl = data.publicUrl;
+      setAvatarPreviewVersion(Date.now());
       update("avatar_url", nextAvatarUrl);
       notifyShellProfileChanged({
         ...profile,
@@ -492,6 +572,7 @@ export default function ProfilePage() {
   };
 
   const handleRemovePhoto = () => {
+    setAvatarPreviewVersion(0);
     update("avatar_url", null);
     notifyShellProfileChanged({
       ...profile,
@@ -557,7 +638,10 @@ export default function ProfilePage() {
               {profile.avatar_url ? (
                 // eslint-disable-next-line @next/next/no-img-element
                 <img
-                  src={profile.avatar_url}
+                  src={
+                    buildAvatarPreviewUrl(profile.avatar_url, avatarPreviewVersion) ||
+                    profile.avatar_url
+                  }
                   alt="Profile avatar"
                   className="h-full w-full rounded-full object-cover"
                 />
