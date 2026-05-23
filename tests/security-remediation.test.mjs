@@ -1000,6 +1000,22 @@ test("profile avatar urls and affiliate merchant constraints are hardened in mig
   assert.match(migrationSource, /revoke select on table public\.group_draw_cycle_pairs from authenticated/i);
 });
 
+test("draw cycle pair advisor policy stays deny-all for browser clients", () => {
+  const migrationFile = readdirSync("supabase/migrations").find((fileName) =>
+    fileName.endsWith("_deny_client_group_draw_cycle_pairs.sql")
+  );
+
+  assert.ok(migrationFile);
+
+  const migrationPath = ["supabase", "migrations", migrationFile].join("/");
+  // eslint-disable-next-line security/detect-non-literal-fs-filename -- Test only reads a repo-local migration path assembled to avoid a no-secrets false positive.
+  const migrationSource = readFileSync(migrationPath, "utf8");
+
+  assert.match(migrationSource, /group_draw_cycle_pairs_no_client_select/i);
+  assert.match(migrationSource, /for select\s+to anon, authenticated/i);
+  assert.match(migrationSource, /using \(false\)/i);
+});
+
 test("profile avatar cache-busting stays out of persisted avatar urls", () => {
   const profileActionsSource = readFileSync("app/profile/actions.ts", "utf8");
   const profilePageSource = readFileSync("app/profile/page.tsx", "utf8");
