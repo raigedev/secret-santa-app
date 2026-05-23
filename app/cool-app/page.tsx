@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useMemo, useState } from "react";
+import { useMemo, useState, useSyncExternalStore } from "react";
 
 const MOODS = [
   {
@@ -31,6 +31,27 @@ const MOODS = [
 const OCCASIONS = ["Office exchange", "Family party", "Friend group", "Last-minute save"] as const;
 
 type MoodId = (typeof MOODS)[number]["id"];
+
+function subscribeToHydrationStore() {
+  return () => {};
+}
+
+function getHydratedClientSnapshot() {
+  return true;
+}
+
+function getHydratedServerSnapshot() {
+  return false;
+}
+
+// Keep SSR controls inert until hydration so an early click cannot be lost.
+function useHydratedClient() {
+  return useSyncExternalStore(
+    subscribeToHydrationStore,
+    getHydratedClientSnapshot,
+    getHydratedServerSnapshot
+  );
+}
 
 function peso(value: number) {
   return new Intl.NumberFormat("en-PH", {
@@ -89,6 +110,7 @@ function buildPlan({
 }
 
 export default function CoolAppPage() {
+  const controlsReady = useHydratedClient();
   const [mood, setMood] = useState<MoodId>("clever");
   const [occasion, setOccasion] = useState<(typeof OCCASIONS)[number]>("Office exchange");
   const [budget, setBudget] = useState(1500);
@@ -209,6 +231,8 @@ export default function CoolAppPage() {
                   <button
                     key={item.id}
                     type="button"
+                    aria-pressed={isActive}
+                    disabled={!controlsReady}
                     onClick={() => setMood(item.id)}
                     className="gift-option px-4 py-3 text-center text-sm font-black"
                     style={{
