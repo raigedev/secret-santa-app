@@ -1016,6 +1016,41 @@ test("draw cycle pair advisor policy stays deny-all for browser clients", () => 
   assert.match(migrationSource, /using \(false\)/i);
 });
 
+test("advisor foreign key performance indexes are durable", () => {
+  const migrationFile = readdirSync("supabase/migrations").find((fileName) =>
+    fileName.endsWith("_add_missing_fk_indexes.sql")
+  );
+
+  assert.ok(migrationFile);
+
+  const migrationPath = ["supabase", "migrations", migrationFile].join("/");
+  // eslint-disable-next-line security/detect-non-literal-fs-filename -- Test only reads a repo-local migration path selected by a stable migration suffix.
+  const migrationSource = readFileSync(migrationPath, "utf8");
+  const normalizedMigrationSource = migrationSource.toLowerCase();
+
+  for (const indexName of [
+    "group_draw_cycle_pairs_giver_id_idx",
+    "group_draw_cycle_pairs_receiver_id_idx",
+    "group_draw_cycles_created_by_idx",
+    "group_draw_exclusions_created_by_idx",
+    "group_draw_exclusions_giver_user_id_idx",
+    "group_draw_exclusions_receiver_user_id_idx",
+    "group_draw_resets_created_by_idx",
+    "group_invite_links_created_by_idx",
+    "group_reveal_sessions_started_by_idx",
+    "messages_sender_idx",
+    "messages_thread_giver_idx",
+    "messages_thread_receiver_idx",
+    "reminder_deliveries_notification_id_idx",
+    "thread_reads_group_id_idx",
+    "welcome_email_receipts_notification_id_idx",
+  ]) {
+    assert.ok(
+      normalizedMigrationSource.includes(`create index if not exists ${indexName}`)
+    );
+  }
+});
+
 test("profile avatar cache-busting stays out of persisted avatar urls", () => {
   const profileActionsSource = readFileSync("app/profile/actions.ts", "utf8");
   const profilePageSource = readFileSync("app/profile/page.tsx", "utf8");
