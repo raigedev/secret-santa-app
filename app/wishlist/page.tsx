@@ -21,6 +21,7 @@ import {
   WISHLIST_CATEGORIES,
   WISHLIST_ITEMS_PER_GROUP_LIMIT,
 } from "@/lib/wishlist/options";
+import { normalizeOptionalWishlistUrl } from "@/lib/wishlist/url";
 import {
   realtimePayloadMatchesAnyValue,
   useSupabaseRealtimeRefresh,
@@ -172,16 +173,7 @@ function cleanText(value: string, max: number) {
 }
 
 function cleanUrl(value: string) {
-  const trimmed = value.trim();
-  if (!trimmed) return "";
-
-  try {
-    const parsed = new URL(trimmed);
-    if (parsed.protocol !== "http:" && parsed.protocol !== "https:") return "";
-    return trimmed.slice(0, ITEM_URL_MAX);
-  } catch {
-    return "";
-  }
+  return normalizeOptionalWishlistUrl(value, ITEM_URL_MAX);
 }
 
 function toGroupOption(group: GroupRow): GroupOption {
@@ -200,8 +192,8 @@ function toWishlistItem(row: WishlistRow): WishlistItem {
     group_id: row.group_id,
     item_name: row.item_name,
     item_category: row.item_category || "",
-    item_image_url: row.item_image_url || "",
-    item_link: row.item_link || "",
+    item_image_url: cleanUrl(row.item_image_url || ""),
+    item_link: cleanUrl(row.item_link || ""),
     item_note: row.item_note || "",
     priority: clampPriority(row.priority),
   };
