@@ -1071,6 +1071,11 @@ test("profile avatar cache-busting stays out of persisted avatar urls", () => {
   assert.match(profilePageSource, /previewUrl\.searchParams\.set\("v", String\(previewVersion\)\)/);
   assert.match(profilePageSource, /PROFILE_AVATAR_EXTENSIONS_BY_TYPE\.get\(file\.type\)/);
   assert.doesNotMatch(profilePageSource, /file\.name\.split/);
+  assert.match(profilePageSource, /function buildProfileAvatarPath/);
+  assert.match(profilePageSource, /function getProfileAvatarStoragePathForUser/);
+  assert.match(profilePageSource, /\.upload\(path, file,[\s\S]{0,160}upsert: false/);
+  assert.doesNotMatch(profilePageSource, /upsert: true/);
+  assert.match(profilePageSource, /\.remove\(\[previousAvatarPath\]\)/);
   assert.match(profilePageSource, /const nextAvatarUrl = data\.publicUrl;/);
   assert.doesNotMatch(profilePageSource, /data\.publicUrl\}\?v=/);
 });
