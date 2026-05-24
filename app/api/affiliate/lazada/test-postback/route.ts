@@ -4,6 +4,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { canViewAffiliateReport } from "@/lib/affiliate/report-access";
 import { enforceRateLimit } from "@/lib/security/rate-limit";
 import { recordServerFailure } from "@/lib/security/audit";
+import { noStoreText } from "@/lib/security/no-store-response";
 import { isTrustedRequestOrigin, resolveTrustedAppOrigin } from "@/lib/security/web";
 import { supabaseAdmin } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
@@ -33,12 +34,14 @@ function redirectToReport(request: NextRequest, status: string): NextResponse {
   );
   target.searchParams.set("testPostback", status);
 
-  return NextResponse.redirect(target, { status: 303 });
+  const response = NextResponse.redirect(target, { status: 303 });
+  response.headers.set("Cache-Control", "no-store");
+  return response;
 }
 
 export async function POST(request: NextRequest) {
   if (!isTrustedRequestOrigin(request)) {
-    return new NextResponse("Forbidden", { status: 403 });
+    return noStoreText("Forbidden", { status: 403 });
   }
 
   const supabase = await createClient();
@@ -47,7 +50,7 @@ export async function POST(request: NextRequest) {
   } = await supabase.auth.getUser();
 
   if (!user || !canViewAffiliateReport(user.email)) {
-    return new NextResponse("Forbidden", { status: 403 });
+    return noStoreText("Forbidden", { status: 403 });
   }
 
   const rateLimit = await enforceRateLimit({

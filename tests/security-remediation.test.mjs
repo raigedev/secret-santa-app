@@ -1170,6 +1170,10 @@ test("private AI and affiliate helper API responses are not cacheable", () => {
     "app/api/affiliate/lazada/prime-links/route.ts",
     "utf8"
   );
+  const lazadaTestPostbackRouteSource = readFileSync(
+    "app/api/affiliate/lazada/test-postback/route.ts",
+    "utf8"
+  );
   const reminderProcessorRouteSource = readFileSync(
     "app/api/notifications/process-reminders/route.ts",
     "utf8"
@@ -1190,6 +1194,8 @@ test("private AI and affiliate helper API responses are not cacheable", () => {
   assert.match(lazadaPrimeLinksRouteSource, /export const dynamic = "force-dynamic"/);
   assert.doesNotMatch(lazadaPrimeLinksRouteSource, /NextResponse\.json/);
   assert.match(lazadaPrimeLinksRouteSource, /noStoreJson\(\{\s*primed:/);
+  assert.match(lazadaTestPostbackRouteSource, /noStoreText\("Forbidden", \{ status: 403 \}\)/);
+  assert.match(lazadaTestPostbackRouteSource, /headers\.set\("Cache-Control", "no-store"\)/);
   assert.doesNotMatch(reminderProcessorRouteSource, /NextResponse\.json/);
   assert.match(reminderProcessorRouteSource, /noStoreJson\(\{ error: "Unauthorized" \}/);
   assert.match(reminderProcessorRouteSource, /error: "Reminder processing failed\."/);
