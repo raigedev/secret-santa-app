@@ -53,12 +53,19 @@ export function AuthPageFrame({
   return (
     <main className="relative min-h-screen overflow-hidden bg-[#f9faf8] px-4 py-6 sm:px-6 lg:px-8">
       <AuthPageBackground showDecorativeBlobs={showDecorativeBlobs} />
-      <div className="relative mx-auto flex min-h-[calc(100vh-3rem)] max-w-6xl items-center">
+      <div className="relative mx-auto flex min-h-[calc(100vh-3rem)] max-w-6xl flex-col items-center justify-center gap-4">
         <div
           className={`grid w-full gap-4 rounded-[2.25rem] bg-white/72 p-3 shadow-[0_32px_90px_rgba(46,52,50,0.08)] backdrop-blur-xl ${gridClassName} lg:p-4`}
         >
           {children}
         </div>
+        <p className="text-center text-xs font-semibold leading-5 text-[#6a706d]">
+          My Secret Santa handles account and gift-exchange data under the{" "}
+          <a href="/privacy" className="text-[#a43c3f] underline-offset-4 transition hover:text-[#812227] hover:underline">
+            Privacy Policy
+          </a>
+          .
+        </p>
       </div>
     </main>
   );

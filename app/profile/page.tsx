@@ -171,6 +171,48 @@ function normalizeProfileAvatarUrlForUser(
   }
 }
 
+function buildProfileAvatarPath(userId: string, extension: string): string {
+  const randomValues = crypto.getRandomValues(new Uint32Array(2));
+  const nonce = Array.from(randomValues, (value) => value.toString(36)).join("");
+
+  return `${userId}/avatar-${Date.now().toString(36)}-${nonce}.${extension}`;
+}
+
+function getProfileAvatarStoragePathForUser(
+  userId: string | null | undefined,
+  avatarUrl: string | null
+): string | null {
+  if (!userId || !avatarUrl) {
+    return null;
+  }
+
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+
+  if (!supabaseUrl) {
+    return null;
+  }
+
+  try {
+    const candidate = new URL(avatarUrl);
+    const allowedOrigin = new URL(supabaseUrl).origin;
+    const allowedPathPrefix = "/storage/v1/object/public/profile-avatars/";
+    const storagePath = candidate.pathname.slice(allowedPathPrefix.length);
+
+    if (
+      candidate.origin !== allowedOrigin ||
+      !candidate.pathname.startsWith(allowedPathPrefix) ||
+      !storagePath.startsWith(`${userId}/`) ||
+      !/^[A-Za-z0-9._~%/-]+$/.test(storagePath)
+    ) {
+      return null;
+    }
+
+    return storagePath;
+  } catch {
+    return null;
+  }
+}
+
 function normalizeCachedProfileForUser(profile: Profile, userId: string): Profile {
   return {
     ...profile,
@@ -542,13 +584,14 @@ export default function ProfilePage() {
     setMessage("");
 
     try {
-      const path = `${userId}/avatar.${extension}`;
+      const previousAvatarPath = getProfileAvatarStoragePathForUser(userId, profile.avatar_url);
+      const path = buildProfileAvatarPath(userId, extension);
       const uploadResult = await supabase.storage
         .from("profile-avatars")
         .upload(path, file, {
           cacheControl: "3600",
           contentType: file.type,
-          upsert: true,
+          upsert: false,
         });
 
       if (uploadResult.error) {
@@ -564,6 +607,9 @@ export default function ProfilePage() {
         ...profile,
         avatar_url: nextAvatarUrl,
       });
+      if (previousAvatarPath && previousAvatarPath !== path) {
+        void supabase.storage.from("profile-avatars").remove([previousAvatarPath]);
+      }
       setMessage("Photo uploaded. Save changes to keep it across the app.");
     } finally {
       setUploadingAvatar(false);
