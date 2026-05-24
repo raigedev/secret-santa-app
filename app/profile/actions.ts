@@ -10,6 +10,7 @@ import { requireRateLimitedAction } from "@/lib/auth/server-action-context";
 import { enforceRateLimit } from "@/lib/security/rate-limit";
 import { supabaseAdmin } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
+import { normalizeProfileAvatarUrlForUser } from "@/lib/profile/avatar";
 import { sanitizePlainText } from "@/lib/validation/common";
 
 // Profile actions stay on the server because they touch auth state and user-owned
@@ -38,32 +39,6 @@ const DEFAULT_REMINDER_PREFERENCES: ReminderPreferenceFormState = {
 
 function sanitize(input: string, max: number): string {
   return sanitizePlainText(input, max);
-}
-
-function normalizeAvatarUrl(userId: string, avatarUrl: string | null): string | null {
-  if (!avatarUrl) {
-    return null;
-  }
-
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-
-  if (!supabaseUrl) {
-    return null;
-  }
-
-  try {
-    const candidate = new URL(avatarUrl);
-    const allowedOrigin = new URL(supabaseUrl).origin;
-    const allowedPathPrefix = `/storage/v1/object/public/profile-avatars/${userId}/`;
-
-    if (candidate.origin !== allowedOrigin || !candidate.pathname.startsWith(allowedPathPrefix)) {
-      return null;
-    }
-
-    return `${candidate.origin}${candidate.pathname}`;
-  } catch {
-    return null;
-  }
 }
 
 // Lazily create the profile row so older or partially-created accounts can still recover.
@@ -214,7 +189,10 @@ export async function updateProfile(
   const cleanBio = sanitize(bio, 200);
   const cleanEmoji = sanitize(avatarEmoji, 10);
   const cleanCurrency = sanitize(currency, 5);
-  const cleanAvatarUrl = normalizeAvatarUrl(user.id, avatarUrl ? sanitize(avatarUrl, 1000) : null);
+  const cleanAvatarUrl = normalizeProfileAvatarUrlForUser(
+    user.id,
+    avatarUrl ? sanitize(avatarUrl, 1000) : null
+  );
   const cleanBudget = Math.min(Math.max(Math.floor(defaultBudget || 0), 0), 10000);
 
   if (cleanName.length === 0) {

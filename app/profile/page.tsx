@@ -23,6 +23,11 @@ import {
 } from "@/lib/client-snapshot";
 import { publishViewerProfileChanged } from "@/app/components/viewer-profile-client";
 import { isNullableString, isRecord } from "@/lib/validation/common";
+import {
+  getProfileAvatarStoragePathForUser,
+  normalizeProfileAvatarUrlForUser,
+  PROFILE_AVATAR_EXTENSIONS_BY_TYPE,
+} from "@/lib/profile/avatar";
 
 const PRESET_AVATARS = [
   "🎅", "🧝", "🦌", "⛄", "🎄", "🎁", "🧑‍🎄", "❄️",
@@ -37,12 +42,6 @@ const DEFAULT_REMINDER_PREFERENCES: ReminderPreferenceFormState = {
   reminder_post_draw: true,
   reminder_wishlist_incomplete: true,
 };
-const PROFILE_AVATAR_EXTENSIONS_BY_TYPE = new Map([
-  ["image/jpeg", "jpg"],
-  ["image/png", "png"],
-  ["image/webp", "webp"],
-]);
-
 const CURRENCIES = [
   { code: "USD", label: "$ USD — US Dollar" },
   { code: "EUR", label: "€ EUR — Euro" },
@@ -142,75 +141,11 @@ function isProfilePageSnapshot(
   );
 }
 
-function normalizeProfileAvatarUrlForUser(
-  userId: string | null | undefined,
-  avatarUrl: string | null
-): string | null {
-  if (!userId || !avatarUrl) {
-    return null;
-  }
-
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-
-  if (!supabaseUrl) {
-    return null;
-  }
-
-  try {
-    const candidate = new URL(avatarUrl);
-    const allowedOrigin = new URL(supabaseUrl).origin;
-    const allowedPathPrefix = `/storage/v1/object/public/profile-avatars/${userId}/`;
-
-    if (candidate.origin !== allowedOrigin || !candidate.pathname.startsWith(allowedPathPrefix)) {
-      return null;
-    }
-
-    return `${candidate.origin}${candidate.pathname}`;
-  } catch {
-    return null;
-  }
-}
-
 function buildProfileAvatarPath(userId: string, extension: string): string {
   const randomValues = crypto.getRandomValues(new Uint32Array(2));
   const nonce = Array.from(randomValues, (value) => value.toString(36)).join("");
 
   return `${userId}/avatar-${Date.now().toString(36)}-${nonce}.${extension}`;
-}
-
-function getProfileAvatarStoragePathForUser(
-  userId: string | null | undefined,
-  avatarUrl: string | null
-): string | null {
-  if (!userId || !avatarUrl) {
-    return null;
-  }
-
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-
-  if (!supabaseUrl) {
-    return null;
-  }
-
-  try {
-    const candidate = new URL(avatarUrl);
-    const allowedOrigin = new URL(supabaseUrl).origin;
-    const allowedPathPrefix = "/storage/v1/object/public/profile-avatars/";
-    const storagePath = candidate.pathname.slice(allowedPathPrefix.length);
-
-    if (
-      candidate.origin !== allowedOrigin ||
-      !candidate.pathname.startsWith(allowedPathPrefix) ||
-      !storagePath.startsWith(`${userId}/`) ||
-      !/^[A-Za-z0-9._~%/-]+$/.test(storagePath)
-    ) {
-      return null;
-    }
-
-    return storagePath;
-  } catch {
-    return null;
-  }
 }
 
 function normalizeCachedProfileForUser(profile: Profile, userId: string): Profile {
