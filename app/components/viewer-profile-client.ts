@@ -3,6 +3,7 @@ import {
   removeSessionStorageItem,
   writeSessionStorageItem,
 } from "@/lib/client-snapshot";
+import { normalizeAnyProfileAvatarUrl } from "@/lib/profile/avatar";
 
 const VIEWER_PROFILE_STORAGE_PREFIX = "ss_viewer_profile_v2:";
 const VIEWER_PROFILE_CHANGED_EVENT = "ss-profile-updated";
@@ -34,34 +35,7 @@ export function normalizeViewerAvatarEmoji(value: string | null | undefined) {
 }
 
 export function normalizeViewerAvatarUrl(value: string | null | undefined) {
-  const trimmed = (value || "").trim();
-
-  if (!trimmed) {
-    return "";
-  }
-
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-
-  if (!supabaseUrl) {
-    return "";
-  }
-
-  try {
-    const candidate = new URL(trimmed);
-    const allowedOrigin = new URL(supabaseUrl).origin;
-    const allowedPathPrefix = "/storage/v1/object/public/profile-avatars/";
-
-    if (
-      candidate.origin !== allowedOrigin ||
-      !candidate.pathname.startsWith(allowedPathPrefix)
-    ) {
-      return "";
-    }
-
-    return `${candidate.origin}${candidate.pathname}`;
-  } catch {
-    return "";
-  }
+  return normalizeAnyProfileAvatarUrl(value) || "";
 }
 
 export function getEmailViewerName(email: string | null | undefined) {

@@ -82,7 +82,7 @@ export function isTrustedRequestOrigin(request: Request): boolean {
   const providedOrigin = normalizeHttpOrigin(request.headers.get("origin"));
 
   if (!providedOrigin) {
-    return true;
+    return request.headers.get("sec-fetch-site")?.toLowerCase() !== "cross-site";
   }
 
   const requestUrl = new URL(request.url);

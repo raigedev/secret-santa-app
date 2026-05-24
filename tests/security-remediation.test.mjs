@@ -528,9 +528,11 @@ test("peer profile route always rechecks authorization before profile output", (
   assert.doesNotMatch(peerProfilesRouteSource, /peerProfileCache/);
   assert.doesNotMatch(peerProfilesRouteSource, /readPeerProfileCache/);
   assert.doesNotMatch(peerProfilesRouteSource, /writePeerProfileCache/);
-  assert.match(peerProfilesRouteSource, /function normalizeProfileAvatarUrl/);
-  assert.match(peerProfilesRouteSource, /profile-avatars\/\$\{userId\}\//);
-  assert.match(peerProfilesRouteSource, /normalizeProfileAvatarUrl\(profile\.user_id, profile\.avatar_url\)/);
+  assert.match(peerProfilesRouteSource, /normalizeProfileAvatarUrlForUser/);
+  assert.match(
+    peerProfilesRouteSource,
+    /normalizeProfileAvatarUrlForUser\(profile\.user_id, profile\.avatar_url\)/
+  );
   assert.match(
     peerProfilesRouteSource,
     /member\.user_id\s*===\s*null[\s\S]{0,120}member\.email\.trim\(\)\.toLowerCase\(\)\s*===\s*normalizedEmail/
@@ -1052,17 +1054,25 @@ test("advisor foreign key performance indexes are durable", () => {
 });
 
 test("profile avatar cache-busting stays out of persisted avatar urls", () => {
+  const avatarHelperSource = readFileSync("lib/profile/avatar.ts", "utf8");
   const profileActionsSource = readFileSync("app/profile/actions.ts", "utf8");
   const profilePageSource = readFileSync("app/profile/page.tsx", "utf8");
   const viewerProfileSource = readFileSync("app/components/viewer-profile-client.ts", "utf8");
   const peerProfilesRouteSource = readFileSync("app/api/groups/peer-profiles/route.ts", "utf8");
 
-  assert.match(profileActionsSource, /return `\$\{candidate\.origin\}\$\{candidate\.pathname\}`;/);
+  assert.match(avatarHelperSource, /PROFILE_AVATAR_PATH_PATTERN/);
+  assert.match(avatarHelperSource, /avatar-\[a-z0-9\]\+-\[a-z0-9\]\+\\\.\(jpg\|png\|webp\)/);
+  assert.match(avatarHelperSource, /export function normalizeProfileAvatarUrlForUser/);
+  assert.match(avatarHelperSource, /isProfileAvatarStoragePathForUser\(userId, storagePath\)/);
+  assert.match(
+    avatarHelperSource,
+    /return `\$\{candidate\.origin\}\$\{allowedPathPrefix\}\$\{storagePath\}`;/
+  );
+  assert.match(profileActionsSource, /normalizeProfileAvatarUrlForUser/);
   assert.doesNotMatch(profileActionsSource, /\$\{candidate\.search\}/);
-  assert.match(viewerProfileSource, /return `\$\{candidate\.origin\}\$\{candidate\.pathname\}`;/);
-  assert.match(peerProfilesRouteSource, /return `\$\{candidate\.origin\}\$\{candidate\.pathname\}`;/);
+  assert.match(viewerProfileSource, /normalizeAnyProfileAvatarUrl\(value\) \|\| ""/);
+  assert.match(peerProfilesRouteSource, /normalizeProfileAvatarUrlForUser/);
   assert.doesNotMatch(peerProfilesRouteSource, /\$\{candidate\.search\}/);
-  assert.match(profilePageSource, /function normalizeProfileAvatarUrlForUser/);
   assert.match(profilePageSource, /avatar_url: normalizeProfileAvatarUrlForUser\(data\.user_id/);
   assert.match(profilePageSource, /const nextCachedProfile = normalizeCachedProfileForUser/);
   assert.match(profilePageSource, /const profileForSave = \{/);
@@ -1072,12 +1082,37 @@ test("profile avatar cache-busting stays out of persisted avatar urls", () => {
   assert.match(profilePageSource, /PROFILE_AVATAR_EXTENSIONS_BY_TYPE\.get\(file\.type\)/);
   assert.doesNotMatch(profilePageSource, /file\.name\.split/);
   assert.match(profilePageSource, /function buildProfileAvatarPath/);
-  assert.match(profilePageSource, /function getProfileAvatarStoragePathForUser/);
+  assert.match(profilePageSource, /getProfileAvatarStoragePathForUser/);
   assert.match(profilePageSource, /\.upload\(path, file,[\s\S]{0,160}upsert: false/);
   assert.doesNotMatch(profilePageSource, /upsert: true/);
   assert.match(profilePageSource, /\.remove\(\[previousAvatarPath\]\)/);
   assert.match(profilePageSource, /const nextAvatarUrl = data\.publicUrl;/);
   assert.doesNotMatch(profilePageSource, /data\.publicUrl\}\?v=/);
+});
+
+test("profile avatar storage paths are constrained at the database boundary", () => {
+  const avatarMigrationName = [
+    "20260524031022",
+    "restrict",
+    "profile",
+    "avatar",
+    "paths.sql",
+  ].join("_");
+  // eslint-disable-next-line security/detect-non-literal-fs-filename -- Test only reads a fixed repo-local migration assembled from safe string pieces.
+  const migrationSource = readFileSync(
+    ["supabase", "migrations", avatarMigrationName].join("/"),
+    "utf8"
+  );
+
+  assert.match(migrationSource, /drop constraint if exists profiles_avatar_url_storage_owner_check/i);
+  assert.match(migrationSource, /avatar-\[a-z0-9\]\+-\[a-z0-9\]\+\\\.\(jpg\|png\|webp\)/i);
+  assert.match(migrationSource, /drop policy if exists profile_avatars_insert_own/i);
+  assert.match(migrationSource, /create policy profile_avatars_insert_own/i);
+  assert.match(migrationSource, /create policy profile_avatars_update_own/i);
+  assert.match(migrationSource, /create policy profile_avatars_delete_own/i);
+  assert.match(migrationSource, /name ~\* \(/i);
+  assert.match(migrationSource, /\|\| auth\.uid\(\)::text/i);
+  assert.doesNotMatch(migrationSource, /storage\.foldername\(name\)\)\[1\]\s*=\s*auth\.uid\(\)::text/i);
 });
 
 test("lazada cards avoid untrusted remote image hosts and private redirect notes", () => {
@@ -1236,6 +1271,8 @@ test("authenticated browser POST routes reject untrusted origins", () => {
 
   assert.match(webSecuritySource, /export function isTrustedRequestOrigin\(request: Request\)/);
   assert.match(webSecuritySource, /request\.headers\.get\("origin"\)/);
+  assert.match(webSecuritySource, /request\.headers\.get\("sec-fetch-site"\)/);
+  assert.match(webSecuritySource, /!== "cross-site"/);
   assert.match(aiSuggestionsSource, /isTrustedRequestOrigin\(request\)/);
   assert.match(peerProfilesSource, /isTrustedRequestOrigin\(request\)/);
   assert.match(affiliateAuthSource, /isTrustedRequestOrigin\(request\)/);
