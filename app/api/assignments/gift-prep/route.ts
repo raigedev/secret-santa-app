@@ -1,12 +1,13 @@
-import { NextResponse } from "next/server";
-
+import { noStoreJson } from "@/lib/security/no-store-response";
 import { enforceRateLimit } from "@/lib/security/rate-limit";
+import { readLimitedJsonBody } from "@/lib/security/request-body";
 import { isTrustedRequestOrigin } from "@/lib/security/web";
 import { supabaseAdmin } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 import { isRecord, isUuid } from "@/lib/validation/common";
 
 const MAX_GIFT_PREP_GROUP_IDS = 50;
+const GIFT_PREP_BODY_LIMIT_BYTES = 8 * 1024;
 const GIFT_PREP_READ_RATE_LIMIT_MAX_REQUESTS = 120;
 const GIFT_PREP_READ_RATE_LIMIT_WINDOW_SECONDS = 3600;
 
@@ -26,13 +27,7 @@ type GiftPrepPayload = {
 export const dynamic = "force-dynamic";
 
 function giftPrepResponse(payload: GiftPrepPayload, init?: ResponseInit) {
-  const headers = new Headers(init?.headers);
-  headers.set("Cache-Control", "no-store");
-
-  return NextResponse.json(payload, {
-    ...init,
-    headers,
-  });
+  return noStoreJson(payload, init);
 }
 
 function parseGroupIds(value: unknown): string[] {
@@ -57,19 +52,20 @@ export async function POST(request: Request) {
     return giftPrepResponse({ rows: [] }, { status: 401 });
   }
 
-  let body: unknown;
+  const bodyResult = await readLimitedJsonBody<unknown>(request, GIFT_PREP_BODY_LIMIT_BYTES);
 
-  try {
-    body = await request.json();
-  } catch {
+  if (!bodyResult.ok) {
+    return giftPrepResponse(
+      { rows: [] },
+      { status: bodyResult.error === "too-large" ? 413 : 400 }
+    );
+  }
+
+  if (!isRecord(bodyResult.body)) {
     return giftPrepResponse({ rows: [] }, { status: 400 });
   }
 
-  if (!isRecord(body)) {
-    return giftPrepResponse({ rows: [] }, { status: 400 });
-  }
-
-  const groupIds = parseGroupIds(body.groupIds);
+  const groupIds = parseGroupIds(bodyResult.body.groupIds);
 
   if (groupIds.length === 0) {
     return giftPrepResponse({ rows: [] });

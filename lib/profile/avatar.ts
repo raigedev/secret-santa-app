@@ -9,7 +9,7 @@ export const PROFILE_AVATAR_EXTENSIONS_BY_TYPE = new Map([
   ["image/webp", "webp"],
 ]);
 
-export function isProfileAvatarStoragePathForUser(
+function isProfileAvatarStoragePathForUser(
   userId: string | null | undefined,
   storagePath: string | null | undefined
 ): boolean {

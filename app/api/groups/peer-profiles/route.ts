@@ -1,13 +1,14 @@
-import { NextResponse } from "next/server";
-
+import { normalizeProfileAvatarUrlForUser } from "@/lib/profile/avatar";
+import { noStoreJson } from "@/lib/security/no-store-response";
 import { enforceRateLimit } from "@/lib/security/rate-limit";
+import { readLimitedJsonBody } from "@/lib/security/request-body";
 import { isTrustedRequestOrigin } from "@/lib/security/web";
 import { supabaseAdmin } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 import { isRecord, isUuid } from "@/lib/validation/common";
-import { normalizeProfileAvatarUrlForUser } from "@/lib/profile/avatar";
 
 const MAX_GROUP_PROFILE_LOOKUPS = 50;
+const PEER_PROFILE_BODY_LIMIT_BYTES = 8 * 1024;
 const PEER_PROFILE_RATE_LIMIT_MAX_REQUESTS = 120;
 const PEER_PROFILE_RATE_LIMIT_WINDOW_SECONDS = 3600;
 
@@ -37,13 +38,7 @@ type PeerProfilePayload = {
 export const dynamic = "force-dynamic";
 
 function peerProfileResponse(payload: PeerProfilePayload, init?: ResponseInit) {
-  const headers = new Headers(init?.headers);
-  headers.set("Cache-Control", "no-store");
-
-  return NextResponse.json(payload, {
-    ...init,
-    headers,
-  });
+  return noStoreJson(payload, init);
 }
 
 function parseGroupIds(value: unknown): string[] {
@@ -69,19 +64,20 @@ export async function POST(request: Request) {
     return peerProfileResponse({ profilesByGroup: {} }, { status: 401 });
   }
 
-  let body: unknown;
+  const bodyResult = await readLimitedJsonBody<unknown>(request, PEER_PROFILE_BODY_LIMIT_BYTES);
 
-  try {
-    body = await request.json();
-  } catch {
+  if (!bodyResult.ok) {
+    return peerProfileResponse(
+      { profilesByGroup: {} },
+      { status: bodyResult.error === "too-large" ? 413 : 400 }
+    );
+  }
+
+  if (!isRecord(bodyResult.body)) {
     return peerProfileResponse({ profilesByGroup: {} }, { status: 400 });
   }
 
-  if (!isRecord(body)) {
-    return peerProfileResponse({ profilesByGroup: {} }, { status: 400 });
-  }
-
-  const requestedGroupIds = parseGroupIds(body.groupIds);
+  const requestedGroupIds = parseGroupIds(bodyResult.body.groupIds);
 
   if (requestedGroupIds.length === 0) {
     return peerProfileResponse({ profilesByGroup: {} } satisfies PeerProfilePayload);

@@ -1,17 +1,30 @@
 import { createHash } from "crypto";
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest } from "next/server";
 
 import { stripReservedPostbackSecrets } from "@/lib/affiliate/lazada-postback.mjs";
 import { supabaseAdmin } from "@/lib/supabase/admin";
-import { recordAuditEvent } from "@/lib/security/audit";
+import { recordAuditEvent, recordServerFailure } from "@/lib/security/audit";
+import { noStoreText } from "@/lib/security/no-store-response";
 import { enforceRateLimit } from "@/lib/security/rate-limit";
+import { readLimitedTextBody } from "@/lib/security/request-body";
 import { safeEqualSecret } from "@/lib/security/web";
 
 export const dynamic = "force-dynamic";
 
 type PostbackPayload = Record<string, string>;
+type PostbackPayloadReadResult =
+  | {
+      ok: true;
+      payload: PostbackPayload;
+    }
+  | {
+      ok: false;
+      response: Response;
+    };
+
 const URL_POSTBACK_AUTH_PARAM_KEYS = new Set(["secret", "token"]);
 const UNAUTHORIZED_POSTBACK_RATE_LIMIT_SUBJECT = "lazada-postback:unauthorized";
+const MAX_POSTBACK_BODY_BYTES = 64 * 1024;
 
 function normalizePayloadValue(value: unknown): string | null {
   if (value === null || value === undefined) {
@@ -104,49 +117,68 @@ function stripUrlPostbackAuthParams(payload: PostbackPayload): PostbackPayload {
   }, {});
 }
 
-async function readPostbackPayload(request: NextRequest): Promise<PostbackPayload> {
+async function readPostbackPayload(request: NextRequest): Promise<PostbackPayloadReadResult> {
   const queryPayload = stripUrlPostbackAuthParams(
     normalizePayloadObject(Object.fromEntries(request.nextUrl.searchParams.entries()))
   );
 
   if (request.method === "GET") {
-    return queryPayload;
+    return { ok: true, payload: queryPayload };
   }
 
-  const contentType = request.headers.get("content-type") || "";
+  const contentType = request.headers.get("content-type")?.toLowerCase() || "";
 
   try {
-    if (contentType.includes("application/json")) {
-      const json = (await request.json()) as Record<string, unknown>;
+    const bodyRead = await readLimitedTextBody(request, MAX_POSTBACK_BODY_BYTES);
+
+    if (!bodyRead.ok) {
       return {
-        ...queryPayload,
-        ...normalizePayloadObject(json),
+        ok: false,
+        response: noStoreText(
+          bodyRead.error === "too-large" ? "Postback body too large" : "Invalid postback payload",
+          { status: bodyRead.error === "too-large" ? 413 : 400 }
+        ),
       };
     }
 
-    if (contentType.includes("application/x-www-form-urlencoded") || contentType.includes("multipart/form-data")) {
-      const formData = await request.formData();
-      return {
-        ...queryPayload,
-        ...normalizePayloadObject(Object.fromEntries(formData.entries())),
-      };
-    }
-
-    const rawText = await request.text();
-    const parsedText = rawText.trim();
+    const parsedText = bodyRead.text.trim();
 
     if (parsedText.length === 0) {
-      return queryPayload;
+      return { ok: true, payload: queryPayload };
+    }
+
+    if (contentType.includes("application/json")) {
+      const json = JSON.parse(parsedText) as Record<string, unknown>;
+      return {
+        ok: true,
+        payload: {
+          ...queryPayload,
+          ...normalizePayloadObject(json),
+        },
+      };
+    }
+
+    if (contentType.includes("multipart/form-data")) {
+      return {
+        ok: false,
+        response: noStoreText("Unsupported postback content type", { status: 415 }),
+      };
     }
 
     const params = new URLSearchParams(parsedText);
 
     return {
-      ...queryPayload,
-      ...normalizePayloadObject(Object.fromEntries(params.entries())),
+      ok: true,
+      payload: {
+        ...queryPayload,
+        ...normalizePayloadObject(Object.fromEntries(params.entries())),
+      },
     };
   } catch {
-    return queryPayload;
+    return {
+      ok: false,
+      response: noStoreText("Invalid postback payload", { status: 400 }),
+    };
   }
 }
 
@@ -162,10 +194,28 @@ function isAuthorizedPostback(request: NextRequest, payload: PostbackPayload): b
   return safeEqualSecret(configuredSecret, providedSecret);
 }
 
+function getPostbackBodyPreflightResponse(request: NextRequest): Response | null {
+  if (request.method === "GET") {
+    return null;
+  }
+
+  const contentLength = Number(request.headers.get("content-length") || 0);
+  if (contentLength > MAX_POSTBACK_BODY_BYTES) {
+    return noStoreText("Postback body too large", { status: 413 });
+  }
+
+  const contentType = request.headers.get("content-type")?.toLowerCase() || "";
+  if (contentType.includes("multipart/form-data")) {
+    return noStoreText("Unsupported postback content type", { status: 415 });
+  }
+
+  return null;
+}
+
 async function buildUnauthorizedPostbackResponse(
   request: NextRequest,
   payload: PostbackPayload
-): Promise<NextResponse> {
+): Promise<Response> {
   const rateLimit = await enforceRateLimit({
     action: "affiliate.lazada.postback.unauthorized",
     maxAttempts: 100,
@@ -177,7 +227,7 @@ async function buildUnauthorizedPostbackResponse(
   });
 
   if (!rateLimit.allowed) {
-    return new NextResponse(rateLimit.message, {
+    return noStoreText(rateLimit.message, {
       status: 429,
       headers: {
         "Retry-After": String(Math.max(rateLimit.retryAfterSeconds, 1)),
@@ -196,11 +246,21 @@ async function buildUnauthorizedPostbackResponse(
     resourceType: "affiliate_postback",
   });
 
-  return new NextResponse("Unauthorized", { status: 401 });
+  return noStoreText("Unauthorized", { status: 401 });
 }
 
 async function handlePostback(request: NextRequest) {
-  const rawPayload = await readPostbackPayload(request);
+  const preflightResponse = getPostbackBodyPreflightResponse(request);
+  if (preflightResponse) {
+    return preflightResponse;
+  }
+
+  const payloadRead = await readPostbackPayload(request);
+  if (!payloadRead.ok) {
+    return payloadRead.response;
+  }
+
+  const rawPayload = payloadRead.payload;
 
   if (!isAuthorizedPostback(request, rawPayload)) {
     return buildUnauthorizedPostbackResponse(request, rawPayload);
@@ -275,12 +335,16 @@ async function handlePostback(request: NextRequest) {
       .maybeSingle();
 
     if (clickLookupError) {
-      console.error("[lazada-postback] Click lookup failed", {
-        errorCode: clickLookupError.code,
+      await recordServerFailure({
+        details: {
+          dbCode: clickLookupError.code,
+          hasClickToken: true,
+        },
         errorMessage: clickLookupError.message,
-        hasClickToken: true,
+        eventType: "affiliate.lazada.postback.click_lookup_failed",
+        resourceType: "affiliate_conversion",
       });
-      return new NextResponse("Click lookup failed", { status: 500 });
+      return noStoreText("Click lookup failed", { status: 500 });
     }
 
     affiliateClickId = matchingClick?.id || null;
@@ -308,13 +372,17 @@ async function handlePostback(request: NextRequest) {
   );
 
   if (conversionError) {
-    console.error("[lazada-postback] Conversion write failed", {
-      errorCode: conversionError.code,
+    await recordServerFailure({
+      details: {
+        dbCode: conversionError.code,
+        hasClickToken: Boolean(clickToken),
+        mappedClick: Boolean(affiliateClickId),
+      },
       errorMessage: conversionError.message,
-      hasClickToken: Boolean(clickToken),
-      mappedClick: Boolean(affiliateClickId),
+      eventType: "affiliate.lazada.postback.conversion_write_failed",
+      resourceType: "affiliate_conversion",
     });
-    return new NextResponse("Conversion write failed", { status: 500 });
+    return noStoreText("Conversion write failed", { status: 500 });
   }
 
   await recordAuditEvent({
@@ -331,7 +399,7 @@ async function handlePostback(request: NextRequest) {
     resourceType: "affiliate_postback",
   });
 
-  return new NextResponse("OK", { status: 200 });
+  return noStoreText("OK", { status: 200 });
 }
 
 export async function GET(request: NextRequest) {

@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest } from "next/server";
 
 import { generateGeminiWishlistSuggestionDrafts, isGeminiWishlistConfigured } from "@/lib/ai/gemini";
 import {
@@ -6,7 +6,9 @@ import {
   isOpenRouterWishlistConfigured,
 } from "@/lib/ai/openrouter";
 import { enforceRateLimit } from "@/lib/security/rate-limit";
+import { noStoreJson } from "@/lib/security/no-store-response";
 import { recordServerFailure } from "@/lib/security/audit";
+import { readLimitedJsonBody } from "@/lib/security/request-body";
 import { isTrustedRequestOrigin } from "@/lib/security/web";
 import { createClient } from "@/lib/supabase/server";
 import {
@@ -36,6 +38,10 @@ type WishlistSuggestionBody = {
 };
 
 type WishlistAiProvider = "gemini" | "openrouter" | null;
+
+const WISHLIST_SUGGESTION_BODY_LIMIT_BYTES = 32 * 1024;
+
+export const dynamic = "force-dynamic";
 
 function buildSuggestionInput(body: WishlistSuggestionBody): SuggestionInput | null {
   const groupId = sanitizeCompactString(body.groupId, 120);
@@ -97,7 +103,7 @@ async function generateWishlistSuggestionDrafts(input: {
 
 export async function POST(request: NextRequest) {
   if (!isTrustedRequestOrigin(request)) {
-    return NextResponse.json({ error: "Forbidden", suggestions: [], usedAi: false }, { status: 403 });
+    return noStoreJson({ error: "Forbidden", suggestions: [], usedAi: false }, { status: 403 });
   }
 
   const supabase = await createClient();
@@ -106,11 +112,11 @@ export async function POST(request: NextRequest) {
   } = await supabase.auth.getUser();
 
   if (!user) {
-    return NextResponse.json({ error: "Unauthorized", suggestions: [], usedAi: false }, { status: 401 });
+    return noStoreJson({ error: "Unauthorized", suggestions: [], usedAi: false }, { status: 401 });
   }
 
   if (!isWishlistAiConfigured()) {
-    return NextResponse.json({ suggestions: [], usedAi: false });
+    return noStoreJson({ suggestions: [], usedAi: false });
   }
 
   const rateLimit = await enforceRateLimit({
@@ -123,29 +129,38 @@ export async function POST(request: NextRequest) {
   });
 
   if (!rateLimit.allowed) {
-    return NextResponse.json(
+    return noStoreJson(
       { error: rateLimit.message, suggestions: [], usedAi: false },
       { status: 429 }
     );
   }
 
-  let body: WishlistSuggestionBody;
+  const bodyResult = await readLimitedJsonBody<WishlistSuggestionBody>(
+    request,
+    WISHLIST_SUGGESTION_BODY_LIMIT_BYTES
+  );
 
-  try {
-    body = (await request.json()) as WishlistSuggestionBody;
-  } catch {
-    return NextResponse.json({ error: "Invalid JSON body", suggestions: [], usedAi: false }, { status: 400 });
+  if (!bodyResult.ok) {
+    return noStoreJson(
+      {
+        error: bodyResult.error === "too-large" ? "Request body too large" : "Invalid JSON body",
+        suggestions: [],
+        usedAi: false,
+      },
+      { status: bodyResult.error === "too-large" ? 413 : 400 }
+    );
   }
 
+  const body = bodyResult.body;
   const region = sanitizeCompactString(body.region, 12);
   const suggestionInput = buildSuggestionInput(body);
 
   if (!suggestionInput || !isSupportedShoppingRegion(region) || region !== "PH") {
-    return NextResponse.json({ suggestions: [], usedAi: false });
+    return noStoreJson({ suggestions: [], usedAi: false });
   }
 
   if (!isUuid(suggestionInput.groupId) || !isUuid(suggestionInput.wishlistItemId)) {
-    return NextResponse.json(
+    return noStoreJson(
       { error: "Forbidden", suggestions: [], usedAi: false },
       { status: 403 }
     );
@@ -172,13 +187,13 @@ export async function POST(request: NextRequest) {
         resourceType: "wishlist_ai_suggestion",
       });
 
-      return NextResponse.json(
+      return noStoreJson(
         { error: "Could not check this gift item yet.", suggestions: [], usedAi: false },
         { status: 500 }
       );
     }
 
-    return NextResponse.json(
+    return noStoreJson(
       { error: "Forbidden", suggestions: [], usedAi: false },
       { status: 403 }
     );
@@ -194,7 +209,7 @@ export async function POST(request: NextRequest) {
   const aiSuggestions = buildAiWishlistSuggestionOptions(providerSuggestionInput, aiDrafts);
   const suggestions = aiSuggestions.length > 0 ? aiSuggestions : baseOptions;
 
-  return NextResponse.json({
+  return noStoreJson({
     aiProvider,
     suggestions,
     usedAi: aiSuggestions.length > 0,

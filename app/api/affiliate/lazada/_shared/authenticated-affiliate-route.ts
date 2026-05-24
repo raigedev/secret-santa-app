@@ -1,6 +1,7 @@
-import { NextResponse } from "next/server";
+import type { NextResponse } from "next/server";
 
 import { enforceRateLimit } from "@/lib/security/rate-limit";
+import { noStoreJson } from "@/lib/security/no-store-response";
 import { isTrustedRequestOrigin } from "@/lib/security/web";
 import { createClient } from "@/lib/supabase/server";
 
@@ -30,7 +31,7 @@ export async function requireAuthenticatedAffiliateRoute(
   if (!isTrustedRequestOrigin(request)) {
     return {
       ok: false,
-      response: NextResponse.json({ error: "Forbidden" }, { status: 403 }),
+      response: noStoreJson({ error: "Forbidden" }, { status: 403 }),
     };
   }
 
@@ -42,7 +43,7 @@ export async function requireAuthenticatedAffiliateRoute(
   if (!user) {
     return {
       ok: false,
-      response: NextResponse.json({ error: "Unauthorized" }, { status: 401 }),
+      response: noStoreJson({ error: "Unauthorized" }, { status: 401 }),
     };
   }
 
@@ -67,7 +68,7 @@ export async function requireAuthenticatedAffiliateRoute(
 
     return {
       ok: false,
-      response: NextResponse.json(
+      response: noStoreJson(
         options.rateLimitedBody?.(rateLimit.message) || { error: rateLimit.message },
         init
       ),

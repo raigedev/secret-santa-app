@@ -997,6 +997,7 @@ export default function WishlistPage() {
                                     <img
                                       src={item.item_image_url}
                                       alt={item.item_name}
+                                      referrerPolicy="no-referrer"
                                       className="h-full w-full object-cover"
                                     />
                                   ) : (

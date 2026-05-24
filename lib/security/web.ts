@@ -2,7 +2,14 @@ import "server-only";
 
 import { timingSafeEqual } from "crypto";
 
+import {
+  isLocalDevelopmentOrigin,
+  normalizeHttpOrigin,
+  uniqueOrigins,
+} from "@/lib/security/app-origin";
+
 export { normalizeSafeAppPath } from "@/lib/security/safe-app-path";
+export { resolveTrustedAppOrigin } from "@/lib/security/app-origin";
 
 export function extractBearerToken(headerValue: string | null): string | null {
   if (!headerValue) {
@@ -30,70 +37,58 @@ export function safeEqualSecret(
   );
 }
 
-function normalizeHttpOrigin(candidate: string | null | undefined): string | null {
-  const trimmed = candidate?.trim();
+type HeaderReader = Pick<Headers, "get">;
 
-  if (!trimmed) {
-    return null;
-  }
-
-  try {
-    const url = new URL(trimmed.startsWith("http") ? trimmed : `https://${trimmed}`);
-
-    if (url.protocol !== "http:" && url.protocol !== "https:") {
-      return null;
-    }
-
-    return url.origin;
-  } catch {
-    return null;
-  }
-}
-
-function uniqueOrigins(origins: Array<string | null>): string[] {
-  const unique: string[] = [];
-
-  for (const origin of origins) {
-    if (origin && !unique.includes(origin)) {
-      unique.push(origin);
-    }
-  }
-
-  return unique;
-}
-
-export function resolveTrustedAppOrigin(requestUrl: URL): string {
-  const requestOrigin = normalizeHttpOrigin(requestUrl.origin);
-  const configuredOrigins = uniqueOrigins([
+function getTrustedOrigins(requestOrigin: string | null): string[] {
+  return uniqueOrigins([
+    requestOrigin && isLocalDevelopmentOrigin(requestOrigin) ? requestOrigin : null,
     normalizeHttpOrigin(process.env.NEXT_PUBLIC_APP_URL),
     normalizeHttpOrigin(process.env.APP_URL),
     normalizeHttpOrigin(process.env.VERCEL_URL),
     normalizeHttpOrigin(process.env.VERCEL_PROJECT_PRODUCTION_URL),
   ]);
+}
 
-  if (requestOrigin && configuredOrigins.includes(requestOrigin)) {
-    return requestOrigin;
+function getHeaderRequestOrigin(headers: HeaderReader): string | null {
+  const host = headers.get("host")?.trim();
+
+  if (!host) {
+    return null;
   }
 
-  return configuredOrigins[0] || requestOrigin || requestUrl.origin;
+  const protocol = host.startsWith("localhost") || host.startsWith("127.0.0.1")
+    ? "http"
+    : "https";
+
+  return normalizeHttpOrigin(`${protocol}://${host}`);
+}
+
+export function isTrustedHeaderOrigin(headers: HeaderReader): boolean {
+  const providedOrigin = normalizeHttpOrigin(headers.get("origin"));
+
+  if (!providedOrigin) {
+    const fetchSite = headers.get("sec-fetch-site")?.toLowerCase();
+
+    return fetchSite === "same-origin" || fetchSite === "same-site" || fetchSite === "none";
+  }
+
+  const requestOrigin = getHeaderRequestOrigin(headers);
+
+  return getTrustedOrigins(requestOrigin).includes(providedOrigin);
 }
 
 export function isTrustedRequestOrigin(request: Request): boolean {
   const providedOrigin = normalizeHttpOrigin(request.headers.get("origin"));
 
   if (!providedOrigin) {
-    return request.headers.get("sec-fetch-site")?.toLowerCase() !== "cross-site";
+    const fetchSite = request.headers.get("sec-fetch-site")?.toLowerCase();
+
+    // Older clients may omit Origin, so fall back to Fetch Metadata only when
+    // it positively identifies a same-site or user-initiated request.
+    return fetchSite === "same-origin" || fetchSite === "same-site" || fetchSite === "none";
   }
 
-  const requestUrl = new URL(request.url);
-  const requestOrigin = normalizeHttpOrigin(requestUrl.origin);
-  const trustedOrigins = uniqueOrigins([
-    requestOrigin,
-    normalizeHttpOrigin(process.env.NEXT_PUBLIC_APP_URL),
-    normalizeHttpOrigin(process.env.APP_URL),
-    normalizeHttpOrigin(process.env.VERCEL_URL),
-    normalizeHttpOrigin(process.env.VERCEL_PROJECT_PRODUCTION_URL),
-  ]);
+  const requestOrigin = normalizeHttpOrigin(new URL(request.url).origin);
 
-  return trustedOrigins.includes(providedOrigin);
+  return getTrustedOrigins(requestOrigin).includes(providedOrigin);
 }

@@ -19,6 +19,7 @@ import { OAUTH_CALLBACK_FAILED_ERROR } from "@/lib/auth/oauth-callback-errors";
 import { buildPostLoginNextCookie } from "@/lib/auth/post-login-next-cookie";
 import { normalizeSafeAppPath } from "@/lib/security/safe-app-path";
 import { createClient } from "@/lib/supabase/client";
+import { sanitizePlainText } from "@/lib/validation/common";
 
 const POST_LOGIN_NEXT_COOKIE_MAX_AGE_SECONDS = 1800;
 const LOGIN_FEATURES = [
@@ -67,6 +68,7 @@ const GENERIC_LOGIN_ERROR =
   "We could not sign you in. Please check your email and password, then try again.";
 const GOOGLE_OAUTH_UNAVAILABLE_ERROR =
   "Google sign-in did not open. Please try again or sign in with email.";
+const AUTH_ERROR_MESSAGE_MAX_LENGTH = 220;
 const OAUTH_REDIRECT_HELP_DELAY_MS = 8000;
 
 function getReadableAuthErrorMessage(message: string | null): string | null {
@@ -81,7 +83,9 @@ function getReadableAuthErrorMessage(message: string | null): string | null {
     (trimmedMessage.startsWith("[") && trimmedMessage.endsWith("]"));
 
   if (!looksLikeRawJson) {
-    return trimmedMessage === "[object Object]" ? null : trimmedMessage;
+    return trimmedMessage === "[object Object]"
+      ? null
+      : sanitizePlainText(trimmedMessage, AUTH_ERROR_MESSAGE_MAX_LENGTH);
   }
 
   try {
@@ -93,7 +97,7 @@ function getReadableAuthErrorMessage(message: string | null): string | null {
         parsedRecord.message || parsedRecord.error_description || parsedRecord.error;
 
       return typeof parsedMessage === "string" && parsedMessage.trim()
-        ? parsedMessage.trim()
+        ? sanitizePlainText(parsedMessage, AUTH_ERROR_MESSAGE_MAX_LENGTH)
         : null;
     }
   } catch {
@@ -103,8 +107,8 @@ function getReadableAuthErrorMessage(message: string | null): string | null {
   return null;
 }
 
-function mapAuthErrorMessage(errorCode: string | null, message: string | null): string | null {
-  return getReadableAuthErrorMessage(message) || (errorCode ? AUTH_ERROR_MESSAGES[errorCode] || null : null);
+function mapAuthErrorMessage(errorCode: string | null): string | null {
+  return errorCode ? AUTH_ERROR_MESSAGES[errorCode] || null : null;
 }
 
 function getFriendlyLoginError(message: string): string {
@@ -310,7 +314,7 @@ function LoginPageInner() {
     return normalizeSafeAppPath(candidate, "/dashboard");
   })();
 
-  const pageError = mapAuthErrorMessage(searchParams.get("error"), searchParams.get("message"));
+  const pageError = mapAuthErrorMessage(searchParams.get("error"));
   const activeError = error || pageError;
 
   const clearOauthRecoveryTimer = () => {

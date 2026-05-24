@@ -1,11 +1,16 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest } from "next/server";
 
 import { primeLazadaPromotionLinks } from "@/lib/affiliate/lazada";
 import { normalizeLazadaProductPageUrl } from "@/lib/affiliate/lazada-url";
+import { noStoreJson } from "@/lib/security/no-store-response";
+import { readLimitedJsonBody } from "@/lib/security/request-body";
 import { requireAuthenticatedAffiliateRoute } from "../_shared/authenticated-affiliate-route";
 
 const MAX_BATCH_INPUTS = 100;
+const PRIME_LINKS_BODY_LIMIT_BYTES = 64 * 1024;
 const LAZADA_PRODUCT_ID_PATTERN = /^[0-9]{1,20}$/;
+
+export const dynamic = "force-dynamic";
 
 type PrimeLinksBody = {
   productIds?: unknown;
@@ -53,19 +58,24 @@ export async function POST(request: NextRequest) {
     return auth.response;
   }
 
-  let payload: PrimeLinksBody;
+  const payloadResult = await readLimitedJsonBody<PrimeLinksBody>(
+    request,
+    PRIME_LINKS_BODY_LIMIT_BYTES
+  );
 
-  try {
-    payload = (await request.json()) as PrimeLinksBody;
-  } catch {
-    return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
+  if (!payloadResult.ok) {
+    return noStoreJson(
+      { error: payloadResult.error === "too-large" ? "Request body too large" : "Invalid JSON body" },
+      { status: payloadResult.error === "too-large" ? 413 : 400 }
+    );
   }
 
+  const payload = payloadResult.body;
   const productIds = sanitizeProductIds(payload.productIds);
   const urls = sanitizeUrls(payload.urls);
 
   if (productIds.length === 0 && urls.length === 0) {
-    return NextResponse.json({
+    return noStoreJson({
       primed: false,
       productIdsPrimed: 0,
       urlsPrimed: 0,
@@ -78,13 +88,13 @@ export async function POST(request: NextRequest) {
       urls,
     });
 
-    return NextResponse.json({
+    return noStoreJson({
       primed: result.ready,
       productIdsPrimed: result.productIdsPrimed,
       urlsPrimed: result.urlsPrimed,
     });
   } catch {
-    return NextResponse.json(
+    return noStoreJson(
       {
         error: "Failed to prime Lazada promotion links",
       },

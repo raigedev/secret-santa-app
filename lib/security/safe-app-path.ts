@@ -19,11 +19,8 @@ function isSafeAppPath(value: string): boolean {
   );
 }
 
-export function normalizeSafeAppPath(
-  candidate: string | null | undefined,
-  fallback = "/"
-): string {
-  const normalized = candidate?.trim() || fallback;
+export function normalizeSafeAppPath(candidate: unknown, fallback = "/"): string {
+  const normalized = typeof candidate === "string" ? candidate.trim() || fallback : fallback;
 
   if (isSafeAppPath(normalized)) {
     return normalized;

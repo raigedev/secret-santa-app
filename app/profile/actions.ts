@@ -1,16 +1,23 @@
 "use server";
 
+import { randomBytes } from "node:crypto";
 import { recordAuditEvent, recordServerFailure } from "@/lib/security/audit";
 import {
   getReminderPreferencesForUser,
   reschedulePendingReminderJobsForUser,
   type ReminderDeliveryMode,
 } from "@/lib/notifications";
-import { requireRateLimitedAction } from "@/lib/auth/server-action-context";
-import { enforceRateLimit } from "@/lib/security/rate-limit";
+import {
+  getServerActionContext,
+  requireRateLimitedAction,
+} from "@/lib/auth/server-action-context";
+import { prepareVerifiedImageUpload } from "@/lib/security/image-upload";
 import { supabaseAdmin } from "@/lib/supabase/admin";
-import { createClient } from "@/lib/supabase/server";
-import { normalizeProfileAvatarUrlForUser } from "@/lib/profile/avatar";
+import {
+  getProfileAvatarStoragePathForUser,
+  normalizeProfileAvatarUrlForUser,
+  PROFILE_AVATAR_EXTENSIONS_BY_TYPE,
+} from "@/lib/profile/avatar";
 import { sanitizePlainText } from "@/lib/validation/common";
 
 // Profile actions stay on the server because they touch auth state and user-owned
@@ -20,6 +27,10 @@ const REMINDER_DELIVERY_MODES = new Set<ReminderDeliveryMode>([
   "immediate",
   "daily_digest",
 ]);
+const PROFILE_AVATAR_BUCKET = "profile-avatars";
+const MAX_PROFILE_AVATAR_BYTES = 2 * 1024 * 1024;
+const MAX_PROFILE_AVATAR_DECODED_SIDE = 6000;
+const MAX_PROFILE_AVATAR_DECODED_PIXELS = 12_000_000;
 const PROFILE_SELECT_FIELDS =
   "user_id, display_name, avatar_emoji, avatar_url, bio, default_budget, currency, notify_invites, notify_draws, notify_chat, notify_wishlist, notify_marketing, profile_setup_complete";
 
@@ -41,15 +52,19 @@ function sanitize(input: string, max: number): string {
   return sanitizePlainText(input, max);
 }
 
+function buildProfileAvatarPath(userId: string, extension: string): string {
+  const nonce = randomBytes(8).toString("hex");
+
+  return `${userId}/avatar-${Date.now().toString(36)}-${nonce}.${extension}`;
+}
+
 // Lazily create the profile row so older or partially-created accounts can still recover.
 export async function getProfile() {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const context = await getServerActionContext();
 
-  if (!user) return null;
+  if (!context.ok) return null;
 
+  const { supabase, user } = context;
   const { data: profile } = await supabase
     .from("profiles")
     .select(PROFILE_SELECT_FIELDS)
@@ -99,33 +114,24 @@ export async function getReminderPreferences(): Promise<ReminderPreferenceFormSt
 export async function saveReminderPreferences(
   preferences: ReminderPreferenceFormState
 ): Promise<{ success: boolean; message: string }> {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  if (!user) {
-    return { success: false, message: "You must be logged in." };
-  }
-
   if (!REMINDER_DELIVERY_MODES.has(preferences.reminder_delivery_mode)) {
     return { success: false, message: "Choose a valid reminder delivery mode." };
   }
 
-  const rateLimit = await enforceRateLimit({
+  const context = await requireRateLimitedAction({
     action: "profile.update_reminder_preferences",
-    actorUserId: user.id,
     maxAttempts: 20,
-    resourceId: user.id,
+    resourceId: (userId) => userId,
     resourceType: "profile",
-    subject: user.id,
+    subject: (userId) => userId,
     windowSeconds: 3600,
   });
 
-  if (!rateLimit.allowed) {
-    return { success: false, message: rateLimit.message };
+  if (!context.ok) {
+    return { success: false, message: context.message };
   }
 
+  const { supabase, user } = context;
   const { error } = await supabase
     .from("profiles")
     .update({
@@ -234,6 +240,97 @@ export async function updateProfile(
   }
 
   return { success: true, message: "Profile saved." };
+}
+
+export async function uploadProfileAvatar(
+  formData: FormData
+): Promise<{ success: boolean; message: string; avatarUrl?: string }> {
+  const context = await requireRateLimitedAction({
+    action: "profile.avatar_upload",
+    maxAttempts: 10,
+    resourceId: (userId) => userId,
+    resourceType: "profile",
+    subject: (userId) => userId,
+    windowSeconds: 900,
+  });
+
+  if (!context.ok) {
+    return { success: false, message: context.message };
+  }
+
+  const { user } = context;
+  const rawFile = formData.get("avatar");
+  const avatarFile = rawFile instanceof File ? rawFile : null;
+  const preparedAvatar = await prepareVerifiedImageUpload(avatarFile, {
+    allowedTypes: PROFILE_AVATAR_EXTENSIONS_BY_TYPE,
+    maxBytes: MAX_PROFILE_AVATAR_BYTES,
+    maxDecodedPixels: MAX_PROFILE_AVATAR_DECODED_PIXELS,
+    maxDecodedSide: MAX_PROFILE_AVATAR_DECODED_SIDE,
+    messages: {
+      invalidType: "Please upload a JPG, PNG, or WebP image.",
+      tooLarge: "Please keep your profile photo under 2 MB.",
+      tooLargeDimensions: "Choose a smaller profile photo, under 6000 pixels on each side.",
+      unverified: "That profile photo could not be verified.",
+    },
+  });
+
+  if (!preparedAvatar.image) {
+    return {
+      success: false,
+      message: preparedAvatar.message || "Choose a profile photo to upload.",
+    };
+  }
+
+  const path = buildProfileAvatarPath(user.id, preparedAvatar.image.extension);
+  const { error: uploadError } = await supabaseAdmin.storage
+    .from(PROFILE_AVATAR_BUCKET)
+    .upload(path, preparedAvatar.image.bytes, {
+      cacheControl: "3600",
+      contentType: preparedAvatar.image.contentType,
+      upsert: false,
+    });
+
+  if (uploadError) {
+    await recordServerFailure({
+      actorUserId: user.id,
+      errorMessage: uploadError.message,
+      eventType: "profile.avatar_upload",
+      resourceId: user.id,
+      resourceType: "profile",
+    });
+
+    return { success: false, message: "Failed to upload your photo. Please try again." };
+  }
+
+  const previousAvatarValue = formData.get("previousAvatarUrl");
+  const previousAvatarPath = getProfileAvatarStoragePathForUser(
+    user.id,
+    typeof previousAvatarValue === "string" ? sanitize(previousAvatarValue, 1000) : null
+  );
+
+  if (previousAvatarPath && previousAvatarPath !== path) {
+    const { error: cleanupError } = await supabaseAdmin.storage
+      .from(PROFILE_AVATAR_BUCKET)
+      .remove([previousAvatarPath]);
+
+    if (cleanupError) {
+      await recordServerFailure({
+        actorUserId: user.id,
+        errorMessage: cleanupError.message,
+        eventType: "profile.avatar_cleanup",
+        resourceId: user.id,
+        resourceType: "profile",
+      });
+    }
+  }
+
+  const { data } = supabaseAdmin.storage.from(PROFILE_AVATAR_BUCKET).getPublicUrl(path);
+
+  return {
+    success: true,
+    avatarUrl: data.publicUrl,
+    message: "Photo uploaded. Save changes to keep it across the app.",
+  };
 }
 
 export async function quickSetup(

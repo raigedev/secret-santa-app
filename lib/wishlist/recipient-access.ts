@@ -1,6 +1,7 @@
 import "server-only";
 
 import { supabaseAdmin } from "@/lib/supabase/admin";
+import { isUuid } from "@/lib/validation/common";
 
 type RecipientWishlistAccessResult =
   | { allowed: true }
@@ -15,6 +16,10 @@ export async function canAccessRecipientWishlistItem(options: {
   userId: string;
   wishlistItemId: string;
 }): Promise<RecipientWishlistAccessResult> {
+  if (!isUuid(options.groupId) || !isUuid(options.userId) || !isUuid(options.wishlistItemId)) {
+    return { allowed: false, reason: "unauthorized" };
+  }
+
   const { data: wishlistItem, error: wishlistItemError } = await supabaseAdmin
     .from("wishlists")
     .select("group_id, user_id")

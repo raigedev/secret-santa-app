@@ -1,26 +1,16 @@
 "use server";
 
-// ═══════════════════════════════════════
-// CHAT SERVER ACTIONS
-// ═══════════════════════════════════════
-// Handles sending messages in Secret Santa threads.
-//
-// Security:
-// Core#1: Input sanitization (trim, length, strip HTML)
-// Core#3: Verify sender is a thread participant
-// Core#6: Generic error messages
-// Playbook#08: Parameterized queries
-// Playbook#19: Server-side auth check
-// Playbook#20: Log critical actions
-// No dangerouslySetInnerHTML anywhere
-// ═══════════════════════════════════════
+// Private chat reads and writes stay server-side so thread participant checks
+// can run before any assignment or message data is returned.
 
 import { recordServerFailure } from "@/lib/security/audit";
 import { createNotification } from "@/lib/notifications";
 import { isGroupInHistory } from "@/lib/groups/history";
-import { enforceRateLimit } from "@/lib/security/rate-limit";
+import {
+  getServerActionContext,
+  requireRateLimitedAction,
+} from "@/lib/auth/server-action-context";
 import { supabaseAdmin } from "@/lib/supabase/admin";
-import { createClient } from "@/lib/supabase/server";
 import { isUuid, sanitizePlainText } from "@/lib/validation/common";
 
 const RECEIVER_THREAD_PREFIX = "receiver:";
@@ -55,6 +45,16 @@ type ReceiverThreadReadRow = {
   thread_giver_id: string;
   thread_receiver_id: string;
 };
+
+type ThreadSendAccess =
+  | {
+      ok: true;
+    }
+  | {
+      auditMessage?: string;
+      message: string;
+      ok: false;
+    };
 
 export type ReceiverChatThread = {
   group_gift_date: string;
@@ -183,15 +183,6 @@ function buildReceiverThreadMetaMap(
   return metaByThread;
 }
 
-async function getCurrentUserId(): Promise<string | null> {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  return user?.id || null;
-}
-
 async function resolveReceiverAssignment(
   groupId: string,
   receiverId: string
@@ -210,29 +201,83 @@ async function resolveReceiverAssignment(
   return data as ReceiverAssignmentRow;
 }
 
+async function validateThreadSendAccess({
+  groupId,
+  threadGiverId,
+  threadReceiverId,
+  userId,
+}: {
+  groupId: string;
+  threadGiverId: string;
+  threadReceiverId: string;
+  userId: string;
+}): Promise<ThreadSendAccess> {
+  const { data: assignment, error: assignmentError } = await supabaseAdmin
+    .from("assignments")
+    .select("id")
+    .eq("group_id", groupId)
+    .eq("giver_id", threadGiverId)
+    .eq("receiver_id", threadReceiverId)
+    .maybeSingle();
+
+  if (assignmentError) {
+    return {
+      auditMessage: assignmentError.message,
+      message: "We could not open this chat. Try reopening it.",
+      ok: false,
+    };
+  }
+
+  if (!assignment) {
+    return { message: "You are not part of this conversation.", ok: false };
+  }
+
+  if (userId !== threadReceiverId) {
+    return { ok: true };
+  }
+
+  const { data: group, error: groupError } = await supabaseAdmin
+    .from("groups")
+    .select("revealed")
+    .eq("id", groupId)
+    .maybeSingle();
+
+  if (groupError) {
+    return {
+      auditMessage: groupError.message,
+      message: "We could not open this chat. Try reopening it.",
+      ok: false,
+    };
+  }
+
+  if (!group?.revealed) {
+    return {
+      message: "This chat is hidden until the reveal is published.",
+      ok: false,
+    };
+  }
+
+  return { ok: true };
+}
+
 export async function loadReceiverChatThreads(): Promise<{
   message: string;
   success: boolean;
   threads: ReceiverChatThread[];
 }> {
-  const userId = await getCurrentUserId();
-
-  if (!userId) {
-    return { success: false, message: "You must be logged in.", threads: [] };
-  }
-
-  const rateLimit = await enforceRateLimit({
+  const context = await requireRateLimitedAction({
     action: "chat.load_receiver_threads",
-    actorUserId: userId,
     maxAttempts: 500,
     resourceType: "message_thread",
-    subject: userId,
+    subject: (userId) => userId,
     windowSeconds: 3600,
   });
 
-  if (!rateLimit.allowed) {
-    return { success: false, message: rateLimit.message, threads: [] };
+  if (!context.ok) {
+    return { success: false, message: context.message, threads: [] };
   }
+
+  const userId = context.user.id;
 
   const { data: assignments, error: assignmentsError } = await supabaseAdmin
     .from("assignments")
@@ -354,11 +399,13 @@ export async function loadReceiverThreadMessages(threadId: string): Promise<{
     return { success: false, message: "Choose a valid chat first.", messages: [] };
   }
 
-  const userId = await getCurrentUserId();
+  const context = await getServerActionContext();
 
-  if (!userId) {
-    return { success: false, message: "You must be logged in.", messages: [] };
+  if (!context.ok) {
+    return { success: false, message: context.message, messages: [] };
   }
+
+  const userId = context.user.id;
 
   const assignment = await resolveReceiverAssignment(groupId, userId);
 
@@ -408,11 +455,13 @@ export async function markReceiverThreadAsRead(threadId: string): Promise<{
     return { success: false, message: "Choose a valid chat first." };
   }
 
-  const userId = await getCurrentUserId();
+  const context = await getServerActionContext();
 
-  if (!userId) {
-    return { success: false, message: "You must be logged in." };
+  if (!context.ok) {
+    return { success: false, message: context.message };
   }
+
+  const userId = context.user.id;
 
   const assignment = await resolveReceiverAssignment(groupId, userId);
 
@@ -461,25 +510,20 @@ export async function sendReceiverMessage(
     return { success: false, message: "Write a message before sending." };
   }
 
-  const userId = await getCurrentUserId();
-
-  if (!userId) {
-    return { success: false, message: "You must be logged in." };
-  }
-
-  const rateLimit = await enforceRateLimit({
+  const context = await requireRateLimitedAction({
     action: "chat.send_receiver_message",
-    actorUserId: userId,
     maxAttempts: 25,
     resourceId: groupId,
     resourceType: "message_thread",
-    subject: `${userId}:${groupId}`,
+    subject: (userId) => `${userId}:${groupId}`,
     windowSeconds: 60,
   });
 
-  if (!rateLimit.allowed) {
-    return { success: false, message: rateLimit.message };
+  if (!context.ok) {
+    return { success: false, message: context.message };
   }
+
+  const userId = context.user.id;
 
   const assignment = await resolveReceiverAssignment(groupId, userId);
 
@@ -528,7 +572,6 @@ export async function sendMessage(
   content: string
 ): Promise<{ success: boolean; message: string }> {
 
-  // Core#1: Validate inputs
   if (
     !isUuid(groupId) ||
     !isUuid(threadGiverId) ||
@@ -543,34 +586,50 @@ export async function sendMessage(
     return { success: false, message: "Write a message before sending." };
   }
 
-  // Playbook#19: Server-side auth check
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-
-  if (!user) {
-    return { success: false, message: "You must be logged in." };
-  }
-
-  const rateLimit = await enforceRateLimit({
+  const context = await requireRateLimitedAction({
     action: "chat.send_message",
-    actorUserId: user.id,
     maxAttempts: 25,
     resourceId: groupId,
     resourceType: "message_thread",
-    subject: `${user.id}:${groupId}`,
+    subject: (userId) => `${userId}:${groupId}`,
     windowSeconds: 60,
   });
 
-  if (!rateLimit.allowed) {
-    return { success: false, message: rateLimit.message };
+  if (!context.ok) {
+    return { success: false, message: context.message };
   }
 
-  // Core#3: Verify sender is either the giver or receiver
+  const { supabase, user } = context;
+
   if (user.id !== threadGiverId && user.id !== threadReceiverId) {
     return { success: false, message: "You are not part of this conversation." };
   }
 
-  // Playbook#08: Parameterized insert via Supabase
+  const threadAccess = await validateThreadSendAccess({
+    groupId,
+    threadGiverId,
+    threadReceiverId,
+    userId: user.id,
+  });
+
+  if (!threadAccess.ok) {
+    if (threadAccess.auditMessage) {
+      await recordServerFailure({
+        actorUserId: user.id,
+        details: {
+          threadGiverId,
+          threadReceiverId,
+        },
+        errorMessage: threadAccess.auditMessage,
+        eventType: "chat.send_message.access_check",
+        resourceId: groupId,
+        resourceType: "message_thread",
+      });
+    }
+
+    return { success: false, message: threadAccess.message };
+  }
+
   const { error } = await supabase
     .from("messages")
     .insert({
@@ -582,7 +641,6 @@ export async function sendMessage(
     });
 
   if (error) {
-    // Core#6: Generic message to user
     await recordServerFailure({
       actorUserId: user.id,
       errorMessage: error.message,
@@ -613,8 +671,6 @@ export async function sendMessage(
     },
     preferenceKey: "notify_chat",
   });
-
-  // Playbook#20: Log critical action
 
   return { success: true, message: "" };
 }

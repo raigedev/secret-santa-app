@@ -1,5 +1,6 @@
 import "server-only";
 
+import { recordServerFailure } from "@/lib/security/audit";
 import { supabaseAdmin } from "@/lib/supabase/admin";
 
 type AffiliateClickInsert = {
@@ -34,20 +35,26 @@ function readTargetHost(value: string): string | null {
   }
 }
 
-function logAffiliateClickInsertError(
+async function logAffiliateClickInsertError(
   error: SupabaseErrorLike,
   payload: AffiliateClickInsert,
   phase: "primary" | "legacy-fallback"
 ) {
-  console.error("[affiliate-click] Failed to save tracked click", {
-    catalogSource: payload.catalog_source || null,
-    errorCode: error.code || null,
+  await recordServerFailure({
+    actorUserId: payload.user_id,
+    details: {
+      catalogSource: payload.catalog_source || null,
+      dbCode: error.code || null,
+      hasClickToken: Boolean(payload.click_token),
+      merchant: payload.merchant,
+      phase,
+      resolutionMode: payload.resolution_mode || null,
+      targetHost: readTargetHost(payload.target_url),
+    },
     errorMessage: error.message || "Unknown Supabase insert error",
-    hasClickToken: Boolean(payload.click_token),
-    merchant: payload.merchant,
-    phase,
-    resolutionMode: payload.resolution_mode || null,
-    targetHost: readTargetHost(payload.target_url),
+    eventType: "affiliate.click.insert_failed",
+    resourceId: payload.wishlist_item_id,
+    resourceType: "affiliate_click",
   });
 }
 
@@ -91,10 +98,10 @@ export async function insertAffiliateClick(
       return;
     }
 
-    logAffiliateClickInsertError(legacyError, legacyPayload, "legacy-fallback");
+    await logAffiliateClickInsertError(legacyError, legacyPayload, "legacy-fallback");
     throw legacyError;
   }
 
-  logAffiliateClickInsertError(error, payload, "primary");
+  await logAffiliateClickInsertError(error, payload, "primary");
   throw error;
 }

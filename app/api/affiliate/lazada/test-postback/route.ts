@@ -3,7 +3,8 @@ import { NextRequest, NextResponse } from "next/server";
 
 import { canViewAffiliateReport } from "@/lib/affiliate/report-access";
 import { enforceRateLimit } from "@/lib/security/rate-limit";
-import { isTrustedRequestOrigin } from "@/lib/security/web";
+import { recordServerFailure } from "@/lib/security/audit";
+import { isTrustedRequestOrigin, resolveTrustedAppOrigin } from "@/lib/security/web";
 import { supabaseAdmin } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 
@@ -26,7 +27,10 @@ function buildPayloadHash(payload: Record<string, string>): string {
 }
 
 function redirectToReport(request: NextRequest, status: string): NextResponse {
-  const target = new URL("/dashboard/affiliate-report", request.url);
+  const target = new URL(
+    "/dashboard/affiliate-report",
+    resolveTrustedAppOrigin(request.nextUrl)
+  );
   target.searchParams.set("testPostback", status);
 
   return NextResponse.redirect(target, { status: 303 });
@@ -69,9 +73,14 @@ export async function POST(request: NextRequest) {
     .maybeSingle();
 
   if (clickError) {
-    console.error("[lazada-test-postback] Failed to find latest click", {
-      errorCode: clickError.code,
+    await recordServerFailure({
+      actorUserId: user.id,
+      details: {
+        dbCode: clickError.code,
+      },
       errorMessage: clickError.message,
+      eventType: "affiliate.lazada.test_postback.click_lookup_failed",
+      resourceType: "affiliate_conversion",
     });
     return redirectToReport(request, "click_lookup_failed");
   }
@@ -111,9 +120,15 @@ export async function POST(request: NextRequest) {
   );
 
   if (conversionError) {
-    console.error("[lazada-test-postback] Failed to write test conversion", {
-      errorCode: conversionError.code,
+    await recordServerFailure({
+      actorUserId: user.id,
+      details: {
+        dbCode: conversionError.code,
+      },
       errorMessage: conversionError.message,
+      eventType: "affiliate.lazada.test_postback.conversion_write_failed",
+      resourceId: click.id,
+      resourceType: "affiliate_conversion",
     });
     return redirectToReport(request, "write_failed");
   }

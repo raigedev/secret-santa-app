@@ -9,6 +9,7 @@ import {
   getReminderPreferences,
   saveReminderPreferences,
   updateProfile,
+  uploadProfileAvatar,
   type ReminderPreferenceFormState,
 } from "./actions";
 import { ProfileSkeleton } from "@/app/components/PageSkeleton";
@@ -24,7 +25,6 @@ import {
 import { publishViewerProfileChanged } from "@/app/components/viewer-profile-client";
 import { isNullableString, isRecord } from "@/lib/validation/common";
 import {
-  getProfileAvatarStoragePathForUser,
   normalizeProfileAvatarUrlForUser,
   PROFILE_AVATAR_EXTENSIONS_BY_TYPE,
 } from "@/lib/profile/avatar";
@@ -139,13 +139,6 @@ function isProfilePageSnapshot(
     isProfileSnapshotValue(value.profile) &&
     isReminderPreferenceSnapshot(value.reminderPreferences)
   );
-}
-
-function buildProfileAvatarPath(userId: string, extension: string): string {
-  const randomValues = crypto.getRandomValues(new Uint32Array(2));
-  const nonce = Array.from(randomValues, (value) => value.toString(36)).join("");
-
-  return `${userId}/avatar-${Date.now().toString(36)}-${nonce}.${extension}`;
 }
 
 function normalizeCachedProfileForUser(profile: Profile, userId: string): Profile {
@@ -501,16 +494,14 @@ export default function ProfilePage() {
       return;
     }
 
-    const extension = PROFILE_AVATAR_EXTENSIONS_BY_TYPE.get(file.type);
-
-    if (!extension) {
+    if (!PROFILE_AVATAR_EXTENSIONS_BY_TYPE.has(file.type)) {
       setMessage("Please upload a JPG, PNG, or WebP image.");
       event.target.value = "";
       return;
     }
 
-    if (file.size > 5 * 1024 * 1024) {
-      setMessage("Please keep your profile photo under 5 MB.");
+    if (file.size > 2 * 1024 * 1024) {
+      setMessage("Please keep your profile photo under 2 MB.");
       event.target.value = "";
       return;
     }
@@ -519,33 +510,27 @@ export default function ProfilePage() {
     setMessage("");
 
     try {
-      const previousAvatarPath = getProfileAvatarStoragePathForUser(userId, profile.avatar_url);
-      const path = buildProfileAvatarPath(userId, extension);
-      const uploadResult = await supabase.storage
-        .from("profile-avatars")
-        .upload(path, file, {
-          cacheControl: "3600",
-          contentType: file.type,
-          upsert: false,
-        });
+      const formData = new FormData();
+      formData.set("avatar", file);
+      if (profile.avatar_url) {
+        formData.set("previousAvatarUrl", profile.avatar_url);
+      }
 
-      if (uploadResult.error) {
-        setMessage("Failed to upload your photo. Please try again.");
+      const uploadResult = await uploadProfileAvatar(formData);
+
+      if (!uploadResult.success || !uploadResult.avatarUrl) {
+        setMessage(uploadResult.message);
         return;
       }
 
-      const { data } = supabase.storage.from("profile-avatars").getPublicUrl(path);
-      const nextAvatarUrl = data.publicUrl;
+      const nextAvatarUrl = uploadResult.avatarUrl;
       setAvatarPreviewVersion(Date.now());
       update("avatar_url", nextAvatarUrl);
       notifyShellProfileChanged({
         ...profile,
         avatar_url: nextAvatarUrl,
       });
-      if (previousAvatarPath && previousAvatarPath !== path) {
-        void supabase.storage.from("profile-avatars").remove([previousAvatarPath]);
-      }
-      setMessage("Photo uploaded. Save changes to keep it across the app.");
+      setMessage(uploadResult.message);
     } finally {
       setUploadingAvatar(false);
       event.target.value = "";
