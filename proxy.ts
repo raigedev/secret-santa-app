@@ -6,6 +6,7 @@ import {
   hasOAuthCallbackError,
 } from "@/lib/auth/oauth-callback-errors";
 import { getEmailVerificationMessage, isUserEmailVerified } from "@/lib/auth/user-status";
+import { resolveTrustedAppOrigin } from "@/lib/security/app-origin";
 
 // Central request guard for auth, invite-link access, and email-verification redirects.
 export async function proxy(req: NextRequest) {
@@ -13,6 +14,7 @@ export async function proxy(req: NextRequest) {
   // through the callback handler first so the session is exchanged before any UI renders.
   const hasOAuthCode = req.nextUrl.searchParams.has("code");
   const isCallbackRoute = req.nextUrl.pathname === "/auth/callback";
+  const trustedOrigin = resolveTrustedAppOrigin(req.nextUrl);
   const shouldForwardOAuthCode =
     hasOAuthCode &&
     !isCallbackRoute &&
@@ -21,12 +23,15 @@ export async function proxy(req: NextRequest) {
     req.nextUrl.pathname === "/";
 
   if (!isCallbackRoute && hasOAuthCallbackError(req.nextUrl.searchParams)) {
-    return NextResponse.redirect(createOAuthCallbackErrorLoginUrl(req.url));
+    return NextResponse.redirect(createOAuthCallbackErrorLoginUrl(trustedOrigin));
   }
 
   if (shouldForwardOAuthCode) {
-    const callbackUrl = req.nextUrl.clone();
-    callbackUrl.pathname = "/auth/callback";
+    const callbackUrl = new URL("/auth/callback", trustedOrigin);
+
+    req.nextUrl.searchParams.forEach((value, key) => {
+      callbackUrl.searchParams.append(key, value);
+    });
 
     if (!callbackUrl.searchParams.has("next")) {
       callbackUrl.searchParams.set("next", "/dashboard");
@@ -87,18 +92,18 @@ export async function proxy(req: NextRequest) {
   const hasVerifiedEmail = user ? isUserEmailVerified(user) : false;
 
   if (user && !hasVerifiedEmail && !isVerificationSafePage) {
-    const loginUrl = new URL("/login", req.url);
+    const loginUrl = new URL("/login", trustedOrigin);
     loginUrl.searchParams.set("error", "confirm_email");
     loginUrl.searchParams.set("message", getEmailVerificationMessage());
     return NextResponse.redirect(loginUrl);
   }
 
   if (user && hasVerifiedEmail && (isAuthPage || isLandingPage)) {
-    return NextResponse.redirect(new URL("/dashboard", req.url));
+    return NextResponse.redirect(new URL("/dashboard", trustedOrigin));
   }
 
   if (!user && !isPublicPage) {
-    return NextResponse.redirect(new URL("/login", req.url));
+    return NextResponse.redirect(new URL("/login", trustedOrigin));
   }
 
   return res;

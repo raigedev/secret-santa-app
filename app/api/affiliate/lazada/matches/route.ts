@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest } from "next/server";
 
 import {
   findBestLazadaFeedMatches,
@@ -19,6 +19,8 @@ import {
   sanitizeTrimmedString,
 } from "@/lib/validation/common";
 import { formatPriceRange } from "@/lib/wishlist/pricing";
+import { noStoreJson } from "@/lib/security/no-store-response";
+import { readLimitedJsonBody } from "@/lib/security/request-body";
 import {
   buildTrackedSuggestionHref,
   type ShoppingRegion,
@@ -41,6 +43,10 @@ type MatchProductsBody = {
 };
 
 type MatchCardRole = LazadaDirectMatchRole;
+
+const LAZADA_MATCH_BODY_LIMIT_BYTES = 32 * 1024;
+
+export const dynamic = "force-dynamic";
 
 type PriceSortableMatch = {
   product: {
@@ -603,14 +609,19 @@ export async function POST(request: NextRequest) {
     return auth.response;
   }
 
-  let payload: MatchProductsBody;
+  const payloadResult = await readLimitedJsonBody<MatchProductsBody>(
+    request,
+    LAZADA_MATCH_BODY_LIMIT_BYTES
+  );
 
-  try {
-    payload = (await request.json()) as MatchProductsBody;
-  } catch {
-    return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
+  if (!payloadResult.ok) {
+    return noStoreJson(
+      { error: payloadResult.error === "too-large" ? "Request body too large" : "Invalid JSON body" },
+      { status: payloadResult.error === "too-large" ? 413 : 400 }
+    );
   }
 
+  const payload = payloadResult.body;
   const groupId = sanitizeTrimmedString(payload.groupId);
   const wishlistItemId = sanitizeTrimmedString(payload.wishlistItemId);
   const itemName = sanitizeTrimmedString(payload.itemName);
@@ -627,7 +638,7 @@ export async function POST(request: NextRequest) {
     !isSupportedShoppingRegion(region) ||
     region !== "PH"
   ) {
-    return NextResponse.json({ products: [] satisfies WishlistFeaturedProductCard[] });
+    return noStoreJson({ products: [] satisfies WishlistFeaturedProductCard[] });
   }
 
   const accessCheck = await canAccessRecipientWishlistItem({
@@ -637,7 +648,7 @@ export async function POST(request: NextRequest) {
   });
 
   if (!accessCheck.allowed) {
-    return NextResponse.json(
+    return noStoreJson(
       { error: "Forbidden", products: [] satisfies WishlistFeaturedProductCard[] },
       { status: 403 }
     );
@@ -874,7 +885,7 @@ export async function POST(request: NextRequest) {
     preferredPriceMin,
   });
   if (directProducts.length > 0) {
-    return NextResponse.json({
+    return noStoreJson({
       products: [...directProducts, ...searchFallbackCards].slice(0, 3),
     });
   }
@@ -902,5 +913,5 @@ export async function POST(request: NextRequest) {
     preferredPriceMin,
   });
 
-  return NextResponse.json({ products });
+  return noStoreJson({ products });
 }

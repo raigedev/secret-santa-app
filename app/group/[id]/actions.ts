@@ -171,15 +171,13 @@ export async function getGroupMembersForViewer(groupId: string): Promise<{
     return { success: false, isOwner: false, members: [], message: "Group not found." };
   }
 
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const context = await getServerActionContext();
 
-  if (!user) {
-    return { success: false, isOwner: false, members: [], message: "You must be logged in." };
+  if (!context.ok) {
+    return { success: false, isOwner: false, members: [], message: context.message };
   }
 
+  const { supabase, user } = context;
   const { data: group, error: groupError } = await supabase
     .from("groups")
     .select("owner_id")
@@ -278,15 +276,13 @@ export async function inviteUser(
     return { message: "Missing group ID or email." };
   }
 
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const context = await getServerActionContext();
 
-  if (!user) {
-    return { message: "You must be logged in." };
+  if (!context.ok) {
+    return { message: context.message };
   }
 
+  const { supabase, user } = context;
   const rateLimit = await enforceRateLimit({
     action: "group.invite_user",
     actorUserId: user.id,
@@ -453,15 +449,13 @@ export async function updateNickname(
     return { success: false, message: "Invalid group ID." };
   }
 
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const context = await getServerActionContext();
 
-  if (!user) {
-    return { success: false, message: "You must be logged in." };
+  if (!context.ok) {
+    return { success: false, message: context.message };
   }
 
+  const { supabase, user } = context;
   const rateLimit = await enforceRateLimit({
     action: "group.update_nickname",
     actorUserId: user.id,
@@ -553,15 +547,13 @@ export async function resendInvite(
     return { message: "Missing group ID or email." };
   }
 
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const context = await getServerActionContext();
 
-  if (!user) {
-    return { message: "You must be logged in." };
+  if (!context.ok) {
+    return { message: context.message };
   }
 
+  const { supabase, user } = context;
   const rateLimit = await enforceRateLimit({
     action: "group.resend_invite",
     actorUserId: user.id,
@@ -861,15 +853,13 @@ export async function revokePendingInvite(
     return { success: false, message: "Missing invite details." };
   }
 
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const context = await getServerActionContext();
 
-  if (!user) {
-    return { success: false, message: "You must be logged in." };
+  if (!context.ok) {
+    return { success: false, message: context.message };
   }
 
+  const { supabase, user } = context;
   const rateLimit = await enforceRateLimit({
     action: "group.revoke_pending_invite",
     actorUserId: user.id,
@@ -1417,15 +1407,13 @@ export async function removeMember(
     return { success: false, message: "Invalid group or member ID." };
   }
 
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const context = await getServerActionContext();
 
-  if (!user) {
-    return { success: false, message: "You must be logged in." };
+  if (!context.ok) {
+    return { success: false, message: context.message };
   }
 
+  const { supabase, user } = context;
   if (memberId === user.id) {
     return { success: false, message: "Use 'Leave Group' to remove yourself." };
   }
@@ -1821,15 +1809,13 @@ export async function getRevealPresentationData(
     return { success: false, message: "Missing group ID." };
   }
 
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const context = await getServerActionContext();
 
-  if (!user) {
-    return { success: false, message: "You must be logged in." };
+  if (!context.ok) {
+    return { success: false, message: context.message };
   }
 
+  const { supabase, user } = context;
   const rateLimit = await enforceRateLimit({
     action: "group.get_reveal_presentation",
     actorUserId: user.id,
@@ -1844,22 +1830,14 @@ export async function getRevealPresentationData(
     return { success: false, message: rateLimit.message };
   }
 
-  const [{ data: group }, storedSession, sourceData] = await Promise.all([
-    supabase
-      .from("groups")
-      .select("name, owner_id, revealed, revealed_at")
-      .eq("id", groupId)
-      .maybeSingle(),
-    getStoredRevealSession(groupId),
-    loadRevealSourceData(groupId),
-  ]);
+  const { data: group } = await supabase
+    .from("groups")
+    .select("name, owner_id, revealed, revealed_at")
+    .eq("id", groupId)
+    .maybeSingle();
 
   if (!group) {
     return { success: false, message: "Group not found." };
-  }
-
-  if (sourceData.assignments.length === 0) {
-    return { success: false, message: "Names have not been drawn yet." };
   }
 
   const isOwner = group.owner_id === user.id;
@@ -1876,6 +1854,15 @@ export async function getRevealPresentationData(
     if (!membership) {
       return { success: false, message: "Only accepted members can view this reveal screen." };
     }
+  }
+
+  const [storedSession, sourceData] = await Promise.all([
+    getStoredRevealSession(groupId),
+    loadRevealSourceData(groupId),
+  ]);
+
+  if (sourceData.assignments.length === 0) {
+    return { success: false, message: "Names have not been drawn yet." };
   }
 
   const normalizedSession = normalizeRevealSession({
@@ -1960,15 +1947,13 @@ export async function startRevealSession(
     return { success: false, message: "Missing group ID." };
   }
 
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const context = await getServerActionContext();
 
-  if (!user) {
-    return { success: false, message: "You must be logged in." };
+  if (!context.ok) {
+    return { success: false, message: context.message };
   }
 
+  const { user } = context;
   const rateLimit = await enforceRateLimit({
     action: "group.start_reveal_session",
     actorUserId: user.id,
@@ -2058,15 +2043,13 @@ export async function startRevealCountdown(
     return { success: false, message: "Missing group ID." };
   }
 
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const context = await getServerActionContext();
 
-  if (!user) {
-    return { success: false, message: "You must be logged in." };
+  if (!context.ok) {
+    return { success: false, message: context.message };
   }
 
+  const { user } = context;
   const rateLimit = await enforceRateLimit({
     action: "group.start_reveal_countdown",
     actorUserId: user.id,
@@ -2158,15 +2141,13 @@ export async function updateRevealSessionState(
     return { success: false, message: "Missing group ID." };
   }
 
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const context = await getServerActionContext();
 
-  if (!user) {
-    return { success: false, message: "You must be logged in." };
+  if (!context.ok) {
+    return { success: false, message: context.message };
   }
 
+  const { user } = context;
   const rateLimit = await enforceRateLimit({
     action: "group.update_reveal_session",
     actorUserId: user.id,
@@ -2244,15 +2225,13 @@ export async function getRevealMatches(
     return { success: false, message: "Missing group ID." };
   }
 
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const context = await getServerActionContext();
 
-  if (!user) {
-    return { success: false, message: "You must be logged in." };
+  if (!context.ok) {
+    return { success: false, message: context.message };
   }
 
+  const { supabase, user } = context;
   const rateLimit = await enforceRateLimit({
     action: "group.get_reveal_matches",
     actorUserId: user.id,
@@ -2316,15 +2295,13 @@ export async function triggerReveal(
     return { success: false, message: "Missing group ID." };
   }
 
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const context = await getServerActionContext();
 
-  if (!user) {
-    return { success: false, message: "You must be logged in." };
+  if (!context.ok) {
+    return { success: false, message: context.message };
   }
 
+  const { supabase, user } = context;
   const rateLimit = await enforceRateLimit({
     action: "group.trigger_reveal",
     actorUserId: user.id,

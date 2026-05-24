@@ -17,9 +17,9 @@ import { createNotification } from "@/lib/notifications";
 import { getEmailVerificationMessage, isUserEmailVerified } from "@/lib/auth/user-status";
 import { recordAuditEvent, recordServerFailure } from "@/lib/security/audit";
 import { MAX_GROUP_CREATION_INVITES } from "@/lib/groups/capacity";
+import { getServerActionContext } from "@/lib/auth/server-action-context";
 import { enforceRateLimit } from "@/lib/security/rate-limit";
 import { supabaseAdmin } from "@/lib/supabase/admin";
-import { createClient } from "@/lib/supabase/server";
 import { sanitizePlainText } from "@/lib/validation/common";
 
 const GROUP_NAME_MAX_LENGTH = 100;
@@ -27,6 +27,7 @@ const GROUP_DESCRIPTION_MAX_LENGTH = 300;
 const GROUP_CURRENCY_MAX_LENGTH = 5;
 const MAX_INVITES_PER_GROUP = MAX_GROUP_CREATION_INVITES;
 const EMAIL_MAX_LENGTH = 100;
+const INVITE_EMAILS_JSON_MAX_LENGTH = 8 * 1024;
 const ALLOWED_CURRENCIES = new Set(["USD", "EUR", "GBP", "PHP", "JPY", "AUD", "CAD"]);
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -86,6 +87,10 @@ function normalizeInviteEmails(rawEmails: string[], ownerEmail: string | null | 
 function parseInviteEmailsJson(rawValue: FormDataEntryValue | null): string[] {
   if (typeof rawValue !== "string" || rawValue.trim().length === 0) {
     return [];
+  }
+
+  if (rawValue.length > INVITE_EMAILS_JSON_MAX_LENGTH) {
+    throw new Error("Invite list is too large.");
   }
 
   const parsed = JSON.parse(rawValue) as unknown;
@@ -231,14 +236,13 @@ async function createGroupWithInvitesInternal(
   input: CreateGroupInput,
   groupImage: File | null
 ): Promise<CreateGroupResult> {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const context = await getServerActionContext();
 
-  if (!user) {
-    return { success: false, message: "You must be logged in." };
+  if (!context.ok) {
+    return { success: false, message: context.message };
   }
+
+  const { supabase, user } = context;
 
   if (!isUserEmailVerified(user)) {
     return { success: false, message: getEmailVerificationMessage() };

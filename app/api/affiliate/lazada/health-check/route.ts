@@ -1,9 +1,10 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest } from "next/server";
 
 import { loadLazadaHealthStatus, type LazadaHealthStatus } from "@/lib/affiliate/lazada-health";
 import { getAffiliateReportAllowedEmails } from "@/lib/affiliate/report-access";
 import { createNotification } from "@/lib/notifications";
 import { recordServerFailure } from "@/lib/security/audit";
+import { noStoreJson } from "@/lib/security/no-store-response";
 import { extractBearerToken, safeEqualSecret } from "@/lib/security/web";
 import { supabaseAdmin } from "@/lib/supabase/admin";
 
@@ -179,7 +180,7 @@ async function notifyOwnersIfNeeded(health: LazadaHealthStatus, now: Date): Prom
 
 async function handleRequest(request: NextRequest) {
   if (!isAuthorizedRequest(request)) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    return noStoreJson({ error: "Unauthorized" }, { status: 401 });
   }
 
   const now = new Date();
@@ -188,7 +189,7 @@ async function handleRequest(request: NextRequest) {
     const health = await loadLazadaHealthStatus(now);
     const notificationsCreated = await notifyOwnersIfNeeded(health, now);
 
-    return NextResponse.json(
+    return noStoreJson(
       {
         checkedAt: now.toISOString(),
         health,
@@ -209,9 +210,9 @@ async function handleRequest(request: NextRequest) {
       resourceType: "affiliate_health",
     });
 
-    return NextResponse.json(
+    return noStoreJson(
       {
-        error: message,
+        error: "Lazada health check failed.",
         ok: false,
       },
       { status: 500 }

@@ -13,9 +13,11 @@ import {
 } from "@/lib/groups/capacity";
 import { recordAuditEvent, recordServerFailure } from "@/lib/security/audit";
 import { createNotification } from "@/lib/notifications";
+import { getServerActionContext } from "@/lib/auth/server-action-context";
 import { enforceRateLimit } from "@/lib/security/rate-limit";
 import { supabaseAdmin } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
+import { sanitizePlainText } from "@/lib/validation/common";
 
 type InvitePageProps = {
   params: Promise<{ token: string }>;
@@ -43,12 +45,30 @@ type InvitePreviewGroup = {
   require_anonymous_nickname: boolean | null;
 };
 
+const INVITE_TOKEN_MAX_LENGTH = 96;
+const INVITE_TOKEN_PATTERN = /^[A-Za-z0-9_-]+$/;
+const INVALID_INVITE_MESSAGE = "This invite link is no longer valid.";
+
 function normalizeToken(token: string): string {
-  return token.trim();
+  const trimmed = token.trim();
+  if (
+    trimmed.length === 0 ||
+    trimmed.length > INVITE_TOKEN_MAX_LENGTH ||
+    !INVITE_TOKEN_PATTERN.test(trimmed)
+  ) {
+    return "";
+  }
+
+  return trimmed;
 }
 
-function hashInviteToken(token: string): string {
-  return createHash("sha256").update(normalizeToken(token)).digest("hex");
+function hashInviteToken(normalizedToken: string): string {
+  return createHash("sha256").update(normalizedToken).digest("hex");
+}
+
+function normalizeInviteErrorMessage(value: string | undefined): string | null {
+  const message = sanitizePlainText(value || "", 180);
+  return message || null;
 }
 
 function buildGroupInvitePreview({
@@ -78,11 +98,30 @@ function buildGroupInvitePreview({
   };
 }
 
+function buildInvalidInvitePreview(message = INVALID_INVITE_MESSAGE): InvitePreview {
+  return {
+    groupId: "",
+    name: "Invite unavailable",
+    description: null,
+    eventDate: "",
+    memberCount: 0,
+    requireAnonymousNickname: false,
+    isValid: false,
+    isClosed: true,
+    membershipStatus: null,
+    message,
+  };
+}
+
 async function loadInvitePreview(
   token: string,
   user: { id: string; email?: string | null } | null
 ): Promise<InvitePreview> {
   const normalizedToken = normalizeToken(token);
+  if (!normalizedToken) {
+    return buildInvalidInvitePreview();
+  }
+
   const tokenHash = hashInviteToken(normalizedToken);
 
   const { data: link, error: linkError } = await supabaseAdmin
@@ -101,18 +140,7 @@ async function loadInvitePreview(
   }
 
   if (!link || !link.is_active) {
-    return {
-      groupId: "",
-      name: "Invite unavailable",
-      description: null,
-      eventDate: "",
-      memberCount: 0,
-      requireAnonymousNickname: false,
-      isValid: false,
-      isClosed: true,
-      membershipStatus: null,
-      message: "This invite link is no longer valid.",
-    };
+    return buildInvalidInvitePreview();
   }
 
   if (link.expires_at && new Date(link.expires_at).getTime() < Date.now()) {
@@ -229,11 +257,18 @@ async function joinGroupViaInviteToken(
   nickname?: string
 ): Promise<{ success: boolean; message: string; groupId?: string }> {
   const normalizedToken = normalizeToken(token);
+  if (!normalizedToken) {
+    return { success: false, message: INVALID_INVITE_MESSAGE };
+  }
+
   const tokenHash = hashInviteToken(normalizedToken);
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const context = await getServerActionContext();
+
+  if (!context.ok) {
+    return { success: false, message: context.message };
+  }
+
+  const { supabase, user } = context;
 
   if (!user?.id || !user.email) {
     return { success: false, message: "You must be logged in to join a group." };
@@ -468,19 +503,18 @@ export default async function InviteLinkPage({
   searchParams,
 }: InvitePageProps) {
   const { token } = await params;
+  const normalizedToken = normalizeToken(token);
   const resolvedSearchParams = await searchParams;
   const supabase = await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
 
-  const preview = await loadInvitePreview(token, user);
-  const nextPath = `/invite/${encodeURIComponent(token)}`;
+  const preview = await loadInvitePreview(normalizedToken, user);
+  const nextPath = `/invite/${encodeURIComponent(normalizedToken || "invalid")}`;
   const authNext = encodeURIComponent(nextPath);
   const needsEmailConfirmation = Boolean(user && !isUserEmailVerified(user));
-  const errorMessage = resolvedSearchParams.error
-    ? decodeURIComponent(resolvedSearchParams.error)
-    : null;
+  const errorMessage = normalizeInviteErrorMessage(resolvedSearchParams.error);
 
   async function handleJoinInvite(formData: FormData) {
     "use server";

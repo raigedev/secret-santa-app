@@ -10,23 +10,34 @@ import { insertAffiliateClick } from "@/lib/affiliate/click-tracking";
 import { normalizeLazadaProductPageUrl } from "@/lib/affiliate/lazada-url";
 import { requireWishlistAffiliateRedirectAccess } from "@/lib/affiliate/redirect-route";
 import { recordServerFailure } from "@/lib/security/audit";
+import { resolveTrustedAppOrigin } from "@/lib/security/app-origin";
 import { isUuid } from "@/lib/validation/common";
+
+const MAX_WISHLIST_LINK_NAME_LENGTH = 160;
+const MAX_WISHLIST_LINK_URL_LENGTH = 2048;
 
 export async function GET(request: NextRequest) {
   const { searchParams } = request.nextUrl;
   const groupId = searchParams.get("groupId");
   const wishlistItemId = searchParams.get("itemId");
-  const itemName = searchParams.get("name")?.trim() || "Wishlist item";
+  const rawItemName = searchParams.get("name")?.trim() || "";
+  const itemName =
+    rawItemName.length > MAX_WISHLIST_LINK_NAME_LENGTH
+      ? "Wishlist item"
+      : rawItemName || "Wishlist item";
   const itemUrl = searchParams.get("url")?.trim() || "";
-
-  const normalizedItemUrl = normalizeLazadaProductPageUrl(itemUrl);
+  const itemUrlTooLong = itemUrl.length > MAX_WISHLIST_LINK_URL_LENGTH;
+  const normalizedItemUrl = itemUrlTooLong ? null : normalizeLazadaProductPageUrl(itemUrl);
 
   if (
     !isUuid(groupId) ||
     !isUuid(wishlistItemId) ||
+    itemUrlTooLong ||
     !normalizedItemUrl
   ) {
-    return NextResponse.redirect(new URL("/secret-santa", request.url));
+    return NextResponse.redirect(
+      new URL("/secret-santa", resolveTrustedAppOrigin(request.nextUrl))
+    );
   }
 
   const redirectAccess = await requireWishlistAffiliateRedirectAccess({

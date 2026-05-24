@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 
 import { canTrackWishlistAffiliateRedirect } from "@/lib/affiliate/redirect-access";
 import { recordServerFailure } from "@/lib/security/audit";
+import { resolveTrustedAppOrigin } from "@/lib/security/app-origin";
 import { enforceRateLimit } from "@/lib/security/rate-limit";
 import { createClient } from "@/lib/supabase/server";
 
@@ -26,6 +27,35 @@ type RequireWishlistAffiliateRedirectAccessOptions = {
   wishlistItemId: string;
 };
 
+async function enforceAffiliateRedirectRateLimit(options: {
+  action: string;
+  rateLimitSubjectPrefix: string;
+  userId: string;
+  wishlistItemId: string;
+}): Promise<NextResponse | null> {
+  const rateLimit = await enforceRateLimit({
+    action: options.action,
+    actorUserId: options.userId,
+    maxAttempts: 100,
+    resourceId: options.wishlistItemId,
+    resourceType: "affiliate_redirect",
+    subject: `${options.rateLimitSubjectPrefix}:${options.userId}`,
+    windowSeconds: 3600,
+  });
+
+  if (rateLimit.allowed) {
+    return null;
+  }
+
+  return new NextResponse(rateLimit.message, {
+    status: 429,
+    headers: {
+      "Cache-Control": "no-store",
+      "Retry-After": String(Math.max(rateLimit.retryAfterSeconds, 1)),
+    },
+  });
+}
+
 export async function requireWishlistAffiliateRedirectAccess({
   accessFailureEventType,
   auditDetails,
@@ -40,11 +70,26 @@ export async function requireWishlistAffiliateRedirectAccess({
   const {
     data: { user },
   } = await supabase.auth.getUser();
+  const trustedOrigin = resolveTrustedAppOrigin(new URL(request.url));
 
   if (!user) {
     return {
       allowed: false,
-      response: NextResponse.redirect(new URL("/login", request.url)),
+      response: NextResponse.redirect(new URL("/login", trustedOrigin)),
+    };
+  }
+
+  const rateLimitResponse = await enforceAffiliateRedirectRateLimit({
+    action: rateLimitAction,
+    rateLimitSubjectPrefix,
+    userId: user.id,
+    wishlistItemId,
+  });
+
+  if (rateLimitResponse) {
+    return {
+      allowed: false,
+      response: rateLimitResponse,
     };
   }
 
@@ -74,29 +119,7 @@ export async function requireWishlistAffiliateRedirectAccess({
 
     return {
       allowed: false,
-      response: NextResponse.redirect(new URL("/secret-santa", request.url)),
-    };
-  }
-
-  const rateLimit = await enforceRateLimit({
-    action: rateLimitAction,
-    actorUserId: user.id,
-    maxAttempts: 100,
-    resourceId: wishlistItemId,
-    resourceType: "affiliate_redirect",
-    subject: `${rateLimitSubjectPrefix}:${user.id}`,
-    windowSeconds: 3600,
-  });
-
-  if (!rateLimit.allowed) {
-    return {
-      allowed: false,
-      response: new NextResponse(rateLimit.message, {
-        status: 429,
-        headers: {
-          "Retry-After": String(Math.max(rateLimit.retryAfterSeconds, 1)),
-        },
-      }),
+      response: NextResponse.redirect(new URL("/secret-santa", trustedOrigin)),
     };
   }
 

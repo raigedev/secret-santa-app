@@ -1,7 +1,8 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest } from "next/server";
 
 import { syncAndProcessReminderJobs } from "@/lib/notifications";
 import { recordServerFailure } from "@/lib/security/audit";
+import { noStoreJson } from "@/lib/security/no-store-response";
 import { extractBearerToken, safeEqualSecret } from "@/lib/security/web";
 
 export const dynamic = "force-dynamic";
@@ -39,14 +40,14 @@ function isAuthorizedRequest(request: NextRequest): boolean {
 
 async function handleRequest(request: NextRequest) {
   if (!isAuthorizedRequest(request)) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    return noStoreJson({ error: "Unauthorized" }, { status: 401 });
   }
 
   try {
     const now = new Date();
     const stats = await syncAndProcessReminderJobs(now);
 
-    return NextResponse.json(
+    return noStoreJson(
       {
         ok: true,
         processedAt: now.toISOString(),
@@ -66,10 +67,10 @@ async function handleRequest(request: NextRequest) {
       resourceType: "reminder_job",
     });
 
-    return NextResponse.json(
+    return noStoreJson(
       {
         ok: false,
-        error: message,
+        error: "Reminder processing failed.",
       },
       { status: 500 }
     );

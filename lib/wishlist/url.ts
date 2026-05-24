@@ -10,14 +10,18 @@ export function normalizeOptionalWishlistUrl(
     return "";
   }
 
+  if (trimmed.length > maxLength) {
+    return "";
+  }
+
   try {
     const parsed = new URL(trimmed);
 
-    if (parsed.protocol !== "http:" && parsed.protocol !== "https:") {
+    if (parsed.protocol !== "https:") {
       return "";
     }
 
-    return trimmed.slice(0, maxLength);
+    return trimmed;
   } catch {
     return "";
   }

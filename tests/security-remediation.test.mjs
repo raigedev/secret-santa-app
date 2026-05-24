@@ -194,12 +194,15 @@ test("auth callback creates one-time welcome notifications and welcome email", (
 
 test("notification links are normalized to app-local paths before navigation", () => {
   const notificationsSource = readFileSync("lib/notifications.ts", "utf8");
+  const safeAppPathSource = readFileSync("lib/security/safe-app-path.ts", "utf8");
   const dashboardSource = readFileSync("app/dashboard/page.tsx", "utf8");
   const notificationDisplaySource = readFileSync(
     "app/notifications/notification-display.ts",
     "utf8"
   );
 
+  assert.match(safeAppPathSource, /normalizeSafeAppPath\(candidate: unknown/);
+  assert.match(safeAppPathSource, /typeof candidate === "string"/);
   assert.match(notificationsSource, /import \{ normalizeSafeAppPath \} from "@\/lib\/security\/safe-app-path";/);
   assert.match(notificationsSource, /function sanitizeNotificationLinkPath/);
   assert.match(notificationsSource, /const linkPath = sanitizeNotificationLinkPath\(input\.linkPath\);/);
@@ -376,6 +379,12 @@ test("anonymous receiver chat keeps giver identifiers server-side before reveal"
   assert.match(actionsSource, /export async function loadReceiverThreadMessages/);
   assert.match(actionsSource, /export async function sendReceiverMessage/);
   assert.match(actionsSource, /\.from\("assignments"\)[\s\S]*\.eq\("receiver_id", receiverId\)/);
+  assert.match(actionsSource, /async function validateThreadSendAccess/);
+  assert.match(actionsSource, /\.eq\("giver_id", threadGiverId\)/);
+  assert.match(actionsSource, /\.eq\("receiver_id", threadReceiverId\)/);
+  assert.match(actionsSource, /userId !== threadReceiverId/);
+  assert.match(actionsSource, /!group\?\.revealed/);
+  assert.match(actionsSource, /const threadAccess = await validateThreadSendAccess/);
 
   assert.match(migrationSource, /alter policy messages_select_for_thread_participants/i);
   assert.match(migrationSource, /alter policy messages_insert_for_thread_participants/i);
@@ -392,6 +401,25 @@ test("live reveal only exposes matches after each card reveal", () => {
   assert.match(groupActionsSource, /canRevealAllMatchNamesToViewer/);
   assert.match(groupActionsSource, /lastRevealedMatchIndex/);
   assert.match(groupActionsSource, /matchIndex <= lastRevealedMatchIndex/);
+});
+
+test("reveal presentation loads service-role source data after viewer authorization", () => {
+  const groupActionsSource = readFileSync("app/group/[id]/actions.ts", "utf8");
+  const presentationStart = groupActionsSource.indexOf(
+    "export async function getRevealPresentationData"
+  );
+  const sourceDataLoad = groupActionsSource.indexOf("const [storedSession, sourceData]", presentationStart);
+  const membershipRejection = groupActionsSource.indexOf(
+    "Only accepted members can view this reveal screen.",
+    presentationStart
+  );
+
+  assert.ok(presentationStart >= 0);
+  assert.ok(sourceDataLoad > membershipRejection);
+  assert.doesNotMatch(
+    groupActionsSource.slice(presentationStart, membershipRejection),
+    /loadRevealSourceData|getStoredRevealSession/
+  );
 });
 
 test("countdown reveal keeps alias real names redacted", () => {
@@ -522,6 +550,45 @@ test("invite responses do not reveal whether an email has an account", () => {
   assert.doesNotMatch(groupActionsSource, /Invite email sent/i);
 });
 
+test("invite page query errors are bounded plain text", () => {
+  const invitePageSource = readFileSync("app/invite/[token]/page.tsx", "utf8");
+
+  assert.match(invitePageSource, /import \{ sanitizePlainText \} from "@\/lib\/validation\/common";/);
+  assert.match(invitePageSource, /function normalizeInviteErrorMessage/);
+  assert.match(invitePageSource, /sanitizePlainText\(value \|\| "", 180\)/);
+  assert.match(invitePageSource, /const errorMessage = normalizeInviteErrorMessage\(resolvedSearchParams\.error\)/);
+  assert.doesNotMatch(invitePageSource, /decodeURIComponent\(resolvedSearchParams\.error\)/);
+});
+
+test("invite link tokens are bounded before hashing or redirect reuse", () => {
+  const invitePageSource = readFileSync("app/invite/[token]/page.tsx", "utf8");
+  const loadPreviewStart = invitePageSource.indexOf("async function loadInvitePreview");
+  const joinInviteStart = invitePageSource.indexOf("async function joinGroupViaInviteToken");
+  const pageStart = invitePageSource.indexOf("export default async function InviteLinkPage");
+
+  assert.match(invitePageSource, /const INVITE_TOKEN_MAX_LENGTH = 96/);
+  assert.match(invitePageSource, /const INVITE_TOKEN_PATTERN = \/\^\[A-Za-z0-9_-\]\+\$\//);
+  assert.match(invitePageSource, /trimmed\.length > INVITE_TOKEN_MAX_LENGTH/);
+  assert.match(invitePageSource, /!INVITE_TOKEN_PATTERN\.test\(trimmed\)/);
+  assert.match(invitePageSource, /function buildInvalidInvitePreview/);
+  assert.ok(loadPreviewStart >= 0 && joinInviteStart > loadPreviewStart);
+  assert.match(
+    invitePageSource.slice(loadPreviewStart, joinInviteStart),
+    /const normalizedToken = normalizeToken\(token\);[\s\S]{0,120}if \(!normalizedToken\)[\s\S]{0,120}return buildInvalidInvitePreview\(\);[\s\S]{0,120}const tokenHash = hashInviteToken\(normalizedToken\);/
+  );
+  assert.ok(pageStart > joinInviteStart);
+  assert.match(
+    invitePageSource.slice(joinInviteStart, pageStart),
+    /const normalizedToken = normalizeToken\(token\);[\s\S]{0,120}if \(!normalizedToken\)[\s\S]{0,120}INVALID_INVITE_MESSAGE[\s\S]{0,120}const tokenHash = hashInviteToken\(normalizedToken\);/
+  );
+  assert.match(invitePageSource, /const normalizedToken = normalizeToken\(token\);/);
+  assert.match(
+    invitePageSource,
+    /const nextPath = `\/invite\/\$\{encodeURIComponent\(normalizedToken \|\| "invalid"\)\}`;/
+  );
+}
+);
+
 test("peer profile route always rechecks authorization before profile output", () => {
   const peerProfilesRouteSource = readFileSync("app/api/groups/peer-profiles/route.ts", "utf8");
 
@@ -622,6 +689,8 @@ test("create group action enforces email verification before privileged writes",
   const adminInsertIndex = createGroupActionsSource.indexOf(".from(\"groups\")");
 
   assert.match(createGroupActionsSource, /getEmailVerificationMessage/);
+  assert.match(createGroupActionsSource, /INVITE_EMAILS_JSON_MAX_LENGTH = 8 \* 1024/);
+  assert.match(createGroupActionsSource, /rawValue\.length > INVITE_EMAILS_JSON_MAX_LENGTH/);
   assert.ok(verificationIndex > 0, "Expected create-group action to check email verification.");
   assert.ok(
     verificationIndex < rateLimitIndex,
@@ -713,6 +782,7 @@ test("security definer helper functions use constrained search paths", () => {
 
 test("secret santa shopping does not auto-load recipient supplied wishlist images", () => {
   const secretSantaPageSource = readFileSync("app/secret-santa/page.tsx", "utf8");
+  const wishlistPageSource = readFileSync("app/wishlist/page.tsx", "utf8");
 
   assert.doesNotMatch(secretSantaPageSource, /item_image_url/);
   assert.doesNotMatch(secretSantaPageSource, /safeItemImageUrl/);
@@ -721,13 +791,17 @@ test("secret santa shopping does not auto-load recipient supplied wishlist image
     secretSantaPageSource,
     /const resolvedWishlistImageUrl = wishlistMatchedImageUrl;/
   );
+  assert.match(
+    wishlistPageSource,
+    /src=\{item\.item_image_url\}[\s\S]{0,160}referrerPolicy="no-referrer"/
+  );
 });
 
 test("wishlist URLs stay https-only across migrations and UI reads", () => {
   const migrationPath = [
     "supabase",
     "migrations",
-    "202604050014_harden_security" + "_followups.sql",
+    "20260524050000_enforce_https_wishlist_urls.sql",
   ].join("/");
   // eslint-disable-next-line security/detect-non-literal-fs-filename -- Test only reads a repo-local migration path assembled to avoid a no-secrets false positive.
   const migrationSource = readFileSync(
@@ -740,11 +814,36 @@ test("wishlist URLs stay https-only across migrations and UI reads", () => {
 
   assert.match(
     migrationSource,
-    /item_link is null[\s\S]*or item_link = ''[\s\S]*char_length\(item_link\) <= 500[\s\S]*and item_link ~\* '\^https\?:\/\/'/i
+    /item_link is null[\s\S]*or item_link = ''[\s\S]*char_length\(item_link\) <= 500[\s\S]*and item_link ~\* '\^https:\/\/'/i
   );
-  assert.match(wishlistUrlSource, /parsed\.protocol !== "http:" && parsed\.protocol !== "https:"/);
+  assert.match(migrationSource, /wishlists_item_link_protocol_check[\s\S]*not valid/i);
+  assert.doesNotMatch(migrationSource, /set item_link = ''/i);
+  assert.match(wishlistUrlSource, /trimmed\.length > maxLength/);
+  assert.match(wishlistUrlSource, /parsed\.protocol !== "https:"/);
+  assert.doesNotMatch(wishlistUrlSource, /parsed\.protocol !== "http:"/);
+  assert.doesNotMatch(wishlistUrlSource, /trimmed\.slice\(0, maxLength\)/);
   assert.match(wishlistPageSource, /item_link: cleanUrl\(row\.item_link \|\| ""\)/);
   assert.match(historyPageSource, /item_link: normalizeOptionalWishlistUrl\(item\.item_link\)/);
+});
+
+test("wishlist image URLs are HTTPS-only at the database boundary", () => {
+  const migrationPath = [
+    "supabase",
+    "migrations",
+    "20260524050000_enforce_https_wishlist_urls.sql",
+  ].join("/");
+  // eslint-disable-next-line security/detect-non-literal-fs-filename -- Test reads a fixed repo migration assembled for no-secrets lint stability.
+  const migrationSource = readFileSync(migrationPath, "utf8");
+
+  assert.match(migrationSource, /regexp_replace\(item_link, '\^http:\/\/', 'https:\/\/'/i);
+  assert.match(migrationSource, /regexp_replace\(item_image_url, '\^http:\/\/', 'https:\/\/'/i);
+  assert.match(migrationSource, /wishlists_item_image_url_protocol_check/i);
+  assert.match(migrationSource, /wishlists_item_image_url_protocol_check[\s\S]*not valid/i);
+  assert.doesNotMatch(migrationSource, /set item_image_url = ''/i);
+  assert.match(
+    migrationSource,
+    /item_image_url is null[\s\S]*or item_image_url = ''[\s\S]*char_length\(item_image_url\) <= 500[\s\S]*and item_image_url ~\* '\^https:\/\/'/i
+  );
 });
 
 test("secret santa gift day banner requires a near assigned giftee", () => {
@@ -767,7 +866,7 @@ test("lazada match route skips unused fallback feed scans when direct matches ex
 
   assert.match(
     lazadaMatchesRouteSource,
-    /if\s*\(\s*directProducts\.length\s*>\s*0\s*\)\s*{[\s\S]{0,220}return NextResponse\.json/
+    /if\s*\(\s*directProducts\.length\s*>\s*0\s*\)\s*{[\s\S]{0,220}return noStoreJson/
   );
   assert.doesNotMatch(lazadaMatchesRouteSource, /const\s+fallbackProducts\s*=/);
 });
@@ -775,12 +874,19 @@ test("lazada match route skips unused fallback feed scans when direct matches ex
 test("affiliate redirect rate limits do not trust spoofed client IP headers", () => {
   const redirectRouteSource = readFileSync("lib/affiliate/redirect-route.ts", "utf8");
   const webSecuritySource = readFileSync("lib/security/web.ts", "utf8");
+  const rateLimitIndex = redirectRouteSource.indexOf("enforceAffiliateRedirectRateLimit({");
+  const accessCheckIndex = redirectRouteSource.indexOf("canTrackWishlistAffiliateRedirect({");
 
   assert.doesNotMatch(webSecuritySource, /extractRequestClientIp|x-forwarded-for|cf-connecting-ip|x-real-ip/i);
   assert.doesNotMatch(redirectRouteSource, /extractRequestClientIp/);
   assert.match(
     redirectRouteSource,
-    /subject:\s*`\$\{rateLimitSubjectPrefix\}:\$\{user\.id\}`/
+    /subject:\s*`\$\{options\.rateLimitSubjectPrefix\}:\$\{options\.userId\}`/
+  );
+  assert.match(redirectRouteSource, /"Cache-Control": "no-store"/);
+  assert.ok(
+    rateLimitIndex > 0 && rateLimitIndex < accessCheckIndex,
+    "Affiliate redirect quota must run before wishlist access lookups."
   );
   assert.doesNotMatch(redirectRouteSource, /x-forwarded-for|cf-connecting-ip|x-real-ip/i);
 });
@@ -837,10 +943,17 @@ test("lazada match route requires access to the wishlist item before matching or
     "app/api/affiliate/lazada/matches/route.ts",
     "utf8"
   );
+  const recipientAccessSource = readFileSync("lib/wishlist/recipient-access.ts", "utf8");
   const accessCheckIndex = lazadaMatchesRouteSource.indexOf("canAccessRecipientWishlistItem");
   const feedMatchIndex = lazadaMatchesRouteSource.indexOf("findBestLazadaFeedMatches({");
   const primingIndex = lazadaMatchesRouteSource.indexOf("primeLazadaPromotionLinks({");
 
+  assert.match(recipientAccessSource, /import \{ isUuid \} from "@\/lib\/validation\/common";/);
+  assert.match(
+    recipientAccessSource,
+    /!isUuid\(options\.groupId\) \|\| !isUuid\(options\.userId\) \|\| !isUuid\(options\.wishlistItemId\)/
+  );
+  assert.match(recipientAccessSource, /return \{ allowed: false, reason: "unauthorized" \};/);
   assert.match(lazadaMatchesRouteSource, /canAccessRecipientWishlistItem/);
   assert.match(lazadaMatchesRouteSource, /userId:\s*auth\.userId/);
   assert.match(lazadaMatchesRouteSource, /status:\s*403/);
@@ -862,6 +975,40 @@ test("password reset links are not rewritten by OAuth code fallback", () => {
   assert.match(proxySource, /"\/reset-password"/);
 });
 
+test("auth and affiliate fallback redirects use trusted app origins", () => {
+  const appOriginSource = readFileSync("lib/security/app-origin.ts", "utf8");
+  const proxySource = readFileSync("proxy.ts", "utf8");
+  const redirectRouteSource = readFileSync("lib/affiliate/redirect-route.ts", "utf8");
+  const suggestionRedirectSource = readFileSync("app/go/suggestion/route.ts", "utf8");
+  const wishlistRedirectSource = readFileSync("app/go/wishlist-link/route.ts", "utf8");
+  const affiliateReportSource = readFileSync("app/dashboard/affiliate-report/page.tsx", "utf8");
+  const inviteEmailSource = readFileSync("lib/groups/invite-email.ts", "utf8");
+
+  assert.match(appOriginSource, /import "server-only";/);
+  assert.match(appOriginSource, /function isLocalDevelopmentOrigin/);
+  assert.match(appOriginSource, /normalizeHttpOrigin\(candidate: unknown\)/);
+  assert.match(appOriginSource, /typeof rawValue !== "string"/);
+  assert.match(appOriginSource, /configuredOrigins\.includes\(requestOrigin\)/);
+  assert.match(appOriginSource, /return configuredOrigins\[0\] \|\| DEFAULT_LOCAL_APP_ORIGIN/);
+  assert.match(proxySource, /const trustedOrigin = resolveTrustedAppOrigin\(req\.nextUrl\)/);
+  assert.match(proxySource, /new URL\("\/auth\/callback", trustedOrigin\)/);
+  assert.match(proxySource, /new URL\("\/login", trustedOrigin\)/);
+  assert.match(proxySource, /new URL\("\/dashboard", trustedOrigin\)/);
+  assert.doesNotMatch(proxySource, /new URL\("\/(?:login|dashboard)", req\.url\)/);
+  assert.match(redirectRouteSource, /const trustedOrigin = resolveTrustedAppOrigin\(new URL\(request\.url\)\)/);
+  assert.match(redirectRouteSource, /new URL\("\/login", trustedOrigin\)/);
+  assert.match(redirectRouteSource, /new URL\("\/secret-santa", trustedOrigin\)/);
+  assert.doesNotMatch(redirectRouteSource, /new URL\("\/(?:login|secret-santa)", request\.url\)/);
+  assert.match(suggestionRedirectSource, /resolveTrustedAppOrigin\(request\.nextUrl\)/);
+  assert.match(wishlistRedirectSource, /resolveTrustedAppOrigin\(request\.nextUrl\)/);
+  assert.match(affiliateReportSource, /resolveTrustedAppOrigin\(headerOrigin\)/);
+  assert.doesNotMatch(affiliateReportSource, /function isSafeHostHeader/);
+  assert.doesNotMatch(affiliateReportSource, /fallbackOrigin/);
+  assert.match(inviteEmailSource, /import \{ resolveTrustedAppOrigin \} from "@\/lib\/security\/app-origin";/);
+  assert.match(inviteEmailSource, /new URL\("\/auth\/callback", resolveTrustedAppOrigin\(null\)\)/);
+  assert.doesNotMatch(inviteEmailSource, /function normalizeHttpOrigin/);
+});
+
 test("post-login next cookies are marked secure on HTTPS clients", () => {
   const cookieSource = readFileSync("lib/auth/post-login-next-cookie.ts", "utf8");
   const loginSource = readFileSync("app/login/page.tsx", "utf8");
@@ -874,6 +1021,23 @@ test("post-login next cookies are marked secure on HTTPS clients", () => {
   assert.doesNotMatch(loginSource, /document\.cookie = `post_login_next=/);
   assert.doesNotMatch(createAccountSource, /document\.cookie = `post_login_next=/);
 });
+
+test("login page does not render arbitrary query-string error copy", () => {
+  const loginSource = readFileSync("app/login/page.tsx", "utf8");
+
+  assert.match(loginSource, /import \{ sanitizePlainText \} from "@\/lib\/validation\/common";/);
+  assert.match(loginSource, /AUTH_ERROR_MESSAGE_MAX_LENGTH = 220/);
+  assert.match(loginSource, /sanitizePlainText\(trimmedMessage, AUTH_ERROR_MESSAGE_MAX_LENGTH\)/);
+  assert.match(loginSource, /sanitizePlainText\(parsedMessage, AUTH_ERROR_MESSAGE_MAX_LENGTH\)/);
+  assert.match(
+    loginSource,
+    /function mapAuthErrorMessage\(errorCode: string \| null\): string \| null \{[\s\S]{0,120}AUTH_ERROR_MESSAGES\[errorCode\]/
+  );
+  assert.match(loginSource, /const pageError = mapAuthErrorMessage\(searchParams\.get\("error"\)\)/);
+  assert.doesNotMatch(loginSource, /mapAuthErrorMessage\(searchParams\.get\("error"\), searchParams\.get\("message"\)\)/);
+  assert.doesNotMatch(loginSource, /getReadableAuthErrorMessage\(searchParams\.get\("message"\)\)/);
+}
+);
 
 test("owners do not receive unrevealed assignment names from reveal presentation", () => {
   const groupActionsSource = readFileSync("app/group/[id]/actions.ts", "utf8");
@@ -981,6 +1145,98 @@ test("affiliate report maps conversions by click token as well as click id", () 
   assert.match(reportSource, /conversionsByClickToken\.get\(clickToken\)/);
 });
 
+test("affiliate report access probe is dynamic and not cacheable", () => {
+  const reportAccessRouteSource = readFileSync("app/api/affiliate/report-access/route.ts", "utf8");
+  const noStoreResponseSource = readFileSync("lib/security/no-store-response.ts", "utf8");
+
+  assert.match(noStoreResponseSource, /headers\.set\("Cache-Control", "no-store"\)/);
+  assert.match(reportAccessRouteSource, /export const dynamic = "force-dynamic"/);
+  assert.match(reportAccessRouteSource, /noStoreJson\(\{ allowed: false \}/);
+  assert.match(reportAccessRouteSource, /noStoreJson\(\{ allowed: canViewAffiliateReport\(user\.email\) \}/);
+});
+
+test("private AI and affiliate helper API responses are not cacheable", () => {
+  const aiRouteSource = readFileSync("app/api/ai/wishlist-suggestions/route.ts", "utf8");
+  const affiliateRouteHelperSource = readFileSync(
+    "app/api/affiliate/lazada/_shared/authenticated-affiliate-route.ts",
+    "utf8"
+  );
+  const lazadaHealthRouteSource = readFileSync(
+    "app/api/affiliate/lazada/health-check/route.ts",
+    "utf8"
+  );
+  const lazadaMatchesRouteSource = readFileSync("app/api/affiliate/lazada/matches/route.ts", "utf8");
+  const lazadaPrimeLinksRouteSource = readFileSync(
+    "app/api/affiliate/lazada/prime-links/route.ts",
+    "utf8"
+  );
+  const reminderProcessorRouteSource = readFileSync(
+    "app/api/notifications/process-reminders/route.ts",
+    "utf8"
+  );
+
+  assert.match(aiRouteSource, /export const dynamic = "force-dynamic"/);
+  assert.doesNotMatch(aiRouteSource, /NextResponse\.json/);
+  assert.match(aiRouteSource, /noStoreJson\(\{\s*aiProvider,/);
+  assert.match(affiliateRouteHelperSource, /noStoreJson\(\{ error: "Forbidden" \}/);
+  assert.match(affiliateRouteHelperSource, /noStoreJson\(\{ error: "Unauthorized" \}/);
+  assert.doesNotMatch(lazadaHealthRouteSource, /NextResponse\.json/);
+  assert.match(lazadaHealthRouteSource, /noStoreJson\(\{ error: "Unauthorized" \}/);
+  assert.match(lazadaHealthRouteSource, /error: "Lazada health check failed\."/);
+  assert.doesNotMatch(lazadaHealthRouteSource, /error: message/);
+  assert.match(lazadaMatchesRouteSource, /export const dynamic = "force-dynamic"/);
+  assert.doesNotMatch(lazadaMatchesRouteSource, /NextResponse\.json/);
+  assert.match(lazadaMatchesRouteSource, /noStoreJson\(\{\s*products:/);
+  assert.match(lazadaPrimeLinksRouteSource, /export const dynamic = "force-dynamic"/);
+  assert.doesNotMatch(lazadaPrimeLinksRouteSource, /NextResponse\.json/);
+  assert.match(lazadaPrimeLinksRouteSource, /noStoreJson\(\{\s*primed:/);
+  assert.doesNotMatch(reminderProcessorRouteSource, /NextResponse\.json/);
+  assert.match(reminderProcessorRouteSource, /noStoreJson\(\{ error: "Unauthorized" \}/);
+  assert.match(reminderProcessorRouteSource, /error: "Reminder processing failed\."/);
+  assert.doesNotMatch(reminderProcessorRouteSource, /error: message/);
+});
+
+test("private JSON POST routes cap request bodies before parsing", () => {
+  const requestBodySource = readFileSync("lib/security/request-body.ts", "utf8");
+  const giftPrepRouteSource = readFileSync("app/api/assignments/gift-prep/route.ts", "utf8");
+  const peerProfilesRouteSource = readFileSync("app/api/groups/peer-profiles/route.ts", "utf8");
+  const aiRouteSource = readFileSync("app/api/ai/wishlist-suggestions/route.ts", "utf8");
+  const lazadaMatchesRouteSource = readFileSync("app/api/affiliate/lazada/matches/route.ts", "utf8");
+  const lazadaPrimeLinksRouteSource = readFileSync(
+    "app/api/affiliate/lazada/prime-links/route.ts",
+    "utf8"
+  );
+
+  assert.match(requestBodySource, /import "server-only";/);
+  assert.match(requestBodySource, /request\.headers\.get\("content-length"\)/);
+  assert.match(requestBodySource, /request\.body\.getReader\(\)/);
+  assert.match(requestBodySource, /totalBytes > maxBytes/);
+  assert.match(requestBodySource, /reader\.cancel\(\)/);
+  assert.match(requestBodySource, /export async function readLimitedTextBody/);
+  assert.match(requestBodySource, /JSON\.parse\(bodyText\)/);
+  assert.doesNotMatch(requestBodySource, /request\.arrayBuffer\(\)/);
+  assert.doesNotMatch(requestBodySource, /request\.json\(\)/);
+  assert.doesNotMatch(requestBodySource, /request\.formData\(\)/);
+  assert.doesNotMatch(requestBodySource, /request\.text\(\)/);
+
+  for (const routeSource of [
+    giftPrepRouteSource,
+    peerProfilesRouteSource,
+    aiRouteSource,
+    lazadaMatchesRouteSource,
+    lazadaPrimeLinksRouteSource,
+  ]) {
+    assert.match(routeSource, /readLimitedJsonBody/);
+    assert.doesNotMatch(routeSource, /request\.json\(\)/);
+  }
+
+  assert.match(giftPrepRouteSource, /GIFT_PREP_BODY_LIMIT_BYTES = 8 \* 1024/);
+  assert.match(peerProfilesRouteSource, /PEER_PROFILE_BODY_LIMIT_BYTES = 8 \* 1024/);
+  assert.match(aiRouteSource, /WISHLIST_SUGGESTION_BODY_LIMIT_BYTES = 32 \* 1024/);
+  assert.match(lazadaMatchesRouteSource, /LAZADA_MATCH_BODY_LIMIT_BYTES = 32 \* 1024/);
+  assert.match(lazadaPrimeLinksRouteSource, /PRIME_LINKS_BODY_LIMIT_BYTES = 64 \* 1024/);
+});
+
 test("profile avatar urls and affiliate merchant constraints are hardened in migrations", () => {
   const migrationPath = [
     "supabase",
@@ -1057,6 +1313,7 @@ test("profile avatar cache-busting stays out of persisted avatar urls", () => {
   const avatarHelperSource = readFileSync("lib/profile/avatar.ts", "utf8");
   const profileActionsSource = readFileSync("app/profile/actions.ts", "utf8");
   const profilePageSource = readFileSync("app/profile/page.tsx", "utf8");
+  const imageUploadSource = readFileSync("lib/security/image-upload.ts", "utf8");
   const viewerProfileSource = readFileSync("app/components/viewer-profile-client.ts", "utf8");
   const peerProfilesRouteSource = readFileSync("app/api/groups/peer-profiles/route.ts", "utf8");
 
@@ -1079,15 +1336,22 @@ test("profile avatar cache-busting stays out of persisted avatar urls", () => {
   assert.match(profilePageSource, /avatar_url: normalizeProfileAvatarUrlForUser\(userId, profile\.avatar_url\)/);
   assert.match(profilePageSource, /function buildAvatarPreviewUrl/);
   assert.match(profilePageSource, /previewUrl\.searchParams\.set\("v", String\(previewVersion\)\)/);
-  assert.match(profilePageSource, /PROFILE_AVATAR_EXTENSIONS_BY_TYPE\.get\(file\.type\)/);
+  assert.match(profilePageSource, /PROFILE_AVATAR_EXTENSIONS_BY_TYPE\.has\(file\.type\)/);
   assert.doesNotMatch(profilePageSource, /file\.name\.split/);
-  assert.match(profilePageSource, /function buildProfileAvatarPath/);
-  assert.match(profilePageSource, /getProfileAvatarStoragePathForUser/);
-  assert.match(profilePageSource, /\.upload\(path, file,[\s\S]{0,160}upsert: false/);
-  assert.doesNotMatch(profilePageSource, /upsert: true/);
-  assert.match(profilePageSource, /\.remove\(\[previousAvatarPath\]\)/);
-  assert.match(profilePageSource, /const nextAvatarUrl = data\.publicUrl;/);
+  assert.doesNotMatch(profilePageSource, /function buildProfileAvatarPath/);
+  assert.doesNotMatch(profilePageSource, /supabase\.storage/);
+  assert.match(profilePageSource, /const uploadResult = await uploadProfileAvatar\(formData\)/);
+  assert.match(profilePageSource, /const nextAvatarUrl = uploadResult\.avatarUrl;/);
   assert.doesNotMatch(profilePageSource, /data\.publicUrl\}\?v=/);
+  assert.match(profileActionsSource, /export async function uploadProfileAvatar/);
+  assert.match(profileActionsSource, /prepareVerifiedImageUpload/);
+  assert.match(profileActionsSource, /buildProfileAvatarPath/);
+  assert.match(profileActionsSource, /supabaseAdmin\.storage[\s\S]{0,120}\.upload\(path, preparedAvatar\.image\.bytes/);
+  assert.match(profileActionsSource, /getProfileAvatarStoragePathForUser/);
+  assert.match(profileActionsSource, /\.remove\(\[previousAvatarPath\]\)/);
+  assert.match(imageUploadSource, /function bytesMatchContentType/);
+  assert.match(imageUploadSource, /Buffer\.from\(await file\.arrayBuffer\(\)\)/);
+  assert.match(imageUploadSource, /bytes\.length > options\.maxBytes/);
 });
 
 test("profile avatar storage paths are constrained at the database boundary", () => {
@@ -1103,16 +1367,69 @@ test("profile avatar storage paths are constrained at the database boundary", ()
     ["supabase", "migrations", avatarMigrationName].join("/"),
     "utf8"
   );
+  const serverUploadMigrationName = [
+    "20260524043000",
+    "server",
+    "validate",
+    "profile",
+    "avatar",
+    "uploads.sql",
+  ].join("_");
+  // eslint-disable-next-line security/detect-non-literal-fs-filename -- Test only reads a fixed repo-local migration assembled from safe string pieces.
+  const serverUploadMigrationSource = readFileSync(
+    ["supabase", "migrations", serverUploadMigrationName].join("/"),
+    "utf8"
+  );
 
   assert.match(migrationSource, /drop constraint if exists profiles_avatar_url_storage_owner_check/i);
   assert.match(migrationSource, /avatar-\[a-z0-9\]\+-\[a-z0-9\]\+\\\.\(jpg\|png\|webp\)/i);
   assert.match(migrationSource, /drop policy if exists profile_avatars_insert_own/i);
-  assert.match(migrationSource, /create policy profile_avatars_insert_own/i);
-  assert.match(migrationSource, /create policy profile_avatars_update_own/i);
-  assert.match(migrationSource, /create policy profile_avatars_delete_own/i);
   assert.match(migrationSource, /name ~\* \(/i);
   assert.match(migrationSource, /\|\| auth\.uid\(\)::text/i);
   assert.doesNotMatch(migrationSource, /storage\.foldername\(name\)\)\[1\]\s*=\s*auth\.uid\(\)::text/i);
+  assert.match(serverUploadMigrationSource, /file_size_limit = 2097152/i);
+  assert.match(serverUploadMigrationSource, /allowed_mime_types = array\['image\/jpeg', 'image\/png', 'image\/webp'\]/i);
+  assert.match(serverUploadMigrationSource, /drop policy if exists profile_avatars_insert_own/i);
+  assert.match(serverUploadMigrationSource, /drop policy if exists profile_avatars_update_own/i);
+  assert.match(serverUploadMigrationSource, /drop policy if exists profile_avatars_delete_own/i);
+  assert.doesNotMatch(serverUploadMigrationSource, /create policy profile_avatars_(insert|update|delete)_own/i);
+});
+
+test("group images are server-uploaded after validation", () => {
+  const groupImageMigrationName = [
+    "20260524044500",
+    "server",
+    "validate",
+    "group",
+    "image",
+    "uploads.sql",
+  ].join("_");
+  // eslint-disable-next-line security/detect-non-literal-fs-filename -- Test only reads a fixed repo-local migration assembled from safe string pieces.
+  const groupImageMigrationSource = readFileSync(
+    ["supabase", "migrations", groupImageMigrationName].join("/"),
+    "utf8"
+  );
+  const createGroupActionsSource = readFileSync("app/create-group/actions.ts", "utf8");
+  const createGroupPageSource = readFileSync("app/create-group/page.tsx", "utf8");
+  const groupImageUploadSource = readFileSync("lib/groups/group-image-upload.ts", "utf8");
+  const imageUploadSource = readFileSync("lib/security/image-upload.ts", "utf8");
+
+  assert.match(groupImageUploadSource, /prepareVerifiedImageUpload\(file/);
+  assert.match(imageUploadSource, /import "server-only";/);
+  assert.match(imageUploadSource, /bytesMatchContentType/);
+  assert.match(imageUploadSource, /readImageDimensions/);
+  assert.match(imageUploadSource, /maxDecodedPixels/);
+  assert.match(createGroupActionsSource, /prepareGroupImageUpload\(groupImage\)/);
+  assert.match(createGroupActionsSource, /uploadGroupImage\(/);
+  assert.match(createGroupActionsSource, /supabaseAdmin\.storage/);
+  assert.doesNotMatch(createGroupPageSource, /supabase\.storage/);
+  assert.match(groupImageMigrationSource, /where id = 'group-images'/);
+  assert.match(groupImageMigrationSource, /file_size_limit = 2097152/i);
+  assert.match(groupImageMigrationSource, /allowed_mime_types = array\['image\/jpeg', 'image\/png', 'image\/webp'\]/i);
+  assert.match(groupImageMigrationSource, /drop policy if exists group_images_insert_owned_group/i);
+  assert.match(groupImageMigrationSource, /drop policy if exists group_images_update_owned_group/i);
+  assert.match(groupImageMigrationSource, /drop policy if exists group_images_delete_owned_group/i);
+  assert.doesNotMatch(groupImageMigrationSource, /create policy group_images_(insert|update|delete)/i);
 });
 
 test("lazada cards avoid untrusted remote image hosts and private redirect notes", () => {
@@ -1120,6 +1437,7 @@ test("lazada cards avoid untrusted remote image hosts and private redirect notes
   const secretSantaPageSource = readFileSync("app/secret-santa/page.tsx", "utf8");
   const suggestionSource = readFileSync("lib/wishlist/suggestions.ts", "utf8");
   const redirectSource = readFileSync("app/go/suggestion/route.ts", "utf8");
+  const wishlistRedirectSource = readFileSync("app/go/wishlist-link/route.ts", "utf8");
 
   assert.match(lazadaUrlSource, /export function normalizeTrustedLazadaImageUrl/);
   assert.match(
@@ -1132,9 +1450,25 @@ test("lazada cards avoid untrusted remote image hosts and private redirect notes
   );
   assert.match(secretSantaPageSource, /normalizeTrustedLazadaImageUrl\(product\.imageUrl/);
   assert.match(secretSantaPageSource, /referrerPolicy="no-referrer"/);
+  assert.match(
+    secretSantaPageSource,
+    /src=\{resolvedWishlistImageUrl\}[\s\S]{0,160}referrerPolicy="no-referrer"[\s\S]{0,160}className="h-full w-full object-contain p-1\.5"/
+  );
+  assert.match(
+    secretSantaPageSource,
+    /src=\{resolvedWishlistImageUrl\}[\s\S]{0,160}referrerPolicy="no-referrer"[\s\S]{0,160}className="h-full w-full object-contain p-1"/
+  );
   assert.doesNotMatch(suggestionSource, /params\.set\("itemNote"/);
   assert.doesNotMatch(suggestionSource, /params\.set\("preferredPrice/);
   assert.match(redirectSource, /const itemNote = "";/);
+  assert.match(redirectSource, /MAX_SUGGESTION_SEARCH_QUERY_LENGTH = 160/);
+  assert.match(redirectSource, /readBoundedSearchParam\(\s*searchParams,\s*"q"/);
+  assert.doesNotMatch(redirectSource, /searchParams\.get\("q"\)\?\.trim\(\) \|\| ""/);
+  assert.match(wishlistRedirectSource, /MAX_WISHLIST_LINK_URL_LENGTH = 2048/);
+  assert.match(
+    wishlistRedirectSource,
+    /const normalizedItemUrl = itemUrlTooLong \? null : normalizeLazadaProductPageUrl\(itemUrl\)/
+  );
 });
 
 test("affiliate search templates are constrained to expected merchant hosts", () => {
@@ -1177,12 +1511,24 @@ test("lazada postback setup keeps auth material out of URL query strings", () =>
 
   assert.match(lazadaPostbackSource, /const URL_POSTBACK_AUTH_PARAM_KEYS = new Set/);
   assert.match(lazadaPostbackSource, /stripUrlPostbackAuthParams/);
+  assert.match(lazadaPostbackSource, /const MAX_POSTBACK_BODY_BYTES = 64 \* 1024/);
+  assert.match(lazadaPostbackSource, /getPostbackBodyPreflightResponse/);
+  assert.match(lazadaPostbackSource, /contentLength > MAX_POSTBACK_BODY_BYTES/);
+  assert.match(lazadaPostbackSource, /readLimitedTextBody\(request, MAX_POSTBACK_BODY_BYTES\)/);
+  assert.doesNotMatch(lazadaPostbackSource, /request\.arrayBuffer\(\)/);
+  assert.doesNotMatch(lazadaPostbackSource, /request\.json\(\)/);
+  assert.doesNotMatch(lazadaPostbackSource, /request\.formData\(\)/);
+  assert.doesNotMatch(lazadaPostbackSource, /request\.text\(\)/);
+  assert.match(lazadaPostbackSource, /multipart\/form-data/);
+  assert.match(lazadaPostbackSource, /noStoreText\("Unauthorized"/);
+  assert.match(lazadaPostbackSource, /noStoreText\("OK"/);
   assert.match(
     lazadaPostbackSource,
     /request\.headers\.get\("x-lazada-postback-secret"\)[\s\S]{0,140}getFirstPayloadValue\(payload, \["token", "secret"\]\)/
   );
   assert.match(affiliateReportSource, /const path = "\/api\/affiliate\/lazada\/postback";/);
   assert.doesNotMatch(affiliateReportSource, /postback\?token/);
+  assert.doesNotMatch(affiliateReportSource, /x-forwarded-host|x-forwarded-proto/);
 });
 
 test("client snapshots do not restore assignment data after resets", () => {
@@ -1272,7 +1618,12 @@ test("authenticated browser POST routes reject untrusted origins", () => {
   assert.match(webSecuritySource, /export function isTrustedRequestOrigin\(request: Request\)/);
   assert.match(webSecuritySource, /request\.headers\.get\("origin"\)/);
   assert.match(webSecuritySource, /request\.headers\.get\("sec-fetch-site"\)/);
-  assert.match(webSecuritySource, /!== "cross-site"/);
+  assert.match(webSecuritySource, /fetchSite === "same-origin"/);
+  assert.match(webSecuritySource, /fetchSite === "same-site"/);
+  assert.match(webSecuritySource, /fetchSite === "none"/);
+  assert.match(webSecuritySource, /isLocalDevelopmentOrigin\(requestOrigin\)/);
+  assert.doesNotMatch(webSecuritySource, /uniqueOrigins\(\[\s*requestOrigin,/);
+  assert.doesNotMatch(webSecuritySource, /!== "cross-site"/);
   assert.match(aiSuggestionsSource, /isTrustedRequestOrigin\(request\)/);
   assert.match(peerProfilesSource, /isTrustedRequestOrigin\(request\)/);
   assert.match(affiliateAuthSource, /isTrustedRequestOrigin\(request\)/);
@@ -1283,16 +1634,73 @@ test("authenticated browser POST routes reject untrusted origins", () => {
   assert.doesNotMatch(reminderProcessorSource, /isTrustedRequestOrigin/);
 });
 
+test("browser-invoked server mutations share trusted origin context", () => {
+  const webSecuritySource = readFileSync("lib/security/web.ts", "utf8");
+  const serverActionContextSource = readFileSync("lib/auth/server-action-context.ts", "utf8");
+  const createGroupActionsSource = readFileSync("app/create-group/actions.ts", "utf8");
+  const dashboardActionsSource = readFileSync("app/dashboard/actions.ts", "utf8");
+  const groupActionsSource = readFileSync("app/group/[id]/actions.ts", "utf8");
+  const profileActionsSource = readFileSync("app/profile/actions.ts", "utf8");
+  const chatActionsSource = readFileSync("app/secret-santa-chat/chat-actions.ts", "utf8");
+  const wishlistActionsSource = readFileSync("app/dashboard/wishlist-actions.ts", "utf8");
+  const invitePageSource = readFileSync("app/invite/[token]/page.tsx", "utf8");
+  const joinInviteStart = invitePageSource.indexOf("async function joinGroupViaInviteToken");
+  const joinInviteEnd = invitePageSource.indexOf("export default async function InviteLinkPage");
+
+  assert.match(webSecuritySource, /export function isTrustedHeaderOrigin/);
+  assert.match(webSecuritySource, /function getHeaderRequestOrigin/);
+  assert.match(webSecuritySource, /headers\.get\("host"\)/);
+  assert.match(webSecuritySource, /isLocalDevelopmentOrigin\(requestOrigin\)/);
+  assert.doesNotMatch(webSecuritySource, /uniqueOrigins\(\[\s*requestOrigin,/);
+  assert.doesNotMatch(webSecuritySource, /x-forwarded-host/);
+  assert.doesNotMatch(webSecuritySource, /x-forwarded-proto/);
+  assert.match(serverActionContextSource, /import \{ headers \} from "next\/headers"/);
+  assert.match(serverActionContextSource, /isTrustedHeaderOrigin\(requestHeaders\)/);
+  assert.match(serverActionContextSource, /message: "We could not verify this request\."/);
+  assert.match(createGroupActionsSource, /const context = await getServerActionContext\(\)/);
+  assert.match(createGroupActionsSource, /enforceRateLimit\(\{[\s\S]{0,220}action: "group\.create"/);
+  assert.doesNotMatch(createGroupActionsSource, /supabase\.auth\.getUser\(\)/);
+  assert.match(dashboardActionsSource, /const context = await getServerActionContext\(\)/);
+  assert.doesNotMatch(dashboardActionsSource, /supabase\.auth\.getUser\(\)/);
+  assert.match(groupActionsSource, /getServerActionContext\(\)/);
+  assert.doesNotMatch(groupActionsSource, /supabase\.auth\.getUser\(\)/);
+  assert.match(profileActionsSource, /getServerActionContext\(\)/);
+  assert.doesNotMatch(profileActionsSource, /supabase\.auth\.getUser\(\)/);
+  assert.match(chatActionsSource, /getServerActionContext\(\)/);
+  assert.match(chatActionsSource, /requireRateLimitedAction\(\{[\s\S]{0,220}action: "chat\.send_message"/);
+  assert.doesNotMatch(chatActionsSource, /supabase\.auth\.getUser\(\)/);
+  assert.match(wishlistActionsSource, /requireRateLimitedAction\(\{[\s\S]{0,220}action: rateLimitConfig\.action/);
+  assert.match(wishlistActionsSource, /requireRateLimitedAction\(\{[\s\S]{0,220}action: "wishlist\.delete_item"/);
+  assert.ok(joinInviteStart >= 0 && joinInviteEnd > joinInviteStart);
+  assert.match(
+    invitePageSource.slice(joinInviteStart, joinInviteEnd),
+    /const context = await getServerActionContext\(\)/
+  );
+});
+
 test("lazada test postback is rate limited and idempotent by day", () => {
   const lazadaTestPostbackSource = readFileSync(
     "app/api/affiliate/lazada/test-postback/route.ts",
     "utf8"
   );
+  const lazadaPostbackSource = readFileSync(
+    "app/api/affiliate/lazada/postback/route.ts",
+    "utf8"
+  );
+  const affiliateClickTrackingSource = readFileSync("lib/affiliate/click-tracking.ts", "utf8");
 
   assert.match(lazadaTestPostbackSource, /enforceRateLimit\(\{/);
   assert.match(lazadaTestPostbackSource, /action: "affiliate\.lazada\.test_postback"/);
   assert.match(lazadaTestPostbackSource, /maxAttempts: 5/);
   assert.match(lazadaTestPostbackSource, /windowSeconds: 300/);
+  assert.match(lazadaTestPostbackSource, /recordServerFailure\(\{/);
+  assert.match(lazadaPostbackSource, /recordServerFailure\(\{/);
+  assert.match(affiliateClickTrackingSource, /recordServerFailure\(\{/);
+  assert.doesNotMatch(lazadaTestPostbackSource, /console\.error/);
+  assert.doesNotMatch(lazadaPostbackSource, /console\.error/);
+  assert.doesNotMatch(affiliateClickTrackingSource, /console\.error/);
+  assert.match(lazadaTestPostbackSource, /resolveTrustedAppOrigin\(request\.nextUrl\)/);
+  assert.doesNotMatch(lazadaTestPostbackSource, /new URL\("\/dashboard\/affiliate-report", request\.url\)/);
   assert.match(lazadaTestPostbackSource, /redirectToReport\(request, "rate_limited"\)/);
   assert.match(lazadaTestPostbackSource, /toISOString\(\)\.slice\(0, 10\)/);
   assert.doesNotMatch(lazadaTestPostbackSource, /transaction_id: `debug-\$\{click\.id\.slice\(0, 8\)\}-\$\{Date\.now\(\)\}`/);

@@ -1,6 +1,8 @@
 import "server-only";
 
+import { headers } from "next/headers";
 import { enforceRateLimit } from "@/lib/security/rate-limit";
+import { isTrustedHeaderOrigin } from "@/lib/security/web";
 import { createClient } from "@/lib/supabase/server";
 
 export type ServerSupabaseClient = Awaited<ReturnType<typeof createClient>>;
@@ -20,6 +22,12 @@ type ServerActionContext =
     };
 
 export async function getServerActionContext(): Promise<ServerActionContext> {
+  const requestHeaders = await headers();
+
+  if (!isTrustedHeaderOrigin(requestHeaders)) {
+    return { ok: false, message: "We could not verify this request." };
+  }
+
   const supabase = await createClient();
   const {
     data: { user },

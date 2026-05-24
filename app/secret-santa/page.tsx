@@ -4508,6 +4508,7 @@ function SecretSantaExperience({ mode = "shopping" }: SecretSantaExperienceProps
                                         <img
                                           src={resolvedWishlistImageUrl}
                                           alt={wishlistItem.item_name}
+                                          referrerPolicy="no-referrer"
                                           className="h-full w-full object-contain p-1.5"
                                         />
                                       ) : wishlistImageLoading ? (
@@ -4752,6 +4753,7 @@ function SecretSantaExperience({ mode = "shopping" }: SecretSantaExperienceProps
                                                 <img
                                                   src={resolvedWishlistImageUrl}
                                                   alt={wishlistItem.item_name}
+                                                  referrerPolicy="no-referrer"
                                                   className="h-full w-full object-contain p-1"
                                                 />
                                               ) : wishlistImageLoading ? (

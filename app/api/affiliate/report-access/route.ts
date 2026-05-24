@@ -1,7 +1,8 @@
-import { NextResponse } from "next/server";
-
 import { canViewAffiliateReport } from "@/lib/affiliate/report-access";
+import { noStoreJson } from "@/lib/security/no-store-response";
 import { createClient } from "@/lib/supabase/server";
+
+export const dynamic = "force-dynamic";
 
 export async function GET() {
   const supabase = await createClient();
@@ -10,8 +11,8 @@ export async function GET() {
   } = await supabase.auth.getUser();
 
   if (!user) {
-    return NextResponse.json({ allowed: false }, { status: 200 });
+    return noStoreJson({ allowed: false }, { status: 200 });
   }
 
-  return NextResponse.json({ allowed: canViewAffiliateReport(user.email) }, { status: 200 });
+  return noStoreJson({ allowed: canViewAffiliateReport(user.email) }, { status: 200 });
 }

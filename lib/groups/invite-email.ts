@@ -1,42 +1,11 @@
 import "server-only";
 
+import { resolveTrustedAppOrigin } from "@/lib/security/app-origin";
 import { normalizeSafeAppPath } from "@/lib/security/web";
 import { supabaseAdmin } from "@/lib/supabase/admin";
 
-const DEFAULT_LOCAL_APP_ORIGIN = "http://localhost:3000";
-
-function normalizeHttpOrigin(candidate: string | null | undefined): string | null {
-  const trimmed = candidate?.trim();
-
-  if (!trimmed) {
-    return null;
-  }
-
-  try {
-    const url = new URL(trimmed.startsWith("http") ? trimmed : `https://${trimmed}`);
-
-    if (url.protocol !== "http:" && url.protocol !== "https:") {
-      return null;
-    }
-
-    return url.origin;
-  } catch {
-    return null;
-  }
-}
-
-function getConfiguredAppOrigin(): string {
-  return (
-    normalizeHttpOrigin(process.env.NEXT_PUBLIC_APP_URL) ||
-    normalizeHttpOrigin(process.env.APP_URL) ||
-    normalizeHttpOrigin(process.env.VERCEL_PROJECT_PRODUCTION_URL) ||
-    normalizeHttpOrigin(process.env.VERCEL_URL) ||
-    DEFAULT_LOCAL_APP_ORIGIN
-  );
-}
-
 function getGroupInviteRedirectUrl(nextPath = "/dashboard"): string {
-  const callbackUrl = new URL("/auth/callback", getConfiguredAppOrigin());
+  const callbackUrl = new URL("/auth/callback", resolveTrustedAppOrigin(null));
   callbackUrl.searchParams.set("next", normalizeSafeAppPath(nextPath, "/dashboard"));
   return callbackUrl.toString();
 }

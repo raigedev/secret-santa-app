@@ -7,12 +7,12 @@ import {
 } from "@/lib/groups/nickname";
 import { createNotification } from "@/lib/notifications";
 import {
+  getServerActionContext,
   requireRateLimitedAction,
   type ServerActionUser,
   type ServerSupabaseClient,
 } from "@/lib/auth/server-action-context";
 import { supabaseAdmin } from "@/lib/supabase/admin";
-import { createClient } from "@/lib/supabase/server";
 import { isUuid } from "@/lib/validation/common";
 import type { PendingInvite } from "./dashboard-types";
 
@@ -95,16 +95,16 @@ export async function getPendingEmailInvites(): Promise<{
   invites: PendingInvite[];
   success: boolean;
 }> {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const context = await getServerActionContext();
 
-  if (!user?.id || !user.email) {
+  const email = context.ok ? context.user.email : null;
+
+  if (!context.ok || !email) {
     return { success: false, invites: [] };
   }
 
-  const normalizedEmail = user.email.trim().toLowerCase();
+  const { user } = context;
+  const normalizedEmail = email.trim().toLowerCase();
 
   const { data: memberships, error: membershipError } = await supabaseAdmin
     .from("group_members")

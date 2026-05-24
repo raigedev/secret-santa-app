@@ -1,7 +1,7 @@
 "use server";
 
 import { recordServerFailure } from "@/lib/security/audit";
-import { enforceRateLimit } from "@/lib/security/rate-limit";
+import { requireRateLimitedAction } from "@/lib/auth/server-action-context";
 import { createClient } from "@/lib/supabase/server";
 import { isUuid, sanitizePlainText } from "@/lib/validation/common";
 import { normalizeOptionalWishlistUrl } from "@/lib/wishlist/url";
@@ -110,30 +110,25 @@ async function prepareWishlistItemAction(
     return normalizedInput;
   }
 
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  if (!user) {
-    return { success: false, message: "You must be logged in." };
-  }
-
-  const rateLimit = await enforceRateLimit({
+  const context = await requireRateLimitedAction({
     action: rateLimitConfig.action,
-    actorUserId: user.id,
     maxAttempts: rateLimitConfig.maxAttempts,
     resourceId: rateLimitConfig.resourceId,
     resourceType: "wishlist",
-    subject: user.id,
+    subject: (userId) => userId,
     windowSeconds: 600,
   });
 
-  if (!rateLimit.allowed) {
-    return { success: false, message: rateLimit.message };
+  if (!context.ok) {
+    return { success: false, message: context.message };
   }
 
-  return { normalizedInput, success: true, supabase, user };
+  return {
+    normalizedInput,
+    success: true,
+    supabase: context.supabase,
+    user: context.user,
+  };
 }
 
 async function requireAcceptedWishlistMember(groupId: string, userId: string) {
@@ -316,29 +311,20 @@ export async function deleteWishlistItem(
     return { success: false, message: "Choose a valid wishlist item." };
   }
 
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  if (!user) {
-    return { success: false, message: "You must be logged in." };
-  }
-
-  const deleteRateLimit = await enforceRateLimit({
+  const context = await requireRateLimitedAction({
     action: "wishlist.delete_item",
-    actorUserId: user.id,
     maxAttempts: 20,
     resourceId: itemId,
     resourceType: "wishlist",
-    subject: user.id,
+    subject: (userId) => userId,
     windowSeconds: 600,
   });
 
-  if (!deleteRateLimit.allowed) {
-    return { success: false, message: deleteRateLimit.message };
+  if (!context.ok) {
+    return { success: false, message: context.message };
   }
 
+  const { supabase, user } = context;
   const { error } = await supabase
     .from("wishlists")
     .delete()

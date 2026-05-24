@@ -10,6 +10,7 @@ import type { LazadaAffiliateAttributionContext } from "@/lib/affiliate/lazada";
 import { insertAffiliateClick } from "@/lib/affiliate/click-tracking";
 import { requireWishlistAffiliateRedirectAccess } from "@/lib/affiliate/redirect-route";
 import { recordServerFailure } from "@/lib/security/audit";
+import { resolveTrustedAppOrigin } from "@/lib/security/app-origin";
 import {
   AFFILIATE_READY_MERCHANTS,
   buildMerchantDestinationUrl,
@@ -19,9 +20,36 @@ import {
 import { isSupportedShoppingRegion, isUuid } from "@/lib/validation/common";
 
 const ALLOWED_MERCHANTS: SuggestionMerchant[] = AFFILIATE_READY_MERCHANTS;
+const MAX_SUGGESTION_SEARCH_QUERY_LENGTH = 160;
+const MAX_SUGGESTION_LABEL_LENGTH = 120;
+const MAX_SUGGESTION_METADATA_LENGTH = 80;
 
 function isSuggestionMerchant(value: string | null): value is SuggestionMerchant {
   return Boolean(value) && ALLOWED_MERCHANTS.includes(value as SuggestionMerchant);
+}
+
+function readBoundedSearchParam(
+  searchParams: URLSearchParams,
+  key: string,
+  maxLength: number
+): string | null {
+  const value = searchParams.get(key)?.trim() || "";
+
+  if (value.length > maxLength) {
+    return null;
+  }
+
+  return value;
+}
+
+function readBoundedOptionalSearchParam(
+  searchParams: URLSearchParams,
+  key: string,
+  maxLength: number
+): string | null {
+  const value = readBoundedSearchParam(searchParams, key, maxLength);
+
+  return value && value.length > 0 ? value : null;
 }
 
 // Suggestion clicks are routed through the app so we can log them before handing the user
@@ -32,17 +60,50 @@ export async function GET(request: NextRequest) {
   const merchant = searchParams.get("merchant");
   const groupId = searchParams.get("groupId");
   const wishlistItemId = searchParams.get("itemId");
-  const searchQuery = searchParams.get("q")?.trim() || "";
-  const suggestionTitle = searchParams.get("title")?.trim() || "Suggested gift";
-  const productId = searchParams.get("productId")?.trim() || null;
-  const skuId = searchParams.get("skuId")?.trim() || null;
-  const catalogSource = searchParams.get("catalogSource")?.trim() || null;
-  const fitLabel = searchParams.get("fitLabel")?.trim() || null;
-  const itemName = searchParams.get("itemName")?.trim() || searchQuery;
-  const itemCategory = searchParams.get("itemCategory")?.trim() || "";
+  const searchQuery = readBoundedSearchParam(
+    searchParams,
+    "q",
+    MAX_SUGGESTION_SEARCH_QUERY_LENGTH
+  );
+  const suggestionTitle =
+    readBoundedSearchParam(searchParams, "title", MAX_SUGGESTION_LABEL_LENGTH) ||
+    "Suggested gift";
+  const productId = readBoundedOptionalSearchParam(
+    searchParams,
+    "productId",
+    MAX_SUGGESTION_METADATA_LENGTH
+  );
+  const skuId = readBoundedOptionalSearchParam(
+    searchParams,
+    "skuId",
+    MAX_SUGGESTION_METADATA_LENGTH
+  );
+  const catalogSource = readBoundedOptionalSearchParam(
+    searchParams,
+    "catalogSource",
+    MAX_SUGGESTION_METADATA_LENGTH
+  );
+  const fitLabel = readBoundedOptionalSearchParam(
+    searchParams,
+    "fitLabel",
+    MAX_SUGGESTION_LABEL_LENGTH
+  );
+  const itemName =
+    readBoundedSearchParam(searchParams, "itemName", MAX_SUGGESTION_LABEL_LENGTH) ||
+    searchQuery ||
+    "";
+  const itemCategory =
+    readBoundedSearchParam(searchParams, "itemCategory", MAX_SUGGESTION_LABEL_LENGTH) || "";
   const itemNote = "";
-  const trackingLabel = searchParams.get("trackingLabel")?.trim() || null;
-  const selectedQuery = searchParams.get("selectedQuery")?.trim() || searchQuery;
+  const trackingLabel = readBoundedOptionalSearchParam(
+    searchParams,
+    "trackingLabel",
+    MAX_SUGGESTION_LABEL_LENGTH
+  );
+  const selectedQuery =
+    readBoundedSearchParam(searchParams, "selectedQuery", MAX_SUGGESTION_SEARCH_QUERY_LENGTH) ||
+    searchQuery ||
+    "";
   const requestedRegion = searchParams.get("region");
   const region: ShoppingRegion = isSupportedShoppingRegion(requestedRegion)
     ? requestedRegion
@@ -52,9 +113,12 @@ export async function GET(request: NextRequest) {
     !isSuggestionMerchant(merchant) ||
     !isUuid(groupId) ||
     !isUuid(wishlistItemId) ||
+    !searchQuery ||
     searchQuery.length === 0
   ) {
-    return NextResponse.redirect(new URL("/secret-santa", request.url));
+    return NextResponse.redirect(
+      new URL("/secret-santa", resolveTrustedAppOrigin(request.nextUrl))
+    );
   }
 
   const redirectAccess = await requireWishlistAffiliateRedirectAccess({

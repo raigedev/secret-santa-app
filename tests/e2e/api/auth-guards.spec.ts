@@ -2,6 +2,12 @@ import { expect, test } from "@playwright/test";
 
 import { expectUnauthorizedJson } from "../helpers/assertions";
 
+function sameOriginHeaders(baseURL: string | undefined): Record<string, string> {
+  return {
+    origin: baseURL || "http://localhost:3000",
+  };
+}
+
 test.describe("API auth and guard coverage", () => {
   test("affiliate report access returns a safe false value when logged out", async ({ request }) => {
     const response = await request.get("/api/affiliate/report-access");
@@ -10,7 +16,7 @@ test.describe("API auth and guard coverage", () => {
     expect(await response.json()).toEqual({ allowed: false });
   });
 
-  test("wishlist AI suggestions reject unauthenticated requests", async ({ request }) => {
+  test("wishlist AI suggestions reject unauthenticated requests", async ({ baseURL, request }) => {
     const response = await request.post("/api/ai/wishlist-suggestions", {
       data: {
         groupId: "group-id",
@@ -18,6 +24,7 @@ test.describe("API auth and guard coverage", () => {
         region: "PH",
         wishlistItemId: "item-id",
       },
+      headers: sameOriginHeaders(baseURL),
     });
 
     expect(response.status()).toBe(401);
@@ -63,7 +70,7 @@ test.describe("API auth and guard coverage", () => {
     expect(location).not.toContain("OAuth+state+parameter+missing");
   });
 
-  test("lazada matches reject unauthenticated requests", async ({ request }) => {
+  test("lazada matches reject unauthenticated requests", async ({ baseURL, request }) => {
     const response = await request.post("/api/affiliate/lazada/matches", {
       data: {
         groupId: "group-id",
@@ -72,14 +79,16 @@ test.describe("API auth and guard coverage", () => {
         searchQuery: "power bank",
         wishlistItemId: "item-id",
       },
+      headers: sameOriginHeaders(baseURL),
     });
 
     await expectUnauthorizedJson(response);
   });
 
-  test("lazada prime-links reject unauthenticated requests", async ({ request }) => {
+  test("lazada prime-links reject unauthenticated requests", async ({ baseURL, request }) => {
     const response = await request.post("/api/affiliate/lazada/prime-links", {
       data: { productIds: ["1234567890"] },
+      headers: sameOriginHeaders(baseURL),
     });
 
     await expectUnauthorizedJson(response);

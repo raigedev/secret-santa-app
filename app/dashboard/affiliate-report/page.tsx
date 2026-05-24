@@ -11,6 +11,7 @@ import {
   type LazadaHealthStatus,
 } from "@/lib/affiliate/lazada-health";
 import { canViewAffiliateReport } from "@/lib/affiliate/report-access";
+import { resolveTrustedAppOrigin } from "@/lib/security/app-origin";
 import { supabaseAdmin } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 import { CopyPostbackUrlButton } from "./CopyPostbackUrlButton";
@@ -1108,53 +1109,19 @@ function buildSaleMappingHelper(health: LazadaHealthStatus): string {
   return `Every real Lazada conversion is mapped to a click.${testCopy}`;
 }
 
-function isSafeHostHeader(value: string): boolean {
-  const normalized = value.trim();
-
-  if (normalized.length === 0 || normalized.length > 253) {
-    return false;
-  }
-
-  for (const character of normalized) {
-    const code = character.charCodeAt(0);
-    const isNumber = code >= 48 && code <= 57;
-    const isUpperAlpha = code >= 65 && code <= 90;
-    const isLowerAlpha = code >= 97 && code <= 122;
-    const isAllowedSeparator = character === "." || character === "-" || character === ":";
-
-    if (!isNumber && !isUpperAlpha && !isLowerAlpha && !isAllowedSeparator) {
-      return false;
-    }
-  }
-
-  return !normalized.startsWith(".") && !normalized.startsWith("-") && !normalized.includes("..");
-}
-
 function buildLazadaPostbackUrl(headersList: Awaited<ReturnType<typeof headers>>): string {
-  const configuredOrigin =
-    process.env.NEXT_PUBLIC_APP_URL ||
-    process.env.APP_URL ||
-    process.env.VERCEL_PROJECT_PRODUCTION_URL ||
-    process.env.VERCEL_URL ||
-    "";
-  const originCandidate = configuredOrigin.trim();
-  const headerHost = headersList.get("x-forwarded-host") || headersList.get("host") || "";
-  const safeHeaderHost = isSafeHostHeader(headerHost) ? headerHost.trim() : "";
-  const fallbackOrigin = safeHeaderHost
-    ? `${headersList.get("x-forwarded-proto") === "http" ? "http" : "https"}://${safeHeaderHost}`
-    : "";
+  const headerHost = headersList.get("host")?.trim() || "";
+  const headerProtocol =
+    headerHost.startsWith("localhost") || headerHost.startsWith("127.0.0.1")
+      ? "http"
+      : "https";
+  const headerOrigin = headerHost
+    ? `${headerProtocol}://${headerHost}`
+    : null;
   const path = "/api/affiliate/lazada/postback";
+  const origin = resolveTrustedAppOrigin(headerOrigin);
 
-  try {
-    const origin = originCandidate
-      ? new URL(originCandidate.startsWith("http") ? originCandidate : `https://${originCandidate}`)
-          .origin
-      : fallbackOrigin;
-
-    return origin ? `${origin}${path}` : path;
-  } catch {
-    return fallbackOrigin ? `${fallbackOrigin}${path}` : path;
-  }
+  return `${origin}${path}`;
 }
 
 function buildLazadaHealthActions(health: LazadaHealthStatus): LazadaHealthAction[] {
