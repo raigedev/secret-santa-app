@@ -4,6 +4,7 @@ import { loadLazadaHealthStatus, type LazadaHealthStatus } from "@/lib/affiliate
 import { getAffiliateReportAllowedEmails } from "@/lib/affiliate/report-access";
 import { createNotification } from "@/lib/notifications";
 import { recordServerFailure } from "@/lib/security/audit";
+import { isLocalCronBypassAllowed } from "@/lib/security/deployed-runtime";
 import { noStoreJson } from "@/lib/security/no-store-response";
 import { extractBearerToken, safeEqualSecret } from "@/lib/security/web";
 import { supabaseAdmin } from "@/lib/supabase/admin";
@@ -25,7 +26,7 @@ function isAuthorizedRequest(request: NextRequest): boolean {
   const cronSecret = process.env.CRON_SECRET?.trim();
   const healthSecret = process.env.AFFILIATE_HEALTH_CHECK_SECRET?.trim();
   const headerSecret = request.headers.get("x-affiliate-health-secret")?.trim();
-  const isProduction = process.env.NODE_ENV === "production";
+  const allowLocalBypass = isLocalCronBypassAllowed();
 
   if (cronSecret && safeEqualSecret(cronSecret, authorizationToken)) {
     return true;
@@ -38,11 +39,11 @@ function isAuthorizedRequest(request: NextRequest): boolean {
     );
   }
 
-  if (!isProduction && request.headers.has("x-vercel-cron")) {
+  if (allowLocalBypass && request.headers.has("x-vercel-cron")) {
     return true;
   }
 
-  if (!isProduction) {
+  if (allowLocalBypass) {
     const queryToken = request.nextUrl.searchParams.get("token")?.trim();
     return healthSecret ? safeEqualSecret(healthSecret, queryToken) : true;
   }

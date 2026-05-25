@@ -6,7 +6,29 @@ import {
   hasOAuthCallbackError,
 } from "@/lib/auth/oauth-callback-errors";
 import { getEmailVerificationMessage, isUserEmailVerified } from "@/lib/auth/user-status";
+import {
+  buildContentSecurityPolicy,
+  createContentSecurityPolicyNonce,
+} from "@/lib/security/content-security-policy";
 import { resolveTrustedAppOrigin } from "@/lib/security/app-origin";
+
+function createGuardedPageResponse(req: NextRequest): NextResponse {
+  const nonce = createContentSecurityPolicyNonce();
+  const contentSecurityPolicy = buildContentSecurityPolicy({ nonce });
+  const requestHeaders = new Headers(req.headers);
+
+  requestHeaders.set("x-nonce", nonce);
+  requestHeaders.set("Content-Security-Policy", contentSecurityPolicy);
+
+  const res = NextResponse.next({
+    request: {
+      headers: requestHeaders,
+    },
+  });
+
+  res.headers.set("Content-Security-Policy", contentSecurityPolicy);
+  return res;
+}
 
 // Central request guard for auth, invite-link access, and email-verification redirects.
 export async function proxy(req: NextRequest) {
@@ -40,7 +62,7 @@ export async function proxy(req: NextRequest) {
     return NextResponse.redirect(callbackUrl);
   }
 
-  const res = NextResponse.next();
+  const res = createGuardedPageResponse(req);
 
   // Proxy runs before the normal server helpers, so it needs its own
   // cookie-aware Supabase client to read and refresh the session safely.

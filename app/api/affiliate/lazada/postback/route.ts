@@ -98,15 +98,14 @@ function buildPayloadHash(payload: PostbackPayload): string {
   return createHash("sha256").update(JSON.stringify(normalized)).digest("hex");
 }
 
-function getProvidedPostbackSecret(request: NextRequest, payload: PostbackPayload): string | null {
+function getProvidedPostbackSecret(request: NextRequest): string | null {
   return (
     request.headers.get("x-lazada-postback-secret") ||
-    request.headers.get("x-postback-secret") ||
-    getFirstPayloadValue(payload, ["token", "secret"])
+    request.headers.get("x-postback-secret")
   )?.trim() || null;
 }
 
-function stripUrlPostbackAuthParams(payload: PostbackPayload): PostbackPayload {
+function stripPayloadPostbackAuthParams(payload: PostbackPayload): PostbackPayload {
   return Object.entries(payload).reduce<PostbackPayload>((sanitizedPayload, [key, value]) => {
     if (URL_POSTBACK_AUTH_PARAM_KEYS.has(key.trim().toLowerCase())) {
       return sanitizedPayload;
@@ -118,7 +117,7 @@ function stripUrlPostbackAuthParams(payload: PostbackPayload): PostbackPayload {
 }
 
 async function readPostbackPayload(request: NextRequest): Promise<PostbackPayloadReadResult> {
-  const queryPayload = stripUrlPostbackAuthParams(
+  const queryPayload = stripPayloadPostbackAuthParams(
     normalizePayloadObject(Object.fromEntries(request.nextUrl.searchParams.entries()))
   );
 
@@ -151,10 +150,10 @@ async function readPostbackPayload(request: NextRequest): Promise<PostbackPayloa
       const json = JSON.parse(parsedText) as Record<string, unknown>;
       return {
         ok: true,
-        payload: {
+        payload: stripPayloadPostbackAuthParams({
           ...queryPayload,
           ...normalizePayloadObject(json),
-        },
+        }),
       };
     }
 
@@ -169,10 +168,10 @@ async function readPostbackPayload(request: NextRequest): Promise<PostbackPayloa
 
     return {
       ok: true,
-      payload: {
+      payload: stripPayloadPostbackAuthParams({
         ...queryPayload,
         ...normalizePayloadObject(Object.fromEntries(params.entries())),
-      },
+      }),
     };
   } catch {
     return {
@@ -182,14 +181,14 @@ async function readPostbackPayload(request: NextRequest): Promise<PostbackPayloa
   }
 }
 
-function isAuthorizedPostback(request: NextRequest, payload: PostbackPayload): boolean {
+function isAuthorizedPostback(request: NextRequest): boolean {
   const configuredSecret = process.env.LAZADA_POSTBACK_SECRET?.trim();
 
   if (!configuredSecret) {
     return process.env.NODE_ENV !== "production";
   }
 
-  const providedSecret = getProvidedPostbackSecret(request, payload);
+  const providedSecret = getProvidedPostbackSecret(request);
 
   return safeEqualSecret(configuredSecret, providedSecret);
 }
@@ -237,7 +236,7 @@ async function buildUnauthorizedPostbackResponse(
 
   await recordAuditEvent({
     details: {
-      hasProvidedSecret: Boolean(getProvidedPostbackSecret(request, payload)),
+      hasProvidedSecret: Boolean(getProvidedPostbackSecret(request)),
       method: request.method,
       payloadKeyCount: Object.keys(payload).length,
     },
@@ -262,7 +261,7 @@ async function handlePostback(request: NextRequest) {
 
   const rawPayload = payloadRead.payload;
 
-  if (!isAuthorizedPostback(request, rawPayload)) {
+  if (!isAuthorizedPostback(request)) {
     return buildUnauthorizedPostbackResponse(request, rawPayload);
   }
 

@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { connection } from "next/server";
 import AppRouteShell from "@/app/components/AppRouteShell";
 import { SantaAssistant } from "@/app/components/SantaAssistant";
 import "./globals.css";
@@ -20,11 +21,13 @@ export const metadata: Metadata = {
   ],
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  await connection();
+
   return (
     <html lang="en">
       <body className="antialiased">
