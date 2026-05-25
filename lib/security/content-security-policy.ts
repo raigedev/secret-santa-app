@@ -30,7 +30,7 @@ export function buildContentSecurityPolicy(options: ContentSecurityPolicyOptions
   const scriptSource = [
     "script-src",
     "'self'",
-    ...(nonce ? [`'nonce-${nonce}'`, "'strict-dynamic'"] : []),
+    ...(nonce ? [`'nonce-${nonce}'`] : []),
     ...(isDevelopment && !nonce ? ["'unsafe-inline'"] : []),
     ...(isDevelopment ? ["'unsafe-eval'"] : []),
   ].join(" ");
