@@ -120,7 +120,14 @@ IMPLEMENTED NOW
 [ ] Security headers are configured globally
     Status: DONE
     Notes:
-    - CSP, HSTS, frame protections, nosniff, Referrer-Policy, Permissions-Policy, COOP, CORP, Origin-Agent-Cluster, and X-Permitted-Cross-Domain-Policies are set in next.config.ts
+    - CSP, HSTS, frame protections, nosniff, Referrer-Policy, Permissions-Policy, COOP, CORP, Origin-Agent-Cluster, and X-Permitted-Cross-Domain-Policies are set globally
+    - Production CSP upgrades insecure resource requests while preserving local Supabase development flows
+
+[ ] Browser XSS sink guardrails are automated
+    Status: DONE
+    Notes:
+    - Security tests scan production source for raw HTML insertion, string-code execution, string timer callbacks, and javascript: URLs
+    - User-facing dynamic text should continue to use React rendering, shared validation helpers, and server-side authorization checks instead of raw HTML
 
 [ ] Public vulnerability reporting exists
     Status: DONE

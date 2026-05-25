@@ -1576,6 +1576,9 @@ test("page CSP uses per-request script nonces instead of production unsafe-inlin
   assert.match(contentSecurityPolicySource, /isDevelopment && !nonce \? \["'unsafe-inline'"\] : \[\]/);
   assert.doesNotMatch(contentSecurityPolicySource, /isDevelopment \? \["'unsafe-inline'"\] : \[\]/);
   assert.doesNotMatch(contentSecurityPolicySource, /"'strict-dynamic'"/);
+  assert.match(contentSecurityPolicySource, /function shouldUpgradeInsecureRequests/);
+  assert.match(contentSecurityPolicySource, /!isDevelopment && !usesLocalSupabaseUrl\(supabaseUrl\)/);
+  assert.match(contentSecurityPolicySource, /"upgrade-insecure-requests"/);
 
   assert.match(proxySource, /createContentSecurityPolicyNonce\(\)/);
   assert.match(proxySource, /buildContentSecurityPolicy\(\{ nonce \}\)/);
@@ -1585,6 +1588,60 @@ test("page CSP uses per-request script nonces instead of production unsafe-inlin
   assert.match(rootLayoutSource, /await connection\(\)/);
   assert.doesNotMatch(nextConfigSource, /key: "Content-Security-Policy"/);
 });
+
+/* eslint-disable security/detect-non-literal-fs-filename -- This regression test intentionally walks fixed repo source roots to catch unsafe browser sinks. */
+test("production source avoids raw HTML and string-code execution sinks", () => {
+  const sourceRoots = ["app", "lib"];
+  const sourceExtensions = new Set([".js", ".jsx", ".mjs", ".ts", ".tsx"]);
+  const dangerousSinkPatterns = [
+    { label: "React raw HTML rendering", pattern: /dangerouslySetInnerHTML/ },
+    { label: "raw innerHTML assignment", pattern: /\.innerHTML\b/ },
+    { label: "raw outerHTML assignment", pattern: /\.outerHTML\b/ },
+    { label: "HTML string insertion", pattern: /insertAdjacentHTML\s*\(/ },
+    { label: "document.write HTML insertion", pattern: /document\.write(?:ln)?\s*\(/ },
+    { label: "eval string execution", pattern: /\beval\s*\(/ },
+    { label: "Function constructor string execution", pattern: /new Function\s*\(/ },
+    { label: "string timer callback execution", pattern: /set(?:Timeout|Interval)\s*\(\s*["'`]/ },
+    { label: "javascript URL", pattern: /javascript:/i },
+  ];
+  const sourceFiles = [];
+
+  function collectSourceFiles(directoryPath) {
+    for (const entry of readdirSync(directoryPath, { withFileTypes: true })) {
+      const entryPath = `${directoryPath}/${entry.name}`;
+
+      if (entry.isDirectory()) {
+        collectSourceFiles(entryPath);
+        continue;
+      }
+
+      const extension = entry.name.slice(entry.name.lastIndexOf("."));
+
+      if (sourceExtensions.has(extension)) {
+        sourceFiles.push(entryPath);
+      }
+    }
+  }
+
+  for (const sourceRoot of sourceRoots) {
+    collectSourceFiles(sourceRoot);
+  }
+
+  const violations = [];
+
+  for (const sourceFile of sourceFiles) {
+    const source = readFileSync(sourceFile, "utf8");
+
+    for (const { label, pattern } of dangerousSinkPatterns) {
+      if (pattern.test(source)) {
+        violations.push(`${sourceFile}: ${label}`);
+      }
+    }
+  }
+
+  assert.deepEqual(violations, []);
+});
+/* eslint-enable security/detect-non-literal-fs-filename */
 
 test("client snapshots do not restore assignment data after resets", () => {
   const secretSantaPageSource = readFileSync("app/secret-santa/page.tsx", "utf8");

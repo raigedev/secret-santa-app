@@ -11,6 +11,10 @@ function usesLocalSupabaseUrl(supabaseUrl: string): boolean {
   );
 }
 
+function shouldUpgradeInsecureRequests(isDevelopment: boolean, supabaseUrl: string): boolean {
+  return !isDevelopment && !usesLocalSupabaseUrl(supabaseUrl);
+}
+
 export function createContentSecurityPolicyNonce(): string {
   const bytes = new Uint8Array(16);
   crypto.getRandomValues(bytes);
@@ -49,6 +53,9 @@ export function buildContentSecurityPolicy(options: ContentSecurityPolicyOptions
         ]
       : []),
   ].join(" ");
+  const upgradeInsecureRequests = shouldUpgradeInsecureRequests(isDevelopment, supabaseUrl)
+    ? ["upgrade-insecure-requests"]
+    : [];
 
   return [
     "default-src 'self'",
@@ -66,5 +73,6 @@ export function buildContentSecurityPolicy(options: ContentSecurityPolicyOptions
     "manifest-src 'self'",
     "media-src 'self'",
     "worker-src 'self' blob:",
+    ...upgradeInsecureRequests,
   ].join("; ");
 }
