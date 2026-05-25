@@ -96,6 +96,7 @@ export async function proxy(req: NextRequest) {
     "/privacy",
     "/reset-password",
     "/auth/callback",
+    "/.well-known/security.txt",
   ];
   const isInvitePage = pathname.startsWith("/invite/");
   const isPublicPage = publicPages.includes(pathname) || isInvitePage;
@@ -109,6 +110,7 @@ export async function proxy(req: NextRequest) {
     pathname === "/reset-password" ||
     pathname === "/privacy" ||
     pathname === "/auth/callback" ||
+    pathname === "/.well-known/security.txt" ||
     isInvitePage ||
     isLandingPage;
   const hasVerifiedEmail = user ? isUserEmailVerified(user) : false;
