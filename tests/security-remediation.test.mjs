@@ -1576,6 +1576,9 @@ test("page CSP uses per-request script nonces instead of production unsafe-inlin
   assert.match(contentSecurityPolicySource, /isDevelopment && !nonce \? \["'unsafe-inline'"\] : \[\]/);
   assert.doesNotMatch(contentSecurityPolicySource, /isDevelopment \? \["'unsafe-inline'"\] : \[\]/);
   assert.doesNotMatch(contentSecurityPolicySource, /"'strict-dynamic'"/);
+  assert.match(contentSecurityPolicySource, /function shouldUpgradeInsecureRequests/);
+  assert.match(contentSecurityPolicySource, /!isDevelopment && !usesLocalSupabaseUrl\(supabaseUrl\)/);
+  assert.match(contentSecurityPolicySource, /"upgrade-insecure-requests"/);
 
   assert.match(proxySource, /createContentSecurityPolicyNonce\(\)/);
   assert.match(proxySource, /buildContentSecurityPolicy\(\{ nonce \}\)/);

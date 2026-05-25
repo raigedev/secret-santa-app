@@ -4,11 +4,17 @@ test.describe("security headers", () => {
   test("public pages send the baseline security headers", async ({ request }) => {
     const response = await request.get("/privacy");
     const headers = response.headers();
+    const contentSecurityPolicy = headers["content-security-policy"] || "";
 
     expect(response.ok()).toBe(true);
-    expect(headers["content-security-policy"]).toContain("object-src 'none'");
-    expect(headers["content-security-policy"]).toContain("frame-ancestors 'none'");
-    expect(headers["content-security-policy"]).toContain("frame-src 'none'");
+    expect(contentSecurityPolicy).toContain("object-src 'none'");
+    expect(contentSecurityPolicy).toContain("frame-ancestors 'none'");
+    expect(contentSecurityPolicy).toContain("frame-src 'none'");
+    if (contentSecurityPolicy.includes("http://127.0.0.1:54321")) {
+      expect(contentSecurityPolicy).not.toContain("upgrade-insecure-requests");
+    } else {
+      expect(contentSecurityPolicy).toContain("upgrade-insecure-requests");
+    }
     expect(headers["x-content-type-options"]).toBe("nosniff");
     expect(headers["x-frame-options"]).toBe("DENY");
     expect(headers["referrer-policy"]).toBe("same-origin");

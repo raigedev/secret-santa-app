@@ -120,7 +120,8 @@ IMPLEMENTED NOW
 [ ] Security headers are configured globally
     Status: DONE
     Notes:
-    - CSP, HSTS, frame protections, nosniff, Referrer-Policy, Permissions-Policy, COOP, CORP, Origin-Agent-Cluster, and X-Permitted-Cross-Domain-Policies are set in next.config.ts
+    - CSP, HSTS, frame protections, nosniff, Referrer-Policy, Permissions-Policy, COOP, CORP, Origin-Agent-Cluster, and X-Permitted-Cross-Domain-Policies are set globally
+    - Production CSP upgrades insecure resource requests while preserving local Supabase development flows
 
 [ ] Public vulnerability reporting exists
     Status: DONE
