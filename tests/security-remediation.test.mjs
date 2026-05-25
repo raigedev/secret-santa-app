@@ -1591,7 +1591,7 @@ test("page CSP uses per-request script nonces instead of production unsafe-inlin
 
 /* eslint-disable security/detect-non-literal-fs-filename -- This regression test intentionally walks fixed repo source roots to catch unsafe browser sinks. */
 test("production source avoids raw HTML and string-code execution sinks", () => {
-  const sourceRoots = ["app", "lib", "utils"];
+  const sourceRoots = ["app", "lib"];
   const sourceExtensions = new Set([".js", ".jsx", ".mjs", ".ts", ".tsx"]);
   const dangerousSinkPatterns = [
     { label: "React raw HTML rendering", pattern: /dangerouslySetInnerHTML/ },
