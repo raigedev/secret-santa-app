@@ -2,6 +2,7 @@ import { NextRequest } from "next/server";
 
 import { syncAndProcessReminderJobs } from "@/lib/notifications";
 import { recordServerFailure } from "@/lib/security/audit";
+import { isLocalCronBypassAllowed } from "@/lib/security/deployed-runtime";
 import { noStoreJson } from "@/lib/security/no-store-response";
 import { extractBearerToken, safeEqualSecret } from "@/lib/security/web";
 
@@ -13,7 +14,7 @@ function isAuthorizedRequest(request: NextRequest): boolean {
   const cronSecret = process.env.CRON_SECRET?.trim();
   const processorSecret = process.env.REMINDER_PROCESSOR_SECRET?.trim();
   const headerSecret = request.headers.get("x-reminder-processor-secret")?.trim();
-  const isProduction = process.env.NODE_ENV === "production";
+  const allowLocalBypass = isLocalCronBypassAllowed();
 
   if (cronSecret && safeEqualSecret(cronSecret, authorizationToken)) {
     return true;
@@ -26,11 +27,11 @@ function isAuthorizedRequest(request: NextRequest): boolean {
     );
   }
 
-  if (!isProduction && request.headers.has("x-vercel-cron")) {
+  if (allowLocalBypass && request.headers.has("x-vercel-cron")) {
     return true;
   }
 
-  if (!isProduction) {
+  if (allowLocalBypass) {
     const queryToken = request.nextUrl.searchParams.get("token")?.trim();
     return processorSecret ? safeEqualSecret(processorSecret, queryToken) : true;
   }

@@ -1202,6 +1202,31 @@ test("private AI and affiliate helper API responses are not cacheable", () => {
   assert.doesNotMatch(reminderProcessorRouteSource, /error: message/);
 });
 
+test("deployed cron endpoints require configured secrets", () => {
+  const deployedRuntimeSource = readFileSync("lib/security/deployed-runtime.ts", "utf8");
+  const lazadaHealthRouteSource = readFileSync(
+    "app/api/affiliate/lazada/health-check/route.ts",
+    "utf8"
+  );
+  const reminderProcessorRouteSource = readFileSync(
+    "app/api/notifications/process-reminders/route.ts",
+    "utf8"
+  );
+
+  assert.match(deployedRuntimeSource, /process\.env\.VERCEL === "1"/);
+  assert.match(deployedRuntimeSource, /process\.env\.VERCEL_ENV\?\.trim\(\)/);
+  assert.match(deployedRuntimeSource, /process\.env\.VERCEL_URL\?\.trim\(\)/);
+  assert.match(deployedRuntimeSource, /process\.env\.NODE_ENV !== "production"/);
+  assert.match(deployedRuntimeSource, /!isDeployedAppRuntime\(\)/);
+
+  for (const routeSource of [lazadaHealthRouteSource, reminderProcessorRouteSource]) {
+    assert.match(routeSource, /isLocalCronBypassAllowed\(\)/);
+    assert.match(routeSource, /allowLocalBypass && request\.headers\.has\("x-vercel-cron"\)/);
+    assert.match(routeSource, /if \(allowLocalBypass\)/);
+    assert.doesNotMatch(routeSource, /!isProduction/);
+  }
+});
+
 test("private JSON POST routes cap request bodies before parsing", () => {
   const requestBodySource = readFileSync("lib/security/request-body.ts", "utf8");
   const giftPrepRouteSource = readFileSync("app/api/assignments/gift-prep/route.ts", "utf8");
@@ -1516,7 +1541,7 @@ test("lazada postback setup keeps auth material out of URL query strings", () =>
   const affiliateReportSource = readFileSync("app/dashboard/affiliate-report/page.tsx", "utf8");
 
   assert.match(lazadaPostbackSource, /const URL_POSTBACK_AUTH_PARAM_KEYS = new Set/);
-  assert.match(lazadaPostbackSource, /stripUrlPostbackAuthParams/);
+  assert.match(lazadaPostbackSource, /stripPayloadPostbackAuthParams/);
   assert.match(lazadaPostbackSource, /const MAX_POSTBACK_BODY_BYTES = 64 \* 1024/);
   assert.match(lazadaPostbackSource, /getPostbackBodyPreflightResponse/);
   assert.match(lazadaPostbackSource, /contentLength > MAX_POSTBACK_BODY_BYTES/);
@@ -1530,11 +1555,35 @@ test("lazada postback setup keeps auth material out of URL query strings", () =>
   assert.match(lazadaPostbackSource, /noStoreText\("OK"/);
   assert.match(
     lazadaPostbackSource,
-    /request\.headers\.get\("x-lazada-postback-secret"\)[\s\S]{0,140}getFirstPayloadValue\(payload, \["token", "secret"\]\)/
+    /request\.headers\.get\("x-lazada-postback-secret"\)[\s\S]{0,140}request\.headers\.get\("x-postback-secret"\)/
   );
+  assert.doesNotMatch(lazadaPostbackSource, /getFirstPayloadValue\(payload, \["token", "secret"\]\)/);
+  assert.match(lazadaPostbackSource, /payload: stripPayloadPostbackAuthParams\(\{/);
   assert.match(affiliateReportSource, /const path = "\/api\/affiliate\/lazada\/postback";/);
   assert.doesNotMatch(affiliateReportSource, /postback\?token/);
   assert.doesNotMatch(affiliateReportSource, /x-forwarded-host|x-forwarded-proto/);
+});
+
+test("page CSP uses per-request script nonces instead of production unsafe-inline", () => {
+  const contentSecurityPolicySource = readFileSync("lib/security/content-security-policy.ts", "utf8");
+  const rootLayoutSource = readFileSync("app/layout.tsx", "utf8");
+  const proxySource = readFileSync("proxy.ts", "utf8");
+  const nextConfigSource = readFileSync("next.config.ts", "utf8");
+
+  assert.match(contentSecurityPolicySource, /createContentSecurityPolicyNonce/);
+  assert.match(contentSecurityPolicySource, /crypto\.getRandomValues\(bytes\)/);
+  assert.match(contentSecurityPolicySource, /`'nonce-\$\{nonce\}'`/);
+  assert.match(contentSecurityPolicySource, /"'strict-dynamic'"/);
+  assert.match(contentSecurityPolicySource, /isDevelopment && !nonce \? \["'unsafe-inline'"\] : \[\]/);
+  assert.doesNotMatch(contentSecurityPolicySource, /isDevelopment \? \["'unsafe-inline'"\] : \[\]/);
+
+  assert.match(proxySource, /createContentSecurityPolicyNonce\(\)/);
+  assert.match(proxySource, /buildContentSecurityPolicy\(\{ nonce \}\)/);
+  assert.match(proxySource, /requestHeaders\.set\("x-nonce", nonce\)/);
+  assert.match(proxySource, /res\.headers\.set\("Content-Security-Policy", contentSecurityPolicy\)/);
+  assert.match(rootLayoutSource, /import \{ connection \} from "next\/server"/);
+  assert.match(rootLayoutSource, /await connection\(\)/);
+  assert.doesNotMatch(nextConfigSource, /key: "Content-Security-Policy"/);
 });
 
 test("client snapshots do not restore assignment data after resets", () => {
