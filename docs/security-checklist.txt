@@ -1,5 +1,5 @@
 SECRET SANTA APP SECURITY CHECKLIST
-Last updated: 2026-04-27
+Last updated: 2026-05-25
 
 IMPLEMENTED NOW
 
@@ -120,7 +120,14 @@ IMPLEMENTED NOW
 [ ] Security headers are configured globally
     Status: DONE
     Notes:
-    - CSP, HSTS, frame protections, nosniff, Referrer-Policy, Permissions-Policy, COOP, CORP, and Origin-Agent-Cluster are set in next.config.ts
+    - CSP, HSTS, frame protections, nosniff, Referrer-Policy, Permissions-Policy, COOP, CORP, Origin-Agent-Cluster, and X-Permitted-Cross-Domain-Policies are set in next.config.ts
+
+[ ] Public vulnerability reporting exists
+    Status: DONE
+    Notes:
+    - /.well-known/security.txt exposes a machine-readable security contact
+    - SECURITY.md documents safe testing and reporting rules
+    - /privacy still includes the human-facing privacy and security contact
 
 [ ] Audit logs redact sensitive-looking details
     Status: DONE
