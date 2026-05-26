@@ -269,6 +269,7 @@ export default function Landing() {
         .footer-col a{display:block;font-size:13px;color:#a9b7ce;text-decoration:none;padding:4px 0;transition:color .2s;cursor:pointer;}
         .footer-col a:hover{color:#fff;}
         .footer-bottom{max-width:1000px;margin:32px auto 0;padding-top:24px;border-top:1px solid rgba(255,255,255,.06);text-align:center;font-size:12px;color:#9cabc4;display:flex;flex-direction:column;gap:8px;align-items:center;}
+        .footer-bottom a{color:inherit;text-decoration:underline;text-underline-offset:3px;}
 
         .fade-up{opacity:0;transform:translateY(24px);animation:fadeUp .7s ease forwards;}
         .d1{animation-delay:.1s}.d2{animation-delay:.2s}.d3{animation-delay:.3s}
@@ -539,6 +540,8 @@ export default function Landing() {
             <a href="#">Gift exchange guide</a>
             <a href="#">Wishlist ideas</a>
             <a href="/privacy">Privacy Policy</a>
+            <a href="/terms">Terms of Use</a>
+            <a href="/affiliate-disclosure">Affiliate Disclosure</a>
           </div>
           <div className="footer-col">
             <h4>Connect</h4>
@@ -549,7 +552,9 @@ export default function Landing() {
         </div>
         <div className="footer-bottom">
           <span>© 2026 My Secret Santa. All rights reserved.</span>
-          <span>As an Amazon Associate I earn from qualifying purchases.</span>
+          <span>
+            <a href="/affiliate-disclosure">As an Amazon Associate I earn from qualifying purchases.</a>
+          </span>
         </div>
       </footer>
     </>

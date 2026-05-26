@@ -268,7 +268,11 @@ function CreateAccountPageInner() {
             </button>
 
             <p className="text-center text-xs leading-5 text-[#6a706d]">
-              By creating an account, you agree to how My Secret Santa handles your data in the{" "}
+              By creating an account, you agree to the{" "}
+              <a href="/terms" className="font-semibold text-[#a43c3f] transition hover:text-[#812227]">
+                Terms of Use
+              </a>{" "}
+              and{" "}
               <a href="/privacy" className="font-semibold text-[#a43c3f] transition hover:text-[#812227]">
                 Privacy Policy
               </a>
