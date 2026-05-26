@@ -20,6 +20,10 @@ test.describe("public smoke coverage", () => {
     await page.getByRole("link", { name: /see how it works/i }).click();
     await expect(page).toHaveURL(/#how$/);
     await expect(page.getByText(/set up your gift exchange in three steps/i)).toBeVisible();
+    await expect(page.getByRole("link", { name: /contact us/i })).toHaveAttribute(
+      "href",
+      "mailto:mysecretsanta.notifications@gmail.com"
+    );
 
     await page.getByRole("button", { name: /start drawing names/i }).first().click();
     await expect(page).toHaveURL(/\/login$/);

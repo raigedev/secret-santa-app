@@ -3398,6 +3398,7 @@ function SecretSantaExperience({ mode = "shopping" }: SecretSantaExperienceProps
         setAssignments(recipientData);
         setReceivedGifts(receivedGiftData);
         writeClientSnapshot(getSecretSantaPageSnapshotStorageKey(user.id), {
+          // Keep giftee assignments out of browser storage; refresh them from the server.
           assignments: [],
           availableGroups: groupOptions,
           createdAt: Date.now(),

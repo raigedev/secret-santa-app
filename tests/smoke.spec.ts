@@ -71,9 +71,12 @@ test.describe("public smoke coverage", () => {
     await expect(page.getByRole("button", { name: /^log in$/i })).toBeVisible();
   });
 
-  test("prime-links route rejects unauthenticated requests", async ({ request }) => {
+  test("prime-links route rejects unauthenticated requests", async ({ baseURL, request }) => {
     const response = await request.post("/api/affiliate/lazada/prime-links", {
       data: { productIds: ["1234567890"] },
+      headers: {
+        origin: baseURL || "http://localhost:3000",
+      },
     });
 
     await expectUnauthorizedJson(response);

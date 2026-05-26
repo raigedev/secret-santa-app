@@ -8,7 +8,9 @@ import { isRecord, isUuid } from "@/lib/validation/common";
 
 const MAX_GIFT_PREP_GROUP_IDS = 50;
 const GIFT_PREP_BODY_LIMIT_BYTES = 8 * 1024;
-const GIFT_PREP_READ_RATE_LIMIT_MAX_REQUESTS = 120;
+// This authenticated read path is shared by dashboard, history, and gift screens.
+// Keep it bounded, but high enough for normal navigation and full browser smoke runs.
+const GIFT_PREP_READ_RATE_LIMIT_MAX_REQUESTS = 600;
 const GIFT_PREP_READ_RATE_LIMIT_WINDOW_SECONDS = 3600;
 
 type GiftPrepRow = {
