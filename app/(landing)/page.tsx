@@ -544,7 +544,7 @@ export default function Landing() {
             <h4>Connect</h4>
             <a href="#">Facebook</a>
             <a href="#">Instagram</a>
-            <a href="#">Contact Us</a>
+            <a href="mailto:mysecretsanta.notifications@gmail.com">Contact Us</a>
           </div>
         </div>
         <div className="footer-bottom">

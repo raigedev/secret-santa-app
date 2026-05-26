@@ -521,6 +521,11 @@ test("gift prep status is only exposed through a server-side giver-scoped route"
   );
   assert.match(giftPrepRouteSource, /isTrustedRequestOrigin\(request\)/);
   assert.match(giftPrepRouteSource, /supabase\.auth\.getUser\(\)/);
+  assert.match(giftPrepRouteSource, /GIFT_PREP_READ_RATE_LIMIT_MAX_REQUESTS = 600/);
+  assert.match(
+    giftPrepRouteSource,
+    /enforceRateLimit\(\{[\s\S]{0,220}action: "assignments\.gift_prep\.read"/
+  );
   assert.match(
     giftPrepRouteSource,
     /\.from\("assignments"\)[\s\S]{0,240}\.eq\("giver_id", user\.id\)/
@@ -531,6 +536,10 @@ test("gift prep status is only exposed through a server-side giver-scoped route"
   assert.match(secretSantaPageSource, /fetchMyAssignmentGiftPrep\(groupIds\)/);
   assert.match(dashboardPageSource, /fetchMyAssignmentGiftPrep\(acceptedGroupIds\)/);
   assert.match(historyPageSource, /fetchMyAssignmentGiftPrep\(historyGroupIds\)/);
+  assert.match(
+    secretSantaPageSource,
+    /Keep giftee assignments out of browser storage[\s\S]{0,120}assignments: \[\],[\s\S]{0,220}receivedGifts: \[\],/
+  );
   assert.doesNotMatch(
     `${secretSantaPageSource}\n${dashboardPageSource}\n${historyPageSource}`,
     /from\("assignments"\)[\s\S]{0,180}gift_prep_status/

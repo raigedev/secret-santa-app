@@ -23,6 +23,7 @@ test.describe("security headers", () => {
     expect(headers["cross-origin-opener-policy"]).toBe("same-origin");
     expect(headers["cross-origin-resource-policy"]).toBe("same-origin");
     expect(headers["x-permitted-cross-domain-policies"]).toBe("none");
+    expect(headers["x-powered-by"]).toBeUndefined();
   });
 
   test("security contact file is public and machine-readable", async ({ request }) => {
