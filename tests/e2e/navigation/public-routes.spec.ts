@@ -46,6 +46,18 @@ test.describe("public route coverage", () => {
     await expect(page.getByRole("heading", { name: /shopping and affiliate links/i })).toBeVisible();
   });
 
+  test("terms route renders", async ({ page }) => {
+    await page.goto("/terms");
+    await expect(page.getByRole("heading", { name: /terms of use/i })).toBeVisible();
+    await expect(page.getByRole("heading", { name: /acceptable use/i })).toBeVisible();
+  });
+
+  test("affiliate disclosure route renders", async ({ page }) => {
+    await page.goto("/affiliate-disclosure");
+    await expect(page.getByRole("heading", { name: /affiliate disclosure/i })).toBeVisible();
+    await expect(page.getByRole("heading", { name: /amazon associate disclosure/i })).toBeVisible();
+  });
+
   test("invalid invite token route renders an unavailable state", async ({ page }) => {
     await page.goto(`/invite/${INVALID_INVITE_TOKEN}`);
     await expect(page.getByText(/join secret santa/i)).toBeVisible();

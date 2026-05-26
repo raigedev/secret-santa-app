@@ -24,6 +24,14 @@ test.describe("public smoke coverage", () => {
       "href",
       "mailto:mysecretsanta.notifications@gmail.com"
     );
+    await expect(page.getByRole("link", { name: /terms of use/i })).toHaveAttribute(
+      "href",
+      "/terms"
+    );
+    await expect(page.getByRole("link", { name: /affiliate disclosure/i }).first()).toHaveAttribute(
+      "href",
+      "/affiliate-disclosure"
+    );
 
     await page.getByRole("button", { name: /start drawing names/i }).first().click();
     await expect(page).toHaveURL(/\/login$/);

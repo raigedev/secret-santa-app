@@ -64,6 +64,10 @@ export function AuthPageFrame({
           <a href="/privacy" className="text-[#a43c3f] underline-offset-4 transition hover:text-[#812227] hover:underline">
             Privacy Policy
           </a>
+          {" "}and{" "}
+          <a href="/terms" className="text-[#a43c3f] underline-offset-4 transition hover:text-[#812227] hover:underline">
+            Terms of Use
+          </a>
           .
         </p>
       </div>
