@@ -57,6 +57,64 @@ function assertDependencyAtLeast({ dependencyName, minimumVersion, packageJson, 
   );
 }
 
+function compactSql(value) {
+  return value.toLowerCase().split(/\s+/).join(" ").trim();
+}
+
+function readIdentifierAfterMarker(value, marker) {
+  const markerIndex = value.indexOf(marker);
+
+  if (markerIndex === -1) {
+    return null;
+  }
+
+  let identifier = "";
+  for (const character of value.slice(markerIndex + marker.length)) {
+    const code = character.charCodeAt(0);
+    const isLowercaseLetter = code >= 97 && code <= 122;
+    const isDigit = code >= 48 && code <= 57;
+
+    if (!isLowercaseLetter && !isDigit && character !== "_") {
+      break;
+    }
+
+    identifier += character;
+  }
+
+  return identifier || null;
+}
+
+function collectCreatedPublicObjects(migrationSource, markers) {
+  return migrationSource
+    .split(";")
+    .map((statement) => compactSql(statement))
+    .flatMap((statement) =>
+      markers
+        .map((marker) => readIdentifierAfterMarker(statement, marker))
+        .filter((identifier) => identifier !== null)
+    );
+}
+
+function hasGrantDecisionForPublicObject(migrationSource, objectKind, objectName) {
+  return migrationSource
+    .split(";")
+    .map((statement) => compactSql(statement))
+    .some(
+      (statement) =>
+        (statement.startsWith("grant ") || statement.startsWith("revoke ")) &&
+        statement.includes(` on ${objectKind} public.${objectName}`)
+    );
+}
+
+function startsWithDigit(value) {
+  if (value.length === 0) {
+    return false;
+  }
+
+  const firstCharacterCode = value.charCodeAt(0);
+  return firstCharacterCode >= 48 && firstCharacterCode <= 57;
+}
+
 test("React Server Components dependency patch floors stay enforced", () => {
   const packageJson = JSON.parse(readFileSync("package.json", "utf8"));
   const packageLock = JSON.parse(readFileSync("package-lock.json", "utf8"));
@@ -69,6 +127,71 @@ test("React Server Components dependency patch floors stay enforced", () => {
       packageJson,
       packageLock,
     });
+  }
+});
+
+test("Supabase Data API default grants require explicit opt-in", () => {
+  const migrationPath = [
+    "supabase",
+    "migrations",
+    ["20260527141307", "enforce", "data", "api", "explicit", "grants.sql"].join("_"),
+  ].join("/");
+  // eslint-disable-next-line security/detect-non-literal-fs-filename -- Security test reads one pinned repo-local migration path assembled to avoid secret false positives.
+  const migrationSource = readFileSync(
+    migrationPath,
+    "utf8"
+  );
+
+  assert.match(migrationSource, /array\['postgres'::name, 'supabase_admin'::name\]/);
+  assert.match(migrationSource, /revoke all privileges on tables from public, anon, authenticated, service_role/i);
+  assert.match(migrationSource, /revoke all privileges on sequences from public, anon, authenticated, service_role/i);
+  assert.match(migrationSource, /revoke all privileges on functions from public, anon, authenticated, service_role/i);
+  assert.match(migrationSource, /explicit grants in migrations/i);
+});
+
+test("new public Data API objects declare grants or revokes in their migration", () => {
+  const guardrailVersion = "20260527141307";
+  const migrationDirectory = "supabase/migrations";
+  const migrationFiles = readdirSync(migrationDirectory)
+    .filter((fileName) => startsWithDigit(fileName) && fileName.endsWith(".sql"))
+    .filter((fileName) => fileName.slice(0, 14) >= guardrailVersion);
+
+  for (const fileName of migrationFiles) {
+    // eslint-disable-next-line security/detect-non-literal-fs-filename -- Security test scans repo-local migration files after the Data API grant guardrail.
+    const migrationSource = readFileSync(`${migrationDirectory}/${fileName}`, "utf8");
+    const publicTableNames = collectCreatedPublicObjects(migrationSource, [
+      "create table if not exists public.",
+      "create table public.",
+    ]);
+    const publicFunctionNames = collectCreatedPublicObjects(migrationSource, [
+      "create or replace function public.",
+      "create function public.",
+    ]);
+    const publicSequenceNames = collectCreatedPublicObjects(migrationSource, [
+      "create sequence if not exists public.",
+      "create sequence public.",
+    ]);
+
+    for (const tableName of publicTableNames) {
+      assert.ok(
+        hasGrantDecisionForPublicObject(migrationSource, "table", tableName),
+        `${fileName} creates public.${tableName} but does not declare a Data API grant or revoke.`
+      );
+    }
+
+    for (const functionName of publicFunctionNames) {
+      assert.ok(
+        hasGrantDecisionForPublicObject(migrationSource, "function", functionName),
+        `${fileName} creates public.${functionName}() but does not declare an execute grant or revoke.`
+      );
+    }
+
+    for (const sequenceName of publicSequenceNames) {
+      assert.ok(
+        hasGrantDecisionForPublicObject(migrationSource, "sequence", sequenceName),
+        `${fileName} creates public.${sequenceName} but does not declare a sequence grant or revoke.`
+      );
+    }
   }
 });
 
