@@ -9,6 +9,69 @@ import {
 } from "../lib/groups/invite-links.mjs";
 import { ELIGIBLE_EMAIL_INVITE_STATUSES } from "../lib/groups/invite-claim.mjs";
 
+const RSC_SECURITY_PATCH_FLOORS = {
+  next: "16.0.10",
+  react: "19.2.4",
+  "react-dom": "19.2.4",
+};
+
+function parsePinnedVersion(packageName, versionText) {
+  const match = versionText.match(/^(\d+)\.(\d+)\.(\d+)$/);
+
+  assert.ok(
+    match,
+    `${packageName} must stay pinned to an exact stable version for RSC security review. Found: ${versionText}`
+  );
+
+  return match.slice(1).map((value) => Number.parseInt(value, 10));
+}
+
+function compareVersionParts(left, right) {
+  for (let index = 0; index < left.length; index += 1) {
+    const difference = left[index] - right[index];
+
+    if (difference !== 0) {
+      return difference;
+    }
+  }
+
+  return 0;
+}
+
+function assertDependencyAtLeast({ dependencyName, minimumVersion, packageJson, packageLock }) {
+  const declaredVersion = packageJson.dependencies?.[dependencyName];
+  const lockVersion = packageLock.packages?.[`node_modules/${dependencyName}`]?.version;
+  const declaredParts = parsePinnedVersion(dependencyName, declaredVersion ?? "");
+  const minimumParts = parsePinnedVersion(dependencyName, minimumVersion);
+
+  assert.ok(declaredVersion, `${dependencyName} must be declared as a production dependency.`);
+  assert.ok(lockVersion, `${dependencyName} must be present in package-lock.json.`);
+  assert.equal(
+    lockVersion,
+    declaredVersion,
+    `${dependencyName} package.json and package-lock.json versions must match.`
+  );
+  assert.ok(
+    compareVersionParts(declaredParts, minimumParts) >= 0,
+    `${dependencyName}@${declaredVersion} is below the RSC security floor ${minimumVersion}.`
+  );
+}
+
+test("React Server Components dependency patch floors stay enforced", () => {
+  const packageJson = JSON.parse(readFileSync("package.json", "utf8"));
+  const packageLock = JSON.parse(readFileSync("package-lock.json", "utf8"));
+
+  // These floors cover the complete React/Next RSC patch set, including the follow-up DoS and source-exposure fixes.
+  for (const [dependencyName, minimumVersion] of Object.entries(RSC_SECURITY_PATCH_FLOORS)) {
+    assertDependencyAtLeast({
+      dependencyName,
+      minimumVersion,
+      packageJson,
+      packageLock,
+    });
+  }
+});
+
 test("shared UUID validation accepts standard Supabase UUID values", () => {
   const validationSource = readFileSync("lib/validation/common.ts", "utf8");
   const expectedPatternLine =
