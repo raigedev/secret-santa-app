@@ -36,7 +36,8 @@ jobs:
         run: npm ci
 
       - name: Install Chromium for smoke tests
-        run: npx playwright install --with-deps chromium
+        timeout-minutes: 8
+        run: npx playwright install --with-deps --only-shell chromium
 
       - name: Check VS Code Problems equivalents
         run: npm run check:problems
