@@ -102,6 +102,15 @@ export default defineConfig({
       },
     },
     {
+      name: "ci-chrome",
+      // CI smoke tests use hosted Chrome to avoid flaky Playwright browser archive extraction on GitHub runners.
+      use: {
+        ...devices["Desktop Chrome"],
+        channel: "chrome",
+        video: "off",
+      },
+    },
+    {
       name: "firefox",
       use: {
         ...devices["Desktop Firefox"],

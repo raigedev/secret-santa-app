@@ -35,8 +35,9 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Install Chromium for smoke tests
-        run: npx playwright install --with-deps chromium
+      # Use the runner's preinstalled Chrome so CI does not hang while extracting Playwright browser archives.
+      - name: Check hosted Chrome for smoke tests
+        run: google-chrome --version
 
       - name: Check VS Code Problems equivalents
         run: npm run check:problems
@@ -53,5 +54,5 @@ jobs:
       - name: Build
         run: npm run build
 
-      - name: Run Chromium public smoke tests
-        run: npx playwright test tests/e2e/smoke/public-smoke.spec.ts --project=chromium --reporter=line
+      - name: Run Chrome public smoke tests
+        run: npx playwright test tests/e2e/smoke/public-smoke.spec.ts --project=ci-chrome --reporter=line
