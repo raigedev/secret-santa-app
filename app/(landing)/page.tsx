@@ -270,6 +270,11 @@ export default function Landing() {
         .footer-col h4{font-size:13px;font-weight:800;color:#fff;margin-bottom:12px;text-transform:uppercase;letter-spacing:.08em;}
         .footer-col a{display:block;font-size:13px;color:#a9b7ce;text-decoration:none;padding:4px 0;transition:color .2s;cursor:pointer;}
         .footer-col a:hover{color:#fff;}
+        .footer-col a.footer-tip-jar-link{display:inline-flex;align-items:center;gap:10px;margin:2px 0 10px;padding:8px 12px 8px 9px;border:1px solid rgba(255,255,255,.12);border-radius:18px;background:linear-gradient(180deg,#255f34 0%,#1a6b2a 55%,#155021 100%);box-shadow:0 14px 28px rgba(0,0,0,.18),inset 0 1px 0 rgba(255,255,255,.18);color:#fffdf7;transition:transform .18s ease,box-shadow .18s ease,border-color .18s ease;}
+        .footer-col a.footer-tip-jar-link:hover{color:#fff;transform:translateY(-1px);border-color:rgba(252,206,114,.38);box-shadow:0 18px 34px rgba(0,0,0,.24),inset 0 1px 0 rgba(255,255,255,.22);}
+        .footer-tip-jar-copy{display:flex;flex-direction:column;gap:1px;text-align:left;line-height:1.05;}
+        .footer-tip-jar-eyebrow{font-size:9px;font-weight:900;text-transform:uppercase;letter-spacing:.14em;color:#fcce72;}
+        .footer-tip-jar-label{font-size:13px;font-weight:900;color:#fffdf7;}
         .footer-bottom{max-width:1000px;margin:32px auto 0;padding-top:24px;border-top:1px solid rgba(255,255,255,.06);text-align:center;font-size:12px;color:#9cabc4;display:flex;flex-direction:column;gap:8px;align-items:center;}
         .footer-bottom a{color:inherit;text-decoration:underline;text-underline-offset:3px;}
 
