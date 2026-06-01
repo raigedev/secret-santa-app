@@ -26,6 +26,7 @@ const HIDDEN_ROUTE_PREFIXES = [
   "/reset-password",
   "/invite",
   "/privacy",
+  "/how-it-works",
   "/cool-app",
 ] as const;
 

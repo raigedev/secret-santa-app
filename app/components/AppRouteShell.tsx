@@ -69,6 +69,7 @@ const PUBLIC_ROUTE_PREFIXES = [
   "/privacy",
   "/terms",
   "/affiliate-disclosure",
+  "/how-it-works",
   "/cool-app",
 ] as const;
 

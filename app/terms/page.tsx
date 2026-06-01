@@ -46,6 +46,14 @@ const termsSections = [
     ],
   },
   {
+    title: "Optional Tips",
+    copy: [
+      "The app may show an optional tip link for users who want to support the project.",
+      "Tips are voluntary. They do not buy better draw results, extra privacy, priority support, or guaranteed feature access.",
+      "Payments happen on the external tip provider's page. Review that provider's terms before sending money.",
+    ],
+  },
+  {
     title: "AI Suggestions",
     copy: [
       "Some wishlist or shopping idea features may use AI to suggest gift ideas. Treat those suggestions as starting points, not promises that a product is available, appropriate, or the best choice.",
@@ -81,7 +89,7 @@ export default function TermsPage() {
       eyebrow="Terms"
       title="Terms of Use"
       description="These are the practical rules for using My Secret Santa. They are written plainly so organizers and members know what is expected."
-      lastUpdated="May 26, 2026"
+      lastUpdated="May 30, 2026"
       sections={termsSections}
     >
       <div className="mt-9 rounded-3xl bg-[#fff8ef] p-5 text-sm leading-7 text-[#6f5413]">

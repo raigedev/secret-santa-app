@@ -22,6 +22,7 @@ import {
 import { DashboardBackdrop } from "./DashboardBackdrop";
 import { DashboardPreviewWorkspace } from "./DashboardPreviewWorkspace";
 import { DashboardStatusMessage } from "./DashboardStatusMessage";
+import { TipJarSupportCard } from "@/app/components/TipJarSupport";
 import { useDashboardRoutePrefetch } from "./useDashboardRoutePrefetch";
 import { fetchMyAssignmentGiftPrep } from "@/lib/assignments/gift-prep-client";
 import { normalizeSafeAppPath } from "@/lib/security/safe-app-path";
@@ -66,6 +67,7 @@ import type {
   WishlistSummaryRow,
 } from "./dashboard-types";
 import { getActivityFeedVisual } from "./dashboard-visuals";
+import { GROUP_CREATED_TIP_PROMPT_STORAGE_KEY } from "@/lib/support/tip-jar";
 
 type ProfileSetupModalProps = {
   defaultName: string;
@@ -236,6 +238,7 @@ export default function DashboardPage() {
   const [dashboardThemeReady, setDashboardThemeReady] = useState(false);
   const [loading, setLoading] = useState(true);
   const [showProfileSetup, setShowProfileSetup] = useState(false);
+  const [showGroupCreatedTipPrompt, setShowGroupCreatedTipPrompt] = useState(false);
   const [actionMessage, setActionMessage] = useState<ActionMessage>(null);
   const loadDashboardDataRef = useRef<
     ((user: { id: string; email?: string | null }) => Promise<void>) | null
@@ -251,6 +254,17 @@ export default function DashboardPage() {
         setViewerName: setUserName,
       });
     });
+  }, []);
+
+  useEffect(() => {
+    try {
+      if (sessionStorage.getItem(GROUP_CREATED_TIP_PROMPT_STORAGE_KEY) === "1") {
+        sessionStorage.removeItem(GROUP_CREATED_TIP_PROMPT_STORAGE_KEY);
+        setShowGroupCreatedTipPrompt(true);
+      }
+    } catch {
+      // Session storage can be unavailable in restricted browser contexts.
+    }
   }, []);
 
   useEffect(() => {
@@ -1030,6 +1044,15 @@ export default function DashboardPage() {
 
       <FadeIn className="relative z-10 mx-auto w-full max-w-7xl px-4 pb-24 pt-6 sm:px-6 lg:px-8">
         <DashboardStatusMessage message={actionMessage} />
+
+        {showGroupCreatedTipPrompt ? (
+          <TipJarSupportCard
+            className="mb-6"
+            context="group-created"
+            isDarkTheme={isDarkTheme}
+            onDismiss={() => setShowGroupCreatedTipPrompt(false)}
+          />
+        ) : null}
 
         <DashboardPreviewWorkspace
           activityFeedItems={activityFeedItems}

@@ -14,6 +14,7 @@ import {
   validateAnonymousGroupNickname,
 } from "@/lib/groups/nickname";
 import { sanitizePlainText } from "@/lib/validation/common";
+import { GROUP_CREATED_TIP_PROMPT_STORAGE_KEY } from "@/lib/support/tip-jar";
 import { createGroupWithInvitesFromFormData } from "./actions";
 
 const BUDGET_OPTIONS = [10, 15, 25, 50, 100];
@@ -389,6 +390,12 @@ export default function CreateGroupPage() {
     if (result.message !== "Group created!") {
       setStatusMsg(result.message);
       await new Promise((resolve) => setTimeout(resolve, 1500));
+    }
+
+    try {
+      sessionStorage.setItem(GROUP_CREATED_TIP_PROMPT_STORAGE_KEY, "1");
+    } catch {
+      // The redirect is still the important path if session storage is blocked.
     }
 
     window.location.assign("/dashboard");

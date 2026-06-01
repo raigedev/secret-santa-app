@@ -14,6 +14,7 @@ import {
 } from "./actions";
 import { ProfileSkeleton } from "@/app/components/PageSkeleton";
 import FadeIn from "@/app/components/FadeIn";
+import { TipJarSupportCard } from "@/app/components/TipJarSupport";
 import {
   clearClientSnapshots,
   clearAppSessionStorage,
@@ -912,6 +913,8 @@ export default function ProfilePage() {
           </button>
           <p className="text-[11px] mt-2" style={{ color: "#9ca3af" }}>Your changes apply the next time members see your profile.</p>
         </div>
+
+        <TipJarSupportCard className="mb-4" context="profile" />
 
         {/* ═══ DANGER ZONE ═══ */}
         <div data-fade className="holiday-panel rounded-[20px] p-5 sm:p-7" style={{ borderColor: "rgba(220,38,38,.1)" }}>

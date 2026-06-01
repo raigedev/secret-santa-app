@@ -42,6 +42,14 @@ const policySections = [
     ],
   },
   {
+    title: "Optional Tips",
+    copy: [
+      "The app may link to an optional tip jar to help support hosting and maintenance.",
+      "Tips are never required to use the app and do not change gift draws, privacy, feature access, or support priority.",
+      "If you open a tip link, payment details are handled by the external tip provider under that provider's own privacy and payment rules.",
+    ],
+  },
+  {
     title: "AI Suggestions",
     copy: [
       "Wishlist suggestion features may send limited wishlist or gift-preference text to configured AI providers when that feature is enabled.",
@@ -96,7 +104,7 @@ export default function PrivacyPage() {
           written for people using the app and will be updated when the app changes.
         </p>
 
-        <p className="mt-3 text-sm font-semibold text-[#496d53]">Last updated: May 23, 2026</p>
+        <p className="mt-3 text-sm font-semibold text-[#496d53]">Last updated: May 30, 2026</p>
 
         <div className="mt-9 space-y-7">
           {policySections.map((section) => (
