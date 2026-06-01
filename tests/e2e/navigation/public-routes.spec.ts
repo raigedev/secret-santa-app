@@ -46,6 +46,16 @@ test.describe("public route coverage", () => {
     await expect(page.getByRole("heading", { name: /shopping and affiliate links/i })).toBeVisible();
   });
 
+  test("how it works route renders", async ({ page }) => {
+    await page.goto("/how-it-works");
+    await expect(page.getByRole("heading", { name: /how my secret santa works/i })).toBeVisible();
+    await expect(page.getByRole("heading", { name: /one exchange, nine clear moments/i })).toBeVisible();
+    await expect(page.getByRole("link", { name: /create a group/i }).first()).toHaveAttribute(
+      "href",
+      "/login"
+    );
+  });
+
   test("terms route renders", async ({ page }) => {
     await page.goto("/terms");
     await expect(page.getByRole("heading", { name: /terms of use/i })).toBeVisible();

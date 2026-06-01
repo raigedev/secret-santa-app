@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useEffect, useRef } from "react";
+import { TipJarFooterLink } from "@/app/components/TipJarSupport";
 
 // Small logo mark used in hero cards and smaller landing-page accents.
 function SantaIcon({ size = 40 }: { size?: number }) {
@@ -152,6 +153,7 @@ export default function Landing() {
         .nav-links{display:flex;align-items:center;gap:28px;}
         .nav-links a{font-size:14px;font-weight:700;color:#4b5563;text-decoration:none;transition:color .2s;cursor:pointer;}
         .nav-links a:hover{color:var(--red);}
+        .nav-guide{color:var(--green) !important;}
         .nav-cta{background:var(--red) !important;color:#fff !important;padding:10px 24px;border-radius:12px;font-size:14px;font-weight:700;box-shadow:0 4px 16px rgba(192,57,43,.25);transition:all .2s;}
         .nav-cta:hover{transform:translateY(-2px);box-shadow:0 6px 24px rgba(192,57,43,.35);}
 
@@ -346,6 +348,7 @@ export default function Landing() {
           </div>
           <div className="nav-links">
             <a href="#how">How it Works</a>
+            <a href="/how-it-works" className="nav-guide">Full Guide</a>
             <a href="#features">Features</a>
             <a href="#testimonials">Reviews</a>
             <a className="nav-cta" onClick={() => router.push("/login")}>Get Started — It&apos;s Free</a>
@@ -537,7 +540,7 @@ export default function Landing() {
           <div className="footer-col">
             <h4>Resources</h4>
             <a href="#">Secret Santa tips</a>
-            <a href="#">Gift exchange guide</a>
+            <a href="/how-it-works">Gift exchange guide</a>
             <a href="#">Wishlist ideas</a>
             <a href="/privacy">Privacy Policy</a>
             <a href="/terms">Terms of Use</a>
@@ -545,6 +548,7 @@ export default function Landing() {
           </div>
           <div className="footer-col">
             <h4>Connect</h4>
+            <TipJarFooterLink />
             <a href="#">Facebook</a>
             <a href="#">Instagram</a>
             <a href="mailto:mysecretsanta.notifications@gmail.com">Contact Us</a>

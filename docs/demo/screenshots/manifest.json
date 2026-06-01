@@ -1,0 +1,205 @@
+[
+  {
+    "id": "landing",
+    "title": "Landing page",
+    "route": "/",
+    "purpose": "Public first impression and main starting point.",
+    "image": "screenshots/landing.jpg"
+  },
+  {
+    "id": "login",
+    "title": "Login",
+    "route": "/login",
+    "purpose": "Sign in with email or Google before opening private groups.",
+    "image": "screenshots/login.jpg"
+  },
+  {
+    "id": "createAccount",
+    "title": "Create Account",
+    "route": "/create-account",
+    "purpose": "New-user registration and invite-friendly account setup.",
+    "image": "screenshots/createAccount.jpg"
+  },
+  {
+    "id": "forgotPassword",
+    "title": "Forgot Password",
+    "route": "/forgot-password",
+    "purpose": "Start a password reset for email/password accounts.",
+    "image": "screenshots/forgotPassword.jpg"
+  },
+  {
+    "id": "resetPassword",
+    "title": "Reset Password",
+    "route": "/reset-password",
+    "purpose": "Set a new password after opening a reset link.",
+    "image": "screenshots/resetPassword.jpg"
+  },
+  {
+    "id": "invite",
+    "title": "Invite Link",
+    "route": "/invite/[token]",
+    "purpose": "Join a group from a private invite link or see a safe invalid-invite message.",
+    "image": "screenshots/invite.jpg"
+  },
+  {
+    "id": "inviteEmail",
+    "title": "Invite Email",
+    "route": "email",
+    "purpose": "Email event that sends a private group invite to a recipient.",
+    "image": "screenshots/inviteEmail.jpg"
+  },
+  {
+    "id": "welcomeEmail",
+    "title": "Welcome Email",
+    "route": "email",
+    "purpose": "Email event sent after first sign-in or account setup.",
+    "image": "screenshots/welcomeEmail.jpg"
+  },
+  {
+    "id": "dashboard",
+    "title": "Dashboard",
+    "route": "/dashboard",
+    "purpose": "At-a-glance status for active exchanges and next best actions.",
+    "image": "screenshots/dashboard.jpg"
+  },
+  {
+    "id": "groups",
+    "title": "My Groups",
+    "route": "/groups",
+    "purpose": "All exchanges the user belongs to, plus health reminders for each group.",
+    "image": "screenshots/groups.jpg"
+  },
+  {
+    "id": "createGroup",
+    "title": "Create Group",
+    "route": "/create-group",
+    "purpose": "Organizer setup wizard for basics, budget, privacy, invites, and review.",
+    "image": "screenshots/createGroup.jpg"
+  },
+  {
+    "id": "groupWorkspace",
+    "title": "Group Workspace",
+    "route": "/group/[id]",
+    "purpose": "Owner and member workspace for participants, draw status, messages, and reveal controls.",
+    "image": "screenshots/groupWorkspace.jpg"
+  },
+  {
+    "id": "revealDay",
+    "title": "Live Reveal",
+    "route": "/group/[id]/reveal",
+    "purpose": "Shared event screen for reveal day, TV mode, replay, and final pairings.",
+    "image": "screenshots/revealDay.jpg"
+  },
+  {
+    "id": "wishlist",
+    "title": "My Wishlist",
+    "route": "/wishlist",
+    "purpose": "Personal gift clues that help the user's Santa choose well.",
+    "image": "screenshots/wishlist.jpg"
+  },
+  {
+    "id": "myGiftee",
+    "title": "My Giftee",
+    "route": "/my-giftee",
+    "purpose": "Recipient details shown only after names are drawn.",
+    "image": "screenshots/myGiftee.jpg"
+  },
+  {
+    "id": "shoppingIdeas",
+    "title": "Shopping Ideas",
+    "route": "/secret-santa",
+    "purpose": "Budget-guided ideas and shopping links based on recipient wishlist clues.",
+    "image": "screenshots/shoppingIdeas.jpg"
+  },
+  {
+    "id": "messages",
+    "title": "Secret Messages",
+    "route": "/secret-santa-chat",
+    "purpose": "Private questions between Santa and recipient without revealing identities early.",
+    "image": "screenshots/messages.jpg"
+  },
+  {
+    "id": "giftProgress",
+    "title": "Gift Progress",
+    "route": "/gift-tracking",
+    "purpose": "Planning, purchased, wrapped, ready-to-give, and received states.",
+    "image": "screenshots/giftProgress.jpg"
+  },
+  {
+    "id": "notifications",
+    "title": "Notifications",
+    "route": "/notifications",
+    "purpose": "Invite updates, reminders, private-message updates, and group activity.",
+    "image": "screenshots/notifications.jpg"
+  },
+  {
+    "id": "profile",
+    "title": "Profile",
+    "route": "/profile",
+    "purpose": "Name, photo or avatar, and personal preference management.",
+    "image": "screenshots/profile.jpg"
+  },
+  {
+    "id": "settings",
+    "title": "Settings",
+    "route": "/settings",
+    "purpose": "Reminder delivery, display mode, and Santa Buddy preferences.",
+    "image": "screenshots/settings.jpg"
+  },
+  {
+    "id": "reminders",
+    "title": "Reminder Preferences",
+    "route": "/reminders",
+    "purpose": "Detailed reminder, display, and Santa Buddy preference controls.",
+    "image": "screenshots/reminders.jpg"
+  },
+  {
+    "id": "history",
+    "title": "History",
+    "route": "/history",
+    "purpose": "Past exchanges after their wrap-up window ends.",
+    "image": "screenshots/history.jpg"
+  },
+  {
+    "id": "affiliateReport",
+    "title": "Affiliate Report",
+    "route": "/dashboard/affiliate-report",
+    "purpose": "Owner-only affiliate link and partner callback report screen.",
+    "image": "screenshots/affiliateReport.jpg"
+  },
+  {
+    "id": "howItWorks",
+    "title": "How It Works",
+    "route": "/how-it-works",
+    "purpose": "Public start-to-finish guide page.",
+    "image": "screenshots/howItWorks.jpg"
+  },
+  {
+    "id": "privacy",
+    "title": "Privacy Policy",
+    "route": "/privacy",
+    "purpose": "Public privacy and data handling explanation.",
+    "image": "screenshots/privacy.jpg"
+  },
+  {
+    "id": "terms",
+    "title": "Terms of Use",
+    "route": "/terms",
+    "purpose": "Public terms for using the app.",
+    "image": "screenshots/terms.jpg"
+  },
+  {
+    "id": "affiliateDisclosure",
+    "title": "Affiliate Disclosure",
+    "route": "/affiliate-disclosure",
+    "purpose": "Public explanation of affiliate shopping links.",
+    "image": "screenshots/affiliateDisclosure.jpg"
+  },
+  {
+    "id": "giftRadar",
+    "title": "Gift Radar",
+    "route": "/cool-app",
+    "purpose": "Public gift-planning helper and design guardrail route.",
+    "image": "screenshots/giftRadar.jpg"
+  }
+]

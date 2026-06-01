@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { AppShellIcon } from "@/app/components/AppShellIcons";
+import { TipJarSupportCard } from "@/app/components/TipJarSupport";
 import {
   DASHBOARD_THEME_CHANGED_EVENT,
   readStoredDashboardTheme,
@@ -387,6 +388,12 @@ export default function RemindersPage() {
             </div>
           </aside>
         </section>
+
+        <TipJarSupportCard
+          className="mt-6"
+          context="settings"
+          isDarkTheme={isMidnightTheme}
+        />
       </div>
     </main>
   );

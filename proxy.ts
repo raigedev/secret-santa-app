@@ -96,6 +96,7 @@ export async function proxy(req: NextRequest) {
     "/privacy",
     "/terms",
     "/affiliate-disclosure",
+    "/how-it-works",
     "/reset-password",
     "/auth/callback",
     "/.well-known/security.txt",
@@ -113,6 +114,7 @@ export async function proxy(req: NextRequest) {
     pathname === "/privacy" ||
     pathname === "/terms" ||
     pathname === "/affiliate-disclosure" ||
+    pathname === "/how-it-works" ||
     pathname === "/auth/callback" ||
     pathname === "/.well-known/security.txt" ||
     isInvitePage ||
