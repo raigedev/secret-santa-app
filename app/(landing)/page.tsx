@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useEffect, useRef } from "react";
-import { TipJarFooterLink } from "@/app/components/TipJarSupport";
+import { TipJarFooterLink, TipJarNavLink } from "@/app/components/TipJarSupport";
 
 // Small logo mark used in hero cards and smaller landing-page accents.
 function SantaIcon({ size = 40 }: { size?: number }) {
@@ -156,6 +156,11 @@ export default function Landing() {
         .nav-guide{color:var(--green) !important;}
         .nav-cta{background:var(--red) !important;color:#fff !important;padding:10px 24px;border-radius:12px;font-size:14px;font-weight:700;box-shadow:0 4px 16px rgba(192,57,43,.25);transition:all .2s;}
         .nav-cta:hover{transform:translateY(-2px);box-shadow:0 6px 24px rgba(192,57,43,.35);}
+        .nav-tip-jar-link{display:inline-flex !important;align-items:center;gap:10px;padding:7px 14px 7px 8px !important;border-radius:20px;background:linear-gradient(180deg,#255f34 0%,#1a6b2a 55%,#155021 100%);border:1px solid rgba(255,255,255,.4);box-shadow:0 10px 24px rgba(26,107,42,.18),inset 0 1px 0 rgba(255,255,255,.2);color:#fffdf7 !important;}
+        .nav-tip-jar-link:hover{color:#fff !important;transform:translateY(-2px);box-shadow:0 14px 30px rgba(26,107,42,.24),inset 0 1px 0 rgba(255,255,255,.24);}
+        .nav-tip-jar-copy{display:flex;flex-direction:column;gap:1px;line-height:1.05;text-align:left;}
+        .nav-tip-jar-eyebrow{font-size:8px;font-weight:900;letter-spacing:.12em;text-transform:uppercase;color:#fcce72;}
+        .nav-tip-jar-label{font-size:13px;font-weight:900;color:#fffdf7;}
 
         .hero{min-height:100vh;display:flex;align-items:center;justify-content:center;background:linear-gradient(170deg,#fdfbf7 0%,#fef3e2 25%,#fce7d0 50%,#f9d4b8 75%,#f0c5a0 100%);position:relative;overflow:hidden;padding:120px 24px 80px;}
         .hero::before{content:'';position:absolute;top:-120px;right:-80px;width:500px;height:500px;background:radial-gradient(circle,rgba(192,57,43,.06) 0%,transparent 70%);border-radius:50%;}
@@ -302,9 +307,12 @@ export default function Landing() {
         @media(max-width:768px){
           nav{padding:10px 0;}
           .nav-inner{padding:0 16px;gap:12px;}
-          .nav-links{gap:12px;}
-          .nav-links a:not(.nav-cta){display:none;}
+          .nav-links{gap:8px;}
+          .nav-links a:not(.nav-cta):not(.nav-tip-jar-link){display:none;}
           .nav-cta{padding:10px 18px;font-size:13px;}
+          .nav-tip-jar-link{padding:5px 10px 5px 6px !important;border-radius:999px;}
+          .nav-tip-jar-eyebrow{display:none;}
+          .nav-tip-jar-label{font-size:12px;}
           .hero{min-height:auto;padding:120px 16px 64px;}
           .hero-inner{flex-direction:column;text-align:center;gap:28px;}
           .hero-title{font-size:38px;}
@@ -328,7 +336,11 @@ export default function Landing() {
         }
 
         @media(max-width:560px){
-          .nav-inner{align-items:flex-start;}
+          .nav-inner{align-items:center;gap:8px;}
+          .nav-links .nav-cta{padding:10px 13px;font-size:0;white-space:nowrap;}
+          .nav-links .nav-cta::after{content:"Start";font-size:13px;}
+          .nav-tip-jar-link{padding:5px !important;min-width:50px;justify-content:center;}
+          .nav-tip-jar-copy{display:none;}
           .hero-badge{font-size:11px;padding:6px 12px;}
           .hero-title{font-size:32px;}
           .hero-desc{font-size:15px;}
@@ -356,6 +368,7 @@ export default function Landing() {
             <a href="/how-it-works" className="nav-guide">Full Guide</a>
             <a href="#features">Features</a>
             <a href="#testimonials">Reviews</a>
+            <TipJarNavLink />
             <a className="nav-cta" onClick={() => router.push("/login")}>Get Started — It&apos;s Free</a>
           </div>
         </div>
