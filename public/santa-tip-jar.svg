@@ -1,0 +1,68 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 96 96" fill="none">
+  <defs>
+    <linearGradient id="jarRed" x1="24" x2="72" y1="17" y2="89">
+      <stop stop-color="#ff5148" />
+      <stop offset=".55" stop-color="#d9262e" />
+      <stop offset="1" stop-color="#94242a" />
+    </linearGradient>
+    <linearGradient id="coinGold" x1="23" x2="72" y1="50" y2="66">
+      <stop stop-color="#ffe69a" />
+      <stop offset=".55" stop-color="#d99b27" />
+      <stop offset="1" stop-color="#9c6418" />
+    </linearGradient>
+    <linearGradient id="skin" x1="34" x2="62" y1="30" y2="52">
+      <stop stop-color="#ffd8bf" />
+      <stop offset="1" stop-color="#f4a886" />
+    </linearGradient>
+  </defs>
+  <ellipse cx="48" cy="87" rx="26" ry="5" fill="#2e3432" opacity=".12" />
+  <path
+    d="M22 40c0-14.4 11.6-26 26-26s26 11.6 26 26v28c0 13.2-10.8 22-26 22s-26-8.8-26-22V40Z"
+    fill="url(#jarRed)"
+  />
+  <path
+    d="M29 21.2c4.9-9.8 15.4-15.1 26.1-12.6C66 11.1 73.4 20.8 73 32.4H29V21.2Z"
+    fill="#f53335"
+  />
+  <path
+    d="M49.2 11.3c8.4-6.7 19.5-4.9 25.4 2.1 5.8 6.8 5.5 16.6 1.3 23l-8.7-4.5c2.2-5.3.5-10.9-3.9-13.8-4.1-2.7-9.4-2.1-13.7 2.1l-.4-8.9Z"
+    fill="#e92e35"
+  />
+  <circle cx="76.6" cy="36.6" r="7.9" fill="#fff4e5" />
+  <path d="M24.2 31.1h48.6" stroke="#fff4e5" stroke-linecap="round" stroke-width="8.8" />
+  <path d="M36 20.2h24" stroke="#6d1016" stroke-linecap="round" stroke-width="4" />
+  <path
+    d="M31 51.6c7.8-6.7 26.1-7.5 34 0v11.2H31V51.6Z"
+    fill="url(#coinGold)"
+  />
+  <circle cx="29.5" cy="57" r="6.8" fill="#e7ae35" stroke="#ffe493" stroke-width="1.6" />
+  <circle cx="39" cy="53.2" r="6.6" fill="#efbd43" stroke="#ffe493" stroke-width="1.4" />
+  <circle cx="57" cy="53.2" r="6.6" fill="#efbd43" stroke="#ffe493" stroke-width="1.4" />
+  <circle cx="66.5" cy="57" r="6.8" fill="#e7ae35" stroke="#ffe493" stroke-width="1.6" />
+  <path
+    d="M33.2 31.4h29.6v11.2c0 8.2-6.6 14.8-14.8 14.8s-14.8-6.6-14.8-14.8V31.4Z"
+    fill="url(#skin)"
+  />
+  <path
+    d="M28.8 45.6c2.3-5.6 8.8-4.3 12.5-.8 2.1 2.1 4.1 3.5 6.7 3.5s4.6-1.4 6.7-3.5c3.7-3.5 10.2-4.8 12.5.8 2 4.9-1.5 12.5-19.2 12.5S26.8 50.5 28.8 45.6Z"
+    fill="#fff8ec"
+  />
+  <path
+    d="M31.8 54.4c6.7 6.4 25.7 6.4 32.4 0v9.2c0 7.6-6.4 13.4-16.2 13.4s-16.2-5.8-16.2-13.4v-9.2Z"
+    fill="#fff8ec"
+  />
+  <circle cx="40" cy="38.1" r="2.7" fill="#27312d" />
+  <circle cx="56" cy="38.1" r="2.7" fill="#27312d" />
+  <circle cx="48" cy="43.4" r="4.4" fill="#f08572" />
+  <path d="M44.8 50c2 1.9 4.4 1.9 6.4 0" stroke="#a63b3f" stroke-linecap="round" stroke-width="2.4" />
+  <path d="M35.2 42.3c2.7 1.8 5.3 1.8 8 0" stroke="#fff3e0" stroke-linecap="round" stroke-width="3" />
+  <path d="M52.8 42.3c2.7 1.8 5.3 1.8 8 0" stroke="#fff3e0" stroke-linecap="round" stroke-width="3" />
+  <path
+    d="M22 68.4c7.2 4.1 44.8 4.1 52 0v9.5C74 80 72.6 82 70.5 82.6c-10.7 3.1-34.3 3.1-45 0A4.9 4.9 0 0 1 22 77.9v-9.5Z"
+    fill="#202725"
+  />
+  <path d="M31.5 68.9h8.2l-.7 14.5h-7.5V68.9Z" fill="#fff4e5" opacity=".95" />
+  <rect x="38" y="67.2" width="20" height="16.6" rx="3.2" fill="#f5c24f" stroke="#7a4b12" stroke-width="2" />
+  <rect x="43" y="71.3" width="10" height="7.7" rx="1.7" fill="#fff1bd" stroke="#8f5c17" stroke-width="1.6" />
+  <path d="M26.2 82.3c8.2 5.2 35.4 5.2 43.6 0" stroke="#6d1016" stroke-linecap="round" stroke-width="2.2" opacity=".32" />
+</svg>

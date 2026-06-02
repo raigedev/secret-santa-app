@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import type { ReactNode } from "react";
 import { getSafeTipJarUrl } from "@/lib/support/tip-jar";
 
@@ -22,19 +23,19 @@ const TIP_JAR_COPY: Record<Exclude<TipJarContext, "footer">, TipJarCopy> = {
   "group-created": {
     body:
       "Your exchange is ready. If this saved you time, an optional tip helps keep the app running.",
-    eyebrow: "Support the cause",
+    eyebrow: "Optional support",
     title: "Celebrate with a tiny tip.",
   },
   profile: {
     body:
       "The app stays free to use. Tips help cover hosting, email, and little improvements.",
-    eyebrow: "Support the cause",
-    title: "Tip the Santa jar.",
+    eyebrow: "Optional support",
+    title: "Support My Secret Santa.",
   },
   settings: {
     body:
       "If the app helped your exchange run smoother, an optional tip helps keep it maintained.",
-    eyebrow: "Support the cause",
+    eyebrow: "Optional support",
     title: "Keep the magic running.",
   },
 };
@@ -42,60 +43,20 @@ const TIP_JAR_COPY: Record<Exclude<TipJarContext, "footer">, TipJarCopy> = {
 function TipJarIcon({ compact = false }: { compact?: boolean }) {
   return (
     <span
-      className={`grid shrink-0 place-items-center bg-[#fff7e2] text-[#812227] shadow-[inset_0_0_0_1px_rgba(123,89,2,.12),0_14px_26px_rgba(164,60,63,.08)] ${
-        compact ? "h-9 w-9 rounded-[14px]" : "h-14 w-14 rounded-[22px]"
+      className={`grid shrink-0 place-items-center text-[#812227] ${
+        compact ? "h-10 w-10" : "h-16 w-16"
       }`}
       aria-hidden="true"
     >
-      <svg viewBox="0 0 64 64" className={compact ? "h-7 w-7" : "h-11 w-11"} fill="none">
-        <ellipse cx="32" cy="55" rx="18" ry="4.5" fill="#2e3432" opacity=".12" />
-        <path
-          d="M19 23.5h26l-2.3 25.2A5.8 5.8 0 0 1 37 54H27a5.8 5.8 0 0 1-5.7-5.3L19 23.5Z"
-          fill="#fffefa"
-        />
-        <path
-          d="M21 24.5h22l-2.1 22.9A4.1 4.1 0 0 1 36.8 51H27.2a4.1 4.1 0 0 1-4.1-3.6L21 24.5Z"
-          fill="#f9faf8"
-        />
-        <path
-          d="M20.5 27.8c4.9 2.6 17.9 2.6 23 0M19 23.5h26l-2.3 25.2A5.8 5.8 0 0 1 37 54H27a5.8 5.8 0 0 1-5.7-5.3L19 23.5Z"
-          stroke="#48664e"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          strokeWidth="2.6"
-        />
-        <path
-          d="M25 36.5c3.1-2.3 10.9-2.3 14 0"
-          stroke="#d9ae56"
-          strokeLinecap="round"
-          strokeWidth="3"
-        />
-        <path
-          d="M28 41.2h8"
-          stroke="#a43c3f"
-          strokeLinecap="round"
-          strokeWidth="3"
-        />
-        <path
-          d="M20 22.8C22.4 15 29 8.6 38.9 9.2c8.1.5 11.2 7.8 11.7 13.6H20Z"
-          fill="#c71824"
-        />
-        <path
-          d="M18.2 21.3h31.4"
-          stroke="#fffefa"
-          strokeLinecap="round"
-          strokeWidth="5.5"
-        />
-        <circle cx="49" cy="22.7" r="5.2" fill="#fffefa" />
-        <circle cx="24.5" cy="34.8" r="2.1" fill="#2e3432" />
-        <circle cx="39.5" cy="34.8" r="2.1" fill="#2e3432" />
-        <path
-          d="M28.2 45.3c2.2 1.6 5.4 1.6 7.6 0"
-          stroke="#48664e"
-          strokeLinecap="round"
-          strokeWidth="2.4"
-        />
-      </svg>
+      <Image
+        src="/santa-tip-jar.svg"
+        alt=""
+        width={compact ? 40 : 64}
+        height={compact ? 40 : 64}
+        className="h-full w-full object-contain"
+        draggable={false}
+        unoptimized
+      />
     </span>
   );
 }
@@ -138,8 +99,31 @@ export function TipJarFooterLink({ children }: { children?: ReactNode }) {
     >
       <TipJarIcon compact />
       <span className="footer-tip-jar-copy">
-        <span className="footer-tip-jar-eyebrow">Support the cause</span>
-        <span className="footer-tip-jar-label">Tip the Santa jar</span>
+        <span className="footer-tip-jar-eyebrow">Like the app?</span>
+        <span className="footer-tip-jar-label">Support us</span>
+      </span>
+    </a>
+  );
+}
+
+export function TipJarNavLink() {
+  const tipJarUrl = getSafeTipJarUrl();
+
+  if (!tipJarUrl) {
+    return null;
+  }
+
+  return (
+    <a
+      className="nav-tip-jar-link"
+      href={tipJarUrl}
+      target="_blank"
+      rel="noopener noreferrer"
+    >
+      <TipJarIcon compact />
+      <span className="nav-tip-jar-copy">
+        <span className="nav-tip-jar-eyebrow">Like the app?</span>
+        <span className="nav-tip-jar-label">Support us</span>
       </span>
     </a>
   );
@@ -198,7 +182,7 @@ export function TipJarSupportCard({
             target="_blank"
             rel="noopener noreferrer"
           >
-            Tip the Santa jar
+            Support us
             <span className="gift-button-icon" aria-hidden="true">
               <ExternalArrowIcon />
             </span>
