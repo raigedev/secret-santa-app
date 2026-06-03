@@ -3,13 +3,15 @@ const PROFILE_AVATAR_PATH_PATTERN =
   // user-controlled objects that happen to live in the user's storage folder.
   /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\/avatar-[a-z0-9]+-[a-z0-9]+\.(jpg|png|webp)$/i;
 
+export const PROFILE_AVATAR_BUCKET = "profile-avatars";
+
 export const PROFILE_AVATAR_EXTENSIONS_BY_TYPE = new Map([
   ["image/jpeg", "jpg"],
   ["image/png", "png"],
   ["image/webp", "webp"],
 ]);
 
-function isProfileAvatarStoragePathForUser(
+export function isProfileAvatarStoragePathForUser(
   userId: string | null | undefined,
   storagePath: string | null | undefined
 ): boolean {

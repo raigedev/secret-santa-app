@@ -211,10 +211,7 @@ function getPostbackBodyPreflightResponse(request: NextRequest): Response | null
   return null;
 }
 
-async function buildUnauthorizedPostbackResponse(
-  request: NextRequest,
-  payload: PostbackPayload
-): Promise<Response> {
+async function buildUnauthorizedPostbackResponse(request: NextRequest): Promise<Response> {
   const rateLimit = await enforceRateLimit({
     action: "affiliate.lazada.postback.unauthorized",
     maxAttempts: 100,
@@ -238,7 +235,7 @@ async function buildUnauthorizedPostbackResponse(
     details: {
       hasProvidedSecret: Boolean(getProvidedPostbackSecret(request)),
       method: request.method,
-      payloadKeyCount: Object.keys(payload).length,
+      queryParamCount: request.nextUrl.searchParams.size,
     },
     eventType: "affiliate.lazada.postback.unauthorized",
     outcome: "failure",
@@ -254,16 +251,16 @@ async function handlePostback(request: NextRequest) {
     return preflightResponse;
   }
 
+  if (!isAuthorizedPostback(request)) {
+    return buildUnauthorizedPostbackResponse(request);
+  }
+
   const payloadRead = await readPostbackPayload(request);
   if (!payloadRead.ok) {
     return payloadRead.response;
   }
 
   const rawPayload = payloadRead.payload;
-
-  if (!isAuthorizedPostback(request)) {
-    return buildUnauthorizedPostbackResponse(request, rawPayload);
-  }
 
   const clickToken = getFirstPayloadValue(rawPayload, [
     "subId6",

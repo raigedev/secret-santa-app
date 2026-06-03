@@ -16,8 +16,13 @@ import { supabaseAdmin } from "@/lib/supabase/admin";
 import {
   getProfileAvatarStoragePathForUser,
   normalizeProfileAvatarUrlForUser,
+  PROFILE_AVATAR_BUCKET,
   PROFILE_AVATAR_EXTENSIONS_BY_TYPE,
 } from "@/lib/profile/avatar";
+import {
+  cleanupOwnedGroupImagesAfterAccountDeletion,
+  cleanupProfileAvatarStorageForAccountDeletion,
+} from "@/lib/profile/account-media-cleanup";
 import { sanitizePlainText } from "@/lib/validation/common";
 
 // Profile actions stay on the server because they touch auth state and user-owned
@@ -27,7 +32,6 @@ const REMINDER_DELIVERY_MODES = new Set<ReminderDeliveryMode>([
   "immediate",
   "daily_digest",
 ]);
-const PROFILE_AVATAR_BUCKET = "profile-avatars";
 const MAX_PROFILE_AVATAR_BYTES = 2 * 1024 * 1024;
 const MAX_PROFILE_AVATAR_DECODED_SIDE = 6000;
 const MAX_PROFILE_AVATAR_DECODED_PIXELS = 12_000_000;
@@ -398,22 +402,27 @@ export async function deleteAccount(): Promise<{ success: boolean; message: stri
 
   const { user } = context;
   const normalizedEmail = (user.email || "").toLowerCase();
-  const [ownedGroupsResult, membershipsByUserResult, membershipsByEmailResult] = await Promise.all([
-    supabaseAdmin.from("groups").select("id, name").eq("owner_id", user.id),
-    supabaseAdmin
-      .from("group_members")
-      .select("id, group_id, role, status")
-      .eq("user_id", user.id),
-    normalizedEmail
-      ? supabaseAdmin
-          .from("group_members")
-          .select("id, group_id, role, status")
-          .eq("email", normalizedEmail)
-      : Promise.resolve({ data: [], error: null }),
-  ]);
+  const [ownedGroupsResult, membershipsByUserResult, membershipsByEmailResult, profileResult] =
+    await Promise.all([
+      supabaseAdmin.from("groups").select("id, name, image_url").eq("owner_id", user.id),
+      supabaseAdmin
+        .from("group_members")
+        .select("id, group_id, role, status")
+        .eq("user_id", user.id),
+      normalizedEmail
+        ? supabaseAdmin
+            .from("group_members")
+            .select("id, group_id, role, status")
+            .eq("email", normalizedEmail)
+        : Promise.resolve({ data: [], error: null }),
+      supabaseAdmin.from("profiles").select("avatar_url").eq("user_id", user.id).maybeSingle(),
+    ]);
 
   const discoveryError =
-    ownedGroupsResult.error || membershipsByUserResult.error || membershipsByEmailResult.error;
+    ownedGroupsResult.error ||
+    membershipsByUserResult.error ||
+    membershipsByEmailResult.error ||
+    profileResult.error;
 
   if (discoveryError) {
     await recordServerFailure({
@@ -490,6 +499,15 @@ export async function deleteAccount(): Promise<{ success: boolean; message: stri
     }
   }
 
+  const avatarCleanupResult = await cleanupProfileAvatarStorageForAccountDeletion(
+    user.id,
+    profileResult.data?.avatar_url
+  );
+
+  if (!avatarCleanupResult.success) {
+    return { success: false, message: avatarCleanupResult.message };
+  }
+
   const { error: deleteUserError } = await supabaseAdmin.auth.admin.deleteUser(user.id);
 
   if (deleteUserError) {
@@ -503,6 +521,11 @@ export async function deleteAccount(): Promise<{ success: boolean; message: stri
 
     return { success: false, message: "We could not delete your account. Please try again." };
   }
+
+  const removedOwnedGroupImageCount = await cleanupOwnedGroupImagesAfterAccountDeletion(
+    user.id,
+    (ownedGroupsResult.data || []).map((group) => group.image_url)
+  );
 
   if (normalizedEmail) {
     const { error: cleanupError } = await supabaseAdmin
@@ -527,6 +550,8 @@ export async function deleteAccount(): Promise<{ success: boolean; message: stri
     details: {
       ownedGroupCount: ownedGroupsResult.data?.length || 0,
       removedMembershipCount: membershipById.size,
+      removedOwnedGroupImageCount,
+      removedProfileAvatarCount: avatarCleanupResult.removedCount,
     },
     eventType: "profile.delete_account",
     outcome: "success",

@@ -1131,6 +1131,19 @@ test("lazada postback unauthorized rate limit does not trust spoofed client IP h
     postbackRouteSource,
     /subject:\s*UNAUTHORIZED_POSTBACK_RATE_LIMIT_SUBJECT/
   );
+  assert.match(postbackRouteSource, /buildUnauthorizedPostbackResponse\(request\)/);
+
+  const unauthorizedIndex = postbackRouteSource.indexOf(
+    "if (!isAuthorizedPostback(request))"
+  );
+  const bodyReadIndex = postbackRouteSource.indexOf(
+    "const payloadRead = await readPostbackPayload(request)"
+  );
+
+  assert.ok(
+    unauthorizedIndex > 0 && unauthorizedIndex < bodyReadIndex,
+    "Unauthorized postbacks should be rejected before reading the request body."
+  );
 });
 
 test("lazada match route requires access to the wishlist item before matching or priming", () => {
@@ -1422,6 +1435,7 @@ test("deployed cron endpoints require configured secrets", () => {
   assert.match(deployedRuntimeSource, /process\.env\.VERCEL_ENV\?\.trim\(\)/);
   assert.match(deployedRuntimeSource, /process\.env\.VERCEL_URL\?\.trim\(\)/);
   assert.match(deployedRuntimeSource, /process\.env\.NODE_ENV !== "production"/);
+  assert.match(deployedRuntimeSource, /function isDeployedAppRuntime\(\)/);
   assert.match(deployedRuntimeSource, /!isDeployedAppRuntime\(\)/);
 
   for (const routeSource of [lazadaHealthRouteSource, reminderProcessorRouteSource]) {
@@ -1548,6 +1562,10 @@ test("advisor foreign key performance indexes are durable", () => {
 test("profile avatar cache-busting stays out of persisted avatar urls", () => {
   const avatarHelperSource = readFileSync("lib/profile/avatar.ts", "utf8");
   const profileActionsSource = readFileSync("app/profile/actions.ts", "utf8");
+  const accountMediaCleanupSource = readFileSync(
+    "lib/profile/account-media-cleanup.ts",
+    "utf8"
+  );
   const profilePageSource = readFileSync("app/profile/page.tsx", "utf8");
   const imageUploadSource = readFileSync("lib/security/image-upload.ts", "utf8");
   const viewerProfileSource = readFileSync("app/components/viewer-profile-client.ts", "utf8");
@@ -1555,6 +1573,7 @@ test("profile avatar cache-busting stays out of persisted avatar urls", () => {
 
   assert.match(avatarHelperSource, /PROFILE_AVATAR_PATH_PATTERN/);
   assert.match(avatarHelperSource, /avatar-\[a-z0-9\]\+-\[a-z0-9\]\+\\\.\(jpg\|png\|webp\)/);
+  assert.match(avatarHelperSource, /export function isProfileAvatarStoragePathForUser/);
   assert.match(avatarHelperSource, /export function normalizeProfileAvatarUrlForUser/);
   assert.match(avatarHelperSource, /isProfileAvatarStoragePathForUser\(userId, storagePath\)/);
   assert.match(
@@ -1585,6 +1604,10 @@ test("profile avatar cache-busting stays out of persisted avatar urls", () => {
   assert.match(profileActionsSource, /supabaseAdmin\.storage[\s\S]{0,120}\.upload\(path, preparedAvatar\.image\.bytes/);
   assert.match(profileActionsSource, /getProfileAvatarStoragePathForUser/);
   assert.match(profileActionsSource, /\.remove\(\[previousAvatarPath\]\)/);
+  assert.match(profileActionsSource, /cleanupProfileAvatarStorageForAccountDeletion/);
+  assert.match(accountMediaCleanupSource, /import "server-only";/);
+  assert.match(accountMediaCleanupSource, /profile\.delete_account\.avatar_cleanup/);
+  assert.match(accountMediaCleanupSource, /\.from\(PROFILE_AVATAR_BUCKET\)[\s\S]{0,120}\.remove\(\[\.\.\.avatarPaths\]\)/);
   assert.match(imageUploadSource, /function bytesMatchContentType/);
   assert.match(imageUploadSource, /Buffer\.from\(await file\.arrayBuffer\(\)\)/);
   assert.match(imageUploadSource, /bytes\.length > options\.maxBytes/);
@@ -1646,10 +1669,18 @@ test("group images are server-uploaded after validation", () => {
     "utf8"
   );
   const createGroupActionsSource = readFileSync("app/create-group/actions.ts", "utf8");
+  const groupActionsSource = readFileSync("app/group/[id]/actions.ts", "utf8");
+  const profileActionsSource = readFileSync("app/profile/actions.ts", "utf8");
+  const accountMediaCleanupSource = readFileSync(
+    "lib/profile/account-media-cleanup.ts",
+    "utf8"
+  );
   const createGroupPageSource = readFileSync("app/create-group/page.tsx", "utf8");
+  const groupImageSource = readFileSync("lib/groups/group-image.ts", "utf8");
   const groupImageUploadSource = readFileSync("lib/groups/group-image-upload.ts", "utf8");
   const imageUploadSource = readFileSync("lib/security/image-upload.ts", "utf8");
 
+  assert.match(groupImageSource, /export function normalizeGroupImagePath/);
   assert.match(groupImageUploadSource, /prepareVerifiedImageUpload\(file/);
   assert.match(imageUploadSource, /import "server-only";/);
   assert.match(imageUploadSource, /bytesMatchContentType/);
@@ -1658,6 +1689,13 @@ test("group images are server-uploaded after validation", () => {
   assert.match(createGroupActionsSource, /prepareGroupImageUpload\(groupImage\)/);
   assert.match(createGroupActionsSource, /uploadGroupImage\(/);
   assert.match(createGroupActionsSource, /supabaseAdmin\.storage/);
+  assert.match(groupActionsSource, /\.select\("owner_id, name, image_url"\)/);
+  assert.match(groupActionsSource, /cleanupDeletedGroupImage/);
+  assert.match(groupActionsSource, /normalizeGroupImagePath\(imageValue\)/);
+  assert.match(groupActionsSource, /\.from\(GROUP_IMAGE_BUCKET\)[\s\S]{0,120}\.remove\(\[groupImagePath\]\)/);
+  assert.match(profileActionsSource, /\.select\("id, name, image_url"\)/);
+  assert.match(profileActionsSource, /cleanupOwnedGroupImagesAfterAccountDeletion/);
+  assert.match(accountMediaCleanupSource, /profile\.delete_account\.group_image_cleanup/);
   assert.doesNotMatch(createGroupPageSource, /supabase\.storage/);
   assert.match(groupImageMigrationSource, /where id = 'group-images'/);
   assert.match(groupImageMigrationSource, /file_size_limit = 2097152/i);
