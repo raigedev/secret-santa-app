@@ -178,10 +178,10 @@ export default function Landing() {
         .hero-title{font-family:var(--font-landing-serif),serif;font-size:56px;font-weight:900;line-height:1.1;color:#1a1a1a;margin-bottom:20px;}
         .hero-title span{background:linear-gradient(135deg,var(--red),var(--red-light));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;}
         .hero-desc{font-size:18px;color:#6b7280;line-height:1.7;margin-bottom:32px;max-width:480px;}
-        .hero-buttons{display:flex;gap:14px;flex-wrap:wrap;}
-        .btn-primary{background:linear-gradient(135deg,var(--red),var(--red-light));color:#fff;padding:16px 36px;border-radius:14px;font-size:16px;font-weight:800;border:none;cursor:pointer;font-family:inherit;box-shadow:0 6px 24px rgba(192,57,43,.3);transition:all .25s;display:inline-flex;align-items:center;gap:8px;}
+        .hero-buttons{display:flex;gap:14px;flex-wrap:wrap;align-items:stretch;}
+        .btn-primary{background:linear-gradient(135deg,var(--red),var(--red-light));color:#fff;padding:16px 36px;border-radius:14px;font-size:16px;font-weight:800;border:none;cursor:pointer;font-family:inherit;box-shadow:0 6px 24px rgba(192,57,43,.3);transition:all .25s;display:inline-flex;align-items:center;justify-content:center;gap:8px;min-width:255px;min-height:60px;line-height:1.2;text-align:center;white-space:nowrap;}
         .btn-primary:hover{transform:translateY(-3px);box-shadow:0 10px 32px rgba(192,57,43,.4);}
-        .btn-secondary{background:rgba(26,107,42,.06);color:var(--green);padding:16px 36px;border-radius:14px;font-size:16px;font-weight:800;border:2px solid rgba(26,107,42,.12);cursor:pointer;font-family:inherit;transition:all .25s;text-decoration:none;display:inline-flex;align-items:center;gap:8px;}
+        .btn-secondary{background:rgba(26,107,42,.06);color:var(--green);padding:16px 36px;border-radius:14px;font-size:16px;font-weight:800;border:2px solid rgba(26,107,42,.12);cursor:pointer;font-family:inherit;transition:all .25s;text-decoration:none;display:inline-flex;align-items:center;justify-content:center;gap:8px;min-width:255px;min-height:60px;line-height:1.2;text-align:center;white-space:nowrap;}
         .btn-secondary:hover{background:rgba(26,107,42,.1);transform:translateY(-2px);}
         .hero-stats{display:flex;gap:32px;margin-top:36px;}
         .hero-stat-num{font-family:var(--font-landing-display),sans-serif;font-size:28px;font-weight:700;color:var(--red);}
