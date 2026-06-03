@@ -71,6 +71,7 @@ const PUBLIC_ROUTE_PREFIXES = [
   "/affiliate-disclosure",
   "/how-it-works",
   "/cool-app",
+  "/support",
 ] as const;
 
 function shouldUseAppShell(pathname: string) {

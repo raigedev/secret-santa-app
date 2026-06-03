@@ -24,6 +24,10 @@ Public routes:
 - `/forgot-password`
 - `/reset-password`
 - `/privacy`
+- `/terms`
+- `/affiliate-disclosure`
+- `/how-it-works`
+- `/support`
 - `/invite/[token]`
 - `/auth/callback`
 - `/cool-app`

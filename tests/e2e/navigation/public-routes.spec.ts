@@ -6,6 +6,12 @@ test.describe("public route coverage", () => {
   test("landing route renders", async ({ page }) => {
     await page.goto("/");
     await expect(page.getByRole("button", { name: /start drawing names/i }).first()).toBeVisible();
+    await expect(page.getByRole("link", { name: /support my secret santa/i })).toBeVisible();
+    await expect(page.getByRole("link", { name: /support my secret santa/i })).toHaveAttribute(
+      "href",
+      "/support"
+    );
+    await expect(page.locator("footer").getByRole("link", { name: /support us/i })).toHaveCount(0);
   });
 
   test("landing hero CTA buttons stay aligned on desktop", async ({ page }) => {
@@ -89,6 +95,12 @@ test.describe("public route coverage", () => {
     await page.goto("/affiliate-disclosure");
     await expect(page.getByRole("heading", { name: /affiliate disclosure/i })).toBeVisible();
     await expect(page.getByRole("heading", { name: /amazon associate disclosure/i })).toBeVisible();
+  });
+
+  test("support route renders", async ({ page }) => {
+    await page.goto("/support");
+    await expect(page.getByRole("heading", { name: /support my secret santa/i })).toBeVisible();
+    await expect(page.getByRole("heading", { name: /keep the app free/i })).toBeVisible();
   });
 
   test("invalid invite token route renders an unavailable state", async ({ page }) => {

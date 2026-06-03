@@ -27,6 +27,7 @@ export const PUBLIC_PAGE_PATHS = [
   "/privacy",
   "/terms",
   "/affiliate-disclosure",
+  "/support",
   "/reset-password",
   `/invite/${INVALID_INVITE_TOKEN}`,
 ];

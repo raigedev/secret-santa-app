@@ -1186,11 +1186,11 @@ test("password reset links are not rewritten by OAuth code fallback", () => {
   assert.match(proxySource, /"\/reset-password"/);
 });
 
-test("public legal launch pages stay available without an app session", () => {
+test("public launch pages stay available without an app session", () => {
   const proxySource = readFileSync("proxy.ts", "utf8");
   const appShellSource = readFileSync("app/components/AppRouteShell.tsx", "utf8");
 
-  for (const publicLegalRoute of ["/terms", "/affiliate-disclosure"]) {
+  for (const publicLegalRoute of ["/terms", "/affiliate-disclosure", "/support"]) {
     assert.ok(proxySource.includes(`"${publicLegalRoute}"`));
     assert.ok(appShellSource.includes(`"${publicLegalRoute}"`));
   }

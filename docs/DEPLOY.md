@@ -84,7 +84,7 @@ Never paste real values into screenshots, docs, test fixtures, logs, or final an
 After pushing and waiting for Vercel to show Ready:
 
 1. Open the deployment URL.
-2. Check `/`, `/login`, `/create-account`, `/forgot-password`, and `/privacy`.
+2. Check `/`, `/login`, `/create-account`, `/forgot-password`, `/privacy`, and `/support`.
 3. Sign in with a safe account.
 4. Check `/dashboard` loads without stale empty recipient flashes.
 5. Open a group event page and confirm the visible shell appears quickly.
