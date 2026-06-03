@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import type { ReactNode } from "react";
-import { getSafeTipJarUrl } from "@/lib/support/tip-jar";
+import { getSafeTipJarUrl, getTipJarNavLinkTarget } from "@/lib/support/tip-jar";
 
 type TipJarContext = "footer" | "group-created" | "profile" | "settings";
 
@@ -107,18 +107,20 @@ export function TipJarFooterLink({ children }: { children?: ReactNode }) {
 }
 
 export function TipJarNavLink() {
-  const tipJarUrl = getSafeTipJarUrl();
-
-  if (!tipJarUrl) {
-    return null;
-  }
+  const tipJarLink = getTipJarNavLinkTarget();
+  const externalLinkProps = tipJarLink.isExternal
+    ? {
+        rel: "noopener noreferrer",
+        target: "_blank",
+      }
+    : {};
 
   return (
     <a
       className="nav-tip-jar-link"
-      href={tipJarUrl}
-      target="_blank"
-      rel="noopener noreferrer"
+      href={tipJarLink.href}
+      aria-label="Support My Secret Santa"
+      {...externalLinkProps}
     >
       <TipJarIcon compact />
       <span className="nav-tip-jar-copy">
