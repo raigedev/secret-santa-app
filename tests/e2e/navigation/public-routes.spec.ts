@@ -8,6 +8,29 @@ test.describe("public route coverage", () => {
     await expect(page.getByRole("button", { name: /start drawing names/i }).first()).toBeVisible();
   });
 
+  test("landing hero CTA buttons stay aligned on desktop", async ({ page }) => {
+    await page.setViewportSize({ width: 1365, height: 768 });
+    await page.goto("/");
+
+    const primaryCta = page.getByRole("button", { name: /start drawing names/i }).first();
+    const secondaryCta = page.getByRole("link", { name: /see how it works/i });
+
+    const [primaryBox, secondaryBox] = await Promise.all([
+      primaryCta.boundingBox(),
+      secondaryCta.boundingBox(),
+    ]);
+
+    expect(primaryBox).not.toBeNull();
+    expect(secondaryBox).not.toBeNull();
+
+    if (!primaryBox || !secondaryBox) return;
+
+    expect(Math.abs(primaryBox.y - secondaryBox.y)).toBeLessThan(1);
+    expect(Math.abs(primaryBox.height - secondaryBox.height)).toBeLessThan(1);
+    expect(Math.abs(primaryBox.width - secondaryBox.width)).toBeLessThan(2);
+    expect(Math.abs(primaryBox.y + primaryBox.height - (secondaryBox.y + secondaryBox.height))).toBeLessThan(1);
+  });
+
   test("login route renders", async ({ page }) => {
     await page.goto("/login");
     await expect(page.getByRole("heading", { name: /log in/i })).toBeVisible();
