@@ -1,4 +1,4 @@
-export function isDeployedAppRuntime(): boolean {
+function isDeployedAppRuntime(): boolean {
   return (
     process.env.VERCEL === "1" ||
     Boolean(process.env.VERCEL_ENV?.trim()) ||

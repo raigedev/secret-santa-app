@@ -21,6 +21,7 @@ import {
 import { hasDeclinedInviteResendTarget } from "@/lib/groups/resend-invite.mjs";
 import { recordAuditEvent, recordServerFailure } from "@/lib/security/audit";
 import { createNotification, createNotifications } from "@/lib/notifications";
+import { GROUP_IMAGE_BUCKET, normalizeGroupImagePath } from "@/lib/groups/group-image";
 import { enforceRateLimit } from "@/lib/security/rate-limit";
 import { supabaseAdmin } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
@@ -1294,7 +1295,7 @@ export async function deleteGroup(
   const { supabase, user } = context;
   const { data: group, error: groupLookupError } = await supabase
     .from("groups")
-    .select("owner_id, name")
+    .select("owner_id, name, image_url")
     .eq("id", groupId)
     .maybeSingle();
 
@@ -1357,6 +1358,12 @@ export async function deleteGroup(
     return { success: false, message: "This group was not deleted. Refresh and try again." };
   }
 
+  await cleanupDeletedGroupImage({
+    actorUserId: user.id,
+    groupId,
+    imageValue: group.image_url,
+  });
+
   await recordAuditEvent({
     actorUserId: user.id,
     eventType: "group.delete",
@@ -1366,6 +1373,37 @@ export async function deleteGroup(
   });
 
   return { success: true, message: "Group deleted." };
+}
+
+async function cleanupDeletedGroupImage({
+  actorUserId,
+  groupId,
+  imageValue,
+}: {
+  actorUserId: string;
+  groupId: string;
+  imageValue: string | null | undefined;
+}): Promise<void> {
+  const groupImagePath = normalizeGroupImagePath(imageValue);
+
+  if (!groupImagePath) {
+    return;
+  }
+
+  const { error } = await supabaseAdmin.storage
+    .from(GROUP_IMAGE_BUCKET)
+    .remove([groupImagePath]);
+
+  if (error) {
+    await recordServerFailure({
+      actorUserId,
+      details: { groupImagePathCount: 1 },
+      errorMessage: error.message,
+      eventType: "group.delete.image_cleanup",
+      resourceId: groupId,
+      resourceType: "group",
+    });
+  }
 }
 
 async function deleteGroupScopedNotifications(
