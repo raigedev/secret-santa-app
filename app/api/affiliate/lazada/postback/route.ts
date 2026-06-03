@@ -246,13 +246,13 @@ async function buildUnauthorizedPostbackResponse(request: NextRequest): Promise<
 }
 
 async function handlePostback(request: NextRequest) {
+  if (!isAuthorizedPostback(request)) {
+    return buildUnauthorizedPostbackResponse(request);
+  }
+
   const preflightResponse = getPostbackBodyPreflightResponse(request);
   if (preflightResponse) {
     return preflightResponse;
-  }
-
-  if (!isAuthorizedPostback(request)) {
-    return buildUnauthorizedPostbackResponse(request);
   }
 
   const payloadRead = await readPostbackPayload(request);

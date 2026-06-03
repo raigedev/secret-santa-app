@@ -10,7 +10,6 @@ import { recordServerFailure } from "@/lib/security/audit";
 import { supabaseAdmin } from "@/lib/supabase/admin";
 
 const PROFILE_AVATAR_CLEANUP_PAGE_SIZE = 100;
-const PROFILE_AVATAR_CLEANUP_MAX_OBJECTS = 1000;
 
 async function collectProfileAvatarPathsForDeletion(
   userId: string,
@@ -23,11 +22,7 @@ async function collectProfileAvatarPathsForDeletion(
     avatarPaths.add(currentAvatarPath);
   }
 
-  for (
-    let offset = 0;
-    offset < PROFILE_AVATAR_CLEANUP_MAX_OBJECTS;
-    offset += PROFILE_AVATAR_CLEANUP_PAGE_SIZE
-  ) {
+  for (let offset = 0; ; offset += PROFILE_AVATAR_CLEANUP_PAGE_SIZE) {
     const { data, error } = await supabaseAdmin.storage
       .from(PROFILE_AVATAR_BUCKET)
       .list(userId, {
@@ -105,10 +100,41 @@ export async function cleanupProfileAvatarStorageForAccountDeletion(
   return { removedCount: avatarPaths.length, success: true };
 }
 
+export async function cleanupReplacedProfileAvatar({
+  nextAvatarUrl,
+  previousAvatarUrl,
+  userId,
+}: {
+  nextAvatarUrl: string | null | undefined;
+  previousAvatarUrl: string | null | undefined;
+  userId: string;
+}): Promise<void> {
+  const previousAvatarPath = getProfileAvatarStoragePathForUser(userId, previousAvatarUrl);
+  const nextAvatarPath = getProfileAvatarStoragePathForUser(userId, nextAvatarUrl);
+
+  if (!previousAvatarPath || previousAvatarPath === nextAvatarPath) {
+    return;
+  }
+
+  const { error } = await supabaseAdmin.storage
+    .from(PROFILE_AVATAR_BUCKET)
+    .remove([previousAvatarPath]);
+
+  if (error) {
+    await recordServerFailure({
+      actorUserId: userId,
+      errorMessage: error.message,
+      eventType: "profile.avatar_cleanup",
+      resourceId: userId,
+      resourceType: "profile",
+    });
+  }
+}
+
 export async function cleanupOwnedGroupImagesAfterAccountDeletion(
   userId: string,
   imageValues: Array<string | null | undefined>
-): Promise<number> {
+): Promise<{ removedCount: number; success: true } | { message: string; success: false }> {
   const groupImagePaths = [
     ...new Set(
       imageValues
@@ -118,7 +144,7 @@ export async function cleanupOwnedGroupImagesAfterAccountDeletion(
   ];
 
   if (groupImagePaths.length === 0) {
-    return 0;
+    return { removedCount: 0, success: true };
   }
 
   const { error } = await supabaseAdmin.storage
@@ -135,8 +161,11 @@ export async function cleanupOwnedGroupImagesAfterAccountDeletion(
       resourceType: "profile",
     });
 
-    return 0;
+    return {
+      success: false,
+      message: "We could not clear your group photos. Please try again.",
+    };
   }
 
-  return groupImagePaths.length;
+  return { removedCount: groupImagePaths.length, success: true };
 }

@@ -14,7 +14,6 @@ import {
 import { prepareVerifiedImageUpload } from "@/lib/security/image-upload";
 import { supabaseAdmin } from "@/lib/supabase/admin";
 import {
-  getProfileAvatarStoragePathForUser,
   normalizeProfileAvatarUrlForUser,
   PROFILE_AVATAR_BUCKET,
   PROFILE_AVATAR_EXTENSIONS_BY_TYPE,
@@ -22,6 +21,7 @@ import {
 import {
   cleanupOwnedGroupImagesAfterAccountDeletion,
   cleanupProfileAvatarStorageForAccountDeletion,
+  cleanupReplacedProfileAvatar,
 } from "@/lib/profile/account-media-cleanup";
 import { sanitizePlainText } from "@/lib/validation/common";
 
@@ -213,6 +213,24 @@ export async function updateProfile(
     return { success: false, message: "Choose a valid currency." };
   }
 
+  const { data: currentProfile, error: currentProfileError } = await supabase
+    .from("profiles")
+    .select("avatar_url")
+    .eq("user_id", user.id)
+    .maybeSingle();
+
+  if (currentProfileError) {
+    await recordServerFailure({
+      actorUserId: user.id,
+      errorMessage: currentProfileError.message,
+      eventType: "profile.update.lookup",
+      resourceId: user.id,
+      resourceType: "profile",
+    });
+
+    return { success: false, message: "We could not save your profile. Please try again." };
+  }
+
   const { error } = await supabase
     .from("profiles")
     .update({
@@ -242,6 +260,12 @@ export async function updateProfile(
     });
     return { success: false, message: "We could not save your profile. Please try again." };
   }
+
+  await cleanupReplacedProfileAvatar({
+    nextAvatarUrl: cleanAvatarUrl,
+    previousAvatarUrl: currentProfile?.avatar_url,
+    userId: user.id,
+  });
 
   return { success: true, message: "Profile saved." };
 }
@@ -304,28 +328,6 @@ export async function uploadProfileAvatar(
     });
 
     return { success: false, message: "Failed to upload your photo. Please try again." };
-  }
-
-  const previousAvatarValue = formData.get("previousAvatarUrl");
-  const previousAvatarPath = getProfileAvatarStoragePathForUser(
-    user.id,
-    typeof previousAvatarValue === "string" ? sanitize(previousAvatarValue, 1000) : null
-  );
-
-  if (previousAvatarPath && previousAvatarPath !== path) {
-    const { error: cleanupError } = await supabaseAdmin.storage
-      .from(PROFILE_AVATAR_BUCKET)
-      .remove([previousAvatarPath]);
-
-    if (cleanupError) {
-      await recordServerFailure({
-        actorUserId: user.id,
-        errorMessage: cleanupError.message,
-        eventType: "profile.avatar_cleanup",
-        resourceId: user.id,
-        resourceType: "profile",
-      });
-    }
   }
 
   const { data } = supabaseAdmin.storage.from(PROFILE_AVATAR_BUCKET).getPublicUrl(path);
@@ -508,6 +510,41 @@ export async function deleteAccount(): Promise<{ success: boolean; message: stri
     return { success: false, message: avatarCleanupResult.message };
   }
 
+  const groupImageCleanupResult = await cleanupOwnedGroupImagesAfterAccountDeletion(
+    user.id,
+    (ownedGroupsResult.data || []).map((group) => group.image_url)
+  );
+
+  if (!groupImageCleanupResult.success) {
+    return { success: false, message: groupImageCleanupResult.message };
+  }
+
+  let removedPendingInviteCount = 0;
+  if (normalizedEmail) {
+    const { count, error: cleanupError } = await supabaseAdmin
+      .from("group_members")
+      .delete({ count: "exact" })
+      .eq("email", normalizedEmail)
+      .is("user_id", null);
+
+    if (cleanupError) {
+      await recordServerFailure({
+        actorUserId: user.id,
+        errorMessage: cleanupError.message,
+        eventType: "profile.delete_account.cleanup_pending_invites",
+        resourceId: user.id,
+        resourceType: "profile",
+      });
+
+      return {
+        success: false,
+        message: "We could not clear your pending invites. Please try again.",
+      };
+    }
+
+    removedPendingInviteCount = count || 0;
+  }
+
   const { error: deleteUserError } = await supabaseAdmin.auth.admin.deleteUser(user.id);
 
   if (deleteUserError) {
@@ -522,35 +559,13 @@ export async function deleteAccount(): Promise<{ success: boolean; message: stri
     return { success: false, message: "We could not delete your account. Please try again." };
   }
 
-  const removedOwnedGroupImageCount = await cleanupOwnedGroupImagesAfterAccountDeletion(
-    user.id,
-    (ownedGroupsResult.data || []).map((group) => group.image_url)
-  );
-
-  if (normalizedEmail) {
-    const { error: cleanupError } = await supabaseAdmin
-      .from("group_members")
-      .delete()
-      .eq("email", normalizedEmail)
-      .is("user_id", null);
-
-    if (cleanupError) {
-      await recordServerFailure({
-        actorUserId: user.id,
-        errorMessage: cleanupError.message,
-        eventType: "profile.delete_account.cleanup_pending_invites",
-        resourceId: user.id,
-        resourceType: "profile",
-      });
-    }
-  }
-
   await recordAuditEvent({
     actorUserId: user.id,
     details: {
       ownedGroupCount: ownedGroupsResult.data?.length || 0,
+      removedPendingInviteCount,
       removedMembershipCount: membershipById.size,
-      removedOwnedGroupImageCount,
+      removedOwnedGroupImageCount: groupImageCleanupResult.removedCount,
       removedProfileAvatarCount: avatarCleanupResult.removedCount,
     },
     eventType: "profile.delete_account",
