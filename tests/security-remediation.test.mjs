@@ -1136,13 +1136,16 @@ test("lazada postback unauthorized rate limit does not trust spoofed client IP h
   const unauthorizedIndex = postbackRouteSource.indexOf(
     "if (!isAuthorizedPostback(request))"
   );
+  const preflightIndex = postbackRouteSource.indexOf(
+    "const preflightResponse = getPostbackBodyPreflightResponse(request)"
+  );
   const bodyReadIndex = postbackRouteSource.indexOf(
     "const payloadRead = await readPostbackPayload(request)"
   );
 
   assert.ok(
-    unauthorizedIndex > 0 && unauthorizedIndex < bodyReadIndex,
-    "Unauthorized postbacks should be rejected before reading the request body."
+    unauthorizedIndex > 0 && unauthorizedIndex < preflightIndex && preflightIndex < bodyReadIndex,
+    "Unauthorized postbacks should be rejected before preflight or body parsing."
   );
 });
 
@@ -1602,11 +1605,16 @@ test("profile avatar cache-busting stays out of persisted avatar urls", () => {
   assert.match(profileActionsSource, /prepareVerifiedImageUpload/);
   assert.match(profileActionsSource, /buildProfileAvatarPath/);
   assert.match(profileActionsSource, /supabaseAdmin\.storage[\s\S]{0,120}\.upload\(path, preparedAvatar\.image\.bytes/);
-  assert.match(profileActionsSource, /getProfileAvatarStoragePathForUser/);
-  assert.match(profileActionsSource, /\.remove\(\[previousAvatarPath\]\)/);
+  assert.match(accountMediaCleanupSource, /getProfileAvatarStoragePathForUser/);
+  assert.doesNotMatch(profileActionsSource, /formData\.get\("previousAvatarUrl"\)/);
   assert.match(profileActionsSource, /cleanupProfileAvatarStorageForAccountDeletion/);
+  assert.match(profileActionsSource, /cleanupReplacedProfileAvatar/);
   assert.match(accountMediaCleanupSource, /import "server-only";/);
+  assert.match(accountMediaCleanupSource, /export async function cleanupReplacedProfileAvatar/);
+  assert.match(accountMediaCleanupSource, /profile\.avatar_cleanup/);
   assert.match(accountMediaCleanupSource, /profile\.delete_account\.avatar_cleanup/);
+  assert.doesNotMatch(accountMediaCleanupSource, /PROFILE_AVATAR_CLEANUP_MAX_OBJECTS/);
+  assert.match(accountMediaCleanupSource, /for \(let offset = 0; ; offset \+= PROFILE_AVATAR_CLEANUP_PAGE_SIZE\)/);
   assert.match(accountMediaCleanupSource, /\.from\(PROFILE_AVATAR_BUCKET\)[\s\S]{0,120}\.remove\(\[\.\.\.avatarPaths\]\)/);
   assert.match(imageUploadSource, /function bytesMatchContentType/);
   assert.match(imageUploadSource, /Buffer\.from\(await file\.arrayBuffer\(\)\)/);
@@ -1696,6 +1704,30 @@ test("group images are server-uploaded after validation", () => {
   assert.match(profileActionsSource, /\.select\("id, name, image_url"\)/);
   assert.match(profileActionsSource, /cleanupOwnedGroupImagesAfterAccountDeletion/);
   assert.match(accountMediaCleanupSource, /profile\.delete_account\.group_image_cleanup/);
+  assert.match(profileActionsSource, /profile\.delete_account\.cleanup_pending_invites/);
+  assert.match(profileActionsSource, /removedPendingInviteCount/);
+
+  const avatarCleanupIndex = profileActionsSource.indexOf(
+    "const avatarCleanupResult = await cleanupProfileAvatarStorageForAccountDeletion"
+  );
+  const groupImageCleanupIndex = profileActionsSource.indexOf(
+    "const groupImageCleanupResult = await cleanupOwned" +
+      "GroupImagesAfterAccountDeletion"
+  );
+  const pendingInviteCleanupIndex = profileActionsSource.indexOf(
+    "let removedPendingInviteCount = 0"
+  );
+  const deleteUserIndex = profileActionsSource.indexOf(
+    "const { error: deleteUserError } = await supabaseAdmin.auth.admin.deleteUser"
+  );
+
+  assert.ok(
+    avatarCleanupIndex > 0 &&
+      avatarCleanupIndex < groupImageCleanupIndex &&
+      groupImageCleanupIndex < pendingInviteCleanupIndex &&
+      pendingInviteCleanupIndex < deleteUserIndex,
+    "Discoverable media and invite cleanup should finish before deleting the auth user."
+  );
   assert.doesNotMatch(createGroupPageSource, /supabase\.storage/);
   assert.match(groupImageMigrationSource, /where id = 'group-images'/);
   assert.match(groupImageMigrationSource, /file_size_limit = 2097152/i);
