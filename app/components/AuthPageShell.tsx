@@ -30,7 +30,7 @@ function AuthPageBackground({
   return (
     <>
       <div className="absolute inset-0" style={AUTH_PAGE_BACKGROUND_STYLE} />
-      <div className="absolute inset-0 bg-[url('/snowflakes.svg')] bg-size-[320px_320px] bg-repeat opacity-10" />
+      <div className="snowflake-texture absolute inset-0 opacity-10" />
       {showDecorativeBlobs ? (
         <>
           <div className="absolute -left-32 -top-24 h-72 w-72 rounded-full bg-[#ffaba9]/30 blur-3xl" />

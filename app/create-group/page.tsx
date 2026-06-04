@@ -473,7 +473,7 @@ export default function CreateGroupPage() {
         fontFamily: "'Nunito', sans-serif",
       }}
     >
-      <div className="absolute inset-0 z-0 bg-[url('/snowflakes.svg')] bg-size-[320px_320px] bg-repeat opacity-20" />
+      <div className="snowflake-texture absolute inset-0 z-0 opacity-20" />
 
       <div className="holiday-panel relative z-10 mx-auto mb-5 flex w-full max-w-6xl flex-col gap-4 rounded-[28px] px-5 py-4">
         <button
