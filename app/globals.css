@@ -28,6 +28,12 @@ body {
   font-family: var(--app-body-font);
 }
 
+.snowflake-texture {
+  background-image: url("/snowflakes.svg");
+  background-repeat: repeat;
+  background-size: 320px 320px;
+}
+
 .holiday-panel {
   background:
     linear-gradient(135deg, rgba(255, 255, 255, 0.78), rgba(242, 244, 242, 0.54)),
