@@ -512,7 +512,10 @@ export async function deleteAccount(): Promise<{ success: boolean; message: stri
 
   const groupImageCleanupResult = await cleanupOwnedGroupImagesAfterAccountDeletion(
     user.id,
-    (ownedGroupsResult.data || []).map((group) => group.image_url)
+    (ownedGroupsResult.data || []).map((group) => ({
+      groupId: group.id,
+      imageValue: group.image_url,
+    }))
   );
 
   if (!groupImageCleanupResult.success) {

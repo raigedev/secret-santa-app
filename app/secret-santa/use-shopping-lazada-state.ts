@@ -229,22 +229,32 @@ export function useShoppingLazadaState({
   }, [matchedLazadaProductsByKey]);
 
   useEffect(() => {
-    const urlsToPrime = new Set<string>();
+    const primeRequests: Array<{
+      groupId: string;
+      urls: string[];
+      wishlistItemId: string;
+    }> = [];
 
     for (const assignment of assignments) {
       for (const item of assignment.receiver_wishlist) {
         const safeItemLink = normalizeOptionalWishlistUrl(item.item_link);
+        const primedKey = safeItemLink ? `url:${safeItemLink}` : "";
 
-        if (safeItemLink && isLazadaProductPageUrl(safeItemLink)) {
-          urlsToPrime.add(safeItemLink);
+        if (
+          safeItemLink &&
+          isLazadaProductPageUrl(safeItemLink) &&
+          !lazadaPrimedKeysRef.current.has(primedKey)
+        ) {
+          primeRequests.push({
+            groupId: assignment.group_id,
+            urls: [safeItemLink],
+            wishlistItemId: item.id,
+          });
         }
       }
     }
-    const unprimedUrls = Array.from(urlsToPrime).filter(
-      (url) => !lazadaPrimedKeysRef.current.has(`url:${url}`)
-    );
 
-    if (unprimedUrls.length === 0) {
+    if (primeRequests.length === 0) {
       return;
     }
 
@@ -258,7 +268,7 @@ export function useShoppingLazadaState({
             "Content-Type": "application/json",
           },
           body: JSON.stringify({
-            urls: unprimedUrls,
+            requests: primeRequests,
           }),
         });
 
@@ -266,8 +276,10 @@ export function useShoppingLazadaState({
           return;
         }
 
-        for (const url of unprimedUrls) {
-          lazadaPrimedKeysRef.current.add(`url:${url}`);
+        for (const primeRequest of primeRequests) {
+          for (const url of primeRequest.urls) {
+            lazadaPrimedKeysRef.current.add(`url:${url}`);
+          }
         }
       } catch {
         // Priming is a performance improvement only. Click-time resolution still works.

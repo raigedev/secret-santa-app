@@ -21,7 +21,10 @@ import {
 import { hasDeclinedInviteResendTarget } from "@/lib/groups/resend-invite.mjs";
 import { recordAuditEvent, recordServerFailure } from "@/lib/security/audit";
 import { createNotification, createNotifications } from "@/lib/notifications";
-import { GROUP_IMAGE_BUCKET, normalizeGroupImagePath } from "@/lib/groups/group-image";
+import {
+  getGroupImageStoragePathForOwnedGroup,
+  GROUP_IMAGE_BUCKET,
+} from "@/lib/groups/group-image";
 import { enforceRateLimit } from "@/lib/security/rate-limit";
 import { supabaseAdmin } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
@@ -1384,7 +1387,11 @@ async function cleanupDeletedGroupImage({
   groupId: string;
   imageValue: string | null | undefined;
 }): Promise<void> {
-  const groupImagePath = normalizeGroupImagePath(imageValue);
+  const groupImagePath = getGroupImageStoragePathForOwnedGroup({
+    groupId,
+    imageValue,
+    userId: actorUserId,
+  });
 
   if (!groupImagePath) {
     return;

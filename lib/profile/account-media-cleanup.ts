@@ -1,6 +1,9 @@
 import "server-only";
 
-import { GROUP_IMAGE_BUCKET, normalizeGroupImagePath } from "@/lib/groups/group-image";
+import {
+  getGroupImageStoragePathForOwnedGroup,
+  GROUP_IMAGE_BUCKET,
+} from "@/lib/groups/group-image";
 import {
   getProfileAvatarStoragePathForUser,
   isProfileAvatarStoragePathForUser,
@@ -133,12 +136,18 @@ export async function cleanupReplacedProfileAvatar({
 
 export async function cleanupOwnedGroupImagesAfterAccountDeletion(
   userId: string,
-  imageValues: Array<string | null | undefined>
+  ownedGroups: Array<{ groupId: string; imageValue: string | null | undefined }>
 ): Promise<{ removedCount: number; success: true } | { message: string; success: false }> {
   const groupImagePaths = [
     ...new Set(
-      imageValues
-        .map((imageValue) => normalizeGroupImagePath(imageValue))
+      ownedGroups
+        .map((group) =>
+          getGroupImageStoragePathForOwnedGroup({
+            groupId: group.groupId,
+            imageValue: group.imageValue,
+            userId,
+          })
+        )
         .filter((imagePath): imagePath is string => Boolean(imagePath))
     ),
   ];

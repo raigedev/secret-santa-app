@@ -2,8 +2,12 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 
 export const GROUP_IMAGE_BUCKET = "group-images";
 const GROUP_IMAGE_SIGNED_URL_TTL_SECONDS = 10 * 60;
-const GROUP_IMAGE_PATH_PATTERN =
-  /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\/cover\.(jpg|png|webp)$/i;
+const UUID_PATTERN_SOURCE =
+  "[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}";
+const GROUP_IMAGE_PATH_PATTERN = new RegExp(
+  `^(${UUID_PATTERN_SOURCE})\\/(${UUID_PATTERN_SOURCE})\\/cover\\.(jpg|png|webp)$`,
+  "i"
+);
 
 export function normalizeGroupImagePath(value: string | null | undefined): string | null {
   if (!value) {
@@ -31,6 +35,31 @@ export function normalizeGroupImagePath(value: string | null | undefined): strin
   } catch {
     return null;
   }
+}
+
+export function getGroupImageStoragePathForOwnedGroup(options: {
+  groupId: string;
+  imageValue: string | null | undefined;
+  userId: string;
+}): string | null {
+  const imagePath = normalizeGroupImagePath(options.imageValue);
+
+  if (!imagePath) {
+    return null;
+  }
+
+  const match = GROUP_IMAGE_PATH_PATTERN.exec(imagePath);
+  const imageOwnerId = match?.[1]?.toLowerCase();
+  const imageGroupId = match?.[2]?.toLowerCase();
+
+  if (
+    imageOwnerId !== options.userId.toLowerCase() ||
+    imageGroupId !== options.groupId.toLowerCase()
+  ) {
+    return null;
+  }
+
+  return imagePath;
 }
 
 export async function createSignedGroupImageUrl(
