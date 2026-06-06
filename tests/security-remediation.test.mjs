@@ -511,6 +511,54 @@ test("group membership rows cannot be moved by browser clients", () => {
   );
 });
 
+test("membership and chat writes stay behind server actions", () => {
+  const directWriteMigrationPath = [
+    "supabase",
+    "migrations",
+    [
+      "20260606161916",
+      "revoke",
+      "direct",
+      "browser",
+      "membership",
+      "message",
+      "writes.sql",
+    ].join("_"),
+  ].join("/");
+  // eslint-disable-next-line security/detect-non-literal-fs-filename -- Test only reads a fixed repo-local migration assembled from safe string pieces.
+  const migrationSource = readFileSync(
+    directWriteMigrationPath,
+    "utf8"
+  );
+  const chatActionsSource = readFileSync("app/secret-santa-chat/chat-actions.ts", "utf8");
+
+  assert.match(
+    migrationSource,
+    /revoke insert, delete on table public\.group_members from authenticated/i
+  );
+  assert.match(
+    migrationSource,
+    /drop policy if exists group_members_insert_for_owner on public\.group_members/i
+  );
+  assert.match(
+    migrationSource,
+    /drop policy if exists group_members_delete_for_owner_or_self on public\.group_members/i
+  );
+  assert.match(
+    migrationSource,
+    /revoke insert on table public\.messages from authenticated/i
+  );
+  assert.match(
+    migrationSource,
+    /drop policy if exists messages_insert_for_thread_participants on public\.messages/i
+  );
+  assert.match(chatActionsSource, /const \{ user \} = context;/);
+  assert.match(
+    chatActionsSource,
+    /supabaseAdmin[\s\S]{0,80}\.from\("messages"\)[\s\S]{0,80}\.insert/
+  );
+});
+
 test("draw exclusion rules preserve assignment privacy", () => {
   const drawActionSource = readFileSync("app/group/[id]/draw-action.ts", "utf8");
 
@@ -1104,10 +1152,20 @@ test("lazada prime-links route rate limits and constrains product IDs", () => {
     "app/api/affiliate/lazada/prime-links/route.ts",
     "utf8"
   );
+  const shoppingLazadaStateSource = readFileSync(
+    "app/secret-santa/use-shopping-lazada-state.ts",
+    "utf8"
+  );
+  const accessCheckIndex = primeLinksRouteSource.indexOf("canAccessRecipientWishlistItem");
+  const primingIndex = primeLinksRouteSource.indexOf("primeLazadaPromotionLinks({");
 
   assert.match(primeLinksRouteSource, /requireAuthenticatedAffiliateRoute/);
   assert.match(primeLinksRouteSource, /action:\s*"affiliate\.lazada\.prime_links"/);
   assert.match(primeLinksRouteSource, /maxAttempts:\s*60/);
+  assert.match(primeLinksRouteSource, /canAccessRecipientWishlistItem/);
+  assert.match(primeLinksRouteSource, /userId:\s*auth\.userId/);
+  assert.match(primeLinksRouteSource, /sanitizePrimeLinkRequests\(payload\.requests\)/);
+  assert.doesNotMatch(primeLinksRouteSource, /sanitizeProductIds\(payload\.productIds\)/);
   assert.match(
     primeLinksRouteSource,
     /LAZADA_PRODUCT_ID_PATTERN\s*=\s*\/\^\[0-9\]\{1,20\}\$\/;/
@@ -1117,6 +1175,13 @@ test("lazada prime-links route rate limits and constrains product IDs", () => {
     /\.filter\(\(productId\)\s*=>\s*LAZADA_PRODUCT_ID_PATTERN\.test\(productId\)\)/
   );
   assert.doesNotMatch(primeLinksRouteSource, /extractRequestClientIp|x-forwarded-for|cf-connecting-ip|x-real-ip/i);
+  assert.ok(
+    accessCheckIndex > 0 && accessCheckIndex < primingIndex,
+    "Recipient wishlist access must be checked before Lazada promotion-link priming."
+  );
+  assert.match(shoppingLazadaStateSource, /requests:\s*primeRequests/);
+  assert.match(shoppingLazadaStateSource, /groupId:\s*assignment\.group_id/);
+  assert.match(shoppingLazadaStateSource, /wishlistItemId:\s*item\.id/);
 });
 
 test("lazada postback unauthorized rate limit does not trust spoofed client IP headers", () => {
@@ -1694,16 +1759,26 @@ test("group images are server-uploaded after validation", () => {
   assert.match(imageUploadSource, /bytesMatchContentType/);
   assert.match(imageUploadSource, /readImageDimensions/);
   assert.match(imageUploadSource, /maxDecodedPixels/);
+  assert.match(groupImageSource, /export function getGroupImageStoragePathForOwnedGroup/);
+  assert.match(groupImageSource, /imageOwnerId !== options\.userId\.toLowerCase\(\)/);
+  assert.match(groupImageSource, /imageGroupId !== options\.groupId\.toLowerCase\(\)/);
   assert.match(createGroupActionsSource, /prepareGroupImageUpload\(groupImage\)/);
   assert.match(createGroupActionsSource, /uploadGroupImage\(/);
   assert.match(createGroupActionsSource, /supabaseAdmin\.storage/);
   assert.match(groupActionsSource, /\.select\("owner_id, name, image_url"\)/);
   assert.match(groupActionsSource, /cleanupDeletedGroupImage/);
-  assert.match(groupActionsSource, /normalizeGroupImagePath\(imageValue\)/);
+  assert.match(groupActionsSource, /getGroupImageStoragePathForOwnedGroup\(\{/);
+  assert.match(groupActionsSource, /userId:\s*actorUserId/);
   assert.match(groupActionsSource, /\.from\(GROUP_IMAGE_BUCKET\)[\s\S]{0,120}\.remove\(\[groupImagePath\]\)/);
   assert.match(profileActionsSource, /\.select\("id, name, image_url"\)/);
   assert.match(profileActionsSource, /cleanupOwnedGroupImagesAfterAccountDeletion/);
+  assert.match(profileActionsSource, /groupId:\s*group\.id/);
+  assert.match(profileActionsSource, /imageValue:\s*group\.image_url/);
   assert.match(accountMediaCleanupSource, /profile\.delete_account\.group_image_cleanup/);
+  assert.match(accountMediaCleanupSource, /getGroupImageStoragePathForOwnedGroup\(\{/);
+  assert.match(accountMediaCleanupSource, /groupId:\s*group\.groupId/);
+  assert.match(accountMediaCleanupSource, /imageValue:\s*group\.imageValue/);
+  assert.match(accountMediaCleanupSource, /userId,/);
   assert.match(profileActionsSource, /profile\.delete_account\.cleanup_pending_invites/);
   assert.match(profileActionsSource, /removedPendingInviteCount/);
 

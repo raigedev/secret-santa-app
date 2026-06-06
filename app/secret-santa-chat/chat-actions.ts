@@ -599,7 +599,7 @@ export async function sendMessage(
     return { success: false, message: context.message };
   }
 
-  const { supabase, user } = context;
+  const { user } = context;
 
   if (user.id !== threadGiverId && user.id !== threadReceiverId) {
     return { success: false, message: "You are not part of this conversation." };
@@ -630,7 +630,7 @@ export async function sendMessage(
     return { success: false, message: threadAccess.message };
   }
 
-  const { error } = await supabase
+  const { error } = await supabaseAdmin
     .from("messages")
     .insert({
       group_id: groupId,

@@ -4,6 +4,7 @@ import { primeLazadaPromotionLinks } from "@/lib/affiliate/lazada";
 import { normalizeLazadaProductPageUrl } from "@/lib/affiliate/lazada-url";
 import { noStoreJson } from "@/lib/security/no-store-response";
 import { readLimitedJsonBody } from "@/lib/security/request-body";
+import { canAccessRecipientWishlistItem } from "@/lib/wishlist/recipient-access";
 import { requireAuthenticatedAffiliateRoute } from "../_shared/authenticated-affiliate-route";
 
 const MAX_BATCH_INPUTS = 100;
@@ -13,8 +14,14 @@ const LAZADA_PRODUCT_ID_PATTERN = /^[0-9]{1,20}$/;
 export const dynamic = "force-dynamic";
 
 type PrimeLinksBody = {
-  productIds?: unknown;
-  urls?: unknown;
+  requests?: unknown;
+};
+
+type PrimeLinksRequest = {
+  groupId: string;
+  productIds: string[];
+  urls: string[];
+  wishlistItemId: string;
 };
 
 function sanitizeProductIds(value: unknown): string[] {
@@ -45,6 +52,31 @@ function sanitizeUrls(value: unknown): string[] {
   ).slice(0, MAX_BATCH_INPUTS);
 }
 
+function sanitizePrimeLinkRequests(value: unknown): PrimeLinksRequest[] {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+
+  return value
+    .filter((request): request is Record<string, unknown> => {
+      return typeof request === "object" && request !== null;
+    })
+    .map((request) => ({
+      groupId: typeof request.groupId === "string" ? request.groupId.trim() : "",
+      productIds: sanitizeProductIds(request.productIds),
+      urls: sanitizeUrls(request.urls),
+      wishlistItemId:
+        typeof request.wishlistItemId === "string" ? request.wishlistItemId.trim() : "",
+    }))
+    .filter(
+      (request) =>
+        request.groupId.length > 0 &&
+        request.wishlistItemId.length > 0 &&
+        (request.productIds.length > 0 || request.urls.length > 0)
+    )
+    .slice(0, MAX_BATCH_INPUTS);
+}
+
 export async function POST(request: NextRequest) {
   const auth = await requireAuthenticatedAffiliateRoute(request, {
     action: "affiliate.lazada.prime_links",
@@ -71,8 +103,44 @@ export async function POST(request: NextRequest) {
   }
 
   const payload = payloadResult.body;
-  const productIds = sanitizeProductIds(payload.productIds);
-  const urls = sanitizeUrls(payload.urls);
+  const linkRequests = sanitizePrimeLinkRequests(payload.requests);
+  const productIdSet = new Set<string>();
+  const urlSet = new Set<string>();
+
+  for (const linkRequest of linkRequests) {
+    const accessCheck = await canAccessRecipientWishlistItem({
+      groupId: linkRequest.groupId,
+      userId: auth.userId,
+      wishlistItemId: linkRequest.wishlistItemId,
+    });
+
+    if (!accessCheck.allowed) {
+      return noStoreJson(
+        {
+          error: "Forbidden",
+          primed: false,
+          productIdsPrimed: 0,
+          urlsPrimed: 0,
+        },
+        { status: 403 }
+      );
+    }
+
+    for (const productId of linkRequest.productIds) {
+      if (productIdSet.size < MAX_BATCH_INPUTS) {
+        productIdSet.add(productId);
+      }
+    }
+
+    for (const url of linkRequest.urls) {
+      if (urlSet.size < MAX_BATCH_INPUTS) {
+        urlSet.add(url);
+      }
+    }
+  }
+
+  const productIds = [...productIdSet];
+  const urls = [...urlSet];
 
   if (productIds.length === 0 && urls.length === 0) {
     return noStoreJson({
