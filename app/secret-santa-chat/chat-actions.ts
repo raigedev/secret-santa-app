@@ -16,6 +16,7 @@ import { isUuid, sanitizePlainText } from "@/lib/validation/common";
 const RECEIVER_THREAD_PREFIX = "receiver:";
 const CHAT_THREAD_MESSAGE_SCAN_LIMIT = 1000;
 const CHAT_ACTIVE_THREAD_MESSAGE_LIMIT = 250;
+const RECEIVER_THREAD_HIDDEN_MESSAGE = "This chat is hidden until the reveal is published.";
 
 type ReceiverAssignmentRow = {
   giver_id: string;
@@ -27,6 +28,7 @@ type ReceiverGroupRow = {
   event_date: string | null;
   id: string;
   name: string | null;
+  revealed: boolean | null;
 };
 
 type ReceiverMessageRow = {
@@ -48,6 +50,17 @@ type ReceiverThreadReadRow = {
 
 type ThreadSendAccess =
   | {
+      ok: true;
+    }
+  | {
+      auditMessage?: string;
+      message: string;
+      ok: false;
+    };
+
+type ReceiverThreadAccess =
+  | {
+      assignment: ReceiverAssignmentRow;
       ok: true;
     }
   | {
@@ -201,6 +214,37 @@ async function resolveReceiverAssignment(
   return data as ReceiverAssignmentRow;
 }
 
+async function requireRevealedReceiverThreadAccess(
+  groupId: string,
+  receiverId: string
+): Promise<ReceiverThreadAccess> {
+  const assignment = await resolveReceiverAssignment(groupId, receiverId);
+
+  if (!assignment) {
+    return { message: "You are not part of this conversation.", ok: false };
+  }
+
+  const { data: group, error: groupError } = await supabaseAdmin
+    .from("groups")
+    .select("revealed")
+    .eq("id", groupId)
+    .maybeSingle();
+
+  if (groupError) {
+    return {
+      auditMessage: groupError.message,
+      message: "We could not open this chat. Try reopening it.",
+      ok: false,
+    };
+  }
+
+  if (!group?.revealed) {
+    return { message: RECEIVER_THREAD_HIDDEN_MESSAGE, ok: false };
+  }
+
+  return { assignment, ok: true };
+}
+
 async function validateThreadSendAccess({
   groupId,
   threadGiverId,
@@ -252,7 +296,7 @@ async function validateThreadSendAccess({
 
   if (!group?.revealed) {
     return {
-      message: "This chat is hidden until the reveal is published.",
+      message: RECEIVER_THREAD_HIDDEN_MESSAGE,
       ok: false,
     };
   }
@@ -303,7 +347,7 @@ export async function loadReceiverChatThreads(): Promise<{
 
   const { data: groups, error: groupsError } = await supabaseAdmin
     .from("groups")
-    .select("id, name, event_date")
+    .select("id, name, event_date, revealed")
     .in("id", groupIds);
 
   if (groupsError) {
@@ -317,7 +361,7 @@ export async function loadReceiverChatThreads(): Promise<{
   }
 
   const activeGroups = ((groups || []) as ReceiverGroupRow[]).filter(
-    (group) => !isGroupInHistory(group.event_date)
+    (group) => Boolean(group.revealed) && !isGroupInHistory(group.event_date)
   );
   const activeGroupIds = new Set(activeGroups.map((group) => group.id));
   const activeAssignments = receiverAssignments.filter((assignment) =>
@@ -407,11 +451,23 @@ export async function loadReceiverThreadMessages(threadId: string): Promise<{
 
   const userId = context.user.id;
 
-  const assignment = await resolveReceiverAssignment(groupId, userId);
+  const receiverAccess = await requireRevealedReceiverThreadAccess(groupId, userId);
 
-  if (!assignment) {
-    return { success: false, message: "You are not part of this conversation.", messages: [] };
+  if (!receiverAccess.ok) {
+    if (receiverAccess.auditMessage) {
+      await recordServerFailure({
+        actorUserId: userId,
+        errorMessage: receiverAccess.auditMessage,
+        eventType: "chat.load_receiver_messages.access_check",
+        resourceId: groupId,
+        resourceType: "message_thread",
+      });
+    }
+
+    return { success: false, message: receiverAccess.message, messages: [] };
   }
+
+  const { assignment } = receiverAccess;
 
   const { data, error } = await supabaseAdmin
     .from("messages")
@@ -463,11 +519,23 @@ export async function markReceiverThreadAsRead(threadId: string): Promise<{
 
   const userId = context.user.id;
 
-  const assignment = await resolveReceiverAssignment(groupId, userId);
+  const receiverAccess = await requireRevealedReceiverThreadAccess(groupId, userId);
 
-  if (!assignment) {
-    return { success: false, message: "You are not part of this conversation." };
+  if (!receiverAccess.ok) {
+    if (receiverAccess.auditMessage) {
+      await recordServerFailure({
+        actorUserId: userId,
+        errorMessage: receiverAccess.auditMessage,
+        eventType: "chat.mark_receiver_thread_read.access_check",
+        resourceId: groupId,
+        resourceType: "message_thread",
+      });
+    }
+
+    return { success: false, message: receiverAccess.message };
   }
+
+  const { assignment } = receiverAccess;
 
   const { error } = await supabaseAdmin.from("thread_reads").upsert(
     {
@@ -525,11 +593,23 @@ export async function sendReceiverMessage(
 
   const userId = context.user.id;
 
-  const assignment = await resolveReceiverAssignment(groupId, userId);
+  const receiverAccess = await requireRevealedReceiverThreadAccess(groupId, userId);
 
-  if (!assignment) {
-    return { success: false, message: "You are not part of this conversation." };
+  if (!receiverAccess.ok) {
+    if (receiverAccess.auditMessage) {
+      await recordServerFailure({
+        actorUserId: userId,
+        errorMessage: receiverAccess.auditMessage,
+        eventType: "chat.send_receiver_message.access_check",
+        resourceId: groupId,
+        resourceType: "message_thread",
+      });
+    }
+
+    return { success: false, message: receiverAccess.message };
   }
+
+  const { assignment } = receiverAccess;
 
   const { error } = await supabaseAdmin.from("messages").insert({
     content: cleanContent,
