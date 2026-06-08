@@ -619,6 +619,23 @@ test("anonymous receiver chat keeps giver identifiers server-side before reveal"
   assert.match(actionsSource, /userId !== threadReceiverId/);
   assert.match(actionsSource, /!group\?\.revealed/);
   assert.match(actionsSource, /const threadAccess = await validateThreadSendAccess/);
+  assert.match(actionsSource, /const RECEIVER_THREAD_HIDDEN_MESSAGE/);
+  assert.match(actionsSource, /async function requireRevealedReceiverThreadAccess/);
+  assert.match(actionsSource, /\.select\("id, name, event_date, revealed"\)/);
+  assert.match(actionsSource, /Boolean\(group\.revealed\) && !isGroupInHistory\(group\.event_date\)/);
+
+  for (const functionName of [
+    "loadReceiverThreadMessages",
+    "markReceiverThreadAsRead",
+    "sendReceiverMessage",
+  ]) {
+    const functionStart = actionsSource.indexOf(`export async function ${functionName}`);
+    assert.notEqual(functionStart, -1, `Expected ${functionName} to be exported.`);
+    const functionBody = actionsSource.slice(functionStart, functionStart + 1600);
+
+    assert.match(functionBody, /requireRevealedReceiverThreadAccess\(groupId, userId\)/);
+    assert.doesNotMatch(functionBody, /resolveReceiverAssignment\(groupId, userId\)/);
+  }
 
   assert.match(migrationSource, /alter policy messages_select_for_thread_participants/i);
   assert.match(migrationSource, /alter policy messages_insert_for_thread_participants/i);
@@ -635,6 +652,39 @@ test("live reveal only exposes matches after each card reveal", () => {
   assert.match(groupActionsSource, /canRevealAllMatchNamesToViewer/);
   assert.match(groupActionsSource, /lastRevealedMatchIndex/);
   assert.match(groupActionsSource, /matchIndex <= lastRevealedMatchIndex/);
+});
+
+test("live reveal match disclosure is gated by the gift day", () => {
+  const groupActionsSource = readFileSync("app/group/[id]/actions.ts", "utf8");
+  const migrationPath = [
+    "supabase",
+    "migrations",
+    "20260608180500_gate_live_reveal_session_by_event_date.sql",
+  ].join("/");
+  // eslint-disable-next-line security/detect-non-literal-fs-filename -- Security test reads one pinned repo-local migration path.
+  const migrationSource = readFileSync(migrationPath, "utf8");
+  const countdownStart = groupActionsSource.indexOf("export async function startRevealCountdown");
+  const updateStart = groupActionsSource.indexOf("export async function updateRevealSessionState");
+  const triggerStart = groupActionsSource.indexOf("export async function triggerReveal");
+  const countdownBody = groupActionsSource.slice(countdownStart, updateStart);
+  const updateBody = groupActionsSource.slice(updateStart, triggerStart);
+
+  assert.match(
+    groupActionsSource,
+    /const LIVE_REVEAL_DATE_PENDING_MESSAGE = "The live reveal opens on the gift day\.";/
+  );
+  assert.match(groupActionsSource, /select\("owner_id, name, revealed, event_date"\)/);
+  assert.match(groupActionsSource, /revealDateReady: isRevealDateReady\(group\.event_date\)/);
+  assert.match(countdownBody, /!permission\.revealDateReady/);
+  assert.match(updateBody, /!permission\.revealed && !permission\.revealDateReady/);
+  assert.match(migrationSource, /private\.can_write_group_reveal_session/);
+  assert.match(migrationSource, /p_status in \('idle', 'waiting'\)/);
+  assert.match(
+    migrationSource,
+    /g\.event_date <= \(timezone\('utc'::text, now\(\)\)\)::date/
+  );
+  assert.match(migrationSource, /alter policy group_reveal_sessions_insert_for_owner/);
+  assert.match(migrationSource, /alter policy group_reveal_sessions_update_for_owner/);
 });
 
 test("reveal presentation loads service-role source data after viewer authorization", () => {
@@ -1337,7 +1387,7 @@ test("owners do not receive unrevealed assignment names from reveal presentation
     /const canRevealAllMatchNamesToViewer =\s*isOwner\s*\|\|/
   );
   assert.match(groupActionsSource, /canPreviewBeforeReveal:\s*false/);
-  assert.match(groupActionsSource, /select\("owner_id, revealed, name, event_date"\)/);
+  assert.match(groupActionsSource, /select\("owner_id, name, revealed, event_date"\)/);
   assert.match(groupActionsSource, /isRevealDateReady\(group\.event_date\)/);
   assert.match(groupActionsSource, /sourceData\.assignments\.length === 0/);
 });

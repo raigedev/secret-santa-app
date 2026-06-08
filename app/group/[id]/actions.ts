@@ -1755,6 +1755,8 @@ function isRevealDateReady(eventDate: string | null | undefined, now = new Date(
   return eventDate <= now.toISOString().slice(0, 10);
 }
 
+const LIVE_REVEAL_DATE_PENDING_MESSAGE = "The live reveal opens on the gift day.";
+
 async function upsertRevealSession(options: {
   cardRevealed: boolean;
   countdownSeconds?: number;
@@ -1805,14 +1807,16 @@ async function assertOwnerCanControlReveal(
   groupId: string,
   actorUserId: string
 ): Promise<{
+  eventDate?: string | null;
   groupName?: string;
   ok: boolean;
+  revealDateReady?: boolean;
   revealed?: boolean;
 }> {
   const supabase = await createClient();
   const { data: group } = await supabase
     .from("groups")
-    .select("owner_id, name, revealed")
+    .select("owner_id, name, revealed, event_date")
     .eq("id", groupId)
     .maybeSingle();
 
@@ -1822,7 +1826,9 @@ async function assertOwnerCanControlReveal(
 
   return {
     ok: true,
+    eventDate: group.event_date,
     groupName: group.name,
+    revealDateReady: isRevealDateReady(group.event_date),
     revealed: group.revealed,
   };
 }
@@ -2118,6 +2124,10 @@ export async function startRevealCountdown(
     return { success: false, message: "This group has already been fully revealed." };
   }
 
+  if (!permission.revealDateReady) {
+    return { success: false, message: LIVE_REVEAL_DATE_PENDING_MESSAGE };
+  }
+
   const sourceData = await loadRevealSourceData(groupId);
   if (sourceData.assignments.length === 0 || sourceData.participants.length === 0) {
     return { success: false, message: "Names need to be drawn before the countdown can start." };
@@ -2210,6 +2220,10 @@ export async function updateRevealSessionState(
   const permission = await assertOwnerCanControlReveal(groupId, user.id);
   if (!permission.ok) {
     return { success: false, message: "Only the group owner can control the live reveal." };
+  }
+
+  if (!permission.revealed && !permission.revealDateReady) {
+    return { success: false, message: LIVE_REVEAL_DATE_PENDING_MESSAGE };
   }
 
   const sourceData = await loadRevealSourceData(groupId);
