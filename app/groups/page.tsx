@@ -23,6 +23,9 @@ type GroupsPageUser = {
 };
 
 const GROUPS_PAGE_FALLBACK_POLL_MS = 5 * 60 * 1000;
+const GROUPS_PAGE_LOAD_TIMEOUT_MS = 10_000;
+const GROUPS_PAGE_LOAD_TIMEOUT_MESSAGE =
+  "Your groups are taking longer than expected. Refresh the page or try another section.";
 
 function splitActiveGroups(groups: Group[]) {
   return splitDashboardGroups(groups.filter((group) => !isGroupInHistory(group.event_date)));
@@ -68,6 +71,17 @@ export default function GroupsPage() {
   const loadGroups = useCallback(
     async (user: GroupsPageUser) => {
       const loadVersion = ++loadVersionRef.current;
+      const timeoutId = setTimeout(() => {
+        if (!mountedRef.current || loadVersion !== loadVersionRef.current) {
+          return;
+        }
+
+        setActionMessage({
+          type: "error",
+          text: GROUPS_PAGE_LOAD_TIMEOUT_MESSAGE,
+        });
+        setLoading(false);
+      }, GROUPS_PAGE_LOAD_TIMEOUT_MS);
 
       try {
         const groups = await loadDashboardGroups(supabase, user);
@@ -79,6 +93,9 @@ export default function GroupsPage() {
         const activeGroups = splitActiveGroups(groups.allGroups);
         setOwnedGroups(activeGroups.ownedGroups);
         setInvitedGroups(activeGroups.invitedGroups);
+        setActionMessage((message) =>
+          message?.text === GROUPS_PAGE_LOAD_TIMEOUT_MESSAGE ? null : message
+        );
         setLoading(false);
 
         const enhancedGroups = await enhanceDashboardGroupsWithPeerProfiles(groups.allGroups);
@@ -100,6 +117,8 @@ export default function GroupsPage() {
           text: "Failed to load your groups. Please refresh and try again.",
         });
         setLoading(false);
+      } finally {
+        clearTimeout(timeoutId);
       }
     },
     [supabase]
@@ -135,10 +154,23 @@ export default function GroupsPage() {
     };
 
     const bootstrapGroups = async () => {
+      const authTimeoutId = setTimeout(() => {
+        if (!mountedRef.current) {
+          return;
+        }
+
+        setActionMessage({
+          type: "error",
+          text: GROUPS_PAGE_LOAD_TIMEOUT_MESSAGE,
+        });
+        setLoading(false);
+      }, GROUPS_PAGE_LOAD_TIMEOUT_MS);
+
       try {
         const {
           data: { user },
         } = await supabase.auth.getUser();
+        clearTimeout(authTimeoutId);
 
         if (!user) {
           router.push("/login");
@@ -163,6 +195,8 @@ export default function GroupsPage() {
           text: "Failed to load your groups. Please refresh and try again.",
         });
         setLoading(false);
+      } finally {
+        clearTimeout(authTimeoutId);
       }
     };
 
