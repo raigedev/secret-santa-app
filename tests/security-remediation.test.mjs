@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { readdirSync, readFileSync } from "node:fs";
+import { existsSync, readdirSync, readFileSync } from "node:fs";
 import test from "node:test";
 
 import { stripReservedPostbackSecrets } from "../lib/affiliate/lazada-postback.mjs";
@@ -1461,10 +1461,6 @@ test("dashboard shows email invites without auto-claiming memberships", () => {
 
 test("dashboard optional invite loading and prefetch cannot block navigation", () => {
   const dashboardPageSource = readFileSync("app/dashboard/page.tsx", "utf8");
-  const dashboardPrefetchSource = readFileSync(
-    "app/dashboard/useDashboardRoutePrefetch.ts",
-    "utf8"
-  );
   const appShellSource = readFileSync("app/components/AppRouteShell.tsx", "utf8");
 
   assert.match(dashboardPageSource, /OPTIONAL_DASHBOARD_REQUEST_TIMEOUT_MS = 3_500/);
@@ -1473,9 +1469,9 @@ test("dashboard optional invite loading and prefetch cannot block navigation", (
   assert.match(dashboardPageSource, /credentials: "same-origin"/);
   assert.match(dashboardPageSource, /cache: "no-store"/);
   assert.doesNotMatch(dashboardPageSource, /getPendingEmailInvites\(\)/);
-  assert.match(dashboardPageSource, /enabled: !loading && dashboardThemeReady/);
-  assert.match(dashboardPrefetchSource, /enabled: boolean/);
-  assert.match(dashboardPrefetchSource, /if \(!enabled\) \{\s*return;\s*\}/);
+  assert.doesNotMatch(dashboardPageSource, /useDashboardRoutePrefetch/);
+  assert.doesNotMatch(dashboardPageSource, /router\.prefetch\(/);
+  assert.equal(existsSync("app/dashboard/useDashboardRoutePrefetch.ts"), false);
   assert.match(appShellSource, /from "next\/link"/);
   assert.match(appShellSource, /prefetch=\{false\}/);
   assert.doesNotMatch(appShellSource, /router\.prefetch\(route\)/);
