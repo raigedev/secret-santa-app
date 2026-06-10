@@ -22,13 +22,8 @@ import { DashboardBackdrop } from "./DashboardBackdrop";
 import { DashboardPreviewWorkspace } from "./DashboardPreviewWorkspace";
 import { DashboardStatusMessage } from "./DashboardStatusMessage";
 import { TipJarSupportCard } from "@/app/components/TipJarSupport";
-import { useDashboardRoutePrefetch } from "./useDashboardRoutePrefetch";
 import { fetchMyAssignmentGiftPrep } from "@/lib/assignments/gift-prep-client";
 import { normalizeSafeAppPath } from "@/lib/security/safe-app-path";
-import {
-  removeSessionStorageItem,
-  writeSessionStorageItem,
-} from "@/lib/client-snapshot";
 import {
   clearDashboardSnapshots,
   readDashboardSnapshot,
@@ -283,7 +278,6 @@ export default function DashboardPage() {
   const router = useRouter();
   const [supabase] = useState(() => createClient());
   const [countdownNow, setCountdownNow] = useState(() => Date.now());
-  const [canViewAffiliateReport, setCanViewAffiliateReport] = useState(false);
   const [userName, setUserName] = useState("");
   const [ownedGroups, setOwnedGroups] = useState<Group[]>([]);
   const [invitedGroups, setInvitedGroups] = useState<Group[]>([]);
@@ -846,38 +840,6 @@ export default function DashboardPage() {
       }
     };
 
-    const loadAffiliateReportAccess = async () => {
-      try {
-        const response = await fetch("/api/affiliate/report-access", {
-          credentials: "same-origin",
-        });
-
-        if (!response.ok) {
-          if (isMounted) {
-            setCanViewAffiliateReport(false);
-          }
-          return;
-        }
-
-        const payload = (await response.json()) as { allowed?: boolean };
-        const allowed = Boolean(payload.allowed);
-
-        if (allowed) {
-          writeSessionStorageItem("ss_ara", "1");
-        } else {
-          removeSessionStorageItem("ss_ara");
-        }
-
-        if (isMounted) {
-          setCanViewAffiliateReport(allowed);
-        }
-      } catch {
-        if (isMounted) {
-          setCanViewAffiliateReport(false);
-        }
-      }
-    };
-
     loadDashboardDataRef.current = loadDashboardData;
 
     const loadProfileData = async () => {
@@ -997,11 +959,10 @@ export default function DashboardPage() {
         }
 
         // The main dashboard content should not wait on secondary polish like
-        // owner report access or the unread bell count.
+        // the unread bell count.
         // Kick those off in the background so the cards can render as soon as
         // the core data is ready.
         void loadProfileData();
-        void loadAffiliateReportAccess();
         void loadNotificationCount(session.user.id);
 
         await loadDashboardData(session.user);
@@ -1065,14 +1026,6 @@ export default function DashboardPage() {
       subscription.unsubscribe();
     };
   }, [supabase, router]);
-
-  useDashboardRoutePrefetch({
-    canViewAffiliateReport,
-    enabled: !loading && dashboardThemeReady,
-    invitedGroups,
-    ownedGroups,
-    router,
-  });
 
   if (loading || !dashboardThemeReady) {
     return <DashboardSkeleton />;
