@@ -578,10 +578,9 @@ export default function AppRouteShell({ children }: { children: ReactNode }) {
           {navItems.map((item) => {
             const active = item.match(pathname, currentHash);
             return (
-              <Link
+              <a
                 key={item.label}
                 href={item.href}
-                prefetch={false}
                 onClick={() => handleNavItemClick(item)}
                 aria-current={active ? "page" : undefined}
                 className="flex min-h-11.5 items-center gap-3 rounded-xl px-3 text-[14px] font-extrabold transition hover:-translate-y-0.5"
@@ -594,7 +593,7 @@ export default function AppRouteShell({ children }: { children: ReactNode }) {
               >
                 <AppShellIcon name={item.icon} className="h-5 w-5 shrink-0" />
                 <span className="truncate">{item.label}</span>
-              </Link>
+              </a>
             );
           })}
         </nav>
@@ -738,11 +737,10 @@ export default function AppRouteShell({ children }: { children: ReactNode }) {
             {navItems.map((item) => {
               const active = item.match(pathname, currentHash);
               return (
-                <Link
+                <a
                   key={`mobile-${item.label}`}
                   ref={active ? mobileNavActiveItemRef : undefined}
                   href={item.href}
-                  prefetch={false}
                   onClick={() => handleNavItemClick(item)}
                   aria-current={active ? "page" : undefined}
                   data-testid="app-shell-mobile-nav-link"
@@ -769,7 +767,7 @@ export default function AppRouteShell({ children }: { children: ReactNode }) {
                   >
                     {item.label}
                   </span>
-                </Link>
+                </a>
               );
             })}
           </div>
