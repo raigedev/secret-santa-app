@@ -214,9 +214,15 @@ export default function HistoryPage() {
     const bootstrap = async () => {
       try {
         const {
-          data: { user },
-        } = await supabase.auth.getUser();
+          data: { session },
+          error: sessionError,
+        } = await supabase.auth.getSession();
 
+        if (sessionError) {
+          throw sessionError;
+        }
+
+        const user = session?.user || null;
         if (!user) {
           router.push("/login");
           return;

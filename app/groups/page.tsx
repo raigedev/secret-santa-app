@@ -168,10 +168,16 @@ export default function GroupsPage() {
 
       try {
         const {
-          data: { user },
-        } = await supabase.auth.getUser();
+          data: { session },
+          error: sessionError,
+        } = await supabase.auth.getSession();
         clearTimeout(authTimeoutId);
 
+        if (sessionError) {
+          throw sessionError;
+        }
+
+        const user = session?.user || null;
         if (!user) {
           router.push("/login");
           return;
