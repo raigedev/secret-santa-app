@@ -543,14 +543,13 @@ export default function AppRouteShell({ children }: { children: ReactNode }) {
     }
 
     event.preventDefault();
-    router.push(item.href);
+    const targetUrl = new URL(item.href, window.location.origin);
 
-    window.setTimeout(() => {
-      const targetUrl = new URL(item.href, window.location.origin);
-      if (window.location.pathname !== targetUrl.pathname) {
-        window.location.assign(item.href);
-      }
-    }, 1_500);
+    if (window.location.pathname === targetUrl.pathname && window.location.hash === targetUrl.hash) {
+      return;
+    }
+
+    window.location.assign(targetUrl.href);
   };
 
   return (
