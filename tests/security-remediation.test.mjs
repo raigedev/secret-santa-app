@@ -1459,9 +1459,14 @@ test("dashboard shows email invites without auto-claiming memberships", () => {
   assert.match(proxySource, /getEmailVerificationMessage\(\)/);
 });
 
-test("dashboard optional invite loading and prefetch cannot block navigation", () => {
+test("dashboard optional loading and route panels cannot block navigation", () => {
   const dashboardPageSource = readFileSync("app/dashboard/page.tsx", "utf8");
+  const dashboardGroupsDataSource = readFileSync(
+    "app/dashboard/dashboard-groups-data.ts",
+    "utf8"
+  );
   const appShellSource = readFileSync("app/components/AppRouteShell.tsx", "utf8");
+  const groupsPageSource = readFileSync("app/groups/page.tsx", "utf8");
   const secretSantaPageSource = readFileSync("app/secret-santa/page.tsx", "utf8");
 
   assert.match(dashboardPageSource, /OPTIONAL_DASHBOARD_REQUEST_TIMEOUT_MS = 3_500/);
@@ -1487,6 +1492,12 @@ test("dashboard optional invite loading and prefetch cannot block navigation", (
   assert.match(secretSantaPageSource, /Shopping Ideas is taking longer than expected/);
   assert.doesNotMatch(secretSantaPageSource, /prefetchedRoutesRef/);
   assert.doesNotMatch(secretSantaPageSource, /router\.prefetch\(/);
+  assert.match(groupsPageSource, /GROUPS_PAGE_LOAD_TIMEOUT_MS = 10_000/);
+  assert.match(groupsPageSource, /Your groups are taking longer than expected/);
+  assert.match(dashboardGroupsDataSource, /GROUP_IMAGE_SIGN_TIMEOUT_MS = 2_500/);
+  assert.match(dashboardGroupsDataSource, /PEER_PROFILE_REQUEST_TIMEOUT_MS = 3_500/);
+  assert.match(dashboardGroupsDataSource, /createBoundedSignedGroupImageUrl/);
+  assert.match(dashboardGroupsDataSource, /controller\.abort\(\)/);
 });
 
 test("client profile and snapshot storage are scoped or cleared on logout", () => {

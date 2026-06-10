@@ -37,6 +37,8 @@ type DashboardGroupsLoadResult = {
 };
 
 const PEER_PROFILE_SNAPSHOT_STORAGE_PREFIX = "ss_peer_profiles_v1:";
+const GROUP_IMAGE_SIGN_TIMEOUT_MS = 2_500;
+const PEER_PROFILE_REQUEST_TIMEOUT_MS = 3_500;
 
 function getPeerProfileGroupFingerprint(groups: Group[]): string {
   return [...new Set(groups.map((group) => group.id))].sort().join(",");
@@ -44,6 +46,26 @@ function getPeerProfileGroupFingerprint(groups: Group[]): string {
 
 function getPeerProfileSnapshotStorageKey(groupFingerprint: string): string {
   return `${PEER_PROFILE_SNAPSHOT_STORAGE_PREFIX}${groupFingerprint}`;
+}
+
+async function createBoundedSignedGroupImageUrl(
+  supabase: SupabaseClient,
+  value: string | null | undefined
+): Promise<string | null> {
+  let timeoutId: ReturnType<typeof setTimeout> | null = null;
+
+  try {
+    return await Promise.race([
+      createSignedGroupImageUrl(supabase, value).catch(() => null),
+      new Promise<null>((resolve) => {
+        timeoutId = setTimeout(() => resolve(null), GROUP_IMAGE_SIGN_TIMEOUT_MS);
+      }),
+    ]);
+  } finally {
+    if (timeoutId) {
+      clearTimeout(timeoutId);
+    }
+  }
 }
 
 function isPeerProfileRow(value: unknown): value is PeerProfileRow {
@@ -163,7 +185,7 @@ export async function loadDashboardGroups(
   const groupImageUrlEntries = await Promise.all(
     groupsData.map(async (group) => [
       group.id,
-      await createSignedGroupImageUrl(supabase, group.image_url),
+      await createBoundedSignedGroupImageUrl(supabase, group.image_url),
     ] as const)
   );
   const signedGroupImageUrlById = new Map(groupImageUrlEntries);
@@ -276,28 +298,40 @@ export async function enhanceDashboardGroupsWithPeerProfiles(
     return applyPeerProfilesToGroups(groups, cachedProfiles.profilesByGroup);
   }
 
-  const response = await fetch("/api/groups/peer-profiles", {
-    cache: "no-store",
-    credentials: "same-origin",
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ groupIds: groups.map((group) => group.id) }),
-  });
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => {
+    controller.abort();
+  }, PEER_PROFILE_REQUEST_TIMEOUT_MS);
 
-  if (!response.ok) {
+  try {
+    const response = await fetch("/api/groups/peer-profiles", {
+      cache: "no-store",
+      credentials: "same-origin",
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      signal: controller.signal,
+      body: JSON.stringify({ groupIds: groups.map((group) => group.id) }),
+    });
+
+    if (!response.ok) {
+      return groups;
+    }
+
+    const payload = (await response.json()) as {
+      profilesByGroup?: Record<string, PeerProfileRow[]>;
+    };
+    const profilesByGroup = payload.profilesByGroup || {};
+
+    writeClientSnapshot(getPeerProfileSnapshotStorageKey(groupFingerprint), {
+      createdAt: Date.now(),
+      profilesByGroup,
+      userId: groupFingerprint,
+    });
+
+    return applyPeerProfilesToGroups(groups, profilesByGroup);
+  } catch {
     return groups;
+  } finally {
+    clearTimeout(timeoutId);
   }
-
-  const payload = (await response.json()) as {
-    profilesByGroup?: Record<string, PeerProfileRow[]>;
-  };
-  const profilesByGroup = payload.profilesByGroup || {};
-
-  writeClientSnapshot(getPeerProfileSnapshotStorageKey(groupFingerprint), {
-    createdAt: Date.now(),
-    profilesByGroup,
-    userId: groupFingerprint,
-  });
-
-  return applyPeerProfilesToGroups(groups, profilesByGroup);
 }
