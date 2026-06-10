@@ -1436,6 +1436,7 @@ test("dashboard shows email invites without auto-claiming memberships", () => {
     "utf8"
   );
   const dashboardLayoutSource = readFileSync("app/dashboard/layout.tsx", "utf8");
+  const proxySource = readFileSync("proxy.ts", "utf8");
 
   assert.match(dashboardActionsSource, /export async function getPendingEmailInvites/);
   assert.match(dashboardActionsSource, /loadPendingEmailInvitesForUser\(context\.user\)/);
@@ -1451,8 +1452,11 @@ test("dashboard shows email invites without auto-claiming memberships", () => {
   assert.match(dashboardPageSource, /\.select\("group_id, user_id, nickname, role"\)/);
   assert.match(dashboardGroupsDataSource, /\.select\("group_id, user_id, nickname, role"\)/);
   assert.doesNotMatch(dashboardPageSource, /\.select\("group_id, user_id, nickname, email, role"\)/);
-  assert.match(dashboardLayoutSource, /supabase\.auth\.getUser\(\)/);
-  assert.match(dashboardLayoutSource, /redirect\("\/login"\)/);
+  assert.doesNotMatch(dashboardLayoutSource, /supabase\.auth\.getUser\(\)/);
+  assert.doesNotMatch(dashboardLayoutSource, /redirect\("\/login"\)/);
+  assert.match(proxySource, /supabase\.auth\.getUser\(\)/);
+  assert.match(proxySource, /NextResponse\.redirect\(new URL\("\/login", trustedOrigin\)\)/);
+  assert.match(proxySource, /getEmailVerificationMessage\(\)/);
 });
 
 test("dashboard optional invite loading and prefetch cannot block navigation", () => {
