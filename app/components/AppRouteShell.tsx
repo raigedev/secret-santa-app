@@ -8,6 +8,7 @@ import {
   useMemo,
   useRef,
   useState,
+  type MouseEvent,
   type ReactNode,
 } from "react";
 import { createClient } from "@/lib/supabase/client";
@@ -524,10 +525,32 @@ export default function AppRouteShell({ children }: { children: ReactNode }) {
     router.push("/login");
   };
 
-  const handleNavItemClick = (item: AppNavItem) => {
+  const handleNavItemClick = (event: MouseEvent<HTMLAnchorElement>, item: AppNavItem) => {
     if (!item.href.includes("#")) {
       setCurrentHash("");
     }
+
+    if (
+      event.defaultPrevented ||
+      event.button !== 0 ||
+      event.metaKey ||
+      event.altKey ||
+      event.ctrlKey ||
+      event.shiftKey ||
+      event.currentTarget.target
+    ) {
+      return;
+    }
+
+    event.preventDefault();
+    router.push(item.href);
+
+    window.setTimeout(() => {
+      const targetUrl = new URL(item.href, window.location.origin);
+      if (window.location.pathname !== targetUrl.pathname) {
+        window.location.assign(item.href);
+      }
+    }, 1_500);
   };
 
   return (
@@ -581,7 +604,7 @@ export default function AppRouteShell({ children }: { children: ReactNode }) {
               <a
                 key={item.label}
                 href={item.href}
-                onClick={() => handleNavItemClick(item)}
+                onClick={(event) => handleNavItemClick(event, item)}
                 aria-current={active ? "page" : undefined}
                 className="flex min-h-11.5 items-center gap-3 rounded-xl px-3 text-[14px] font-extrabold transition hover:-translate-y-0.5"
                 style={{
@@ -741,7 +764,7 @@ export default function AppRouteShell({ children }: { children: ReactNode }) {
                   key={`mobile-${item.label}`}
                   ref={active ? mobileNavActiveItemRef : undefined}
                   href={item.href}
-                  onClick={() => handleNavItemClick(item)}
+                  onClick={(event) => handleNavItemClick(event, item)}
                   aria-current={active ? "page" : undefined}
                   data-testid="app-shell-mobile-nav-link"
                   className="flex min-h-15 w-22 shrink-0 flex-col items-center justify-center gap-1 rounded-[18px] px-2 py-1.5 text-[10px] font-black leading-tight transition hover:-translate-y-0.5 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#48664e] sm:w-24"
