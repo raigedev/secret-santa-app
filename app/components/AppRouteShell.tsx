@@ -54,6 +54,7 @@ const APP_SHELL_FALLBACK_POLL_MS = 5 * 60 * 1000;
 const NOTIFICATION_BADGE_COUNT_LIMIT = 100;
 const DEFAULT_TIME_OF_DAY_GREETING = "Welcome back";
 const APP_SHELL_DOCUMENT_NAVIGATION_PATHS = new Set([
+  "/dashboard",
   "/gift-tracking",
   "/groups",
   "/my-giftee",
