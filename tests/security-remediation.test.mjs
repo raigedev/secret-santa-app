@@ -1487,11 +1487,17 @@ test("dashboard optional loading and route panels cannot block navigation", () =
   assert.match(appShellSource, /<a\s+key=\{item\.label\}/);
   assert.match(appShellSource, /key=\{`mobile-\$\{item\.label\}`\}/);
   assert.match(appShellSource, /href=\{item\.href\}/);
-  assert.doesNotMatch(appShellSource, /router\.push\(item\.href\)/);
+  assert.match(appShellSource, /APP_SHELL_DOCUMENT_NAVIGATION_PATHS/);
+  assert.match(appShellSource, /"\/groups"/);
+  assert.match(appShellSource, /"\/secret-santa-chat"/);
+  assert.match(appShellSource, /router\.push\(item\.href\)/);
+  assert.match(appShellSource, /window\.stop\(\)/);
   assert.match(appShellSource, /window\.location\.assign\(targetUrl\.href\)/);
   assert.match(secretSantaPageSource, /SECRET_SANTA_LOAD_TIMEOUT_MS = 10_000/);
   assert.match(secretSantaPageSource, /loadRequestIdRef/);
   assert.match(secretSantaPageSource, /Shopping Ideas is taking longer than expected/);
+  assert.match(secretSantaPageSource, /handleShoppingIdeasNavClick/);
+  assert.match(secretSantaPageSource, /onClick=\{\(event\) => handleShoppingIdeasNavClick\(event, item\.href\)\}/);
   assert.doesNotMatch(secretSantaPageSource, /prefetchedRoutesRef/);
   assert.doesNotMatch(secretSantaPageSource, /router\.prefetch\(/);
   assert.match(groupsPageSource, /GROUPS_PAGE_LOAD_TIMEOUT_MS = 10_000/);

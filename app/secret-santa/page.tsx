@@ -1,6 +1,14 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState, type RefObject } from "react";
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type MouseEvent,
+  type RefObject,
+} from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { DashboardNotificationsPanel } from "@/app/dashboard/DashboardNotificationsPanel";
@@ -1586,6 +1594,29 @@ function ShoppingMerchantSelector({
   );
 }
 
+function handleShoppingIdeasNavClick(event: MouseEvent<HTMLAnchorElement>, href: string) {
+  if (
+    event.defaultPrevented ||
+    event.button !== 0 ||
+    event.metaKey ||
+    event.altKey ||
+    event.ctrlKey ||
+    event.shiftKey ||
+    event.currentTarget.target
+  ) {
+    return;
+  }
+
+  event.preventDefault();
+  const targetUrl = new URL(href, window.location.origin);
+
+  if (window.location.pathname === targetUrl.pathname && window.location.hash === targetUrl.hash) {
+    return;
+  }
+
+  window.location.assign(targetUrl.href);
+}
+
 function ShoppingIdeasSidebar({
   navItems,
   activeGroupName,
@@ -1639,6 +1670,7 @@ function ShoppingIdeasSidebar({
           <a
             key={`${item.label}-${item.href}`}
             href={item.href}
+            onClick={(event) => handleShoppingIdeasNavClick(event, item.href)}
             aria-current={item.active ? "page" : undefined}
             className="flex min-h-11.5 items-center gap-3 rounded-xl px-3 text-[14px] font-extrabold transition hover:-translate-y-0.5"
             style={{
