@@ -1476,6 +1476,8 @@ test("dashboard optional invite loading and prefetch cannot block navigation", (
   assert.match(appShellSource, /prefetch=\{false\}/);
   assert.doesNotMatch(appShellSource, /router\.prefetch\(route\)/);
   assert.match(appShellSource, /href="\/dashboard"/);
+  assert.match(appShellSource, /<a\s+key=\{item\.label\}/);
+  assert.match(appShellSource, /key=\{`mobile-\$\{item\.label\}`\}/);
   assert.match(appShellSource, /href=\{item\.href\}/);
 });
 
