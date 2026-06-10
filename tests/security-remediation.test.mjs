@@ -1468,6 +1468,7 @@ test("dashboard optional loading and route panels cannot block navigation", () =
   const appShellSource = readFileSync("app/components/AppRouteShell.tsx", "utf8");
   const chatPageSource = readFileSync("app/secret-santa-chat/page.tsx", "utf8");
   const groupsPageSource = readFileSync("app/groups/page.tsx", "utf8");
+  const historyPageSource = readFileSync("app/history/page.tsx", "utf8");
   const secretSantaPageSource = readFileSync("app/secret-santa/page.tsx", "utf8");
   const wishlistPageSource = readFileSync("app/wishlist/page.tsx", "utf8");
 
@@ -1503,6 +1504,10 @@ test("dashboard optional loading and route panels cannot block navigation", () =
   assert.doesNotMatch(secretSantaPageSource, /router\.prefetch\(/);
   assert.match(groupsPageSource, /GROUPS_PAGE_LOAD_TIMEOUT_MS = 10_000/);
   assert.match(groupsPageSource, /Your groups are taking longer than expected/);
+  assert.match(groupsPageSource, /supabase\.auth\.getSession\(\)/);
+  assert.doesNotMatch(groupsPageSource, /supabase\.auth\.getUser\(\)/);
+  assert.match(historyPageSource, /supabase\.auth\.getSession\(\)/);
+  assert.doesNotMatch(historyPageSource, /supabase\.auth\.getUser\(\)/);
   assert.match(dashboardGroupsDataSource, /GROUP_IMAGE_SIGN_TIMEOUT_MS = 2_500/);
   assert.match(dashboardGroupsDataSource, /PEER_PROFILE_REQUEST_TIMEOUT_MS = 3_500/);
   assert.match(dashboardGroupsDataSource, /createBoundedSignedGroupImageUrl/);
