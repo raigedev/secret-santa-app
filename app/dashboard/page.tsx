@@ -5,7 +5,6 @@ import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { getProfile } from "@/app/profile/actions";
-import { getPendingEmailInvites } from "./actions";
 import { createSignedGroupImageUrl } from "@/lib/groups/group-image";
 import { isGroupInHistory } from "@/lib/groups/history";
 import { DashboardSkeleton } from "@/app/components/PageSkeleton";
@@ -221,20 +220,62 @@ function readStoredDashboardTheme(): DashboardTheme {
   }
 }
 
-async function withOptionalDashboardTimeout<T>(task: Promise<T>, fallback: T): Promise<T> {
-  let timeoutId: ReturnType<typeof setTimeout> | null = null;
+type PendingEmailInvitesResult = {
+  invites: PendingInvite[];
+  success: boolean;
+};
+
+function isPendingInvite(value: unknown): value is PendingInvite {
+  if (!value || typeof value !== "object") {
+    return false;
+  }
+
+  const invite = value as Record<string, unknown>;
+  return (
+    typeof invite.group_id === "string" &&
+    typeof invite.group_name === "string" &&
+    typeof invite.group_description === "string" &&
+    typeof invite.group_event_date === "string" &&
+    typeof invite.require_anonymous_nickname === "boolean"
+  );
+}
+
+function normalizePendingEmailInvitesResult(value: unknown): PendingEmailInvitesResult {
+  if (!value || typeof value !== "object") {
+    return { success: false, invites: [] };
+  }
+
+  const result = value as Record<string, unknown>;
+  const invites = Array.isArray(result.invites) ? result.invites.filter(isPendingInvite) : [];
+
+  return {
+    invites,
+    success: result.success === true,
+  };
+}
+
+async function fetchPendingEmailInvites(): Promise<PendingEmailInvitesResult> {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => {
+    controller.abort();
+  }, OPTIONAL_DASHBOARD_REQUEST_TIMEOUT_MS);
 
   try {
-    return await Promise.race([
-      task.catch(() => fallback),
-      new Promise<T>((resolve) => {
-        timeoutId = setTimeout(resolve, OPTIONAL_DASHBOARD_REQUEST_TIMEOUT_MS, fallback);
-      }),
-    ]);
-  } finally {
-    if (timeoutId) {
-      clearTimeout(timeoutId);
+    const response = await fetch("/api/dashboard/pending-email-invites", {
+      cache: "no-store",
+      credentials: "same-origin",
+      signal: controller.signal,
+    });
+
+    if (!response.ok) {
+      return { success: false, invites: [] };
     }
+
+    return normalizePendingEmailInvitesResult(await response.json());
+  } catch {
+    return { success: false, invites: [] };
+  } finally {
+    clearTimeout(timeoutId);
   }
 }
 
@@ -421,10 +462,7 @@ export default function DashboardPage() {
           throw ownedGroupLookupRes.error;
         }
 
-        const emailInviteResult = await withOptionalDashboardTimeout(
-          getPendingEmailInvites(),
-          { success: false, invites: [] }
-        );
+        const emailInviteResult = await fetchPendingEmailInvites();
         const emailPendingInvites = emailInviteResult.success ? emailInviteResult.invites : [];
         const memberRows = (membershipRes.data || []) as MembershipRow[];
         const ownedGroupIds = [...new Set((ownedGroupLookupRes.data || []).map((group) => group.id))];

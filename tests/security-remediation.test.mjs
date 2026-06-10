@@ -1427,13 +1427,25 @@ test("dashboard shows email invites without auto-claiming memberships", () => {
   const dashboardPageSource = readFileSync("app/dashboard/page.tsx", "utf8");
   const dashboardGroupsDataSource = readFileSync("app/dashboard/dashboard-groups-data.ts", "utf8");
   const dashboardActionsSource = readFileSync("app/dashboard/actions.ts", "utf8");
+  const pendingInvitesHelperSource = readFileSync(
+    "lib/groups/pending-email-invites.ts",
+    "utf8"
+  );
+  const pendingInvitesRouteSource = readFileSync(
+    "app/api/dashboard/pending-email-invites/route.ts",
+    "utf8"
+  );
   const dashboardLayoutSource = readFileSync("app/dashboard/layout.tsx", "utf8");
 
   assert.match(dashboardActionsSource, /export async function getPendingEmailInvites/);
-  assert.match(dashboardActionsSource, /\.is\("user_id", null\)/);
-  assert.match(dashboardActionsSource, /\.eq\("status", "pending"\)/);
+  assert.match(dashboardActionsSource, /loadPendingEmailInvitesForUser\(context\.user\)/);
+  assert.match(pendingInvitesHelperSource, /\.is\("user_id", null\)/);
+  assert.match(pendingInvitesHelperSource, /\.eq\("status", "pending"\)/);
+  assert.match(pendingInvitesRouteSource, /export const dynamic = "force-dynamic"/);
+  assert.match(pendingInvitesRouteSource, /noStoreJson\(result\)/);
   assert.doesNotMatch(dashboardActionsSource, /claimInvitedMemberships/);
-  assert.match(dashboardPageSource, /getPendingEmailInvites\(\)/);
+  assert.match(dashboardPageSource, /fetchPendingEmailInvites\(\)/);
+  assert.match(dashboardPageSource, /\/api\/dashboard\/pending-email-invites/);
   assert.doesNotMatch(dashboardPageSource, /claimInvitedMemberships\(/);
   assert.doesNotMatch(dashboardPageSource, /ss_mc/);
   assert.match(dashboardPageSource, /\.select\("group_id, user_id, nickname, role"\)/);
@@ -1452,20 +1464,16 @@ test("dashboard optional invite loading and prefetch cannot block navigation", (
   const appShellSource = readFileSync("app/components/AppRouteShell.tsx", "utf8");
 
   assert.match(dashboardPageSource, /OPTIONAL_DASHBOARD_REQUEST_TIMEOUT_MS = 3_500/);
-  assert.match(dashboardPageSource, /async function withOptionalDashboardTimeout/);
-  assert.match(
-    dashboardPageSource,
-    /withOptionalDashboardTimeout\(\s*getPendingEmailInvites\(\),\s*\{ success: false, invites: \[\] \}/
-  );
+  assert.match(dashboardPageSource, /new AbortController\(\)/);
+  assert.match(dashboardPageSource, /controller\.abort\(\)/);
+  assert.match(dashboardPageSource, /credentials: "same-origin"/);
+  assert.match(dashboardPageSource, /cache: "no-store"/);
+  assert.doesNotMatch(dashboardPageSource, /getPendingEmailInvites\(\)/);
   assert.match(dashboardPageSource, /enabled: !loading && dashboardThemeReady/);
   assert.match(dashboardPrefetchSource, /enabled: boolean/);
   assert.match(dashboardPrefetchSource, /if \(!enabled\) \{\s*return;\s*\}/);
-  assert.match(appShellSource, /function shouldUseDocumentNavigation/);
-  assert.match(
-    appShellSource,
-    /return currentPathname === "\/dashboard" && href !== "\/dashboard"/
-  );
-  assert.match(appShellSource, /<Link ref=\{ref\} href=\{href\} prefetch=\{false\}/);
+  assert.match(appShellSource, /from "next\/link"/);
+  assert.match(appShellSource, /prefetch=\{false\}/);
   assert.doesNotMatch(appShellSource, /router\.prefetch\(route\)/);
   assert.match(appShellSource, /href="\/dashboard"/);
   assert.match(appShellSource, /href=\{item\.href\}/);

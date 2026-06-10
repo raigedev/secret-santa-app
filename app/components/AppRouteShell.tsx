@@ -3,13 +3,11 @@
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import {
-  forwardRef,
   useCallback,
   useEffect,
   useMemo,
   useRef,
   useState,
-  type AnchorHTMLAttributes,
   type ReactNode,
 } from "react";
 import { createClient } from "@/lib/supabase/client";
@@ -62,11 +60,6 @@ type AppNavItem = {
   match: (pathname: string, hash: string) => boolean;
 };
 
-type AppShellNavLinkProps = AnchorHTMLAttributes<HTMLAnchorElement> & {
-  currentPathname: string;
-  href: string;
-};
-
 const PUBLIC_ROUTE_PREFIXES = [
   "/login",
   "/create-account",
@@ -116,28 +109,6 @@ function getTimeOfDayGreeting() {
   if (hour < 18) return "Good afternoon";
   return "Good evening";
 }
-
-function shouldUseDocumentNavigation(currentPathname: string, href: string): boolean {
-  return currentPathname === "/dashboard" && href !== "/dashboard";
-}
-
-const AppShellNavLink = forwardRef<HTMLAnchorElement, AppShellNavLinkProps>(
-  function AppShellNavLink({ children, currentPathname, href, ...props }, ref) {
-    if (shouldUseDocumentNavigation(currentPathname, href)) {
-      return (
-        <a ref={ref} href={href} {...props}>
-          {children}
-        </a>
-      );
-    }
-
-    return (
-      <Link ref={ref} href={href} prefetch={false} {...props}>
-        {children}
-      </Link>
-    );
-  }
-);
 
 function createNavItems(canViewAffiliateReport: boolean): AppNavItem[] {
   const navItems: AppNavItem[] = [
@@ -593,7 +564,7 @@ export default function AppRouteShell({ children }: { children: ReactNode }) {
             : "18px 0 48px rgba(46,52,50,.07)",
         }}
       >
-        <AppShellNavLink currentPathname={pathname} href="/dashboard" className="flex items-center gap-3 rounded-[22px] px-2 py-2" style={{ color: isDarkAppShell ? "#f8fafc" : HOLIDAY_GREEN, textDecoration: "none" }}>
+        <Link href="/dashboard" prefetch={false} className="flex items-center gap-3 rounded-[22px] px-2 py-2" style={{ color: isDarkAppShell ? "#f8fafc" : HOLIDAY_GREEN, textDecoration: "none" }}>
           <span className="flex h-12 w-12 items-center justify-center rounded-[17px] shadow-[0_12px_24px_rgba(46,52,50,.06)] ring-1" style={{ background: isDarkAppShell ? "rgba(255,255,255,.08)" : "rgba(255,255,255,.8)", borderColor: shellBorderColor }}>
             <SantaMarkIcon size={42} />
           </span>
@@ -601,16 +572,16 @@ export default function AppRouteShell({ children }: { children: ReactNode }) {
             <span className="block text-[24px] font-black leading-none" style={{ fontFamily: "'Fredoka','Nunito',sans-serif" }}>Secret Santa</span>
             <span className="mt-0.5 block text-[10px] font-extrabold italic text-[#a43c3f]">shhh, it&apos;s a secret</span>
           </span>
-        </AppShellNavLink>
+        </Link>
 
         <nav aria-label="Main app navigation" className="mt-9 space-y-2">
           {navItems.map((item) => {
             const active = item.match(pathname, currentHash);
             return (
-              <AppShellNavLink
+              <Link
                 key={item.label}
-                currentPathname={pathname}
                 href={item.href}
+                prefetch={false}
                 onClick={() => handleNavItemClick(item)}
                 aria-current={active ? "page" : undefined}
                 className="flex min-h-11.5 items-center gap-3 rounded-xl px-3 text-[14px] font-extrabold transition hover:-translate-y-0.5"
@@ -623,7 +594,7 @@ export default function AppRouteShell({ children }: { children: ReactNode }) {
               >
                 <AppShellIcon name={item.icon} className="h-5 w-5 shrink-0" />
                 <span className="truncate">{item.label}</span>
-              </AppShellNavLink>
+              </Link>
             );
           })}
         </nav>
@@ -633,9 +604,9 @@ export default function AppRouteShell({ children }: { children: ReactNode }) {
           <p className="mt-2 text-[12px] font-semibold leading-relaxed" style={{ color: shellMutedColor }}>
             Invite friends, add wishlists, and keep the exchange moving from one place.
           </p>
-          <AppShellNavLink
-            currentPathname={pathname}
+          <Link
             href="/create-group"
+            prefetch={false}
             className="gift-button gift-button-compact mt-4 text-[12px]"
             style={{
               background: isDarkAppShell ? "rgba(252,206,114,.12)" : "rgba(72,102,78,.08)",
@@ -648,7 +619,7 @@ export default function AppRouteShell({ children }: { children: ReactNode }) {
               <AppShellIcon name="group" className="h-4 w-4" />
             </span>
             Start exchange
-          </AppShellNavLink>
+          </Link>
         </div>
       </aside>
 
@@ -706,7 +677,7 @@ export default function AppRouteShell({ children }: { children: ReactNode }) {
                 </button>
                 {profileOpen && (
                   <div role="menu" className="gift-menu-panel absolute right-0 mt-2 w-48 p-2" style={{ background: shellMenuBackground, borderColor: shellBorderColor }}>
-                    <AppShellNavLink role="menuitem" currentPathname={pathname} href="/profile" onClick={() => setProfileOpen(false)} className="gift-menu-item block px-3 py-2 text-[13px] font-extrabold" style={{ color: shellTextColor, textDecoration: "none" }}>Profile settings</AppShellNavLink>
+                    <Link role="menuitem" href="/profile" prefetch={false} onClick={() => setProfileOpen(false)} className="gift-menu-item block px-3 py-2 text-[13px] font-extrabold" style={{ color: shellTextColor, textDecoration: "none" }}>Profile settings</Link>
                     <button type="button" role="menuitem" onClick={() => void handleLogout()} className="gift-menu-item mt-1 block w-full px-3 py-2 text-left text-[13px] font-extrabold text-[#a43c3f]">
                       Logout
                     </button>
@@ -767,11 +738,11 @@ export default function AppRouteShell({ children }: { children: ReactNode }) {
             {navItems.map((item) => {
               const active = item.match(pathname, currentHash);
               return (
-                <AppShellNavLink
+                <Link
                   key={`mobile-${item.label}`}
-                  currentPathname={pathname}
                   ref={active ? mobileNavActiveItemRef : undefined}
                   href={item.href}
+                  prefetch={false}
                   onClick={() => handleNavItemClick(item)}
                   aria-current={active ? "page" : undefined}
                   data-testid="app-shell-mobile-nav-link"
@@ -798,7 +769,7 @@ export default function AppRouteShell({ children }: { children: ReactNode }) {
                   >
                     {item.label}
                   </span>
-                </AppShellNavLink>
+                </Link>
               );
             })}
           </div>
