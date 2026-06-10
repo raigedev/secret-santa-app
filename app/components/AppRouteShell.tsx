@@ -53,6 +53,13 @@ const TEXT_MUTED = "#64748b";
 const APP_SHELL_FALLBACK_POLL_MS = 5 * 60 * 1000;
 const NOTIFICATION_BADGE_COUNT_LIMIT = 100;
 const DEFAULT_TIME_OF_DAY_GREETING = "Welcome back";
+const APP_SHELL_DOCUMENT_NAVIGATION_PATHS = new Set([
+  "/gift-tracking",
+  "/groups",
+  "/my-giftee",
+  "/secret-santa",
+  "/secret-santa-chat",
+]);
 
 type AppNavItem = {
   href: string;
@@ -549,7 +556,19 @@ export default function AppRouteShell({ children }: { children: ReactNode }) {
       return;
     }
 
-    window.location.assign(targetUrl.href);
+    if (APP_SHELL_DOCUMENT_NAVIGATION_PATHS.has(targetUrl.pathname)) {
+      window.location.assign(targetUrl.href);
+      return;
+    }
+
+    router.push(item.href);
+
+    window.setTimeout(() => {
+      if (window.location.pathname !== targetUrl.pathname) {
+        window.stop();
+        window.location.assign(targetUrl.href);
+      }
+    }, 1_000);
   };
 
   return (
