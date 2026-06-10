@@ -143,7 +143,7 @@ const GUIDE_TABS: Array<{ id: GuideTabId; label: string }> = [
   { id: "prep", label: "Exchanges" },
 ];
 
-const MAX_GROUP_ROUTE_PREFETCH = 8;
+const SECRET_SANTA_LOAD_TIMEOUT_MS = 10_000;
 const MAX_VISIBLE_RECIPIENT_WISHLIST_ITEMS = 3;
 const PAGE_BACKGROUND =
   "radial-gradient(circle at 92% 6%,rgba(72,102,78,.12),transparent 25rem), radial-gradient(circle at 8% 90%,rgba(252,206,114,.15),transparent 24rem), repeating-linear-gradient(135deg,rgba(72,102,78,.055) 0 1px,transparent 1px 34px), repeating-linear-gradient(45deg,rgba(252,206,114,.09) 0 1px,transparent 1px 54px), linear-gradient(180deg,#fffdf8 0%,#fbfaf4 45%,#f1f7ee 100%)";
@@ -3072,8 +3072,8 @@ function SecretSantaExperience({ mode = "shopping" }: SecretSantaExperienceProps
     availableGroups,
   });
   const notificationButtonRef = useRef<HTMLButtonElement | null>(null);
-  const prefetchedRoutesRef = useRef<Set<string>>(new Set());
   const hasAppliedPageSnapshotRef = useRef(false);
+  const loadRequestIdRef = useRef(0);
 
   useEffect(() => {
     const handleViewerProfileChanged = (event: Event) => {
@@ -3132,48 +3132,6 @@ function SecretSantaExperience({ mode = "shopping" }: SecretSantaExperienceProps
   });
 
   useEffect(() => {
-    for (const route of [
-      "/dashboard",
-      "/groups",
-      "/wishlist",
-      "/secret-santa-chat",
-      "/notifications",
-      "/profile",
-      "/create-group",
-    ]) {
-      if (!prefetchedRoutesRef.current.has(route)) {
-        prefetchedRoutesRef.current.add(route);
-        router.prefetch(route);
-      }
-    }
-  }, [router]);
-
-  useEffect(() => {
-    const groupIds = new Set<string>();
-
-    for (const group of availableGroups) {
-      groupIds.add(group.id);
-    }
-
-    for (const assignment of assignments) {
-      groupIds.add(assignment.group_id);
-    }
-
-    // Prefetch only the first few likely navigation targets to avoid warming
-    // dozens of routes on large group lists.
-    for (const groupId of Array.from(groupIds).slice(0, MAX_GROUP_ROUTE_PREFETCH)) {
-      const route = `/group/${groupId}`;
-
-      if (prefetchedRoutesRef.current.has(route)) {
-        continue;
-      }
-
-      prefetchedRoutesRef.current.add(route);
-      router.prefetch(route);
-    }
-  }, [router, availableGroups, assignments]);
-
-  useEffect(() => {
     let isMounted = true;
     let reloadTimer: ReturnType<typeof setTimeout> | null = null;
     let pollInterval: ReturnType<typeof setInterval> | null = null;
@@ -3181,6 +3139,24 @@ function SecretSantaExperience({ mode = "shopping" }: SecretSantaExperienceProps
     // Load every dataset needed by the page in one place.
     // This centralizes error handling and prevents duplicated state sync logic.
     const loadData = async () => {
+      const loadRequestId = loadRequestIdRef.current + 1;
+      loadRequestIdRef.current = loadRequestId;
+      let loadingTimeoutId: number | null = null;
+
+      if (typeof window !== "undefined") {
+        loadingTimeoutId = window.setTimeout(() => {
+          if (!isMounted || loadRequestIdRef.current !== loadRequestId) {
+            return;
+          }
+
+          setMessage({
+            type: "error",
+            text: "Shopping Ideas is taking longer than expected. You can open another panel or refresh this page.",
+          });
+          setLoading(false);
+        }, SECRET_SANTA_LOAD_TIMEOUT_MS);
+      }
+
       try {
         const {
           data: { session },
@@ -3408,7 +3384,7 @@ function SecretSantaExperience({ mode = "shopping" }: SecretSantaExperienceProps
         });
         hasAppliedPageSnapshotRef.current = true;
       } catch {
-        if (!isMounted) {
+        if (!isMounted || loadRequestIdRef.current !== loadRequestId) {
           return;
         }
 
@@ -3420,7 +3396,11 @@ function SecretSantaExperience({ mode = "shopping" }: SecretSantaExperienceProps
           text: "We could not load your Secret Santa details. Please refresh the page.",
         });
       } finally {
-        if (isMounted) {
+        if (loadingTimeoutId !== null) {
+          window.clearTimeout(loadingTimeoutId);
+        }
+
+        if (isMounted && loadRequestIdRef.current === loadRequestId) {
           setLoading(false);
         }
       }
