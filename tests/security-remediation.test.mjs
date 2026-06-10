@@ -1460,8 +1460,11 @@ test("dashboard optional invite loading and prefetch cannot block navigation", (
   assert.match(dashboardPageSource, /enabled: !loading && dashboardThemeReady/);
   assert.match(dashboardPrefetchSource, /enabled: boolean/);
   assert.match(dashboardPrefetchSource, /if \(!enabled\) \{\s*return;\s*\}/);
+  assert.doesNotMatch(appShellSource, /from "next\/link"/);
+  assert.doesNotMatch(appShellSource, /<Link/);
   assert.doesNotMatch(appShellSource, /router\.prefetch\(route\)/);
-  assert.match(appShellSource, /prefetch=\{false\}/);
+  assert.match(appShellSource, /href="\/dashboard"/);
+  assert.match(appShellSource, /href=\{item\.href\}/);
 });
 
 test("client profile and snapshot storage are scoped or cleared on logout", () => {
