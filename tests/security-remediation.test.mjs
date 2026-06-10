@@ -1460,8 +1460,12 @@ test("dashboard optional invite loading and prefetch cannot block navigation", (
   assert.match(dashboardPageSource, /enabled: !loading && dashboardThemeReady/);
   assert.match(dashboardPrefetchSource, /enabled: boolean/);
   assert.match(dashboardPrefetchSource, /if \(!enabled\) \{\s*return;\s*\}/);
-  assert.doesNotMatch(appShellSource, /from "next\/link"/);
-  assert.doesNotMatch(appShellSource, /<Link/);
+  assert.match(appShellSource, /function shouldUseDocumentNavigation/);
+  assert.match(
+    appShellSource,
+    /return currentPathname === "\/dashboard" && href !== "\/dashboard"/
+  );
+  assert.match(appShellSource, /<Link ref=\{ref\} href=\{href\} prefetch=\{false\}/);
   assert.doesNotMatch(appShellSource, /router\.prefetch\(route\)/);
   assert.match(appShellSource, /href="\/dashboard"/);
   assert.match(appShellSource, /href=\{item\.href\}/);
