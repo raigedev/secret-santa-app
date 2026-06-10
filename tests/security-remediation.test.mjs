@@ -1363,6 +1363,10 @@ test("login page does not render arbitrary query-string error copy", () => {
 
   assert.match(loginSource, /import \{ sanitizePlainText \} from "@\/lib\/validation\/common";/);
   assert.match(loginSource, /AUTH_ERROR_MESSAGE_MAX_LENGTH = 220/);
+  assert.match(loginSource, /EMAIL_LOGIN_TIMEOUT_MS = 16_000/);
+  assert.match(loginSource, /EMAIL_LOGIN_TIMEOUT_ERROR/);
+  assert.match(loginSource, /emailLoginAttemptIdRef/);
+  assert.match(loginSource, /Promise\.race\(/);
   assert.match(loginSource, /sanitizePlainText\(trimmedMessage, AUTH_ERROR_MESSAGE_MAX_LENGTH\)/);
   assert.match(loginSource, /sanitizePlainText\(parsedMessage, AUTH_ERROR_MESSAGE_MAX_LENGTH\)/);
   assert.match(

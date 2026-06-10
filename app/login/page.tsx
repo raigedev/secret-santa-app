@@ -66,9 +66,12 @@ const AUTH_ERROR_MESSAGES: Record<string, string> = {
 
 const GENERIC_LOGIN_ERROR =
   "We could not sign you in. Please check your email and password, then try again.";
+const EMAIL_LOGIN_TIMEOUT_ERROR =
+  "Signing in is taking longer than expected. Please check your connection and try again.";
 const GOOGLE_OAUTH_UNAVAILABLE_ERROR =
   "Google sign-in did not open. Please try again or sign in with email.";
 const AUTH_ERROR_MESSAGE_MAX_LENGTH = 220;
+const EMAIL_LOGIN_TIMEOUT_MS = 16_000;
 const OAUTH_REDIRECT_HELP_DELAY_MS = 8000;
 
 function getReadableAuthErrorMessage(message: string | null): string | null {
@@ -296,6 +299,7 @@ function LoginPageInner() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const supabase = createClient();
+  const emailLoginAttemptIdRef = useRef(0);
   const oauthAttemptLeftPageRef = useRef(false);
   const oauthAttemptIdRef = useRef(0);
   const oauthRecoveryTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -470,12 +474,51 @@ function LoginPageInner() {
       return;
     }
 
+    const attemptId = emailLoginAttemptIdRef.current + 1;
+    emailLoginAttemptIdRef.current = attemptId;
     setLoading(true);
 
-    const { error: signInError } = await supabase.auth.signInWithPassword({
-      email: trimmedEmail,
-      password,
-    });
+    let timeoutId: ReturnType<typeof setTimeout> | null = null;
+    const signInResult = await Promise.race([
+      supabase.auth
+        .signInWithPassword({
+          email: trimmedEmail,
+          password,
+        })
+        .then(({ error: signInError }) => ({
+          signInError,
+          type: "result" as const,
+        }))
+        .catch(() => ({
+          type: "failure" as const,
+        })),
+      new Promise<{ type: "timeout" }>((resolve) => {
+        timeoutId = setTimeout(() => resolve({ type: "timeout" }), EMAIL_LOGIN_TIMEOUT_MS);
+      }),
+    ]);
+
+    if (timeoutId) {
+      clearTimeout(timeoutId);
+    }
+
+    if (emailLoginAttemptIdRef.current !== attemptId) {
+      return;
+    }
+
+    if (signInResult.type === "timeout") {
+      emailLoginAttemptIdRef.current += 1;
+      setError(EMAIL_LOGIN_TIMEOUT_ERROR);
+      setLoading(false);
+      return;
+    }
+
+    if (signInResult.type === "failure") {
+      setError(GENERIC_LOGIN_ERROR);
+      setLoading(false);
+      return;
+    }
+
+    const { signInError } = signInResult;
 
     if (signInError) {
       setError(getFriendlyLoginError(signInError.message));
