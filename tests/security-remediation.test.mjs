@@ -1488,6 +1488,7 @@ test("dashboard optional loading and route panels cannot block navigation", () =
   assert.match(appShellSource, /key=\{`mobile-\$\{item\.label\}`\}/);
   assert.match(appShellSource, /href=\{item\.href\}/);
   assert.match(appShellSource, /APP_SHELL_DOCUMENT_NAVIGATION_PATHS/);
+  assert.match(appShellSource, /"\/dashboard"/);
   assert.match(appShellSource, /"\/groups"/);
   assert.match(appShellSource, /"\/secret-santa-chat"/);
   assert.match(appShellSource, /router\.push\(item\.href\)/);
