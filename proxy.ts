@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { createServerClient } from "@supabase/ssr";
+import type { User } from "@supabase/supabase-js";
 import {
   createOAuthCallbackErrorLoginUrl,
   hasOAuthCallbackError,
@@ -11,6 +12,36 @@ import {
   createContentSecurityPolicyNonce,
 } from "@/lib/security/content-security-policy";
 import { resolveTrustedAppOrigin } from "@/lib/security/app-origin";
+
+const PROXY_VERIFIED_USER_CACHE_TTL_MS = 60_000;
+const PROXY_VERIFIED_USER_CACHE_MAX_ENTRIES = 250;
+
+type ProxySupabaseClient = {
+  auth: {
+    getSession: () => Promise<{
+      data: {
+        session: {
+          access_token: string;
+        } | null;
+      };
+      error: unknown;
+    }>;
+    getUser: () => Promise<{
+      data: {
+        user: User | null;
+      };
+      error: unknown;
+    }>;
+  };
+};
+
+const verifiedProxyUserCache = new Map<
+  string,
+  {
+    expiresAt: number;
+    user: User;
+  }
+>();
 
 function createGuardedPageResponse(req: NextRequest): NextResponse {
   const nonce = createContentSecurityPolicyNonce();
@@ -28,6 +59,77 @@ function createGuardedPageResponse(req: NextRequest): NextResponse {
 
   res.headers.set("Content-Security-Policy", contentSecurityPolicy);
   return res;
+}
+
+function getCachedVerifiedProxyUser(accessToken: string | null, now: number): User | null {
+  if (!accessToken) {
+    return null;
+  }
+
+  const cachedUser = verifiedProxyUserCache.get(accessToken);
+
+  if (!cachedUser) {
+    return null;
+  }
+
+  if (cachedUser.expiresAt <= now) {
+    verifiedProxyUserCache.delete(accessToken);
+    return null;
+  }
+
+  return cachedUser.user;
+}
+
+function cacheVerifiedProxyUser(accessToken: string | null, user: User, now: number) {
+  if (!accessToken) {
+    return;
+  }
+
+  if (verifiedProxyUserCache.size >= PROXY_VERIFIED_USER_CACHE_MAX_ENTRIES) {
+    const oldestCacheKey = verifiedProxyUserCache.keys().next().value;
+
+    if (oldestCacheKey) {
+      verifiedProxyUserCache.delete(oldestCacheKey);
+    }
+  }
+
+  verifiedProxyUserCache.set(accessToken, {
+    expiresAt: now + PROXY_VERIFIED_USER_CACHE_TTL_MS,
+    user,
+  });
+}
+
+async function getVerifiedProxyUser(supabase: ProxySupabaseClient): Promise<User | null> {
+  const now = Date.now();
+  let accessToken: string | null = null;
+
+  try {
+    const {
+      data: { session },
+    } = await supabase.auth.getSession();
+
+    accessToken = session?.access_token || null;
+  } catch {
+    accessToken = null;
+  }
+
+  const cachedUser = getCachedVerifiedProxyUser(accessToken, now);
+
+  if (cachedUser) {
+    return cachedUser;
+  }
+
+  // Keep getUser as the source of truth. getSession is used only to key the
+  // short-lived cache after a user has already been verified by Supabase Auth.
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (user) {
+    cacheVerifiedProxyUser(accessToken, user, now);
+  }
+
+  return user || null;
 }
 
 // Central request guard for auth, invite-link access, and email-verification redirects.
@@ -81,10 +183,7 @@ export async function proxy(req: NextRequest) {
     }
   );
 
-  // Validate the session with Supabase instead of trusting only local cookies.
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getVerifiedProxyUser(supabase);
 
   const pathname = req.nextUrl.pathname;
   const publicPages = [

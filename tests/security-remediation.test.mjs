@@ -1454,7 +1454,11 @@ test("dashboard shows email invites without auto-claiming memberships", () => {
   assert.doesNotMatch(dashboardPageSource, /\.select\("group_id, user_id, nickname, email, role"\)/);
   assert.doesNotMatch(dashboardLayoutSource, /supabase\.auth\.getUser\(\)/);
   assert.doesNotMatch(dashboardLayoutSource, /redirect\("\/login"\)/);
+  assert.match(proxySource, /PROXY_VERIFIED_USER_CACHE_TTL_MS = 60_000/);
+  assert.match(proxySource, /verifiedProxyUserCache/);
+  assert.match(proxySource, /supabase\.auth\.getSession\(\)/);
   assert.match(proxySource, /supabase\.auth\.getUser\(\)/);
+  assert.match(proxySource, /cacheVerifiedProxyUser\(accessToken, user, now\)/);
   assert.match(proxySource, /NextResponse\.redirect\(new URL\("\/login", trustedOrigin\)\)/);
   assert.match(proxySource, /getEmailVerificationMessage\(\)/);
 });
