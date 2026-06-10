@@ -1443,6 +1443,27 @@ test("dashboard shows email invites without auto-claiming memberships", () => {
   assert.match(dashboardLayoutSource, /redirect\("\/login"\)/);
 });
 
+test("dashboard optional invite loading and prefetch cannot block navigation", () => {
+  const dashboardPageSource = readFileSync("app/dashboard/page.tsx", "utf8");
+  const dashboardPrefetchSource = readFileSync(
+    "app/dashboard/useDashboardRoutePrefetch.ts",
+    "utf8"
+  );
+  const appShellSource = readFileSync("app/components/AppRouteShell.tsx", "utf8");
+
+  assert.match(dashboardPageSource, /OPTIONAL_DASHBOARD_REQUEST_TIMEOUT_MS = 3_500/);
+  assert.match(dashboardPageSource, /async function withOptionalDashboardTimeout/);
+  assert.match(
+    dashboardPageSource,
+    /withOptionalDashboardTimeout\(\s*getPendingEmailInvites\(\),\s*\{ success: false, invites: \[\] \}/
+  );
+  assert.match(dashboardPageSource, /enabled: !loading && dashboardThemeReady/);
+  assert.match(dashboardPrefetchSource, /enabled: boolean/);
+  assert.match(dashboardPrefetchSource, /if \(!enabled\) \{\s*return;\s*\}/);
+  assert.doesNotMatch(appShellSource, /router\.prefetch\(route\)/);
+  assert.match(appShellSource, /prefetch=\{false\}/);
+});
+
 test("client profile and snapshot storage are scoped or cleared on logout", () => {
   const viewerProfileSource = readFileSync("app/components/viewer-profile-client.ts", "utf8");
   const clientSnapshotSource = readFileSync("lib/client-snapshot.ts", "utf8");

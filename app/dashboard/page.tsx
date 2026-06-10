@@ -84,6 +84,7 @@ const DASHBOARD_THEME_CHANGED_EVENT = "ss-dashboard-theme-changed";
 const DASHBOARD_NOTIFICATION_PREVIEW_LIMIT = 3;
 const DASHBOARD_FALLBACK_POLL_MS = 5 * 60 * 1000;
 const NOTIFICATION_BADGE_COUNT_LIMIT = 100;
+const OPTIONAL_DASHBOARD_REQUEST_TIMEOUT_MS = 3_500;
 
 type DashboardNotificationPreviewGroup = {
   count: number;
@@ -217,6 +218,23 @@ function readStoredDashboardTheme(): DashboardTheme {
       : "default";
   } catch {
     return "default";
+  }
+}
+
+async function withOptionalDashboardTimeout<T>(task: Promise<T>, fallback: T): Promise<T> {
+  let timeoutId: ReturnType<typeof setTimeout> | null = null;
+
+  try {
+    return await Promise.race([
+      task.catch(() => fallback),
+      new Promise<T>((resolve) => {
+        timeoutId = setTimeout(resolve, OPTIONAL_DASHBOARD_REQUEST_TIMEOUT_MS, fallback);
+      }),
+    ]);
+  } finally {
+    if (timeoutId) {
+      clearTimeout(timeoutId);
+    }
   }
 }
 
@@ -403,7 +421,10 @@ export default function DashboardPage() {
           throw ownedGroupLookupRes.error;
         }
 
-        const emailInviteResult = await getPendingEmailInvites();
+        const emailInviteResult = await withOptionalDashboardTimeout(
+          getPendingEmailInvites(),
+          { success: false, invites: [] }
+        );
         const emailPendingInvites = emailInviteResult.success ? emailInviteResult.invites : [];
         const memberRows = (membershipRes.data || []) as MembershipRow[];
         const ownedGroupIds = [...new Set((ownedGroupLookupRes.data || []).map((group) => group.id))];
@@ -1009,6 +1030,7 @@ export default function DashboardPage() {
 
   useDashboardRoutePrefetch({
     canViewAffiliateReport,
+    enabled: !loading && dashboardThemeReady,
     invitedGroups,
     ownedGroups,
     router,
