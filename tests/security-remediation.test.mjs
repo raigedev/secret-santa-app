@@ -1466,8 +1466,10 @@ test("dashboard optional loading and route panels cannot block navigation", () =
     "utf8"
   );
   const appShellSource = readFileSync("app/components/AppRouteShell.tsx", "utf8");
+  const chatPageSource = readFileSync("app/secret-santa-chat/page.tsx", "utf8");
   const groupsPageSource = readFileSync("app/groups/page.tsx", "utf8");
   const secretSantaPageSource = readFileSync("app/secret-santa/page.tsx", "utf8");
+  const wishlistPageSource = readFileSync("app/wishlist/page.tsx", "utf8");
 
   assert.match(dashboardPageSource, /OPTIONAL_DASHBOARD_REQUEST_TIMEOUT_MS = 3_500/);
   assert.match(dashboardPageSource, /new AbortController\(\)/);
@@ -1498,6 +1500,11 @@ test("dashboard optional loading and route panels cannot block navigation", () =
   assert.match(dashboardGroupsDataSource, /PEER_PROFILE_REQUEST_TIMEOUT_MS = 3_500/);
   assert.match(dashboardGroupsDataSource, /createBoundedSignedGroupImageUrl/);
   assert.match(dashboardGroupsDataSource, /controller\.abort\(\)/);
+  assert.match(chatPageSource, /CHAT_PAGE_LOAD_TIMEOUT_MS = 10_000/);
+  assert.match(chatPageSource, /Messages are taking longer than expected/);
+  assert.doesNotMatch(chatPageSource, /router\.prefetch\(/);
+  assert.doesNotMatch(wishlistPageSource, /router\.prefetch\(/);
+  assert.doesNotMatch(wishlistPageSource, /prefetched/);
 });
 
 test("client profile and snapshot storage are scoped or cleared on logout", () => {
