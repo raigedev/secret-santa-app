@@ -1480,6 +1480,8 @@ test("dashboard optional invite loading and prefetch cannot block navigation", (
   assert.match(appShellSource, /<a\s+key=\{item\.label\}/);
   assert.match(appShellSource, /key=\{`mobile-\$\{item\.label\}`\}/);
   assert.match(appShellSource, /href=\{item\.href\}/);
+  assert.match(appShellSource, /router\.push\(item\.href\)/);
+  assert.match(appShellSource, /window\.location\.assign\(item\.href\)/);
   assert.match(secretSantaPageSource, /SECRET_SANTA_LOAD_TIMEOUT_MS = 10_000/);
   assert.match(secretSantaPageSource, /loadRequestIdRef/);
   assert.match(secretSantaPageSource, /Shopping Ideas is taking longer than expected/);
