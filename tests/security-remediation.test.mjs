@@ -1462,6 +1462,7 @@ test("dashboard shows email invites without auto-claiming memberships", () => {
 test("dashboard optional invite loading and prefetch cannot block navigation", () => {
   const dashboardPageSource = readFileSync("app/dashboard/page.tsx", "utf8");
   const appShellSource = readFileSync("app/components/AppRouteShell.tsx", "utf8");
+  const secretSantaPageSource = readFileSync("app/secret-santa/page.tsx", "utf8");
 
   assert.match(dashboardPageSource, /OPTIONAL_DASHBOARD_REQUEST_TIMEOUT_MS = 3_500/);
   assert.match(dashboardPageSource, /new AbortController\(\)/);
@@ -1479,6 +1480,11 @@ test("dashboard optional invite loading and prefetch cannot block navigation", (
   assert.match(appShellSource, /<a\s+key=\{item\.label\}/);
   assert.match(appShellSource, /key=\{`mobile-\$\{item\.label\}`\}/);
   assert.match(appShellSource, /href=\{item\.href\}/);
+  assert.match(secretSantaPageSource, /SECRET_SANTA_LOAD_TIMEOUT_MS = 10_000/);
+  assert.match(secretSantaPageSource, /loadRequestIdRef/);
+  assert.match(secretSantaPageSource, /Shopping Ideas is taking longer than expected/);
+  assert.doesNotMatch(secretSantaPageSource, /prefetchedRoutesRef/);
+  assert.doesNotMatch(secretSantaPageSource, /router\.prefetch\(/);
 });
 
 test("client profile and snapshot storage are scoped or cleared on logout", () => {
