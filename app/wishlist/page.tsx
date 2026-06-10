@@ -279,7 +279,6 @@ function ArrowRightIcon({ className = "h-4 w-4" }: { className?: string }) {
 export default function WishlistPage() {
   const router = useRouter();
   const [supabase] = useState(() => createClient());
-  const prefetched = useRef<Set<string>>(new Set());
   const hasLoadedOnceRef = useRef(false);
   const loadDataRef = useRef<(() => Promise<void>) | null>(null);
   const [loading, setLoading] = useState(true);
@@ -329,15 +328,6 @@ export default function WishlistPage() {
       },
     ];
   }, [userId]);
-
-  useEffect(() => {
-    for (const route of ["/dashboard", "/secret-santa", "/secret-santa-chat"]) {
-      if (!prefetched.current.has(route)) {
-        prefetched.current.add(route);
-        router.prefetch(route);
-      }
-    }
-  }, [router]);
 
   useEffect(() => {
     let active = true;
