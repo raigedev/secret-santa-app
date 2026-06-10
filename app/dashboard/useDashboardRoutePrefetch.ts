@@ -18,6 +18,7 @@ type PrefetchRouter = {
 
 type DashboardRoutePrefetchOptions = {
   canViewAffiliateReport: boolean;
+  enabled: boolean;
   invitedGroups: Group[];
   ownedGroups: Group[];
   router: PrefetchRouter;
@@ -25,6 +26,7 @@ type DashboardRoutePrefetchOptions = {
 
 export function useDashboardRoutePrefetch({
   canViewAffiliateReport,
+  enabled,
   invitedGroups,
   ownedGroups,
   router,
@@ -32,6 +34,10 @@ export function useDashboardRoutePrefetch({
   const prefetchedRoutesRef = useRef<Set<string>>(new Set());
 
   useEffect(() => {
+    if (!enabled) {
+      return;
+    }
+
     const prefetchOnce = (route: string) => {
       if (prefetchedRoutesRef.current.has(route)) {
         return;
@@ -71,9 +77,13 @@ export function useDashboardRoutePrefetch({
         clearTimeout(timeoutId);
       }
     };
-  }, [router, canViewAffiliateReport]);
+  }, [router, canViewAffiliateReport, enabled]);
 
   useEffect(() => {
+    if (!enabled) {
+      return;
+    }
+
     const groupRoutes = [...ownedGroups, ...invitedGroups]
       .slice(0, 6)
       .map((group) => `/group/${group.id}`);
@@ -112,5 +122,5 @@ export function useDashboardRoutePrefetch({
         clearTimeout(timeoutId);
       }
     };
-  }, [router, ownedGroups, invitedGroups]);
+  }, [router, ownedGroups, invitedGroups, enabled]);
 }

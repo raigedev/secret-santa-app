@@ -221,7 +221,6 @@ export default function AppRouteShell({ children }: { children: ReactNode }) {
   const [profileOpen, setProfileOpen] = useState(false);
   const notificationButtonRef = useRef<HTMLButtonElement | null>(null);
   const loadedShellContextForUserRef = useRef<string | null>(null);
-  const prefetchedRoutesRef = useRef<Set<string>>(new Set());
   const mobileNavScrollerRef = useRef<HTMLDivElement | null>(null);
   const mobileNavActiveItemRef = useRef<HTMLAnchorElement | null>(null);
 
@@ -461,46 +460,6 @@ export default function AppRouteShell({ children }: { children: ReactNode }) {
     return addViewerProfileChangedListener(handleViewerProfileChanged);
   }, [pathname]);
 
-  useEffect(() => {
-    if (!shouldUseAppShell(pathname)) {
-      return;
-    }
-
-    for (const route of [
-      "/dashboard",
-      "/groups",
-      "/my-giftee",
-      "/wishlist",
-      "/secret-santa",
-      "/gift-tracking",
-      "/history",
-      "/secret-santa-chat",
-      "/notifications",
-      "/profile",
-      "/settings",
-      "/reminders",
-      "/create-group",
-      "/dashboard/affiliate-report",
-    ]) {
-      if (!prefetchedRoutesRef.current.has(route)) {
-        prefetchedRoutesRef.current.add(route);
-        router.prefetch(route);
-      }
-    }
-
-    const pathParts = pathname.split("/").filter(Boolean);
-    const activeGroupId = pathParts[0] === "group" ? pathParts[1] : null;
-
-    if (activeGroupId) {
-      for (const route of [`/group/${activeGroupId}`, `/group/${activeGroupId}/reveal`]) {
-        if (!prefetchedRoutesRef.current.has(route)) {
-          prefetchedRoutesRef.current.add(route);
-          router.prefetch(route);
-        }
-      }
-    }
-  }, [pathname, router]);
-
   const navItems = createNavItems(canViewAffiliateReport);
   const activeNavLabel = navItems.find((item) => item.match(pathname, currentHash))?.label || "";
 
@@ -605,7 +564,7 @@ export default function AppRouteShell({ children }: { children: ReactNode }) {
             : "18px 0 48px rgba(46,52,50,.07)",
         }}
       >
-        <Link href="/dashboard" className="flex items-center gap-3 rounded-[22px] px-2 py-2" style={{ color: isDarkAppShell ? "#f8fafc" : HOLIDAY_GREEN, textDecoration: "none" }}>
+        <Link href="/dashboard" prefetch={false} className="flex items-center gap-3 rounded-[22px] px-2 py-2" style={{ color: isDarkAppShell ? "#f8fafc" : HOLIDAY_GREEN, textDecoration: "none" }}>
           <span className="flex h-12 w-12 items-center justify-center rounded-[17px] shadow-[0_12px_24px_rgba(46,52,50,.06)] ring-1" style={{ background: isDarkAppShell ? "rgba(255,255,255,.08)" : "rgba(255,255,255,.8)", borderColor: shellBorderColor }}>
             <SantaMarkIcon size={42} />
           </span>
@@ -622,6 +581,7 @@ export default function AppRouteShell({ children }: { children: ReactNode }) {
               <Link
                 key={item.label}
                 href={item.href}
+                prefetch={false}
                 onClick={() => handleNavItemClick(item)}
                 aria-current={active ? "page" : undefined}
                 className="flex min-h-11.5 items-center gap-3 rounded-xl px-3 text-[14px] font-extrabold transition hover:-translate-y-0.5"
@@ -646,6 +606,7 @@ export default function AppRouteShell({ children }: { children: ReactNode }) {
           </p>
           <Link
             href="/create-group"
+            prefetch={false}
             className="gift-button gift-button-compact mt-4 text-[12px]"
             style={{
               background: isDarkAppShell ? "rgba(252,206,114,.12)" : "rgba(72,102,78,.08)",
@@ -716,7 +677,7 @@ export default function AppRouteShell({ children }: { children: ReactNode }) {
                 </button>
                 {profileOpen && (
                   <div role="menu" className="gift-menu-panel absolute right-0 mt-2 w-48 p-2" style={{ background: shellMenuBackground, borderColor: shellBorderColor }}>
-                    <Link role="menuitem" href="/profile" onClick={() => setProfileOpen(false)} className="gift-menu-item block px-3 py-2 text-[13px] font-extrabold" style={{ color: shellTextColor, textDecoration: "none" }}>Profile settings</Link>
+                    <Link role="menuitem" href="/profile" prefetch={false} onClick={() => setProfileOpen(false)} className="gift-menu-item block px-3 py-2 text-[13px] font-extrabold" style={{ color: shellTextColor, textDecoration: "none" }}>Profile settings</Link>
                     <button type="button" role="menuitem" onClick={() => void handleLogout()} className="gift-menu-item mt-1 block w-full px-3 py-2 text-left text-[13px] font-extrabold text-[#a43c3f]">
                       Logout
                     </button>
@@ -781,6 +742,7 @@ export default function AppRouteShell({ children }: { children: ReactNode }) {
                   key={`mobile-${item.label}`}
                   ref={active ? mobileNavActiveItemRef : undefined}
                   href={item.href}
+                  prefetch={false}
                   onClick={() => handleNavItemClick(item)}
                   aria-current={active ? "page" : undefined}
                   data-testid="app-shell-mobile-nav-link"
