@@ -364,7 +364,6 @@ export default function Landing() {
             <a href="#how">How it Works</a>
             <a href="/how-it-works" className="nav-guide">Full Guide</a>
             <a href="#features">Features</a>
-            <a href="#testimonials">Reviews</a>
             <TipJarNavLink />
             <a className="nav-cta" onClick={() => router.push("/login")}>Get Started — It&apos;s Free</a>
           </div>
