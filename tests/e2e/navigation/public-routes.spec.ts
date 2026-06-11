@@ -9,7 +9,7 @@ test.describe("public route coverage", () => {
     await expect(page.getByRole("link", { name: /support my secret santa/i })).toBeVisible();
     await expect(page.getByRole("link", { name: /support my secret santa/i })).toHaveAttribute(
       "href",
-      "/support"
+      "https://ko-fi.com/mysecretsanta"
     );
     await expect(page.locator("footer").getByRole("link", { name: /support us/i })).toHaveCount(0);
   });
