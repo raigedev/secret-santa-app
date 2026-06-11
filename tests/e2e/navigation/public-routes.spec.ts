@@ -7,6 +7,7 @@ test.describe("public route coverage", () => {
     await page.goto("/");
     await expect(page.getByRole("button", { name: /start drawing names/i }).first()).toBeVisible();
     await expect(page.locator("nav").getByRole("link", { name: /reviews/i })).toHaveCount(0);
+    await expect(page.locator("footer").getByRole("link", { name: /reviews/i })).toHaveCount(0);
     await expect(page.getByRole("link", { name: /support my secret santa/i })).toBeVisible();
     await expect(page.getByRole("link", { name: /support my secret santa/i })).toHaveAttribute(
       "href",

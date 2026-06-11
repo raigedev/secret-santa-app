@@ -549,7 +549,6 @@ export default function Landing() {
             <h4>Product</h4>
             <a href="#how">How it Works</a>
             <a href="#features">Features</a>
-            <a href="#testimonials">Reviews</a>
           </div>
           <div className="footer-col">
             <h4>Resources</h4>
