@@ -395,7 +395,7 @@ export default function Landing() {
             </div>
             <div className="hero-stats fade-up d5">
               <div><div className="hero-stat-num">100%</div><div className="hero-stat-label">Free to start</div></div>
-              <div><div className="hero-stat-num">3 min</div><div className="hero-stat-label">Setup time</div></div>
+              <div><div className="hero-stat-num">Fast</div><div className="hero-stat-label">Easy setup</div></div>
               <div><div className="hero-stat-num">Private</div><div className="hero-stat-label">Recipient details</div></div>
             </div>
           </div>
