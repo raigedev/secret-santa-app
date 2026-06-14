@@ -50,6 +50,7 @@ Prefer the tools already installed and trusted in this workspace:
 - Broad ambiguous implementation or product iteration: use GSD-style phases to keep discussion, plan, execution, and verification explicit. On Codex, do the work inline unless the user explicitly requested sub-agents; never let GSD skip repo checks or safety gates.
 - Unclear or risky requirements: use the `grill-me` approach before planning or editing. Ask one focused question at a time with a recommended answer, but answer from the codebase first when local inspection can resolve it. Use `grill-with-docs` ideas for domain-language or ADR-worthy decisions, creating docs only when the repo task truly needs them.
 - App connector work: use existing Codex app plugins first. Do not install Composio Connect or similar account-bound tools without a specific user request and setup confirmation.
+- Vercel build logs: when using the Vercel connector `get_deployment_build_logs`, resolve the concrete deployment ID first with `vercel inspect <deployment-url> --json` or `vercel ls <project>`, then pass the `dpl_...` ID and team ID. Do not pass the production alias directly.
 
 ## Oracle, Stitch, And Figma Notes
 
