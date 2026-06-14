@@ -1,6 +1,6 @@
 ---
 name: frontend-product-ui
-description: Use this skill for frontend UI work in this Secret Santa app: redesigns, responsive fixes, visual polish, dashboard/app screens, landing/public pages, component layout, readability, motion, imagery, browser verification, or avoiding generic AI-looking UI.
+description: "Use this skill for frontend UI work in this Secret Santa app: redesigns, responsive fixes, visual polish, dashboard/app screens, landing/public pages, component layout, readability, motion, imagery, browser verification, or avoiding generic AI-looking UI."
 ---
 
 # Frontend Product UI
