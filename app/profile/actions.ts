@@ -23,11 +23,11 @@ import {
   cleanupProfileAvatarStorageForAccountDeletion,
   cleanupReplacedProfileAvatar,
 } from "@/lib/profile/account-media-cleanup";
+import { isSupportedCurrencyCode } from "@/lib/currency";
 import { sanitizePlainText } from "@/lib/validation/common";
 
 // Profile actions stay on the server because they touch auth state and user-owned
 // records that should never rely on client-side validation alone.
-const ALLOWED_CURRENCIES = new Set(["USD", "EUR", "GBP", "PHP", "JPY", "AUD", "CAD"]);
 const REMINDER_DELIVERY_MODES = new Set<ReminderDeliveryMode>([
   "immediate",
   "daily_digest",
@@ -209,7 +209,7 @@ export async function updateProfile(
     return { success: false, message: "Display name is required." };
   }
 
-  if (!ALLOWED_CURRENCIES.has(cleanCurrency)) {
+  if (!isSupportedCurrencyCode(cleanCurrency)) {
     return { success: false, message: "Choose a valid currency." };
   }
 

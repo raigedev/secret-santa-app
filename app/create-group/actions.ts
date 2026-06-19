@@ -20,6 +20,7 @@ import { MAX_GROUP_CREATION_INVITES } from "@/lib/groups/capacity";
 import { getServerActionContext } from "@/lib/auth/server-action-context";
 import { enforceRateLimit } from "@/lib/security/rate-limit";
 import { supabaseAdmin } from "@/lib/supabase/admin";
+import { isSupportedCurrencyCode } from "@/lib/currency";
 import { sanitizePlainText } from "@/lib/validation/common";
 
 const GROUP_NAME_MAX_LENGTH = 100;
@@ -28,7 +29,6 @@ const GROUP_CURRENCY_MAX_LENGTH = 5;
 const MAX_INVITES_PER_GROUP = MAX_GROUP_CREATION_INVITES;
 const EMAIL_MAX_LENGTH = 100;
 const INVITE_EMAILS_JSON_MAX_LENGTH = 8 * 1024;
-const ALLOWED_CURRENCIES = new Set(["USD", "EUR", "GBP", "PHP", "JPY", "AUD", "CAD"]);
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 type CreateGroupInput = {
@@ -277,7 +277,7 @@ async function createGroupWithInvitesInternal(
     return { success: false, message: "Event date must be today or later." };
   }
 
-  if (!ALLOWED_CURRENCIES.has(cleanCurrency)) {
+  if (!isSupportedCurrencyCode(cleanCurrency)) {
     return { success: false, message: "Choose a valid currency." };
   }
 

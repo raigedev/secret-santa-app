@@ -15,6 +15,11 @@ import {
 } from "@/lib/groups/nickname";
 import { sanitizePlainText } from "@/lib/validation/common";
 import { GROUP_CREATED_TIP_PROMPT_STORAGE_KEY } from "@/lib/support/tip-jar";
+import {
+  formatCurrencyOptionLabel,
+  getCurrencySymbol,
+  SUPPORTED_CURRENCIES,
+} from "@/lib/currency";
 import { createGroupWithInvitesFromFormData } from "./actions";
 
 const BUDGET_OPTIONS = [10, 15, 25, 50, 100];
@@ -24,15 +29,6 @@ const MAX_GROUP_IMAGE_DECODED_PIXELS = 12_000_000;
 const GROUP_IMAGE_PREVIEW_SIZE = 384;
 const GROUP_IMAGE_PREVIEW_MAX_PIXEL_RATIO = 2;
 const ALLOWED_GROUP_IMAGE_TYPES = new Set(["image/jpeg", "image/png", "image/webp"]);
-const CURRENCIES = [
-  { code: "USD", symbol: "$", name: "US Dollar" },
-  { code: "EUR", symbol: "\u20ac", name: "Euro" },
-  { code: "GBP", symbol: "\u00a3", name: "British Pound" },
-  { code: "PHP", symbol: "\u20b1", name: "Philippine Peso" },
-  { code: "JPY", symbol: "\u00a5", name: "Japanese Yen" },
-  { code: "AUD", symbol: "A$", name: "Australian Dollar" },
-  { code: "CAD", symbol: "C$", name: "Canadian Dollar" },
-];
 
 function sanitize(input: string, max: number): string {
   return sanitizePlainText(input, max);
@@ -401,7 +397,7 @@ export default function CreateGroupPage() {
     window.location.assign("/dashboard");
   };
 
-  const currencySymbol = CURRENCIES.find((item) => item.code === currency)?.symbol || "$";
+  const currencySymbol = getCurrencySymbol(currency);
   const inviteEmailCount = getInviteEmailCount(inviteEmails);
   const formActionDisabled = !isHydrated || loading || imageDecodePending;
   const basicsReady = groupName.trim().length > 0 && eventDate.length > 0;
@@ -827,9 +823,9 @@ export default function CreateGroupPage() {
                 cursor: "pointer",
               }}
             >
-              {CURRENCIES.map((item) => (
+              {SUPPORTED_CURRENCIES.map((item) => (
                 <option key={item.code} value={item.code}>
-                  {item.symbol} {item.code} - {item.name}
+                  {formatCurrencyOptionLabel(item)}
                 </option>
               ))}
             </select>

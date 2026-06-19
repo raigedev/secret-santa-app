@@ -1,5 +1,6 @@
 import { type Dispatch, type SetStateAction } from "react";
-import { BUDGET_OPTIONS, CURRENCIES } from "./group-page-config";
+import { formatCurrencyOptionLabel, SUPPORTED_CURRENCIES } from "@/lib/currency";
+import { BUDGET_OPTIONS } from "./group-page-config";
 import { GroupPageModal } from "./GroupPagePrimitives";
 
 type StateSetter<T> = Dispatch<SetStateAction<T>>;
@@ -165,9 +166,9 @@ export function EditGroupModal({
             className="w-full px-3 py-2.5 rounded-xl text-[14px] outline-none"
             style={inputStyle}
           >
-            {CURRENCIES.map((currency) => (
+            {SUPPORTED_CURRENCIES.map((currency) => (
               <option key={currency.code} value={currency.code}>
-                {currency.label} ({currency.symbol})
+                {formatCurrencyOptionLabel(currency)}
               </option>
             ))}
           </select>
