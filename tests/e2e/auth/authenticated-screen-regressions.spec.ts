@@ -153,6 +153,12 @@ const AUTHENTICATED_SCREEN_CASES: ScreenCase[] = [
       await expect(page.getByRole("heading", { name: /^create group$/i })).toBeVisible();
       await expect(page.getByText(/exchange picture/i).first()).toBeVisible();
       await expect(page.getByText(/add an exchange picture/i)).toBeVisible();
+      await expect(
+        page.locator('nav[aria-label="Main app navigation"] a[aria-current="page"]')
+      ).toHaveText(/My Groups/i);
+      const currencyOptions = await page.locator("#create-group-currency option").allTextContents();
+      expect(currencyOptions).toContain("\u20b1 PHP - Philippine Peso");
+      expect(currencyOptions).not.toContain("PHP PHP - Philippine Peso");
       await expect(page.getByRole("button", { name: /back to dashboard/i })).toHaveCount(0);
       await expect(page.getByRole("button", { name: /create exchange/i })).toBeVisible();
     },
