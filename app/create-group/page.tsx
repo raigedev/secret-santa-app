@@ -25,13 +25,13 @@ const GROUP_IMAGE_PREVIEW_SIZE = 384;
 const GROUP_IMAGE_PREVIEW_MAX_PIXEL_RATIO = 2;
 const ALLOWED_GROUP_IMAGE_TYPES = new Set(["image/jpeg", "image/png", "image/webp"]);
 const CURRENCIES = [
-  { code: "USD", symbol: "$", label: "USD - US Dollar" },
-  { code: "EUR", symbol: "EUR", label: "EUR - Euro" },
-  { code: "GBP", symbol: "GBP", label: "GBP - British Pound" },
-  { code: "PHP", symbol: "PHP", label: "PHP - Philippine Peso" },
-  { code: "JPY", symbol: "JPY", label: "JPY - Japanese Yen" },
-  { code: "AUD", symbol: "AUD", label: "AUD - Australian Dollar" },
-  { code: "CAD", symbol: "CAD", label: "CAD - Canadian Dollar" },
+  { code: "USD", symbol: "$", name: "US Dollar" },
+  { code: "EUR", symbol: "\u20ac", name: "Euro" },
+  { code: "GBP", symbol: "\u00a3", name: "British Pound" },
+  { code: "PHP", symbol: "\u20b1", name: "Philippine Peso" },
+  { code: "JPY", symbol: "\u00a5", name: "Japanese Yen" },
+  { code: "AUD", symbol: "A$", name: "Australian Dollar" },
+  { code: "CAD", symbol: "C$", name: "Canadian Dollar" },
 ];
 
 function sanitize(input: string, max: number): string {
@@ -811,10 +811,11 @@ export default function CreateGroupPage() {
           </div>
 
           <div>
-            <label className={labelClassName}>
+            <label className={labelClassName} htmlFor="create-group-currency">
               Currency
             </label>
             <select
+              id="create-group-currency"
               value={currency}
               onChange={(e) => {
                 setCurrency(e.target.value);
@@ -828,7 +829,7 @@ export default function CreateGroupPage() {
             >
               {CURRENCIES.map((item) => (
                 <option key={item.code} value={item.code}>
-                  {item.symbol} {item.label}
+                  {item.symbol} {item.code} - {item.name}
                 </option>
               ))}
             </select>

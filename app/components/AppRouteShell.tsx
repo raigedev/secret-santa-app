@@ -132,7 +132,9 @@ function createNavItems(canViewAffiliateReport: boolean): AppNavItem[] {
       icon: "group",
       label: "My Groups",
       match: (path) =>
-        path === "/groups" || (path.startsWith("/group/") && !path.endsWith("/reveal")),
+        path === "/groups" ||
+        path === "/create-group" ||
+        (path.startsWith("/group/") && !path.endsWith("/reveal")),
     },
     {
       href: "/my-giftee",
