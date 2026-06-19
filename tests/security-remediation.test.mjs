@@ -1311,6 +1311,54 @@ test("public launch pages stay available without an app session", () => {
   }
 });
 
+test("app shell maps create-group into the My Groups navigation section", () => {
+  const appShellSource = readFileSync("app/components/AppRouteShell.tsx", "utf8");
+  const myGroupsStart = appShellSource.indexOf('href: "/groups"');
+  const myGifteeStart = appShellSource.indexOf('label: "My giftee"', myGroupsStart);
+  const myGroupsNavBlock = appShellSource.slice(myGroupsStart, myGifteeStart);
+
+  assert.ok(myGroupsStart > 0, "Expected a My Groups navigation item.");
+  assert.ok(myGifteeStart > myGroupsStart, "Expected My Groups to appear before My giftee.");
+  assert.match(myGroupsNavBlock, /href:\s*"\/groups"/);
+  assert.match(myGroupsNavBlock, /path === "\/create-group"/);
+  assert.match(
+    appShellSource,
+    /if \(pathname === "\/create-group"\) return "Set up a new Secret Santa exchange\.";/
+  );
+});
+
+test("currency displays and validators share one source of truth", () => {
+  const currencySource = readFileSync("lib/currency.ts", "utf8");
+  const createGroupPageSource = readFileSync("app/create-group/page.tsx", "utf8");
+  const createGroupActionsSource = readFileSync("app/create-group/actions.ts", "utf8");
+  const profilePageSource = readFileSync("app/profile/page.tsx", "utf8");
+  const profileActionsSource = readFileSync("app/profile/actions.ts", "utf8");
+  const groupConfigSource = readFileSync("app/group/[id]/group-page-config.ts", "utf8");
+  const groupPageSource = readFileSync("app/group/[id]/page.tsx", "utf8");
+  const groupEditModalSource = readFileSync("app/group/[id]/EditGroupModal.tsx", "utf8");
+  const groupActionsSource = readFileSync("app/group/[id]/actions.ts", "utf8");
+
+  assert.match(currencySource, /export const SUPPORTED_CURRENCIES = \[/);
+  assert.match(currencySource, /\{ code: "PHP", symbol: "\\u20b1", name: "Philippine Peso" \}/);
+  assert.match(currencySource, /export function formatCurrencyOptionLabel/);
+  assert.match(currencySource, /export function getCurrencySymbol/);
+  assert.match(currencySource, /export function isSupportedCurrencyCode/);
+
+  for (const source of [createGroupPageSource, profilePageSource, groupEditModalSource]) {
+    assert.match(source, /formatCurrencyOptionLabel/);
+    assert.doesNotMatch(source, /PHP PHP - Philippine Peso/);
+    assert.doesNotMatch(source, /const CURRENCIES = \[/);
+  }
+
+  for (const source of [createGroupActionsSource, profileActionsSource, groupActionsSource]) {
+    assert.match(source, /isSupportedCurrencyCode/);
+    assert.doesNotMatch(source, /ALLOWED_CURRENCIES = new Set/);
+  }
+
+  assert.match(groupPageSource, /getCurrencySymbol/);
+  assert.doesNotMatch(groupConfigSource, /CURRENCIES = \[/);
+});
+
 test("auth and affiliate fallback redirects use trusted app origins", () => {
   const appOriginSource = readFileSync("lib/security/app-origin.ts", "utf8");
   const proxySource = readFileSync("proxy.ts", "utf8");

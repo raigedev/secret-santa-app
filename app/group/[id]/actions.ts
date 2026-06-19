@@ -28,6 +28,7 @@ import {
 import { enforceRateLimit } from "@/lib/security/rate-limit";
 import { supabaseAdmin } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
+import { isSupportedCurrencyCode } from "@/lib/currency";
 import { isUuid, sanitizePlainText } from "@/lib/validation/common";
 
 function sanitize(input: string, max: number): string {
@@ -35,7 +36,6 @@ function sanitize(input: string, max: number): string {
 }
 
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-const ALLOWED_CURRENCIES = new Set(["USD", "EUR", "GBP", "PHP", "JPY", "AUD", "CAD"]);
 const GROUP_DELETE_CONFIRM_MAX_LENGTH = 100;
 
 type GroupMemberForViewer = {
@@ -1222,7 +1222,7 @@ export async function editGroup(
     return { success: false, message: "Event date is required." };
   }
 
-  if (!ALLOWED_CURRENCIES.has(cleanCurrency)) {
+  if (!isSupportedCurrencyCode(cleanCurrency)) {
     return { success: false, message: "Choose a valid currency." };
   }
 

@@ -29,6 +29,7 @@ import {
   normalizeProfileAvatarUrlForUser,
   PROFILE_AVATAR_EXTENSIONS_BY_TYPE,
 } from "@/lib/profile/avatar";
+import { formatCurrencyOptionLabel, SUPPORTED_CURRENCIES } from "@/lib/currency";
 
 const PRESET_AVATARS = [
   "🎅", "🧝", "🦌", "⛄", "🎄", "🎁", "🧑‍🎄", "❄️",
@@ -43,15 +44,6 @@ const DEFAULT_REMINDER_PREFERENCES: ReminderPreferenceFormState = {
   reminder_post_draw: true,
   reminder_wishlist_incomplete: true,
 };
-const CURRENCIES = [
-  { code: "USD", label: "$ USD — US Dollar" },
-  { code: "EUR", label: "€ EUR — Euro" },
-  { code: "GBP", label: "£ GBP — British Pound" },
-  { code: "PHP", label: "₱ PHP — Philippine Peso" },
-  { code: "JPY", label: "¥ JPY — Japanese Yen" },
-  { code: "AUD", label: "A$ AUD — Australian Dollar" },
-  { code: "CAD", label: "C$ CAD — Canadian Dollar" },
-];
 
 type Profile = {
   display_name: string;
@@ -755,8 +747,10 @@ export default function ProfilePage() {
             <select value={profile.currency} onChange={(e) => update("currency", e.target.value)}
               className="w-full px-4 py-3 rounded-xl text-[14px] outline-none"
               style={{ border: "2px solid #e5e7eb", fontFamily: "inherit", color: "#1f2937", cursor: "pointer", background: "#fff" }}>
-              {CURRENCIES.map((c) => (
-                <option key={c.code} value={c.code}>{c.label}</option>
+              {SUPPORTED_CURRENCIES.map((currency) => (
+                <option key={currency.code} value={currency.code}>
+                  {formatCurrencyOptionLabel(currency)}
+                </option>
               ))}
             </select>
           </div>

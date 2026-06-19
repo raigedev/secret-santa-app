@@ -29,9 +29,10 @@ import { GroupActionModals } from "./GroupActionModals";
 import { GroupEventSummaryPanel } from "./GroupEventSummaryPanel";
 import { GroupMembersSection } from "./GroupMembersSection";
 import { GroupOwnerInsightsPanel, GroupOwnerInsightsSkeleton } from "./GroupOwnerInsightsPanel";
-import { BUDGET_OPTIONS, CURRENCIES, HISTORY_PAGE_SIZE } from "./group-page-config";
+import { BUDGET_OPTIONS, HISTORY_PAGE_SIZE } from "./group-page-config";
 import { HistorySkeletonRows } from "./GroupPagePrimitives";
 import { createSignedGroupImageUrl } from "@/lib/groups/group-image";
+import { getCurrencySymbol } from "@/lib/currency";
 import {
   clearGroupPageSnapshots,
   getVisibleGroupMemberName,
@@ -765,10 +766,8 @@ export default function GroupDetailsPage() {
   const drawRuleControlsDisabled = drawRuleSaving || drawLoading || resetLoading || !drawRulesReady;
   const canDrawNames = allAccepted && drawRulesReady && !drawLoading && !resetLoading;
 
-  const currencySymbol =
-    CURRENCIES.find((item) => item.code === (groupData.currency || "USD"))?.symbol || "$";
-  const editCurrencySymbol =
-    CURRENCIES.find((item) => item.code === editCurrency)?.symbol || "$";
+  const currencySymbol = getCurrencySymbol(groupData.currency || "USD");
+  const editCurrencySymbol = getCurrencySymbol(editCurrency);
   const drawStatusLabel = groupData.revealed ? "Revealed" : drawDone ? "Names drawn" : "Ready soon";
   const groupBudgetLabel = groupData.budget
     ? `${currencySymbol}${formatGroupBudgetAmount(groupData.budget)}`
