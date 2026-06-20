@@ -596,6 +596,49 @@ export default function AppRouteShell({ children }: { children: ReactNode }) {
         [data-app-shell-mobile-nav-scroller]::-webkit-scrollbar {
           display: none;
         }
+        @media (min-width: 700px) and (orientation: landscape) and (max-width: 1279px) {
+          [data-app-shell-mobile-nav-edge] {
+            display: none;
+          }
+          [data-app-shell-mobile-nav-scroller] {
+            display: grid;
+            grid-auto-flow: column;
+            grid-auto-columns: minmax(0, 1fr);
+            max-width: none;
+            gap: 0.375rem;
+            overflow-x: visible;
+            padding-left: 0;
+            padding-right: 0;
+          }
+          [data-app-shell-mobile-nav-link] {
+            min-width: 0;
+            width: auto;
+            min-height: 3.5rem;
+            padding-left: 0.375rem;
+            padding-right: 0.375rem;
+          }
+          [data-app-shell-mobile-nav-label] {
+            max-width: none;
+            font-size: 9px;
+          }
+        }
+        @media (min-width: 700px) and (orientation: landscape) and (max-width: 1279px) and (max-height: 620px) {
+          [data-app-shell-mobile-nav] {
+            padding-top: 0.375rem;
+            padding-bottom: calc(0.375rem + env(safe-area-inset-bottom));
+          }
+          [data-app-shell-mobile-nav-link] {
+            min-height: 3.125rem;
+            gap: 0.125rem;
+          }
+          [data-app-shell-mobile-nav-link] svg {
+            height: 1.125rem;
+            width: 1.125rem;
+          }
+          [data-app-shell-content] {
+            padding-bottom: 4.75rem !important;
+          }
+        }
       `}</style>
       <aside
         data-testid="app-shell-sidebar"
@@ -752,6 +795,7 @@ export default function AppRouteShell({ children }: { children: ReactNode }) {
         >
           <span
             aria-hidden="true"
+            data-app-shell-mobile-nav-edge=""
             className="pointer-events-none absolute inset-y-0 left-0 z-10 w-8"
             style={{
               background: isDarkAppShell
@@ -761,6 +805,7 @@ export default function AppRouteShell({ children }: { children: ReactNode }) {
           />
           <span
             aria-hidden="true"
+            data-app-shell-mobile-nav-edge=""
             className="pointer-events-none absolute inset-y-0 right-0 z-10 w-8"
             style={{
               background: isDarkAppShell
@@ -787,6 +832,7 @@ export default function AppRouteShell({ children }: { children: ReactNode }) {
                   href={item.href}
                   onClick={(event) => handleNavItemClick(event, item)}
                   aria-current={active ? "page" : undefined}
+                  data-app-shell-mobile-nav-link=""
                   data-testid="app-shell-mobile-nav-link"
                   className="flex min-h-15 w-22 shrink-0 flex-col items-center justify-center gap-1 rounded-[18px] px-2 py-1.5 text-[10px] font-black leading-tight transition hover:-translate-y-0.5 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#48664e] sm:w-24"
                   style={{

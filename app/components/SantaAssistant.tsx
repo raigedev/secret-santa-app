@@ -128,8 +128,8 @@ export function SantaAssistant() {
   } = useSantaAssistant();
   const useShoppingIdeasOffset = pathname === "/secret-santa";
   const assistantPositionClass = useShoppingIdeasOffset
-    ? "bottom-[calc(env(safe-area-inset-bottom)+7rem)] right-2 sm:right-5 sm:bottom-4 xl:right-1 2xl:right-1"
-    : "bottom-[calc(env(safe-area-inset-bottom)+6.25rem)] right-3 sm:top-auto sm:right-5 sm:bottom-5";
+    ? "bottom-[calc(env(safe-area-inset-bottom)+7rem)] right-2 sm:right-5 xl:bottom-4 xl:right-1 2xl:right-1"
+    : "bottom-[calc(env(safe-area-inset-bottom)+6.25rem)] right-3 sm:right-5 xl:bottom-5";
 
   const handleToggle = () => {
     const hasShoppingHelperRail =

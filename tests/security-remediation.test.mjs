@@ -1359,6 +1359,28 @@ test("currency displays and validators share one source of truth", () => {
   assert.doesNotMatch(groupConfigSource, /CURRENCIES = \[/);
 });
 
+test("app shell keeps TV landscape bottom navigation from clipping", () => {
+  const appShellSource = readFileSync("app/components/AppRouteShell.tsx", "utf8");
+  const santaAssistantSource = readFileSync("app/components/SantaAssistant.tsx", "utf8");
+
+  assert.match(
+    appShellSource,
+    /@media \(min-width: 700px\) and \(orientation: landscape\) and \(max-width: 1279px\)/
+  );
+  assert.match(
+    appShellSource,
+    /\[data-app-shell-mobile-nav-scroller\] \{[\s\S]{0,260}display: grid;[\s\S]{0,260}grid-auto-columns: minmax\(0, 1fr\);[\s\S]{0,260}overflow-x: visible;/
+  );
+  assert.match(appShellSource, /data-app-shell-mobile-nav-edge=""/);
+  assert.match(appShellSource, /data-app-shell-mobile-nav-link=""/);
+  assert.match(
+    appShellSource,
+    /\[data-app-shell-content\] \{[\s\S]{0,120}padding-bottom: 4\.75rem !important;/
+  );
+  assert.doesNotMatch(santaAssistantSource, /sm:bottom-[45]/);
+  assert.match(santaAssistantSource, /xl:bottom-5/);
+});
+
 test("auth and affiliate fallback redirects use trusted app origins", () => {
   const appOriginSource = readFileSync("lib/security/app-origin.ts", "utf8");
   const proxySource = readFileSync("proxy.ts", "utf8");
