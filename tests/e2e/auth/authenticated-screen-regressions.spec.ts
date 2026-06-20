@@ -447,6 +447,90 @@ test.describe("authenticated screen regressions", () => {
     ).toHaveAttribute("aria-current", "page");
   });
 
+  test("TV landscape app shell keeps every bottom navigation item visible", async ({ page }) => {
+    await page.setViewportSize({ width: 797, height: 343 });
+    await loginWithTestCredentials(page, credentials!);
+    await page.goto("/dashboard");
+
+    const appShell = page.getByTestId("app-route-shell");
+    const sidebar = page.getByTestId("app-shell-sidebar");
+    const mobileNav = page.getByTestId("app-shell-mobile-nav");
+
+    await expect(appShell).toBeVisible();
+    await expect(sidebar).toBeHidden();
+    await expect(mobileNav).toBeVisible();
+
+    const tvNavLayout = await mobileNav.evaluate((nav) => {
+      const navRect = nav.getBoundingClientRect();
+      const scroller = nav.querySelector<HTMLElement>("[data-app-shell-mobile-nav-scroller]");
+      const links = [...nav.querySelectorAll<HTMLElement>("[data-app-shell-mobile-nav-link]")];
+      const labels = [...nav.querySelectorAll<HTMLElement>("[data-app-shell-mobile-nav-label]")];
+      const assistant = document.querySelector<HTMLElement>('[data-testid="santa-assistant"]');
+
+      const crampedLabels = labels
+        .map((label) => {
+          const range = document.createRange();
+          range.selectNodeContents(label);
+          const lineCount = [...range.getClientRects()].filter(
+            (rect) => rect.width > 1 && rect.height > 1
+          ).length;
+          range.detach();
+
+          return {
+            lineCount,
+            text: label.textContent?.replace(/\s+/g, " ").trim() || "",
+            textOverflow: window.getComputedStyle(label).textOverflow,
+            whiteSpace: window.getComputedStyle(label).whiteSpace,
+          };
+        })
+        .filter(
+          (label) =>
+            label.lineCount > 2 ||
+            label.textOverflow === "ellipsis" ||
+            label.whiteSpace === "nowrap"
+        )
+        .map((label) => label.text);
+
+      const clippedLinks = links
+        .filter((link) => {
+          const rect = link.getBoundingClientRect();
+          return (
+            rect.left < navRect.left - 1 ||
+            rect.right > navRect.right + 1 ||
+            rect.top < navRect.top - 1 ||
+            rect.bottom > navRect.bottom + 1
+          );
+        })
+        .map((link) => link.textContent?.replace(/\s+/g, " ").trim() || "");
+
+      let assistantOverlapsNav = false;
+      if (assistant) {
+        const assistantRect = assistant.getBoundingClientRect();
+        assistantOverlapsNav =
+          assistantRect.left < navRect.right &&
+          assistantRect.right > navRect.left &&
+          assistantRect.top < navRect.bottom &&
+          assistantRect.bottom > navRect.top;
+      }
+
+      return {
+        clippedLinks,
+        crampedLabels,
+        display: scroller ? window.getComputedStyle(scroller).display : "",
+        linkCount: links.length,
+        scrollOverflow: scroller ? scroller.scrollWidth - scroller.clientWidth : 0,
+        assistantOverlapsNav,
+      };
+    });
+
+    expect(tvNavLayout.display).toBe("grid");
+    expect(tvNavLayout.linkCount).toBeGreaterThanOrEqual(8);
+    expect(tvNavLayout.scrollOverflow).toBeLessThanOrEqual(2);
+    expect(tvNavLayout.clippedLinks).toEqual([]);
+    expect(tvNavLayout.crampedLabels).toEqual([]);
+    expect(tvNavLayout.assistantOverlapsNav).toBe(false);
+  });
+
   test("secret messages keeps mobile users at the top of the workspace on load", async ({ page }) => {
     await page.setViewportSize({ width: 390, height: 844 });
     await loginWithTestCredentials(page, credentials!);
