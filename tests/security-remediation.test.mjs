@@ -1311,6 +1311,21 @@ test("public launch pages stay available without an app session", () => {
   }
 });
 
+test("Amazon associate disclosure stays off the landing footer", () => {
+  const landingPageSource = readFileSync("app/(landing)/page.tsx", "utf8");
+  const affiliateDisclosureSource = readFileSync("app/affiliate-disclosure/page.tsx", "utf8");
+
+  assert.match(landingPageSource, /href="\/affiliate-disclosure">Affiliate Disclosure<\/a>/);
+  assert.doesNotMatch(
+    landingPageSource,
+    /As an Amazon Associate I earn from qualifying purchases\./
+  );
+  assert.match(
+    affiliateDisclosureSource,
+    /As an Amazon Associate I earn from qualifying purchases\./
+  );
+});
+
 test("app shell maps create-group into the My Groups navigation section", () => {
   const appShellSource = readFileSync("app/components/AppRouteShell.tsx", "utf8");
   const myGroupsStart = appShellSource.indexOf('href: "/groups"');
