@@ -151,8 +151,8 @@ const AUTHENTICATED_SCREEN_CASES: ScreenCase[] = [
     path: "/create-group",
     assertVisible: async (page) => {
       await expect(page.getByRole("heading", { name: /^create group$/i })).toBeVisible();
-      await expect(page.getByText(/exchange picture/i).first()).toBeVisible();
-      await expect(page.getByText(/add an exchange picture/i)).toBeVisible();
+      await expect(page.getByText(/group picture/i).first()).toBeVisible();
+      await expect(page.getByText(/add a group picture/i)).toBeVisible();
       await expect(
         page.locator('nav[aria-label="Main app navigation"] a[aria-current="page"]')
       ).toHaveText(/My Groups/i);

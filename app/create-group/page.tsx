@@ -108,7 +108,7 @@ function GroupImagePreviewCanvas({
     <canvas
       ref={canvasRef}
       className={className}
-      aria-label="Exchange picture preview"
+      aria-label="Group picture preview"
     />
   );
 }
@@ -615,7 +615,7 @@ export default function CreateGroupPage() {
 
           <div>
             <label className={labelClassName}>
-              Exchange picture{" "}
+              Group picture{" "}
               <span className="text-[11px] font-semibold" style={{ color: "#9ca3af" }}>
                 (optional)
               </span>
@@ -665,7 +665,7 @@ export default function CreateGroupPage() {
               </span>
               <span className="min-w-0">
                 <span className="block text-[14px] font-black">
-                  {groupImageFile ? groupImageFile.name : "Add an exchange picture"}
+                  {groupImageFile ? groupImageFile.name : "Add a group picture"}
                 </span>
                 <span className="mt-1 block text-[12px] font-semibold leading-5 text-slate-500">
                   Drop an image here, or choose a file. JPG, PNG, or WebP under 2 MB.
