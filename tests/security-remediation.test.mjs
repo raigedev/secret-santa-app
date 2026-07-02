@@ -687,6 +687,25 @@ test("live reveal match disclosure is gated by the gift day", () => {
   assert.match(migrationSource, /alter policy group_reveal_sessions_update_for_owner/);
 });
 
+test("event reveal QR code joins by page link only", () => {
+  const revealPageSource = readFileSync("app/group/[id]/reveal/page.tsx", "utf8");
+  const revealQrCardSource = readFileSync("app/group/[id]/reveal/RevealJoinQrCard.tsx", "utf8");
+
+  assert.match(revealPageSource, /const \[revealJoinUrl, setRevealJoinUrl\] = useState\(""\);/);
+  assert.match(revealPageSource, /const url = new URL\(window\.location\.href\);/);
+  assert.match(revealPageSource, /url\.search = "";/);
+  assert.match(revealPageSource, /url\.hash = "";/);
+  assert.match(revealPageSource, /<RevealJoinQrCard revealUrl=\{revealJoinUrl\} \/>/);
+  assert.match(revealQrCardSource, /qrcode\(0, "M"\)/);
+  assert.match(revealQrCardSource, /The code only opens this reveal page\./);
+  assert.match(revealQrCardSource, /Login required/);
+  assert.match(revealQrCardSource, /Member check/);
+  assert.match(revealQrCardSource, /Private data in QR/);
+  assert.doesNotMatch(revealQrCardSource, /dangerouslySetInnerHTML/);
+  assert.doesNotMatch(revealQrCardSource, /fetch\(/);
+  assert.doesNotMatch(revealQrCardSource, /createSvgTag/);
+});
+
 test("reveal presentation loads service-role source data after viewer authorization", () => {
   const groupActionsSource = readFileSync("app/group/[id]/actions.ts", "utf8");
   const presentationStart = groupActionsSource.indexOf(
