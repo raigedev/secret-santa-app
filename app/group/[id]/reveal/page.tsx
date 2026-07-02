@@ -5,6 +5,7 @@ import { useParams, usePathname, useRouter } from "next/navigation";
 import FadeIn from "@/app/components/FadeIn";
 import { GroupSkeleton } from "@/app/components/PageSkeleton";
 import { createClient } from "@/lib/supabase/client";
+import RevealJoinQrCard from "./RevealJoinQrCard";
 import {
   getRevealPresentationData,
   startRevealCountdown,
@@ -207,10 +208,22 @@ export default function GroupRevealPage() {
   const [sessionLoading, setSessionLoading] = useState(false);
   const [publishing, setPublishing] = useState(false);
   const [countdownNow, setCountdownNow] = useState(() => Date.now());
+  const [revealJoinUrl, setRevealJoinUrl] = useState("");
   const loadPresentationRef = useRef<
     ((options?: { blocking?: boolean }) => Promise<void>) | null
   >(null);
   const hasLoadedPresentationRef = useRef(false);
+
+  useEffect(() => {
+    if (typeof window === "undefined") {
+      return;
+    }
+
+    const url = new URL(window.location.href);
+    url.search = "";
+    url.hash = "";
+    setRevealJoinUrl(url.toString());
+  }, [pathname]);
 
   useEffect(() => {
     if (!id) {
@@ -371,6 +384,11 @@ export default function GroupRevealPage() {
   );
   const isPublishedPresentation = Boolean(
     presentation && (presentation.revealed || presentation.session.status === "published")
+  );
+  const showJoinQrPanel = Boolean(
+    revealJoinUrl &&
+      presentation &&
+      presentation.session.status !== "live"
   );
   const ownerCanStartCountdown = Boolean(
     presentation?.isOwner &&
@@ -877,7 +895,14 @@ export default function GroupRevealPage() {
               </div>
             )}
 
-            <div className="grid grid-cols-1 gap-5">
+            <div
+              className={
+                showJoinQrPanel
+                  ? "grid grid-cols-1 gap-5 xl:grid-cols-[minmax(0,1fr)_18rem]"
+                  : "grid grid-cols-1 gap-5"
+              }
+            >
+              <div className="grid min-w-0 grid-cols-1 gap-5">
               <div className="flex items-center justify-between gap-3 flex-wrap">
                 <div>
                   <div
@@ -1203,6 +1228,13 @@ export default function GroupRevealPage() {
                       : usesSharedSession
                         ? "The owner is controlling the live reveal. This page will keep updating automatically through both nickname and match phases."
                         : "You can leave this page open on your phone. It will change automatically once the owner starts the live reveal."}
+                </div>
+              )}
+              </div>
+
+              {showJoinQrPanel && (
+                <div className="hidden xl:block">
+                  <RevealJoinQrCard revealUrl={revealJoinUrl} />
                 </div>
               )}
             </div>
