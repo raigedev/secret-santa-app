@@ -695,6 +695,17 @@ test("event reveal QR code joins by page link only", () => {
   assert.match(revealPageSource, /const url = new URL\(window\.location\.href\);/);
   assert.match(revealPageSource, /url\.search = "";/);
   assert.match(revealPageSource, /url\.hash = "";/);
+  assert.match(revealPageSource, /const REVEAL_LOGIN_REQUIRED_MESSAGE = "You must be logged in\.";/);
+  assert.match(
+    revealPageSource,
+    /const REVEAL_MEMBER_REQUIRED_MESSAGE = "Only accepted members can view this reveal screen\.";/,
+  );
+  assert.match(revealPageSource, /encodeURIComponent\(revealReturnPath\)/);
+  assert.match(revealPageSource, /router\.push\(loginRedirectPath\)/);
+  assert.match(revealPageSource, /router\.push\(createAccountRedirectPath\)/);
+  assert.match(revealPageSource, /isMemberRequiredError\s*\?\s*"\/groups"/);
+  assert.match(revealPageSource, /Log in to join reveal/);
+  assert.match(revealPageSource, /Use the invited account/);
   assert.match(revealPageSource, /<RevealJoinQrCard revealUrl=\{revealJoinUrl\} \/>/);
   assert.match(revealQrCardSource, /qrcode\(0, "M"\)/);
   assert.match(revealQrCardSource, /The code only opens this reveal page\./);
@@ -1430,10 +1441,18 @@ test("auth and affiliate fallback redirects use trusted app origins", () => {
   assert.match(appOriginSource, /typeof rawValue !== "string"/);
   assert.match(appOriginSource, /configuredOrigins\.includes\(requestOrigin\)/);
   assert.match(appOriginSource, /return configuredOrigins\[0\] \|\| DEFAULT_LOCAL_APP_ORIGIN/);
+  assert.match(proxySource, /import \{ normalizeSafeAppPath \} from "@\/lib\/security\/safe-app-path";/);
   assert.match(proxySource, /const trustedOrigin = resolveTrustedAppOrigin\(req\.nextUrl\)/);
   assert.match(proxySource, /new URL\("\/auth\/callback", trustedOrigin\)/);
   assert.match(proxySource, /new URL\("\/login", trustedOrigin\)/);
   assert.match(proxySource, /new URL\("\/dashboard", trustedOrigin\)/);
+  assert.match(proxySource, /function getRequestAppPath\(req: NextRequest\): string/);
+  assert.match(proxySource, /normalizeSafeAppPath\(`\$\{req\.nextUrl\.pathname\}\$\{req\.nextUrl\.search\}`/);
+  assert.match(proxySource, /loginUrl\.searchParams\.set\("next", getRequestAppPath\(req\)\)/);
+  assert.match(
+    proxySource,
+    /normalizeSafeAppPath\(req\.nextUrl\.searchParams\.get\("next"\), "\/dashboard"\)/
+  );
   assert.doesNotMatch(proxySource, /new URL\("\/(?:login|dashboard)", req\.url\)/);
   assert.match(redirectRouteSource, /const trustedOrigin = resolveTrustedAppOrigin\(new URL\(request\.url\)\)/);
   assert.match(redirectRouteSource, /new URL\("\/login", trustedOrigin\)/);
@@ -1567,7 +1586,7 @@ test("dashboard shows email invites without auto-claiming memberships", () => {
   assert.match(proxySource, /supabase\.auth\.getSession\(\)/);
   assert.match(proxySource, /supabase\.auth\.getUser\(\)/);
   assert.match(proxySource, /cacheVerifiedProxyUser\(accessToken, user, now\)/);
-  assert.match(proxySource, /NextResponse\.redirect\(new URL\("\/login", trustedOrigin\)\)/);
+  assert.match(proxySource, /loginUrl\.searchParams\.set\("next", getRequestAppPath\(req\)\)/);
   assert.match(proxySource, /getEmailVerificationMessage\(\)/);
 });
 

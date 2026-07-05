@@ -48,6 +48,8 @@ type RevealPresentation = {
 };
 
 const REVEAL_PAGE_FALLBACK_POLL_MS = 5 * 60 * 1000;
+const REVEAL_LOGIN_REQUIRED_MESSAGE = "You must be logged in.";
+const REVEAL_MEMBER_REQUIRED_MESSAGE = "Only accepted members can view this reveal screen.";
 
 function readGroupIdFromRoute(
   params: ReturnType<typeof useParams>,
@@ -390,6 +392,16 @@ export default function GroupRevealPage() {
       presentation &&
       presentation.session.status !== "live"
   );
+  const revealReturnPath =
+    pathname && /^\/group\/[^/]+\/reveal\/?$/.test(pathname)
+      ? pathname
+      : id
+        ? `/group/${encodeURIComponent(id)}/reveal`
+        : "/dashboard";
+  const loginRedirectPath = `/login?next=${encodeURIComponent(revealReturnPath)}`;
+  const createAccountRedirectPath = `/create-account?next=${encodeURIComponent(revealReturnPath)}`;
+  const isLoginRequiredError = error === REVEAL_LOGIN_REQUIRED_MESSAGE;
+  const isMemberRequiredError = error === REVEAL_MEMBER_REQUIRED_MESSAGE;
   const ownerCanStartCountdown = Boolean(
     presentation?.isOwner &&
       presentation.session.status === "waiting" &&
@@ -689,6 +701,17 @@ export default function GroupRevealPage() {
   }
 
   if (error || !presentation) {
+    const errorHeading = isLoginRequiredError
+      ? "Log in to join the reveal"
+      : isMemberRequiredError
+        ? "Use the invited account"
+        : "Reveal Screen Unavailable";
+    const errorMessage = isLoginRequiredError
+      ? "Scan worked. Log in with the account invited to this Secret Santa group, and we'll bring you back here."
+      : isMemberRequiredError
+        ? "This reveal is private to accepted group members. Switch to the account that joined the group, or ask the organizer to invite this account."
+        : error || "The reveal screen could not be loaded.";
+
     return (
       <main
         className="min-h-screen flex items-center justify-center px-6"
@@ -702,17 +725,46 @@ export default function GroupRevealPage() {
             boxShadow: "0 20px 50px rgba(0,0,0,.28)",
           }}
         >
-          <div className="text-[24px] font-bold text-white mb-2">Reveal Screen Unavailable</div>
+          <div className="text-[24px] font-bold text-white mb-2">{errorHeading}</div>
           <p className="text-[14px] font-semibold" style={{ color: "rgba(255,255,255,.72)" }}>
-            {error || "The reveal screen could not be loaded."}
+            {errorMessage}
           </p>
-          <button
-            type="button"
-            onClick={() => router.push(`/group/${id}`)}
-            className="gift-button gift-button-secondary gift-button-compact mt-5 text-sm"
-          >
-            Back to Group
-          </button>
+          <div className="mt-5 flex flex-col items-center justify-center gap-3 sm:flex-row">
+            {isLoginRequiredError ? (
+              <>
+                <button
+                  type="button"
+                  onClick={() => router.push(loginRedirectPath)}
+                  className="gift-button gift-button-red gift-button-wide text-sm"
+                >
+                  Log in to join reveal
+                </button>
+                <button
+                  type="button"
+                  onClick={() => router.push(createAccountRedirectPath)}
+                  className="gift-button gift-button-secondary gift-button-compact text-sm"
+                >
+                  Create account
+                </button>
+              </>
+            ) : (
+              <button
+                type="button"
+                onClick={() =>
+                  router.push(
+                    isMemberRequiredError
+                      ? "/groups"
+                      : id
+                        ? `/group/${encodeURIComponent(id)}`
+                        : "/dashboard"
+                  )
+                }
+                className="gift-button gift-button-secondary gift-button-compact text-sm"
+              >
+                {isMemberRequiredError ? "Open My Groups" : "Back to Group"}
+              </button>
+            )}
+          </div>
         </div>
       </main>
     );

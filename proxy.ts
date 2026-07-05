@@ -12,6 +12,7 @@ import {
   createContentSecurityPolicyNonce,
 } from "@/lib/security/content-security-policy";
 import { resolveTrustedAppOrigin } from "@/lib/security/app-origin";
+import { normalizeSafeAppPath } from "@/lib/security/safe-app-path";
 
 const PROXY_VERIFIED_USER_CACHE_TTL_MS = 60_000;
 const PROXY_VERIFIED_USER_CACHE_MAX_ENTRIES = 250;
@@ -97,6 +98,10 @@ function cacheVerifiedProxyUser(accessToken: string | null, user: User, now: num
     expiresAt: now + PROXY_VERIFIED_USER_CACHE_TTL_MS,
     user,
   });
+}
+
+function getRequestAppPath(req: NextRequest): string {
+  return normalizeSafeAppPath(`${req.nextUrl.pathname}${req.nextUrl.search}`, "/dashboard");
 }
 
 async function getVerifiedProxyUser(supabase: ProxySupabaseClient): Promise<User | null> {
@@ -226,15 +231,23 @@ export async function proxy(req: NextRequest) {
     const loginUrl = new URL("/login", trustedOrigin);
     loginUrl.searchParams.set("error", "confirm_email");
     loginUrl.searchParams.set("message", getEmailVerificationMessage());
+    loginUrl.searchParams.set("next", getRequestAppPath(req));
     return NextResponse.redirect(loginUrl);
   }
 
-  if (user && hasVerifiedEmail && (isAuthPage || isLandingPage)) {
+  if (user && hasVerifiedEmail && isAuthPage) {
+    const nextPath = normalizeSafeAppPath(req.nextUrl.searchParams.get("next"), "/dashboard");
+    return NextResponse.redirect(new URL(nextPath, trustedOrigin));
+  }
+
+  if (user && hasVerifiedEmail && isLandingPage) {
     return NextResponse.redirect(new URL("/dashboard", trustedOrigin));
   }
 
   if (!user && !isPublicPage) {
-    return NextResponse.redirect(new URL("/login", trustedOrigin));
+    const loginUrl = new URL("/login", trustedOrigin);
+    loginUrl.searchParams.set("next", getRequestAppPath(req));
+    return NextResponse.redirect(loginUrl);
   }
 
   return res;
