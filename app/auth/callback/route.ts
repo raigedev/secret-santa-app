@@ -12,7 +12,7 @@ import {
   hasOAuthCallbackError,
 } from "@/lib/auth/oauth-callback-errors";
 import { ELIGIBLE_EMAIL_INVITE_STATUSES } from "@/lib/groups/invite-claim.mjs";
-import { normalizeSafeAppPath, resolveTrustedAppOrigin } from "@/lib/security/web";
+import { normalizeSafePostAuthPath, resolveTrustedAppOrigin } from "@/lib/security/web";
 import { supabaseAdmin } from "@/lib/supabase/admin";
 
 const WELCOME_NOTIFICATION_TYPE = "welcome";
@@ -154,7 +154,7 @@ export async function GET(request: Request) {
   const code = requestUrl.searchParams.get("code");
   const cookieStore = await cookies();
   const nextFromCookie = cookieStore.get("post_login_next")?.value;
-  const next = normalizeSafeAppPath(
+  const next = normalizeSafePostAuthPath(
     requestUrl.searchParams.get("next") ?? nextFromCookie,
     "/dashboard"
   );

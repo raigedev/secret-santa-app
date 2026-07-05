@@ -1,12 +1,12 @@
 import "server-only";
 
 import { resolveTrustedAppOrigin } from "@/lib/security/app-origin";
-import { normalizeSafeAppPath } from "@/lib/security/web";
+import { normalizeSafePostAuthPath } from "@/lib/security/web";
 import { supabaseAdmin } from "@/lib/supabase/admin";
 
 function getGroupInviteRedirectUrl(nextPath = "/dashboard"): string {
   const callbackUrl = new URL("/auth/callback", resolveTrustedAppOrigin(null));
-  callbackUrl.searchParams.set("next", normalizeSafeAppPath(nextPath, "/dashboard"));
+  callbackUrl.searchParams.set("next", normalizeSafePostAuthPath(nextPath, "/dashboard"));
   return callbackUrl.toString();
 }
 

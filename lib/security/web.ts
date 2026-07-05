@@ -8,7 +8,10 @@ import {
   uniqueOrigins,
 } from "@/lib/security/app-origin";
 
-export { normalizeSafeAppPath } from "@/lib/security/safe-app-path";
+export {
+  normalizeSafeAppPath,
+  normalizeSafePostAuthPath,
+} from "@/lib/security/safe-app-path";
 export { resolveTrustedAppOrigin } from "@/lib/security/app-origin";
 
 export function extractBearerToken(headerValue: string | null): string | null {

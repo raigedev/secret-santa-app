@@ -12,7 +12,7 @@ import {
   createContentSecurityPolicyNonce,
 } from "@/lib/security/content-security-policy";
 import { resolveTrustedAppOrigin } from "@/lib/security/app-origin";
-import { normalizeSafeAppPath } from "@/lib/security/safe-app-path";
+import { normalizeSafePostAuthPath } from "@/lib/security/safe-app-path";
 
 const PROXY_VERIFIED_USER_CACHE_TTL_MS = 60_000;
 const PROXY_VERIFIED_USER_CACHE_MAX_ENTRIES = 250;
@@ -101,7 +101,7 @@ function cacheVerifiedProxyUser(accessToken: string | null, user: User, now: num
 }
 
 function getRequestAppPath(req: NextRequest): string {
-  return normalizeSafeAppPath(`${req.nextUrl.pathname}${req.nextUrl.search}`, "/dashboard");
+  return normalizeSafePostAuthPath(`${req.nextUrl.pathname}${req.nextUrl.search}`, "/dashboard");
 }
 
 async function getVerifiedProxyUser(supabase: ProxySupabaseClient): Promise<User | null> {
@@ -236,7 +236,7 @@ export async function proxy(req: NextRequest) {
   }
 
   if (user && hasVerifiedEmail && isAuthPage) {
-    const nextPath = normalizeSafeAppPath(req.nextUrl.searchParams.get("next"), "/dashboard");
+    const nextPath = normalizeSafePostAuthPath(req.nextUrl.searchParams.get("next"), "/dashboard");
     return NextResponse.redirect(new URL(nextPath, trustedOrigin));
   }
 

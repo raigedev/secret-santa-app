@@ -388,6 +388,13 @@ test("notification links are normalized to app-local paths before navigation", (
   );
 
   assert.match(safeAppPathSource, /normalizeSafeAppPath\(candidate: unknown/);
+  assert.match(safeAppPathSource, /normalizeSafePostAuthPath\(candidate: unknown/);
+  assert.match(safeAppPathSource, /POST_AUTH_BLOCKED_EXACT_PATHS/);
+  assert.match(safeAppPathSource, /"\/auth\/callback"/);
+  assert.match(safeAppPathSource, /"\/login"/);
+  assert.match(safeAppPathSource, /POST_AUTH_BLOCKED_PATH_PREFIXES/);
+  assert.match(safeAppPathSource, /"\/api\/"/);
+  assert.match(safeAppPathSource, /"\/go\/"/);
   assert.match(safeAppPathSource, /typeof candidate === "string"/);
   assert.match(notificationsSource, /import \{ normalizeSafeAppPath \} from "@\/lib\/security\/safe-app-path";/);
   assert.match(notificationsSource, /function sanitizeNotificationLinkPath/);
@@ -1434,6 +1441,9 @@ test("auth and affiliate fallback redirects use trusted app origins", () => {
   const wishlistRedirectSource = readFileSync("app/go/wishlist-link/route.ts", "utf8");
   const affiliateReportSource = readFileSync("app/dashboard/affiliate-report/page.tsx", "utf8");
   const inviteEmailSource = readFileSync("lib/groups/invite-email.ts", "utf8");
+  const authCallbackSource = readFileSync("app/auth/callback/route.ts", "utf8");
+  const loginSource = readFileSync("app/login/page.tsx", "utf8");
+  const createAccountSource = readFileSync("app/create-account/page.tsx", "utf8");
 
   assert.match(appOriginSource, /import "server-only";/);
   assert.match(appOriginSource, /function isLocalDevelopmentOrigin/);
@@ -1441,18 +1451,22 @@ test("auth and affiliate fallback redirects use trusted app origins", () => {
   assert.match(appOriginSource, /typeof rawValue !== "string"/);
   assert.match(appOriginSource, /configuredOrigins\.includes\(requestOrigin\)/);
   assert.match(appOriginSource, /return configuredOrigins\[0\] \|\| DEFAULT_LOCAL_APP_ORIGIN/);
-  assert.match(proxySource, /import \{ normalizeSafeAppPath \} from "@\/lib\/security\/safe-app-path";/);
+  assert.match(proxySource, /import \{ normalizeSafePostAuthPath \} from "@\/lib\/security\/safe-app-path";/);
   assert.match(proxySource, /const trustedOrigin = resolveTrustedAppOrigin\(req\.nextUrl\)/);
   assert.match(proxySource, /new URL\("\/auth\/callback", trustedOrigin\)/);
   assert.match(proxySource, /new URL\("\/login", trustedOrigin\)/);
   assert.match(proxySource, /new URL\("\/dashboard", trustedOrigin\)/);
   assert.match(proxySource, /function getRequestAppPath\(req: NextRequest\): string/);
-  assert.match(proxySource, /normalizeSafeAppPath\(`\$\{req\.nextUrl\.pathname\}\$\{req\.nextUrl\.search\}`/);
+  assert.match(proxySource, /normalizeSafePostAuthPath\(`\$\{req\.nextUrl\.pathname\}\$\{req\.nextUrl\.search\}`/);
   assert.match(proxySource, /loginUrl\.searchParams\.set\("next", getRequestAppPath\(req\)\)/);
   assert.match(
     proxySource,
-    /normalizeSafeAppPath\(req\.nextUrl\.searchParams\.get\("next"\), "\/dashboard"\)/
+    /normalizeSafePostAuthPath\(req\.nextUrl\.searchParams\.get\("next"\), "\/dashboard"\)/
   );
+  assert.match(loginSource, /normalizeSafePostAuthPath\(candidate, "\/dashboard"\)/);
+  assert.match(createAccountSource, /normalizeSafePostAuthPath\(candidate, "\/dashboard"\)/);
+  assert.match(authCallbackSource, /normalizeSafePostAuthPath\(/);
+  assert.match(inviteEmailSource, /normalizeSafePostAuthPath\(nextPath, "\/dashboard"\)/);
   assert.doesNotMatch(proxySource, /new URL\("\/(?:login|dashboard)", req\.url\)/);
   assert.match(redirectRouteSource, /const trustedOrigin = resolveTrustedAppOrigin\(new URL\(request\.url\)\)/);
   assert.match(redirectRouteSource, /new URL\("\/login", trustedOrigin\)/);
