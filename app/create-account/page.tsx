@@ -9,7 +9,7 @@ import {
 } from "@/app/components/AuthPageShell";
 import { getPasswordPolicyMessage, PASSWORD_POLICY_HELP_TEXT } from "@/lib/auth/password-policy";
 import { buildPostLoginNextCookie } from "@/lib/auth/post-login-next-cookie";
-import { normalizeSafeAppPath } from "@/lib/security/safe-app-path";
+import { normalizeSafePostAuthPath } from "@/lib/security/safe-app-path";
 import { createClient } from "@/lib/supabase/client";
 
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -105,7 +105,7 @@ function CreateAccountPageInner() {
 
   const nextPath = (() => {
     const candidate = searchParams.get("next") || "/dashboard";
-    return normalizeSafeAppPath(candidate, "/dashboard");
+    return normalizeSafePostAuthPath(candidate, "/dashboard");
   })();
 
   const rememberNextPath = () => {

@@ -17,7 +17,7 @@ import {
 } from "@/app/components/AuthPageShell";
 import { OAUTH_CALLBACK_FAILED_ERROR } from "@/lib/auth/oauth-callback-errors";
 import { buildPostLoginNextCookie } from "@/lib/auth/post-login-next-cookie";
-import { normalizeSafeAppPath } from "@/lib/security/safe-app-path";
+import { normalizeSafePostAuthPath } from "@/lib/security/safe-app-path";
 import { createClient } from "@/lib/supabase/client";
 import { sanitizePlainText } from "@/lib/validation/common";
 
@@ -315,7 +315,7 @@ function LoginPageInner() {
 
   const nextPath = (() => {
     const candidate = searchParams.get("next") || "/dashboard";
-    return normalizeSafeAppPath(candidate, "/dashboard");
+    return normalizeSafePostAuthPath(candidate, "/dashboard");
   })();
 
   const pageError = mapAuthErrorMessage(searchParams.get("error"));
