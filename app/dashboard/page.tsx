@@ -27,6 +27,8 @@ import { normalizeSafeAppPath } from "@/lib/security/safe-app-path";
 import {
   clearDashboardSnapshots,
   readDashboardSnapshot,
+  sanitizeActivityFeedItemsForDashboardSnapshot,
+  sanitizeGiftProgressSummaryForDashboardSnapshot,
   sanitizeGroupsForDashboardSnapshot,
   writeDashboardSnapshot,
 } from "./dashboard-snapshot";
@@ -484,6 +486,7 @@ export default function DashboardPage() {
           setActivityFeedItems([]);
           writeDashboardSnapshot({
             createdAt: Date.now(),
+            snapshotVersion: 2,
             userId: user.id,
             userName: snapshotUserName,
             ownedGroups: [],
@@ -806,18 +809,20 @@ export default function DashboardPage() {
 
         writeDashboardSnapshot({
           createdAt: Date.now(),
+          snapshotVersion: 2,
           userId: user.id,
           userName: snapshotUserName,
           ownedGroups: sanitizeGroupsForDashboardSnapshot(nextOwnedGroups),
           invitedGroups: sanitizeGroupsForDashboardSnapshot(nextInvitedGroups),
           pendingInvites: nextPendingInvites,
-          recipientNames: nextRecipientNames,
+          recipientNames: [],
           unreadNotificationCount: 0,
           unreadPrivateUpdateCount: 0,
           wishlistItemCount: wishlistSummary.length,
           wishlistGroupCount: nextWishlistGroupCount,
-          giftProgressSummary: nextGiftProgressSummary,
-          activityFeedItems: feedItems,
+          giftProgressSummary:
+            sanitizeGiftProgressSummaryForDashboardSnapshot(nextGiftProgressSummary),
+          activityFeedItems: sanitizeActivityFeedItemsForDashboardSnapshot(),
           notificationPreviewItems: nextNotificationPreviewItems,
         });
 

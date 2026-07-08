@@ -1239,6 +1239,7 @@ test("lazada prime-links route rate limits and constrains product IDs", () => {
     "app/api/affiliate/lazada/prime-links/route.ts",
     "utf8"
   );
+  const lazadaSource = readFileSync("lib/affiliate/lazada.ts", "utf8");
   const shoppingLazadaStateSource = readFileSync(
     "app/secret-santa/use-shopping-lazada-state.ts",
     "utf8"
@@ -1266,6 +1267,10 @@ test("lazada prime-links route rate limits and constrains product IDs", () => {
     accessCheckIndex > 0 && accessCheckIndex < primingIndex,
     "Recipient wishlist access must be checked before Lazada promotion-link priming."
   );
+  assert.match(lazadaSource, /LAZADA_PROMOTION_LINK_CACHE_MAX_ENTRIES = 500/);
+  assert.match(lazadaSource, /function pruneExpiredLazadaPromotionLinkCacheEntries/);
+  assert.match(lazadaSource, /function enforceLazadaPromotionLinkCacheSize/);
+  assert.match(lazadaSource, /while \(cache\.size > LAZADA_PROMOTION_LINK_CACHE_MAX_ENTRIES\)/);
   assert.match(shoppingLazadaStateSource, /requests:\s*primeRequests/);
   assert.match(shoppingLazadaStateSource, /groupId:\s*assignment\.group_id/);
   assert.match(shoppingLazadaStateSource, /wishlistItemId:\s*item\.id/);
@@ -1700,6 +1705,33 @@ test("affiliate report maps conversions by click token as well as click id", () 
   assert.match(reportSource, /const conversionsByClickToken = new Map/);
   assert.match(reportSource, /\.in\("click_token", clickTokens\)/);
   assert.match(reportSource, /conversionsByClickToken\.get\(clickToken\)/);
+});
+
+test("browser snapshots avoid gift names, chat previews, and invite bearer links", () => {
+  const dashboardPageSource = readFileSync("app/dashboard/page.tsx", "utf8");
+  const dashboardSnapshotSource = readFileSync("app/dashboard/dashboard-snapshot.ts", "utf8");
+  const chatPageSource = readFileSync("app/secret-santa-chat/page.tsx", "utf8");
+  const inviteFormSource = readFileSync("app/group/[id]/InviteForm.tsx", "utf8");
+
+  assert.match(dashboardPageSource, /recipientNames:\s*\[\]/);
+  assert.doesNotMatch(dashboardPageSource, /recipientNames:\s*nextRecipientNames/);
+  assert.match(dashboardPageSource, /sanitizeGiftProgressSummaryForDashboardSnapshot/);
+  assert.match(dashboardPageSource, /sanitizeActivityFeedItemsForDashboardSnapshot/);
+  assert.match(dashboardSnapshotSource, /DASHBOARD_SNAPSHOT_STORAGE_PREFIX = "ss_dashboard_snapshot_v2:"/);
+  assert.match(dashboardSnapshotSource, /value\.snapshotVersion === DASHBOARD_SNAPSHOT_VERSION/);
+  assert.match(dashboardSnapshotSource, /recipientName: null/);
+  assert.match(dashboardSnapshotSource, /groupName: null/);
+
+  assert.match(chatPageSource, /type ThreadSnapshot = Omit<Thread, "last_message">/);
+  assert.match(chatPageSource, /CHAT_PAGE_SNAPSHOT_STORAGE_PREFIX = "ss_chat_page_snapshot_v2:"/);
+  assert.match(chatPageSource, /value\.snapshotVersion === CHAT_PAGE_SNAPSHOT_VERSION/);
+  assert.match(chatPageSource, /sanitizeThreadForChatSnapshot/);
+  assert.match(chatPageSource, /last_message: CHAT_SNAPSHOT_PREVIEW_MESSAGE/);
+  assert.doesNotMatch(chatPageSource, /threads:\s*buildThreads,\s*userId/);
+
+  assert.match(inviteFormSource, /removeLocalStorageItem/);
+  assert.doesNotMatch(inviteFormSource, /writeLocalStorageItem/);
+  assert.doesNotMatch(inviteFormSource, /JSON\.stringify\(\{ link: nextLink/);
 });
 
 test("affiliate report access probe is dynamic and not cacheable", () => {
@@ -2421,6 +2453,18 @@ test("lazada test postback is rate limited and idempotent by day", () => {
     "utf8"
   );
   const affiliateClickTrackingSource = readFileSync("lib/affiliate/click-tracking.ts", "utf8");
+  const idempotencyMigrationFilename = [
+    "20260708090000",
+    "harden",
+    "affiliate",
+    "conversion",
+    "idempotency",
+  ].join("_") + ".sql";
+  // eslint-disable-next-line security/detect-non-literal-fs-filename -- Test only reads a fixed repo-local migration path assembled to avoid a no-secrets false positive.
+  const idempotencyMigrationSource = readFileSync(
+    ["supabase", "migrations", idempotencyMigrationFilename].join("/"),
+    "utf8"
+  );
 
   assert.match(lazadaTestPostbackSource, /enforceRateLimit\(\{/);
   assert.match(lazadaTestPostbackSource, /action: "affiliate\.lazada\.test_postback"/);
@@ -2438,4 +2482,16 @@ test("lazada test postback is rate limited and idempotent by day", () => {
   assert.match(lazadaTestPostbackSource, /toISOString\(\)\.slice\(0, 10\)/);
   assert.doesNotMatch(lazadaTestPostbackSource, /transaction_id: `debug-\$\{click\.id\.slice\(0, 8\)\}-\$\{Date\.now\(\)\}`/);
   assert.doesNotMatch(lazadaTestPostbackSource, /function isSameOriginRequest/);
+  assert.match(lazadaPostbackSource, /function buildPostbackIdempotencyKey/);
+  assert.match(lazadaPostbackSource, /idempotency_key: idempotencyKey/);
+  assert.match(lazadaPostbackSource, /onConflict: "idempotency_key"/);
+  assert.match(lazadaPostbackSource, /onConflict: "payload_hash"/);
+  assert.match(lazadaTestPostbackSource, /idempotency_key: idempotencyKey/);
+  assert.match(lazadaTestPostbackSource, /onConflict: "idempotency_key"/);
+  assert.match(idempotencyMigrationSource, /add column if not exists idempotency_key text/);
+  assert.match(idempotencyMigrationSource, /ranked_conversions/);
+  assert.match(
+    idempotencyMigrationSource,
+    /create unique index if not exists affiliate_conversions_idempotency_key_key/
+  );
 });

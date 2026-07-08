@@ -131,6 +131,7 @@ export type GiftProgressSummary = {
 
 export type DashboardSnapshot = {
   createdAt: number;
+  snapshotVersion: 2;
   userId: string;
   userName: string;
   ownedGroups: Group[];

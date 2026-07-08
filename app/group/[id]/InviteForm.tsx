@@ -7,7 +7,7 @@ import {
   inviteUser,
   revokeInviteLink,
 } from "./actions";
-import { writeLocalStorageItem } from "@/lib/client-snapshot";
+import { removeLocalStorageItem } from "@/lib/client-snapshot";
 
 type State = {
   message: string;
@@ -32,6 +32,7 @@ export default function InviteForm({ groupId }: { groupId: string }) {
   useEffect(() => {
     let isMounted = true;
     const storageKey = `group-invite-link:${groupId}`;
+    removeLocalStorageItem(storageKey);
 
     const loadActiveLink = async () => {
       const result = await getActiveInviteLink(groupId);
@@ -48,26 +49,8 @@ export default function InviteForm({ groupId }: { groupId: string }) {
 
     void loadActiveLink();
 
-    const handleStorage = (event: StorageEvent) => {
-      if (event.key !== storageKey || !isMounted) {
-        return;
-      }
-
-      try {
-        const payload = event.newValue ? JSON.parse(event.newValue) : null;
-        setInviteLink(payload?.link || "");
-        setHasActiveLink(Boolean(payload?.link));
-      } catch {
-        setInviteLink("");
-        setHasActiveLink(false);
-      }
-    };
-
-    window.addEventListener("storage", handleStorage);
-
     return () => {
       isMounted = false;
-      window.removeEventListener("storage", handleStorage);
     };
   }, [groupId]);
 
@@ -86,10 +69,7 @@ export default function InviteForm({ groupId }: { groupId: string }) {
     const nextLink = `${window.location.origin}/invite/${encodeURIComponent(result.token)}`;
     setInviteLink(nextLink);
     setHasActiveLink(true);
-    writeLocalStorageItem(
-      `group-invite-link:${groupId}`,
-      JSON.stringify({ link: nextLink, updatedAt: Date.now() })
-    );
+    removeLocalStorageItem(`group-invite-link:${groupId}`);
 
     try {
       await navigator.clipboard.writeText(nextLink);
@@ -110,10 +90,7 @@ export default function InviteForm({ groupId }: { groupId: string }) {
     if (result.success) {
       setInviteLink("");
       setHasActiveLink(false);
-      writeLocalStorageItem(
-        `group-invite-link:${groupId}`,
-        JSON.stringify({ link: "", updatedAt: Date.now() })
-      );
+      removeLocalStorageItem(`group-invite-link:${groupId}`);
     }
 
     setLinkMessage(result.message);
