@@ -98,6 +98,50 @@ function buildPayloadHash(payload: PostbackPayload): string {
   return createHash("sha256").update(JSON.stringify(normalized)).digest("hex");
 }
 
+function normalizeIdempotencyPart(value: string | null): string | null {
+  const normalized = value?.trim().toLowerCase();
+  return normalized && normalized.length > 0 ? normalized : null;
+}
+
+function buildPostbackIdempotencyKey({
+  externalOrderId,
+  merchant,
+  payloadHash,
+}: {
+  externalOrderId: string | null;
+  merchant: string;
+  payloadHash: string;
+}): string {
+  const normalizedOrderId = normalizeIdempotencyPart(externalOrderId);
+
+  if (normalizedOrderId) {
+    return `${merchant}:order:${normalizedOrderId}`;
+  }
+
+  return `${merchant}:payload:${payloadHash}`;
+}
+
+function isMissingIdempotencySchemaError(error: {
+  code?: string | null;
+  message?: string | null;
+}): boolean {
+  const message = error.message || "";
+  return (
+    error.code === "42P10" ||
+    error.code === "42703" ||
+    error.code === "PGRST204" ||
+    /idempotency_key|unique or exclusion constraint|schema cache/i.test(message)
+  );
+}
+
+function removeIdempotencyKey<T extends { idempotency_key: string }>(
+  payload: T
+): Omit<T, "idempotency_key"> {
+  const legacyPayload = { ...payload };
+  delete (legacyPayload as Partial<T>).idempotency_key;
+  return legacyPayload;
+}
+
 function getProvidedPostbackSecret(request: NextRequest): string | null {
   return (
     request.headers.get("x-lazada-postback-secret") ||
@@ -317,6 +361,11 @@ async function handlePostback(request: NextRequest) {
     ])
   );
   const payloadHash = buildPayloadHash(payload);
+  const idempotencyKey = buildPostbackIdempotencyKey({
+    externalOrderId,
+    merchant: "lazada",
+    payloadHash,
+  });
 
   let affiliateClickId: string | null = null;
 
@@ -346,26 +395,39 @@ async function handlePostback(request: NextRequest) {
     affiliateClickId = matchingClick?.id || null;
   }
 
-  const { error: conversionError } = await supabaseAdmin.from("affiliate_conversions").upsert(
+  const conversionPayload = {
+    affiliate_click_id: affiliateClickId,
+    amount,
+    click_token: clickToken,
+    conversion_status: conversionStatus,
+    currency,
+    event_type: eventType,
+    external_click_id: externalClickId,
+    external_order_id: externalOrderId,
+    idempotency_key: idempotencyKey,
+    merchant: "lazada",
+    offer_id: offerId,
+    payload_hash: payloadHash,
+    payout,
+    raw_payload: payload,
+  };
+  let { error: conversionError } = await supabaseAdmin.from("affiliate_conversions").upsert(
+    conversionPayload,
     {
-      affiliate_click_id: affiliateClickId,
-      amount,
-      click_token: clickToken,
-      conversion_status: conversionStatus,
-      currency,
-      event_type: eventType,
-      external_click_id: externalClickId,
-      external_order_id: externalOrderId,
-      merchant: "lazada",
-      offer_id: offerId,
-      payload_hash: payloadHash,
-      payout,
-      raw_payload: payload,
-    },
-    {
-      onConflict: "payload_hash",
+      onConflict: "idempotency_key",
     }
   );
+
+  if (conversionError && isMissingIdempotencySchemaError(conversionError)) {
+    const legacyConversionPayload = removeIdempotencyKey(conversionPayload);
+    const fallbackResult = await supabaseAdmin.from("affiliate_conversions").upsert(
+      legacyConversionPayload,
+      {
+        onConflict: "payload_hash",
+      }
+    );
+    conversionError = fallbackResult.error;
+  }
 
   if (conversionError) {
     await recordServerFailure({

@@ -27,6 +27,32 @@ function buildPayloadHash(payload: Record<string, string>): string {
   return createHash("sha256").update(JSON.stringify(normalized)).digest("hex");
 }
 
+function buildTestPostbackIdempotencyKey(externalOrderId: string, payloadHash: string): string {
+  const normalizedOrderId = externalOrderId.trim().toLowerCase();
+  return normalizedOrderId ? `lazada:order:${normalizedOrderId}` : `lazada:payload:${payloadHash}`;
+}
+
+function isMissingIdempotencySchemaError(error: {
+  code?: string | null;
+  message?: string | null;
+}): boolean {
+  const message = error.message || "";
+  return (
+    error.code === "42P10" ||
+    error.code === "42703" ||
+    error.code === "PGRST204" ||
+    /idempotency_key|unique or exclusion constraint|schema cache/i.test(message)
+  );
+}
+
+function removeIdempotencyKey<T extends { idempotency_key: string }>(
+  payload: T
+): Omit<T, "idempotency_key"> {
+  const legacyPayload = { ...payload };
+  delete (legacyPayload as Partial<T>).idempotency_key;
+  return legacyPayload;
+}
+
 function redirectToReport(request: NextRequest, status: string): NextResponse {
   const target = new URL(
     "/dashboard/affiliate-report",
@@ -102,25 +128,40 @@ export async function POST(request: NextRequest) {
     sub_id6: click.click_token,
     transaction_id: `debug-${click.id.slice(0, 8)}-${new Date().toISOString().slice(0, 10)}`,
   };
+  const payloadHash = buildPayloadHash(payload);
+  const idempotencyKey = buildTestPostbackIdempotencyKey(payload.transaction_id, payloadHash);
 
-  const { error: conversionError } = await supabaseAdmin.from("affiliate_conversions").upsert(
+  const conversionPayload = {
+    affiliate_click_id: click.id,
+    amount: 0,
+    click_token: click.click_token,
+    conversion_status: "debug-test",
+    event_type: "debug",
+    external_order_id: payload.transaction_id,
+    idempotency_key: idempotencyKey,
+    merchant: "lazada",
+    offer_id: payload.offer_id,
+    payload_hash: payloadHash,
+    payout: 0,
+    raw_payload: payload,
+  };
+  let { error: conversionError } = await supabaseAdmin.from("affiliate_conversions").upsert(
+    conversionPayload,
     {
-      affiliate_click_id: click.id,
-      amount: 0,
-      click_token: click.click_token,
-      conversion_status: "debug-test",
-      event_type: "debug",
-      external_order_id: payload.transaction_id,
-      merchant: "lazada",
-      offer_id: payload.offer_id,
-      payload_hash: buildPayloadHash(payload),
-      payout: 0,
-      raw_payload: payload,
-    },
-    {
-      onConflict: "payload_hash",
+      onConflict: "idempotency_key",
     }
   );
+
+  if (conversionError && isMissingIdempotencySchemaError(conversionError)) {
+    const legacyConversionPayload = removeIdempotencyKey(conversionPayload);
+    const fallbackResult = await supabaseAdmin.from("affiliate_conversions").upsert(
+      legacyConversionPayload,
+      {
+        onConflict: "payload_hash",
+      }
+    );
+    conversionError = fallbackResult.error;
+  }
 
   if (conversionError) {
     await recordServerFailure({

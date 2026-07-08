@@ -90,6 +90,7 @@
     "polrelid",
     "polwithcheck",
     "PostgREST",
+    "PGRST",
     "pgcrypto",
     "pkey",
     "plpgsql",

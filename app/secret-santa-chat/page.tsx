@@ -84,11 +84,15 @@ type MemberNicknameRow = {
 
 type FestiveTone = "gold" | "green" | "neutral";
 type ThreadFilter = "all" | "giver" | "receiver";
+type ThreadSnapshot = Omit<Thread, "last_message">;
 type ChatPageSnapshot = ClientSnapshotMetadata & {
-  threads: Thread[];
+  snapshotVersion: 2;
+  threads: ThreadSnapshot[];
 };
 
-const CHAT_PAGE_SNAPSHOT_STORAGE_PREFIX = "ss_chat_page_snapshot_v1:";
+const CHAT_PAGE_SNAPSHOT_VERSION = 2;
+const CHAT_PAGE_SNAPSHOT_STORAGE_PREFIX = "ss_chat_page_snapshot_v2:";
+const CHAT_SNAPSHOT_PREVIEW_MESSAGE = "Open chat to load the latest message.";
 const CHAT_PAGE_BACKGROUND =
   "repeating-linear-gradient(135deg,rgba(72,102,78,.04) 0 1px,transparent 1px 38px),radial-gradient(circle at 15% 0%,rgba(252,206,114,.18),transparent 30%),radial-gradient(circle at 95% 15%,rgba(164,60,63,.10),transparent 28%),linear-gradient(180deg,#fffefa 0%,#f9faf8 46%,#eff5ef 100%)";
 const CHAT_PANEL_BACKGROUND = "linear-gradient(145deg,rgba(255,255,255,.92),rgba(251,252,250,.96))";
@@ -122,7 +126,7 @@ function isNullableString(value: unknown): value is string | null {
   return value === null || typeof value === "string";
 }
 
-function isThreadSnapshot(value: unknown): value is Thread {
+function isThreadSnapshot(value: unknown): value is ThreadSnapshot {
   return (
     isRecord(value) &&
     typeof value.thread_id === "string" &&
@@ -133,7 +137,6 @@ function isThreadSnapshot(value: unknown): value is Thread {
     typeof value.receiver_id === "string" &&
     typeof value.other_name === "string" &&
     isThreadRole(value.role) &&
-    typeof value.last_message === "string" &&
     typeof value.last_time === "string" &&
     typeof value.unread === "number"
   );
@@ -145,9 +148,32 @@ function isChatPageSnapshot(
 ): value is ChatPageSnapshot {
   return (
     hasFreshClientSnapshotMetadata(value, userId) &&
+    value.snapshotVersion === CHAT_PAGE_SNAPSHOT_VERSION &&
     Array.isArray(value.threads) &&
     value.threads.every(isThreadSnapshot)
   );
+}
+
+function sanitizeThreadForChatSnapshot(thread: Thread): ThreadSnapshot {
+  return {
+    giver_id: thread.giver_id,
+    group_gift_date: thread.group_gift_date,
+    group_id: thread.group_id,
+    group_name: thread.group_name,
+    last_time: thread.last_time,
+    other_name: thread.other_name,
+    receiver_id: thread.receiver_id,
+    role: thread.role,
+    thread_id: thread.thread_id,
+    unread: thread.unread,
+  };
+}
+
+function restoreThreadFromChatSnapshot(thread: ThreadSnapshot): Thread {
+  return {
+    ...thread,
+    last_message: CHAT_SNAPSHOT_PREVIEW_MESSAGE,
+  };
 }
 
 function ChatLineIcon({ className = "h-5 w-5" }: { className?: string }) {
@@ -944,7 +970,9 @@ export default function SecretSantaChatPage() {
           );
 
           if (cachedChat) {
-            const cachedCurrentThreads = cachedChat.threads.filter(isCurrentChatThread);
+            const cachedCurrentThreads = cachedChat.threads
+              .map(restoreThreadFromChatSnapshot)
+              .filter(isCurrentChatThread);
             setThreads(cachedCurrentThreads);
             if (!activeThreadRef.current) {
               setActiveThread(pickDefaultThread(cachedCurrentThreads));
@@ -985,6 +1013,7 @@ export default function SecretSantaChatPage() {
           setMessagesLoading(false);
           writeClientSnapshot(getChatPageSnapshotStorageKey(user.id), {
             createdAt: Date.now(),
+            snapshotVersion: 2,
             threads: [],
             userId: user.id,
           });
@@ -1134,7 +1163,8 @@ export default function SecretSantaChatPage() {
         hasLoadedThreadsRef.current = true;
         writeClientSnapshot(getChatPageSnapshotStorageKey(user.id), {
           createdAt: Date.now(),
-          threads: buildThreads,
+          snapshotVersion: 2,
+          threads: buildThreads.map(sanitizeThreadForChatSnapshot),
           userId: user.id,
         });
 

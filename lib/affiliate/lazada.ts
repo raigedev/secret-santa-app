@@ -135,6 +135,7 @@ type LazadaCachedPromotionLinkEntry = {
 };
 
 const LAZADA_PROMOTION_LINK_CACHE_TTL_MS = 1000 * 60 * 60 * 6;
+const LAZADA_PROMOTION_LINK_CACHE_MAX_ENTRIES = 500;
 const lazadaGlobalCache = globalThis as typeof globalThis & {
   __lazadaPromotionLinkCache?: Map<string, LazadaCachedPromotionLinkEntry>;
 };
@@ -166,6 +167,32 @@ function getLazadaPromotionLinkCache(): Map<string, LazadaCachedPromotionLinkEnt
   }
 
   return lazadaGlobalCache.__lazadaPromotionLinkCache;
+}
+
+function pruneExpiredLazadaPromotionLinkCacheEntries(
+  cache: Map<string, LazadaCachedPromotionLinkEntry>
+): void {
+  const now = Date.now();
+
+  for (const [key, entry] of cache.entries()) {
+    if (entry.expiresAt <= now) {
+      cache.delete(key);
+    }
+  }
+}
+
+function enforceLazadaPromotionLinkCacheSize(
+  cache: Map<string, LazadaCachedPromotionLinkEntry>
+): void {
+  while (cache.size > LAZADA_PROMOTION_LINK_CACHE_MAX_ENTRIES) {
+    const oldestKey = cache.keys().next().value;
+
+    if (!oldestKey) {
+      return;
+    }
+
+    cache.delete(oldestKey);
+  }
 }
 
 function buildSafeLazadaPromotionLinkTarget(
@@ -434,6 +461,9 @@ function readCachedLazadaPromotionLinks(
     return null;
   }
 
+  cache.delete(cacheKey);
+  cache.set(cacheKey, cachedEntry);
+
   return cachedEntry.links;
 }
 
@@ -442,11 +472,17 @@ function storeCachedLazadaPromotionLinks(
   links: LazadaNormalizedPromotionLink[]
 ): void {
   const cache = getLazadaPromotionLinkCache();
+  pruneExpiredLazadaPromotionLinkCacheEntries(cache);
+
+  if (cache.has(cacheKey)) {
+    cache.delete(cacheKey);
+  }
 
   cache.set(cacheKey, {
     expiresAt: Date.now() + LAZADA_PROMOTION_LINK_CACHE_TTL_MS,
     links,
   });
+  enforceLazadaPromotionLinkCacheSize(cache);
 }
 
 function normalizeLazadaGetLinkResponse(

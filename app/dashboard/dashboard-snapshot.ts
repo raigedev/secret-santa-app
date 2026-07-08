@@ -17,7 +17,8 @@ import {
 import { isNullableNumber, isNullableString, isRecord } from "@/lib/validation/common";
 
 const DASHBOARD_SNAPSHOT_TTL_MS = 5 * 60 * 1000;
-const DASHBOARD_SNAPSHOT_STORAGE_PREFIX = "ss_dashboard_snapshot_v1:";
+const DASHBOARD_SNAPSHOT_VERSION = 2;
+const DASHBOARD_SNAPSHOT_STORAGE_PREFIX = "ss_dashboard_snapshot_v2:";
 
 function getDashboardSnapshotStorageKey(userId: string): string {
   return `${DASHBOARD_SNAPSHOT_STORAGE_PREFIX}${userId}`;
@@ -157,6 +158,7 @@ function isDashboardSnapshot(value: unknown, userId: string): value is Dashboard
 
   return (
     value.userId === userId &&
+    value.snapshotVersion === DASHBOARD_SNAPSHOT_VERSION &&
     typeof value.createdAt === "number" &&
     Date.now() - value.createdAt < DASHBOARD_SNAPSHOT_TTL_MS &&
     typeof value.userName === "string" &&
@@ -228,4 +230,22 @@ export function sanitizeGroupsForDashboardSnapshot(groups: Group[]): Group[] {
       avatarUrl: null,
     })),
   }));
+}
+
+export function sanitizeGiftProgressSummaryForDashboardSnapshot(
+  summary: GiftProgressSummary | null
+): GiftProgressSummary | null {
+  if (!summary) {
+    return null;
+  }
+
+  return {
+    ...summary,
+    groupName: null,
+    recipientName: null,
+  };
+}
+
+export function sanitizeActivityFeedItemsForDashboardSnapshot(): DashboardActivityItem[] {
+  return [];
 }
