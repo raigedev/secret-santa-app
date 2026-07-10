@@ -53,6 +53,11 @@ type DrawResetHistoryRow = {
   reason: string;
 };
 
+type DrawResetRpcResult = {
+  assignmentCount: number;
+  confirmedGiftCount: number;
+};
+
 type DrawCyclePairRow = {
   giver_id: string;
   receiver_id: string;
@@ -60,6 +65,32 @@ type DrawCyclePairRow = {
 
 function buildBlockedPairKey(giverUserId: string, receiverUserId: string): string {
   return `${giverUserId}:${receiverUserId}`;
+}
+
+function parseDrawResetRpcResult(value: unknown): DrawResetRpcResult | null {
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    return null;
+  }
+
+  const result = value as Record<string, unknown>;
+  const assignmentCount = result.assignment_count;
+  const confirmedGiftCount = result.confirmed_gift_count;
+
+  if (
+    typeof assignmentCount !== "number" ||
+    typeof confirmedGiftCount !== "number" ||
+    !Number.isInteger(assignmentCount) ||
+    !Number.isInteger(confirmedGiftCount) ||
+    assignmentCount < 0 ||
+    confirmedGiftCount < 0
+  ) {
+    return null;
+  }
+
+  return {
+    assignmentCount,
+    confirmedGiftCount,
+  };
 }
 
 function getAcceptedDrawMemberIds(members: DrawRuleMember[]): string[] {
@@ -1009,7 +1040,7 @@ export async function resetSecretSantaDraw(
 
   const { data: group } = await supabase
     .from("groups")
-    .select("owner_id, revealed")
+    .select("owner_id")
     .eq("id", groupId)
     .maybeSingle();
 
@@ -1021,129 +1052,50 @@ export async function resetSecretSantaDraw(
     return { success: false, message: "Only the group owner can reset the draw." };
   }
 
-  const { data: assignments, error: assignmentsError } = await supabaseAdmin
-    .from("assignments")
-    .select("id, gift_received")
-    .eq("group_id", groupId);
+  const { data: resetData, error: resetError } = await supabaseAdmin.rpc(
+    "reset_secret_santa_draw",
+    {
+      p_actor_user_id: user.id,
+      p_group_id: groupId,
+      p_reason: trimmedReason,
+    }
+  );
 
-  if (assignmentsError) {
+  if (resetError) {
+    if (
+      resetError.code === "P0002" &&
+      resetError.message === "There is no active draw to reset."
+    ) {
+      return { success: false, message: resetError.message };
+    }
+
+    if (resetError.code === "42501") {
+      return { success: false, message: "Only the group owner can reset the draw." };
+    }
+
     await recordServerFailure({
       actorUserId: user.id,
-      errorMessage: assignmentsError.message,
-      eventType: "group.reset_secret_santa.fetch_assignments",
-      resourceId: groupId,
-      resourceType: "group",
-    });
-
-    return { success: false, message: "Failed to load the current draw." };
-  }
-
-  if (!assignments || assignments.length === 0) {
-    return { success: false, message: "There is no active draw to reset." };
-  }
-
-  const assignmentCount = assignments.length;
-  const confirmedGiftCount = assignments.filter((assignment) => assignment.gift_received).length;
-
-  // A reset needs to clear chat state tied to the old assignment pairs,
-  // otherwise stale anonymous threads survive into the next draw.
-  const { error: threadReadsError } = await supabaseAdmin
-    .from("thread_reads")
-    .delete()
-    .eq("group_id", groupId);
-
-  if (threadReadsError) {
-    await recordServerFailure({
-      actorUserId: user.id,
-      errorMessage: threadReadsError.message,
-      eventType: "group.reset_secret_santa.clear_thread_reads",
-      resourceId: groupId,
-      resourceType: "group",
-    });
-
-    return { success: false, message: "Failed to clear thread read history." };
-  }
-
-  const { error: messagesError } = await supabaseAdmin
-    .from("messages")
-    .delete()
-    .eq("group_id", groupId);
-
-  if (messagesError) {
-    await recordServerFailure({
-      actorUserId: user.id,
-      errorMessage: messagesError.message,
-      eventType: "group.reset_secret_santa.clear_messages",
-      resourceId: groupId,
-      resourceType: "group",
-    });
-
-    return { success: false, message: "Failed to clear anonymous chat history." };
-  }
-
-  const { error: revealSessionError } = await supabaseAdmin
-    .from("group_reveal_sessions")
-    .delete()
-    .eq("group_id", groupId);
-
-  if (revealSessionError) {
-    await recordServerFailure({
-      actorUserId: user.id,
-      errorMessage: revealSessionError.message,
-      eventType: "group.reset_secret_santa.clear_reveal_session",
-      resourceId: groupId,
-      resourceType: "group",
-    });
-
-    return { success: false, message: "Failed to clear the live reveal session." };
-  }
-
-  const { error: deleteAssignmentsError } = await supabaseAdmin
-    .from("assignments")
-    .delete()
-    .eq("group_id", groupId);
-
-  if (deleteAssignmentsError) {
-    await recordServerFailure({
-      actorUserId: user.id,
-      details: { assignmentCount },
-      errorMessage: deleteAssignmentsError.message,
-      eventType: "group.reset_secret_santa.delete_assignments",
-      resourceId: groupId,
-      resourceType: "group",
-    });
-
-    return { success: false, message: "We could not clear the current recipients." };
-  }
-
-  const { error: resetRevealError } = await supabaseAdmin
-    .from("groups")
-    .update({
-      revealed: false,
-      revealed_at: null,
-    })
-    .eq("id", groupId);
-
-  if (resetRevealError) {
-    await recordServerFailure({
-      actorUserId: user.id,
-      errorMessage: resetRevealError.message,
-      eventType: "group.reset_secret_santa.reset_reveal_state",
+      errorMessage: resetError.message,
+      eventType: "group.reset_secret_santa.atomic_reset",
       resourceId: groupId,
       resourceType: "group",
     });
 
     return {
       success: false,
-      message: "Assignments were cleared, but the group state was not fully reset.",
+      message: "We couldn't confirm the reset. Refresh this group before trying again.",
     };
   }
+
+  const resetResult = parseDrawResetRpcResult(resetData);
+  const assignmentCount = resetResult?.assignmentCount;
+  const confirmedGiftCount = resetResult?.confirmedGiftCount;
 
   await recordAuditEvent({
     actorUserId: user.id,
     details: {
-      assignmentCount,
-      confirmedGiftCount,
+      assignmentCount: assignmentCount ?? "unknown",
+      confirmedGiftCount: confirmedGiftCount ?? "unknown",
       reason: trimmedReason,
     },
     eventType: "group.reset_secret_santa",
@@ -1152,23 +1104,11 @@ export async function resetSecretSantaDraw(
     resourceType: "group",
   });
 
-  const { error: resetLogError } = await supabaseAdmin.from("group_draw_resets").insert({
-    assignment_count: assignmentCount,
-    confirmed_gift_count: confirmedGiftCount,
-    created_by: user.id,
-    group_id: groupId,
-    reason: trimmedReason,
-  });
-
-  if (resetLogError) {
+  if (!resetResult) {
     await recordServerFailure({
       actorUserId: user.id,
-      details: {
-        assignmentCount,
-        confirmedGiftCount,
-      },
-      errorMessage: resetLogError.message,
-      eventType: "group.reset_secret_santa.log_reset",
+      errorMessage: "Atomic reset returned an invalid result payload.",
+      eventType: "group.reset_secret_santa.invalid_result",
       resourceId: groupId,
       resourceType: "group",
     });
@@ -1176,7 +1116,9 @@ export async function resetSecretSantaDraw(
 
   return {
     success: true,
-    message: `Draw reset. Removed ${assignmentCount} recipient pairing(s) and cleared private chat history.`,
+    message: resetResult
+      ? `Draw reset. Removed ${resetResult.assignmentCount} recipient pairing(s) and cleared private chat history.`
+      : "Draw reset and private chat history cleared.",
   };
 }
 

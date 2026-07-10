@@ -255,6 +255,66 @@ test("non-unique assignment errors are not treated as already-drawn races", () =
   );
 });
 
+test("draw resets are atomic and restricted to the server service role", () => {
+  const drawActionSource = readFileSync("app/group/[id]/draw-action.ts", "utf8");
+  const migrationPath = [
+    "supabase",
+    "migrations",
+    ["20260710033109", "atomic", "secret", "santa", "draw", "reset.sql"].join("_"),
+  ].join("/");
+  // eslint-disable-next-line security/detect-non-literal-fs-filename -- Test reads one pinned repo-local migration path assembled to avoid a no-secrets false positive.
+  const migrationSource = readFileSync(migrationPath, "utf8");
+  const resetStart = drawActionSource.indexOf("export async function resetSecretSantaDraw(");
+  const historyStart = drawActionSource.indexOf("export async function getDrawRerollHistory(");
+  const resetSource = drawActionSource.slice(resetStart, historyStart);
+  const compactMigration = compactSql(migrationSource);
+
+  assert.ok(resetStart >= 0);
+  assert.ok(historyStart > resetStart);
+  assert.match(resetSource, /supabaseAdmin\.rpc\(\s*"reset_secret_santa_draw"/);
+
+  assert.doesNotMatch(
+    resetSource,
+    /\.from\("(?:thread_reads|messages|group_reveal_sessions|assignments|group_draw_resets)"\)[\s\S]{0,180}\.(?:delete|insert|update)\(/
+  );
+
+  assert.match(
+    migrationSource,
+    /create or replace function public\.reset_secret_santa_draw\(\s*p_group_id uuid,\s*p_actor_user_id uuid,\s*p_reason text\s*\)/i
+  );
+  assert.match(migrationSource, /language plpgsql[\s\S]*security invoker/i);
+  assert.match(migrationSource, /set search_path = ''/i);
+  assert.match(migrationSource, /for update/i);
+  assert.match(
+    migrationSource,
+    /if v_owner_id is distinct from p_actor_user_id then[\s\S]*errcode = '42501'/i
+  );
+  assert.doesNotMatch(migrationSource, /exception\s+when/i);
+
+  let previousStepIndex = -1;
+  for (const step of [
+    "delete from public.thread_reads",
+    "delete from public.messages",
+    "delete from public.group_reveal_sessions",
+    "delete from public.assignments",
+    "update public.groups",
+    "insert into public.group_draw_resets",
+  ]) {
+    const stepIndex = compactMigration.indexOf(step);
+    assert.ok(stepIndex > previousStepIndex, `Expected atomic reset step: ${step}`);
+    previousStepIndex = stepIndex;
+  }
+
+  assert.match(
+    compactMigration,
+    /revoke all on function public\.reset_secret_santa_draw\(uuid, uuid, text\) from public, anon, authenticated/i
+  );
+  assert.match(
+    compactMigration,
+    /grant execute on function public\.reset_secret_santa_draw\(uuid, uuid, text\) to service_role/i
+  );
+});
+
 test("postback payload storage drops token-like secret fields", () => {
   assert.deepEqual(
     stripReservedPostbackSecrets({
