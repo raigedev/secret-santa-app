@@ -3,6 +3,7 @@
 import {
   useCallback,
   useEffect,
+  useId,
   useMemo,
   useRef,
   useState,
@@ -870,117 +871,273 @@ function GiftBoxIllustration({ className = "h-16 w-16" }: { className?: string }
 }
 
 function EmptyGifteeIllustration({ className = "h-20 w-20" }: { className?: string }) {
+  const illustrationId = `giftee-gift-${useId().replace(/:/g, "")}`;
+
   return (
     <svg
       aria-hidden="true"
-      className={`${className} overflow-visible drop-shadow-[0_24px_28px_rgba(72,102,78,.14)]`}
+      className={`${className} overflow-visible`}
       fill="none"
+      focusable="false"
+      preserveAspectRatio="xMidYMid meet"
+      shapeRendering="geometricPrecision"
       viewBox="0 0 360 220"
     >
       <defs>
-        <linearGradient id="mystery-gift-lid" x1="81" x2="280" y1="63" y2="116" gradientUnits="userSpaceOnUse">
-          <stop stopColor="#c85055" />
-          <stop offset="1" stopColor="#8f252b" />
+        <linearGradient
+          id={`${illustrationId}-box-left`}
+          x1="104"
+          x2="180"
+          y1="112"
+          y2="187"
+          gradientUnits="userSpaceOnUse"
+        >
+          <stop stopColor="#b8464b" />
+          <stop offset="1" stopColor="#81272c" />
         </linearGradient>
-        <linearGradient id="mystery-gift-box" x1="91" x2="279" y1="92" y2="184" gradientUnits="userSpaceOnUse">
-          <stop stopColor="#a43c3f" />
-          <stop offset="1" stopColor="#6f1c22" />
+        <linearGradient
+          id={`${illustrationId}-box-right`}
+          x1="180"
+          x2="255"
+          y1="130"
+          y2="179"
+          gradientUnits="userSpaceOnUse"
+        >
+          <stop stopColor="#913136" />
+          <stop offset="1" stopColor="#641c22" />
         </linearGradient>
-        <linearGradient id="mystery-gift-ribbon" x1="146" x2="213" y1="61" y2="184" gradientUnits="userSpaceOnUse">
-          <stop stopColor="#ffe09a" />
-          <stop offset=".52" stopColor="#fcce72" />
-          <stop offset="1" stopColor="#b98620" />
+        <linearGradient
+          id={`${illustrationId}-lid-top`}
+          x1="119"
+          x2="247"
+          y1="51"
+          y2="119"
+          gradientUnits="userSpaceOnUse"
+        >
+          <stop stopColor="#cf595d" />
+          <stop offset=".55" stopColor="#a43c3f" />
+          <stop offset="1" stopColor="#8a2c31" />
         </linearGradient>
-        <linearGradient id="mystery-gift-tag" x1="218" x2="280" y1="54" y2="126" gradientUnits="userSpaceOnUse">
+        <linearGradient
+          id={`${illustrationId}-ribbon`}
+          x1="166"
+          x2="201"
+          y1="45"
+          y2="187"
+          gradientUnits="userSpaceOnUse"
+        >
+          <stop stopColor="#ffe7a8" />
+          <stop offset=".45" stopColor="#fcce72" />
+          <stop offset="1" stopColor="#bd8527" />
+        </linearGradient>
+        <linearGradient
+          id={`${illustrationId}-ribbon-dark`}
+          x1="159"
+          x2="200"
+          y1="100"
+          y2="184"
+          gradientUnits="userSpaceOnUse"
+        >
+          <stop stopColor="#e4b34d" />
+          <stop offset="1" stopColor="#9f6a18" />
+        </linearGradient>
+        <linearGradient
+          id={`${illustrationId}-tag`}
+          x1="231"
+          x2="279"
+          y1="105"
+          y2="158"
+          gradientUnits="userSpaceOnUse"
+        >
           <stop stopColor="#ffffff" />
-          <stop offset="1" stopColor="#edf5ef" />
+          <stop offset="1" stopColor="#edf3ee" />
         </linearGradient>
-        <radialGradient id="mystery-gift-glow" cx="0" cy="0" r="1" gradientTransform="matrix(126 0 0 68 181 122)" gradientUnits="userSpaceOnUse">
-          <stop stopColor="#fcce72" stopOpacity=".22" />
-          <stop offset=".72" stopColor="#fcce72" stopOpacity=".06" />
-          <stop offset="1" stopColor="#fcce72" stopOpacity="0" />
+        <radialGradient
+          id={`${illustrationId}-ground-shadow`}
+          cx="0"
+          cy="0"
+          r="1"
+          gradientTransform="matrix(104 0 0 15 180 194)"
+          gradientUnits="userSpaceOnUse"
+        >
+          <stop stopColor="#2e3432" stopOpacity=".12" />
+          <stop offset="1" stopColor="#2e3432" stopOpacity="0" />
         </radialGradient>
-        <filter id="mystery-gift-shadow" colorInterpolationFilters="sRGB" filterUnits="userSpaceOnUse" height="174" width="246" x="58" y="34">
-          <feDropShadow dx="0" dy="16" floodColor="#2e3432" floodOpacity=".13" stdDeviation="14" />
+        <filter
+          id={`${illustrationId}-object-shadow`}
+          x="42"
+          y="22"
+          width="278"
+          height="184"
+          colorInterpolationFilters="sRGB"
+          filterUnits="userSpaceOnUse"
+        >
+          <feDropShadow
+            dx="0"
+            dy="7"
+            floodColor="#2e3432"
+            floodOpacity=".1"
+            stdDeviation="6"
+          />
         </filter>
       </defs>
 
-      <ellipse cx="181" cy="184" fill="#2e3432" opacity=".08" rx="116" ry="17" />
-      <path d="M72 54c34-15 77-17 126-9 49 8 78 25 92 52 10 20 5 48-14 63-27 21-78 25-132 19-47-5-86-20-101-42-16-24-5-67 29-83Z" fill="url(#mystery-gift-glow)" />
+      <ellipse
+        cx="180"
+        cy="194"
+        fill={`url(#${illustrationId}-ground-shadow)`}
+        rx="104"
+        ry="15"
+      />
 
-      <g filter="url(#mystery-gift-shadow)">
+      <g stroke="#48664e" strokeLinecap="round">
+        <path d="m91 117-36 32" strokeOpacity=".65" strokeWidth="3" />
+        <path d="m76 130-3 20M68 137l-2 17M84 124l-2 18M60 143l-1 14" strokeWidth="2.3" />
+        <path d="m73 133-17-1M65 141l-15 1M82 125l-16-3" strokeWidth="2.3" />
+      </g>
+
+      <g filter={`url(#${illustrationId}-object-shadow)`}>
         <path
-          d="M91 102h178v57c0 14-11 25-25 25H116c-14 0-25-11-25-25v-57Z"
-          fill="url(#mystery-gift-box)"
-        />
-        <path
-          d="M95 104h170v14H95v-14Z"
-          fill="#6e1d23"
-          opacity=".25"
-        />
-        <path
-          d="M81 78c0-9 7-16 16-16h166c9 0 16 7 16 16v29H81V78Z"
-          fill="url(#mystery-gift-lid)"
-        />
-        <path
-          d="M161 62h38v122h-38V62Z"
-          fill="url(#mystery-gift-ribbon)"
-        />
-        <path
-          d="M81 98h198"
-          stroke="#fffefa"
+          d="m92 101 88 36v51l-88-37v-50Z"
+          fill={`url(#${illustrationId}-box-left)`}
+          stroke="#641c22"
           strokeOpacity=".22"
-          strokeWidth="4"
+          strokeWidth="1.2"
         />
         <path
-          d="M176 62c-14-25-43-16-34 3 5 10 22 8 34-3Zm7 0c16-24 43-12 32 5-6 9-21 6-32-5Z"
-          fill="#fcce72"
+          d="m180 137 88-36v50l-88 37v-51Z"
+          fill={`url(#${illustrationId}-box-right)`}
+          stroke="#4f151a"
+          strokeOpacity=".2"
+          strokeWidth="1.2"
         />
         <path
-          d="M151 64c4.8 2.6 13.2 2 25-2M184 62c11.6 8 22.2 9.2 31.5 4.6"
-          stroke="#b98620"
+          d="m155 127 25 10v51l-25-11v-50Z"
+          fill={`url(#${illustrationId}-ribbon)`}
+        />
+        <path
+          d="m180 137 25-10v50l-25 11v-51Z"
+          fill={`url(#${illustrationId}-ribbon-dark)`}
+        />
+        <path
+          d="m101 139 44 18"
+          stroke="#fffefa"
           strokeLinecap="round"
-          strokeOpacity=".38"
+          strokeOpacity=".24"
+          strokeWidth="2.4"
+        />
+        <path
+          d="m215 168 43-18"
+          stroke="#fffefa"
+          strokeLinecap="round"
+          strokeOpacity=".14"
+          strokeWidth="2.2"
+        />
+
+        <path d="m78 85 102 42v18L78 103V85Z" fill="#8b2a30" />
+        <path d="m180 127 102-42v18l-102 42v-18Z" fill="#722127" />
+        <path
+          d="m156 117 24 10v18l-24-10v-18Z"
+          fill={`url(#${illustrationId}-ribbon)`}
+        />
+        <path
+          d="m180 127 24-10v18l-24 10v-18Z"
+          fill={`url(#${illustrationId}-ribbon-dark)`}
+        />
+
+        <path
+          d="M78 85 180 42l102 43-102 42L78 85Z"
+          fill={`url(#${illustrationId}-lid-top)`}
+          stroke="#6f2026"
+          strokeOpacity=".24"
+          strokeWidth="1.2"
+        />
+        <path
+          d="m164 49 16-7 16 7v71l-16 7-16-7V49Z"
+          fill={`url(#${illustrationId}-ribbon)`}
+        />
+        <path
+          d="M180 47v74"
+          stroke="#fff8df"
+          strokeLinecap="round"
+          strokeOpacity=".4"
+          strokeWidth="2.2"
+        />
+        <path
+          d="m91 85 89-37 88 37"
+          stroke="#fffefa"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          strokeOpacity=".23"
           strokeWidth="2"
         />
+
+        <g transform="translate(180 78)">
+          <path d="M-5 5c-16-27-54-24-52-2 2 19 31 17 55 8L-5 5Z" fill="#a8731e" />
+          <path d="M5 5c17-27 55-23 52 0-3 18-32 15-55 6l3-6Z" fill="#b98620" />
+          <path
+            d="M-4 7c-15-20-43-18-42-3 2 13 24 13 44 6l-2-3Z"
+            fill={`url(#${illustrationId}-ribbon)`}
+            stroke="#9f6a18"
+            strokeOpacity=".7"
+          />
+          <path
+            d="M4 7c15-20 43-17 42-2-2 13-25 12-44 5l2-3Z"
+            fill={`url(#${illustrationId}-ribbon)`}
+            stroke="#9f6a18"
+            strokeOpacity=".7"
+          />
+          <path d="m-8 15-31 35 19-5L1 20l-9-5Z" fill="#d7a23d" />
+          <path d="m8 15 34 29-19-3L-1 20l9-5Z" fill="#e7b650" />
+          <rect
+            x="-10"
+            y="-3"
+            width="20"
+            height="22"
+            rx="7"
+            fill={`url(#${illustrationId}-ribbon)`}
+            stroke="#9f6a18"
+            strokeWidth="1.2"
+          />
+          <path d="M-5 2c3-2 7-2 10 0" stroke="#fff8df" strokeLinecap="round" strokeOpacity=".5" />
+        </g>
+
         <path
-          d="M107 160c35-17 82-20 139-8"
-          stroke="#fffefa"
-          strokeLinecap="round"
-          strokeOpacity=".26"
-          strokeWidth="4"
-        />
-        <path
-          d="M106 184h148"
+          d="M234 99c8 2 13 7 17 15"
           stroke="#48664e"
           strokeLinecap="round"
-          strokeOpacity=".1"
-          strokeWidth="4"
+          strokeWidth="2.4"
         />
-
-        <g transform="rotate(8 251 95)">
-          <path
-            d="M228 49h52c9 0 16 7 16 16v46c0 9-7 16-16 16h-52c-9 0-16-7-16-16V65c0-9 7-16 16-16Z"
-            fill="url(#mystery-gift-tag)"
+        <g transform="rotate(7 255 132)">
+          <rect
+            x="225"
+            y="105"
+            width="60"
+            height="54"
+            rx="8"
+            fill={`url(#${illustrationId}-tag)`}
             stroke="#48664e"
-            strokeOpacity=".16"
-            strokeWidth="2"
+            strokeOpacity=".2"
+            strokeWidth="1.4"
           />
-          <circle cx="231" cy="69" fill="#fcce72" r="4.5" />
-          <path d="M241 70h34M227 94h43" stroke="#48664e" strokeLinecap="round" strokeOpacity=".24" strokeWidth="5" />
+          <circle cx="236" cy="116" r="3.5" fill="#fcce72" />
+          <path d="M246 116h25M238 129h31" stroke="#48664e" strokeLinecap="round" strokeOpacity=".22" strokeWidth="3.2" />
           <path
-            d="M251 103c0-5.8 4.1-9.4 9.8-9.4 5.3 0 9.4 3 9.4 7.6 0 3.4-1.9 5.4-5.1 7.2-2.5 1.4-3.4 2.5-3.4 5.1"
+            d="M248 141c0-4.7 3.4-7.6 8.3-7.6 4.7 0 8.1 2.6 8.1 6.5 0 2.9-1.7 4.6-4.5 6.1-2.2 1.2-3 2.3-3 4.4"
             stroke="#a43c3f"
             strokeLinecap="round"
-            strokeWidth="4"
+            strokeWidth="3.2"
           />
-          <circle cx="261.8" cy="122.5" r="3" fill="#a43c3f" />
+          <circle cx="256.9" cy="155.1" r="2.2" fill="#a43c3f" />
         </g>
       </g>
 
-      <path d="M62 90h-11M56.5 84.5v11M303 60h12M309 54v12" stroke="#fcce72" strokeLinecap="round" strokeWidth="4" />
-      <circle cx="291" cy="151" fill="#a43c3f" opacity=".72" r="4" />
-      <circle cx="68" cy="151" fill="#48664e" opacity=".32" r="3" />
+      <g fill="#fcce72">
+        <path d="m304 53 2.6 7.4 7.4 2.6-7.4 2.6-2.6 7.4-2.6-7.4-7.4-2.6 7.4-2.6 2.6-7.4Z" />
+        <path d="m54 76 1.8 5.2 5.2 1.8-5.2 1.8L54 90l-1.8-5.2L47 83l5.2-1.8L54 76Z" />
+      </g>
+      <circle cx="297" cy="138" r="3" fill="#a43c3f" opacity=".7" />
+      <circle cx="69" cy="169" r="2.5" fill="#48664e" opacity=".38" />
     </svg>
   );
 }
