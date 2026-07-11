@@ -641,6 +641,7 @@ export default function AppRouteShell({ children }: { children: ReactNode }) {
         }
       `}</style>
       <aside
+        data-app-sidebar-rail=""
         data-testid="app-shell-sidebar"
         className="fixed inset-y-0 left-0 z-30 hidden w-70 flex-col border-r px-5 py-5 xl:flex"
         style={{
@@ -651,22 +652,23 @@ export default function AppRouteShell({ children }: { children: ReactNode }) {
             : "18px 0 48px rgba(46,52,50,.07)",
         }}
       >
-        <Link href="/dashboard" prefetch={false} className="flex items-center gap-3 rounded-[22px] px-2 py-2" style={{ color: isDarkAppShell ? "#f8fafc" : HOLIDAY_GREEN, textDecoration: "none" }}>
-          <span className="flex h-12 w-12 items-center justify-center rounded-[17px] shadow-[0_12px_24px_rgba(46,52,50,.06)] ring-1" style={{ background: isDarkAppShell ? "rgba(255,255,255,.08)" : "rgba(255,255,255,.8)", borderColor: shellBorderColor }}>
+        <Link data-app-sidebar-brand="" href="/dashboard" prefetch={false} className="flex items-center gap-3 rounded-[22px] px-2 py-2" style={{ color: isDarkAppShell ? "#f8fafc" : HOLIDAY_GREEN, textDecoration: "none" }}>
+          <span data-app-sidebar-brand-mark="" className="flex h-12 w-12 items-center justify-center rounded-[17px] shadow-[0_12px_24px_rgba(46,52,50,.06)] ring-1" style={{ background: isDarkAppShell ? "rgba(255,255,255,.08)" : "rgba(255,255,255,.8)", borderColor: shellBorderColor }}>
             <SantaMarkIcon size={42} />
           </span>
           <span className="min-w-0">
-            <span className="block text-[24px] font-black leading-none" style={{ fontFamily: "'Fredoka','Nunito',sans-serif" }}>Secret Santa</span>
+            <span data-app-sidebar-brand-title="" className="block text-[24px] font-black leading-none" style={{ fontFamily: "'Fredoka','Nunito',sans-serif" }}>Secret Santa</span>
             <span className="mt-0.5 block text-[10px] font-extrabold italic text-[#a43c3f]">shhh, it&apos;s a secret</span>
           </span>
         </Link>
 
-        <nav aria-label="Main app navigation" className="mt-9 space-y-2">
+        <nav data-app-sidebar-nav="" aria-label="Main app navigation" className="mt-9 flex flex-col gap-2">
           {navItems.map((item) => {
             const active = item.match(pathname, currentHash);
             return (
               <a
                 key={item.label}
+                data-app-sidebar-nav-link=""
                 href={item.href}
                 onClick={(event) => handleNavItemClick(event, item)}
                 aria-current={active ? "page" : undefined}
@@ -685,12 +687,13 @@ export default function AppRouteShell({ children }: { children: ReactNode }) {
           })}
         </nav>
 
-        <div className="gift-surface-muted mt-auto rounded-3xl p-4" style={{ background: isDarkAppShell ? "rgba(255,255,255,.06)" : undefined, borderColor: shellBorderColor }}>
+        <div data-app-sidebar-footer="" data-testid="app-shell-sidebar-footer" className="gift-surface-muted mt-auto rounded-3xl p-4" style={{ background: isDarkAppShell ? "rgba(255,255,255,.06)" : undefined, borderColor: shellBorderColor }}>
           <div className="text-[15px] font-black" style={{ color: isDarkAppShell ? "#fffefa" : HOLIDAY_GREEN }}>Share the magic</div>
-          <p className="mt-2 text-[12px] font-semibold leading-relaxed" style={{ color: shellMutedColor }}>
+          <p data-app-sidebar-footer-description="" className="mt-2 text-[12px] font-semibold leading-relaxed" style={{ color: shellMutedColor }}>
             Invite friends, add wishlists, and keep the exchange moving from one place.
           </p>
           <Link
+            data-app-sidebar-footer-action=""
             href="/create-group"
             prefetch={false}
             className="gift-button gift-button-compact mt-4 text-[12px]"
