@@ -341,80 +341,70 @@ test.describe("authenticated screen regressions", () => {
     });
   }
 
-  test("desktop sidebar cards stay readable at short Windows screen heights", async ({ page }) => {
+  test("desktop sidebars avoid redundant cards and keep group context on one line", async ({ page }) => {
     await page.setViewportSize({ width: 1280, height: 720 });
     await loginWithTestCredentials(page, credentials!);
 
-    const sidebarCases = [
-      {
-        footerTestId: "app-shell-sidebar-footer",
-        path: "/settings",
-        sidebarTestId: "app-shell-sidebar",
-      },
-      {
-        footerTestId: "shopping-sidebar-current-group",
-        path: "/my-giftee",
-        sidebarTestId: "shopping-ideas-sidebar",
-      },
-    ];
+    await page.goto("/settings");
 
-    for (const sidebarCase of sidebarCases) {
-      await page.setViewportSize({ width: 1280, height: 720 });
-      await page.goto(sidebarCase.path);
+    const sharedSidebar = page.getByTestId("app-shell-sidebar");
+    await expect(sharedSidebar).toBeVisible();
+    await expect(page.getByTestId("app-shell-sidebar-footer")).toHaveCount(0);
+    await expect(page.getByText(/^share the magic$/i)).toHaveCount(0);
+    expect(await sharedSidebar.evaluate((element) => getComputedStyle(element).overflowY)).toBe(
+      "auto"
+    );
 
-      const sidebar = page.getByTestId(sidebarCase.sidebarTestId);
-      const footer = page.getByTestId(sidebarCase.footerTestId);
+    await page.goto("/my-giftee");
 
-      await expect(sidebar).toBeVisible();
-      await expect(footer).toBeVisible();
+    const shoppingSidebar = page.getByTestId("shopping-ideas-sidebar");
+    const currentGroup = page.getByTestId("shopping-sidebar-current-group");
+    const currentGroupName = page.getByTestId("shopping-sidebar-current-group-name");
 
-      const initialMetrics = await footer.evaluate((footerElement) => {
-        const sidebarElement = footerElement.closest("[data-app-sidebar-rail]");
+    await expect(shoppingSidebar).toBeVisible();
+    await expect(currentGroup).toBeVisible();
+    await expect(currentGroup).toContainText("Current group");
+    await expect(currentGroupName).toHaveText("Playwright Gift Lab");
+    await expect(page.getByText(/^current exchange$/i)).toHaveCount(0);
 
-        if (!(sidebarElement instanceof HTMLElement)) {
-          return null;
-        }
+    const nameMetrics = await currentGroupName.evaluate((element) => {
+      const styles = getComputedStyle(element);
 
-        const footerRect = footerElement.getBoundingClientRect();
-        const sidebarRect = sidebarElement.getBoundingClientRect();
+      return {
+        clientWidth: element.clientWidth,
+        overflow: styles.overflow,
+        scrollWidth: element.scrollWidth,
+        textOverflow: styles.textOverflow,
+        whiteSpace: styles.whiteSpace,
+      };
+    });
 
-        return {
-          footerBottom: footerRect.bottom,
-          footerTop: footerRect.top,
-          fullyVisible:
-            footerRect.top >= sidebarRect.top - 1 && footerRect.bottom <= sidebarRect.bottom + 1,
-          overflowY: window.getComputedStyle(sidebarElement).overflowY,
-          sidebarBottom: sidebarRect.bottom,
-          sidebarTop: sidebarRect.top,
-        };
-      });
+    expect(nameMetrics.whiteSpace).toBe("nowrap");
+    expect(nameMetrics.overflow).toBe("hidden");
+    expect(nameMetrics.textOverflow).toBe("ellipsis");
+    expect(nameMetrics.scrollWidth).toBeLessThanOrEqual(nameMetrics.clientWidth + 1);
 
-      expect(initialMetrics).not.toBeNull();
-      expect(initialMetrics?.overflowY).toBe("auto");
-      expect(initialMetrics?.fullyVisible, JSON.stringify(initialMetrics)).toBe(true);
+    await page.setViewportSize({ width: 1280, height: 600 });
+    await shoppingSidebar.evaluate((element) => {
+      element.scrollTop = element.scrollHeight;
+    });
 
-      await page.setViewportSize({ width: 1280, height: 600 });
-      await sidebar.evaluate((sidebarElement) => {
-        sidebarElement.scrollTop = sidebarElement.scrollHeight;
-      });
+    await expect
+      .poll(async () =>
+        currentGroup.evaluate((element) => {
+          const sidebarElement = element.closest("[data-app-sidebar-rail]");
 
-      await expect
-        .poll(async () =>
-          footer.evaluate((footerElement) => {
-            const sidebarElement = footerElement.closest("[data-app-sidebar-rail]");
+          if (!(sidebarElement instanceof HTMLElement)) {
+            return false;
+          }
 
-            if (!(sidebarElement instanceof HTMLElement)) {
-              return false;
-            }
+          const groupRect = element.getBoundingClientRect();
+          const sidebarRect = sidebarElement.getBoundingClientRect();
 
-            const footerRect = footerElement.getBoundingClientRect();
-            const sidebarRect = sidebarElement.getBoundingClientRect();
-
-            return footerRect.top >= sidebarRect.top - 1 && footerRect.bottom <= sidebarRect.bottom + 1;
-          })
-        )
-        .toBe(true);
-    }
+          return groupRect.top >= sidebarRect.top - 1 && groupRect.bottom <= sidebarRect.bottom + 1;
+        })
+      )
+      .toBe(true);
   });
 
   test("shared app shell keeps authenticated sections in one frame", async ({ page }) => {
