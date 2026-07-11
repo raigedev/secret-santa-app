@@ -341,6 +341,82 @@ test.describe("authenticated screen regressions", () => {
     });
   }
 
+  test("desktop sidebar cards stay readable at short Windows screen heights", async ({ page }) => {
+    await page.setViewportSize({ width: 1280, height: 720 });
+    await loginWithTestCredentials(page, credentials!);
+
+    const sidebarCases = [
+      {
+        footerTestId: "app-shell-sidebar-footer",
+        path: "/settings",
+        sidebarTestId: "app-shell-sidebar",
+      },
+      {
+        footerTestId: "shopping-sidebar-current-group",
+        path: "/my-giftee",
+        sidebarTestId: "shopping-ideas-sidebar",
+      },
+    ];
+
+    for (const sidebarCase of sidebarCases) {
+      await page.setViewportSize({ width: 1280, height: 720 });
+      await page.goto(sidebarCase.path);
+
+      const sidebar = page.getByTestId(sidebarCase.sidebarTestId);
+      const footer = page.getByTestId(sidebarCase.footerTestId);
+
+      await expect(sidebar).toBeVisible();
+      await expect(footer).toBeVisible();
+
+      const initialMetrics = await footer.evaluate((footerElement) => {
+        const sidebarElement = footerElement.closest("[data-app-sidebar-rail]");
+
+        if (!(sidebarElement instanceof HTMLElement)) {
+          return null;
+        }
+
+        const footerRect = footerElement.getBoundingClientRect();
+        const sidebarRect = sidebarElement.getBoundingClientRect();
+
+        return {
+          footerBottom: footerRect.bottom,
+          footerTop: footerRect.top,
+          fullyVisible:
+            footerRect.top >= sidebarRect.top - 1 && footerRect.bottom <= sidebarRect.bottom + 1,
+          overflowY: window.getComputedStyle(sidebarElement).overflowY,
+          sidebarBottom: sidebarRect.bottom,
+          sidebarTop: sidebarRect.top,
+        };
+      });
+
+      expect(initialMetrics).not.toBeNull();
+      expect(initialMetrics?.overflowY).toBe("auto");
+      expect(initialMetrics?.fullyVisible, JSON.stringify(initialMetrics)).toBe(true);
+
+      await page.setViewportSize({ width: 1280, height: 600 });
+      await sidebar.evaluate((sidebarElement) => {
+        sidebarElement.scrollTop = sidebarElement.scrollHeight;
+      });
+
+      await expect
+        .poll(async () =>
+          footer.evaluate((footerElement) => {
+            const sidebarElement = footerElement.closest("[data-app-sidebar-rail]");
+
+            if (!(sidebarElement instanceof HTMLElement)) {
+              return false;
+            }
+
+            const footerRect = footerElement.getBoundingClientRect();
+            const sidebarRect = sidebarElement.getBoundingClientRect();
+
+            return footerRect.top >= sidebarRect.top - 1 && footerRect.bottom <= sidebarRect.bottom + 1;
+          })
+        )
+        .toBe(true);
+    }
+  });
+
   test("shared app shell keeps authenticated sections in one frame", async ({ page }) => {
     await page.setViewportSize({ width: 1440, height: 900 });
     await loginWithTestCredentials(page, credentials!);
