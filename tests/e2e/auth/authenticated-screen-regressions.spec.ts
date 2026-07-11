@@ -348,12 +348,48 @@ test.describe("authenticated screen regressions", () => {
     await page.goto("/settings");
 
     const sharedSidebar = page.getByTestId("app-shell-sidebar");
+    const utilityNav = page.getByTestId("app-shell-sidebar-utility-nav");
     await expect(sharedSidebar).toBeVisible();
+    await expect(utilityNav).toBeVisible();
+    await expect(utilityNav.getByRole("link", { name: /^settings$/i })).toHaveAttribute(
+      "aria-current",
+      "page"
+    );
     await expect(page.getByTestId("app-shell-sidebar-footer")).toHaveCount(0);
     await expect(page.getByText(/^share the magic$/i)).toHaveCount(0);
     expect(await sharedSidebar.evaluate((element) => getComputedStyle(element).overflowY)).toBe(
       "auto"
     );
+
+    const utilityMetrics = await utilityNav.evaluate((element) => {
+      const sidebarElement = element.closest("[data-app-sidebar-rail]");
+      const primaryNavElement = sidebarElement?.querySelector('[data-app-sidebar-nav=""]');
+
+      if (!(sidebarElement instanceof HTMLElement) || !(primaryNavElement instanceof HTMLElement)) {
+        return null;
+      }
+
+      const primaryRect = primaryNavElement.getBoundingClientRect();
+      const sidebarRect = sidebarElement.getBoundingClientRect();
+      const utilityRect = element.getBoundingClientRect();
+
+      return {
+        bottomInset: sidebarRect.bottom - utilityRect.bottom,
+        separation: utilityRect.top - primaryRect.bottom,
+      };
+    });
+
+    expect(utilityMetrics).not.toBeNull();
+    expect(utilityMetrics?.bottomInset).toBeLessThanOrEqual(24);
+    expect(utilityMetrics?.separation).toBeGreaterThanOrEqual(16);
+
+    await page.setViewportSize({ width: 1280, height: 600 });
+    await sharedSidebar.evaluate((element) => {
+      element.scrollTop = element.scrollHeight;
+    });
+    await expect(utilityNav).toBeInViewport();
+
+    await page.setViewportSize({ width: 1280, height: 720 });
 
     await page.goto("/my-giftee");
 
