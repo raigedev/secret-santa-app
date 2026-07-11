@@ -574,6 +574,32 @@ export default function AppRouteShell({ children }: { children: ReactNode }) {
     }, 1_000);
   };
 
+  const primaryNavItems = navItems.filter((item) => item.icon !== "settings");
+  const settingsNavItem = navItems.find((item) => item.icon === "settings") || null;
+  const renderDesktopNavItem = (item: AppNavItem) => {
+    const active = item.match(pathname, currentHash);
+
+    return (
+      <a
+        key={item.label}
+        data-app-sidebar-nav-link=""
+        href={item.href}
+        onClick={(event) => handleNavItemClick(event, item)}
+        aria-current={active ? "page" : undefined}
+        className="flex min-h-11.5 items-center gap-3 rounded-xl px-3 text-[14px] font-extrabold transition hover:-translate-y-0.5"
+        style={{
+          background: active ? shellNavActiveBackground : "transparent",
+          color: active ? shellNavActiveColor : shellNavInactiveColor,
+          textDecoration: "none",
+          boxShadow: active ? `inset 0 0 0 1px ${shellBorderColor}` : "none",
+        }}
+      >
+        <AppShellIcon name={item.icon} className="h-5 w-5 shrink-0" />
+        <span className="truncate">{item.label}</span>
+      </a>
+    );
+  };
+
   return (
     <div
       data-testid="app-route-shell"
@@ -663,30 +689,20 @@ export default function AppRouteShell({ children }: { children: ReactNode }) {
         </Link>
 
         <nav data-app-sidebar-nav="" aria-label="Main app navigation" className="mt-9 flex flex-col gap-2">
-          {navItems.map((item) => {
-            const active = item.match(pathname, currentHash);
-            return (
-              <a
-                key={item.label}
-                data-app-sidebar-nav-link=""
-                href={item.href}
-                onClick={(event) => handleNavItemClick(event, item)}
-                aria-current={active ? "page" : undefined}
-                className="flex min-h-11.5 items-center gap-3 rounded-xl px-3 text-[14px] font-extrabold transition hover:-translate-y-0.5"
-                style={{
-                  background: active ? shellNavActiveBackground : "transparent",
-                  color: active ? shellNavActiveColor : shellNavInactiveColor,
-                  textDecoration: "none",
-                  boxShadow: active ? `inset 0 0 0 1px ${shellBorderColor}` : "none",
-                }}
-              >
-                <AppShellIcon name={item.icon} className="h-5 w-5 shrink-0" />
-                <span className="truncate">{item.label}</span>
-              </a>
-            );
-          })}
+          {primaryNavItems.map(renderDesktopNavItem)}
         </nav>
 
+        {settingsNavItem ? (
+          <nav
+            data-app-sidebar-utility-nav=""
+            data-testid="app-shell-sidebar-utility-nav"
+            aria-label="App settings"
+            className="mt-auto border-t pt-3"
+            style={{ borderColor: shellBorderColor }}
+          >
+            {renderDesktopNavItem(settingsNavItem)}
+          </nav>
+        ) : null}
       </aside>
 
       <div className="relative z-10 min-h-screen xl:pl-70">
