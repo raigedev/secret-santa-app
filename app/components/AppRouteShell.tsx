@@ -687,29 +687,6 @@ export default function AppRouteShell({ children }: { children: ReactNode }) {
           })}
         </nav>
 
-        <div data-app-sidebar-footer="" data-testid="app-shell-sidebar-footer" className="gift-surface-muted mt-auto rounded-3xl p-4" style={{ background: isDarkAppShell ? "rgba(255,255,255,.06)" : undefined, borderColor: shellBorderColor }}>
-          <div className="text-[15px] font-black" style={{ color: isDarkAppShell ? "#fffefa" : HOLIDAY_GREEN }}>Share the magic</div>
-          <p data-app-sidebar-footer-description="" className="mt-2 text-[12px] font-semibold leading-relaxed" style={{ color: shellMutedColor }}>
-            Invite friends, add wishlists, and keep the exchange moving from one place.
-          </p>
-          <Link
-            data-app-sidebar-footer-action=""
-            href="/create-group"
-            prefetch={false}
-            className="gift-button gift-button-compact mt-4 text-[12px]"
-            style={{
-              background: isDarkAppShell ? "rgba(252,206,114,.12)" : "rgba(72,102,78,.08)",
-              border: `1px solid ${shellBorderColor}`,
-              color: isDarkAppShell ? "#fde68a" : HOLIDAY_GREEN,
-              textDecoration: "none",
-            }}
-          >
-            <span className="gift-button-icon" aria-hidden="true">
-              <AppShellIcon name="group" className="h-4 w-4" />
-            </span>
-            Start exchange
-          </Link>
-        </div>
       </aside>
 
       <div className="relative z-10 min-h-screen xl:pl-70">

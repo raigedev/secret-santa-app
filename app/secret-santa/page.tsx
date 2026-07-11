@@ -250,6 +250,11 @@ type ShoppingIdeasNavItem = {
     | "settings";
 };
 
+type ShoppingSidebarGroup = {
+  href: string;
+  name: string;
+};
+
 type SecretSantaExperienceMode = "shopping" | "giftee" | "tracking";
 
 type SecretSantaExperienceProps = {
@@ -1776,12 +1781,10 @@ function handleShoppingIdeasNavClick(event: MouseEvent<HTMLAnchorElement>, href:
 
 function ShoppingIdeasSidebar({
   navItems,
-  activeGroupName,
-  activeGroupHref,
+  activeGroup,
 }: {
   navItems: ShoppingIdeasNavItem[];
-  activeGroupName: string;
-  activeGroupHref: string;
+  activeGroup: ShoppingSidebarGroup | null;
 }) {
   return (
     <aside
@@ -1850,59 +1853,44 @@ function ShoppingIdeasSidebar({
         ))}
       </nav>
 
-      <div
-        data-app-sidebar-footer=""
-        data-testid="shopping-sidebar-current-group"
-        className="mt-auto rounded-[26px] p-5"
-        style={{
-          background:
-            "linear-gradient(140deg,rgba(255,254,250,.95),rgba(232,243,234,.74))",
-          border: "1px solid rgba(72,102,78,.16)",
-          boxShadow: "0 18px 38px rgba(46,52,50,.06)",
-        }}
-      >
-        <div className="flex items-start justify-between gap-3">
-          <div data-app-sidebar-footer-copy="" className="min-w-0">
-            <div
-              data-app-sidebar-footer-eyebrow=""
-              className="text-[10px] font-extrabold uppercase tracking-[0.12em]"
-              style={{ color: TEXT_MUTED }}
-            >
-              Current exchange
-            </div>
-            <div
-              data-app-sidebar-footer-title=""
-              className="mt-2 text-[18px] font-black leading-tight"
-              style={{ color: HOLIDAY_GREEN, fontFamily: "'Fredoka', 'Nunito', sans-serif" }}
-            >
-              {activeGroupName}
-            </div>
-            <p
-              data-app-sidebar-footer-description=""
-              className="mt-2 text-[12px] font-semibold leading-relaxed"
-              style={{ color: TEXT_MUTED }}
-            >
-              Review members, wishlists, and gift details from the group page.
-            </p>
-          </div>
-          <span data-app-sidebar-footer-illustration="" className="block h-16 w-16 shrink-0">
-            <GiftBoxIllustration className="h-full w-full" />
-          </span>
-        </div>
-        <a
-          data-app-sidebar-footer-action=""
-          href={activeGroupHref}
-          className="mt-4 inline-flex min-h-10 items-center justify-center rounded-full px-4 text-[12px] font-extrabold transition hover:-translate-y-0.5"
-          style={{
-            background: "rgba(255,255,255,.9)",
-            border: "1px solid rgba(72,102,78,.22)",
-            color: HOLIDAY_GREEN,
-            textDecoration: "none",
-          }}
+      {activeGroup ? (
+        <div
+          className="mt-auto pt-3"
+          style={{ borderTop: "1px solid rgba(72,102,78,.14)" }}
         >
-          Open group
-        </a>
-      </div>
+          <a
+            data-testid="shopping-sidebar-current-group"
+            href={activeGroup.href}
+            onClick={(event) => handleShoppingIdeasNavClick(event, activeGroup.href)}
+            aria-label={`Open ${activeGroup.name} group`}
+            title={activeGroup.name}
+            className="flex min-h-14 items-center gap-2.5 rounded-xl px-2 py-2 text-left transition hover:-translate-y-0.5"
+            style={{ color: HOLIDAY_GREEN, textDecoration: "none" }}
+          >
+            <span
+              className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg"
+              style={{ background: "rgba(72,102,78,.09)" }}
+            >
+              <ShoppingNavIcon name="group" className="h-5 w-5" />
+            </span>
+            <span className="min-w-0 flex-1">
+              <span
+                className="block text-[9px] font-extrabold uppercase tracking-[0.12em]"
+                style={{ color: TEXT_MUTED }}
+              >
+                Current group
+              </span>
+              <span
+                data-testid="shopping-sidebar-current-group-name"
+                className="mt-0.5 block truncate whitespace-nowrap text-[14px] font-black"
+              >
+                {activeGroup.name}
+              </span>
+            </span>
+            <ChevronRightMark className="h-4 w-4 shrink-0" />
+          </a>
+        </div>
+      ) : null}
     </aside>
   );
 }
@@ -3753,12 +3741,16 @@ function SecretSantaExperience({ mode = "shopping" }: SecretSantaExperienceProps
   const activeGroupId = primaryAssignment?.group_id || availableGroups[0]?.id || "";
   const activeGroupHref = activeGroupId ? `/group/${activeGroupId}` : "/dashboard";
   const activeGroupName =
-    primaryAssignment?.group_name || availableGroups[0]?.name || "Secret Santa group";
+    primaryAssignment?.group_name || availableGroups[0]?.name || "";
+  const sidebarActiveGroup =
+    activeGroupId && activeGroupName
+      ? { href: activeGroupHref, name: activeGroupName }
+      : null;
   const giftDayDetailsButtonLabel = activeGroupId
     ? "See gift day details"
     : "Open dashboard";
   const giftDayDetailsButtonAriaLabel = activeGroupId
-    ? `See gift day details for ${activeGroupName}`
+    ? `See gift day details for ${activeGroupName || "your group"}`
     : "Open dashboard";
   const dashboardBudgetLabel =
     primaryAssignment?.group_budget !== null &&
@@ -3790,7 +3782,9 @@ function SecretSantaExperience({ mode = "shopping" }: SecretSantaExperienceProps
   const groupBudgetHelper =
     isShoppingMode && assignmentGroupCount > 1
       ? "Each recipient card keeps its own group budget."
-      : `For ${activeGroupName}`;
+      : activeGroupName
+        ? `For ${activeGroupName}`
+        : "Set by your group organizer.";
   const primaryActiveWishlistItemId = primaryAssignment
     ? getActiveRecipientWishlistItemId(
         primaryAssignment,
@@ -3936,8 +3930,7 @@ function SecretSantaExperience({ mode = "shopping" }: SecretSantaExperienceProps
 
       <ShoppingIdeasSidebar
         navItems={sidebarNavItems}
-        activeGroupName={activeGroupName}
-        activeGroupHref={activeGroupHref}
+        activeGroup={sidebarActiveGroup}
       />
       <div className="relative z-10 min-h-screen xl:pl-70">
         <ShoppingIdeasHeader
