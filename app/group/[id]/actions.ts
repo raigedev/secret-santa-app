@@ -10,6 +10,7 @@ import { getServerActionContext, requireRateLimitedAction } from "@/lib/auth/ser
 import { groupHasDrawStarted } from "@/lib/groups/draw-state";
 import {
   findExistingInviteUserIdByEmail,
+  findInviteAuthRecipientByEmail,
   sendGroupInviteEmail,
 } from "@/lib/groups/invite-email";
 import { buildInviteLinkExpiresAt } from "@/lib/groups/invite-links.mjs";
@@ -18,7 +19,7 @@ import {
   sanitizeGroupNickname,
   validateAnonymousGroupNickname,
 } from "@/lib/groups/nickname";
-import { hasDeclinedInviteResendTarget } from "@/lib/groups/resend-invite.mjs";
+import { isInviteStatusEligibleForResend } from "@/lib/groups/resend-invite.mjs";
 import { recordAuditEvent, recordServerFailure } from "@/lib/security/audit";
 import { createNotification, createNotifications } from "@/lib/notifications";
 import {
@@ -545,36 +546,36 @@ export async function updateNickname(
 
 export async function resendInvite(
   groupId: string,
-  memberEmail: string
-): Promise<{ message: string }> {
-  if (!isUuid(groupId) || !memberEmail) {
-    return { message: "Missing group ID or email." };
+  membershipId: string
+): Promise<{ success: boolean; message: string }> {
+  if (!isUuid(groupId) || !isUuid(membershipId)) {
+    return { success: false, message: "Missing invite details." };
   }
 
   const context = await getServerActionContext();
 
   if (!context.ok) {
-    return { message: context.message };
+    return { success: false, message: context.message };
   }
 
   const { supabase, user } = context;
   const rateLimit = await enforceRateLimit({
     action: "group.resend_invite",
     actorUserId: user.id,
-    maxAttempts: 10,
-    resourceId: groupId,
-    resourceType: "group",
-    subject: `${user.id}:${groupId}`,
+    maxAttempts: 5,
+    resourceId: membershipId,
+    resourceType: "group_membership",
+    subject: `${user.id}:${groupId}:${membershipId}`,
     windowSeconds: 3600,
   });
 
   if (!rateLimit.allowed) {
-    return { message: rateLimit.message };
+    return { success: false, message: rateLimit.message };
   }
 
   const permission = await assertOwnerCanManageInvites(supabase, groupId, user.id);
   if (!permission.ok) {
-    return { message: permission.message || "Invite unavailable." };
+    return { success: false, message: permission.message || "Invite unavailable." };
   }
 
   const { data: group } = await supabase
@@ -584,44 +585,48 @@ export async function resendInvite(
     .maybeSingle();
 
   if (!group) {
-    return { message: "Group not found." };
+    return { success: false, message: "Group not found." };
   }
 
-  const normalizedEmail = sanitize(memberEmail, 100).toLowerCase();
-  if (!EMAIL_PATTERN.test(normalizedEmail)) {
-    return { message: "Enter a valid email address." };
-  }
-
-  const existingUserId = await findExistingInviteUserIdByEmail(normalizedEmail);
-  const { data: memberships, error: membershipsError } = await supabaseAdmin
+  const { data: membership, error: membershipError } = await supabaseAdmin
     .from("group_members")
-    .select("id, status, user_id, email")
+    .select("id, status, user_id, email, role")
     .eq("group_id", groupId)
-    .limit(100);
+    .eq("id", membershipId)
+    .maybeSingle();
 
-  if (membershipsError) {
+  if (membershipError) {
     await recordServerFailure({
       actorUserId: user.id,
-      details: { memberEmail: normalizedEmail },
-      errorMessage: membershipsError.message,
-      eventType: "group.resend_invite.lookup_memberships",
-      resourceId: groupId,
-      resourceType: "group",
+      errorMessage: membershipError.message,
+      eventType: "group.resend_invite.lookup_membership",
+      resourceId: membershipId,
+      resourceType: "group_membership",
     });
 
-    return { message: "Failed to resend invite." };
+    return { success: false, message: "Failed to load invite." };
   }
 
-  if (
-    !hasDeclinedInviteResendTarget(memberships, {
-      email: normalizedEmail,
-      existingUserId,
-    })
-  ) {
-    return { message: "Only declined invites can be resent." };
+  if (!membership) {
+    return { success: false, message: "Invite not found." };
   }
 
-  if (!existingUserId) {
+  if (membership.role === "owner" || !isInviteStatusEligibleForResend(membership.status)) {
+    return { success: false, message: "Only pending or declined invites can be resent." };
+  }
+
+  const normalizedEmail = sanitize(membership.email || "", 100).toLowerCase();
+  if (!EMAIL_PATTERN.test(normalizedEmail)) {
+    return { success: false, message: "Invite email is unavailable." };
+  }
+
+  const authRecipient = await findInviteAuthRecipientByEmail(normalizedEmail);
+  const existingUserId = authRecipient?.userId || membership.user_id || null;
+  const shouldSendEmail = authRecipient
+    ? authRecipient.canReceiveInviteEmail
+    : !membership.user_id;
+
+  if (shouldSendEmail) {
     const inviteResult = await sendInviteEmail(
       normalizedEmail,
       user.id,
@@ -631,7 +636,10 @@ export async function resendInvite(
     );
 
     if (!inviteResult.success) {
-      return { message: inviteResult.message || "Failed to resend invite." };
+      return {
+        success: false,
+        message: inviteResult.message || "Failed to resend invite.",
+      };
     }
   }
 
@@ -639,25 +647,24 @@ export async function resendInvite(
     .from("group_members")
     .update({ status: "pending", user_id: existingUserId })
     .eq("group_id", groupId)
-    .eq("email", normalizedEmail)
-    .eq("status", "declined")
+    .eq("id", membership.id)
+    .eq("status", membership.status)
     .select("id");
 
   if (error) {
     await recordServerFailure({
       actorUserId: user.id,
-      details: { memberEmail: normalizedEmail },
       errorMessage: error.message,
       eventType: "group.resend_invite",
-      resourceId: groupId,
-      resourceType: "group",
+      resourceId: membership.id,
+      resourceType: "group_membership",
     });
 
-    return { message: "Failed to resend invite." };
+    return { success: false, message: "Failed to resend invite." };
   }
 
   if (!updatedRows || updatedRows.length === 0) {
-    return { message: "Only declined invites can be resent." };
+    return { success: false, message: "Invite status changed. Refresh and try again." };
   }
 
   await notifyInvitedUser({
@@ -666,7 +673,22 @@ export async function resendInvite(
     groupName: group.name,
   });
 
-  return { message: "Invite resent. Ask them to check their inbox." };
+  await recordAuditEvent({
+    actorUserId: user.id,
+    details: {
+      delivery: shouldSendEmail ? "email" : "dashboard",
+      previousStatus: membership.status,
+    },
+    eventType: "group.resend_invite",
+    outcome: "success",
+    resourceId: membership.id,
+    resourceType: "group_membership",
+  });
+
+  return {
+    success: true,
+    message: "Invite resent. Ask them to check their email or dashboard.",
+  };
 }
 
 export async function createInviteLink(

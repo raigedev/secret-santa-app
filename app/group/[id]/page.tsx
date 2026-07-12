@@ -501,6 +501,17 @@ export default function GroupDetailsPage() {
     notifyGroupRefresh();
   };
 
+  const handleResendMembership = (membershipId: string) => {
+    setMembers((currentMembers) =>
+      currentMembers.map((currentMember) =>
+        currentMember.id === membershipId
+          ? { ...currentMember, status: "pending" }
+          : currentMember
+      )
+    );
+    notifyGroupRefresh();
+  };
+
   const handleLeave = async () => {
     setActionSaving(true);
     setActionMsg("");
@@ -961,6 +972,7 @@ export default function GroupDetailsPage() {
                 requireAnonymousNickname={Boolean(groupData?.require_anonymous_nickname)}
                 wishlistReadinessLoaded={!isOwner || Boolean(ownerInsights)}
                 onRemoveMember={handleOpenRemoveMember}
+                onResendMembership={handleResendMembership}
                 onRevokeMembership={handleRevokeMembership}
               />
 

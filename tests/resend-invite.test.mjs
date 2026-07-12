@@ -1,43 +1,46 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { hasDeclinedInviteResendTarget } from "../lib/groups/resend-invite.mjs";
+import {
+  canReceiveResentAuthInvite,
+  isInviteStatusEligibleForResend,
+} from "../lib/groups/resend-invite.mjs";
 
-test("allows resend when a declined invite matches the email", () => {
-  assert.equal(
-    hasDeclinedInviteResendTarget(
-      [
-        { email: "friend@example.com", status: "pending", user_id: null },
-        { email: "friend@example.com", status: "declined", user_id: null },
-      ],
-      { email: "friend@example.com", existingUserId: null }
-    ),
-    true
-  );
+test("allows pending and declined invites to be resent", () => {
+  assert.equal(isInviteStatusEligibleForResend("pending"), true);
+  assert.equal(isInviteStatusEligibleForResend("declined"), true);
 });
 
-test("allows resend when a declined invite matches the existing user id", () => {
-  assert.equal(
-    hasDeclinedInviteResendTarget(
-      [
-        { email: "old@example.com", status: "declined", user_id: "user-123" },
-        { email: "friend@example.com", status: "pending", user_id: null },
-      ],
-      { email: "friend@example.com", existingUserId: "user-123" }
-    ),
-    true
-  );
+test("blocks resend after an invite is accepted", () => {
+  assert.equal(isInviteStatusEligibleForResend("accepted"), false);
+  assert.equal(isInviteStatusEligibleForResend("removed"), false);
 });
 
-test("blocks resend when no declined invite exists", () => {
+test("allows another Auth invite email only for an unaccepted invited user", () => {
   assert.equal(
-    hasDeclinedInviteResendTarget(
-      [
-        { email: "friend@example.com", status: "pending", user_id: null },
-        { email: "friend@example.com", status: "accepted", user_id: null },
-      ],
-      { email: "friend@example.com", existingUserId: null }
-    ),
+    canReceiveResentAuthInvite({
+      email_confirmed_at: null,
+      invited_at: "2026-07-11T12:00:00.000Z",
+      last_sign_in_at: null,
+    }),
+    true
+  );
+
+  assert.equal(
+    canReceiveResentAuthInvite({
+      email_confirmed_at: "2026-07-11T12:05:00.000Z",
+      invited_at: "2026-07-11T12:00:00.000Z",
+      last_sign_in_at: null,
+    }),
+    false
+  );
+
+  assert.equal(
+    canReceiveResentAuthInvite({
+      email_confirmed_at: null,
+      invited_at: null,
+      last_sign_in_at: null,
+    }),
     false
   );
 });
