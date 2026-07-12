@@ -2,7 +2,13 @@ import "server-only";
 
 import { resolveTrustedAppOrigin } from "@/lib/security/app-origin";
 import { normalizeSafePostAuthPath } from "@/lib/security/web";
+import { canReceiveResentAuthInvite } from "@/lib/groups/resend-invite.mjs";
 import { supabaseAdmin } from "@/lib/supabase/admin";
+
+export type InviteAuthRecipient = {
+  canReceiveInviteEmail: boolean;
+  userId: string;
+};
 
 function getGroupInviteRedirectUrl(nextPath = "/dashboard"): string {
   const callbackUrl = new URL("/auth/callback", resolveTrustedAppOrigin(null));
@@ -29,7 +35,9 @@ export async function sendGroupInviteEmail({
   });
 }
 
-export async function findExistingInviteUserIdByEmail(email: string): Promise<string | null> {
+export async function findInviteAuthRecipientByEmail(
+  email: string
+): Promise<InviteAuthRecipient | null> {
   const normalizedEmail = email.trim().toLowerCase();
 
   for (let page = 1; page <= 5; page += 1) {
@@ -47,7 +55,10 @@ export async function findExistingInviteUserIdByEmail(email: string): Promise<st
     );
 
     if (matchedUser) {
-      return matchedUser.id;
+      return {
+        canReceiveInviteEmail: canReceiveResentAuthInvite(matchedUser),
+        userId: matchedUser.id,
+      };
     }
 
     if (data.users.length < 200) {
@@ -56,4 +67,9 @@ export async function findExistingInviteUserIdByEmail(email: string): Promise<st
   }
 
   return null;
+}
+
+export async function findExistingInviteUserIdByEmail(email: string): Promise<string | null> {
+  const recipient = await findInviteAuthRecipientByEmail(email);
+  return recipient?.userId || null;
 }

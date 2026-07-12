@@ -16,6 +16,7 @@ type GroupMembersSectionProps = {
   requireAnonymousNickname: boolean;
   wishlistReadinessLoaded?: boolean;
   onRemoveMember: (member: Member) => void;
+  onResendMembership: (membershipId: string) => void;
   onRevokeMembership: (membershipId: string) => void;
 };
 
@@ -40,6 +41,7 @@ export function GroupMembersSection({
   requireAnonymousNickname,
   wishlistReadinessLoaded = true,
   onRemoveMember,
+  onResendMembership,
   onRevokeMembership,
 }: GroupMembersSectionProps) {
   const missingWishlistNames = new Set(
@@ -124,10 +126,9 @@ export function GroupMembersSection({
               const canEditNickname = isCurrentUser && !drawDone;
               const canRemoveAcceptedMember =
                 isOwner && !drawDone && status === "accepted" && Boolean(member.user_id) && !isCurrentUser;
-              const canRevokePendingInvite = isOwner && !drawDone && status === "pending";
-              const canManageDeclinedInvite = isOwner && !drawDone && status === "declined";
-              const hasRowActions =
-                canEditNickname || canRemoveAcceptedMember || canManageDeclinedInvite;
+              const canManageInvite =
+                isOwner && !drawDone && (status === "pending" || status === "declined");
+              const hasRowActions = canEditNickname || canRemoveAcceptedMember;
 
               return (
                 <div
@@ -164,8 +165,13 @@ export function GroupMembersSection({
                       <StatusCheckIcon />
                       {statusMeta.label}
                     </span>
-                    {canRevokePendingInvite && (
-                      <div className="mt-2">
+                    {canManageInvite && (
+                      <div className="mt-2 flex flex-wrap items-center gap-2">
+                        <ResendButton
+                          groupId={groupId}
+                          membershipId={member.id}
+                          onResent={() => onResendMembership(member.id)}
+                        />
                         <RevokeInviteButton
                           groupId={groupId}
                           membershipId={member.id}
@@ -197,16 +203,6 @@ export function GroupMembersSection({
                           Remove
                         </button>
                       )}
-                      {canManageDeclinedInvite && (
-                        <>
-                          <ResendButton groupId={groupId} memberEmail={member.email || ""} />
-                          <RevokeInviteButton
-                            groupId={groupId}
-                            membershipId={member.id}
-                            onRevoked={() => onRevokeMembership(member.id)}
-                          />
-                        </>
-                      )}
                     </div>
                   )}
                 </div>
@@ -224,7 +220,7 @@ export function GroupMembersSection({
 
       {!drawDone && (pendingMembers.length > 0 || declinedMembers.length > 0) && isOwner && (
         <div className="mt-4 rounded-2xl bg-[#eef3ef] px-4 py-3 text-xs font-bold leading-5 text-[#48664e]">
-          Pending members need to accept from their dashboard. Declined invites can be resent by the organizer.
+          Pending members still need to accept. Pending or declined invites can be resent by the organizer.
         </div>
       )}
     </section>

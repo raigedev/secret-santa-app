@@ -940,6 +940,31 @@ test("invite responses do not reveal whether an email has an account", () => {
   assert.doesNotMatch(groupActionsSource, /Invite email sent/i);
 });
 
+test("invite resend is owner-scoped, membership-targeted, and account-neutral", () => {
+  const groupActionsSource = readFileSync("app/group/[id]/actions.ts", "utf8");
+  const groupMembersSource = readFileSync("app/group/[id]/GroupMembersSection.tsx", "utf8");
+  const resendButtonSource = readFileSync("app/group/[id]/ResendButton.tsx", "utf8");
+
+  assert.match(groupActionsSource, /resendInvite\(\s*groupId: string,\s*membershipId: string/);
+  assert.match(groupActionsSource, /assertOwnerCanManageInvites\(supabase, groupId, user\.id\)/);
+  assert.match(groupActionsSource, /action: "group\.resend_invite"[\s\S]{0,220}maxAttempts: 5/);
+  assert.match(
+    groupActionsSource,
+    /\.eq\("group_id", groupId\)[\s\S]{0,120}\.eq\("id", membershipId\)[\s\S]{0,120}\.maybeSingle\(\)/
+  );
+  assert.match(groupActionsSource, /isInviteStatusEligibleForResend\(membership\.status\)/);
+  assert.match(groupActionsSource, /eventType: "group\.resend_invite"[\s\S]{0,180}outcome: "success"/);
+  assert.match(
+    groupActionsSource,
+    /message: "Invite resent\. Ask them to check their email or dashboard\."/
+  );
+  assert.doesNotMatch(groupActionsSource, /They will see it on their dashboard/);
+  assert.match(groupMembersSource, /status === "pending" \|\| status === "declined"/);
+  assert.match(groupMembersSource, /\{canManageInvite && \([\s\S]{0,300}<ResendButton/);
+  assert.match(groupMembersSource, /membershipId=\{member\.id\}/);
+  assert.doesNotMatch(resendButtonSource, /memberEmail/);
+});
+
 test("invite page query errors are bounded plain text", () => {
   const invitePageSource = readFileSync("app/invite/[token]/page.tsx", "utf8");
 
