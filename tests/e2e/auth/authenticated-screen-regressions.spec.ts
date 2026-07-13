@@ -341,7 +341,7 @@ test.describe("authenticated screen regressions", () => {
     });
   }
 
-  test("desktop sidebars keep utility navigation close to the primary tools", async ({ page }) => {
+  test("desktop sidebars balance tall rails and keep short rails accessible", async ({ page }) => {
     await page.setViewportSize({ width: 1280, height: 720 });
     await loginWithTestCredentials(page, credentials!);
 
@@ -383,6 +383,45 @@ test.describe("authenticated screen regressions", () => {
     expect(utilityMetrics?.withinSidebar).toBe(true);
     expect(utilityMetrics?.separation).toBeGreaterThanOrEqual(8);
     expect(utilityMetrics?.separation).toBeLessThanOrEqual(16);
+
+    await page.setViewportSize({ width: 1280, height: 900 });
+
+    const tallRailMetrics = await utilityNav.evaluate((element) => {
+      const sidebarElement = element.closest("[data-app-sidebar-rail]");
+      const primaryNavElement = sidebarElement?.querySelector<HTMLElement>(
+        '[data-app-sidebar-nav=""]'
+      );
+      const navLinks = primaryNavElement
+        ? Array.from(primaryNavElement.querySelectorAll<HTMLElement>("[data-app-sidebar-nav-link]"))
+        : [];
+
+      if (!(sidebarElement instanceof HTMLElement) || !primaryNavElement || navLinks.length < 2) {
+        return null;
+      }
+
+      const sidebarRect = sidebarElement.getBoundingClientRect();
+      const primaryRect = primaryNavElement.getBoundingClientRect();
+      const utilityRect = element.getBoundingClientRect();
+      const rowGaps = navLinks.slice(1).map((link, index) => {
+        const previousRect = navLinks[index].getBoundingClientRect();
+        const currentRect = link.getBoundingClientRect();
+        return currentRect.top - previousRect.bottom;
+      });
+
+      return {
+        bottomInset: sidebarRect.bottom - utilityRect.bottom,
+        maxRowGap: Math.max(...rowGaps),
+        minRowGap: Math.min(...rowGaps),
+        utilitySeparation: utilityRect.top - primaryRect.bottom,
+      };
+    });
+
+    expect(tallRailMetrics).not.toBeNull();
+    expect(tallRailMetrics?.bottomInset).toBeLessThanOrEqual(24);
+    expect(tallRailMetrics?.utilitySeparation).toBeGreaterThanOrEqual(16);
+    expect(tallRailMetrics?.utilitySeparation).toBeLessThanOrEqual(20);
+    expect(tallRailMetrics?.minRowGap).toBeGreaterThanOrEqual(12);
+    expect((tallRailMetrics?.maxRowGap || 0) - (tallRailMetrics?.minRowGap || 0)).toBeLessThanOrEqual(1);
 
     await page.setViewportSize({ width: 1280, height: 600 });
     await sharedSidebar.evaluate((element) => {

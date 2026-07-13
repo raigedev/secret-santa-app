@@ -1455,6 +1455,7 @@ test("Amazon associate disclosure stays off the landing footer", () => {
 
 test("app shell maps create-group into the My Groups navigation section", () => {
   const appShellSource = readFileSync("app/components/AppRouteShell.tsx", "utf8");
+  const globalStylesSource = readFileSync("app/globals.css", "utf8");
   const createGroupPageSource = readFileSync("app/create-group/page.tsx", "utf8");
   const myGroupsStart = appShellSource.indexOf('href: "/groups"');
   const myGifteeStart = appShellSource.indexOf('label: "My giftee"', myGroupsStart);
@@ -1470,6 +1471,9 @@ test("app shell maps create-group into the My Groups navigation section", () => 
   );
   assert.match(appShellSource, /data-app-sidebar-utility-nav=""[\s\S]*className="mt-2 border-t pt-3"/);
   assert.doesNotMatch(appShellSource, /data-app-sidebar-utility-nav=""[\s\S]*className="mt-auto/);
+  assert.match(globalStylesSource, /@media \(min-width: 1280px\) and \(min-height: 821px\)/);
+  assert.match(globalStylesSource, /\[data-app-sidebar-nav\] \{[\s\S]*flex: 1;[\s\S]*justify-content: space-between;/);
+  assert.match(globalStylesSource, /\[data-app-sidebar-utility-nav\] \{[\s\S]*margin-top: 1rem;/);
   assert.match(createGroupPageSource, /router\.back\(\)/);
   assert.match(createGroupPageSource, /router\.replace\("\/groups"\)/);
   assert.doesNotMatch(createGroupPageSource, /router\.push\("\/dashboard"\)/);
