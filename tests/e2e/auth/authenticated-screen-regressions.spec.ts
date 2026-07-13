@@ -417,12 +417,14 @@ test.describe("authenticated screen regressions", () => {
       const utilityRect = element.getBoundingClientRect();
 
       return {
+        bottomInset: sidebarRect.bottom - utilityRect.bottom,
         withinSidebar: utilityRect.bottom <= sidebarRect.bottom + 1,
         separation: utilityRect.top - primaryRect.bottom,
       };
     });
 
     expect(utilityMetrics).not.toBeNull();
+    expect(utilityMetrics?.bottomInset).toBeLessThanOrEqual(16);
     expect(utilityMetrics?.withinSidebar).toBe(true);
     expect(utilityMetrics?.separation).toBeGreaterThanOrEqual(8);
     expect(utilityMetrics?.separation).toBeLessThanOrEqual(16);
