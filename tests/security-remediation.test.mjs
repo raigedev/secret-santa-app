@@ -2139,6 +2139,20 @@ test("group images are server-uploaded after validation", () => {
     ["supabase", "migrations", groupImageMigrationName].join("/"),
     "utf8"
   );
+  const groupImageSelectPolicyMigrationName = [
+    "20260713033240",
+    "fix",
+    "group",
+    "image",
+    "select",
+    "policy",
+    "path.sql",
+  ].join("_");
+  // eslint-disable-next-line security/detect-non-literal-fs-filename -- Test only reads a fixed repo-local migration assembled from safe string pieces.
+  const groupImageSelectPolicyMigrationSource = readFileSync(
+    ["supabase", "migrations", groupImageSelectPolicyMigrationName].join("/"),
+    "utf8"
+  );
   const createGroupActionsSource = readFileSync("app/create-group/actions.ts", "utf8");
   const groupActionsSource = readFileSync("app/group/[id]/actions.ts", "utf8");
   const profileActionsSource = readFileSync("app/profile/actions.ts", "utf8");
@@ -2209,6 +2223,22 @@ test("group images are server-uploaded after validation", () => {
   assert.match(groupImageMigrationSource, /drop policy if exists group_images_update_owned_group/i);
   assert.match(groupImageMigrationSource, /drop policy if exists group_images_delete_owned_group/i);
   assert.doesNotMatch(groupImageMigrationSource, /create policy group_images_(insert|update|delete)/i);
+  assert.match(
+    groupImageSelectPolicyMigrationSource,
+    /drop policy if exists group_images_select_group_members/i
+  );
+  assert.match(
+    groupImageSelectPolicyMigrationSource,
+    /storage\.foldername\(storage\.objects\.name\)\)\[2\]/
+  );
+  assert.match(
+    groupImageSelectPolicyMigrationSource,
+    /image_group\.owner_id::text = \(storage\.foldername\(storage\.objects\.name\)\)\[1\]/
+  );
+  assert.doesNotMatch(
+    groupImageSelectPolicyMigrationSource,
+    /storage\.foldername\((?:image_group|g)\.name\)/
+  );
 });
 
 test("lazada cards avoid untrusted remote image hosts and private redirect notes", () => {
