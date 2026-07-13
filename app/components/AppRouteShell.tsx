@@ -697,7 +697,7 @@ export default function AppRouteShell({ children }: { children: ReactNode }) {
             data-app-sidebar-utility-nav=""
             data-testid="app-shell-sidebar-utility-nav"
             aria-label="App settings"
-            className="mt-auto border-t pt-3"
+            className="mt-2 border-t pt-3"
             style={{ borderColor: shellBorderColor }}
           >
             {renderDesktopNavItem(settingsNavItem)}

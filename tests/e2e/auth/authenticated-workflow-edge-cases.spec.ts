@@ -270,6 +270,23 @@ test.describe("authenticated workflow edge cases", () => {
     }
   });
 
+  test("create group back returns to the screen that opened it", async ({ page }) => {
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await loginWithTestCredentials(page, credentials!);
+    await page.goto("/groups");
+    await expect(page.getByRole("heading", { name: /your groups/i })).toBeVisible();
+
+    await page
+      .getByRole("button", { name: /^(new group|create group)$/i })
+      .first()
+      .click();
+    await expect(page).toHaveURL(/\/create-group$/);
+
+    await page.getByRole("button", { name: /^back$/i }).click();
+    await expect(page).toHaveURL(/\/groups$/);
+    await expect(page.getByRole("heading", { name: /your groups/i })).toBeVisible();
+  });
+
   test("sidebars keep one correct active item across app sections", async ({ page }) => {
     await page.setViewportSize({ width: 1440, height: 900 });
     await loginWithTestCredentials(page, credentials!);
