@@ -1471,7 +1471,7 @@ test("app shell maps create-group into the My Groups navigation section", () => 
   );
   assert.match(appShellSource, /data-app-sidebar-utility-nav=""[\s\S]*className="mt-2 border-t pt-3"/);
   assert.doesNotMatch(appShellSource, /data-app-sidebar-utility-nav=""[\s\S]*className="mt-auto/);
-  assert.match(globalStylesSource, /@media \(min-width: 1280px\) and \(min-height: 821px\)/);
+  assert.match(globalStylesSource, /@media \(min-width: 1280px\) and \(min-height: 620px\)/);
   assert.match(globalStylesSource, /\[data-app-sidebar-nav\] \{[\s\S]*flex: 1;[\s\S]*justify-content: space-between;/);
   assert.match(globalStylesSource, /\[data-app-sidebar-utility-nav\] \{[\s\S]*margin-top: 1rem;/);
   assert.match(createGroupPageSource, /router\.back\(\)/);
