@@ -136,12 +136,55 @@ const AUTHENTICATED_SCREEN_CASES: ScreenCase[] = [
     name: "my-groups",
     path: "/groups",
     assertVisible: async (page) => {
+      await page.setViewportSize({ width: 1280, height: 720 });
       await expect(page.getByTestId("app-route-shell")).toBeVisible();
       await expect(page.getByRole("heading", { name: /your groups/i })).toBeVisible();
       await expect(page.getByRole("heading", { name: /group launcher/i })).toHaveCount(0);
       await expect(page.getByText(/this page lists your exchanges/i)).toHaveCount(0);
       await expect(page.getByText(/open the full group page/i)).toHaveCount(0);
-      await expect(page.getByRole("button", { name: /open overview/i })).toBeVisible();
+      const groupCard = page.getByTestId("group-workspace-card");
+      const groupActions = page.getByTestId("group-card-actions");
+      const overviewButton = groupActions.getByRole("button", { name: /open overview/i });
+      const moreActionsButton = groupActions.locator('button[aria-label^="More actions for"]');
+
+      await expect(groupCard).toBeVisible();
+      await expect(overviewButton).toBeVisible();
+      await expect(moreActionsButton).toBeVisible();
+      await expect(page.getByRole("menuitem", { name: /delete group/i })).toHaveCount(0);
+
+      const actionMetrics = await groupActions.evaluate((actions) => {
+        const buttons = [...actions.querySelectorAll("button")];
+        const buttonRects = buttons.map((button) => button.getBoundingClientRect());
+        const firstButtonTop = buttonRects[0]?.top;
+
+        return {
+          buttonHeights: buttonRects.map((rect) => rect.height),
+          hasHorizontalOverflow: actions.scrollWidth > actions.clientWidth + 1,
+          isSingleRow:
+            firstButtonTop !== undefined &&
+            buttonRects.every((rect) => Math.abs(rect.top - firstButtonTop) <= 1),
+        };
+      });
+
+      expect(actionMetrics.buttonHeights).toEqual([44, 44]);
+      expect(actionMetrics.hasHorizontalOverflow).toBe(false);
+      expect(actionMetrics.isSingleRow).toBe(true);
+
+      await moreActionsButton.click();
+      const deleteMenuItem = page.getByRole("menuitem", { name: /delete group/i });
+      await expect(deleteMenuItem).toBeVisible();
+      await deleteMenuItem.press("Escape");
+      await expect(deleteMenuItem).toHaveCount(0);
+      await expect(moreActionsButton).toBeFocused();
+
+      await moreActionsButton.click();
+      await page.getByRole("menuitem", { name: /delete group/i }).click();
+      const deleteDialog = page.getByRole("dialog", { name: /delete .+\?/i });
+      await expect(deleteDialog).toBeVisible();
+      await expect(deleteDialog.getByRole("button", { name: /delete forever/i })).toBeDisabled();
+      await deleteDialog.getByRole("button", { name: /keep group/i }).click();
+      await expect(deleteDialog).toHaveCount(0);
+      await expect(moreActionsButton).toBeFocused();
       await expect(page.getByRole("heading", { name: /members \(/i })).toHaveCount(0);
       await expect(page.getByRole("link", { name: /open member list/i })).toHaveCount(0);
     },

@@ -12,6 +12,30 @@ export function ArrowRightIcon({ className = "h-4 w-4" }: { className?: string }
   );
 }
 
+export function MoreHorizontalIcon({ className = "h-5 w-5" }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 20 20" fill="none" className={className} aria-hidden="true">
+      <circle cx="4" cy="10" r="1.35" fill="currentColor" />
+      <circle cx="10" cy="10" r="1.35" fill="currentColor" />
+      <circle cx="16" cy="10" r="1.35" fill="currentColor" />
+    </svg>
+  );
+}
+
+export function TrashIcon({ className = "h-4 w-4" }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 20 20" fill="none" className={className} aria-hidden="true">
+      <path
+        d="M4.5 6h11M8 3.75h4M6.25 6l.55 9.25h6.4L13.75 6M8.5 8.5v4.25M11.5 8.5v4.25"
+        stroke="currentColor"
+        strokeWidth="1.55"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
+
 export function BellIcon({ className = "h-4 w-4" }: { className?: string }) {
   return (
     <svg viewBox="0 0 20 20" fill="none" className={className} aria-hidden="true">
