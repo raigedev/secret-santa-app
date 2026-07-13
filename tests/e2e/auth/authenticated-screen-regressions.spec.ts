@@ -341,7 +341,7 @@ test.describe("authenticated screen regressions", () => {
     });
   }
 
-  test("desktop sidebars avoid redundant cards and keep group context on one line", async ({ page }) => {
+  test("desktop sidebars keep utility navigation close to the primary tools", async ({ page }) => {
     await page.setViewportSize({ width: 1280, height: 720 });
     await loginWithTestCredentials(page, credentials!);
 
@@ -374,14 +374,15 @@ test.describe("authenticated screen regressions", () => {
       const utilityRect = element.getBoundingClientRect();
 
       return {
-        bottomInset: sidebarRect.bottom - utilityRect.bottom,
+        withinSidebar: utilityRect.bottom <= sidebarRect.bottom + 1,
         separation: utilityRect.top - primaryRect.bottom,
       };
     });
 
     expect(utilityMetrics).not.toBeNull();
-    expect(utilityMetrics?.bottomInset).toBeLessThanOrEqual(24);
-    expect(utilityMetrics?.separation).toBeGreaterThanOrEqual(16);
+    expect(utilityMetrics?.withinSidebar).toBe(true);
+    expect(utilityMetrics?.separation).toBeGreaterThanOrEqual(8);
+    expect(utilityMetrics?.separation).toBeLessThanOrEqual(16);
 
     await page.setViewportSize({ width: 1280, height: 600 });
     await sharedSidebar.evaluate((element) => {

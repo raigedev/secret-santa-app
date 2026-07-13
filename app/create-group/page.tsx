@@ -223,6 +223,15 @@ export default function CreateGroupPage() {
     };
   }, []);
 
+  const handleBack = () => {
+    if (window.history.length > 1) {
+      router.back();
+      return;
+    }
+
+    router.replace("/groups");
+  };
+
   const replaceGroupImagePreviewBitmap = (bitmap: ImageBitmap | null) => {
     groupImagePreviewBitmapRef.current?.close();
     groupImagePreviewBitmapRef.current = bitmap;
@@ -473,7 +482,8 @@ export default function CreateGroupPage() {
 
       <div className="holiday-panel relative z-10 mx-auto mb-5 flex w-full max-w-6xl flex-col gap-4 rounded-[28px] px-5 py-4">
         <button
-          onClick={() => router.push("/dashboard")}
+          type="button"
+          onClick={handleBack}
           className="gift-button gift-button-secondary gift-button-compact w-fit text-sm"
           style={{ fontFamily: "inherit" }}
         >
