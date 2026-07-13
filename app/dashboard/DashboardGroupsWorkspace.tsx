@@ -1,8 +1,16 @@
+"use client";
+
+import { useEffect, useId, useRef, useState } from "react";
 import {
   formatDashboardBudget,
   formatDashboardDate,
 } from "./dashboard-formatters";
-import { ArrowRightIcon, UserOutlineIcon } from "./dashboard-icons";
+import {
+  ArrowRightIcon,
+  MoreHorizontalIcon,
+  TrashIcon,
+  UserOutlineIcon,
+} from "./dashboard-icons";
 import type { Group } from "./dashboard-types";
 import {
   BudgetIcon,
@@ -137,11 +145,12 @@ function GroupWorkspacePreview({
   return (
     <section className="min-w-0 space-y-5" aria-label={`${group.name} workspace preview`}>
       <div
+        data-testid="group-workspace-card"
         className={`rounded-3xl p-5 sm:p-6 ${
           isDarkTheme ? "holiday-panel-dark text-slate-100" : "holiday-panel-strong text-[#2e3432]"
         }`}
       >
-        <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+        <div className="flex flex-col gap-5">
           <div className="flex min-w-0 flex-col gap-4 sm:flex-row sm:items-center">
             <GroupGiftBadge imageUrl={group.image_url} />
             <div className="min-w-0">
@@ -170,26 +179,29 @@ function GroupWorkspacePreview({
             </div>
           </div>
 
-          <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:flex-wrap sm:items-center sm:justify-end">
+          <div
+            className="flex w-full items-center justify-end gap-2 border-t pt-4"
+            data-testid="group-card-actions"
+            style={{
+              borderColor: isDarkTheme ? "rgba(255,255,255,.12)" : "rgba(72,102,78,.1)",
+            }}
+          >
             <button
               type="button"
               onClick={() => onOpenGroup(group.id)}
-              className="gift-button gift-button-primary gift-button-wide w-full text-sm sm:w-auto sm:min-w-52"
+              className="gift-button gift-button-primary gift-button-compact min-w-0 flex-1 px-4 text-sm sm:flex-none"
             >
               Open overview
-              <span className="gift-button-icon" aria-hidden="true">
-                <ArrowRightIcon className="h-4 w-4" />
-              </span>
+              <ArrowRightIcon className="h-4 w-4 shrink-0" />
             </button>
             {group.isOwner && (
-              <button
-                type="button"
-                onClick={() => void onDeleteGroup(group.id, group.name)}
-                disabled={deletingGroupId === group.id}
-                className="gift-button gift-button-danger gift-button-compact w-full text-sm sm:w-auto"
-              >
-                {deletingGroupId === group.id ? "Deleting" : "Delete group"}
-              </button>
+              <GroupActionsMenu
+                deleting={deletingGroupId === group.id}
+                groupId={group.id}
+                groupName={group.name}
+                isDarkTheme={isDarkTheme}
+                onDeleteGroup={onDeleteGroup}
+              />
             )}
           </div>
         </div>
@@ -205,5 +217,118 @@ function GroupWorkspacePreview({
         </div>
       )}
     </section>
+  );
+}
+
+function GroupActionsMenu({
+  deleting,
+  groupId,
+  groupName,
+  isDarkTheme,
+  onDeleteGroup,
+}: {
+  deleting: boolean;
+  groupId: string;
+  groupName: string;
+  isDarkTheme: boolean;
+  onDeleteGroup: (groupId: string, groupName: string) => void | Promise<void>;
+}) {
+  const [open, setOpen] = useState(false);
+  const menuId = useId();
+  const menuRef = useRef<HTMLDivElement>(null);
+  const menuItemRef = useRef<HTMLButtonElement>(null);
+  const triggerRef = useRef<HTMLButtonElement>(null);
+
+  useEffect(() => {
+    if (!open) {
+      return;
+    }
+
+    menuItemRef.current?.focus();
+
+    const handlePointerDown = (event: PointerEvent) => {
+      if (!menuRef.current?.contains(event.target as Node)) {
+        setOpen(false);
+      }
+    };
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key !== "Escape") {
+        return;
+      }
+
+      setOpen(false);
+      triggerRef.current?.focus();
+    };
+
+    document.addEventListener("pointerdown", handlePointerDown);
+    document.addEventListener("keydown", handleKeyDown);
+
+    return () => {
+      document.removeEventListener("pointerdown", handlePointerDown);
+      document.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [open]);
+
+  const handleDelete = () => {
+    setOpen(false);
+    triggerRef.current?.focus();
+    void onDeleteGroup(groupId, groupName);
+  };
+
+  return (
+    <div
+      ref={menuRef}
+      className="relative shrink-0"
+      onBlur={(event) => {
+        if (!event.currentTarget.contains(event.relatedTarget as Node | null)) {
+          setOpen(false);
+        }
+      }}
+    >
+      <button
+        ref={triggerRef}
+        type="button"
+        onClick={() => setOpen((currentOpen) => !currentOpen)}
+        disabled={deleting}
+        aria-controls={open ? menuId : undefined}
+        aria-expanded={open}
+        aria-haspopup="menu"
+        aria-label={`More actions for ${groupName}`}
+        title="More group actions"
+        className="gift-shell-control h-11 w-11 shrink-0 rounded-full"
+        style={{
+          background: isDarkTheme ? "rgba(255,255,255,.08)" : "rgba(255,255,255,.82)",
+          borderColor: isDarkTheme ? "rgba(255,255,255,.14)" : "rgba(72,102,78,.16)",
+          color: isDarkTheme ? "#f8fafc" : "#48664e",
+        }}
+      >
+        <MoreHorizontalIcon />
+      </button>
+
+      {open && (
+        <div
+          id={menuId}
+          role="menu"
+          aria-label={`Actions for ${groupName}`}
+          className="gift-menu-panel absolute right-0 top-full z-30 mt-2 w-48 p-2"
+          style={{
+            background: isDarkTheme ? "#18231d" : "#fffefa",
+            borderColor: isDarkTheme ? "rgba(255,255,255,.14)" : "rgba(72,102,78,.12)",
+          }}
+        >
+          <button
+            ref={menuItemRef}
+            type="button"
+            role="menuitem"
+            onClick={handleDelete}
+            disabled={deleting}
+            className="gift-menu-item flex min-h-11 w-full items-center gap-3 px-3 py-2 text-left text-[13px] font-extrabold text-[#a43c3f] disabled:cursor-not-allowed disabled:opacity-60"
+          >
+            <TrashIcon className="h-4.5 w-4.5 shrink-0" />
+            {deleting ? "Deleting" : "Delete group"}
+          </button>
+        </div>
+      )}
+    </div>
   );
 }
