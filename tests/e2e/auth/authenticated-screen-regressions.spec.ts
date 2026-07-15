@@ -145,10 +145,12 @@ const AUTHENTICATED_SCREEN_CASES: ScreenCase[] = [
       const groupCard = page.getByTestId("group-workspace-card");
       const groupActions = page.getByTestId("group-card-actions");
       const overviewButton = groupActions.getByRole("button", { name: /open overview/i });
+      const overviewButtonIcon = overviewButton.getByTestId("group-card-primary-icon");
       const moreActionsButton = groupActions.locator('button[aria-label^="More actions for"]');
 
       await expect(groupCard).toBeVisible();
       await expect(overviewButton).toBeVisible();
+      await expect(overviewButtonIcon).toBeVisible();
       await expect(moreActionsButton).toBeVisible();
       await expect(page.getByRole("menuitem", { name: /delete group/i })).toHaveCount(0);
 
@@ -169,22 +171,26 @@ const AUTHENTICATED_SCREEN_CASES: ScreenCase[] = [
       expect(actionMetrics.buttonHeights).toEqual([44, 44]);
       expect(actionMetrics.hasHorizontalOverflow).toBe(false);
       expect(actionMetrics.isSingleRow).toBe(true);
+      await expect(overviewButtonIcon).toHaveCSS("width", "28px");
+      await expect(overviewButtonIcon).toHaveCSS("height", "28px");
 
       const desktopCardMetrics = await groupCard.evaluate((card) => {
         const identity = card.querySelector<HTMLElement>('[data-testid="group-card-identity"]');
+        const details = card.querySelector<HTMLElement>('[data-testid="group-card-details"]');
         const actions = card.querySelector<HTMLElement>('[data-testid="group-card-actions"]');
 
-        if (!identity || !actions) {
+        if (!identity || !details || !actions) {
           return null;
         }
 
         const cardRect = card.getBoundingClientRect();
         const identityRect = identity.getBoundingClientRect();
+        const detailsRect = details.getBoundingClientRect();
         const actionsRect = actions.getBoundingClientRect();
 
         return {
+          actionLeftOffset: Math.abs(actionsRect.left - detailsRect.left),
           actionWidthRatio: actionsRect.width / cardRect.width,
-          actionRightInset: Math.round(cardRect.right - actionsRect.right),
           cardHeight: cardRect.height,
           actionsFollowIdentity: actionsRect.top >= identityRect.bottom + 8,
           hasActionDivider: parseFloat(getComputedStyle(actions).borderTopWidth) > 0,
@@ -193,9 +199,8 @@ const AUTHENTICATED_SCREEN_CASES: ScreenCase[] = [
 
       expect(desktopCardMetrics).not.toBeNull();
       expect(desktopCardMetrics?.cardHeight).toBeLessThanOrEqual(180);
+      expect(desktopCardMetrics?.actionLeftOffset).toBeLessThanOrEqual(1);
       expect(desktopCardMetrics?.actionWidthRatio).toBeLessThan(0.5);
-      expect(desktopCardMetrics?.actionRightInset).toBeGreaterThanOrEqual(16);
-      expect(desktopCardMetrics?.actionRightInset).toBeLessThanOrEqual(17);
       expect(desktopCardMetrics?.actionsFollowIdentity).toBe(true);
       expect(desktopCardMetrics?.hasActionDivider).toBe(false);
 
