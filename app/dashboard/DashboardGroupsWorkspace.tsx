@@ -156,7 +156,7 @@ function GroupWorkspacePreview({
             className="flex min-w-0 items-start gap-4 sm:items-center"
           >
             <GroupGiftBadge imageUrl={group.image_url} />
-            <div className="min-w-0">
+            <div className="min-w-0" data-testid="group-card-details">
               <div className="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-2">
                 <h3
                   className={`line-clamp-2 min-w-0 max-w-full break-words text-[24px] font-black leading-tight [overflow-wrap:anywhere] sm:text-[26px] ${
@@ -190,17 +190,28 @@ function GroupWorkspacePreview({
           </div>
 
           <div
-            className="ml-auto flex min-w-0 w-full items-center gap-2 sm:w-auto"
+            className="flex min-w-0 w-full items-center gap-2 sm:ml-20 sm:w-auto sm:justify-self-start"
             data-testid="group-card-actions"
           >
             <button
               type="button"
               onClick={() => onOpenGroup(group.id)}
               aria-label={`Open overview for ${group.name}`}
-              className="gift-button gift-button-primary gift-button-compact h-11 min-h-11 min-w-0 flex-1 px-4 py-0 text-sm sm:w-36 sm:flex-none"
+              className="gift-button gift-button-primary gift-button-compact group h-11 min-h-11 min-w-0 flex-1 py-0 pr-2.5 pl-4 text-[13px] sm:w-40 sm:flex-none"
+              style={{
+                boxShadow: isDarkTheme
+                  ? "inset 0 1px 0 rgba(255,255,255,.22), 0 8px 18px rgba(0,0,0,.2)"
+                  : "inset 0 1px 0 rgba(255,255,255,.28), 0 8px 18px rgba(72,102,78,.16)",
+              }}
             >
               <span className="whitespace-nowrap">View group</span>
-              <ArrowRightIcon className="h-4 w-4 shrink-0" />
+              <span
+                data-testid="group-card-primary-icon"
+                className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-white/15 shadow-[inset_0_0_0_1px_rgba(255,255,255,.14)] transition-transform duration-150 group-hover:translate-x-0.5"
+                aria-hidden="true"
+              >
+                <ArrowRightIcon className="h-3.5 w-3.5" />
+              </span>
             </button>
             {group.isOwner && (
               <GroupActionsMenu
