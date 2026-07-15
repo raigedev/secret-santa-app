@@ -170,6 +170,35 @@ const AUTHENTICATED_SCREEN_CASES: ScreenCase[] = [
       expect(actionMetrics.hasHorizontalOverflow).toBe(false);
       expect(actionMetrics.isSingleRow).toBe(true);
 
+      const desktopCardMetrics = await groupCard.evaluate((card) => {
+        const identity = card.querySelector<HTMLElement>('[data-testid="group-card-identity"]');
+        const actions = card.querySelector<HTMLElement>('[data-testid="group-card-actions"]');
+
+        if (!identity || !actions) {
+          return null;
+        }
+
+        const cardRect = card.getBoundingClientRect();
+        const identityRect = identity.getBoundingClientRect();
+        const actionsRect = actions.getBoundingClientRect();
+
+        return {
+          actionWidthRatio: actionsRect.width / cardRect.width,
+          actionRightInset: Math.round(cardRect.right - actionsRect.right),
+          cardHeight: cardRect.height,
+          actionsFollowIdentity: actionsRect.top >= identityRect.bottom + 8,
+          hasActionDivider: parseFloat(getComputedStyle(actions).borderTopWidth) > 0,
+        };
+      });
+
+      expect(desktopCardMetrics).not.toBeNull();
+      expect(desktopCardMetrics?.cardHeight).toBeLessThanOrEqual(180);
+      expect(desktopCardMetrics?.actionWidthRatio).toBeLessThan(0.5);
+      expect(desktopCardMetrics?.actionRightInset).toBeGreaterThanOrEqual(16);
+      expect(desktopCardMetrics?.actionRightInset).toBeLessThanOrEqual(17);
+      expect(desktopCardMetrics?.actionsFollowIdentity).toBe(true);
+      expect(desktopCardMetrics?.hasActionDivider).toBe(false);
+
       await moreActionsButton.click();
       const deleteMenuItem = page.getByRole("menuitem", { name: /delete group/i });
       await expect(deleteMenuItem).toBeVisible();
@@ -187,6 +216,31 @@ const AUTHENTICATED_SCREEN_CASES: ScreenCase[] = [
       await expect(moreActionsButton).toBeFocused();
       await expect(page.getByRole("heading", { name: /members \(/i })).toHaveCount(0);
       await expect(page.getByRole("link", { name: /open member list/i })).toHaveCount(0);
+
+      await page.setViewportSize({ width: 375, height: 812 });
+      const mobileCardMetrics = await groupCard.evaluate((card) => {
+        const actions = card.querySelector<HTMLElement>('[data-testid="group-card-actions"]');
+
+        if (!actions) {
+          return null;
+        }
+
+        const cardRect = card.getBoundingClientRect();
+        const actionsRect = actions.getBoundingClientRect();
+
+        return {
+          actionInset: Math.round(actionsRect.left - cardRect.left),
+          hasHorizontalOverflow: card.scrollWidth > card.clientWidth + 1,
+          rightInset: Math.round(cardRect.right - actionsRect.right),
+        };
+      });
+
+      expect(mobileCardMetrics).not.toBeNull();
+      expect(mobileCardMetrics?.hasHorizontalOverflow).toBe(false);
+      expect(mobileCardMetrics?.actionInset).toBe(mobileCardMetrics?.rightInset);
+      await expect(overviewButton).toBeVisible();
+      await expect(moreActionsButton).toBeVisible();
+      await page.setViewportSize({ width: 1440, height: 900 });
     },
   },
   {

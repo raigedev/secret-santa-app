@@ -17,7 +17,7 @@ export function GroupGiftBadge({ imageUrl }: { imageUrl?: string | null }) {
 
 export function MetaItem({ icon, label }: { icon: ReactNode; label: string }) {
   return (
-    <span className="inline-flex items-center gap-1.5">
+    <span className="inline-flex items-center gap-1.5 whitespace-nowrap">
       {icon}
       {label}
     </span>

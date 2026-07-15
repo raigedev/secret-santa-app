@@ -146,29 +146,39 @@ function GroupWorkspacePreview({
     <section className="min-w-0 space-y-5" aria-label={`${group.name} workspace preview`}>
       <div
         data-testid="group-workspace-card"
-        className={`rounded-3xl p-5 sm:p-6 ${
+        className={`rounded-3xl p-4 ${
           isDarkTheme ? "holiday-panel-dark text-slate-100" : "holiday-panel-strong text-[#2e3432]"
         }`}
       >
-        <div className="flex flex-col gap-5">
-          <div className="flex min-w-0 flex-col gap-4 sm:flex-row sm:items-center">
+        <div className="grid min-w-0 gap-3">
+          <div
+            data-testid="group-card-identity"
+            className="flex min-w-0 items-start gap-4 sm:items-center"
+          >
             <GroupGiftBadge imageUrl={group.image_url} />
             <div className="min-w-0">
-              <div className="flex flex-wrap items-center gap-3">
+              <div className="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-2">
                 <h3
-                  className={`min-w-0 max-w-full break-words text-[26px] font-black leading-tight sm:text-3xl ${
+                  className={`line-clamp-2 min-w-0 max-w-full break-words text-[24px] font-black leading-tight [overflow-wrap:anywhere] sm:text-[26px] ${
                     isDarkTheme ? "text-white" : "text-[#48664e]"
                   }`}
                   style={{ fontFamily: "'Fredoka', sans-serif" }}
+                  title={group.name}
                 >
                   {group.name}
                 </h3>
-                <span className="rounded-full bg-[#fff4df] px-3 py-1 text-xs font-black text-[#7b5902] shadow-[inset_0_0_0_1px_rgba(123,89,2,0.1)]">
+                <span
+                  className={`shrink-0 rounded-full px-2.5 py-1 text-[11px] font-black ${
+                    isDarkTheme
+                      ? "bg-[#fcce72]/15 text-[#ffe7a8] shadow-[inset_0_0_0_1px_rgba(252,206,114,0.2)]"
+                      : "bg-[#fff4df] text-[#7b5902] shadow-[inset_0_0_0_1px_rgba(123,89,2,0.1)]"
+                  }`}
+                >
                   {roleLabel}
                 </span>
               </div>
               <div
-                className={`mt-2 flex flex-wrap items-center gap-x-4 gap-y-2 text-sm font-bold ${
+                className={`mt-2 flex flex-wrap items-center gap-x-3 gap-y-1.5 text-[13px] font-bold sm:text-sm ${
                   isDarkTheme ? "text-slate-300" : "text-[#5b605e]"
                 }`}
               >
@@ -180,18 +190,16 @@ function GroupWorkspacePreview({
           </div>
 
           <div
-            className="flex w-full items-center justify-end gap-2 border-t pt-4"
+            className="ml-auto flex min-w-0 w-full items-center gap-2 sm:w-auto"
             data-testid="group-card-actions"
-            style={{
-              borderColor: isDarkTheme ? "rgba(255,255,255,.12)" : "rgba(72,102,78,.1)",
-            }}
           >
             <button
               type="button"
               onClick={() => onOpenGroup(group.id)}
-              className="gift-button gift-button-primary gift-button-compact min-w-0 flex-1 px-4 text-sm sm:flex-none"
+              aria-label={`Open overview for ${group.name}`}
+              className="gift-button gift-button-primary gift-button-compact h-11 min-h-11 min-w-0 flex-1 px-4 py-0 text-sm sm:w-36 sm:flex-none"
             >
-              Open overview
+              <span className="whitespace-nowrap">View group</span>
               <ArrowRightIcon className="h-4 w-4 shrink-0" />
             </button>
             {group.isOwner && (
