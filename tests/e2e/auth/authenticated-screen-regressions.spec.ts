@@ -144,15 +144,33 @@ const AUTHENTICATED_SCREEN_CASES: ScreenCase[] = [
       await expect(page.getByText(/open the full group page/i)).toHaveCount(0);
       const groupCard = page.getByTestId("group-workspace-card");
       const groupActions = page.getByTestId("group-card-actions");
+      const statusRail = page.getByTestId("group-status-rail");
+      const statusRows = statusRail.getByTestId("group-status-row");
       const overviewButton = groupActions.getByRole("button", { name: /open overview/i });
       const overviewButtonIcon = overviewButton.getByTestId("group-card-primary-icon");
       const moreActionsButton = groupActions.locator('button[aria-label^="More actions for"]');
 
       await expect(groupCard).toBeVisible();
+      await expect(statusRail).toBeVisible();
+      await expect(statusRail.getByRole("heading", { name: /exchange status/i })).toBeVisible();
+      await expect(statusRows).toHaveCount(4);
+      await expect(page.getByRole("button", { name: /open full workspace/i })).toHaveCount(0);
       await expect(overviewButton).toBeVisible();
       await expect(overviewButtonIcon).toBeVisible();
       await expect(moreActionsButton).toBeVisible();
       await expect(page.getByRole("menuitem", { name: /delete group/i })).toHaveCount(0);
+
+      const statusRailMetrics = await statusRail.evaluate((rail) => ({
+        hasHorizontalOverflow: rail.scrollWidth > rail.clientWidth + 1,
+        height: rail.getBoundingClientRect().height,
+      }));
+      const statusRowHeights = await statusRows.evaluateAll((rows) =>
+        rows.map((row) => row.getBoundingClientRect().height)
+      );
+
+      expect(statusRailMetrics.hasHorizontalOverflow).toBe(false);
+      expect(statusRailMetrics.height).toBeLessThanOrEqual(400);
+      expect(statusRowHeights.every((height) => height >= 64)).toBe(true);
 
       const actionMetrics = await groupActions.evaluate((actions) => {
         const buttons = [...actions.querySelectorAll("button")];
@@ -245,6 +263,10 @@ const AUTHENTICATED_SCREEN_CASES: ScreenCase[] = [
       expect(mobileCardMetrics?.actionInset).toBe(mobileCardMetrics?.rightInset);
       await expect(overviewButton).toBeVisible();
       await expect(moreActionsButton).toBeVisible();
+      await expect(statusRail).toBeVisible();
+      expect(
+        await statusRail.evaluate((rail) => rail.scrollWidth > rail.clientWidth + 1)
+      ).toBe(false);
       await page.setViewportSize({ width: 1440, height: 900 });
     },
   },

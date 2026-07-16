@@ -396,8 +396,8 @@ test.describe("authenticated workflow edge cases", () => {
     await expect(page.getByRole("heading", { name: /your groups/i })).toBeVisible();
     await expectSantaAssistantClearOf(
       page,
-      page.getByRole("button", { name: /open full workspace/i }),
-      "the desktop Exchange health action"
+      page.getByTestId("group-status-rail"),
+      "the desktop Exchange status rail"
     );
 
     await page.setViewportSize({ width: 390, height: 844 });

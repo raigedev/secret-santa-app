@@ -1,7 +1,7 @@
 import type { ReactNode } from "react";
 import Link from "next/link";
 import { formatDashboardDate, formatDashboardEventCountdown } from "./dashboard-formatters";
-import { ArrowRightIcon, UserOutlineIcon, WishlistIcon } from "./dashboard-icons";
+import { ArrowRightIcon, GiftIcon, UserOutlineIcon, WishlistIcon } from "./dashboard-icons";
 import type { Group } from "./dashboard-types";
 import { CalendarIcon } from "./DashboardGroupsWorkspaceParts";
 
@@ -9,96 +9,110 @@ type GroupHealthRailProps = {
   countdownNow: number;
   group: Group;
   isDarkTheme: boolean;
-  onOpenGroup: (groupId: string) => void;
 };
 
-export function GroupHealthRail({
-  countdownNow,
-  group,
-  isDarkTheme,
-  onOpenGroup,
-}: GroupHealthRailProps) {
+type StatusTone = "attention" | "neutral" | "positive";
+
+export function GroupHealthRail({ countdownNow, group, isDarkTheme }: GroupHealthRailProps) {
   const countdownLabel = formatDashboardEventCountdown(group.event_date, countdownNow);
+  const giftDayNeedsReview = countdownLabel === "Gift day passed";
+  const summary = giftDayNeedsReview
+    ? { label: "Check date", tone: "attention" as const }
+    : group.hasDrawn
+      ? { label: "Names drawn", tone: "positive" as const }
+      : group.isOwner
+        ? { label: "Draw pending", tone: "attention" as const }
+        : { label: "Owner setup", tone: "neutral" as const };
 
   return (
     <aside
-      className={`rounded-3xl p-5 xl:sticky xl:top-24 ${
+      data-testid="group-status-rail"
+      className={`rounded-3xl p-4 xl:sticky xl:top-24 ${
         isDarkTheme ? "holiday-panel-dark text-slate-100" : "holiday-panel text-[#2e3432]"
       }`}
-      aria-label="Exchange health"
+      aria-label="Exchange status"
     >
-      <div className="mb-4 flex items-start gap-3">
-        <span className="flex h-10 w-10 items-center justify-center rounded-full bg-[#eaf6ec] text-[#48664e]">
-          <HealthIcon />
+      <div className="flex items-start gap-3 pb-3">
+        <span
+          className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full ${
+            isDarkTheme ? "bg-slate-800 text-emerald-300" : "bg-[#eaf6ec] text-[#48664e]"
+          }`}
+        >
+          <StatusIcon />
         </span>
-        <div>
-          <h3 className="text-lg font-black text-[#48664e]">Exchange health</h3>
-          <p className="text-sm text-slate-500">Keep your exchange on track.</p>
+        <div className="min-w-0 flex-1">
+          <h3 className={`text-base font-black ${isDarkTheme ? "text-white" : "text-[#48664e]"}`}>
+            Exchange status
+          </h3>
+          <p className={isDarkTheme ? "text-xs text-slate-300" : "text-xs text-slate-500"}>
+            Quick checks for this group.
+          </p>
         </div>
+        <StatusLabel isDarkTheme={isDarkTheme} tone={summary.tone}>
+          {summary.label}
+        </StatusLabel>
       </div>
 
-      <div className="space-y-3">
-        <HealthRow
-          body={group.isOwner ? "Open the group to check member access." : "The owner manages invitations."}
+      <div
+        className={`divide-y border-y ${
+          isDarkTheme ? "divide-slate-700 border-slate-700" : "divide-[#dfe6df] border-[#dfe6df]"
+        }`}
+      >
+        <StatusRow
+          body={group.isOwner ? "Manage access and invitations." : "View group members."}
           href={group.isOwner ? `/group/${group.id}#member-management` : `/group/${group.id}`}
-          icon={<MailIcon />}
+          icon={<UserOutlineIcon className="h-5 w-5" />}
           isDarkTheme={isDarkTheme}
-          status={group.isOwner ? "Review" : "Owner managed"}
-          title="Invites"
+          status={`${group.members.length} joined`}
+          title="Members"
+          tone="neutral"
         />
-        <HealthRow
-          body="Open the group to review wishlist readiness."
+        <StatusRow
+          body="Review member wishlists."
           href={`/group/${group.id}#group-members`}
           icon={<WishlistIcon className="h-5 w-5" />}
           isDarkTheme={isDarkTheme}
-          status="Check"
+          status="Review"
           title="Wishlists"
+          tone="neutral"
         />
-        <HealthRow
+        <StatusRow
           body={
             group.hasDrawn
-              ? "Names have been drawn."
+              ? "Names are assigned."
               : group.isOwner
-                ? "Draw names when the group is ready."
-                : "The owner will draw names when ready."
+                ? "Draw names when everyone is ready."
+                : "The owner will draw names."
           }
           href={group.isOwner ? `/group/${group.id}#draw-controls` : `/group/${group.id}`}
-          icon={<UserOutlineIcon className="h-5 w-5" />}
+          icon={<GiftIcon className="h-5 w-5" />}
           isDarkTheme={isDarkTheme}
-          status={group.hasDrawn ? "Done" : "Ready soon"}
-          title="Draw status"
+          status={group.hasDrawn ? "Complete" : group.isOwner ? "Action needed" : "Waiting"}
+          title="Name draw"
+          tone={group.hasDrawn ? "positive" : group.isOwner ? "attention" : "neutral"}
         />
-        <HealthRow
+        <StatusRow
           body={countdownLabel}
           href={`/group/${group.id}`}
           icon={<CalendarIcon />}
           isDarkTheme={isDarkTheme}
           status={formatDashboardDate(group.event_date)}
           title="Gift day"
+          tone={giftDayNeedsReview ? "attention" : "neutral"}
         />
       </div>
-
-      <button
-        type="button"
-        onClick={() => onOpenGroup(group.id)}
-        className="gift-button gift-button-primary gift-button-full gift-button-compact mt-4 text-sm"
-      >
-        Open full workspace
-        <span className="gift-button-icon" aria-hidden="true">
-          <ArrowRightIcon className="h-4 w-4" />
-        </span>
-      </button>
     </aside>
   );
 }
 
-function HealthRow({
+function StatusRow({
   body,
   href,
   icon,
   isDarkTheme,
   status,
   title,
+  tone,
 }: {
   body: string;
   href: string;
@@ -106,61 +120,83 @@ function HealthRow({
   isDarkTheme: boolean;
   status: string;
   title: string;
+  tone: StatusTone;
 }) {
   return (
     <Link
+      data-testid="group-status-row"
       href={href}
-      className={`flex items-center gap-3 rounded-2xl p-4 transition hover:-translate-y-0.5 ${
-        isDarkTheme ? "bg-slate-800 text-slate-100" : "holiday-panel-row"
+      className={`group grid min-h-16 grid-cols-[2.25rem_minmax(0,1fr)_auto] items-center gap-3 py-3 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#54745c] focus-visible:ring-offset-2 ${
+        isDarkTheme ? "hover:bg-white/5 focus-visible:ring-offset-slate-900" : "hover:bg-[#f6f8f5]"
       }`}
     >
-      <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[#f2f4f2] text-[#48664e]">
+      <span
+        className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full ${
+          isDarkTheme ? "bg-slate-800 text-emerald-300" : "bg-[#f0f4f0] text-[#48664e]"
+        }`}
+      >
         {icon}
       </span>
       <span className="min-w-0 flex-1">
-        <span className="flex items-start justify-between gap-3">
-          <span className={isDarkTheme ? "font-black text-white" : "font-black text-[#2e3432]"}>
-            {title}
-          </span>
-          <span className="shrink-0 text-xs font-black text-[#a43c3f]">{status}</span>
+        <span className={isDarkTheme ? "block text-sm font-black text-white" : "block text-sm font-black text-[#2e3432]"}>
+          {title}
         </span>
         <span
           className={
             isDarkTheme
-              ? "mt-0.5 block text-sm leading-5 text-slate-300"
-              : "mt-0.5 block text-sm leading-5 text-slate-500"
+              ? "mt-0.5 block text-xs leading-4 text-slate-300"
+              : "mt-0.5 block text-xs leading-4 text-slate-500"
           }
         >
           {body}
         </span>
       </span>
-      <ArrowRightIcon className="h-4 w-4 shrink-0 text-[#48664e]" />
+      <span className="flex shrink-0 items-center gap-2">
+        <StatusLabel isDarkTheme={isDarkTheme} tone={tone}>
+          {status}
+        </StatusLabel>
+        <ArrowRightIcon
+          className={`h-4 w-4 transition-transform group-hover:translate-x-0.5 ${
+            isDarkTheme ? "text-emerald-300" : "text-[#48664e]"
+          }`}
+        />
+      </span>
     </Link>
   );
 }
 
-function HealthIcon() {
+function StatusLabel({
+  children,
+  isDarkTheme,
+  tone,
+}: {
+  children: ReactNode;
+  isDarkTheme: boolean;
+  tone: StatusTone;
+}) {
+  const toneClass =
+    tone === "positive"
+      ? isDarkTheme
+        ? "text-emerald-300"
+        : "text-[#3f724c]"
+      : tone === "attention"
+        ? isDarkTheme
+          ? "text-amber-300"
+          : "text-[#9a4b12]"
+        : isDarkTheme
+          ? "text-slate-300"
+          : "text-slate-600";
+
+  return <span className={`shrink-0 text-right text-xs font-black ${toneClass}`}>{children}</span>;
+}
+
+function StatusIcon() {
   return (
     <svg viewBox="0 0 20 20" fill="none" className="h-5 w-5" aria-hidden="true">
       <path
         d="M3 10h3l1.5-4 3 8 1.5-4h5"
         stroke="currentColor"
         strokeWidth="1.7"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </svg>
-  );
-}
-
-function MailIcon() {
-  return (
-    <svg viewBox="0 0 20 20" fill="none" className="h-5 w-5" aria-hidden="true">
-      <rect x="3.5" y="5" width="13" height="10" rx="2" stroke="currentColor" strokeWidth="1.6" />
-      <path
-        d="m4.5 6.5 5.5 4 5.5-4"
-        stroke="currentColor"
-        strokeWidth="1.6"
         strokeLinecap="round"
         strokeLinejoin="round"
       />
