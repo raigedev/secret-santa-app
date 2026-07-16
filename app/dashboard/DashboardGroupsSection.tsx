@@ -42,32 +42,51 @@ export function DashboardGroupsSection({
 
   return (
     <section id="dashboard-groups" className="scroll-mt-24">
-      <div className="mb-5 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-        <div>
+      <div
+        data-testid="groups-section-header"
+        className={`mb-5 ${
+          hasGroups ? "xl:grid xl:grid-cols-[minmax(0,1fr)_20rem] xl:gap-5" : ""
+        }`}
+      >
+        <div className="min-w-0">
           <p className={`text-xs font-black uppercase tracking-[0.18em] ${dashboardStatLabelClass}`}>
             My groups
           </p>
-          <h2 className={`mt-2 text-2xl font-black tracking-normal ${dashboardPanelHeadingClass}`}>
-            Your Groups
-          </h2>
-          <p className={`mt-1 max-w-2xl text-sm leading-6 ${dashboardPanelTextClass}`}>
-            Choose an exchange, then manage members, wishlists, matches, messages, and settings from one workspace.
-          </p>
-        </div>
-        {hasGroups && (
-          <button
-            type="button"
-            onClick={onCreateGroup}
-            className={`gift-button gift-button-compact ${
-              isDarkTheme ? "gift-button-gold" : "gift-button-secondary"
-            }`}
+          <div
+            data-testid="groups-header-primary"
+            className="mt-2 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between"
           >
-            New group
-            <span className="gift-button-icon" aria-hidden="true">
-              <ArrowRightIcon className="h-3.5 w-3.5" />
-            </span>
-          </button>
-        )}
+            <div className="min-w-0">
+              <h2
+                data-testid="groups-section-title"
+                className={`text-2xl font-black tracking-normal ${dashboardPanelHeadingClass}`}
+              >
+                Your Groups
+              </h2>
+              <p
+                data-testid="groups-section-intro"
+                className={`mt-1 max-w-2xl text-sm leading-6 ${dashboardPanelTextClass}`}
+              >
+                Choose an exchange, then manage members, wishlists, matches, messages, and settings from one workspace.
+              </p>
+            </div>
+            {hasGroups && (
+              <button
+                data-testid="new-group-button"
+                type="button"
+                onClick={onCreateGroup}
+                className={`gift-button gift-button-compact shrink-0 ${
+                  isDarkTheme ? "gift-button-gold" : "gift-button-secondary"
+                }`}
+              >
+                New group
+                <span className="gift-button-icon" aria-hidden="true">
+                  <ArrowRightIcon className="h-3.5 w-3.5" />
+                </span>
+              </button>
+            )}
+          </div>
+        </div>
       </div>
 
       {!hasGroups ? (
