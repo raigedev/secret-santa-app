@@ -146,6 +146,7 @@ const AUTHENTICATED_SCREEN_CASES: ScreenCase[] = [
       const groupActions = page.getByTestId("group-card-actions");
       const statusRail = page.getByTestId("group-status-rail");
       const statusRows = statusRail.getByTestId("group-status-row");
+      const newGroupButton = page.getByTestId("new-group-button");
       const overviewButton = groupActions.getByRole("button", { name: /open overview/i });
       const overviewButtonIcon = overviewButton.getByTestId("group-card-primary-icon");
       const moreActionsButton = groupActions.locator('button[aria-label^="More actions for"]');
@@ -155,6 +156,7 @@ const AUTHENTICATED_SCREEN_CASES: ScreenCase[] = [
       await expect(statusRail.getByRole("heading", { name: /exchange status/i })).toBeVisible();
       await expect(statusRows).toHaveCount(4);
       await expect(page.getByRole("button", { name: /open full workspace/i })).toHaveCount(0);
+      await expect(newGroupButton).toBeVisible();
       await expect(overviewButton).toBeVisible();
       await expect(overviewButtonIcon).toBeVisible();
       await expect(moreActionsButton).toBeVisible();
@@ -171,6 +173,32 @@ const AUTHENTICATED_SCREEN_CASES: ScreenCase[] = [
       expect(statusRailMetrics.hasHorizontalOverflow).toBe(false);
       expect(statusRailMetrics.height).toBeLessThanOrEqual(400);
       expect(statusRowHeights.every((height) => height >= 64)).toBe(true);
+
+      const headerActionMetrics = await newGroupButton.evaluate((button) => {
+        const heading = document.querySelector<HTMLElement>('[data-testid="groups-section-title"]');
+        const groupCard = document.querySelector<HTMLElement>('[data-testid="group-workspace-card"]');
+        const statusRail = document.querySelector<HTMLElement>('[data-testid="group-status-rail"]');
+
+        if (!heading || !groupCard || !statusRail) {
+          return null;
+        }
+
+        const buttonRect = button.getBoundingClientRect();
+        const headingRect = heading.getBoundingClientRect();
+        const groupCardRect = groupCard.getBoundingClientRect();
+        const statusRailRect = statusRail.getBoundingClientRect();
+
+        return {
+          cardRightOffset: Math.abs(buttonRect.right - groupCardRect.right),
+          headingTopOffset: Math.abs(buttonRect.top - headingRect.top),
+          staysInGroupsColumn: buttonRect.right < statusRailRect.left,
+        };
+      });
+
+      expect(headerActionMetrics).not.toBeNull();
+      expect(headerActionMetrics?.cardRightOffset).toBeLessThanOrEqual(2);
+      expect(headerActionMetrics?.headingTopOffset).toBeLessThanOrEqual(2);
+      expect(headerActionMetrics?.staysInGroupsColumn).toBe(true);
 
       const actionMetrics = await groupActions.evaluate((actions) => {
         const buttons = [...actions.querySelectorAll("button")];
@@ -267,6 +295,29 @@ const AUTHENTICATED_SCREEN_CASES: ScreenCase[] = [
       expect(
         await statusRail.evaluate((rail) => rail.scrollWidth > rail.clientWidth + 1)
       ).toBe(false);
+      const mobileHeaderMetrics = await newGroupButton.evaluate((button) => {
+        const headerPrimary = document.querySelector<HTMLElement>('[data-testid="groups-header-primary"]');
+        const intro = document.querySelector<HTMLElement>('[data-testid="groups-section-intro"]');
+
+        if (!headerPrimary || !intro) {
+          return null;
+        }
+
+        const buttonRect = button.getBoundingClientRect();
+        const headerRect = headerPrimary.getBoundingClientRect();
+        const introRect = intro.getBoundingClientRect();
+
+        return {
+          followsIntro: buttonRect.top >= introRect.bottom + 12,
+          fillsHeaderWidth: Math.abs(buttonRect.width - headerRect.width) <= 2,
+          hasHorizontalOverflow: headerPrimary.scrollWidth > headerPrimary.clientWidth + 1,
+        };
+      });
+
+      expect(mobileHeaderMetrics).not.toBeNull();
+      expect(mobileHeaderMetrics?.followsIntro).toBe(true);
+      expect(mobileHeaderMetrics?.fillsHeaderWidth).toBe(true);
+      expect(mobileHeaderMetrics?.hasHorizontalOverflow).toBe(false);
       await page.setViewportSize({ width: 1440, height: 900 });
     },
   },
