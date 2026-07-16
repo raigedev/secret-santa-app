@@ -47,7 +47,7 @@ export function DashboardGroupsWorkspace({
   }
 
   return (
-    <div className="grid min-w-0 gap-5 xl:grid-cols-[minmax(0,1fr)_22rem] xl:items-start">
+    <div className="grid min-w-0 gap-5 xl:grid-cols-[minmax(0,1fr)_20rem] xl:items-start">
       <div className="min-w-0 space-y-5">
         {groups.length > 1 && (
           <GroupSwitcher
@@ -72,7 +72,6 @@ export function DashboardGroupsWorkspace({
         countdownNow={countdownNow}
         group={focusedGroup}
         isDarkTheme={isDarkTheme}
-        onOpenGroup={onOpenGroup}
       />
     </div>
   );
