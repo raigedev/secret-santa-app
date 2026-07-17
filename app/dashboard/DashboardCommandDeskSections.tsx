@@ -95,7 +95,7 @@ export function ExchangeLedger({
     <section data-testid="dashboard-exchange-ledger">
       <SectionTitle
         isDarkTheme={isDarkTheme}
-        kicker="Choose another active exchange without leaving the dashboard."
+        kicker="Choose another exchange to check its gift details."
       >
         Active exchanges
       </SectionTitle>
@@ -120,7 +120,7 @@ export function ExchangeLedger({
               <span className="min-w-0">
                 <strong className="block truncate text-sm font-black">{group.name}</strong>
                 <span className="text-xs font-bold text-slate-500">
-                  {group.isOwner ? "Owner workspace" : "Participant"}
+                  {group.isOwner ? "You're the organizer" : "You're a member"}
                 </span>
                 <span className="mt-1 block text-xs font-bold text-slate-500 sm:hidden">
                   {plural(group.members.length, "member")} - {formatDashboardDate(group.event_date)}

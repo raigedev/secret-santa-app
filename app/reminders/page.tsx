@@ -369,7 +369,7 @@ export default function RemindersPage() {
             <div>
               <h2 className="text-[18px] font-black" style={{ color: textColor }}>Santa Buddy</h2>
               <p className="mt-2 text-[13px] font-semibold leading-6" style={{ color: mutedColor }}>
-                Show the floating assistant when you want tips, or hide it for a quieter workspace.
+                Show the floating assistant when you want tips, or hide it for a calmer screen.
               </p>
               <button
                 type="button"

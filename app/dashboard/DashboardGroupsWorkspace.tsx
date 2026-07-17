@@ -142,7 +142,7 @@ function GroupWorkspacePreview({
   const roleLabel = group.isOwner ? "Owner" : "Member";
 
   return (
-    <section className="min-w-0 space-y-5" aria-label={`${group.name} workspace preview`}>
+    <section className="min-w-0 space-y-5" aria-label={`${group.name} exchange preview`}>
       <div
         data-testid="group-workspace-card"
         className={`rounded-3xl p-4 ${

@@ -11,7 +11,7 @@ const journeySteps = [
   {
     eyebrow: "Start",
     title: "Sign in",
-    copy: "Use Google or email to open your private gift-exchange workspace.",
+    copy: "Use Google or email to open your private Secret Santa account.",
   },
   {
     eyebrow: "Plan",

@@ -127,7 +127,7 @@ const PAGE_TIPS: Array<{
         body: "Choose display, assistant, and reminder preferences from one place.",
       },
       {
-        title: "Quiet workspace",
+        title: "A calmer screen",
         body: "You can hide Santa Buddy here whenever you want a calmer screen.",
       },
     ],
