@@ -67,7 +67,7 @@ export function DashboardGroupsSection({
                 data-testid="groups-section-intro"
                 className={`mt-1 max-w-2xl text-sm leading-6 ${dashboardPanelTextClass}`}
               >
-                Choose an exchange, then manage members, wishlists, matches, messages, and settings from one workspace.
+                Choose an exchange to manage members, wishlists, matches, messages, and settings.
               </p>
             </div>
             {hasGroups && (
@@ -109,7 +109,7 @@ export function DashboardGroupsSection({
                 Create your first exchange
               </h3>
               <p className={`mt-3 max-w-xl text-[15px] leading-7 ${dashboardPanelTextClass}`}>
-                Set the gift day, budget, and invite list once. Your group workspace will keep members, wishlists, messages, and draw details together.
+                Set the gift day, budget, and invite list once. Your exchange page keeps members, wishlists, messages, and draw details together.
               </p>
               <button
                 type="button"
@@ -129,10 +129,10 @@ export function DashboardGroupsSection({
                   ? "bg-slate-900/50 text-slate-100"
                   : "bg-[#f2f4f2] text-[#2e3432] shadow-[inset_0_0_0_1px_rgba(72,102,78,0.08)]"
               }`}
-              aria-label="Group workspace preview"
+              aria-label="Exchange preview"
             >
               <p className="text-[12px] font-black uppercase tracking-[0.16em] text-[#7b5902]">
-                Group workspace
+                Your exchange includes
               </p>
               <div className="mt-4 space-y-3">
                 <EmptyGroupPreviewRow

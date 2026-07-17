@@ -111,6 +111,9 @@ const AUTHENTICATED_SCREEN_CASES: ScreenCase[] = [
       await expect(page.getByTestId("dashboard-lifecycle-step")).toHaveCount(4);
       await expect(page.getByRole("heading", { name: /needs attention|start here/i })).toBeVisible();
       await expect(page.getByRole("heading", { name: /active exchanges/i })).toBeVisible();
+      const exchangeLedger = page.getByTestId("dashboard-exchange-ledger");
+      await expect(exchangeLedger.getByText(/choose another exchange to check its gift details/i)).toBeVisible();
+      await expect(exchangeLedger.getByText(/workspace/i)).toHaveCount(0);
       await expect(page.getByText(/active exchange desk/i)).toHaveCount(0);
       await expect(page.getByText(/readiness meter/i)).toHaveCount(0);
       await expect(page.getByRole("heading", { name: /today.s exchange flow/i })).toHaveCount(0);
