@@ -5,10 +5,8 @@ import type { DashboardActivityItem, GiftProgressSummary, Group, PendingInvite }
 type DashboardPreviewWorkspaceProps = {
   activityFeedItems: DashboardActivityItem[];
   countdownNow: number;
-  displayFirstName: string;
   giftProgressSummary: GiftProgressSummary | null;
   groups: Group[];
-  hasAssignments: boolean;
   isDarkTheme: boolean;
   pendingInvites: PendingInvite[];
   recipientCount: number;
@@ -33,10 +31,6 @@ function getFocusGroup(groups: Group[]): Group | null {
   )[0] || null;
 }
 
-function getPercent(value: number, total: number): number {
-  return total <= 0 ? 0 : Math.min(100, Math.round((value / total) * 100));
-}
-
 export function DashboardPreviewWorkspace({
   activityFeedItems,
   countdownNow,
@@ -59,7 +53,6 @@ export function DashboardPreviewWorkspace({
   const readyGiftCount = giftProgressSummary?.readyToGiveCount || 0;
   const giftProgressTotal = giftProgressSummary?.totalAssignments || recipientCount;
   const wishlistTarget = Math.max(5, wishlistItemCount);
-  const wishlistPercent = getPercent(Math.min(wishlistItemCount, wishlistTarget), wishlistTarget);
   const lifecycle = buildExchangeLifecycleSummary(
     {
       acceptedCount: memberCount,
@@ -105,7 +98,6 @@ export function DashboardPreviewWorkspace({
       revealMessage={revealMessage}
       unreadPrivateUpdateCount={unreadPrivateUpdateCount}
       wishlistItemCount={wishlistItemCount}
-      wishlistPercent={wishlistPercent}
       wishlistTarget={wishlistTarget}
       onCreateGroup={onCreateGroup}
       onOpenChat={onOpenChat}

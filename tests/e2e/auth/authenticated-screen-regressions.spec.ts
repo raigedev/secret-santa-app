@@ -98,16 +98,102 @@ const AUTHENTICATED_SCREEN_CASES: ScreenCase[] = [
     path: "/dashboard",
     assertVisible: async (page) => {
       await expect(getVisibleProfileMenuButton(page)).toBeVisible();
-      await expect(page.getByText(/active exchange desk/i)).toBeVisible();
-      await expect(page.getByText(/readiness meter/i)).toBeVisible();
+      const workspace = page.getByTestId("dashboard-workspace-grid");
+      const focusPanel = page.getByTestId("dashboard-focus-panel");
+      const attentionRail = page.getByTestId("dashboard-attention-rail");
+      const primaryAction = page.getByTestId("dashboard-primary-action");
+
+      await expect(page.getByRole("heading", { name: /your exchange today/i })).toBeVisible();
+      await expect(workspace).toBeVisible();
+      await expect(focusPanel).toBeVisible();
+      await expect(attentionRail).toBeVisible();
+      await expect(page.getByRole("progressbar", { name: /exchange readiness/i })).toBeVisible();
+      await expect(page.getByTestId("dashboard-lifecycle-step")).toHaveCount(4);
+      await expect(page.getByRole("heading", { name: /needs attention|start here/i })).toBeVisible();
+      await expect(page.getByRole("heading", { name: /active exchanges/i })).toBeVisible();
+      await expect(page.getByText(/active exchange desk/i)).toHaveCount(0);
+      await expect(page.getByText(/readiness meter/i)).toHaveCount(0);
+      await expect(page.getByRole("heading", { name: /today.s exchange flow/i })).toHaveCount(0);
+      await expect(page.getByRole("heading", { name: /santa helper/i })).toHaveCount(0);
+      await expect(page.getByAltText(/wrapped secret santa gifts/i)).toHaveCount(0);
       await expect(page.getByText(/useful shortcuts/i)).toHaveCount(0);
-      await expect(page.getByRole("heading", { name: /today.s exchange flow/i })).toBeVisible();
-      await expect(page.getByRole("heading", { name: /exchange ledger/i })).toBeVisible();
       await expect(page.getByText(/quick start checklist/i)).toHaveCount(0);
       await expect(page.getByText(/notification highlights/i)).toHaveCount(0);
       await expect(page.getByText(/\b0 days left\b/i)).toHaveCount(0);
       await expectBadgeClearOfBellIcon(page, "app-shell-notification-badge");
 
+      const desktopMetrics = await workspace.evaluate((container) => {
+        const focus = container.querySelector<HTMLElement>('[data-testid="dashboard-focus-panel"]');
+        const rail = container.querySelector<HTMLElement>('[data-testid="dashboard-attention-rail"]');
+
+        if (!focus || !rail) {
+          return {
+            aligned: false,
+            hasHorizontalOverflow: true,
+            hasTargets: false,
+            railWidth: 0,
+            separated: false,
+          };
+        }
+
+        const focusRect = focus.getBoundingClientRect();
+        const railRect = rail.getBoundingClientRect();
+
+        return {
+          aligned: Math.abs(focusRect.top - railRect.top) <= 2,
+          hasHorizontalOverflow: container.scrollWidth > container.clientWidth + 1,
+          hasTargets: true,
+          railWidth: railRect.width,
+          separated: focusRect.right <= railRect.left,
+        };
+      });
+
+      expect(desktopMetrics.hasTargets).toBe(true);
+      expect(desktopMetrics.aligned).toBe(true);
+      expect(desktopMetrics.separated).toBe(true);
+      expect(desktopMetrics.hasHorizontalOverflow).toBe(false);
+      expect(desktopMetrics.railWidth).toBeGreaterThanOrEqual(300);
+      expect(desktopMetrics.railWidth).toBeLessThanOrEqual(340);
+
+      await page.setViewportSize({ width: 390, height: 844 });
+      await expect(attentionRail).toBeVisible();
+      await expect(primaryAction).toBeVisible();
+
+      const mobileMetrics = await workspace.evaluate((container) => {
+        const focus = container.querySelector<HTMLElement>('[data-testid="dashboard-focus-panel"]');
+        const rail = container.querySelector<HTMLElement>('[data-testid="dashboard-attention-rail"]');
+        const action = container.querySelector<HTMLElement>('[data-testid="dashboard-primary-action"]');
+
+        if (!focus || !rail || !action) {
+          return {
+            actionFits: false,
+            documentOverflow: true,
+            railStacksAfterPrimary: false,
+            workspaceOverflow: true,
+          };
+        }
+
+        const focusRect = focus.getBoundingClientRect();
+        const railRect = rail.getBoundingClientRect();
+        const actionRect = action.getBoundingClientRect();
+
+        return {
+          actionFits:
+            actionRect.width >= 250 &&
+            actionRect.left >= focusRect.left + 18 &&
+            actionRect.right <= focusRect.right - 18,
+          documentOverflow: document.documentElement.scrollWidth > window.innerWidth + 1,
+          railStacksAfterPrimary: railRect.top >= focusRect.bottom + 20,
+          workspaceOverflow: container.scrollWidth > container.clientWidth + 1,
+        };
+      });
+
+      expect(mobileMetrics.actionFits).toBe(true);
+      expect(mobileMetrics.documentOverflow).toBe(false);
+      expect(mobileMetrics.railStacksAfterPrimary).toBe(true);
+      expect(mobileMetrics.workspaceOverflow).toBe(false);
+
+      await page.setViewportSize({ width: 1440, height: 900 });
       await getVisibleNotificationsButton(page).click();
       const notificationsPanel = page.getByTestId("dashboard-notifications-panel");
       await expect(notificationsPanel).toBeVisible();
@@ -970,8 +1056,9 @@ test.describe("authenticated screen regressions", () => {
     await loginWithTestCredentials(page, credentials!);
     await page.goto("/dashboard");
 
-    await expect(page.getByRole("heading", { name: /today.s exchange flow/i })).toBeVisible();
-    await expect(page.getByText(/no private message updates/i).first()).toBeVisible();
+    const attentionRail = page.getByTestId("dashboard-attention-rail");
+    await expect(attentionRail).toBeVisible();
+    await expect(attentionRail.getByText(/messages? waiting/i)).toHaveCount(0);
     await expect(page.getByRole("button", { name: /open private message threads/i })).toHaveCount(0);
   });
 
@@ -1075,9 +1162,9 @@ test.describe("authenticated screen regressions", () => {
       .toBe("midnight");
     await page.reload();
 
-    await expect(page.getByRole("heading", { name: /exchange at a glance/i })).toBeVisible();
-    await expect(page.getByText(/active exchange desk/i)).toBeVisible();
-    await expect(page.getByRole("heading", { name: /today.s exchange flow/i })).toBeVisible();
+    await expect(page.getByRole("heading", { name: /your exchange today/i })).toBeVisible();
+    await expect(page.getByTestId("dashboard-focus-panel")).toBeVisible();
+    await expect(page.getByTestId("dashboard-lifecycle")).toBeVisible();
 
     const textSamples = await page.evaluate(() => {
       const parseRgbColor = (color: string) => {
@@ -1132,10 +1219,10 @@ test.describe("authenticated screen regressions", () => {
       };
 
       return [
-        readSample("dashboard heading", "h1", /exchange at a glance/i),
+        readSample("dashboard heading", "h1", /your exchange today/i),
         readSample("reveal message", "p", /next gift day|manage your groups|wishlists/i),
-        readSample("exchange flow heading", "h2", /today.s exchange flow/i),
-        readSample("exchange ledger heading", "h2", /exchange ledger/i),
+        readSample("attention heading", "h2", /needs attention|start here/i),
+        readSample("active exchanges heading", "h2", /active exchanges/i),
       ];
     });
 
@@ -1305,7 +1392,7 @@ test.describe("authenticated screen regressions", () => {
       }
     });
     await page.reload();
-    await expect(page.getByText(/active exchange desk/i)).toBeVisible();
+    await expect(page.getByTestId("dashboard-focus-panel")).toBeVisible();
 
     await installBodyTextWatcher(page, {
       flagName: "__dashboardSawTransientError",
@@ -1313,7 +1400,7 @@ test.describe("authenticated screen regressions", () => {
     });
 
     await page.reload();
-    await expect(page.getByText(/active exchange desk/i)).toBeVisible();
+    await expect(page.getByTestId("dashboard-focus-panel")).toBeVisible();
 
     const sawTransientError = await page.evaluate(() =>
       Boolean(
@@ -1885,7 +1972,7 @@ test.describe("owner-only affiliate route regressions", () => {
 
     await page.waitForURL(/\/dashboard$/);
     await expect(page).toHaveURL(/\/dashboard$/);
-    await expect(page.getByRole("heading", { name: /exchange at a glance/i })).toBeVisible();
-    await expect(page.getByText(/active exchange desk/i)).toBeVisible();
+    await expect(page.getByRole("heading", { name: /your exchange today/i })).toBeVisible();
+    await expect(page.getByTestId("dashboard-focus-panel")).toBeVisible();
   });
 });
