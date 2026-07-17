@@ -14,11 +14,9 @@ import {
   createEmptyQueryResult,
   createGroupUserKey,
   formatGiftPrepStatusLabel,
-  getDisplayFirstName,
   getNotificationPreviewTitle,
   normalizeGiftProgressStep,
 } from "./dashboard-formatters";
-import { DashboardBackdrop } from "./DashboardBackdrop";
 import { DashboardPreviewWorkspace } from "./DashboardPreviewWorkspace";
 import { DashboardStatusMessage } from "./DashboardStatusMessage";
 import { TipJarSupportCard } from "@/app/components/TipJarSupport";
@@ -1036,14 +1034,12 @@ export default function DashboardPage() {
     return <DashboardSkeleton />;
   }
 
-  const hasAssignments = recipientNames.length > 0;
-  const displayFirstName = getDisplayFirstName(userName);
   const isDarkTheme = dashboardTheme === "midnight";
   const allDashboardGroups = [...ownedGroups, ...invitedGroups];
   const revealMessage = buildDashboardRevealMessage(allDashboardGroups, countdownNow);
   const dashboardShellClass = isDarkTheme
-    ? "relative min-h-screen bg-[linear-gradient(180deg,#08111f_0%,#0f172a_38%,#111827_100%)] text-slate-100"
-    : "relative min-h-screen bg-[linear-gradient(180deg,#edf6ff_0%,#f8fbff_45%,#eef5ff_100%)] text-slate-900";
+    ? "relative min-h-screen bg-[#0b1320] text-slate-100"
+    : "relative min-h-screen bg-[#f3f7f4] text-slate-900";
   const handleOpenGroup = (groupId: string) => {
     router.push(`/group/${groupId}`);
   };
@@ -1057,8 +1053,6 @@ export default function DashboardPage() {
           onSkip={() => setShowProfileSetup(false)}
         />
       )}
-
-      <DashboardBackdrop isDarkTheme={isDarkTheme} />
 
       <FadeIn className="relative z-10 mx-auto w-full max-w-7xl px-4 pb-24 pt-6 sm:px-6 lg:px-8">
         <DashboardStatusMessage message={actionMessage} />
@@ -1075,10 +1069,8 @@ export default function DashboardPage() {
         <DashboardPreviewWorkspace
           activityFeedItems={activityFeedItems}
           countdownNow={countdownNow}
-          displayFirstName={displayFirstName}
           giftProgressSummary={giftProgressSummary}
           groups={allDashboardGroups}
-          hasAssignments={hasAssignments}
           isDarkTheme={isDarkTheme}
           pendingInvites={pendingInvites}
           recipientCount={recipientNames.length}

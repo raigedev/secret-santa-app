@@ -1,28 +1,24 @@
 "use client";
 
-import type { ReactNode } from "react";
-import Image from "next/image";
 import {
   ArrowRightIcon,
   ChatIcon,
   GiftIcon,
-  SantaMarkIcon,
+  UserOutlineIcon,
   WishlistIcon,
 } from "./dashboard-icons";
+import {
+  AttentionRail,
+  ExchangeLedger,
+  SectionTitle,
+  StatusChip,
+  plural,
+  type DashboardAttentionItem,
+} from "./DashboardCommandDeskSections";
 import {
   formatDashboardBudget,
   formatDashboardDate,
 } from "./dashboard-formatters";
-import {
-  ExchangeLedger,
-  HelperRail,
-  MiniStat,
-  SectionTitle,
-  StatusChip,
-  getStatusChipClass,
-  plural,
-  type StatusChipTone,
-} from "./DashboardCommandDeskSections";
 import InviteCard from "./InviteCard";
 import type { DashboardActivityItem, Group, PendingInvite } from "./dashboard-types";
 
@@ -31,16 +27,6 @@ type DeskStep = {
   id: string;
   label: string;
   status: "done" | "current" | "locked" | "attention";
-};
-
-type DashboardTaskRow = {
-  actionAriaLabel?: string;
-  detail: string;
-  icon: ReactNode;
-  label: string;
-  onAction?: () => void;
-  tone: StatusChipTone;
-  value: string;
 };
 
 type DashboardCommandDeskProps = {
@@ -60,7 +46,6 @@ type DashboardCommandDeskProps = {
   revealMessage: string;
   unreadPrivateUpdateCount: number;
   wishlistItemCount: number;
-  wishlistPercent: number;
   wishlistTarget: number;
   onCreateGroup: () => void;
   onOpenChat: () => void;
@@ -71,15 +56,26 @@ type DashboardCommandDeskProps = {
 
 function getPanelClass(isDarkTheme: boolean): string {
   return isDarkTheme
-    ? "border border-slate-700/60 bg-slate-900/55 text-slate-100 shadow-[inset_0_1px_0_rgba(255,255,255,.05),0_22px_52px_rgba(0,0,0,.18)]"
-    : "border border-white/70 bg-white/52 text-[#2e3432] shadow-[inset_0_1px_0_rgba(255,255,255,.78),0_24px_68px_rgba(72,102,78,.07)]";
+    ? "border border-slate-700/60 bg-slate-900/62 text-slate-100 shadow-[0_18px_48px_rgba(0,0,0,.16)]"
+    : "border border-[rgba(72,102,78,.14)] bg-white/82 text-[#2e3432] shadow-[0_18px_48px_rgba(72,102,78,.06)]";
 }
 
-function getStepClass(step: DeskStep, isDarkTheme: boolean): string {
-  if (step.status === "done") return "bg-[#48664e] text-white";
-  if (step.status === "attention") return "border-4 border-[#a43c3f] bg-white text-[#a43c3f]";
-  if (step.status === "current") return "border-4 border-[#48664e] bg-white text-[#48664e]";
-  return isDarkTheme ? "bg-slate-800 text-slate-500" : "bg-[#dfe4e1] text-slate-400";
+function getStepMarkerClass(step: DeskStep, isDarkTheme: boolean): string {
+  if (step.status === "done") {
+    return "bg-[#48664e] ring-[#48664e]/15";
+  }
+
+  if (step.status === "attention") {
+    return "bg-[#a43c3f] ring-[#a43c3f]/15";
+  }
+
+  if (step.status === "current") {
+    return "bg-[#d7a63f] ring-[#d7a63f]/18";
+  }
+
+  return isDarkTheme
+    ? "bg-slate-600 ring-slate-600/15"
+    : "bg-slate-300 ring-slate-300/20";
 }
 
 export function DashboardCommandDesk({
@@ -99,7 +95,6 @@ export function DashboardCommandDesk({
   revealMessage,
   unreadPrivateUpdateCount,
   wishlistItemCount,
-  wishlistPercent,
   wishlistTarget,
   onCreateGroup,
   onOpenChat,
@@ -111,184 +106,279 @@ export function DashboardCommandDesk({
     .slice()
     .sort((left, right) => new Date(left.event_date).getTime() - new Date(right.event_date).getTime())
     .slice(0, 3);
-  const totalInviteBase = Math.max(memberCount + pendingInvites.length, memberCount, 1);
   const budgetLabel = focusGroup
     ? formatDashboardBudget(focusGroup.budget, focusGroup.currency) || "No budget"
     : "Choose budget";
   const giftDayLabel = focusGroup ? formatDashboardDate(focusGroup.event_date) : "Pick a date";
-  const sealText = focusGroup?.hasDrawn ? "Names drawn, keep gifts moving" : "Ready for draw when everyone joins";
   const actionTarget = focusGroup ? () => onOpenPath(nextActionHref) : onCreateGroup;
-  const statsClass = isDarkTheme ? "text-slate-400" : "text-slate-600";
+  const supportingTextClass = isDarkTheme ? "text-slate-400" : "text-slate-600";
   const visibleSteps = missionSteps.length > 0 ? missionSteps : [];
-  const readinessNote = focusGroup?.hasDrawn
-    ? "Names are drawn. Keep wishlist clues, shopping, and gift progress moving."
-    : "Draw stays locked until invites and wishlist clues are ready.";
-  const helperNote = focusGroup?.hasDrawn
-    ? "Names are drawn. Keep your gift plan moving without exposing private details."
-    : "Keep the draw locked until everyone joins and has at least one wishlist clue.";
   const wishlistCluesNeeded = Math.max(wishlistTarget - wishlistItemCount, 0);
   const wishlistNeedsClues = wishlistCluesNeeded > 0;
-  const wishlistTaskLabel = wishlistNeedsClues
-    ? wishlistItemCount === 0
-      ? "Wishlist has no clues yet."
-      : `Wishlist needs ${plural(wishlistCluesNeeded, "more clue")}.`
-    : "Wishlist clues are ready.";
-  const wishlistTaskDetail = wishlistNeedsClues
-    ? wishlistItemCount === 0
-      ? "Add at least one gift clue so your Santa has options."
-      : "Add a few more clues so your Santa has options."
-    : "Your Santa has enough clues to start planning.";
+  const remainingGiftUpdates = Math.max(giftProgressTotal - readyGiftCount, 0);
+  const nextActionDetail = !focusGroup
+    ? "Set the gift day and budget, then invite your first members."
+    : pendingInvites.length > 0
+      ? `${plural(pendingInvites.length, "invite")} still need a response.`
+      : wishlistNeedsClues
+        ? wishlistItemCount === 0
+          ? "Add at least one wishlist clue so your Santa has an idea to start with."
+          : `Add ${plural(wishlistCluesNeeded, "more clue")} to make gift planning easier.`
+        : !focusGroup.hasDrawn
+          ? "Review the group and draw names when everyone is ready."
+          : remainingGiftUpdates > 0
+            ? `${plural(remainingGiftUpdates, "gift")} still need a progress update.`
+            : "Your exchange is on track. Open it whenever you want the full details.";
 
-  const taskRows: DashboardTaskRow[] = [
-    {
-      detail: pendingInvites.length > 0
-        ? "Accept or decline pending invites without exposing email addresses."
-        : "No invite replies need your attention right now.",
-      icon: <GiftIcon className="h-5 w-5" />,
-      label: pendingInvites.length > 0
-        ? `${plural(pendingInvites.length, "invite")} waiting.`
-        : "No invite updates.",
-      tone: pendingInvites.length > 0 ? "red" : "green",
-      value: pendingInvites.length > 0 ? "Needs reply" : "Clear",
-    },
-    {
-      detail: wishlistTaskDetail,
+  const attentionItems: DashboardAttentionItem[] = [];
+
+  if (pendingInvites.length > 0) {
+    attentionItems.push({
+      actionLabel: "Review",
+      detail: "Accept or decline from the invite section.",
+      icon: <UserOutlineIcon className="h-5 w-5" />,
+      label: `${plural(pendingInvites.length, "invite")} waiting`,
+      onAction: () =>
+        document
+          .getElementById("dashboard-pending-invites")
+          ?.scrollIntoView({ behavior: "smooth", block: "start" }),
+      tone: "red",
+    });
+  }
+
+  if (focusGroup && wishlistNeedsClues) {
+    attentionItems.push({
+      actionLabel: "Add ideas",
+      detail:
+        wishlistItemCount === 0
+          ? "Your wishlist has no clues yet."
+          : `${plural(wishlistCluesNeeded, "more clue")} would help.`,
       icon: <WishlistIcon className="h-5 w-5" />,
-      label: wishlistTaskLabel,
-      tone: wishlistNeedsClues ? "gold" : "green",
-      value: wishlistNeedsClues ? "Needs clues" : "Ready",
-    },
-    {
-      detail: unreadPrivateUpdateCount > 0
-        ? "Open your private threads from Messages when you are ready."
-        : "No new private message activity needs your attention right now.",
+      label: "Wishlist needs clues",
+      onAction: () => onOpenPath("/wishlist"),
+      tone: "gold",
+    });
+  }
+
+  if (unreadPrivateUpdateCount > 0) {
+    attentionItems.push({
+      actionLabel: "Open",
+      detail: "Read them privately in Messages.",
       icon: <ChatIcon className="h-5 w-5" />,
-      label: unreadPrivateUpdateCount > 0
-        ? `${plural(unreadPrivateUpdateCount, "private message")} waiting.`
-        : "No private message updates.",
-      onAction: unreadPrivateUpdateCount > 0 ? onOpenChat : undefined,
-      actionAriaLabel: "Open private message threads",
-      tone: unreadPrivateUpdateCount > 0 ? "red" : "quiet",
-      value: unreadPrivateUpdateCount > 0 ? "Open" : "Private",
-    },
-  ];
+      label: `${plural(unreadPrivateUpdateCount, "message")} waiting`,
+      onAction: onOpenChat,
+      tone: "red",
+    });
+  }
+
+  if (focusGroup?.hasDrawn && remainingGiftUpdates > 0) {
+    attentionItems.push({
+      actionLabel: "Update",
+      detail: "Keep your private gift plan current.",
+      icon: <GiftIcon className="h-5 w-5" />,
+      label: `${plural(remainingGiftUpdates, "gift")} need progress`,
+      onAction: () => onOpenPath("/gift-tracking"),
+      tone: "gold",
+    });
+  }
 
   return (
-    <div data-fade className={`min-w-0 space-y-8 overflow-hidden ${isDarkTheme ? "text-slate-100" : "text-[#2e3432]"}`}>
-      <section className="min-w-0">
-        <div className="max-w-5xl">
-          <p className="text-[12px] font-black uppercase tracking-[0.18em] text-[#7b5902]">Dashboard pulse</p>
-          <h1 className={`mt-2 max-w-full break-words font-[var(--app-display-font)] text-[2rem] font-black leading-none tracking-normal [overflow-wrap:anywhere] sm:text-[2.45rem] ${isDarkTheme ? "text-white" : "text-[#174f2c]"}`}>
-            Exchange at a glance
-          </h1>
-          <p className={`mt-3 max-w-3xl text-[17px] font-extrabold leading-7 ${statsClass}`}>{revealMessage}</p>
-        </div>
-      </section>
+    <div
+      data-fade
+      data-testid="dashboard-command-desk"
+      className={`min-w-0 space-y-6 overflow-hidden ${isDarkTheme ? "text-slate-100" : "text-[#2e3432]"}`}
+    >
+      <header data-testid="dashboard-page-heading" className="max-w-4xl">
+        <p className="text-[11px] font-black uppercase tracking-[0.16em] text-[#7b5902]">
+          Dashboard
+        </p>
+        <h1
+          className={`mt-1.5 break-words font-[var(--app-display-font)] text-[30px] font-black leading-tight tracking-normal sm:text-[34px] ${
+            isDarkTheme ? "text-white" : "text-[#2e3432]"
+          }`}
+        >
+          Your exchange today
+        </h1>
+        <p className={`mt-2 max-w-3xl text-[15px] font-bold leading-6 ${supportingTextClass}`}>
+          {revealMessage}
+        </p>
+      </header>
 
-      <article className={`relative overflow-hidden rounded-[40px] backdrop-blur-xl ${getPanelClass(isDarkTheme)}`}>
-        <div className="absolute inset-0 pointer-events-none bg-[radial-gradient(circle_at_84%_10%,rgba(252,206,114,.28),transparent_28%),repeating-linear-gradient(90deg,transparent_0_96px,rgba(72,102,78,.045)_96px_97px)]" />
-        <div className="relative grid gap-7 p-6 sm:p-8 xl:grid-cols-[minmax(0,1fr)_320px]">
-          <div className="min-w-0">
-            <p className="text-[12px] font-black uppercase tracking-[0.18em] text-[#7b5902]">Active exchange desk</p>
-            <div className="mt-4 flex min-w-0 flex-wrap items-center gap-4">
-                <span className="grid h-16 w-16 shrink-0 place-items-center rounded-3xl bg-white/80 shadow-[0_14px_28px_rgba(72,102,78,.12)]">
-                <SantaMarkIcon size={48} />
-              </span>
-              <h2 className={`min-w-0 max-w-full break-words font-[var(--app-display-font)] text-[44px] font-black leading-none [overflow-wrap:anywhere] sm:text-[54px] ${isDarkTheme ? "text-white" : "text-[#48664e]"}`}>
-                {focusGroup?.name || "Start your first exchange"}
-              </h2>
-              {focusGroup?.isOwner ? <StatusChip tone="gold">Owner</StatusChip> : null}
-            </div>
-            <p className={`mt-4 max-w-3xl text-[17px] font-extrabold leading-7 ${statsClass}`}>{missionSummary}</p>
-            <div className="mt-6 grid gap-4 border-y border-[rgba(215,166,63,.28)] py-5 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-center">
+      <section
+        data-testid="dashboard-workspace-grid"
+        className="grid min-w-0 gap-6 xl:grid-cols-[minmax(0,1fr)_20rem] xl:items-start"
+      >
+        <div data-testid="dashboard-primary-column" className="min-w-0 space-y-7">
+          <article
+            data-testid="dashboard-focus-panel"
+            className={`min-w-0 overflow-hidden rounded-3xl ${getPanelClass(isDarkTheme)}`}
+          >
+            <header className="p-5 sm:p-7">
               <div className="min-w-0">
-                <strong className={`block max-w-2xl break-words font-[var(--app-display-font)] text-[27px] font-black leading-tight [overflow-wrap:anywhere] ${isDarkTheme ? "text-white" : "text-slate-950"}`}>
-                  Next best move: {nextActionLabel.toLowerCase()}.
-                </strong>
-                <span className={`mt-2 block max-w-2xl text-sm font-extrabold leading-6 ${statsClass}`}>
-                  Private exchange details stay separated by group. No email names or private thread previews are shown here.
+                <p className="text-[11px] font-black uppercase tracking-[0.16em] text-[#7b5902]">
+                  Current exchange
+                </p>
+                <div className="mt-2 flex min-w-0 flex-wrap items-center gap-3">
+                  <h2
+                    className={`min-w-0 break-words font-[var(--app-display-font)] text-[28px] font-black leading-tight [overflow-wrap:anywhere] sm:text-[34px] ${
+                      isDarkTheme ? "text-white" : "text-[#48664e]"
+                    }`}
+                  >
+                    {focusGroup?.name || "Start your first exchange"}
+                  </h2>
+                  {focusGroup?.isOwner ? <StatusChip tone="gold">Owner</StatusChip> : null}
+                </div>
+                <p className={`mt-2 max-w-3xl text-[15px] font-bold leading-6 ${supportingTextClass}`}>
+                  {missionSummary}
+                </p>
+              </div>
+
+              <dl
+                data-testid="dashboard-exchange-metadata"
+                className="mt-6 grid divide-y divide-[rgba(72,102,78,.12)] border-y border-[rgba(72,102,78,.12)] sm:grid-cols-3 sm:divide-x sm:divide-y-0"
+              >
+                <div className="py-3.5 sm:px-4 sm:first:pl-0">
+                  <dt className="text-[11px] font-black uppercase tracking-[0.12em] text-slate-500">
+                    Members
+                  </dt>
+                  <dd className="mt-1 text-sm font-black">{plural(memberCount, "member")}</dd>
+                </div>
+                <div className="py-3.5 sm:px-4">
+                  <dt className="text-[11px] font-black uppercase tracking-[0.12em] text-slate-500">
+                    Gift day
+                  </dt>
+                  <dd className="mt-1 text-sm font-black">{giftDayLabel}</dd>
+                </div>
+                <div className="py-3.5 sm:px-4 sm:last:pr-0">
+                  <dt className="text-[11px] font-black uppercase tracking-[0.12em] text-slate-500">
+                    Budget
+                  </dt>
+                  <dd className="mt-1 text-sm font-black">{budgetLabel}</dd>
+                </div>
+              </dl>
+            </header>
+
+            <section className={`border-t border-[rgba(72,102,78,.14)] p-5 sm:p-7 ${isDarkTheme ? "bg-slate-800/38" : "bg-[#edf4ef]"}`}>
+              <div className="grid gap-4 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center">
+                <div className="min-w-0">
+                  <p className="text-[11px] font-black uppercase tracking-[0.16em] text-[#48664e]">
+                    Next step
+                  </p>
+                  <h3 className="mt-1 break-words font-[var(--app-display-font)] text-[22px] font-black leading-tight [overflow-wrap:anywhere]">
+                    {nextActionLabel}
+                  </h3>
+                  <p className={`mt-1 text-sm font-bold leading-5 ${supportingTextClass}`}>
+                    {nextActionDetail}
+                  </p>
+                </div>
+                <button
+                  data-testid="dashboard-primary-action"
+                  type="button"
+                  onClick={actionTarget}
+                  className="gift-button gift-button-primary min-h-11 w-full px-5 text-sm sm:w-auto"
+                >
+                  {nextActionLabel}
+                  <span className="gift-button-icon" aria-hidden="true">
+                    <ArrowRightIcon className="h-4 w-4" />
+                  </span>
+                </button>
+              </div>
+            </section>
+
+            <section
+              data-testid="dashboard-lifecycle"
+              className="border-t border-[rgba(72,102,78,.14)] p-5 sm:p-7"
+            >
+              <div className="flex flex-wrap items-end justify-between gap-3">
+                <div>
+                  <p className="text-[11px] font-black uppercase tracking-[0.16em] text-[#48664e]">
+                    Exchange progress
+                  </p>
+                  <h3 className="mt-1 font-[var(--app-display-font)] text-xl font-black">
+                    {readinessPercent}% ready
+                  </h3>
+                </div>
+                <span className={`text-xs font-bold ${supportingTextClass}`}>
+                  Setup, invites, draw, and gift day
                 </span>
               </div>
-              <button type="button" onClick={actionTarget} className="gift-button gift-button-primary gift-button-wide min-h-13 text-sm">
-                {nextActionLabel}
-                <span className="gift-button-icon" aria-hidden="true">
-                  <ArrowRightIcon className="h-4 w-4" />
-                </span>
-              </button>
-            </div>
-          </div>
-          <div className="relative min-h-57.5">
-            <div className="absolute right-3 top-3 grid h-28 w-28 rotate-[7deg] place-items-center rounded-full border border-[#d7a63f]/30 bg-[#fff4d4]/70 px-4 text-center text-[12px] font-black leading-4 text-[#7b5902]">
-              {sealText}
-            </div>
-            <Image className="absolute bottom-0 right-0 h-auto w-72.5 drop-shadow-[0_22px_24px_rgba(72,102,78,.14)]" src="/secret-santa-gifts-cropped.png" width={340} height={170} alt="Wrapped Secret Santa gifts" priority />
-          </div>
-        </div>
-        <div className="relative grid border-t border-[rgba(72,102,78,.14)] bg-white/34 sm:grid-cols-4">
-          {visibleSteps.map((step, index) => (
-            <div key={step.id} className="min-h-28 border-b border-[rgba(72,102,78,.12)] p-5 sm:border-b-0 sm:border-r last:border-r-0">
-              <span className={`grid h-11 w-11 place-items-center rounded-full text-[12px] font-black ${getStepClass(step, isDarkTheme)}`}>
-                {step.status === "done" ? "OK" : index + 1}
-              </span>
-              <strong className="mt-3 block font-[var(--app-display-font)] text-[19px] font-black leading-none">{step.label}</strong>
-              <span className={`mt-2 block text-[12px] font-extrabold leading-5 ${statsClass}`}>{step.helper}</span>
-            </div>
-          ))}
-        </div>
-        <div className="relative border-t border-[rgba(72,102,78,.14)] bg-white/30 p-6">
-          <div className="max-w-3xl">
-            <p className="text-[12px] font-black uppercase tracking-[0.18em] text-[#48664e]">Readiness meter</p>
-            <div className="mt-4 grid gap-3 sm:grid-cols-3">
-              <MiniStat isDarkTheme={isDarkTheme} label="members joined" value={`${memberCount}/${totalInviteBase}`} />
-              <MiniStat isDarkTheme={isDarkTheme} label="wishlist clues" value={`${wishlistPercent}%`} />
-              <MiniStat isDarkTheme={isDarkTheme} label="gifts ready" value={`${readyGiftCount}/${Math.max(giftProgressTotal, 1)}`} />
-            </div>
-            <div className="mt-4 h-3 overflow-hidden rounded-full bg-[#dfe7df]"><span className="block h-full rounded-full bg-[#48664e]" style={{ width: `${readinessPercent}%` }} /></div>
-            <p className={`mt-3 text-[12px] font-extrabold leading-5 ${statsClass}`}>{readinessNote}</p>
-          </div>
-        </div>
-      </article>
+              <div
+                role="progressbar"
+                aria-label="Exchange readiness"
+                aria-valuemin={0}
+                aria-valuemax={100}
+                aria-valuenow={readinessPercent}
+                className={`mt-4 h-2 overflow-hidden rounded-full ${isDarkTheme ? "bg-slate-700" : "bg-[#dfe7df]"}`}
+              >
+                <span
+                  className="block h-full rounded-full bg-[#48664e] transition-[width]"
+                  style={{ width: `${readinessPercent}%` }}
+                />
+              </div>
+              <ol className="mt-5 grid gap-4 sm:grid-cols-4">
+                {visibleSteps.map((step) => (
+                  <li
+                    key={step.id}
+                    data-testid="dashboard-lifecycle-step"
+                    data-status={step.status}
+                    className="grid grid-cols-[12px_minmax(0,1fr)] gap-3 border-l border-[rgba(72,102,78,.14)] pl-3 sm:block sm:border-l-0 sm:border-t sm:pl-0 sm:pt-4"
+                  >
+                    <span
+                      className={`mt-1.5 block h-2.5 w-2.5 rounded-full ring-4 sm:mt-0 ${getStepMarkerClass(step, isDarkTheme)}`}
+                      aria-hidden="true"
+                    />
+                    <span className="min-w-0 sm:mt-3 sm:block">
+                      <strong className="block text-sm font-black">{step.label}</strong>
+                      <span className={`mt-0.5 block text-xs font-bold leading-4 ${supportingTextClass}`}>
+                        {step.helper}
+                      </span>
+                    </span>
+                  </li>
+                ))}
+              </ol>
+            </section>
+          </article>
 
-      <section className="grid gap-8 xl:grid-cols-[minmax(0,1fr)_330px]">
-        <div className="min-w-0 space-y-8">
-          <div>
-            <SectionTitle isDarkTheme={isDarkTheme} kicker="Plain tasks, privacy-safe status, and the few actions that keep this exchange moving.">Today&apos;s exchange flow</SectionTitle>
-            <div className="divide-y divide-[rgba(72,102,78,.14)]">
-              {taskRows.map((row) => (
-                <div key={row.label} className="grid min-h-28 grid-cols-[54px_minmax(0,1fr)] gap-4 py-5 sm:grid-cols-[54px_minmax(0,1fr)_auto] sm:items-center">
-                  <span className="grid h-13 w-13 place-items-center rounded-[20px] bg-[#48664e]/10 text-[#48664e]">{row.icon}</span>
-                  <span className="min-w-0">
-                    <strong className="block break-words font-[var(--app-display-font)] text-[23px] font-black leading-tight [overflow-wrap:anywhere]">{row.label}</strong>
-                    <span className={`mt-1 block text-sm font-extrabold leading-6 ${statsClass}`}>{row.detail}</span>
-                  </span>
-                  <span className="col-start-2 justify-self-start sm:col-start-auto sm:justify-self-end">
-                    {row.onAction ? (
-                      <button
-                        type="button"
-                        onClick={row.onAction}
-                        aria-label={row.actionAriaLabel}
-                        className={`${getStatusChipClass(row.tone)} min-h-11 cursor-pointer transition hover:-translate-y-0.5 hover:shadow-[0_12px_24px_rgba(164,60,63,.14)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#a43c3f]`}
-                      >
-                        {row.value}
-                      </button>
-                    ) : (
-                      <StatusChip tone={row.tone}>{row.value}</StatusChip>
-                    )}
-                  </span>
-                </div>
-              ))}
-            </div>
-          </div>
           {pendingInvites.length > 0 ? (
-            <div className="grid gap-4 md:grid-cols-2">
-              {pendingInvites.map((invite) => (
-                <InviteCard key={invite.group_id} description={invite.group_description} eventDate={invite.group_event_date} groupId={invite.group_id} groupName={invite.group_name} requiresAnonymousNickname={invite.require_anonymous_nickname} />
-              ))}
-            </div>
+            <section id="dashboard-pending-invites" className="scroll-mt-24">
+              <SectionTitle
+                isDarkTheme={isDarkTheme}
+                kicker="Respond here without exposing private email details."
+              >
+                Invites waiting for you
+              </SectionTitle>
+              <div className="mt-4 grid gap-4 md:grid-cols-2">
+                {pendingInvites.map((invite) => (
+                  <InviteCard
+                    key={invite.group_id}
+                    description={invite.group_description}
+                    eventDate={invite.group_event_date}
+                    groupId={invite.group_id}
+                    groupName={invite.group_name}
+                    requiresAnonymousNickname={invite.require_anonymous_nickname}
+                  />
+                ))}
+              </div>
+            </section>
           ) : null}
-          <ExchangeLedger groups={nextGroups} isDarkTheme={isDarkTheme} onOpenGroup={onOpenGroup} onOpenGroups={onOpenGroups} />
+
+          <ExchangeLedger
+            groups={nextGroups}
+            isDarkTheme={isDarkTheme}
+            onOpenGroup={onOpenGroup}
+            onOpenGroups={onOpenGroups}
+          />
         </div>
-        <HelperRail activityFeedItems={activityFeedItems} budgetLabel={budgetLabel} focusGroup={focusGroup} giftDayLabel={giftDayLabel} helperNote={helperNote} isDarkTheme={isDarkTheme} pendingInvites={pendingInvites.length} unreadPrivateUpdateCount={unreadPrivateUpdateCount} onOpenPath={onOpenPath} />
+
+        <AttentionRail
+          activityFeedItems={activityFeedItems}
+          attentionItems={attentionItems}
+          budgetLabel={budgetLabel}
+          focusGroup={focusGroup}
+          giftDayLabel={giftDayLabel}
+          isDarkTheme={isDarkTheme}
+          onOpenPath={onOpenPath}
+        />
       </section>
     </div>
   );
