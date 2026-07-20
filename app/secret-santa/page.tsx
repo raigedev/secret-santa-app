@@ -39,6 +39,10 @@ import {
 import { confirmGiftReceived, updateGiftPrepStatus } from "./actions";
 import { SecretSantaSkeleton } from "@/app/components/PageSkeleton";
 import {
+  AppSidebarToggleButton,
+  useAppSidebarCollapse,
+} from "@/app/components/AppSidebarCollapse";
+import {
   clearClientSnapshots,
   hasFreshClientSnapshotMetadata,
   readClientSnapshot,
@@ -1782,15 +1786,21 @@ function handleShoppingIdeasNavClick(event: MouseEvent<HTMLAnchorElement>, href:
 function ShoppingIdeasSidebar({
   navItems,
   activeGroup,
+  collapsed,
 }: {
   navItems: ShoppingIdeasNavItem[];
   activeGroup: ShoppingSidebarGroup | null;
+  collapsed: boolean;
 }) {
   return (
     <aside
+      id="shopping-ideas-sidebar-rail"
       data-app-sidebar-rail=""
+      data-collapsed={collapsed ? "true" : "false"}
       data-testid="shopping-ideas-sidebar"
-      className="fixed inset-y-0 left-0 z-30 hidden w-70 flex-col border-r px-5 py-5 xl:flex"
+      className={`fixed inset-y-0 left-0 z-30 hidden flex-col border-r py-5 xl:flex ${
+        collapsed ? "w-20 px-3" : "w-70 px-5"
+      }`}
       style={{
         background:
           "repeating-linear-gradient(135deg,rgba(72,102,78,.045) 0 1px,transparent 1px 38px), linear-gradient(180deg,rgba(255,254,250,.985),rgba(247,250,245,.965))",
@@ -1801,7 +1811,10 @@ function ShoppingIdeasSidebar({
       <a
         data-app-sidebar-brand=""
         href="/dashboard"
-        className="flex items-center gap-3 rounded-[22px] px-2 py-2"
+        title={collapsed ? "Secret Santa dashboard" : undefined}
+        className={`flex items-center rounded-[22px] py-2 ${
+          collapsed ? "justify-center px-0" : "gap-3 px-2"
+        }`}
         style={{ color: HOLIDAY_GREEN, textDecoration: "none" }}
       >
         <span
@@ -1815,7 +1828,7 @@ function ShoppingIdeasSidebar({
         >
           <SantaMarkIcon size={42} />
         </span>
-        <span className="min-w-0">
+        <span className={collapsed ? "sr-only" : "min-w-0"}>
           <span
             data-app-sidebar-brand-title=""
             className="block text-[24px] font-black leading-none"
@@ -1837,7 +1850,10 @@ function ShoppingIdeasSidebar({
             href={item.href}
             onClick={(event) => handleShoppingIdeasNavClick(event, item.href)}
             aria-current={item.active ? "page" : undefined}
-            className="flex min-h-11.5 items-center gap-3 rounded-xl px-3 text-[14px] font-extrabold transition hover:-translate-y-0.5"
+            title={collapsed ? item.label : undefined}
+            className={`flex min-h-11.5 items-center rounded-xl text-[14px] font-extrabold transition hover:-translate-y-0.5 ${
+              collapsed ? "justify-center px-0" : "gap-3 px-3"
+            }`}
             style={{
               background: item.active ? "rgba(72,102,78,.12)" : "transparent",
               color: item.active ? HOLIDAY_GREEN : PAGE_TEXT_COLOR,
@@ -1848,7 +1864,7 @@ function ShoppingIdeasSidebar({
             }}
           >
             <ShoppingNavIcon name={item.icon} className="h-5 w-5 shrink-0" />
-            <span className="truncate">{item.label}</span>
+            <span className={collapsed ? "sr-only" : "truncate"}>{item.label}</span>
           </a>
         ))}
       </nav>
@@ -1864,7 +1880,9 @@ function ShoppingIdeasSidebar({
             onClick={(event) => handleShoppingIdeasNavClick(event, activeGroup.href)}
             aria-label={`Open ${activeGroup.name} group`}
             title={activeGroup.name}
-            className="flex min-h-14 items-center gap-2.5 rounded-xl px-2 py-2 text-left transition hover:-translate-y-0.5"
+            className={`flex min-h-14 items-center rounded-xl py-2 text-left transition hover:-translate-y-0.5 ${
+              collapsed ? "justify-center px-0" : "gap-2.5 px-2"
+            }`}
             style={{ color: HOLIDAY_GREEN, textDecoration: "none" }}
           >
             <span
@@ -1873,7 +1891,7 @@ function ShoppingIdeasSidebar({
             >
               <ShoppingNavIcon name="group" className="h-5 w-5" />
             </span>
-            <span className="min-w-0 flex-1">
+            <span className={collapsed ? "sr-only" : "min-w-0 flex-1"}>
               <span
                 className="block text-[9px] font-extrabold uppercase tracking-[0.12em]"
                 style={{ color: TEXT_MUTED }}
@@ -1887,7 +1905,7 @@ function ShoppingIdeasSidebar({
                 {activeGroup.name}
               </span>
             </span>
-            <ChevronRightMark className="h-4 w-4 shrink-0" />
+            {collapsed ? null : <ChevronRightMark className="h-4 w-4 shrink-0" />}
           </a>
         </div>
       ) : null}
@@ -1896,21 +1914,25 @@ function ShoppingIdeasSidebar({
 }
 
 function ShoppingIdeasHeader({
+  collapsed,
   mode,
   notificationButtonRef,
   notificationsPanelOpen,
   onViewerAvatarError,
   onToggleNotifications,
+  onToggleSidebar,
   unreadNotificationCount,
   viewerAvatarEmoji,
   viewerAvatarUrl,
   viewerName,
 }: {
+  collapsed: boolean;
   mode: SecretSantaExperienceMode;
   notificationButtonRef: RefObject<HTMLButtonElement | null>;
   notificationsPanelOpen: boolean;
   onViewerAvatarError: () => void;
   onToggleNotifications: () => void;
+  onToggleSidebar: () => void;
   unreadNotificationCount: number;
   viewerAvatarEmoji: string;
   viewerAvatarUrl: string;
@@ -1941,19 +1963,29 @@ function ShoppingIdeasHeader({
         backdropFilter: "blur(16px)",
       }}
     >
-      <div>
-        <div
-          className="flex items-center gap-2 text-[16px] font-black"
-          style={{ color: PAGE_TEXT_COLOR }}
-        >
-          <span data-testid="shopping-ideas-greeting">{greetingText}</span>
-          <GiftMark className="h-4 w-4" />
-        </div>
-        <div className="mt-0.5 text-[12px] font-semibold" style={{ color: TEXT_MUTED }}>
-          {subtitle}
+      <div className="flex min-w-0 items-center gap-3">
+        <AppSidebarToggleButton
+          background="rgba(255,255,255,.82)"
+          borderColor="rgba(72,102,78,.16)"
+          collapsed={collapsed}
+          color={PAGE_TEXT_COLOR}
+          controlsId="shopping-ideas-sidebar-rail"
+          onToggle={onToggleSidebar}
+        />
+        <div className="min-w-0">
+          <div
+            className="flex items-center gap-2 text-[16px] font-black"
+            style={{ color: PAGE_TEXT_COLOR }}
+          >
+            <span data-testid="shopping-ideas-greeting" className="truncate">{greetingText}</span>
+            <GiftMark className="h-4 w-4" />
+          </div>
+          <div className="mt-0.5 truncate text-[12px] font-semibold" style={{ color: TEXT_MUTED }}>
+            {subtitle}
+          </div>
         </div>
       </div>
-      <div className="flex items-center gap-3">
+      <div className="flex shrink-0 items-center gap-3">
         <button
           ref={notificationButtonRef}
           type="button"
@@ -3227,6 +3259,7 @@ function SecretSantaExperience({ mode = "shopping" }: SecretSantaExperienceProps
   const [viewerAvatarEmoji, setViewerAvatarEmoji] = useState("");
   const [viewerUserId, setViewerUserId] = useState<string | null>(null);
   const [canViewAffiliateReport, setCanViewAffiliateReport] = useState(false);
+  const { collapsed: sidebarCollapsed, toggle: toggleSidebar } = useAppSidebarCollapse();
 
   // Page-level feedback and action state.
   const [message, setMessage] = useState<ActionMessage>(null);
@@ -3931,12 +3964,15 @@ function SecretSantaExperience({ mode = "shopping" }: SecretSantaExperienceProps
       <ShoppingIdeasSidebar
         navItems={sidebarNavItems}
         activeGroup={sidebarActiveGroup}
+        collapsed={sidebarCollapsed}
       />
-      <div className="relative z-10 min-h-screen xl:pl-70">
+      <div className={`relative z-10 min-h-screen ${sidebarCollapsed ? "xl:pl-20" : "xl:pl-70"}`}>
         <ShoppingIdeasHeader
+          collapsed={sidebarCollapsed}
           mode={mode}
           notificationButtonRef={notificationButtonRef}
           notificationsPanelOpen={notificationsPanelOpen}
+          onToggleSidebar={toggleSidebar}
           onViewerAvatarError={() => {
             setViewerAvatarUrl("");
             storeViewerAvatarUrl(null, viewerUserId);

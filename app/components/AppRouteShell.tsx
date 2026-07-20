@@ -43,6 +43,10 @@ import {
 } from "@/app/components/theme-preferences";
 import { getProfile } from "@/app/profile/actions";
 import { clearAppSessionStorage } from "@/lib/client-snapshot";
+import {
+  AppSidebarToggleButton,
+  useAppSidebarCollapse,
+} from "@/app/components/AppSidebarCollapse";
 
 const APP_BACKGROUND =
   "repeating-linear-gradient(135deg,rgba(72,102,78,.045) 0 1px,transparent 1px 38px),radial-gradient(circle at 12% 8%,rgba(252,206,114,.16),transparent 24%),linear-gradient(180deg,#fffefa 0%,#f7faf5 42%,#eef4ef 100%)";
@@ -230,6 +234,7 @@ export default function AppRouteShell({ children }: { children: ReactNode }) {
   const [unreadCount, setUnreadCount] = useState(0);
   const [notificationsOpen, setNotificationsOpen] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
+  const { collapsed: sidebarCollapsed, toggle: toggleSidebar } = useAppSidebarCollapse();
   const notificationButtonRef = useRef<HTMLButtonElement | null>(null);
   const loadedShellContextForUserRef = useRef<string | null>(null);
   const mobileNavScrollerRef = useRef<HTMLDivElement | null>(null);
@@ -586,7 +591,10 @@ export default function AppRouteShell({ children }: { children: ReactNode }) {
         href={item.href}
         onClick={(event) => handleNavItemClick(event, item)}
         aria-current={active ? "page" : undefined}
-        className="flex min-h-11.5 items-center gap-3 rounded-xl px-3 text-[14px] font-extrabold transition hover:-translate-y-0.5"
+        title={sidebarCollapsed ? item.label : undefined}
+        className={`flex min-h-11.5 items-center rounded-xl text-[14px] font-extrabold transition hover:-translate-y-0.5 ${
+          sidebarCollapsed ? "justify-center px-0" : "gap-3 px-3"
+        }`}
         style={{
           background: active ? shellNavActiveBackground : "transparent",
           color: active ? shellNavActiveColor : shellNavInactiveColor,
@@ -595,7 +603,7 @@ export default function AppRouteShell({ children }: { children: ReactNode }) {
         }}
       >
         <AppShellIcon name={item.icon} className="h-5 w-5 shrink-0" />
-        <span className="truncate">{item.label}</span>
+        <span className={sidebarCollapsed ? "sr-only" : "truncate"}>{item.label}</span>
       </a>
     );
   };
@@ -667,9 +675,13 @@ export default function AppRouteShell({ children }: { children: ReactNode }) {
         }
       `}</style>
       <aside
+        id="app-shell-sidebar"
         data-app-sidebar-rail=""
+        data-collapsed={sidebarCollapsed ? "true" : "false"}
         data-testid="app-shell-sidebar"
-        className="fixed inset-y-0 left-0 z-30 hidden w-70 flex-col border-r px-5 py-5 xl:flex"
+        className={`fixed inset-y-0 left-0 z-30 hidden flex-col border-r py-5 xl:flex ${
+          sidebarCollapsed ? "w-20 px-3" : "w-70 px-5"
+        }`}
         style={{
           background: shellSidebarBackground,
           borderColor: shellBorderColor,
@@ -678,11 +690,11 @@ export default function AppRouteShell({ children }: { children: ReactNode }) {
             : "18px 0 48px rgba(46,52,50,.07)",
         }}
       >
-        <Link data-app-sidebar-brand="" href="/dashboard" prefetch={false} className="flex items-center gap-3 rounded-[22px] px-2 py-2" style={{ color: isDarkAppShell ? "#f8fafc" : HOLIDAY_GREEN, textDecoration: "none" }}>
+        <Link data-app-sidebar-brand="" href="/dashboard" prefetch={false} title={sidebarCollapsed ? "Secret Santa dashboard" : undefined} className={`flex items-center rounded-[22px] py-2 ${sidebarCollapsed ? "justify-center px-0" : "gap-3 px-2"}`} style={{ color: isDarkAppShell ? "#f8fafc" : HOLIDAY_GREEN, textDecoration: "none" }}>
           <span data-app-sidebar-brand-mark="" className="flex h-12 w-12 items-center justify-center rounded-[17px] shadow-[0_12px_24px_rgba(46,52,50,.06)] ring-1" style={{ background: isDarkAppShell ? "rgba(255,255,255,.08)" : "rgba(255,255,255,.8)", borderColor: shellBorderColor }}>
             <SantaMarkIcon size={42} />
           </span>
-          <span className="min-w-0">
+          <span className={sidebarCollapsed ? "sr-only" : "min-w-0"}>
             <span data-app-sidebar-brand-title="" className="block text-[24px] font-black leading-none" style={{ fontFamily: "'Fredoka','Nunito',sans-serif" }}>Secret Santa</span>
             <span className="mt-0.5 block text-[10px] font-extrabold italic text-[#a43c3f]">shhh, it&apos;s a secret</span>
           </span>
@@ -705,17 +717,27 @@ export default function AppRouteShell({ children }: { children: ReactNode }) {
         ) : null}
       </aside>
 
-      <div className="relative z-10 min-h-screen xl:pl-70">
+      <div className={`relative z-10 min-h-screen ${sidebarCollapsed ? "xl:pl-20" : "xl:pl-70"}`}>
         <header className="sticky top-0 z-20 flex min-h-18 items-center justify-between border-b px-4 py-3 sm:px-6 xl:h-21 xl:px-7 xl:py-0" style={{ background: shellHeaderBackground, borderColor: shellBorderColor, backdropFilter: "blur(16px)" }}>
-            <div>
+          <div className="flex min-w-0 items-center gap-3">
+            <AppSidebarToggleButton
+              background={shellControlBackground}
+              borderColor={shellBorderColor}
+              collapsed={sidebarCollapsed}
+              color={shellTextColor}
+              controlsId="app-shell-sidebar"
+              onToggle={toggleSidebar}
+            />
+            <div className="min-w-0">
               <div className="flex items-center gap-2 text-[16px] font-black" style={{ color: shellTextColor }}>
-                <span data-testid="app-shell-greeting">{greetingText}</span>
+                <span data-testid="app-shell-greeting" className="truncate">{greetingText}</span>
               </div>
-              <div className="mt-0.5 text-[12px] font-semibold" style={{ color: shellMutedColor }}>
+              <div className="mt-0.5 truncate text-[12px] font-semibold" style={{ color: shellMutedColor }}>
                 {shellSubtitle}
               </div>
             </div>
-            <div className="flex items-center gap-3">
+          </div>
+          <div className="flex shrink-0 items-center gap-3">
               <button ref={notificationButtonRef} type="button" onClick={() => setNotificationsOpen((open) => !open)} aria-label={unreadCount > 0 ? `Open notifications, ${unreadCount} unread` : "Open notifications"} className="gift-shell-control relative h-12 w-12 rounded-full" style={{ background: shellControlBackground, borderColor: shellBorderColor, color: shellTextColor }}>
                 <BellIcon className="h-5 w-5" />
                 {unreadCount > 0 && <span data-testid="app-shell-notification-badge" className="pointer-events-none absolute -right-2 -top-2.5 flex h-5 min-w-5 items-center justify-center rounded-full border-2 border-white px-1.5 text-[9px] font-black leading-none text-white shadow-[0_6px_14px_rgba(164,60,63,.24)]" style={{ background: HOLIDAY_RED }}>{unreadCount > 99 ? "99+" : unreadCount}</span>}
