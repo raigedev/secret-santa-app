@@ -50,6 +50,27 @@ async function expectBadgeClearOfBellIcon(page: Page, testId: string) {
   expect(badgeMetrics.overlapsIcon).toBe(false);
 }
 
+async function expectSidebarToggleCenteredOnBoundary(page: Page, sidebarTestId: string) {
+  const sidebar = page.getByTestId(sidebarTestId);
+  const toggle = page.getByTestId("app-sidebar-toggle");
+  const viewport = page.viewportSize();
+  const [sidebarBox, toggleBox] = await Promise.all([
+    sidebar.boundingBox(),
+    toggle.boundingBox(),
+  ]);
+
+  expect(viewport).not.toBeNull();
+  expect(sidebarBox).not.toBeNull();
+  expect(toggleBox).not.toBeNull();
+
+  const sidebarRight = sidebarBox!.x + sidebarBox!.width;
+  const toggleCenterX = toggleBox!.x + toggleBox!.width / 2;
+  const toggleCenterY = toggleBox!.y + toggleBox!.height / 2;
+
+  expect(Math.abs(toggleCenterX - sidebarRight)).toBeLessThanOrEqual(1);
+  expect(Math.abs(toggleCenterY - viewport!.height / 2)).toBeLessThanOrEqual(1);
+}
+
 async function installBodyTextWatcher(
   page: Page,
   options: {
@@ -621,6 +642,7 @@ test.describe("authenticated screen regressions", () => {
     await expect(toggle).toHaveAttribute("aria-expanded", "true");
     expect(await sharedSidebar.evaluate((element) => element.getBoundingClientRect().width)).toBe(280);
     expect(await sharedHeader.evaluate((element) => element.getBoundingClientRect().left)).toBe(280);
+    await expectSidebarToggleCenteredOnBoundary(page, "app-shell-sidebar");
 
     await toggle.click();
 
@@ -631,6 +653,7 @@ test.describe("authenticated screen regressions", () => {
     await expect(dashboardLink).toHaveAttribute("title", "Dashboard");
     expect(await sharedSidebar.evaluate((element) => element.getBoundingClientRect().width)).toBe(80);
     expect(await sharedHeader.evaluate((element) => element.getBoundingClientRect().left)).toBe(80);
+    await expectSidebarToggleCenteredOnBoundary(page, "app-shell-sidebar");
 
     await page.reload();
     await expect(sharedSidebar).toHaveAttribute("data-collapsed", "true");
@@ -645,10 +668,13 @@ test.describe("authenticated screen regressions", () => {
     await expect(page.getByTestId("app-sidebar-toggle")).toHaveAccessibleName("Expand sidebar");
     expect(await shoppingSidebar.evaluate((element) => element.getBoundingClientRect().width)).toBe(80);
     expect(await shoppingHeader.evaluate((element) => element.getBoundingClientRect().left)).toBe(80);
+    await page.setViewportSize({ width: 1280, height: 720 });
+    await expectSidebarToggleCenteredOnBoundary(page, "shopping-ideas-sidebar");
 
     await page.getByTestId("app-sidebar-toggle").click();
     await expect(shoppingSidebar).toHaveAttribute("data-collapsed", "false");
     expect(await shoppingSidebar.evaluate((element) => element.getBoundingClientRect().width)).toBe(280);
+    await expectSidebarToggleCenteredOnBoundary(page, "shopping-ideas-sidebar");
   });
 
 

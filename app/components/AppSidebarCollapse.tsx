@@ -78,7 +78,12 @@ export function AppSidebarToggleButton({
   const label = collapsed ? "Expand sidebar" : "Collapse sidebar";
 
   return (
-    <span className="hidden shrink-0 xl:inline-flex">
+    <span
+      data-testid="app-sidebar-toggle-position"
+      className={`fixed top-1/2 z-40 hidden -translate-x-1/2 -translate-y-1/2 xl:inline-flex ${
+        collapsed ? "left-20" : "left-70"
+      }`}
+    >
       <button
         type="button"
         data-testid="app-sidebar-toggle"
@@ -87,7 +92,7 @@ export function AppSidebarToggleButton({
         aria-label={label}
         title={label}
         onClick={onToggle}
-        className="gift-shell-control h-11 w-11 justify-center rounded-full"
+        className="gift-shell-control h-11 w-11 justify-center rounded-full shadow-[0_10px_24px_rgba(46,52,50,.12)]"
         style={{ background, borderColor, color }}
       >
         <svg

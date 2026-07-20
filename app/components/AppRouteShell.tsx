@@ -717,17 +717,18 @@ export default function AppRouteShell({ children }: { children: ReactNode }) {
         ) : null}
       </aside>
 
+      <AppSidebarToggleButton
+        background={shellControlBackground}
+        borderColor={shellBorderColor}
+        collapsed={sidebarCollapsed}
+        color={shellTextColor}
+        controlsId="app-shell-sidebar"
+        onToggle={toggleSidebar}
+      />
+
       <div className={`relative z-10 min-h-screen ${sidebarCollapsed ? "xl:pl-20" : "xl:pl-70"}`}>
         <header className="sticky top-0 z-20 flex min-h-18 items-center justify-between border-b px-4 py-3 sm:px-6 xl:h-21 xl:px-7 xl:py-0" style={{ background: shellHeaderBackground, borderColor: shellBorderColor, backdropFilter: "blur(16px)" }}>
           <div className="flex min-w-0 items-center gap-3">
-            <AppSidebarToggleButton
-              background={shellControlBackground}
-              borderColor={shellBorderColor}
-              collapsed={sidebarCollapsed}
-              color={shellTextColor}
-              controlsId="app-shell-sidebar"
-              onToggle={toggleSidebar}
-            />
             <div className="min-w-0">
               <div className="flex items-center gap-2 text-[16px] font-black" style={{ color: shellTextColor }}>
                 <span data-testid="app-shell-greeting" className="truncate">{greetingText}</span>
