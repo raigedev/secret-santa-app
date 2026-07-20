@@ -604,6 +604,53 @@ test.describe("authenticated screen regressions", () => {
       await expect(page.getByTestId("app-shell-sidebar")).toBeVisible();
     });
   }
+  test("desktop sidebars collapse to an accessible icon rail and remember the choice", async ({ page }) => {
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await loginWithTestCredentials(page, credentials!);
+    await page.goto("/dashboard");
+    await page.evaluate(() => window.localStorage.removeItem("ss_app_sidebar_collapsed"));
+    await page.reload();
+
+    const sharedSidebar = page.getByTestId("app-shell-sidebar");
+    const sharedHeader = page.getByTestId("app-route-shell").locator("header").first();
+    const toggle = page.getByTestId("app-sidebar-toggle");
+    const dashboardLink = sharedSidebar.getByRole("link", { name: /^dashboard$/i });
+
+    await expect(sharedSidebar).toHaveAttribute("data-collapsed", "false");
+    await expect(toggle).toHaveAccessibleName("Collapse sidebar");
+    await expect(toggle).toHaveAttribute("aria-expanded", "true");
+    expect(await sharedSidebar.evaluate((element) => element.getBoundingClientRect().width)).toBe(280);
+    expect(await sharedHeader.evaluate((element) => element.getBoundingClientRect().left)).toBe(280);
+
+    await toggle.click();
+
+    await expect(sharedSidebar).toHaveAttribute("data-collapsed", "true");
+    await expect(toggle).toHaveAccessibleName("Expand sidebar");
+    await expect(toggle).toHaveAttribute("aria-expanded", "false");
+    await expect(dashboardLink).toHaveAttribute("aria-current", "page");
+    await expect(dashboardLink).toHaveAttribute("title", "Dashboard");
+    expect(await sharedSidebar.evaluate((element) => element.getBoundingClientRect().width)).toBe(80);
+    expect(await sharedHeader.evaluate((element) => element.getBoundingClientRect().left)).toBe(80);
+
+    await page.reload();
+    await expect(sharedSidebar).toHaveAttribute("data-collapsed", "true");
+    await expect(toggle).toHaveAccessibleName("Expand sidebar");
+
+    await page.goto("/my-giftee");
+
+    const shoppingSidebar = page.getByTestId("shopping-ideas-sidebar");
+    const shoppingHeader = page.getByTestId("shopping-ideas-header");
+    await expect(shoppingSidebar).toBeVisible({ timeout: 15_000 });
+    await expect(shoppingSidebar).toHaveAttribute("data-collapsed", "true");
+    await expect(page.getByTestId("app-sidebar-toggle")).toHaveAccessibleName("Expand sidebar");
+    expect(await shoppingSidebar.evaluate((element) => element.getBoundingClientRect().width)).toBe(80);
+    expect(await shoppingHeader.evaluate((element) => element.getBoundingClientRect().left)).toBe(80);
+
+    await page.getByTestId("app-sidebar-toggle").click();
+    await expect(shoppingSidebar).toHaveAttribute("data-collapsed", "false");
+    expect(await shoppingSidebar.evaluate((element) => element.getBoundingClientRect().width)).toBe(280);
+  });
+
 
   test("desktop sidebars balance tall rails and keep short rails accessible", async ({ page }) => {
     await page.setViewportSize({ width: 1280, height: 720 });
@@ -797,12 +844,14 @@ test.describe("authenticated screen regressions", () => {
     const appShell = page.getByTestId("app-route-shell");
     const sidebar = page.getByTestId("app-shell-sidebar");
     const mobileNav = page.getByTestId("app-shell-mobile-nav");
+    const sidebarToggle = page.getByTestId("app-sidebar-toggle");
     const dashboardLink = mobileNav.getByRole("link", { name: /^dashboard$/i });
     const myGroupsLink = mobileNav.getByRole("link", { name: /^my groups$/i });
 
     await expect(appShell).toBeVisible();
     await expect(sidebar).toBeHidden();
     await expect(mobileNav).toBeVisible();
+    await expect(sidebarToggle).toBeHidden();
     await expect(dashboardLink).toHaveAttribute("aria-current", "page");
     await expect(myGroupsLink).toBeVisible();
 
