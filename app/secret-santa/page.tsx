@@ -1914,25 +1914,21 @@ function ShoppingIdeasSidebar({
 }
 
 function ShoppingIdeasHeader({
-  collapsed,
   mode,
   notificationButtonRef,
   notificationsPanelOpen,
   onViewerAvatarError,
   onToggleNotifications,
-  onToggleSidebar,
   unreadNotificationCount,
   viewerAvatarEmoji,
   viewerAvatarUrl,
   viewerName,
 }: {
-  collapsed: boolean;
   mode: SecretSantaExperienceMode;
   notificationButtonRef: RefObject<HTMLButtonElement | null>;
   notificationsPanelOpen: boolean;
   onViewerAvatarError: () => void;
   onToggleNotifications: () => void;
-  onToggleSidebar: () => void;
   unreadNotificationCount: number;
   viewerAvatarEmoji: string;
   viewerAvatarUrl: string;
@@ -1964,14 +1960,6 @@ function ShoppingIdeasHeader({
       }}
     >
       <div className="flex min-w-0 items-center gap-3">
-        <AppSidebarToggleButton
-          background="rgba(255,255,255,.82)"
-          borderColor="rgba(72,102,78,.16)"
-          collapsed={collapsed}
-          color={PAGE_TEXT_COLOR}
-          controlsId="shopping-ideas-sidebar-rail"
-          onToggle={onToggleSidebar}
-        />
         <div className="min-w-0">
           <div
             className="flex items-center gap-2 text-[16px] font-black"
@@ -3966,13 +3954,20 @@ function SecretSantaExperience({ mode = "shopping" }: SecretSantaExperienceProps
         activeGroup={sidebarActiveGroup}
         collapsed={sidebarCollapsed}
       />
+      <AppSidebarToggleButton
+        background="rgba(255,255,255,.92)"
+        borderColor="rgba(72,102,78,.2)"
+        collapsed={sidebarCollapsed}
+        color={PAGE_TEXT_COLOR}
+        controlsId="shopping-ideas-sidebar-rail"
+        onToggle={toggleSidebar}
+      />
+
       <div className={`relative z-10 min-h-screen ${sidebarCollapsed ? "xl:pl-20" : "xl:pl-70"}`}>
         <ShoppingIdeasHeader
-          collapsed={sidebarCollapsed}
           mode={mode}
           notificationButtonRef={notificationButtonRef}
           notificationsPanelOpen={notificationsPanelOpen}
-          onToggleSidebar={toggleSidebar}
           onViewerAvatarError={() => {
             setViewerAvatarUrl("");
             storeViewerAvatarUrl(null, viewerUserId);
