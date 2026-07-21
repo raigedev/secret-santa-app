@@ -13,6 +13,69 @@ const RLS_POLICY_MIGRATION_VERSION = "202604300003";
 const LOCAL_COMPAT_SQL = `
 do $$
 begin
+  -- Later hardening intentionally removes these browser-write policies. Recreate
+  -- deny-all placeholders so the older ALTER POLICY migration can be replayed
+  -- safely before those later migrations remove them again.
+  if to_regclass('public.group_draw_cycle_pairs') is not null
+    and not exists (
+      select 1
+      from pg_policies
+      where schemaname = 'public'
+        and tablename = 'group_draw_cycle_pairs'
+        and policyname = 'group_draw_cycle_pairs_select_for_owner'
+    ) then
+    create policy group_draw_cycle_pairs_select_for_owner
+      on public.group_draw_cycle_pairs
+      for select
+      to authenticated
+      using (false);
+  end if;
+
+  if to_regclass('public.group_members') is not null
+    and not exists (
+      select 1
+      from pg_policies
+      where schemaname = 'public'
+        and tablename = 'group_members'
+        and policyname = 'group_members_delete_for_owner_or_self'
+    ) then
+    create policy group_members_delete_for_owner_or_self
+      on public.group_members
+      for delete
+      to authenticated
+      using (false);
+  end if;
+
+  if to_regclass('public.group_members') is not null
+    and not exists (
+      select 1
+      from pg_policies
+      where schemaname = 'public'
+        and tablename = 'group_members'
+        and policyname = 'group_members_insert_for_owner'
+    ) then
+    create policy group_members_insert_for_owner
+      on public.group_members
+      for insert
+      to authenticated
+      with check (false);
+  end if;
+
+  if to_regclass('public.messages') is not null
+    and not exists (
+      select 1
+      from pg_policies
+      where schemaname = 'public'
+        and tablename = 'messages'
+        and policyname = 'messages_insert_for_thread_participants'
+    ) then
+    create policy messages_insert_for_thread_participants
+      on public.messages
+      for insert
+      to authenticated
+      with check (false);
+  end if;
+
   if to_regclass('public.notifications') is not null
     and not exists (
       select 1
@@ -151,7 +214,7 @@ function applyLaterMigrations(containerName) {
 
   for (const migrationName of migrationNames) {
     if (migrationName.startsWith(RLS_POLICY_MIGRATION_VERSION)) {
-      runDockerPsql(containerName, LOCAL_COMPAT_SQL, "Apply local notification policy compatibility");
+      runDockerPsql(containerName, LOCAL_COMPAT_SQL, "Apply local RLS policy compatibility");
     }
 
     applySqlFile(containerName, join(MIGRATIONS_DIR, migrationName));

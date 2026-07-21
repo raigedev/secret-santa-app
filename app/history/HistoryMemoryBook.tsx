@@ -220,7 +220,7 @@ export function HistoryMemoryBook({
               </div>
 
               <button type="button" onClick={() => onOpenGroup(selectedGroup.id)} className="gift-button gift-button-primary gift-button-full mt-6 text-sm">
-                View result card
+                View full recap
                 <ArrowRightIcon />
               </button>
               {selectedGroup.isOwner && (

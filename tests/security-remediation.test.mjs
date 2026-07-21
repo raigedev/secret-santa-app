@@ -224,6 +224,98 @@ test("live reveal group actions reject malformed group IDs before side effects",
   }
 });
 
+test("concluded exchanges are read-only across UI, actions, and Data API writes", () => {
+  const historyRuleSource = readFileSync("lib/groups/history.ts", "utf8");
+  const historyBookSource = readFileSync("app/history/HistoryMemoryBook.tsx", "utf8");
+  const groupPageSource = readFileSync("app/group/[id]/page.tsx", "utf8");
+  const membersSource = readFileSync("app/group/[id]/GroupMembersSection.tsx", "utf8");
+  const groupActionsSource = readFileSync("app/group/[id]/actions.ts", "utf8");
+  const drawActionSource = readFileSync("app/group/[id]/draw-action.ts", "utf8");
+  const dashboardActionsSource = readFileSync("app/dashboard/actions.ts", "utf8");
+  const giftActionsSource = readFileSync("app/secret-santa/actions.ts", "utf8");
+  const migrationPath = [
+    "supabase",
+    "migrations",
+    ["20260721111826", "lock", "historical", "group", "updates.sql"].join("_"),
+  ].join("/");
+  // eslint-disable-next-line security/detect-non-literal-fs-filename -- Test reads one pinned repo-local migration path.
+  const migrationSource = readFileSync(migrationPath, "utf8");
+  const compactMigration = compactSql(migrationSource);
+
+  function assertNearbyHistoryGuard(source, marker, distance = 5000) {
+    const markerIndex = source.indexOf(marker);
+    assert.notEqual(markerIndex, -1, `Expected historical guard target: ${marker}`);
+    assert.match(
+      source.slice(markerIndex, markerIndex + distance),
+      /isGroupInHistory\(/,
+      `Expected ${marker} to enforce the historical exchange cutoff.`
+    );
+  }
+
+  assert.match(historyRuleSource, /export const GROUP_HISTORY_GRACE_DAYS = 7;/);
+  assert.match(historyRuleSource, /Past exchanges are read-only/);
+  assert.match(groupPageSource, /const isHistorical = isGroupInHistory\(groupData\.event_date\);/);
+  assert.match(groupPageSource, /data-testid="historical-exchange-notice"/);
+  assert.match(groupPageSource, /showEditModal=\{showEditModal && !isHistorical\}/);
+  assert.match(groupPageSource, /readOnly=\{isHistorical\}/);
+  assert.match(membersSource, /!drawDone && !readOnly/);
+  assert.match(historyBookSource, /View full recap/);
+
+  for (const marker of [
+    "async function assertOwnerCanManageInvites(",
+    "export async function updateNickname(",
+    "export async function editGroup(",
+    "export async function removeMember(",
+    "export async function leaveGroup(",
+    "export async function triggerReveal(",
+  ]) {
+    assertNearbyHistoryGuard(groupActionsSource, marker);
+  }
+
+  for (const marker of [
+    "async function assertOwnerCanManageDrawRules(",
+    "export async function drawSecretSanta(",
+    "export async function resetSecretSantaDraw(",
+  ]) {
+    assertNearbyHistoryGuard(drawActionSource, marker);
+  }
+
+  assertNearbyHistoryGuard(dashboardActionsSource, "async function prepareInviteResponseAction(");
+  assertNearbyHistoryGuard(giftActionsSource, "async function requireWritableExchange(");
+
+  assert.match(compactMigration, /alter policy groups_update_for_owner/);
+  assert.match(compactMigration, /alter policy group_draw_exclusions_insert_for_owner/);
+  assert.match(compactMigration, /alter policy group_draw_exclusions_delete_for_owner/);
+  assert.match(
+    compactMigration,
+    /event_date is null or event_date > \(timezone\('utc'::text, now\(\)\)\)::date - 7/
+  );
+  assert.doesNotMatch(compactMigration, /alter policy groups_delete_for_owner/);
+});
+
+test("local Supabase repair can replay legacy RLS hardening after final policy removals", () => {
+  const repairSource = readFileSync("scripts/repair-local-supabase-schema.mjs", "utf8");
+
+  for (const policyName of [
+    "group_draw_cycle_pairs_select_for_owner",
+    "group_members_delete_for_owner_or_self",
+    "group_members_insert_for_owner",
+    "messages_insert_for_thread_participants",
+  ]) {
+    assert.ok(
+      repairSource.includes(`policyname = '${policyName}'`),
+      `Expected a local compatibility guard for ${policyName}.`
+    );
+  }
+
+  assert.match(repairSource, /using \(false\);/);
+  assert.match(repairSource, /with check \(false\);/);
+  assert.match(
+    repairSource,
+    /runDockerPsql\(containerName, LOCAL_COMPAT_SQL, "Apply local RLS policy compatibility"\)/
+  );
+});
+
 test("invite links expire seven days after creation", () => {
   const createdAt = new Date("2026-04-23T00:00:00.000Z");
   const expiresAt = new Date(buildInviteLinkExpiresAt(createdAt));
@@ -1660,7 +1752,7 @@ test("group detail clears stale owner insights before applying fresh group data"
   );
   assert.match(
     groupPageSource,
-    /wishlistReadinessLoaded=\{!isOwner \|\| Boolean\(ownerInsights\)\}/
+    /wishlistReadinessLoaded=\{isHistorical \|\| !isOwner \|\| Boolean\(ownerInsights\)\}/
   );
 });
 
@@ -2511,7 +2603,9 @@ test("authenticated browser POST routes reject untrusted origins", () => {
   assert.match(webSecuritySource, /fetchSite === "same-origin"/);
   assert.match(webSecuritySource, /fetchSite === "same-site"/);
   assert.match(webSecuritySource, /fetchSite === "none"/);
-  assert.match(webSecuritySource, /isLocalDevelopmentOrigin\(requestOrigin\)/);
+  assert.match(webSecuritySource, /getHeaderRequestOrigin\(request\.headers\)/);
+  assert.match(webSecuritySource, /\.\.\.getTrustedOrigins\(requestUrlOrigin\)/);
+  assert.match(webSecuritySource, /\.\.\.getTrustedOrigins\(requestHeaderOrigin\)/);
   assert.doesNotMatch(webSecuritySource, /uniqueOrigins\(\[\s*requestOrigin,/);
   assert.doesNotMatch(webSecuritySource, /!== "cross-site"/);
   assert.match(aiSuggestionsSource, /isTrustedRequestOrigin\(request\)/);

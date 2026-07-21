@@ -3,6 +3,10 @@
 import { randomInt } from "crypto";
 import { isAssignmentAlreadyDrawnError } from "@/lib/groups/draw.mjs";
 import { groupHasDrawStarted } from "@/lib/groups/draw-state";
+import {
+  GROUP_HISTORY_READ_ONLY_MESSAGE,
+  isGroupInHistory,
+} from "@/lib/groups/history";
 import { validateAnonymousGroupNickname } from "@/lib/groups/nickname";
 import { getServerActionContext, requireRateLimitedAction } from "@/lib/auth/server-action-context";
 import { recordAuditEvent, recordServerFailure } from "@/lib/security/audit";
@@ -361,12 +365,16 @@ async function assertOwnerCanManageDrawRules(
   const supabase = await createClient();
   const { data: group } = await supabase
     .from("groups")
-    .select("owner_id")
+    .select("owner_id, event_date")
     .eq("id", groupId)
     .maybeSingle();
 
   if (!group || group.owner_id !== actorUserId) {
     return { ok: false, message: "Only the group owner can manage draw rules." };
+  }
+
+  if (isGroupInHistory(group.event_date)) {
+    return { ok: false, message: GROUP_HISTORY_READ_ONLY_MESSAGE };
   }
 
   if (await groupHasDrawStarted(groupId)) {
@@ -721,7 +729,7 @@ export async function drawSecretSanta(
   const { supabase, user } = context;
   const { data: group } = await supabase
     .from("groups")
-    .select("owner_id, name, require_anonymous_nickname")
+    .select("owner_id, name, require_anonymous_nickname, event_date")
     .eq("id", groupId)
     .maybeSingle();
 
@@ -731,6 +739,10 @@ export async function drawSecretSanta(
 
   if (group.owner_id !== user.id) {
     return { success: false, message: "Only the group owner can draw names." };
+  }
+
+  if (isGroupInHistory(group.event_date)) {
+    return { success: false, message: GROUP_HISTORY_READ_ONLY_MESSAGE };
   }
 
   const { data: existingDraw } = await supabaseAdmin
@@ -1040,7 +1052,7 @@ export async function resetSecretSantaDraw(
 
   const { data: group } = await supabase
     .from("groups")
-    .select("owner_id")
+    .select("owner_id, event_date")
     .eq("id", groupId)
     .maybeSingle();
 
@@ -1050,6 +1062,10 @@ export async function resetSecretSantaDraw(
 
   if (group.owner_id !== user.id) {
     return { success: false, message: "Only the group owner can reset the draw." };
+  }
+
+  if (isGroupInHistory(group.event_date)) {
+    return { success: false, message: GROUP_HISTORY_READ_ONLY_MESSAGE };
   }
 
   const { data: resetData, error: resetError } = await supabaseAdmin.rpc(

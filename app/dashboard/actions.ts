@@ -14,6 +14,10 @@ import {
   type ServerSupabaseClient,
 } from "@/lib/auth/server-action-context";
 import { supabaseAdmin } from "@/lib/supabase/admin";
+import {
+  GROUP_HISTORY_READ_ONLY_MESSAGE,
+  isGroupInHistory,
+} from "@/lib/groups/history";
 import { isUuid } from "@/lib/validation/common";
 import type { PendingInvite } from "./dashboard-types";
 
@@ -24,6 +28,9 @@ type MembershipActionResult = {
 
 type PreparedInviteResponseAction =
   | {
+      group: {
+        requireAnonymousNickname: boolean;
+      };
       success: true;
       supabase: ServerSupabaseClient;
       user: ServerActionUser;
@@ -54,7 +61,28 @@ async function prepareInviteResponseAction(
     return { success: false, message: context.message };
   }
 
-  return { success: true, supabase: context.supabase, user: context.user };
+  const { data: group } = await context.supabase
+    .from("groups")
+    .select("event_date, require_anonymous_nickname")
+    .eq("id", groupId)
+    .maybeSingle();
+
+  if (!group) {
+    return { success: false, message: "Group not found." };
+  }
+
+  if (isGroupInHistory(group.event_date)) {
+    return { success: false, message: GROUP_HISTORY_READ_ONLY_MESSAGE };
+  }
+
+  return {
+    group: {
+      requireAnonymousNickname: Boolean(group.require_anonymous_nickname),
+    },
+    success: true,
+    supabase: context.supabase,
+    user: context.user,
+  };
 }
 
 async function notifyOwnerAboutInviteResponse(options: {
@@ -117,20 +145,15 @@ export async function acceptInvite(
     return { success: false, message: preparedAction.message };
   }
 
-  const { supabase, user } = preparedAction;
+  const { group, supabase, user } = preparedAction;
   const normalizedEmail = (user.email || "").toLowerCase();
-  const [membershipsResult, groupResult, profileResult] = await Promise.all([
+  const [membershipsResult, profileResult] = await Promise.all([
     supabaseAdmin
       .from("group_members")
       .select("id, user_id, email, nickname")
       .eq("group_id", groupId)
       .eq("status", "pending")
       .limit(20),
-    supabase
-      .from("groups")
-      .select("id, require_anonymous_nickname")
-      .eq("id", groupId)
-      .maybeSingle(),
     supabase
       .from("profiles")
       .select("display_name")
@@ -160,7 +183,7 @@ export async function acceptInvite(
     return { success: false, message: "Invitation not found." };
   }
 
-  const requiresAnonymousNickname = Boolean(groupResult.data?.require_anonymous_nickname);
+  const requiresAnonymousNickname = group.requireAnonymousNickname;
   const cleanNickname = sanitizeGroupNickname(nickname || "");
 
   if (requiresAnonymousNickname) {
