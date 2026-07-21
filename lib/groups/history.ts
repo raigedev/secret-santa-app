@@ -1,6 +1,9 @@
 const DAY_MS = 24 * 60 * 60 * 1000;
 
-const GROUP_HISTORY_GRACE_DAYS = 7;
+export const GROUP_HISTORY_GRACE_DAYS = 7;
+
+export const GROUP_HISTORY_READ_ONLY_MESSAGE =
+  "Past exchanges are read-only. Their final details and results are preserved.";
 
 type GroupHistoryState = {
   daysPastEvent: number;

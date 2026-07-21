@@ -501,7 +501,7 @@ const AUTHENTICATED_SCREEN_CASES: ScreenCase[] = [
       }
 
       await expect(page.getByRole("heading", { name: /past wishlist/i })).toBeVisible();
-      await expect(page.getByRole("button", { name: /view result card/i })).toHaveCount(1);
+      await expect(page.getByRole("button", { name: /view full recap/i })).toHaveCount(1);
       const selectedHistoryGroupButtons = page.locator(
         '#history-exchange-list button[aria-pressed="true"]'
       );
@@ -625,6 +625,31 @@ test.describe("authenticated screen regressions", () => {
       await expect(page.getByTestId("app-shell-sidebar")).toBeVisible();
     });
   }
+  test("history opens concluded exchanges as read-only recaps", async ({ page }) => {
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await loginWithTestCredentials(page, credentials!);
+    await page.goto("/history");
+
+    const recapButton = page.getByRole("button", { name: /^view full recap$/i });
+
+    await expect(recapButton).toBeVisible();
+    await expect(recapButton).toHaveCount(1);
+    await Promise.all([page.waitForURL(/\/group\/[^/]+$/), recapButton.click()]);
+
+    const historicalNotice = page.getByTestId("historical-exchange-notice");
+    const groupSections = page.locator('nav[aria-label="Group sections"]');
+
+    await expect(historicalNotice).toBeVisible();
+    await expect(historicalNotice.getByText(/past exchange - read-only recap/i)).toBeVisible();
+    await expect(page.getByRole("button", { name: /back to history/i })).toBeVisible();
+    await expect(groupSections.getByRole("link", { name: /^final members$/i })).toBeVisible();
+    await expect(groupSections.getByRole("link", { name: /^results$/i })).toBeVisible();
+    await expect(groupSections.getByRole("link", { name: /^settings$/i })).toHaveCount(0);
+    await expect(page.getByRole("button", { name: /^edit group$/i })).toHaveCount(0);
+    await expect(page.getByRole("button", { name: /delete group/i })).toHaveCount(0);
+    await expect(page.getByRole("button", { name: /reset draw/i })).toHaveCount(0);
+  });
+
   test("desktop sidebars collapse to an accessible icon rail and remember the choice", async ({ page }) => {
     await page.setViewportSize({ width: 1440, height: 900 });
     await loginWithTestCredentials(page, credentials!);

@@ -68,6 +68,21 @@ function getEventDate() {
   return date.toISOString().slice(0, 10);
 }
 
+function getHistoricalEventDate() {
+  const date = new Date();
+  date.setUTCDate(date.getUTCDate() - 8);
+  return date.toISOString().slice(0, 10);
+}
+
+function deriveHistoricalGroupId(groupId) {
+  if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(groupId)) {
+    throw new Error("PLAYWRIGHT_E2E_GROUP_ID must be a valid UUID.");
+  }
+
+  const finalDigit = groupId.at(-1)?.toLowerCase();
+  return `${groupId.slice(0, -1)}${finalDigit === "f" ? "e" : "f"}`;
+}
+
 async function failOnError(result, label) {
   const awaitedResult = await result;
 
@@ -141,6 +156,8 @@ async function seed() {
   const giverEmail = readRequiredEnv(values, "PLAYWRIGHT_E2E_EMAIL");
   const password = readRequiredEnv(values, "PLAYWRIGHT_E2E_PASSWORD");
   const groupId = readRequiredEnv(values, "PLAYWRIGHT_E2E_GROUP_ID");
+  const historicalGroupId = deriveHistoricalGroupId(groupId);
+  const seededGroupIds = [groupId, historicalGroupId];
   const recipientEmail =
     process.env.PLAYWRIGHT_E2E_RECIPIENT_EMAIL ||
     values.get("PLAYWRIGHT_E2E_RECIPIENT_EMAIL") ||
@@ -169,6 +186,7 @@ async function seed() {
     giverEmail.toLowerCase(),
     recipientEmail.toLowerCase(),
     groupId,
+    historicalGroupId,
   ];
 
   await failOnError(
@@ -203,37 +221,60 @@ async function seed() {
     "Upsert profiles"
   );
 
-  await failOnError(admin.from("messages").delete().eq("group_id", groupId), "Clear messages");
   await failOnError(
-    admin.from("thread_reads").delete().eq("group_id", groupId),
+    admin.from("messages").delete().in("group_id", seededGroupIds),
+    "Clear messages"
+  );
+  await failOnError(
+    admin.from("thread_reads").delete().in("group_id", seededGroupIds),
     "Clear thread reads"
   );
   await failOnError(
-    admin.from("assignments").delete().eq("group_id", groupId),
+    admin.from("group_reveal_sessions").delete().in("group_id", seededGroupIds),
+    "Clear reveal sessions"
+  );
+  await failOnError(
+    admin.from("assignments").delete().in("group_id", seededGroupIds),
     "Clear assignments"
   );
-  await failOnError(admin.from("wishlists").delete().eq("group_id", groupId), "Clear wishlists");
   await failOnError(
-    admin.from("group_members").delete().eq("group_id", groupId),
+    admin.from("wishlists").delete().in("group_id", seededGroupIds),
+    "Clear wishlists"
+  );
+  await failOnError(
+    admin.from("group_members").delete().in("group_id", seededGroupIds),
     "Clear group members"
   );
 
   await failOnError(
     admin.from("groups").upsert(
-      {
-        budget: 1000,
-        currency: "PHP",
-        description: "Local seeded exchange for authenticated Playwright coverage.",
-        event_date: getEventDate(),
-        id: groupId,
-        name: "Playwright Gift Lab",
-        owner_id: giver.id,
-        revealed: true,
-        revealed_at: new Date().toISOString(),
-      },
+      [
+        {
+          budget: 1000,
+          currency: "PHP",
+          description: "Local seeded exchange for authenticated Playwright coverage.",
+          event_date: getEventDate(),
+          id: groupId,
+          name: "Playwright Gift Lab",
+          owner_id: giver.id,
+          revealed: true,
+          revealed_at: new Date().toISOString(),
+        },
+        {
+          budget: 750,
+          currency: "PHP",
+          description: "A concluded exchange for read-only history coverage.",
+          event_date: getHistoricalEventDate(),
+          id: historicalGroupId,
+          name: "Playwright Holiday Memory",
+          owner_id: giver.id,
+          revealed: true,
+          revealed_at: new Date().toISOString(),
+        },
+      ],
       { onConflict: "id" }
     ),
-    "Upsert group"
+    "Upsert groups"
   );
 
   await failOnError(
@@ -249,6 +290,22 @@ async function seed() {
       {
         email: recipientEmail,
         group_id: groupId,
+        nickname: "Recipient",
+        role: "member",
+        status: "accepted",
+        user_id: recipient.id,
+      },
+      {
+        email: giverEmail,
+        group_id: historicalGroupId,
+        nickname: "Giver",
+        role: "owner",
+        status: "accepted",
+        user_id: giver.id,
+      },
+      {
+        email: recipientEmail,
+        group_id: historicalGroupId,
         nickname: "Recipient",
         role: "member",
         status: "accepted",
@@ -276,6 +333,24 @@ async function seed() {
         group_id: groupId,
         receiver_id: giver.id,
       },
+      {
+        gift_prep_status: "ready_to_give",
+        gift_prep_updated_at: new Date().toISOString(),
+        gift_received: true,
+        gift_received_at: new Date().toISOString(),
+        giver_id: giver.id,
+        group_id: historicalGroupId,
+        receiver_id: recipient.id,
+      },
+      {
+        gift_prep_status: "ready_to_give",
+        gift_prep_updated_at: new Date().toISOString(),
+        gift_received: true,
+        gift_received_at: new Date().toISOString(),
+        giver_id: recipient.id,
+        group_id: historicalGroupId,
+        receiver_id: giver.id,
+      },
     ]),
     "Insert assignments"
   );
@@ -301,6 +376,16 @@ async function seed() {
         preferred_price_min: 250,
         priority: 1,
         user_id: giver.id,
+      },
+      {
+        group_id: historicalGroupId,
+        item_category: "Books",
+        item_name: "Holiday recipe book",
+        item_note: "A keepsake from the concluded exchange.",
+        preferred_price_max: 750,
+        preferred_price_min: 300,
+        priority: 1,
+        user_id: recipient.id,
       },
     ]),
     "Insert wishlist items"

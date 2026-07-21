@@ -13,6 +13,7 @@ type GroupMembersSectionProps = {
   isOwner: boolean;
   missingWishlistMemberNames?: string[];
   pendingMembers: Member[];
+  readOnly?: boolean;
   requireAnonymousNickname: boolean;
   wishlistReadinessLoaded?: boolean;
   onRemoveMember: (member: Member) => void;
@@ -38,6 +39,7 @@ export function GroupMembersSection({
   isOwner,
   missingWishlistMemberNames = [],
   pendingMembers,
+  readOnly = false,
   requireAnonymousNickname,
   wishlistReadinessLoaded = true,
   onRemoveMember,
@@ -81,10 +83,10 @@ export function GroupMembersSection({
             </h2>
           </div>
           <p className="mt-1 text-xs font-semibold leading-5 text-[#64748b]">
-            Monitor participation and progress.
+            {readOnly ? "Final participant list for this exchange." : "Monitor participation and progress."}
           </p>
         </div>
-        {isOwner && !drawDone && (
+        {isOwner && !drawDone && !readOnly && (
           <a
             href="#member-management"
             className="inline-flex min-h-10 items-center justify-center gap-2 rounded-full bg-white px-4 text-xs font-black text-[#48664e] shadow-[inset_0_0_0_1px_rgba(72,102,78,.14)] transition hover:-translate-y-0.5"
@@ -123,11 +125,11 @@ export function GroupMembersSection({
                 (wishlistReadinessLoaded && missingWishlistNames.has(normalizeMemberName(rawMemberName)));
               const statusMeta = getStatusMeta(status);
               const wishlistMeta = getWishlistMeta(status, isWishlistMissing, isWishlistPendingCheck);
-              const canEditNickname = isCurrentUser && !drawDone;
+              const canEditNickname = isCurrentUser && !drawDone && !readOnly;
               const canRemoveAcceptedMember =
-                isOwner && !drawDone && status === "accepted" && Boolean(member.user_id) && !isCurrentUser;
+                isOwner && !drawDone && !readOnly && status === "accepted" && Boolean(member.user_id) && !isCurrentUser;
               const canManageInvite =
-                isOwner && !drawDone && (status === "pending" || status === "declined");
+                isOwner && !drawDone && !readOnly && (status === "pending" || status === "declined");
               const hasRowActions = canEditNickname || canRemoveAcceptedMember;
 
               return (
@@ -212,7 +214,7 @@ export function GroupMembersSection({
         </div>
       )}
 
-      {isOwner && !drawDone && (
+      {isOwner && !drawDone && !readOnly && (
         <div id="member-management" className="mt-4">
           <InviteForm groupId={groupId} />
         </div>

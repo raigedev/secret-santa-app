@@ -32,6 +32,7 @@ import { GroupOwnerInsightsPanel, GroupOwnerInsightsSkeleton } from "./GroupOwne
 import { BUDGET_OPTIONS, HISTORY_PAGE_SIZE } from "./group-page-config";
 import { HistorySkeletonRows } from "./GroupPagePrimitives";
 import { createSignedGroupImageUrl } from "@/lib/groups/group-image";
+import { isGroupInHistory } from "@/lib/groups/history";
 import { getCurrencySymbol } from "@/lib/currency";
 import {
   clearGroupPageSnapshots,
@@ -156,7 +157,7 @@ export default function GroupDetailsPage() {
       setAssignment(null);
       setDrawDone(false);
       setDrawExclusions([]);
-      setDrawRulesReady(!snapshot.isOwner);
+      setDrawRulesReady(!snapshot.isOwner || isGroupInHistory(snapshot.groupData.event_date));
       setGroupDataFresh(false);
       setOwnerInsights(null);
       setRevealMatches([]);
@@ -224,6 +225,8 @@ export default function GroupDetailsPage() {
         image_url: signedGroupImageUrl,
       };
       const isCurrentUserOwner = user.id === group.owner_id;
+      const isHistoricalGroup = isGroupInHistory(group.event_date);
+      const canLoadOwnerManagement = isCurrentUserOwner && !isHistoricalGroup;
       const membersResult = await getGroupMembersForViewer(id);
 
       if (!isMounted || currentLoadVersion !== loadVersion) return;
@@ -245,7 +248,7 @@ export default function GroupDetailsPage() {
       setHasMoreDrawResets(false);
       setGroupData(group);
       setIsOwner(isCurrentUserOwner);
-      setDrawRulesReady(!isCurrentUserOwner);
+      setDrawRulesReady(!canLoadOwnerManagement);
 
       const safeMembers = (membersResult.members as Partial<Member>[]).map((member) => ({
         id: member.id || "",
@@ -293,11 +296,11 @@ export default function GroupDetailsPage() {
 
       void (async () => {
         const [exclusionResult, insightsResult, revealResult, recapResult, rerollHistoryResult] = await Promise.all([
-          isCurrentUserOwner ? getDrawExclusions(id) : Promise.resolve(null),
-          isCurrentUserOwner ? getGroupOwnerInsights(id) : Promise.resolve(null),
+          canLoadOwnerManagement ? getDrawExclusions(id) : Promise.resolve(null),
+          canLoadOwnerManagement ? getGroupOwnerInsights(id) : Promise.resolve(null),
           group.revealed ? getRevealMatches(id) : Promise.resolve(null),
           group.revealed ? getGroupRecap(id) : Promise.resolve(null),
-          isCurrentUserOwner
+          canLoadOwnerManagement
             ? getDrawRerollHistory(id, {
                 cycleOffset: 0,
                 resetOffset: 0,
@@ -308,7 +311,7 @@ export default function GroupDetailsPage() {
 
         if (!isMounted || currentLoadVersion !== loadVersion) return;
 
-        if (isCurrentUserOwner) {
+        if (canLoadOwnerManagement) {
           if (exclusionResult?.success && exclusionResult.exclusions) {
             setDrawExclusions(exclusionResult.exclusions);
             setDrawRulesReady(true);
@@ -761,6 +764,7 @@ export default function GroupDetailsPage() {
     );
   }
 
+  const isHistorical = isGroupInHistory(groupData.event_date);
   const acceptedMembers = members.filter((member) => member.status === "accepted");
   const pendingMembers = members.filter((member) => member.status === "pending");
   const declinedMembers = members.filter((member) => member.status === "declined");
@@ -774,12 +778,20 @@ export default function GroupDetailsPage() {
 
   const allAccepted =
     pendingMembers.length === 0 && declinedMembers.length === 0 && acceptedMembers.length >= 3;
-  const drawRuleControlsDisabled = drawRuleSaving || drawLoading || resetLoading || !drawRulesReady;
-  const canDrawNames = allAccepted && drawRulesReady && !drawLoading && !resetLoading;
+  const drawRuleControlsDisabled =
+    isHistorical || drawRuleSaving || drawLoading || resetLoading || !drawRulesReady;
+  const canDrawNames =
+    !isHistorical && allAccepted && drawRulesReady && !drawLoading && !resetLoading;
 
   const currencySymbol = getCurrencySymbol(groupData.currency || "USD");
   const editCurrencySymbol = getCurrencySymbol(editCurrency);
-  const drawStatusLabel = groupData.revealed ? "Revealed" : drawDone ? "Names drawn" : "Ready soon";
+  const drawStatusLabel = groupData.revealed
+    ? "Revealed"
+    : drawDone
+      ? "Names drawn"
+      : isHistorical
+        ? "Not completed"
+        : "Ready soon";
   const groupBudgetLabel = groupData.budget
     ? `${currencySymbol}${formatGroupBudgetAmount(groupData.budget)}`
     : "No limit";
@@ -789,6 +801,19 @@ export default function GroupDetailsPage() {
     (groupRecap?.aliasRoster.length || 0) - recapAliasPreview.length,
     0
   );
+  const groupTabs = isHistorical
+    ? [
+        { href: "#group-overview", label: "Overview" },
+        { href: "#group-members", label: "Final members" },
+        { href: "#draw-controls", label: "Results" },
+      ]
+    : [
+        { href: "#group-overview", label: "Overview" },
+        { href: "#group-members", label: "Members" },
+        { href: "#draw-controls", label: "Matches" },
+        { href: "/secret-santa-chat", label: "Messages" },
+        { href: "#owner-controls", label: "Settings" },
+      ];
 
   return (
     <main
@@ -823,10 +848,10 @@ export default function GroupDetailsPage() {
         editName={editName}
         editSaving={editSaving}
         groupData={groupData}
-        removingMember={removingMember}
-        showDeleteModal={showDeleteModal}
-        showEditModal={showEditModal}
-        showLeaveModal={showLeaveModal}
+        removingMember={isHistorical ? null : removingMember}
+        showDeleteModal={showDeleteModal && !isHistorical}
+        showEditModal={showEditModal && !isHistorical}
+        showLeaveModal={showLeaveModal && !isHistorical}
         onCloseDelete={() => setShowDeleteModal(false)}
         onCloseEdit={() => setShowEditModal(false)}
         onCloseLeave={() => setShowLeaveModal(false)}
@@ -846,7 +871,7 @@ export default function GroupDetailsPage() {
 
       <FadeIn className="relative z-10 mx-auto max-w-376 px-4 py-5 sm:px-6 sm:py-6">
         <button
-          onClick={() => router.push("/groups")}
+          onClick={() => router.push(isHistorical ? "/history" : "/groups")}
           className="gift-button gift-button-secondary gift-button-compact mb-4 w-full text-sm sm:w-auto"
           style={{
             fontFamily: "inherit",
@@ -855,10 +880,28 @@ export default function GroupDetailsPage() {
           <span className="gift-button-icon" aria-hidden="true">
             <ChevronLeftIcon />
           </span>
-          Back to groups
+          {isHistorical ? "Back to history" : "Back to groups"}
         </button>
 
         <div className="space-y-5">
+          {isHistorical && (
+            <section
+              data-testid="historical-exchange-notice"
+              className="flex flex-col gap-3 rounded-3xl bg-[#eef3ef] px-5 py-4 text-[#2e3432] shadow-[inset_0_0_0_1px_rgba(72,102,78,.12)] sm:flex-row sm:items-center sm:px-6"
+              aria-label="Past exchange status"
+            >
+              <span className="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-white text-[#48664e] shadow-[inset_0_0_0_1px_rgba(72,102,78,.12)]">
+                <LockClosedIcon />
+              </span>
+              <div>
+                <p className="text-sm font-black text-[#48664e]">Past exchange - read-only recap</p>
+                <p className="mt-1 text-sm font-semibold leading-6 text-[#5b605e]">
+                  The final event details, members, and results are preserved and can no longer be changed.
+                </p>
+              </div>
+            </section>
+          )}
+
           <section
             id="group-overview"
             className="holiday-panel-strong rounded-3xl px-5 py-4 sm:px-6"
@@ -881,6 +924,11 @@ export default function GroupDetailsPage() {
                         Owner
                       </span>
                     )}
+                    {isHistorical && (
+                      <span className="rounded-full bg-[#eef3ef] px-3 py-1 text-[11px] font-black text-[#48664e] shadow-[inset_0_0_0_1px_rgba(72,102,78,.12)]">
+                        Concluded
+                      </span>
+                    )}
                   </div>
                   <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-2 text-[13px] font-bold text-[#5b605e]">
                     <span className="inline-flex items-center gap-1.5">
@@ -899,7 +947,12 @@ export default function GroupDetailsPage() {
                 </div>
               </div>
 
-              {isOwner ? (
+              {isHistorical ? (
+                <span className="inline-flex min-h-11 items-center gap-2 rounded-full bg-[#eef3ef] px-4 text-sm font-black text-[#48664e] shadow-[inset_0_0_0_1px_rgba(72,102,78,.12)]">
+                  <LockClosedIcon />
+                  Read-only recap
+                </span>
+              ) : isOwner ? (
                 <button
                   type="button"
                   onClick={openEditModal}
@@ -932,13 +985,7 @@ export default function GroupDetailsPage() {
             aria-label="Group sections"
             className="flex gap-8 overflow-x-auto border-b border-[rgba(72,102,78,.12)] text-sm font-black text-[#64748b]"
           >
-            {[
-              { href: "#group-overview", label: "Overview" },
-              { href: "#group-members", label: "Members" },
-              { href: "#draw-controls", label: "Matches" },
-              { href: "/secret-santa-chat", label: "Messages" },
-              { href: "#owner-controls", label: "Settings" },
-            ].map((tab, index) => (
+            {groupTabs.map((tab, index) => (
               <a
                 key={tab.label}
                 href={tab.href}
@@ -956,7 +1003,9 @@ export default function GroupDetailsPage() {
 
           <div
             className={`grid gap-5 ${
-              isOwner ? "xl:grid-cols-[minmax(0,1fr)_22rem] xl:items-start" : ""
+              isOwner && !isHistorical
+                ? "xl:grid-cols-[minmax(0,1fr)_22rem] xl:items-start"
+                : ""
             }`}
           >
             <div className="space-y-5">
@@ -969,8 +1018,9 @@ export default function GroupDetailsPage() {
                 isOwner={isOwner}
                 missingWishlistMemberNames={ownerInsights?.missingWishlistMemberNames ?? []}
                 pendingMembers={pendingMembers}
+                readOnly={isHistorical}
                 requireAnonymousNickname={Boolean(groupData?.require_anonymous_nickname)}
-                wishlistReadinessLoaded={!isOwner || Boolean(ownerInsights)}
+                wishlistReadinessLoaded={isHistorical || !isOwner || Boolean(ownerInsights)}
                 onRemoveMember={handleOpenRemoveMember}
                 onResendMembership={handleResendMembership}
                 onRevokeMembership={handleRevokeMembership}
@@ -989,7 +1039,17 @@ export default function GroupDetailsPage() {
               id="draw-controls"
               className="gift-surface-strong my-5 rounded-3xl px-4 py-5 text-center"
             >
-              {drawDone && assignment ? (
+              {isHistorical && !drawDone ? (
+                <div className="px-4 py-8 sm:px-8">
+                  <span className="mx-auto grid h-12 w-12 place-items-center rounded-full bg-[#eef3ef] text-[#48664e]">
+                    <LockClosedIcon />
+                  </span>
+                  <h2 className="mt-4 text-lg font-black text-[#2e3432]">No name draw was completed</h2>
+                  <p className="mx-auto mt-2 max-w-xl text-sm font-semibold leading-6 text-[#64748b]">
+                    This exchange concluded without final recipient pairings. The record is preserved as-is.
+                  </p>
+                </div>
+              ) : drawDone && assignment ? (
                 <div>
                   <div
                     className="text-lg font-bold mb-2"
@@ -1034,7 +1094,7 @@ export default function GroupDetailsPage() {
                     </div>
                   </div>
 
-                  {isOwner && (
+                  {isOwner && !isHistorical && (
                     <div className="mt-4 px-4">
                       <p className="text-xs text-gray-500 mb-3 leading-relaxed">
                         Need to change members or draw names again? Resetting will permanently
@@ -1125,7 +1185,7 @@ export default function GroupDetailsPage() {
                     ))}
                   </div>
 
-                  {isOwner && (
+                  {isOwner && !isHistorical && (
                     <div
                       className="mx-4 mt-1 mb-5 rounded-2xl p-4 text-left"
                       style={{
@@ -1404,7 +1464,7 @@ export default function GroupDetailsPage() {
                     </div>
                   )}
 
-                  {isOwner ? (
+                  {isOwner && !isHistorical ? (
                     <div>
                       <p className="text-xs text-gray-500 mb-3 px-8 leading-relaxed">
                         This will randomly assign each member someone to give a gift to. If
@@ -1492,7 +1552,14 @@ export default function GroupDetailsPage() {
                 </div>
 
                 {!groupData.revealed ? (
-                  isOwner ? (
+                  isHistorical ? (
+                    <div className="rounded-2xl bg-[#eef3ef] p-4 text-left shadow-[inset_0_0_0_1px_rgba(72,102,78,.12)]">
+                      <div className="text-[13px] font-black text-[#48664e]">Results were not published</div>
+                      <p className="mt-2 text-[12px] font-semibold leading-5 text-[#5b605e]">
+                        This exchange concluded before its full pairings were shared. The private results remain locked.
+                      </p>
+                    </div>
+                  ) : isOwner ? (
                     <div
                       className="rounded-2xl p-4"
                       style={{
@@ -1875,7 +1942,7 @@ export default function GroupDetailsPage() {
               </div>
             )}
 
-            {isOwner && (
+            {isOwner && !isHistorical && (
               <div
                 id="owner-controls"
                 className="rounded-2xl bg-white/75 px-4 py-3 text-right shadow-[inset_0_0_0_1px_rgba(164,60,63,.12)]"
@@ -1892,7 +1959,7 @@ export default function GroupDetailsPage() {
 
             </div>
 
-            {isOwner && (
+            {isOwner && !isHistorical && (
               ownerInsights ? (
                 <GroupOwnerInsightsPanel
                   canDrawNames={canDrawNames}
@@ -1943,6 +2010,28 @@ function ChevronLeftIcon() {
         strokeLinecap="round"
         strokeLinejoin="round"
         strokeWidth="1.8"
+      />
+    </svg>
+  );
+}
+
+function LockClosedIcon() {
+  return (
+    <svg viewBox="0 0 20 20" className="h-4 w-4" fill="none" aria-hidden="true">
+      <rect
+        x="4.5"
+        y="8.5"
+        width="11"
+        height="8"
+        rx="2.25"
+        stroke="currentColor"
+        strokeWidth="1.7"
+      />
+      <path
+        d="M7 8.5V6.8a3 3 0 0 1 6 0v1.7"
+        stroke="currentColor"
+        strokeLinecap="round"
+        strokeWidth="1.7"
       />
     </svg>
   );

@@ -4,6 +4,10 @@ import { recordAuditEvent, recordServerFailure } from "@/lib/security/audit";
 import { createNotification } from "@/lib/notifications";
 import { requireRateLimitedAction } from "@/lib/auth/server-action-context";
 import { supabaseAdmin } from "@/lib/supabase/admin";
+import {
+  GROUP_HISTORY_READ_ONLY_MESSAGE,
+  isGroupInHistory,
+} from "@/lib/groups/history";
 import { isUuid } from "@/lib/validation/common";
 
 const GIFT_PREP_STATUSES = [
@@ -17,6 +21,26 @@ type GiftPrepStatus = (typeof GIFT_PREP_STATUSES)[number];
 
 function isGiftPrepStatus(value: string): value is GiftPrepStatus {
   return GIFT_PREP_STATUSES.includes(value as GiftPrepStatus);
+}
+
+async function requireWritableExchange(
+  groupId: string
+): Promise<{ message?: string; ok: boolean }> {
+  const { data: group, error } = await supabaseAdmin
+    .from("groups")
+    .select("event_date")
+    .eq("id", groupId)
+    .maybeSingle();
+
+  if (error || !group) {
+    return { ok: false, message: "Exchange not found." };
+  }
+
+  if (isGroupInHistory(group.event_date)) {
+    return { ok: false, message: GROUP_HISTORY_READ_ONLY_MESSAGE };
+  }
+
+  return { ok: true };
 }
 
 export async function updateGiftPrepStatus(
@@ -41,6 +65,15 @@ export async function updateGiftPrepStatus(
   }
 
   const { user } = context;
+  const writableExchange = await requireWritableExchange(groupId);
+
+  if (!writableExchange.ok) {
+    return {
+      success: false,
+      message: writableExchange.message || "This exchange cannot be updated.",
+    };
+  }
+
   const { data: assignment, error: assignmentError } = await supabaseAdmin
     .from("assignments")
     .select("group_id, gift_received, gift_prep_status")
@@ -130,6 +163,15 @@ export async function confirmGiftReceived(
   }
 
   const { user } = context;
+  const writableExchange = await requireWritableExchange(groupId);
+
+  if (!writableExchange.ok) {
+    return {
+      success: false,
+      message: writableExchange.message || "This exchange cannot be updated.",
+    };
+  }
+
   const { data: assignment, error: assignmentError } = await supabaseAdmin
     .from("assignments")
     .select("group_id, giver_id, gift_received")

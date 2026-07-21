@@ -91,7 +91,12 @@ export function isTrustedRequestOrigin(request: Request): boolean {
     return fetchSite === "same-origin" || fetchSite === "same-site" || fetchSite === "none";
   }
 
-  const requestOrigin = normalizeHttpOrigin(new URL(request.url).origin);
+  const requestUrlOrigin = normalizeHttpOrigin(new URL(request.url).origin);
+  const requestHeaderOrigin = getHeaderRequestOrigin(request.headers);
+  const trustedOrigins = uniqueOrigins([
+    ...getTrustedOrigins(requestUrlOrigin),
+    ...getTrustedOrigins(requestHeaderOrigin),
+  ]);
 
-  return getTrustedOrigins(requestOrigin).includes(providedOrigin);
+  return trustedOrigins.includes(providedOrigin);
 }

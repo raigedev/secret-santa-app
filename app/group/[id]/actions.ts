@@ -9,6 +9,10 @@ import {
 import { getServerActionContext, requireRateLimitedAction } from "@/lib/auth/server-action-context";
 import { groupHasDrawStarted } from "@/lib/groups/draw-state";
 import {
+  GROUP_HISTORY_READ_ONLY_MESSAGE,
+  isGroupInHistory,
+} from "@/lib/groups/history";
+import {
   findExistingInviteUserIdByEmail,
   findInviteAuthRecipientByEmail,
   sendGroupInviteEmail,
@@ -148,12 +152,16 @@ async function assertOwnerCanManageInvites(
 ): Promise<{ ok: boolean; message?: string }> {
   const { data: group } = await supabase
     .from("groups")
-    .select("owner_id")
+    .select("owner_id, event_date")
     .eq("id", groupId)
     .maybeSingle();
 
   if (!group || group.owner_id !== actorUserId) {
     return { ok: false, message: "Only the group owner can manage invites." };
+  }
+
+  if (isGroupInHistory(group.event_date)) {
+    return { ok: false, message: GROUP_HISTORY_READ_ONLY_MESSAGE };
   }
 
   if (await groupHasDrawStarted(groupId)) {
@@ -484,7 +492,7 @@ export async function updateNickname(
       .maybeSingle(),
     supabase
       .from("groups")
-      .select("require_anonymous_nickname")
+      .select("require_anonymous_nickname, event_date")
       .eq("id", groupId)
       .maybeSingle(),
     supabase
@@ -508,7 +516,15 @@ export async function updateNickname(
     return { success: false, message: "Failed to update nickname." };
   }
 
-  if (groupResult.data?.require_anonymous_nickname) {
+  if (!groupResult.data) {
+    return { success: false, message: "Group not found." };
+  }
+
+  if (isGroupInHistory(groupResult.data.event_date)) {
+    return { success: false, message: GROUP_HISTORY_READ_ONLY_MESSAGE };
+  }
+
+  if (groupResult.data.require_anonymous_nickname) {
     const nicknameMessage = validateAnonymousGroupNickname({
       nickname: cleanNick,
       displayName: profileResult.data?.display_name || null,
@@ -1250,12 +1266,16 @@ export async function editGroup(
 
   const { data: group } = await supabase
     .from("groups")
-    .select("owner_id")
+    .select("owner_id, event_date")
     .eq("id", groupId)
     .single();
 
   if (!group || group.owner_id !== user.id) {
     return { success: false, message: "Only the group owner can edit this group." };
+  }
+
+  if (isGroupInHistory(group.event_date)) {
+    return { success: false, message: GROUP_HISTORY_READ_ONLY_MESSAGE };
   }
 
   const { error } = await supabase
@@ -1501,12 +1521,16 @@ export async function removeMember(
 
   const { data: group } = await supabase
     .from("groups")
-    .select("owner_id")
+    .select("owner_id, event_date")
     .eq("id", groupId)
     .single();
 
   if (!group || group.owner_id !== user.id) {
     return { success: false, message: "Only the group owner can remove members." };
+  }
+
+  if (isGroupInHistory(group.event_date)) {
+    return { success: false, message: GROUP_HISTORY_READ_ONLY_MESSAGE };
   }
 
   if (await groupHasDrawStarted(groupId)) {
@@ -1561,7 +1585,7 @@ export async function leaveGroup(
   const { supabase, user } = context;
   const { data: group } = await supabase
     .from("groups")
-    .select("owner_id")
+    .select("owner_id, event_date")
     .eq("id", groupId)
     .single();
 
@@ -1571,6 +1595,10 @@ export async function leaveGroup(
 
   if (group.owner_id === user.id) {
     return { success: false, message: "The owner cannot leave. Delete the group instead." };
+  }
+
+  if (isGroupInHistory(group.event_date)) {
+    return { success: false, message: GROUP_HISTORY_READ_ONLY_MESSAGE };
   }
 
   if (await groupHasDrawStarted(groupId)) {
@@ -2405,6 +2433,10 @@ export async function triggerReveal(
 
   if (!group || group.owner_id !== user.id) {
     return { success: false, message: "Only the group owner can trigger the reveal." };
+  }
+
+  if (isGroupInHistory(group.event_date)) {
+    return { success: false, message: GROUP_HISTORY_READ_ONLY_MESSAGE };
   }
 
   if (group.revealed) {
