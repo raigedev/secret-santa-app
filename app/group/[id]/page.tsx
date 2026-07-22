@@ -25,6 +25,7 @@ import {
 } from "./actions";
 import { GroupSkeleton } from "@/app/components/PageSkeleton";
 import FadeIn from "@/app/components/FadeIn";
+import AppPageBackNavigation from "@/app/components/AppPageBackNavigation";
 import { GroupActionModals } from "./GroupActionModals";
 import { GroupEventSummaryPanel } from "./GroupEventSummaryPanel";
 import { GroupMembersSection } from "./GroupMembersSection";
@@ -870,19 +871,11 @@ export default function GroupDetailsPage() {
       />
 
       <FadeIn className="relative z-10 mx-auto max-w-376 px-4 py-5 sm:px-6 sm:py-6">
-        <button
-          onClick={() => router.push(isHistorical ? "/history" : "/groups")}
-          className="gift-button gift-button-secondary gift-button-compact mb-4 w-full text-sm sm:w-auto"
-          style={{
-            fontFamily: "inherit",
-          }}
-        >
-          <span className="gift-button-icon" aria-hidden="true">
-            <ChevronLeftIcon />
-          </span>
-          {isHistorical ? "Back to history" : "Back to groups"}
-        </button>
-
+        <AppPageBackNavigation
+          href={isHistorical ? "/history" : "/groups"}
+          label={isHistorical ? "Back to history" : "Back to groups"}
+          className="mb-3"
+        />
         <div className="space-y-5">
           {isHistorical && (
             <section
@@ -1999,20 +1992,6 @@ function formatGroupDisplayDate(value: string): string {
     day: "numeric",
     year: "numeric",
   });
-}
-
-function ChevronLeftIcon() {
-  return (
-    <svg viewBox="0 0 20 20" className="h-4 w-4" fill="none" aria-hidden="true">
-      <path
-        d="m12.5 4.5-5.5 5.5 5.5 5.5"
-        stroke="currentColor"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        strokeWidth="1.8"
-      />
-    </svg>
-  );
 }
 
 function LockClosedIcon() {

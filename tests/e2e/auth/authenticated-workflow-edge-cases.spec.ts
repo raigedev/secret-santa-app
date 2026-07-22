@@ -282,7 +282,7 @@ test.describe("authenticated workflow edge cases", () => {
       .click();
     await expect(page).toHaveURL(/\/create-group$/);
 
-    await page.getByRole("button", { name: /^back$/i }).click();
+    await page.getByRole("button", { name: /^back to groups$/i }).click();
     await expect(page).toHaveURL(/\/groups$/);
     await expect(page.getByRole("heading", { name: /your groups/i })).toBeVisible();
   });
