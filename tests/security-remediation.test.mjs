@@ -2333,6 +2333,23 @@ test("group images are server-uploaded after validation", () => {
   );
 });
 
+test("history recaps render signed group pictures with a festive fallback", () => {
+  const dashboardGroupsSource = readFileSync("app/dashboard/dashboard-groups-data.ts", "utf8");
+  const historyMemoryBookSource = readFileSync("app/history/HistoryMemoryBook.tsx", "utf8");
+  const historyPageSource = readFileSync("app/history/page.tsx", "utf8");
+
+  assert.match(historyPageSource, /loadDashboardGroups\(supabase, user\)/);
+  assert.match(
+    dashboardGroupsSource,
+    /createBoundedSignedGroupImageUrl\(supabase, group\.image_url\)/
+  );
+  assert.match(historyMemoryBookSource, /data-testid="history-event-picture"/);
+  assert.match(historyMemoryBookSource, /selectedGroup\.image_url \? \(/);
+  assert.match(historyMemoryBookSource, /src=\{selectedGroup\.image_url\}/);
+  assert.match(historyMemoryBookSource, /alt=\{`\$\{selectedGroup\.name\} group picture`\}/);
+  assert.match(historyMemoryBookSource, /<SantaMarkIcon size=\{78\} \/>/);
+});
+
 test("lazada cards avoid untrusted remote image hosts and private redirect notes", () => {
   const lazadaUrlSource = readFileSync("lib/affiliate/lazada-url.ts", "utf8");
   const secretSantaPageSource = readFileSync("app/secret-santa/page.tsx", "utf8");
