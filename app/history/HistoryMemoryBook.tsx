@@ -179,8 +179,20 @@ export function HistoryMemoryBook({
                 <span className="rounded-full bg-[#48664e]/10 px-3 py-1 text-xs font-black text-[#48664e]">Concluded</span>
               </div>
               <div className="mt-6 text-center">
-                <div className="mx-auto flex h-24 w-24 items-center justify-center rounded-full bg-[#fff8ea] ring-1 ring-[#fcce72]/40">
-                  <SantaMarkIcon size={78} />
+                <div
+                  data-testid="history-event-picture"
+                  className="mx-auto flex h-24 w-24 items-center justify-center overflow-hidden rounded-full bg-[#fff8ea] ring-1 ring-[#fcce72]/40"
+                >
+                  {selectedGroup.image_url ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img
+                      src={selectedGroup.image_url}
+                      alt={`${selectedGroup.name} group picture`}
+                      className="h-full w-full object-cover"
+                    />
+                  ) : (
+                    <SantaMarkIcon size={78} />
+                  )}
                 </div>
                 <h2 className="mt-4 break-words text-2xl font-black text-[#48664e]">{selectedGroup.name}</h2>
               </div>
