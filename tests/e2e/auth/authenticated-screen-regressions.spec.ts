@@ -445,6 +445,9 @@ const AUTHENTICATED_SCREEN_CASES: ScreenCase[] = [
       expect(currencyOptions).toContain("\u20b1 PHP - Philippine Peso");
       expect(currencyOptions).not.toContain("PHP PHP - Philippine Peso");
       await expect(page.getByRole("button", { name: /back to dashboard/i })).toHaveCount(0);
+      const backNavigation = page.locator('[data-app-page-navigation=""]');
+      await expect(backNavigation.getByRole("button", { name: /^back to groups$/i })).toBeVisible();
+      await expect(backNavigation).toHaveCSS("min-height", "44px");
       await expect(page.getByRole("button", { name: /create exchange/i })).toBeVisible();
     },
   },
@@ -641,7 +644,7 @@ test.describe("authenticated screen regressions", () => {
 
     await expect(historicalNotice).toBeVisible();
     await expect(historicalNotice.getByText(/past exchange - read-only recap/i)).toBeVisible();
-    await expect(page.getByRole("button", { name: /back to history/i })).toBeVisible();
+    await expect(page.getByRole("link", { name: /back to history/i })).toBeVisible();
     await expect(groupSections.getByRole("link", { name: /^final members$/i })).toBeVisible();
     await expect(groupSections.getByRole("link", { name: /^results$/i })).toBeVisible();
     await expect(groupSections.getByRole("link", { name: /^settings$/i })).toHaveCount(0);
@@ -1960,7 +1963,7 @@ test.describe("group-scoped authenticated regressions", () => {
   test("group details route renders for a seeded member", async ({ page }) => {
     await loginWithTestCredentials(page, credentials!);
     await page.goto(`/group/${groupId}`);
-    await expect(page.getByRole("button", { name: /back to groups/i })).toBeVisible();
+    await expect(page.getByRole("link", { name: /back to groups/i })).toBeVisible();
     await expect(page.getByText(/monitor participation and progress/i)).toBeVisible();
 
     const membersSection = page.locator("#group-members");

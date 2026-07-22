@@ -21,6 +21,7 @@ import {
   SUPPORTED_CURRENCIES,
 } from "@/lib/currency";
 import { createGroupWithInvitesFromFormData } from "./actions";
+import AppPageBackNavigation from "@/app/components/AppPageBackNavigation";
 
 const BUDGET_OPTIONS = [10, 15, 25, 50, 100];
 const MAX_GROUP_IMAGE_BYTES = 2 * 1024 * 1024;
@@ -122,20 +123,6 @@ function StepCompleteIcon() {
         strokeLinecap="round"
         strokeLinejoin="round"
         strokeWidth="2"
-      />
-    </svg>
-  );
-}
-
-function BackArrowIcon() {
-  return (
-    <svg viewBox="0 0 16 16" className="h-4 w-4" fill="none" aria-hidden="true">
-      <path
-        d="M9.8 3.5 5.3 8l4.5 4.5M5.8 8h6.7"
-        stroke="currentColor"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        strokeWidth="1.8"
       />
     </svg>
   );
@@ -480,18 +467,13 @@ export default function CreateGroupPage() {
     >
       <div className="snowflake-texture absolute inset-0 z-0 opacity-20" />
 
+      <AppPageBackNavigation
+        label="Back to groups"
+        onClick={handleBack}
+        className="relative z-10 mx-auto mb-3 w-full max-w-6xl"
+      />
+
       <div className="holiday-panel relative z-10 mx-auto mb-5 flex w-full max-w-6xl flex-col gap-4 rounded-[28px] px-5 py-4">
-        <button
-          type="button"
-          onClick={handleBack}
-          className="gift-button gift-button-secondary gift-button-compact w-fit text-sm"
-          style={{ fontFamily: "inherit" }}
-        >
-          <span className="gift-button-icon" aria-hidden="true">
-            <BackArrowIcon />
-          </span>
-          Back
-        </button>
         <div>
           <h1
             className="text-[28px] font-black leading-tight text-[#2e3432]"
