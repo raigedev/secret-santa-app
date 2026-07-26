@@ -2,7 +2,10 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { formatExchangeDate } from "@/lib/exchange-date.mjs";
+import {
+  DEFAULT_EXCHANGE_TIME_ZONE,
+  formatExchangeDate,
+} from "@/lib/exchange-date.mjs";
 import { createClient } from "@/lib/supabase/client";
 import { ProfileSkeleton } from "@/app/components/PageSkeleton";
 import {
@@ -36,6 +39,7 @@ type GroupRow = {
   id: string;
   name: string | null;
   event_date: string | null;
+  event_timezone: string | null;
   budget: number | null;
   currency: string | null;
 };
@@ -44,6 +48,7 @@ type GroupOption = {
   id: string;
   name: string;
   eventDate: string;
+  eventTimeZone: string;
   budget: number | null;
   currency: string | null;
 };
@@ -109,6 +114,7 @@ function isWishlistSnapshotGroup(value: unknown): value is GroupOption {
     typeof value.id === "string" &&
     typeof value.name === "string" &&
     typeof value.eventDate === "string" &&
+    typeof value.eventTimeZone === "string" &&
     isNullableNumber(value.budget) &&
     isNullableString(value.currency)
   );
@@ -182,6 +188,7 @@ function toGroupOption(group: GroupRow): GroupOption {
     id: group.id,
     name: group.name || "Unknown Group",
     eventDate: group.event_date || "",
+    eventTimeZone: group.event_timezone || DEFAULT_EXCHANGE_TIME_ZONE,
     budget: group.budget ?? null,
     currency: group.currency || null,
   };
@@ -370,7 +377,11 @@ export default function WishlistPage() {
 
           if (cachedWishlist) {
             const activeCachedGroups = cachedWishlist.groups.filter((group) =>
-              isGroupWishlistActive(group.eventDate)
+              isGroupWishlistActive(
+                group.eventDate,
+                Date.now(),
+                group.eventTimeZone
+              )
             );
             const activeCachedGroupIds = new Set(activeCachedGroups.map((group) => group.id));
             const activeCachedItems = cachedWishlist.items.filter((item) =>
@@ -412,7 +423,7 @@ export default function WishlistPage() {
 
         const [{ data: groupRows, error: groupError }, { data: wishlistRows, error: wishlistError }] =
           await Promise.all([
-            supabase.from("groups").select("id, name, event_date, budget, currency").in("id", groupIds),
+            supabase.from("groups").select("id, name, event_date, event_timezone, budget, currency").in("id", groupIds),
             supabase
               .from("wishlists")
               .select("id, group_id, item_name, item_category, item_image_url, item_link, item_note, priority")
@@ -424,7 +435,11 @@ export default function WishlistPage() {
         if (!active) return;
 
         const activeGroupRows = ((groupRows || []) as GroupRow[]).filter((group) =>
-          isGroupWishlistActive(group.event_date)
+          isGroupWishlistActive(
+            group.event_date,
+            Date.now(),
+            group.event_timezone
+          )
         );
         const nextGroups = activeGroupRows.map(toGroupOption).sort((a, b) =>
           a.name.localeCompare(b.name)

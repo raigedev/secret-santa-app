@@ -29,6 +29,7 @@ type ExchangeNextAction = {
 type ExchangeLifecycleInput = {
   acceptedCount: number;
   eventDate: string | null | undefined;
+  eventTimeZone?: string | null;
   giftProgressTotal: number;
   hasDrawn: boolean;
   isOwner: boolean;
@@ -118,7 +119,11 @@ export function buildExchangeLifecycleSummary(
   input: ExchangeLifecycleInput,
   now: number | Date = Date.now()
 ): ExchangeLifecycleSummary {
-  const daysUntilEvent = getDaysUntilExchangeDate(input.eventDate, now);
+  const daysUntilEvent = getDaysUntilExchangeDate(
+    input.eventDate,
+    now,
+    input.eventTimeZone || undefined
+  );
   const isGiftDayToday = daysUntilEvent === 0;
   const isGiftDayPast = typeof daysUntilEvent === "number" && daysUntilEvent < 0;
   const isPanicWindow =

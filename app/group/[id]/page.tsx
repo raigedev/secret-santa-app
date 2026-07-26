@@ -121,6 +121,7 @@ export default function GroupDetailsPage() {
   const [editName, setEditName] = useState("");
   const [editDesc, setEditDesc] = useState("");
   const [editDate, setEditDate] = useState("");
+  const [editTimeZone, setEditTimeZone] = useState("");
   const [editBudget, setEditBudget] = useState(25);
   const [editCurrency, setEditCurrency] = useState("USD");
   const [editCustom, setEditCustom] = useState(false);
@@ -159,7 +160,14 @@ export default function GroupDetailsPage() {
       setAssignment(null);
       setDrawDone(false);
       setDrawExclusions([]);
-      setDrawRulesReady(!snapshot.isOwner || isGroupInHistory(snapshot.groupData.event_date));
+      setDrawRulesReady(
+        !snapshot.isOwner ||
+          isGroupInHistory(
+            snapshot.groupData.event_date,
+            Date.now(),
+            snapshot.groupData.event_timezone
+          )
+      );
       setGroupDataFresh(false);
       setOwnerInsights(null);
       setRevealMatches([]);
@@ -200,7 +208,7 @@ export default function GroupDetailsPage() {
 
       const groupResult = await supabase
         .from("groups")
-        .select("name, description, event_date, image_url, owner_id, budget, currency, require_anonymous_nickname, revealed, revealed_at")
+        .select("name, description, event_date, event_timezone, image_url, owner_id, budget, currency, require_anonymous_nickname, revealed, revealed_at")
         .eq("id", id)
         .maybeSingle();
 
@@ -227,7 +235,11 @@ export default function GroupDetailsPage() {
         image_url: signedGroupImageUrl,
       };
       const isCurrentUserOwner = user.id === group.owner_id;
-      const isHistoricalGroup = isGroupInHistory(group.event_date);
+      const isHistoricalGroup = isGroupInHistory(
+        group.event_date,
+        Date.now(),
+        group.event_timezone
+      );
       const canLoadOwnerManagement = isCurrentUserOwner && !isHistoricalGroup;
       const membersResult = await getGroupMembersForViewer(id);
 
@@ -416,6 +428,7 @@ export default function GroupDetailsPage() {
     setEditName(groupData.name);
     setEditDesc(groupData.description || "");
     setEditDate(groupData.event_date);
+    setEditTimeZone(groupData.event_timezone);
     setEditBudget(groupData.budget || 25);
     setEditCurrency(groupData.currency || "USD");
     setEditCustom(!BUDGET_OPTIONS.includes(groupData.budget || 25));
@@ -438,7 +451,15 @@ export default function GroupDetailsPage() {
     setEditSaving(true);
     setEditMsg("");
 
-    const result = await editGroup(id, editName, editDesc, editDate, editBudget, editCurrency);
+    const result = await editGroup(
+      id,
+      editName,
+      editDesc,
+      editDate,
+      editTimeZone,
+      editBudget,
+      editCurrency
+    );
 
     setEditMsg(result.message);
     setEditSaving(false);
@@ -766,7 +787,11 @@ export default function GroupDetailsPage() {
     );
   }
 
-  const isHistorical = isGroupInHistory(groupData.event_date);
+  const isHistorical = isGroupInHistory(
+    groupData.event_date,
+    Date.now(),
+    groupData.event_timezone
+  );
   const acceptedMembers = members.filter((member) => member.status === "accepted");
   const pendingMembers = members.filter((member) => member.status === "pending");
   const declinedMembers = members.filter((member) => member.status === "declined");
@@ -849,6 +874,7 @@ export default function GroupDetailsPage() {
         editMsg={editMsg}
         editName={editName}
         editSaving={editSaving}
+        editTimeZone={editTimeZone}
         groupData={groupData}
         removingMember={isHistorical ? null : removingMember}
         showDeleteModal={showDeleteModal && !isHistorical}
@@ -869,6 +895,7 @@ export default function GroupDetailsPage() {
         setEditDate={setEditDate}
         setEditDesc={setEditDesc}
         setEditName={setEditName}
+        setEditTimeZone={setEditTimeZone}
       />
 
       <FadeIn className="relative z-10 mx-auto max-w-376 px-4 py-5 sm:px-6 sm:py-6">
@@ -1961,6 +1988,7 @@ export default function GroupDetailsPage() {
                   drawDone={drawDone}
                   drawRulesReady={drawRulesReady}
                   eventDate={groupData.event_date}
+                  eventTimeZone={groupData.event_timezone}
                   ownerInsights={ownerInsights}
                   pendingInviteCount={pendingMembers.length}
                   pendingMemberCount={pendingMembers.length}

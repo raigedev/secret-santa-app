@@ -444,6 +444,14 @@ const AUTHENTICATED_SCREEN_CASES: ScreenCase[] = [
       const currencyOptions = await page.locator("#create-group-currency option").allTextContents();
       expect(currencyOptions).toContain("\u20b1 PHP - Philippine Peso");
       expect(currencyOptions).not.toContain("PHP PHP - Philippine Peso");
+      const timeZoneSelect = page.locator("#group-event-time-zone");
+      await expect(timeZoneSelect).toBeVisible();
+      const selectedTimeZone = await timeZoneSelect.inputValue();
+      expect(selectedTimeZone.length).toBeGreaterThan(0);
+      expect(selectedTimeZone === "UTC" || selectedTimeZone.includes("/")).toBe(true);
+      await expect(
+        page.getByText(/the reveal and group deadlines follow this location/i)
+      ).toBeVisible();
       await expect(page.getByRole("button", { name: /back to dashboard/i })).toHaveCount(0);
       const backNavigation = page.locator('[data-app-page-navigation=""]');
       await expect(backNavigation.getByRole("button", { name: /^back to groups$/i })).toBeVisible();

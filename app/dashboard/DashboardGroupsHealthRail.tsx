@@ -14,7 +14,11 @@ type GroupHealthRailProps = {
 type StatusTone = "attention" | "neutral" | "positive";
 
 export function GroupHealthRail({ countdownNow, group, isDarkTheme }: GroupHealthRailProps) {
-  const countdownLabel = formatDashboardEventCountdown(group.event_date, countdownNow);
+  const countdownLabel = formatDashboardEventCountdown(
+    group.event_date,
+    countdownNow,
+    group.event_timezone
+  );
   const giftDayNeedsReview = countdownLabel === "Gift day passed";
   const summary = giftDayNeedsReview
     ? { label: "Check date", tone: "attention" as const }

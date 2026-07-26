@@ -10,6 +10,7 @@ type GroupOwnerInsightsPanelProps = {
   drawDone: boolean;
   drawRulesReady: boolean;
   eventDate: string;
+  eventTimeZone: string;
   ownerInsights: OwnerInsights;
   pendingMemberCount: number;
   pendingInviteCount: number;
@@ -32,13 +33,14 @@ export function GroupOwnerInsightsPanel({
   drawDone,
   drawRulesReady,
   eventDate,
+  eventTimeZone,
   ownerInsights,
   pendingMemberCount,
   pendingInviteCount,
 }: GroupOwnerInsightsPanelProps) {
   const missingWishlistCount = ownerInsights.missingWishlistMemberNames.length;
   const giftDateLabel = formatEventDate(eventDate);
-  const giftDayMeta = getGiftDayHelper(eventDate);
+  const giftDayMeta = getGiftDayHelper(eventDate, eventTimeZone);
   const blockedMemberCount = pendingMemberCount + declinedMemberCount;
   const drawMeta = getDrawStatusMeta({
     blockedMemberCount,
@@ -203,8 +205,12 @@ function formatEventDate(value: string): string {
   }, "Not set");
 }
 
-function getGiftDayHelper(value: string): string {
-  const daysUntil = getDaysUntilExchangeDate(value);
+function getGiftDayHelper(value: string, eventTimeZone: string): string {
+  const daysUntil = getDaysUntilExchangeDate(
+    value,
+    Date.now(),
+    eventTimeZone
+  );
 
   if (daysUntil === null) {
     return "Add a gift day so members can plan.";

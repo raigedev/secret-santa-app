@@ -43,7 +43,11 @@ type HistoryAssignmentRow = {
 const HISTORY_PAGE_FALLBACK_POLL_MS = 5 * 60 * 1000;
 
 function filterHistoryGroups(groups: Group[]) {
-  return splitDashboardGroups(groups.filter((group) => isGroupInHistory(group.event_date)));
+  return splitDashboardGroups(
+    groups.filter((group) =>
+      isGroupInHistory(group.event_date, Date.now(), group.event_timezone)
+    )
+  );
 }
 
 export default function HistoryPage() {

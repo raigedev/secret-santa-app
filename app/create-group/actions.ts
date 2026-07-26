@@ -1,6 +1,9 @@
 "use server";
 
-import { getDaysUntilExchangeDate } from "@/lib/exchange-date.mjs";
+import {
+  getDaysUntilExchangeDate,
+  normalizeExchangeTimeZone,
+} from "@/lib/exchange-date.mjs";
 import { GROUP_IMAGE_BUCKET } from "@/lib/groups/group-image";
 import {
   type PreparedGroupImage,
@@ -37,6 +40,7 @@ type CreateGroupInput = {
   currency: string;
   description: string;
   eventDate: string;
+  eventTimeZone: string;
   inviteEmails: string[];
   name: string;
   ownerCodename?: string;
@@ -52,8 +56,8 @@ function sanitizeText(input: string, maxLength: number): string {
   return sanitizePlainText(input, maxLength);
 }
 
-function isPastDate(value: string): boolean {
-  const daysUntilEvent = getDaysUntilExchangeDate(value);
+function isPastDate(value: string, timeZone: string): boolean {
+  const daysUntilEvent = getDaysUntilExchangeDate(value, Date.now(), timeZone);
   return daysUntilEvent === null || daysUntilEvent < 0;
 }
 
@@ -220,6 +224,7 @@ export async function createGroupWithInvitesFromFormData(
       name: getFormString(formData, "name"),
       description: getFormString(formData, "description"),
       eventDate: getFormString(formData, "eventDate"),
+      eventTimeZone: getFormString(formData, "eventTimeZone"),
       inviteEmails,
       budget: Number(getFormString(formData, "budget")),
       currency: getFormString(formData, "currency"),
@@ -262,6 +267,7 @@ async function createGroupWithInvitesInternal(
   const cleanName = sanitizeText(input.name, GROUP_NAME_MAX_LENGTH);
   const cleanDescription = sanitizeText(input.description, GROUP_DESCRIPTION_MAX_LENGTH);
   const cleanCurrency = sanitizeText(input.currency, GROUP_CURRENCY_MAX_LENGTH).toUpperCase();
+  const cleanEventTimeZone = normalizeExchangeTimeZone(input.eventTimeZone);
   const cleanBudget = Math.min(Math.max(Math.floor(input.budget || 0), 0), 100000);
   const inviteEmails = normalizeInviteEmails(input.inviteEmails || [], user.email);
   const requireAnonymousNickname = Boolean(input.requireAnonymousNickname);
@@ -271,7 +277,11 @@ async function createGroupWithInvitesInternal(
     return { success: false, message: "Enter a group name." };
   }
 
-  if (!input.eventDate || isPastDate(input.eventDate)) {
+  if (!cleanEventTimeZone) {
+    return { success: false, message: "Choose a valid gift-day time zone." };
+  }
+
+  if (!input.eventDate || isPastDate(input.eventDate, cleanEventTimeZone)) {
     return { success: false, message: "Event date must be today or later." };
   }
 
@@ -312,6 +322,7 @@ async function createGroupWithInvitesInternal(
       name: cleanName,
       description: cleanDescription,
       event_date: input.eventDate,
+      event_timezone: cleanEventTimeZone,
       owner_id: user.id,
       budget: cleanBudget,
       currency: cleanCurrency,

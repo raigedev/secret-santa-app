@@ -9,10 +9,11 @@ import {
 } from "../lib/groups/invite-links.mjs";
 import { ELIGIBLE_EMAIL_INVITE_STATUSES } from "../lib/groups/invite-claim.mjs";
 import {
-  EXCHANGE_TIME_ZONE,
+  DEFAULT_EXCHANGE_TIME_ZONE,
   formatExchangeDate,
   getDaysUntilExchangeDate,
   getExchangeDateKey,
+  normalizeExchangeTimeZone,
 } from "../lib/exchange-date.mjs";
 
 const RSC_SECURITY_PATCH_FLOORS = {
@@ -242,7 +243,7 @@ test("concluded exchanges are read-only across UI, actions, and Data API writes"
   const migrationPath = [
     "supabase",
     "migrations",
-    ["20260721111826", "lock", "historical", "group", "updates.sql"].join("_"),
+    "20260726100000_add_group_event_timezone.sql",
   ].join("/");
   // eslint-disable-next-line security/detect-non-literal-fs-filename -- Test reads one pinned repo-local migration path.
   const migrationSource = readFileSync(migrationPath, "utf8");
@@ -260,7 +261,10 @@ test("concluded exchanges are read-only across UI, actions, and Data API writes"
 
   assert.match(historyRuleSource, /export const GROUP_HISTORY_GRACE_DAYS = 7;/);
   assert.match(historyRuleSource, /Past exchanges are read-only/);
-  assert.match(groupPageSource, /const isHistorical = isGroupInHistory\(groupData\.event_date\);/);
+  assert.match(
+    groupPageSource,
+    /const isHistorical = isGroupInHistory\([\s\S]{0,160}groupData\.event_timezone/
+  );
   assert.match(groupPageSource, /data-testid="historical-exchange-notice"/);
   assert.match(groupPageSource, /showEditModal=\{showEditModal && !isHistorical\}/);
   assert.match(groupPageSource, /readOnly=\{isHistorical\}/);
@@ -294,7 +298,7 @@ test("concluded exchanges are read-only across UI, actions, and Data API writes"
   assert.match(compactMigration, /alter policy group_draw_exclusions_delete_for_owner/);
   assert.match(
     compactMigration,
-    /event_date is null or event_date > \(timezone\('utc'::text, now\(\)\)\)::date - 7/
+    /event_date is null or event_date > private\.current_exchange_date\(event_timezone\) - 7/
   );
   assert.doesNotMatch(compactMigration, /alter policy groups_delete_for_owner/);
 });
@@ -786,8 +790,14 @@ test("anonymous receiver chat keeps giver identifiers server-side before reveal"
   assert.match(actionsSource, /const threadAccess = await validateThreadSendAccess/);
   assert.match(actionsSource, /const RECEIVER_THREAD_HIDDEN_MESSAGE/);
   assert.match(actionsSource, /async function requireRevealedReceiverThreadAccess/);
-  assert.match(actionsSource, /\.select\("id, name, event_date, revealed"\)/);
-  assert.match(actionsSource, /Boolean\(group\.revealed\) && !isGroupInHistory\(group\.event_date\)/);
+  assert.match(
+    actionsSource,
+    /\.select\("id, name, event_date, event_timezone, revealed"\)/
+  );
+  assert.match(
+    actionsSource,
+    /Boolean\(group\.revealed\)\s*&&\s*!isGroupInHistory\(\s*group\.event_date,\s*Date\.now\(\),\s*group\.event_timezone\s*\)/
+  );
 
   for (const functionName of [
     "loadReceiverThreadMessages",
@@ -824,7 +834,7 @@ test("live reveal match disclosure is gated by the gift day", () => {
   const migrationPath = [
     "supabase",
     "migrations",
-    "20260726090000_align_exchange_date_timezone.sql",
+    "20260726100000_add_group_event_timezone.sql",
   ].join("/");
   // eslint-disable-next-line security/detect-non-literal-fs-filename -- Security test reads one pinned repo-local migration path.
   const migrationSource = readFileSync(migrationPath, "utf8");
@@ -838,37 +848,81 @@ test("live reveal match disclosure is gated by the gift day", () => {
     groupActionsSource,
     /const LIVE_REVEAL_DATE_PENDING_MESSAGE = "The live reveal opens on the gift day\.";/
   );
-  assert.match(groupActionsSource, /select\("owner_id, name, revealed, event_date"\)/);
-  assert.match(groupActionsSource, /revealDateReady: isRevealDateReady\(group\.event_date\)/);
-  assert.match(groupActionsSource, /getDaysUntilExchangeDate\(eventDate, now\)/);
+  assert.match(
+    groupActionsSource,
+    /select\("owner_id, name, revealed, event_date, event_timezone"\)/
+  );
+  assert.match(
+    groupActionsSource,
+    /revealDateReady: isRevealDateReady\(group\.event_date, group\.event_timezone\)/
+  );
+  assert.match(groupActionsSource, /eventTimeZone \|\| undefined/);
   assert.match(countdownBody, /!permission\.revealDateReady/);
   assert.match(updateBody, /!permission\.revealed && !permission\.revealDateReady/);
-  assert.match(migrationSource, /private\.current_exchange_date/);
-  assert.match(migrationSource, /timezone\('Asia\/Manila'::text, now\(\)\)/);
+  assert.match(migrationSource, /add column if not exists event_timezone text/);
+  assert.match(migrationSource, /private\.is_valid_exchange_time_zone/);
+  assert.match(migrationSource, /pg_catalog\.pg_timezone_names/);
+  assert.match(migrationSource, /groups_event_timezone_valid/);
+  assert.match(migrationSource, /private\.current_exchange_date\(p_time_zone text\)/);
   assert.match(migrationSource, /private\.can_write_group_reveal_session/);
   assert.match(migrationSource, /p_status in \('idle', 'waiting'\)/);
   assert.match(
     migrationSource,
-    /g\.event_date <= \(select private\.current_exchange_date\(\)\)/
+    /g\.event_date <= private\.current_exchange_date\(g\.event_timezone\)/
   );
   assert.match(
     migrationSource,
-    /revealed = false[\s\S]*or event_date <= \(select private\.current_exchange_date\(\)\)/
+    /revealed = false[\s\S]*or event_date <= private\.current_exchange_date\(event_timezone\)/
   );
-  assert.doesNotMatch(migrationSource, /timezone\('utc'/i);
   assert.match(migrationSource, /alter policy group_reveal_sessions_insert_for_owner/);
   assert.match(migrationSource, /alter policy group_reveal_sessions_update_for_owner/);
 });
 
-test("exchange calendar dates use one Manila boundary and never shift in display", () => {
-  const justBeforeGiftDay = new Date("2026-07-09T15:59:59.000Z");
-  const giftDayStart = new Date("2026-07-09T16:00:00.000Z");
+test("exchange calendar dates follow each group's timezone and never shift in display", () => {
+  const justBeforeLosAngelesGiftDay = new Date("2026-07-10T06:59:59.000Z");
+  const losAngelesGiftDayStart = new Date("2026-07-10T07:00:00.000Z");
 
-  assert.equal(EXCHANGE_TIME_ZONE, "Asia/Manila");
-  assert.equal(getExchangeDateKey(justBeforeGiftDay), "2026-07-09");
-  assert.equal(getExchangeDateKey(giftDayStart), "2026-07-10");
-  assert.equal(getDaysUntilExchangeDate("2026-07-10", justBeforeGiftDay), 1);
-  assert.equal(getDaysUntilExchangeDate("2026-07-10", giftDayStart), 0);
+  assert.equal(DEFAULT_EXCHANGE_TIME_ZONE, "Asia/Manila");
+  assert.equal(
+    normalizeExchangeTimeZone("America/Los_Angeles"),
+    "America/Los_Angeles"
+  );
+  assert.equal(normalizeExchangeTimeZone("Not/A_Time_Zone"), null);
+  assert.equal(
+    getExchangeDateKey(
+      justBeforeLosAngelesGiftDay,
+      "America/Los_Angeles"
+    ),
+    "2026-07-09"
+  );
+  assert.equal(
+    getExchangeDateKey(losAngelesGiftDayStart, "America/Los_Angeles"),
+    "2026-07-10"
+  );
+  assert.equal(
+    getDaysUntilExchangeDate(
+      "2026-07-10",
+      justBeforeLosAngelesGiftDay,
+      "America/Los_Angeles"
+    ),
+    1
+  );
+  assert.equal(
+    getDaysUntilExchangeDate(
+      "2026-07-10",
+      losAngelesGiftDayStart,
+      "America/Los_Angeles"
+    ),
+    0
+  );
+  assert.equal(
+    getDaysUntilExchangeDate(
+      "2026-07-10",
+      justBeforeLosAngelesGiftDay,
+      "Asia/Manila"
+    ),
+    0
+  );
   assert.equal(
     formatExchangeDate(
       "2026-07-10",
@@ -878,6 +932,20 @@ test("exchange calendar dates use one Manila boundary and never shift in display
     ),
     "July 10, 2026"
   );
+});
+
+test("group creation and reminders preserve the selected exchange timezone", () => {
+  const createGroupActionSource = readFileSync("app/create-group/actions.ts", "utf8");
+  const createGroupPageSource = readFileSync("app/create-group/page.tsx", "utf8");
+  const reminderSource = readFileSync("lib/notifications.ts", "utf8");
+
+  assert.match(createGroupPageSource, /getLocalExchangeTimeZone\(\)/);
+  assert.match(createGroupPageSource, /formData\.set\("eventTimeZone", eventTimeZone\)/);
+  assert.match(createGroupActionSource, /normalizeExchangeTimeZone\(input\.eventTimeZone\)/);
+  assert.match(createGroupActionSource, /event_timezone: cleanEventTimeZone/);
+  assert.match(reminderSource, /select\("id, name, event_date, event_timezone"\)/);
+  assert.match(reminderSource, /group\.event_timezone/);
+  assert.doesNotMatch(reminderSource, /DIGEST_HOUR_MANILA|buildManilaDigestInstant/);
 });
 
 test("event reveal QR code joins by page link only", () => {
@@ -1754,8 +1822,14 @@ test("owners do not receive unrevealed assignment names from reveal presentation
     /const canRevealAllMatchNamesToViewer =\s*isOwner\s*\|\|/
   );
   assert.match(groupActionsSource, /canPreviewBeforeReveal:\s*false/);
-  assert.match(groupActionsSource, /select\("owner_id, name, revealed, event_date"\)/);
-  assert.match(groupActionsSource, /isRevealDateReady\(group\.event_date\)/);
+  assert.match(
+    groupActionsSource,
+    /select\("owner_id, name, revealed, event_date, event_timezone"\)/
+  );
+  assert.match(
+    groupActionsSource,
+    /isRevealDateReady\(group\.event_date, group\.event_timezone\)/
+  );
   assert.match(groupActionsSource, /sourceData\.assignments\.length === 0/);
 });
 

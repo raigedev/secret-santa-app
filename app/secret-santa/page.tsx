@@ -12,6 +12,7 @@ import {
 } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import {
+  DEFAULT_EXCHANGE_TIME_ZONE,
   formatExchangeDate,
   getDaysUntilExchangeDate,
   getExchangeDateUtcTimestamp,
@@ -97,6 +98,7 @@ type GroupOption = {
   id: string;
   name: string;
   eventDate: string;
+  eventTimeZone: string;
   budget: number | null;
   currency: string | null;
 };
@@ -110,6 +112,7 @@ type GroupRow = {
   id: string;
   name: string | null;
   event_date: string | null;
+  event_timezone: string | null;
   budget: number | null;
   currency: string | null;
 };
@@ -219,6 +222,7 @@ function isSnapshotGroupOption(value: unknown): value is GroupOption {
     typeof value.id === "string" &&
     typeof value.name === "string" &&
     typeof value.eventDate === "string" &&
+    typeof value.eventTimeZone === "string" &&
     isNullableNumber(value.budget) &&
     isNullableString(value.currency)
   );
@@ -2459,6 +2463,7 @@ function buildAvailableGroups(groups: GroupRow[]): GroupOption[] {
       id: group.id,
       name: group.name || "Unknown Group",
       eventDate: group.event_date || "",
+      eventTimeZone: group.event_timezone || DEFAULT_EXCHANGE_TIME_ZONE,
       budget: group.budget ?? null,
       currency: group.currency || null,
     }))
@@ -2509,6 +2514,8 @@ function buildRecipientData(
         group_id: assignment.group_id,
         group_name: group?.name || "Unknown Group",
         group_event_date: group?.eventDate || "",
+        group_event_timezone:
+          group?.eventTimeZone || DEFAULT_EXCHANGE_TIME_ZONE,
         group_budget: group?.budget ?? null,
         group_currency: group?.currency ?? null,
         receiver_nickname: receiver?.nickname || "Secret Member",
@@ -2581,15 +2588,25 @@ function formatEventDate(value: string | null): string {
   }, "Date unavailable");
 }
 
-function getDaysUntilEventDate(value: string | null | undefined): number | null {
-  return getDaysUntilExchangeDate(value);
+function getDaysUntilEventDate(
+  value: string | null | undefined,
+  eventTimeZone: string | null | undefined
+): number | null {
+  return getDaysUntilExchangeDate(
+    value,
+    Date.now(),
+    eventTimeZone || undefined
+  );
 }
 
 function getGiftDayReminderCopy(assignment: RecipientData | null): {
   detail: string;
   title: string;
 } | null {
-  const daysUntilEvent = getDaysUntilEventDate(assignment?.group_event_date);
+  const daysUntilEvent = getDaysUntilEventDate(
+    assignment?.group_event_date,
+    assignment?.group_event_timezone
+  );
 
   if (
     daysUntilEvent === null ||
@@ -3409,7 +3426,12 @@ function SecretSantaExperience({ mode = "shopping" }: SecretSantaExperienceProps
 
           if (cachedSecretSanta) {
             const activeCachedGroups = cachedSecretSanta.availableGroups.filter(
-              (group) => !isGroupInHistory(group.eventDate)
+              (group) =>
+                !isGroupInHistory(
+                  group.eventDate,
+                  Date.now(),
+                  group.eventTimeZone
+                )
             );
             hasAppliedPageSnapshotRef.current = true;
             setAvailableGroups(activeCachedGroups);
@@ -3478,7 +3500,7 @@ function SecretSantaExperience({ mode = "shopping" }: SecretSantaExperienceProps
         ] = await Promise.all([
           supabase
             .from("groups")
-            .select("id, name, event_date, budget, currency")
+            .select("id, name, event_date, event_timezone, budget, currency")
             .in("id", groupIds),
           fetchMyAssignmentGiftPrep(groupIds),
           supabase
@@ -3495,7 +3517,12 @@ function SecretSantaExperience({ mode = "shopping" }: SecretSantaExperienceProps
 
         const groupOptions = buildAvailableGroups(
           ((groupsData || []) as GroupRow[]).filter(
-            (group) => !isGroupInHistory(group.event_date)
+            (group) =>
+              !isGroupInHistory(
+                group.event_date,
+                Date.now(),
+                group.event_timezone
+              )
           )
         );
         const activeGroupIds = new Set(groupOptions.map((group) => group.id));

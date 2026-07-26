@@ -34,8 +34,12 @@ export function formatDashboardDate(value: string): string {
   }, value);
 }
 
-export function formatDashboardEventCountdown(value: string, now: number): string {
-  const dayDifference = getDaysUntilExchangeDate(value, now);
+export function formatDashboardEventCountdown(
+  value: string,
+  now: number,
+  eventTimeZone: string
+): string {
+  const dayDifference = getDaysUntilExchangeDate(value, now, eventTimeZone);
 
   if (dayDifference === null) {
     return "Open";
@@ -60,7 +64,11 @@ export function buildDashboardRevealMessage(groups: Group[], now: number): strin
   const events = groups
     .map((group) => {
       const eventTime = getExchangeDateUtcTimestamp(group.event_date);
-      const dayDifference = getDaysUntilExchangeDate(group.event_date, now);
+      const dayDifference = getDaysUntilExchangeDate(
+        group.event_date,
+        now,
+        group.event_timezone
+      );
 
       if (eventTime === null || dayDifference === null) {
         return null;

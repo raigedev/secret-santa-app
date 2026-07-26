@@ -365,7 +365,7 @@ async function assertOwnerCanManageDrawRules(
   const supabase = await createClient();
   const { data: group } = await supabase
     .from("groups")
-    .select("owner_id, event_date")
+    .select("owner_id, event_date, event_timezone")
     .eq("id", groupId)
     .maybeSingle();
 
@@ -373,7 +373,7 @@ async function assertOwnerCanManageDrawRules(
     return { ok: false, message: "Only the group owner can manage draw rules." };
   }
 
-  if (isGroupInHistory(group.event_date)) {
+  if (isGroupInHistory(group.event_date, Date.now(), group.event_timezone)) {
     return { ok: false, message: GROUP_HISTORY_READ_ONLY_MESSAGE };
   }
 
@@ -729,7 +729,7 @@ export async function drawSecretSanta(
   const { supabase, user } = context;
   const { data: group } = await supabase
     .from("groups")
-    .select("owner_id, name, require_anonymous_nickname, event_date")
+    .select("owner_id, name, require_anonymous_nickname, event_date, event_timezone")
     .eq("id", groupId)
     .maybeSingle();
 
@@ -741,7 +741,7 @@ export async function drawSecretSanta(
     return { success: false, message: "Only the group owner can draw names." };
   }
 
-  if (isGroupInHistory(group.event_date)) {
+  if (isGroupInHistory(group.event_date, Date.now(), group.event_timezone)) {
     return { success: false, message: GROUP_HISTORY_READ_ONLY_MESSAGE };
   }
 
@@ -1052,7 +1052,7 @@ export async function resetSecretSantaDraw(
 
   const { data: group } = await supabase
     .from("groups")
-    .select("owner_id, event_date")
+    .select("owner_id, event_date, event_timezone")
     .eq("id", groupId)
     .maybeSingle();
 
@@ -1064,7 +1064,7 @@ export async function resetSecretSantaDraw(
     return { success: false, message: "Only the group owner can reset the draw." };
   }
 
-  if (isGroupInHistory(group.event_date)) {
+  if (isGroupInHistory(group.event_date, Date.now(), group.event_timezone)) {
     return { success: false, message: GROUP_HISTORY_READ_ONLY_MESSAGE };
   }
 

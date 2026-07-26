@@ -57,6 +57,7 @@ export function DashboardPreviewWorkspace({
     {
       acceptedCount: memberCount,
       eventDate: focusGroup?.event_date || null,
+      eventTimeZone: focusGroup?.event_timezone || null,
       giftProgressTotal,
       hasDrawn: Boolean(focusGroup?.hasDrawn || recipientCount > 0),
       isOwner: Boolean(focusGroup?.isOwner),

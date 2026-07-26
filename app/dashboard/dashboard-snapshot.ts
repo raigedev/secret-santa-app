@@ -69,6 +69,7 @@ function isDashboardGroup(value: unknown): value is Group {
     typeof value.name === "string" &&
     typeof value.description === "string" &&
     typeof value.event_date === "string" &&
+    typeof value.event_timezone === "string" &&
     isNullableString(value.image_url) &&
     isNullableNumber(value.budget) &&
     isNullableString(value.currency) &&

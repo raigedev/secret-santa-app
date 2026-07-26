@@ -28,7 +28,16 @@ const GROUPS_PAGE_LOAD_TIMEOUT_MESSAGE =
   "Your groups are taking longer than expected. Refresh the page or try another section.";
 
 function splitActiveGroups(groups: Group[]) {
-  return splitDashboardGroups(groups.filter((group) => !isGroupInHistory(group.event_date)));
+  return splitDashboardGroups(
+    groups.filter(
+      (group) =>
+        !isGroupInHistory(
+          group.event_date,
+          Date.now(),
+          group.event_timezone
+        )
+    )
+  );
 }
 
 export default function GroupsPage() {

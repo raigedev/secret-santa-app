@@ -20,6 +20,7 @@ type GroupActionModalsProps = {
   editMsg: string;
   editName: string;
   editSaving: boolean;
+  editTimeZone: string;
   groupData: GroupData;
   removingMember: Member | null;
   showDeleteModal: boolean;
@@ -40,6 +41,7 @@ type GroupActionModalsProps = {
   setEditDate: StateSetter<string>;
   setEditDesc: StateSetter<string>;
   setEditName: StateSetter<string>;
+  setEditTimeZone: StateSetter<string>;
 };
 
 function ModalCancelButton({ children, onClick }: { children: string; onClick: () => void }) {
@@ -72,6 +74,7 @@ export function GroupActionModals({
   editMsg,
   editName,
   editSaving,
+  editTimeZone,
   groupData,
   removingMember,
   showDeleteModal,
@@ -92,6 +95,7 @@ export function GroupActionModals({
   setEditDate,
   setEditDesc,
   setEditName,
+  setEditTimeZone,
 }: GroupActionModalsProps) {
   return (
     <>
@@ -106,6 +110,7 @@ export function GroupActionModals({
           editMsg={editMsg}
           editName={editName}
           editSaving={editSaving}
+          editTimeZone={editTimeZone}
           onClose={onCloseEdit}
           onSave={onEditSave}
           setEditBudget={setEditBudget}
@@ -114,6 +119,7 @@ export function GroupActionModals({
           setEditDate={setEditDate}
           setEditDesc={setEditDesc}
           setEditName={setEditName}
+          setEditTimeZone={setEditTimeZone}
         />
       )}
 

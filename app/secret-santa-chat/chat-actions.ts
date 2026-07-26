@@ -4,6 +4,7 @@
 // can run before any assignment or message data is returned.
 
 import { recordServerFailure } from "@/lib/security/audit";
+import { DEFAULT_EXCHANGE_TIME_ZONE } from "@/lib/exchange-date.mjs";
 import { createNotification } from "@/lib/notifications";
 import { isGroupInHistory } from "@/lib/groups/history";
 import {
@@ -26,6 +27,7 @@ type ReceiverAssignmentRow = {
 
 type ReceiverGroupRow = {
   event_date: string | null;
+  event_timezone: string | null;
   id: string;
   name: string | null;
   revealed: boolean | null;
@@ -71,6 +73,7 @@ type ReceiverThreadAccess =
 
 export type ReceiverChatThread = {
   group_gift_date: string;
+  group_time_zone: string;
   group_id: string;
   group_name: string;
   last_message: string;
@@ -347,7 +350,7 @@ export async function loadReceiverChatThreads(): Promise<{
 
   const { data: groups, error: groupsError } = await supabaseAdmin
     .from("groups")
-    .select("id, name, event_date, revealed")
+    .select("id, name, event_date, event_timezone, revealed")
     .in("id", groupIds);
 
   if (groupsError) {
@@ -361,7 +364,13 @@ export async function loadReceiverChatThreads(): Promise<{
   }
 
   const activeGroups = ((groups || []) as ReceiverGroupRow[]).filter(
-    (group) => Boolean(group.revealed) && !isGroupInHistory(group.event_date)
+    (group) =>
+      Boolean(group.revealed) &&
+      !isGroupInHistory(
+        group.event_date,
+        Date.now(),
+        group.event_timezone
+      )
   );
   const activeGroupIds = new Set(activeGroups.map((group) => group.id));
   const activeAssignments = receiverAssignments.filter((assignment) =>
@@ -417,6 +426,8 @@ export async function loadReceiverChatThreads(): Promise<{
 
       return {
         group_gift_date: group?.event_date || "",
+        group_time_zone:
+          group?.event_timezone || DEFAULT_EXCHANGE_TIME_ZONE,
         group_id: assignment.group_id,
         group_name: group?.name || "Unknown",
         last_message: threadMeta

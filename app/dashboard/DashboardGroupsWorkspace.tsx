@@ -137,7 +137,11 @@ function GroupWorkspacePreview({
 }) {
   const budgetLabel = formatDashboardBudget(group.budget, group.currency) || "No budget set";
   const dateLabel = formatDashboardDate(group.event_date);
-  const historyState = getGroupHistoryState(group.event_date, new Date(countdownNow));
+  const historyState = getGroupHistoryState(
+    group.event_date,
+    new Date(countdownNow),
+    group.event_timezone
+  );
   const showHistoryNotice = historyState.isGracePeriod && historyState.daysUntilHistory !== null;
   const roleLabel = group.isOwner ? "Owner" : "Member";
 

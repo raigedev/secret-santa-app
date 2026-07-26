@@ -27,7 +27,10 @@ export function GroupEventSummaryPanel({
   const budgetLabel = groupData.budget
     ? `${currencySymbol}${formatBudgetAmount(groupData.budget)}`
     : "No limit";
-  const giftDay = getGiftDayMeta(groupData.event_date);
+  const giftDay = getGiftDayMeta(
+    groupData.event_date,
+    groupData.event_timezone
+  );
   const participationDash = 138 - (138 * participation) / 100;
   const summaryCards = [
     {
@@ -144,8 +147,12 @@ function formatEventDate(value: string): string {
   }, value || "Not set");
 }
 
-function getGiftDayMeta(value: string) {
-  const daysUntil = getDaysUntilExchangeDate(value);
+function getGiftDayMeta(value: string, eventTimeZone: string) {
+  const daysUntil = getDaysUntilExchangeDate(
+    value,
+    Date.now(),
+    eventTimeZone
+  );
 
   if (daysUntil === null) {
     return {

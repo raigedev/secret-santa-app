@@ -15,9 +15,14 @@ type GroupHistoryState = {
 
 export function getGroupHistoryState(
   eventDate: string | null | undefined,
-  now: number | Date = Date.now()
+  now: number | Date = Date.now(),
+  eventTimeZone?: string | null
 ): GroupHistoryState {
-  const daysUntilEvent = getDaysUntilExchangeDate(eventDate, now);
+  const daysUntilEvent = getDaysUntilExchangeDate(
+    eventDate,
+    now,
+    eventTimeZone || undefined
+  );
 
   if (daysUntilEvent === null) {
     return {
@@ -47,16 +52,22 @@ export function getGroupHistoryState(
 
 export function isGroupInHistory(
   eventDate: string | null | undefined,
-  now: number | Date = Date.now()
+  now: number | Date = Date.now(),
+  eventTimeZone?: string | null
 ): boolean {
-  return getGroupHistoryState(eventDate, now).isHistory;
+  return getGroupHistoryState(eventDate, now, eventTimeZone).isHistory;
 }
 
 export function isGroupWishlistActive(
   eventDate: string | null | undefined,
-  now: number | Date = Date.now()
+  now: number | Date = Date.now(),
+  eventTimeZone?: string | null
 ): boolean {
-  const daysUntilEvent = getDaysUntilExchangeDate(eventDate, now);
+  const daysUntilEvent = getDaysUntilExchangeDate(
+    eventDate,
+    now,
+    eventTimeZone || undefined
+  );
 
   if (daysUntilEvent === null) {
     return true;

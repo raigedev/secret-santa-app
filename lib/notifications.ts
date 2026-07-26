@@ -1,5 +1,6 @@
 import {
   addDaysToExchangeDate,
+  getDaysUntilExchangeDate,
   getExchangeDateKey,
 } from "@/lib/exchange-date.mjs";
 import { recordServerFailure } from "@/lib/security/audit";
@@ -97,6 +98,7 @@ type ReminderProfileRow = ReminderPreferenceSettings & {
 
 type GroupSummary = {
   event_date: string;
+  event_timezone: string;
   id: string;
   name: string;
 };
@@ -133,7 +135,6 @@ type WishlistReminderRow = {
   user_id: string;
 };
 
-const DIGEST_HOUR_MANILA = 9;
 const MAX_REMINDER_ATTEMPTS = 5;
 const WISHLIST_REMINDER_WINDOW_DAYS = 14;
 const POST_DRAW_REMINDER_DELAY_HOURS = 6;
@@ -221,11 +222,6 @@ function isReminderEnabled(
   return Boolean(preferences[REMINDER_TYPE_TO_PROFILE_KEY[reminderType]]);
 }
 
-function buildManilaDigestInstant(dateString: string): Date {
-  const [year, month, day] = dateString.split("-").map((value) => Number(value));
-  return new Date(Date.UTC(year, month - 1, day, DIGEST_HOUR_MANILA - 8, 0, 0, 0));
-}
-
 function buildReminderRetryAt(attemptCount: number, now: Date): string | null {
   if (attemptCount >= MAX_REMINDER_ATTEMPTS) {
     return null;
@@ -235,22 +231,10 @@ function buildReminderRetryAt(attemptCount: number, now: Date): string | null {
   return new Date(now.getTime() + retryMinutes * 60_000).toISOString();
 }
 
-function scheduleReminderDueAt(
-  candidateDueAt: Date,
-  deliveryMode: ReminderDeliveryMode
-): Date {
-  if (deliveryMode === "immediate") {
-    return candidateDueAt;
-  }
-
-  const candidateDate = getExchangeDateKey(candidateDueAt);
-  const sameDayDigest = buildManilaDigestInstant(candidateDate);
-
-  if (candidateDueAt.getTime() <= sameDayDigest.getTime()) {
-    return sameDayDigest;
-  }
-
-  return buildManilaDigestInstant(addDaysToExchangeDate(candidateDate, 1));
+function scheduleReminderDueAt(candidateDueAt: Date): Date {
+  // Vercel's daily cron is the delivery clock. Daily-summary jobs are grouped
+  // during that run instead of being anchored to one country's morning.
+  return candidateDueAt;
 }
 
 function buildNotificationTypeForReminder(reminderType: ReminderType): string {
@@ -431,18 +415,14 @@ async function insertReminderJob(job: ReminderJobInsert): Promise<boolean> {
   return true;
 }
 
-function buildEventTomorrowCandidateDueAt(eventDate: string): Date {
-  const dueAt = buildManilaDigestInstant(eventDate);
-  dueAt.setUTCDate(dueAt.getUTCDate() - 1);
-  return dueAt;
-}
-
 async function enqueueEventTomorrowReminderJobs(now: Date): Promise<number> {
-  const tomorrow = addDaysToExchangeDate(getExchangeDateKey(now), 1);
+  const utcToday = getExchangeDateKey(now, "UTC");
+  const candidateWindowEnd = addDaysToExchangeDate(utcToday, 2);
   const { data: groups, error: groupError } = await supabaseAdmin
     .from("groups")
-    .select("id, name, event_date")
-    .eq("event_date", tomorrow);
+    .select("id, name, event_date, event_timezone")
+    .gte("event_date", utcToday)
+    .lte("event_date", candidateWindowEnd);
 
   if (groupError) {
     await recordServerFailure({
@@ -453,7 +433,14 @@ async function enqueueEventTomorrowReminderJobs(now: Date): Promise<number> {
     return 0;
   }
 
-  const typedGroups = (groups || []) as GroupSummary[];
+  const typedGroups = ((groups || []) as GroupSummary[]).filter(
+    (group) =>
+      getDaysUntilExchangeDate(
+        group.event_date,
+        now,
+        group.event_timezone
+      ) === 1
+  );
   if (typedGroups.length === 0) {
     return 0;
   }
@@ -495,11 +482,8 @@ async function enqueueEventTomorrowReminderJobs(now: Date): Promise<number> {
       continue;
     }
 
-    const candidateDueAt = buildEventTomorrowCandidateDueAt(group.event_date);
-    const scheduledDueAt = scheduleReminderDueAt(
-      candidateDueAt,
-      preferences.reminder_delivery_mode
-    );
+    const candidateDueAt = now;
+    const scheduledDueAt = scheduleReminderDueAt(candidateDueAt);
 
     const inserted = await insertReminderJob({
       body: `Your Secret Santa exchange for ${group.name} is tomorrow. Double-check your gift, wrapping, and meetup plan today.`,
@@ -511,6 +495,7 @@ async function enqueueEventTomorrowReminderJobs(now: Date): Promise<number> {
       link_path: `/group/${group.id}`,
       metadata: {
         eventDate: group.event_date,
+        eventTimeZone: group.event_timezone,
         groupId: group.id,
         groupName: group.name,
       },
@@ -529,12 +514,16 @@ async function enqueueEventTomorrowReminderJobs(now: Date): Promise<number> {
 }
 
 async function enqueueWishlistIncompleteReminderJobs(now: Date): Promise<number> {
-  const today = getExchangeDateKey(now);
-  const windowEnd = addDaysToExchangeDate(today, WISHLIST_REMINDER_WINDOW_DAYS);
+  const utcToday = getExchangeDateKey(now, "UTC");
+  const windowStart = addDaysToExchangeDate(utcToday, -1);
+  const windowEnd = addDaysToExchangeDate(
+    utcToday,
+    WISHLIST_REMINDER_WINDOW_DAYS + 1
+  );
   const { data: groups, error: groupError } = await supabaseAdmin
     .from("groups")
-    .select("id, name, event_date")
-    .gte("event_date", today)
+    .select("id, name, event_date, event_timezone")
+    .gte("event_date", windowStart)
     .lte("event_date", windowEnd);
 
   if (groupError) {
@@ -546,7 +535,19 @@ async function enqueueWishlistIncompleteReminderJobs(now: Date): Promise<number>
     return 0;
   }
 
-  const typedGroups = (groups || []) as GroupSummary[];
+  const typedGroups = ((groups || []) as GroupSummary[]).filter((group) => {
+    const daysUntilEvent = getDaysUntilExchangeDate(
+      group.event_date,
+      now,
+      group.event_timezone
+    );
+
+    return (
+      daysUntilEvent !== null &&
+      daysUntilEvent >= 0 &&
+      daysUntilEvent <= WISHLIST_REMINDER_WINDOW_DAYS
+    );
+  });
   if (typedGroups.length === 0) {
     return 0;
   }
@@ -609,21 +610,20 @@ async function enqueueWishlistIncompleteReminderJobs(now: Date): Promise<number>
       continue;
     }
 
-    const scheduledDueAt = scheduleReminderDueAt(
-      candidateDueAt,
-      preferences.reminder_delivery_mode
-    );
+    const scheduledDueAt = scheduleReminderDueAt(candidateDueAt);
+    const groupToday = getExchangeDateKey(now, group.event_timezone);
 
     const inserted = await insertReminderJob({
       body: `Add at least one wishlist item for ${group.name} so your Santa has clear gift ideas before the exchange.`,
       candidate_due_at: candidateDueAt.toISOString(),
-      dedupe_key: `wishlist_incomplete:${group.id}:${userId}:${today}`,
+      dedupe_key: `wishlist_incomplete:${group.id}:${userId}:${groupToday}`,
       delivery_mode_snapshot: preferences.reminder_delivery_mode,
       due_at: scheduledDueAt.toISOString(),
       group_id: group.id,
       link_path: "/wishlist",
       metadata: {
         eventDate: group.event_date,
+        eventTimeZone: group.event_timezone,
         groupId: group.id,
         groupName: group.name,
       },
@@ -642,7 +642,6 @@ async function enqueueWishlistIncompleteReminderJobs(now: Date): Promise<number>
 }
 
 async function enqueuePostDrawReminderJobs(now: Date): Promise<number> {
-  const today = getExchangeDateKey(now);
   const cycleWindowStart = new Date(
     now.getTime() - POST_DRAW_REMINDER_LOOK_BACK_DAYS * 24 * 60 * 60 * 1000
   ).toISOString();
@@ -673,9 +672,8 @@ async function enqueuePostDrawReminderJobs(now: Date): Promise<number> {
   const [groupsResult, cyclesResult] = await Promise.all([
     supabaseAdmin
       .from("groups")
-      .select("id, name, event_date")
-      .in("id", candidateGroupIds)
-      .gte("event_date", today),
+      .select("id, name, event_date, event_timezone")
+      .in("id", candidateGroupIds),
     supabaseAdmin
       .from("group_draw_cycles")
       .select("id, group_id, cycle_number, created_at")
@@ -704,7 +702,16 @@ async function enqueuePostDrawReminderJobs(now: Date): Promise<number> {
   }
 
   const currentGroups = new Map(
-    ((groupsResult.data || []) as GroupSummary[]).map((group) => [group.id, group])
+    ((groupsResult.data || []) as GroupSummary[])
+      .filter((group) => {
+        const daysUntilEvent = getDaysUntilExchangeDate(
+          group.event_date,
+          now,
+          group.event_timezone
+        );
+        return daysUntilEvent !== null && daysUntilEvent >= 0;
+      })
+      .map((group) => [group.id, group])
   );
   const typedAssignments = recentPendingAssignments.filter((assignment) =>
     currentGroups.has(assignment.group_id)
@@ -808,10 +815,7 @@ async function enqueuePostDrawReminderJobs(now: Date): Promise<number> {
 
     const candidateDueAt = new Date(sourceCreatedAt);
     candidateDueAt.setHours(candidateDueAt.getHours() + POST_DRAW_REMINDER_DELAY_HOURS);
-    const scheduledDueAt = scheduleReminderDueAt(
-      candidateDueAt,
-      preferences.reminder_delivery_mode
-    );
+    const scheduledDueAt = scheduleReminderDueAt(candidateDueAt);
 
     const inserted = await insertReminderJob({
       body: `Your recipient for ${group.name} is ready. Review their wishlist or send a private message so you can start planning.`,
@@ -826,6 +830,7 @@ async function enqueuePostDrawReminderJobs(now: Date): Promise<number> {
         cycleNumber: cycle?.cycle_number || null,
         groupId: assignment.group_id,
         groupName: group.name,
+        eventTimeZone: group.event_timezone,
       },
       next_attempt_at: scheduledDueAt.toISOString(),
       reminder_type: "post_draw",
@@ -1003,7 +1008,7 @@ async function rescheduleReminderJobForMode(
   now: Date
 ): Promise<void> {
   const candidateDueAt = new Date(job.candidate_due_at);
-  const nextDueAt = scheduleReminderDueAt(candidateDueAt, deliveryMode).toISOString();
+  const nextDueAt = scheduleReminderDueAt(candidateDueAt).toISOString();
 
   await supabaseAdmin
     .from("reminder_jobs")
@@ -1172,7 +1177,7 @@ async function processDailyDigestReminderJobs(
       job,
       notificationId,
       payload: {
-        digestDate: getExchangeDateKey(now),
+        digestDate: getExchangeDateKey(now, "UTC"),
         jobCount: enabledJobs.length,
         metadata: sanitizeMetadata(job.metadata || {}),
       },

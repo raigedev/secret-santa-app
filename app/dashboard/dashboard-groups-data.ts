@@ -150,7 +150,7 @@ export async function loadDashboardGroups(
     acceptedGroupIds.length > 0
       ? supabase
           .from("groups")
-          .select("id, name, description, event_date, image_url, budget, currency, owner_id, created_at, require_anonymous_nickname")
+          .select("id, name, description, event_date, event_timezone, image_url, budget, currency, owner_id, created_at, require_anonymous_nickname")
           .in("id", acceptedGroupIds)
       : createEmptyQueryResult<GroupRow>(),
     acceptedGroupIds.length > 0
