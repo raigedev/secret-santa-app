@@ -10,6 +10,10 @@ import {
 } from "react";
 import { useRouter } from "next/navigation";
 import {
+  formatExchangeDate,
+  getDaysUntilExchangeDate,
+} from "@/lib/exchange-date.mjs";
+import {
   sanitizeGroupNickname,
   validateAnonymousGroupNickname,
 } from "@/lib/groups/nickname";
@@ -334,7 +338,9 @@ export default function CreateGroupPage() {
       return;
     }
 
-    if (new Date(eventDate) < new Date(new Date().toDateString())) {
+    const daysUntilEvent = getDaysUntilExchangeDate(eventDate);
+
+    if (daysUntilEvent === null || daysUntilEvent < 0) {
       setErrorMsg("Event date can't be in the past.");
       setLoading(false);
       return;
@@ -395,6 +401,9 @@ export default function CreateGroupPage() {
 
   const currencySymbol = getCurrencySymbol(currency);
   const inviteEmailCount = getInviteEmailCount(inviteEmails);
+  const eventDateLabel = eventDate
+    ? formatExchangeDate(eventDate, undefined, "Choose date")
+    : "Choose date";
   const formActionDisabled = !isHydrated || loading || imageDecodePending;
   const basicsReady = groupName.trim().length > 0 && eventDate.length > 0;
   const rawBudgetReady = budget > 0 && currency.length > 0;
@@ -559,7 +568,7 @@ export default function CreateGroupPage() {
 
           <div className="mt-8 space-y-4 border-t border-[rgba(72,102,78,.12)] pt-5">
             {[
-              ["Gift date", eventDate ? new Date(eventDate).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" }) : "Choose date"],
+              ["Gift date", eventDateLabel],
               ["Group budget", `${currencySymbol}${budget || 0} per person`],
               ["Members", `${inviteEmailCount} invited`],
             ].map(([label, value]) => (

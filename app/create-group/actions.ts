@@ -1,5 +1,6 @@
 "use server";
 
+import { getDaysUntilExchangeDate } from "@/lib/exchange-date.mjs";
 import { GROUP_IMAGE_BUCKET } from "@/lib/groups/group-image";
 import {
   type PreparedGroupImage,
@@ -52,11 +53,8 @@ function sanitizeText(input: string, maxLength: number): string {
 }
 
 function isPastDate(value: string): boolean {
-  const parsedDate = new Date(value);
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-
-  return Number.isNaN(parsedDate.getTime()) || parsedDate < today;
+  const daysUntilEvent = getDaysUntilExchangeDate(value);
+  return daysUntilEvent === null || daysUntilEvent < 0;
 }
 
 function normalizeInviteEmails(rawEmails: string[], ownerEmail: string | null | undefined): string[] {

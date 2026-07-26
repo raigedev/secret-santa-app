@@ -1,4 +1,4 @@
-const DAY_MS = 24 * 60 * 60 * 1000;
+import { getDaysUntilExchangeDate } from "@/lib/exchange-date.mjs";
 
 export const GROUP_HISTORY_GRACE_DAYS = 7;
 
@@ -13,41 +13,13 @@ type GroupHistoryState = {
   label: string;
 };
 
-function parseDateOnlyUtc(value: string | null | undefined): number | null {
-  if (!value) {
-    return null;
-  }
-
-  const match = /^(\d{4})-(\d{2})-(\d{2})/.exec(value.trim());
-
-  if (!match) {
-    return null;
-  }
-
-  const year = Number(match[1]);
-  const month = Number(match[2]);
-  const day = Number(match[3]);
-
-  if (!year || month < 1 || month > 12 || day < 1 || day > 31) {
-    return null;
-  }
-
-  return Date.UTC(year, month - 1, day);
-}
-
-function getTodayUtc(now: number | Date = Date.now()): number {
-  const date = now instanceof Date ? now : new Date(now);
-
-  return Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate());
-}
-
 export function getGroupHistoryState(
   eventDate: string | null | undefined,
   now: number | Date = Date.now()
 ): GroupHistoryState {
-  const eventTime = parseDateOnlyUtc(eventDate);
+  const daysUntilEvent = getDaysUntilExchangeDate(eventDate, now);
 
-  if (eventTime === null) {
+  if (daysUntilEvent === null) {
     return {
       daysPastEvent: 0,
       daysUntilHistory: GROUP_HISTORY_GRACE_DAYS,
@@ -57,7 +29,7 @@ export function getGroupHistoryState(
     };
   }
 
-  const daysPastEvent = Math.max(0, Math.floor((getTodayUtc(now) - eventTime) / DAY_MS));
+  const daysPastEvent = Math.max(0, -daysUntilEvent);
   const isHistory = daysPastEvent >= GROUP_HISTORY_GRACE_DAYS;
   const isGracePeriod = daysPastEvent > 0 && !isHistory;
   const daysUntilHistory = isHistory
@@ -84,11 +56,11 @@ export function isGroupWishlistActive(
   eventDate: string | null | undefined,
   now: number | Date = Date.now()
 ): boolean {
-  const eventTime = parseDateOnlyUtc(eventDate);
+  const daysUntilEvent = getDaysUntilExchangeDate(eventDate, now);
 
-  if (eventTime === null) {
+  if (daysUntilEvent === null) {
     return true;
   }
 
-  return getTodayUtc(now) <= eventTime;
+  return daysUntilEvent >= 0;
 }

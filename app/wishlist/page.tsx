@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
+import { formatExchangeDate } from "@/lib/exchange-date.mjs";
 import { createClient } from "@/lib/supabase/client";
 import { ProfileSkeleton } from "@/app/components/PageSkeleton";
 import {
@@ -200,9 +201,11 @@ function toWishlistItem(row: WishlistRow): WishlistItem {
 }
 
 function formatDate(value: string) {
-  const parsed = new Date(value);
-  if (Number.isNaN(parsed.getTime())) return value;
-  return parsed.toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" });
+  return formatExchangeDate(value, {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+  }, value);
 }
 
 function formatBudget(budget: number | null, currency: string | null) {

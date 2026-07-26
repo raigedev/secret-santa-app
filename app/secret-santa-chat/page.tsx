@@ -2,9 +2,13 @@
 
 import { useCallback, useEffect, useId, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
+import {
+  formatExchangeDate,
+  getDaysUntilExchangeDate,
+} from "@/lib/exchange-date.mjs";
 import { createClient } from "@/lib/supabase/client";
 import { ChatSkeleton } from "@/app/components/PageSkeleton";
-import { isGroupInHistory } from "@/lib/groups/history";
+import { GROUP_HISTORY_GRACE_DAYS, isGroupInHistory } from "@/lib/groups/history";
 import {
   clearClientSnapshots,
   hasFreshClientSnapshotMetadata,
@@ -105,7 +109,6 @@ const CHAT_TEXT_SUBTLE = "#6f7a74";
 const CHAT_HEADER_TEXT = "#2e3432";
 const CHAT_GREEN = "#48664e";
 const CHAT_RED = "#a43c3f";
-const WRAP_UP_DAYS = 7;
 const CHAT_THREAD_MESSAGE_SCAN_LIMIT = 1000;
 const CHAT_ACTIVE_THREAD_MESSAGE_LIMIT = 250;
 const CHAT_THREAD_FALLBACK_POLL_MS = 5 * 60 * 1000;
@@ -283,20 +286,11 @@ function createPreviewText(
 }
 
 function formatGroupDate(value: string): string {
-  if (!value.trim()) return "Date not set";
-
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return "Date not set";
-
-  return date.toLocaleDateString([], {
+  return formatExchangeDate(value, {
     month: "short",
     day: "numeric",
     year: "numeric",
-  });
-}
-
-function getStartOfLocalDay(value: Date): number {
-  return new Date(value.getFullYear(), value.getMonth(), value.getDate()).getTime();
+  }, "Date not set");
 }
 
 function getGiftTimingInfo(value: string): {
@@ -305,8 +299,6 @@ function getGiftTimingInfo(value: string): {
   chip: string;
   phase: "planning" | "gift-day" | "wrap-up" | "history" | "unknown";
 } {
-  const now = new Date();
-
   if (!value.trim()) {
     return {
       label: "Gift day not set",
@@ -316,8 +308,9 @@ function getGiftTimingInfo(value: string): {
     };
   }
 
-  const giftDate = new Date(value);
-  if (Number.isNaN(giftDate.getTime())) {
+  const daysUntil = getDaysUntilExchangeDate(value);
+
+  if (daysUntil === null) {
     return {
       label: "Gift day not set",
       detail: "Set a group gift day to show whether this chat is in planning, gift day, or wrap-up.",
@@ -326,9 +319,6 @@ function getGiftTimingInfo(value: string): {
     };
   }
 
-  const daysUntil = Math.round(
-    (getStartOfLocalDay(giftDate) - getStartOfLocalDay(now)) / 86400000
-  );
   if (daysUntil > 0) {
     return {
       label: "Planning time",
@@ -348,7 +338,7 @@ function getGiftTimingInfo(value: string): {
   }
 
   const daysPast = Math.abs(daysUntil);
-  const wrapUpDaysLeft = Math.max(WRAP_UP_DAYS - daysPast, 0);
+  const wrapUpDaysLeft = Math.max(GROUP_HISTORY_GRACE_DAYS - daysPast, 0);
 
   if (wrapUpDaysLeft > 0) {
     return {

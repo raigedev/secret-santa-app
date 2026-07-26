@@ -1,6 +1,7 @@
 "use server";
 
 import { createHash, randomBytes } from "crypto";
+import { getDaysUntilExchangeDate } from "@/lib/exchange-date.mjs";
 import {
   countActiveGroupSlots,
   getGroupCapacityMessage,
@@ -1798,11 +1799,8 @@ async function getStoredRevealSession(groupId: string) {
 }
 
 function isRevealDateReady(eventDate: string | null | undefined, now = new Date()): boolean {
-  if (!eventDate) {
-    return true;
-  }
-
-  return eventDate <= now.toISOString().slice(0, 10);
+  const daysUntilEvent = getDaysUntilExchangeDate(eventDate, now);
+  return daysUntilEvent === null || daysUntilEvent <= 0;
 }
 
 const LIVE_REVEAL_DATE_PENDING_MESSAGE = "The live reveal opens on the gift day.";

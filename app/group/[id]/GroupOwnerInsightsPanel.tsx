@@ -1,3 +1,7 @@
+import {
+  formatExchangeDate,
+  getDaysUntilExchangeDate,
+} from "@/lib/exchange-date.mjs";
 import { type OwnerInsights } from "./group-page-state";
 
 type GroupOwnerInsightsPanelProps = {
@@ -192,28 +196,19 @@ export function GroupOwnerInsightsSkeleton() {
 }
 
 function formatEventDate(value: string): string {
-  const parsed = new Date(value);
-  if (Number.isNaN(parsed.getTime())) {
-    return "Not set";
-  }
-
-  return parsed.toLocaleDateString(undefined, {
+  return formatExchangeDate(value, {
     month: "short",
     day: "numeric",
     year: "numeric",
-  });
+  }, "Not set");
 }
 
 function getGiftDayHelper(value: string): string {
-  const parsed = new Date(value);
-  if (Number.isNaN(parsed.getTime())) {
+  const daysUntil = getDaysUntilExchangeDate(value);
+
+  if (daysUntil === null) {
     return "Add a gift day so members can plan.";
   }
-
-  const today = new Date();
-  const parsedDay = new Date(parsed.getFullYear(), parsed.getMonth(), parsed.getDate());
-  const todayDay = new Date(today.getFullYear(), today.getMonth(), today.getDate());
-  const daysUntil = Math.round((parsedDay.getTime() - todayDay.getTime()) / 86400000);
 
   if (daysUntil > 0) {
     return `${daysUntil} day${daysUntil === 1 ? "" : "s"} left until gift day. You're all set.`;

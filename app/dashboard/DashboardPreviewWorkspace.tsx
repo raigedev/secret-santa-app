@@ -1,5 +1,6 @@
 "use client";
 import { buildExchangeLifecycleSummary } from "@/lib/exchange-lifecycle";
+import { getExchangeDateUtcTimestamp } from "@/lib/exchange-date.mjs";
 import { DashboardCommandDesk } from "./DashboardCommandDesk";
 import type { DashboardActivityItem, GiftProgressSummary, Group, PendingInvite } from "./dashboard-types";
 type DashboardPreviewWorkspaceProps = {
@@ -21,8 +22,7 @@ type DashboardPreviewWorkspaceProps = {
 };
 
 function getGroupEventTime(value: string): number {
-  const parsed = new Date(value).getTime();
-  return Number.isNaN(parsed) ? Number.POSITIVE_INFINITY : parsed;
+  return getExchangeDateUtcTimestamp(value) ?? Number.POSITIVE_INFINITY;
 }
 
 function getFocusGroup(groups: Group[]): Group | null {

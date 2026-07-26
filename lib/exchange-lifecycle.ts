@@ -1,4 +1,4 @@
-const DAY_MS = 24 * 60 * 60 * 1000;
+import { getDaysUntilExchangeDate } from "@/lib/exchange-date.mjs";
 
 const GIFT_PANIC_WINDOW_DAYS = 2;
 
@@ -48,63 +48,6 @@ type ExchangeLifecycleSummary = {
   readinessPercent: number;
   steps: ExchangeLifecycleStep[];
 };
-
-function parseEventDate(value: string | null | undefined): number | null {
-  if (!value) {
-    return null;
-  }
-
-  const [datePart] = value.split("T");
-  const [yearPart, monthPart, dayPart] = datePart.split("-");
-  const year = Number(yearPart);
-  const month = Number(monthPart);
-  const day = Number(dayPart);
-
-  if (
-    !Number.isInteger(year) ||
-    !Number.isInteger(month) ||
-    !Number.isInteger(day) ||
-    yearPart.length !== 4 ||
-    month < 1 ||
-    month > 12 ||
-    day < 1 ||
-    day > 31
-  ) {
-    return null;
-  }
-
-  const parsed = new Date(year, month - 1, day);
-
-  if (
-    parsed.getFullYear() !== year ||
-    parsed.getMonth() !== month - 1 ||
-    parsed.getDate() !== day
-  ) {
-    return null;
-  }
-
-  return parsed.getTime();
-}
-
-function getCalendarDayKey(timestamp: number): number {
-  const date = new Date(timestamp);
-  return Date.UTC(date.getFullYear(), date.getMonth(), date.getDate());
-}
-
-function getExchangeDaysUntilEvent(
-  eventDate: string | null | undefined,
-  now: number | Date = Date.now()
-): number | null {
-  const eventTime = parseEventDate(eventDate);
-
-  if (eventTime === null) {
-    return null;
-  }
-
-  const nowTime = now instanceof Date ? now.getTime() : now;
-
-  return Math.round((getCalendarDayKey(eventTime) - getCalendarDayKey(nowTime)) / DAY_MS);
-}
 
 function clampPercent(value: number): number {
   if (!Number.isFinite(value)) {
@@ -175,7 +118,7 @@ export function buildExchangeLifecycleSummary(
   input: ExchangeLifecycleInput,
   now: number | Date = Date.now()
 ): ExchangeLifecycleSummary {
-  const daysUntilEvent = getExchangeDaysUntilEvent(input.eventDate, now);
+  const daysUntilEvent = getDaysUntilExchangeDate(input.eventDate, now);
   const isGiftDayToday = daysUntilEvent === 0;
   const isGiftDayPast = typeof daysUntilEvent === "number" && daysUntilEvent < 0;
   const isPanicWindow =

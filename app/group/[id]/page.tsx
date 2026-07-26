@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import dynamic from "next/dynamic";
 import { useParams, useRouter } from "next/navigation";
+import { formatExchangeDate } from "@/lib/exchange-date.mjs";
 import { createClient } from "@/lib/supabase/client";
 import {
   addDrawExclusion,
@@ -1982,16 +1983,11 @@ function formatGroupBudgetAmount(value: number): string {
 }
 
 function formatGroupDisplayDate(value: string): string {
-  const parsed = new Date(value);
-  if (Number.isNaN(parsed.getTime())) {
-    return value || "Not set";
-  }
-
-  return parsed.toLocaleDateString(undefined, {
+  return formatExchangeDate(value, {
     month: "short",
     day: "numeric",
     year: "numeric",
-  });
+  }, value || "Not set");
 }
 
 function LockClosedIcon() {

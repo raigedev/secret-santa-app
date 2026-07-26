@@ -1,3 +1,7 @@
+import {
+  addDaysToExchangeDate,
+  getExchangeDateKey,
+} from "@/lib/exchange-date.mjs";
 import { recordServerFailure } from "@/lib/security/audit";
 import { normalizeSafeAppPath } from "@/lib/security/safe-app-path";
 import { supabaseAdmin } from "@/lib/supabase/admin";
@@ -129,7 +133,6 @@ type WishlistReminderRow = {
   user_id: string;
 };
 
-const MANILA_TIME_ZONE = "Asia/Manila";
 const DIGEST_HOUR_MANILA = 9;
 const MAX_REMINDER_ATTEMPTS = 5;
 const WISHLIST_REMINDER_WINDOW_DAYS = 14;
@@ -218,21 +221,6 @@ function isReminderEnabled(
   return Boolean(preferences[REMINDER_TYPE_TO_PROFILE_KEY[reminderType]]);
 }
 
-function getManilaDateString(date: Date): string {
-  return new Intl.DateTimeFormat("en-CA", {
-    day: "2-digit",
-    month: "2-digit",
-    timeZone: MANILA_TIME_ZONE,
-    year: "numeric",
-  }).format(date);
-}
-
-function addDaysToDateString(dateString: string, days: number): string {
-  const date = new Date(`${dateString}T00:00:00.000Z`);
-  date.setUTCDate(date.getUTCDate() + days);
-  return date.toISOString().slice(0, 10);
-}
-
 function buildManilaDigestInstant(dateString: string): Date {
   const [year, month, day] = dateString.split("-").map((value) => Number(value));
   return new Date(Date.UTC(year, month - 1, day, DIGEST_HOUR_MANILA - 8, 0, 0, 0));
@@ -255,14 +243,14 @@ function scheduleReminderDueAt(
     return candidateDueAt;
   }
 
-  const candidateDate = getManilaDateString(candidateDueAt);
+  const candidateDate = getExchangeDateKey(candidateDueAt);
   const sameDayDigest = buildManilaDigestInstant(candidateDate);
 
   if (candidateDueAt.getTime() <= sameDayDigest.getTime()) {
     return sameDayDigest;
   }
 
-  return buildManilaDigestInstant(addDaysToDateString(candidateDate, 1));
+  return buildManilaDigestInstant(addDaysToExchangeDate(candidateDate, 1));
 }
 
 function buildNotificationTypeForReminder(reminderType: ReminderType): string {
@@ -450,7 +438,7 @@ function buildEventTomorrowCandidateDueAt(eventDate: string): Date {
 }
 
 async function enqueueEventTomorrowReminderJobs(now: Date): Promise<number> {
-  const tomorrow = addDaysToDateString(getManilaDateString(now), 1);
+  const tomorrow = addDaysToExchangeDate(getExchangeDateKey(now), 1);
   const { data: groups, error: groupError } = await supabaseAdmin
     .from("groups")
     .select("id, name, event_date")
@@ -541,8 +529,8 @@ async function enqueueEventTomorrowReminderJobs(now: Date): Promise<number> {
 }
 
 async function enqueueWishlistIncompleteReminderJobs(now: Date): Promise<number> {
-  const today = getManilaDateString(now);
-  const windowEnd = addDaysToDateString(today, WISHLIST_REMINDER_WINDOW_DAYS);
+  const today = getExchangeDateKey(now);
+  const windowEnd = addDaysToExchangeDate(today, WISHLIST_REMINDER_WINDOW_DAYS);
   const { data: groups, error: groupError } = await supabaseAdmin
     .from("groups")
     .select("id, name, event_date")
@@ -654,7 +642,7 @@ async function enqueueWishlistIncompleteReminderJobs(now: Date): Promise<number>
 }
 
 async function enqueuePostDrawReminderJobs(now: Date): Promise<number> {
-  const today = getManilaDateString(now);
+  const today = getExchangeDateKey(now);
   const cycleWindowStart = new Date(
     now.getTime() - POST_DRAW_REMINDER_LOOK_BACK_DAYS * 24 * 60 * 60 * 1000
   ).toISOString();
@@ -1184,7 +1172,7 @@ async function processDailyDigestReminderJobs(
       job,
       notificationId,
       payload: {
-        digestDate: getManilaDateString(now),
+        digestDate: getExchangeDateKey(now),
         jobCount: enabledJobs.length,
         metadata: sanitizeMetadata(job.metadata || {}),
       },

@@ -8,6 +8,12 @@ import {
   buildInviteLinkExpiresAt,
 } from "../lib/groups/invite-links.mjs";
 import { ELIGIBLE_EMAIL_INVITE_STATUSES } from "../lib/groups/invite-claim.mjs";
+import {
+  EXCHANGE_TIME_ZONE,
+  formatExchangeDate,
+  getDaysUntilExchangeDate,
+  getExchangeDateKey,
+} from "../lib/exchange-date.mjs";
 
 const RSC_SECURITY_PATCH_FLOORS = {
   next: "16.0.10",
@@ -818,7 +824,7 @@ test("live reveal match disclosure is gated by the gift day", () => {
   const migrationPath = [
     "supabase",
     "migrations",
-    "20260608180500_gate_live_reveal_session_by_event_date.sql",
+    "20260726090000_align_exchange_date_timezone.sql",
   ].join("/");
   // eslint-disable-next-line security/detect-non-literal-fs-filename -- Security test reads one pinned repo-local migration path.
   const migrationSource = readFileSync(migrationPath, "utf8");
@@ -834,16 +840,44 @@ test("live reveal match disclosure is gated by the gift day", () => {
   );
   assert.match(groupActionsSource, /select\("owner_id, name, revealed, event_date"\)/);
   assert.match(groupActionsSource, /revealDateReady: isRevealDateReady\(group\.event_date\)/);
+  assert.match(groupActionsSource, /getDaysUntilExchangeDate\(eventDate, now\)/);
   assert.match(countdownBody, /!permission\.revealDateReady/);
   assert.match(updateBody, /!permission\.revealed && !permission\.revealDateReady/);
+  assert.match(migrationSource, /private\.current_exchange_date/);
+  assert.match(migrationSource, /timezone\('Asia\/Manila'::text, now\(\)\)/);
   assert.match(migrationSource, /private\.can_write_group_reveal_session/);
   assert.match(migrationSource, /p_status in \('idle', 'waiting'\)/);
   assert.match(
     migrationSource,
-    /g\.event_date <= \(timezone\('utc'::text, now\(\)\)\)::date/
+    /g\.event_date <= \(select private\.current_exchange_date\(\)\)/
   );
+  assert.match(
+    migrationSource,
+    /revealed = false[\s\S]*or event_date <= \(select private\.current_exchange_date\(\)\)/
+  );
+  assert.doesNotMatch(migrationSource, /timezone\('utc'/i);
   assert.match(migrationSource, /alter policy group_reveal_sessions_insert_for_owner/);
   assert.match(migrationSource, /alter policy group_reveal_sessions_update_for_owner/);
+});
+
+test("exchange calendar dates use one Manila boundary and never shift in display", () => {
+  const justBeforeGiftDay = new Date("2026-07-09T15:59:59.000Z");
+  const giftDayStart = new Date("2026-07-09T16:00:00.000Z");
+
+  assert.equal(EXCHANGE_TIME_ZONE, "Asia/Manila");
+  assert.equal(getExchangeDateKey(justBeforeGiftDay), "2026-07-09");
+  assert.equal(getExchangeDateKey(giftDayStart), "2026-07-10");
+  assert.equal(getDaysUntilExchangeDate("2026-07-10", justBeforeGiftDay), 1);
+  assert.equal(getDaysUntilExchangeDate("2026-07-10", giftDayStart), 0);
+  assert.equal(
+    formatExchangeDate(
+      "2026-07-10",
+      { day: "numeric", month: "long", year: "numeric" },
+      "Event day",
+      "en-US"
+    ),
+    "July 10, 2026"
+  );
 });
 
 test("event reveal QR code joins by page link only", () => {
