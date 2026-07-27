@@ -1089,7 +1089,7 @@ test.describe("authenticated screen regressions", () => {
 
     const snapshotKey = await page.evaluate(() => {
       for (const key of Object.keys(sessionStorage)) {
-        if (key.startsWith("ss_chat_page_snapshot_v1:")) {
+        if (key.startsWith("ss_chat_page_snapshot_v2:")) {
           return key;
         }
       }
@@ -1102,23 +1102,25 @@ test.describe("authenticated screen regressions", () => {
     }
 
     await page.evaluate((storageKey) => {
-      const userId = storageKey.replace("ss_chat_page_snapshot_v1:", "");
+      const userId = storageKey.replace("ss_chat_page_snapshot_v2:", "");
 
       sessionStorage.setItem(
         storageKey,
         JSON.stringify({
           createdAt: Date.now(),
+          snapshotVersion: 2,
           threads: [
             {
               giver_id: "stale-giver",
               group_gift_date: "",
+              group_time_zone: "UTC",
               group_id: "stale-group",
               group_name: "Stale Exchange",
-              last_message: "Cached message",
               last_time: new Date().toISOString(),
               other_name: "Stale recipient",
               receiver_id: userId,
               role: "receiver",
+              thread_id: "stale-thread",
               unread: 1,
             },
           ],
