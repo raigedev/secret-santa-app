@@ -1,4 +1,5 @@
 import { type Dispatch, type SetStateAction } from "react";
+import { ExchangeTimeZoneSelect } from "@/app/components/ExchangeTimeZoneSelect";
 import { formatCurrencyOptionLabel, SUPPORTED_CURRENCIES } from "@/lib/currency";
 import { BUDGET_OPTIONS } from "./group-page-config";
 import { GroupPageModal } from "./GroupPagePrimitives";
@@ -15,6 +16,7 @@ type EditGroupModalProps = {
   editMsg: string;
   editName: string;
   editSaving: boolean;
+  editTimeZone: string;
   onClose: () => void;
   onSave: () => void;
   setEditBudget: StateSetter<number>;
@@ -23,11 +25,22 @@ type EditGroupModalProps = {
   setEditDate: StateSetter<string>;
   setEditDesc: StateSetter<string>;
   setEditName: StateSetter<string>;
+  setEditTimeZone: StateSetter<string>;
 };
 
-function FieldLabel({ children }: { children: string }) {
+function FieldLabel({
+  children,
+  htmlFor,
+}: {
+  children: string;
+  htmlFor?: string;
+}) {
   return (
-    <label className="text-[12px] font-extrabold block mb-1" style={{ color: "#374151" }}>
+    <label
+      htmlFor={htmlFor}
+      className="text-[12px] font-extrabold block mb-1"
+      style={{ color: "#374151" }}
+    >
       {children}
     </label>
   );
@@ -51,6 +64,7 @@ export function EditGroupModal({
   editMsg,
   editName,
   editSaving,
+  editTimeZone,
   onClose,
   onSave,
   setEditBudget,
@@ -59,6 +73,7 @@ export function EditGroupModal({
   setEditDate,
   setEditDesc,
   setEditName,
+  setEditTimeZone,
 }: EditGroupModalProps) {
   return (
     <GroupPageModal onClose={onClose}>
@@ -101,6 +116,22 @@ export function EditGroupModal({
             className="w-full px-3 py-2.5 rounded-xl text-[14px] outline-none"
             style={inputStyle}
           />
+        </div>
+
+        <div>
+          <FieldLabel htmlFor="edit-group-event-time-zone">
+            Gift-day time zone
+          </FieldLabel>
+          <ExchangeTimeZoneSelect
+            id="edit-group-event-time-zone"
+            value={editTimeZone}
+            onChange={setEditTimeZone}
+            className="w-full px-3 py-2.5 rounded-xl text-[14px] outline-none"
+            style={inputStyle}
+          />
+          <p className="mt-1 text-[11px] font-semibold text-slate-500">
+            Reveals and group deadlines follow this location.
+          </p>
         </div>
 
         <div>

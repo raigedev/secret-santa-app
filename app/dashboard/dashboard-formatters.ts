@@ -1,4 +1,9 @@
 import {
+  formatExchangeDate,
+  getDaysUntilExchangeDate,
+  getExchangeDateUtcTimestamp,
+} from "@/lib/exchange-date.mjs";
+import {
   getAnonymousGroupDisplayName,
   isEmailDerivedGroupNickname,
 } from "@/lib/groups/nickname";
@@ -22,67 +27,23 @@ export function createEmptyQueryResult<T>(data: T[] = []): Promise<{ data: T[]; 
 }
 
 export function formatDashboardDate(value: string): string {
-  const parsed = new Date(getDashboardEventTime(value));
-
-  if (Number.isNaN(parsed.getTime())) {
-    return value;
-  }
-
-  return parsed.toLocaleDateString(undefined, {
+  return formatExchangeDate(value, {
     day: "numeric",
     month: "short",
     year: "numeric",
-  });
+  }, value);
 }
 
-function getDashboardEventTime(value: string): number {
-  const [datePart] = value.split("T");
-  const [yearPart, monthPart, dayPart] = datePart.split("-");
-  const year = Number(yearPart);
-  const month = Number(monthPart);
-  const day = Number(dayPart);
+export function formatDashboardEventCountdown(
+  value: string,
+  now: number,
+  eventTimeZone: string
+): string {
+  const dayDifference = getDaysUntilExchangeDate(value, now, eventTimeZone);
 
-  if (
-    Number.isInteger(year) &&
-    Number.isInteger(month) &&
-    Number.isInteger(day) &&
-    yearPart.length === 4 &&
-    month >= 1 &&
-    month <= 12 &&
-    day >= 1 &&
-    day <= 31
-  ) {
-    const parsedLocalDate = new Date(year, month - 1, day);
-
-    if (
-      parsedLocalDate.getFullYear() === year &&
-      parsedLocalDate.getMonth() === month - 1 &&
-      parsedLocalDate.getDate() === day
-    ) {
-      return parsedLocalDate.getTime();
-    }
-  }
-
-  return new Date(value).getTime();
-}
-
-function getCalendarDayKey(timestamp: number): number {
-  const date = new Date(timestamp);
-  return Date.UTC(date.getFullYear(), date.getMonth(), date.getDate());
-}
-
-function getCalendarDayDifference(eventTime: number, now: number): number {
-  return Math.round((getCalendarDayKey(eventTime) - getCalendarDayKey(now)) / 86_400_000);
-}
-
-export function formatDashboardEventCountdown(value: string, now: number): string {
-  const eventTime = getDashboardEventTime(value);
-
-  if (Number.isNaN(eventTime)) {
+  if (dayDifference === null) {
     return "Open";
   }
-
-  const dayDifference = getCalendarDayDifference(eventTime, now);
 
   if (dayDifference < 0) {
     return "Gift day passed";
@@ -102,14 +63,19 @@ export function formatDashboardEventCountdown(value: string, now: number): strin
 export function buildDashboardRevealMessage(groups: Group[], now: number): string {
   const events = groups
     .map((group) => {
-      const eventTime = getDashboardEventTime(group.event_date);
+      const eventTime = getExchangeDateUtcTimestamp(group.event_date);
+      const dayDifference = getDaysUntilExchangeDate(
+        group.event_date,
+        now,
+        group.event_timezone
+      );
 
-      if (Number.isNaN(eventTime)) {
+      if (eventTime === null || dayDifference === null) {
         return null;
       }
 
       return {
-        dayDifference: getCalendarDayDifference(eventTime, now),
+        dayDifference,
         groupName: group.name || "your exchange",
         sortTime: eventTime,
       };

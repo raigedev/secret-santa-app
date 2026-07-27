@@ -63,7 +63,7 @@ async function prepareInviteResponseAction(
 
   const { data: group } = await context.supabase
     .from("groups")
-    .select("event_date, require_anonymous_nickname")
+    .select("event_date, event_timezone, require_anonymous_nickname")
     .eq("id", groupId)
     .maybeSingle();
 
@@ -71,7 +71,7 @@ async function prepareInviteResponseAction(
     return { success: false, message: "Group not found." };
   }
 
-  if (isGroupInHistory(group.event_date)) {
+  if (isGroupInHistory(group.event_date, Date.now(), group.event_timezone)) {
     return { success: false, message: GROUP_HISTORY_READ_ONLY_MESSAGE };
   }
 

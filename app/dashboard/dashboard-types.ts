@@ -13,6 +13,7 @@ export type Group = {
   name: string;
   description: string;
   event_date: string;
+  event_timezone: string;
   image_url: string | null;
   budget: number | null;
   currency: string | null;
@@ -42,6 +43,7 @@ export type GroupRow = {
   name: string;
   description: string;
   event_date: string;
+  event_timezone: string;
   image_url: string | null;
   budget: number | null;
   currency: string | null;
@@ -81,6 +83,7 @@ export type PendingGroupRow = {
   name: string;
   description: string;
   event_date: string;
+  event_timezone: string;
   require_anonymous_nickname: boolean;
 };
 

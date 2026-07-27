@@ -1,5 +1,6 @@
 "use client";
 
+import { getExchangeDateUtcTimestamp } from "@/lib/exchange-date.mjs";
 import {
   ArrowRightIcon,
   ChatIcon,
@@ -104,7 +105,11 @@ export function DashboardCommandDesk({
 }: DashboardCommandDeskProps) {
   const nextGroups = groups
     .slice()
-    .sort((left, right) => new Date(left.event_date).getTime() - new Date(right.event_date).getTime())
+    .sort(
+      (left, right) =>
+        (getExchangeDateUtcTimestamp(left.event_date) ?? Number.POSITIVE_INFINITY) -
+        (getExchangeDateUtcTimestamp(right.event_date) ?? Number.POSITIVE_INFINITY)
+    )
     .slice(0, 3);
   const budgetLabel = focusGroup
     ? formatDashboardBudget(focusGroup.budget, focusGroup.currency) || "No budget"

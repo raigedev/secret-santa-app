@@ -9,6 +9,14 @@ import {
   useState,
 } from "react";
 import { useRouter } from "next/navigation";
+import { ExchangeTimeZoneSelect } from "@/app/components/ExchangeTimeZoneSelect";
+import {
+  DEFAULT_EXCHANGE_TIME_ZONE,
+  formatExchangeTimeZoneLabel,
+  formatExchangeDate,
+  getDaysUntilExchangeDate,
+  getLocalExchangeTimeZone,
+} from "@/lib/exchange-date.mjs";
 import {
   sanitizeGroupNickname,
   validateAnonymousGroupNickname,
@@ -182,6 +190,7 @@ export default function CreateGroupPage() {
   const [groupName, setGroupName] = useState("");
   const [description, setDescription] = useState("");
   const [eventDate, setEventDate] = useState("");
+  const [eventTimeZone, setEventTimeZone] = useState(DEFAULT_EXCHANGE_TIME_ZONE);
   const [inviteEmails, setInviteEmails] = useState("");
   const [budget, setBudget] = useState(25);
   const [currency, setCurrency] = useState("USD");
@@ -201,6 +210,7 @@ export default function CreateGroupPage() {
 
   useEffect(() => {
     setIsHydrated(true);
+    setEventTimeZone(getLocalExchangeTimeZone());
 
     return () => {
       mountedRef.current = false;
@@ -334,7 +344,13 @@ export default function CreateGroupPage() {
       return;
     }
 
-    if (new Date(eventDate) < new Date(new Date().toDateString())) {
+    const daysUntilEvent = getDaysUntilExchangeDate(
+      eventDate,
+      Date.now(),
+      eventTimeZone
+    );
+
+    if (daysUntilEvent === null || daysUntilEvent < 0) {
       setErrorMsg("Event date can't be in the past.");
       setLoading(false);
       return;
@@ -361,6 +377,7 @@ export default function CreateGroupPage() {
     formData.set("name", cleanName);
     formData.set("description", cleanDesc);
     formData.set("eventDate", eventDate);
+    formData.set("eventTimeZone", eventTimeZone);
     formData.set("inviteEmailsJson", JSON.stringify(emailList));
     formData.set("budget", cleanBudget.toString());
     formData.set("currency", currency);
@@ -395,6 +412,9 @@ export default function CreateGroupPage() {
 
   const currencySymbol = getCurrencySymbol(currency);
   const inviteEmailCount = getInviteEmailCount(inviteEmails);
+  const eventDateLabel = eventDate
+    ? formatExchangeDate(eventDate, undefined, "Choose date")
+    : "Choose date";
   const formActionDisabled = !isHydrated || loading || imageDecodePending;
   const basicsReady = groupName.trim().length > 0 && eventDate.length > 0;
   const rawBudgetReady = budget > 0 && currency.length > 0;
@@ -559,7 +579,8 @@ export default function CreateGroupPage() {
 
           <div className="mt-8 space-y-4 border-t border-[rgba(72,102,78,.12)] pt-5">
             {[
-              ["Gift date", eventDate ? new Date(eventDate).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" }) : "Choose date"],
+              ["Gift date", eventDateLabel],
+              ["Time zone", formatExchangeTimeZoneLabel(eventTimeZone)],
               ["Group budget", `${currencySymbol}${budget || 0} per person`],
               ["Members", `${inviteEmailCount} invited`],
             ].map(([label, value]) => (
@@ -697,10 +718,11 @@ export default function CreateGroupPage() {
           </div>
 
           <div>
-            <label className={labelClassName}>
+            <label htmlFor="group-event-date" className={labelClassName}>
               Gift exchange date *
             </label>
             <input
+              id="group-event-date"
               type="date"
               value={eventDate}
               onChange={(e) => setEventDate(e.target.value)}
@@ -708,6 +730,22 @@ export default function CreateGroupPage() {
               className={fieldClassName}
               style={{ fontFamily: "inherit" }}
             />
+          </div>
+
+          <div>
+            <label htmlFor="group-event-time-zone" className={labelClassName}>
+              Gift-day time zone *
+            </label>
+            <ExchangeTimeZoneSelect
+              id="group-event-time-zone"
+              value={eventTimeZone}
+              onChange={setEventTimeZone}
+              className={fieldClassName}
+              style={{ fontFamily: "inherit" }}
+            />
+            <p className="mt-2 text-[12px] font-semibold leading-5 text-slate-500">
+              The reveal and group deadlines follow this location.
+            </p>
           </div>
 
           <div

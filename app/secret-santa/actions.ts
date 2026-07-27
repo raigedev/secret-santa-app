@@ -28,7 +28,7 @@ async function requireWritableExchange(
 ): Promise<{ message?: string; ok: boolean }> {
   const { data: group, error } = await supabaseAdmin
     .from("groups")
-    .select("event_date")
+    .select("event_date, event_timezone")
     .eq("id", groupId)
     .maybeSingle();
 
@@ -36,7 +36,7 @@ async function requireWritableExchange(
     return { ok: false, message: "Exchange not found." };
   }
 
-  if (isGroupInHistory(group.event_date)) {
+  if (isGroupInHistory(group.event_date, Date.now(), group.event_timezone)) {
     return { ok: false, message: GROUP_HISTORY_READ_ONLY_MESSAGE };
   }
 

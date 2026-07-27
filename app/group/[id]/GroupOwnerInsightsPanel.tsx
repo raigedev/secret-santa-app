@@ -1,3 +1,7 @@
+import {
+  formatExchangeDate,
+  getDaysUntilExchangeDate,
+} from "@/lib/exchange-date.mjs";
 import { type OwnerInsights } from "./group-page-state";
 
 type GroupOwnerInsightsPanelProps = {
@@ -6,6 +10,7 @@ type GroupOwnerInsightsPanelProps = {
   drawDone: boolean;
   drawRulesReady: boolean;
   eventDate: string;
+  eventTimeZone: string;
   ownerInsights: OwnerInsights;
   pendingMemberCount: number;
   pendingInviteCount: number;
@@ -28,13 +33,14 @@ export function GroupOwnerInsightsPanel({
   drawDone,
   drawRulesReady,
   eventDate,
+  eventTimeZone,
   ownerInsights,
   pendingMemberCount,
   pendingInviteCount,
 }: GroupOwnerInsightsPanelProps) {
   const missingWishlistCount = ownerInsights.missingWishlistMemberNames.length;
   const giftDateLabel = formatEventDate(eventDate);
-  const giftDayMeta = getGiftDayHelper(eventDate);
+  const giftDayMeta = getGiftDayHelper(eventDate, eventTimeZone);
   const blockedMemberCount = pendingMemberCount + declinedMemberCount;
   const drawMeta = getDrawStatusMeta({
     blockedMemberCount,
@@ -192,28 +198,23 @@ export function GroupOwnerInsightsSkeleton() {
 }
 
 function formatEventDate(value: string): string {
-  const parsed = new Date(value);
-  if (Number.isNaN(parsed.getTime())) {
-    return "Not set";
-  }
-
-  return parsed.toLocaleDateString(undefined, {
+  return formatExchangeDate(value, {
     month: "short",
     day: "numeric",
     year: "numeric",
-  });
+  }, "Not set");
 }
 
-function getGiftDayHelper(value: string): string {
-  const parsed = new Date(value);
-  if (Number.isNaN(parsed.getTime())) {
+function getGiftDayHelper(value: string, eventTimeZone: string): string {
+  const daysUntil = getDaysUntilExchangeDate(
+    value,
+    Date.now(),
+    eventTimeZone
+  );
+
+  if (daysUntil === null) {
     return "Add a gift day so members can plan.";
   }
-
-  const today = new Date();
-  const parsedDay = new Date(parsed.getFullYear(), parsed.getMonth(), parsed.getDate());
-  const todayDay = new Date(today.getFullYear(), today.getMonth(), today.getDate());
-  const daysUntil = Math.round((parsedDay.getTime() - todayDay.getTime()) / 86400000);
 
   if (daysUntil > 0) {
     return `${daysUntil} day${daysUntil === 1 ? "" : "s"} left until gift day. You're all set.`;

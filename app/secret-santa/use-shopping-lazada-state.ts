@@ -31,6 +31,7 @@ export type RecipientData = {
   group_id: string;
   group_name: string;
   group_event_date: string;
+  group_event_timezone: string;
   group_budget: number | null;
   group_currency: string | null;
   receiver_nickname: string;

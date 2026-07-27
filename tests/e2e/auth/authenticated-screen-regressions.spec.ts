@@ -444,6 +444,14 @@ const AUTHENTICATED_SCREEN_CASES: ScreenCase[] = [
       const currencyOptions = await page.locator("#create-group-currency option").allTextContents();
       expect(currencyOptions).toContain("\u20b1 PHP - Philippine Peso");
       expect(currencyOptions).not.toContain("PHP PHP - Philippine Peso");
+      const timeZoneSelect = page.locator("#group-event-time-zone");
+      await expect(timeZoneSelect).toBeVisible();
+      const selectedTimeZone = await timeZoneSelect.inputValue();
+      expect(selectedTimeZone.length).toBeGreaterThan(0);
+      expect(selectedTimeZone === "UTC" || selectedTimeZone.includes("/")).toBe(true);
+      await expect(
+        page.getByText(/the reveal and group deadlines follow this location/i)
+      ).toBeVisible();
       await expect(page.getByRole("button", { name: /back to dashboard/i })).toHaveCount(0);
       const backNavigation = page.locator('[data-app-page-navigation=""]');
       await expect(backNavigation.getByRole("button", { name: /^back to groups$/i })).toBeVisible();
@@ -1081,7 +1089,7 @@ test.describe("authenticated screen regressions", () => {
 
     const snapshotKey = await page.evaluate(() => {
       for (const key of Object.keys(sessionStorage)) {
-        if (key.startsWith("ss_chat_page_snapshot_v1:")) {
+        if (key.startsWith("ss_chat_page_snapshot_v2:")) {
           return key;
         }
       }
@@ -1094,23 +1102,25 @@ test.describe("authenticated screen regressions", () => {
     }
 
     await page.evaluate((storageKey) => {
-      const userId = storageKey.replace("ss_chat_page_snapshot_v1:", "");
+      const userId = storageKey.replace("ss_chat_page_snapshot_v2:", "");
 
       sessionStorage.setItem(
         storageKey,
         JSON.stringify({
           createdAt: Date.now(),
+          snapshotVersion: 2,
           threads: [
             {
               giver_id: "stale-giver",
               group_gift_date: "",
+              group_time_zone: "UTC",
               group_id: "stale-group",
               group_name: "Stale Exchange",
-              last_message: "Cached message",
               last_time: new Date().toISOString(),
               other_name: "Stale recipient",
               receiver_id: userId,
               role: "receiver",
+              thread_id: "stale-thread",
               unread: 1,
             },
           ],

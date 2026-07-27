@@ -387,10 +387,20 @@ export default function DashboardPage() {
 
     const applyDashboardSnapshot = (snapshot: DashboardSnapshot) => {
       const activeOwnedGroups = snapshot.ownedGroups.filter(
-        (group) => !isGroupInHistory(group.event_date)
+        (group) =>
+          !isGroupInHistory(
+            group.event_date,
+            Date.now(),
+            group.event_timezone
+          )
       );
       const activeInvitedGroups = snapshot.invitedGroups.filter(
-        (group) => !isGroupInHistory(group.event_date)
+        (group) =>
+          !isGroupInHistory(
+            group.event_date,
+            Date.now(),
+            group.event_timezone
+          )
       );
 
       if (snapshot.userName) {
@@ -530,7 +540,7 @@ export default function DashboardPage() {
             acceptedGroupIds.length > 0
               ? supabase
                   .from("groups")
-                  .select("id, name, description, event_date, image_url, budget, currency, owner_id, created_at, require_anonymous_nickname")
+                  .select("id, name, description, event_date, event_timezone, image_url, budget, currency, owner_id, created_at, require_anonymous_nickname")
                   .in("id", acceptedGroupIds)
               : createEmptyQueryResult<GroupRow>(),
             acceptedGroupIds.length > 0
@@ -549,7 +559,7 @@ export default function DashboardPage() {
             pendingGroupIds.length > 0
               ? supabase
                   .from("groups")
-                  .select("id, name, description, event_date, require_anonymous_nickname")
+                  .select("id, name, description, event_date, event_timezone, require_anonymous_nickname")
                   .in("id", pendingGroupIds)
               : createEmptyQueryResult<PendingGroupRow>(),
             acceptedGroupIds.length > 0
@@ -598,7 +608,12 @@ export default function DashboardPage() {
 
         const groupsData = groupsRes.data || [];
         const activeGroupsData = groupsData.filter(
-          (group) => !isGroupInHistory(group.event_date)
+          (group) =>
+            !isGroupInHistory(
+              group.event_date,
+              Date.now(),
+              group.event_timezone
+            )
         );
         const activeGroupIds = new Set(activeGroupsData.map((group) => group.id));
         activeNotificationGroupIdsRef.current = activeGroupIds;
@@ -612,7 +627,12 @@ export default function DashboardPage() {
           activeGroupIds.has(assignment.group_id)
         );
         const pendingGroups = (pendingRes.data || []).filter(
-          (group) => !isGroupInHistory(group.event_date)
+          (group) =>
+            !isGroupInHistory(
+              group.event_date,
+              Date.now(),
+              group.event_timezone
+            )
         );
         const wishlistSummary = ((wishlistSummaryRes.data || []) as WishlistSummaryRow[]).filter(
           (row) => activeGroupIds.has(row.group_id)

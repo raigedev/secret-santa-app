@@ -2,6 +2,10 @@
 
 import { createHash, randomBytes } from "crypto";
 import {
+  getDaysUntilExchangeDate,
+  normalizeExchangeTimeZone,
+} from "@/lib/exchange-date.mjs";
+import {
   countActiveGroupSlots,
   getGroupCapacityMessage,
   MAX_GROUP_MEMBERS,
@@ -152,7 +156,7 @@ async function assertOwnerCanManageInvites(
 ): Promise<{ ok: boolean; message?: string }> {
   const { data: group } = await supabase
     .from("groups")
-    .select("owner_id, event_date")
+    .select("owner_id, event_date, event_timezone")
     .eq("id", groupId)
     .maybeSingle();
 
@@ -160,7 +164,7 @@ async function assertOwnerCanManageInvites(
     return { ok: false, message: "Only the group owner can manage invites." };
   }
 
-  if (isGroupInHistory(group.event_date)) {
+  if (isGroupInHistory(group.event_date, Date.now(), group.event_timezone)) {
     return { ok: false, message: GROUP_HISTORY_READ_ONLY_MESSAGE };
   }
 
@@ -492,7 +496,7 @@ export async function updateNickname(
       .maybeSingle(),
     supabase
       .from("groups")
-      .select("require_anonymous_nickname, event_date")
+      .select("require_anonymous_nickname, event_date, event_timezone")
       .eq("id", groupId)
       .maybeSingle(),
     supabase
@@ -520,7 +524,13 @@ export async function updateNickname(
     return { success: false, message: "Group not found." };
   }
 
-  if (isGroupInHistory(groupResult.data.event_date)) {
+  if (
+    isGroupInHistory(
+      groupResult.data.event_date,
+      Date.now(),
+      groupResult.data.event_timezone
+    )
+  ) {
     return { success: false, message: GROUP_HISTORY_READ_ONLY_MESSAGE };
   }
 
@@ -1226,6 +1236,7 @@ export async function editGroup(
   name: string,
   description: string,
   eventDate: string,
+  eventTimeZone: string,
   budget: number,
   currency: string
 ): Promise<{ success: boolean; message: string }> {
@@ -1260,13 +1271,19 @@ export async function editGroup(
     return { success: false, message: "Event date is required." };
   }
 
+  const cleanEventTimeZone = normalizeExchangeTimeZone(eventTimeZone);
+
+  if (!cleanEventTimeZone) {
+    return { success: false, message: "Choose a valid gift-day time zone." };
+  }
+
   if (!isSupportedCurrencyCode(cleanCurrency)) {
     return { success: false, message: "Choose a valid currency." };
   }
 
   const { data: group } = await supabase
     .from("groups")
-    .select("owner_id, event_date")
+    .select("owner_id, event_date, event_timezone")
     .eq("id", groupId)
     .single();
 
@@ -1274,7 +1291,7 @@ export async function editGroup(
     return { success: false, message: "Only the group owner can edit this group." };
   }
 
-  if (isGroupInHistory(group.event_date)) {
+  if (isGroupInHistory(group.event_date, Date.now(), group.event_timezone)) {
     return { success: false, message: GROUP_HISTORY_READ_ONLY_MESSAGE };
   }
 
@@ -1284,6 +1301,7 @@ export async function editGroup(
       name: cleanName,
       description: cleanDesc,
       event_date: eventDate,
+      event_timezone: cleanEventTimeZone,
       budget: cleanBudget,
       currency: cleanCurrency,
     })
@@ -1521,7 +1539,7 @@ export async function removeMember(
 
   const { data: group } = await supabase
     .from("groups")
-    .select("owner_id, event_date")
+    .select("owner_id, event_date, event_timezone")
     .eq("id", groupId)
     .single();
 
@@ -1529,7 +1547,7 @@ export async function removeMember(
     return { success: false, message: "Only the group owner can remove members." };
   }
 
-  if (isGroupInHistory(group.event_date)) {
+  if (isGroupInHistory(group.event_date, Date.now(), group.event_timezone)) {
     return { success: false, message: GROUP_HISTORY_READ_ONLY_MESSAGE };
   }
 
@@ -1585,7 +1603,7 @@ export async function leaveGroup(
   const { supabase, user } = context;
   const { data: group } = await supabase
     .from("groups")
-    .select("owner_id, event_date")
+    .select("owner_id, event_date, event_timezone")
     .eq("id", groupId)
     .single();
 
@@ -1597,7 +1615,7 @@ export async function leaveGroup(
     return { success: false, message: "The owner cannot leave. Delete the group instead." };
   }
 
-  if (isGroupInHistory(group.event_date)) {
+  if (isGroupInHistory(group.event_date, Date.now(), group.event_timezone)) {
     return { success: false, message: GROUP_HISTORY_READ_ONLY_MESSAGE };
   }
 
@@ -1797,12 +1815,17 @@ async function getStoredRevealSession(groupId: string) {
   return data;
 }
 
-function isRevealDateReady(eventDate: string | null | undefined, now = new Date()): boolean {
-  if (!eventDate) {
-    return true;
-  }
-
-  return eventDate <= now.toISOString().slice(0, 10);
+function isRevealDateReady(
+  eventDate: string | null | undefined,
+  eventTimeZone: string | null | undefined,
+  now = new Date()
+): boolean {
+  const daysUntilEvent = getDaysUntilExchangeDate(
+    eventDate,
+    now,
+    eventTimeZone || undefined
+  );
+  return daysUntilEvent === null || daysUntilEvent <= 0;
 }
 
 const LIVE_REVEAL_DATE_PENDING_MESSAGE = "The live reveal opens on the gift day.";
@@ -1866,7 +1889,7 @@ async function assertOwnerCanControlReveal(
   const supabase = await createClient();
   const { data: group } = await supabase
     .from("groups")
-    .select("owner_id, name, revealed, event_date")
+    .select("owner_id, name, revealed, event_date, event_timezone")
     .eq("id", groupId)
     .maybeSingle();
 
@@ -1878,7 +1901,7 @@ async function assertOwnerCanControlReveal(
     ok: true,
     eventDate: group.event_date,
     groupName: group.name,
-    revealDateReady: isRevealDateReady(group.event_date),
+    revealDateReady: isRevealDateReady(group.event_date, group.event_timezone),
     revealed: group.revealed,
   };
 }
@@ -2427,7 +2450,7 @@ export async function triggerReveal(
 
   const { data: group } = await supabase
     .from("groups")
-    .select("owner_id, revealed, name, event_date")
+    .select("owner_id, revealed, name, event_date, event_timezone")
     .eq("id", groupId)
     .single();
 
@@ -2435,7 +2458,7 @@ export async function triggerReveal(
     return { success: false, message: "Only the group owner can trigger the reveal." };
   }
 
-  if (isGroupInHistory(group.event_date)) {
+  if (isGroupInHistory(group.event_date, Date.now(), group.event_timezone)) {
     return { success: false, message: GROUP_HISTORY_READ_ONLY_MESSAGE };
   }
 
@@ -2443,7 +2466,7 @@ export async function triggerReveal(
     return { success: false, message: "This group has already been revealed." };
   }
 
-  if (!isRevealDateReady(group.event_date)) {
+  if (!isRevealDateReady(group.event_date, group.event_timezone)) {
     return { success: false, message: "The full reveal opens on the gift day." };
   }
 

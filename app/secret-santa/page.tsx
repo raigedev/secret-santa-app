@@ -11,6 +11,12 @@ import {
   type RefObject,
 } from "react";
 import { usePathname, useRouter } from "next/navigation";
+import {
+  DEFAULT_EXCHANGE_TIME_ZONE,
+  formatExchangeDate,
+  getDaysUntilExchangeDate,
+  getExchangeDateUtcTimestamp,
+} from "@/lib/exchange-date.mjs";
 import { createClient } from "@/lib/supabase/client";
 import { DashboardNotificationsPanel } from "@/app/dashboard/DashboardNotificationsPanel";
 import { SantaMarkIcon } from "@/app/dashboard/dashboard-icons";
@@ -92,6 +98,7 @@ type GroupOption = {
   id: string;
   name: string;
   eventDate: string;
+  eventTimeZone: string;
   budget: number | null;
   currency: string | null;
 };
@@ -105,6 +112,7 @@ type GroupRow = {
   id: string;
   name: string | null;
   event_date: string | null;
+  event_timezone: string | null;
   budget: number | null;
   currency: string | null;
 };
@@ -203,7 +211,6 @@ const SHOPPING_AFFILIATE_DISCLOSURE =
   "We may earn from qualifying purchases.";
 const SECRET_SANTA_PAGE_SNAPSHOT_STORAGE_PREFIX = "ss_secret_santa_page_snapshot_v1:";
 const GIFT_DAY_REMINDER_WINDOW_DAYS = 2;
-const DAY_MS = 24 * 60 * 60 * 1000;
 
 function getSecretSantaPageSnapshotStorageKey(userId: string): string {
   return `${SECRET_SANTA_PAGE_SNAPSHOT_STORAGE_PREFIX}${userId}`;
@@ -215,6 +222,7 @@ function isSnapshotGroupOption(value: unknown): value is GroupOption {
     typeof value.id === "string" &&
     typeof value.name === "string" &&
     typeof value.eventDate === "string" &&
+    typeof value.eventTimeZone === "string" &&
     isNullableNumber(value.budget) &&
     isNullableString(value.currency)
   );
@@ -2455,14 +2463,15 @@ function buildAvailableGroups(groups: GroupRow[]): GroupOption[] {
       id: group.id,
       name: group.name || "Unknown Group",
       eventDate: group.event_date || "",
+      eventTimeZone: group.event_timezone || DEFAULT_EXCHANGE_TIME_ZONE,
       budget: group.budget ?? null,
       currency: group.currency || null,
     }))
     .sort((left, right) => {
-      const leftTime = new Date(left.eventDate).getTime();
-      const rightTime = new Date(right.eventDate).getTime();
+      const leftTime = getExchangeDateUtcTimestamp(left.eventDate);
+      const rightTime = getExchangeDateUtcTimestamp(right.eventDate);
 
-      if (!Number.isNaN(leftTime) && !Number.isNaN(rightTime) && leftTime !== rightTime) {
+      if (leftTime !== null && rightTime !== null && leftTime !== rightTime) {
         return leftTime - rightTime;
       }
 
@@ -2505,6 +2514,8 @@ function buildRecipientData(
         group_id: assignment.group_id,
         group_name: group?.name || "Unknown Group",
         group_event_date: group?.eventDate || "",
+        group_event_timezone:
+          group?.eventTimeZone || DEFAULT_EXCHANGE_TIME_ZONE,
         group_budget: group?.budget ?? null,
         group_currency: group?.currency ?? null,
         receiver_nickname: receiver?.nickname || "Secret Member",
@@ -2569,47 +2580,22 @@ function formatDisplayDate(value: string | null): string {
   return DATE_FORMATTER.format(parsedDate);
 }
 
-function getCalendarDayKey(timestamp: number): number {
-  const date = new Date(timestamp);
-  return Date.UTC(date.getFullYear(), date.getMonth(), date.getDate());
+function formatEventDate(value: string | null): string {
+  return formatExchangeDate(value, {
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+  }, "Date unavailable");
 }
 
-function getDaysUntilEventDate(value: string | null | undefined): number | null {
-  if (!value) {
-    return null;
-  }
-
-  const [datePart] = value.split("T");
-  const [yearPart, monthPart, dayPart] = datePart.split("-");
-  const year = Number(yearPart);
-  const month = Number(monthPart);
-  const day = Number(dayPart);
-
-  if (
-    !Number.isInteger(year) ||
-    !Number.isInteger(month) ||
-    !Number.isInteger(day) ||
-    yearPart.length !== 4 ||
-    month < 1 ||
-    month > 12 ||
-    day < 1 ||
-    day > 31
-  ) {
-    return null;
-  }
-
-  const parsedDate = new Date(year, month - 1, day);
-
-  if (
-    parsedDate.getFullYear() !== year ||
-    parsedDate.getMonth() !== month - 1 ||
-    parsedDate.getDate() !== day
-  ) {
-    return null;
-  }
-
-  return Math.round(
-    (getCalendarDayKey(parsedDate.getTime()) - getCalendarDayKey(Date.now())) / DAY_MS
+function getDaysUntilEventDate(
+  value: string | null | undefined,
+  eventTimeZone: string | null | undefined
+): number | null {
+  return getDaysUntilExchangeDate(
+    value,
+    Date.now(),
+    eventTimeZone || undefined
   );
 }
 
@@ -2617,7 +2603,10 @@ function getGiftDayReminderCopy(assignment: RecipientData | null): {
   detail: string;
   title: string;
 } | null {
-  const daysUntilEvent = getDaysUntilEventDate(assignment?.group_event_date);
+  const daysUntilEvent = getDaysUntilEventDate(
+    assignment?.group_event_date,
+    assignment?.group_event_timezone
+  );
 
   if (
     daysUntilEvent === null ||
@@ -2697,7 +2686,7 @@ function MyGifteeWorkspace({ assignments }: { assignments: RecipientData[] }) {
             {[
               ["Matches", `${assignments.length}`, `${groupCount} group${groupCount === 1 ? "" : "s"}`],
               ["Wishlist clues", `${wishlistIdeaCount}`, "Ideas from your recipients"],
-              ["Next gift day", nextGiftDate ? formatDisplayDate(nextGiftDate) : "Not set", "Plan ahead"],
+              ["Next gift day", nextGiftDate ? formatEventDate(nextGiftDate) : "Not set", "Plan ahead"],
             ].map(([label, value, helper]) => (
               <div
                 key={label}
@@ -2756,7 +2745,7 @@ function MyGifteeWorkspace({ assignments }: { assignments: RecipientData[] }) {
                     </h3>
                     <div className="mt-2 flex flex-wrap gap-2">
                       {[
-                        `Gift day: ${formatDisplayDate(assignment.group_event_date)}`,
+                        `Gift day: ${formatEventDate(assignment.group_event_date)}`,
                         `Budget: ${budgetLabel}`,
                         `Progress: ${progressLabel}`,
                       ].map((detail) => (
@@ -3437,7 +3426,12 @@ function SecretSantaExperience({ mode = "shopping" }: SecretSantaExperienceProps
 
           if (cachedSecretSanta) {
             const activeCachedGroups = cachedSecretSanta.availableGroups.filter(
-              (group) => !isGroupInHistory(group.eventDate)
+              (group) =>
+                !isGroupInHistory(
+                  group.eventDate,
+                  Date.now(),
+                  group.eventTimeZone
+                )
             );
             hasAppliedPageSnapshotRef.current = true;
             setAvailableGroups(activeCachedGroups);
@@ -3506,7 +3500,7 @@ function SecretSantaExperience({ mode = "shopping" }: SecretSantaExperienceProps
         ] = await Promise.all([
           supabase
             .from("groups")
-            .select("id, name, event_date, budget, currency")
+            .select("id, name, event_date, event_timezone, budget, currency")
             .in("id", groupIds),
           fetchMyAssignmentGiftPrep(groupIds),
           supabase
@@ -3523,7 +3517,12 @@ function SecretSantaExperience({ mode = "shopping" }: SecretSantaExperienceProps
 
         const groupOptions = buildAvailableGroups(
           ((groupsData || []) as GroupRow[]).filter(
-            (group) => !isGroupInHistory(group.event_date)
+            (group) =>
+              !isGroupInHistory(
+                group.event_date,
+                Date.now(),
+                group.event_timezone
+              )
           )
         );
         const activeGroupIds = new Set(groupOptions.map((group) => group.id));
@@ -4305,7 +4304,7 @@ function SecretSantaExperience({ mode = "shopping" }: SecretSantaExperienceProps
                         className="text-[11px] font-semibold"
                         style={{ color: TEXT_MUTED }}
                       >
-                          Gift day: {formatDisplayDate(assignment.group_event_date)}
+                          Gift day: {formatEventDate(assignment.group_event_date)}
                       </div>
                     </div>
                   </div>
@@ -5939,7 +5938,7 @@ function SecretSantaExperience({ mode = "shopping" }: SecretSantaExperienceProps
                           className="text-[11px] font-semibold"
                           style={{ color: TEXT_MUTED }}
                         >
-                          Gift day: {formatDisplayDate(gift.group_event_date)}
+                          Gift day: {formatEventDate(gift.group_event_date)}
                         </div>
                       </div>
                     </div>

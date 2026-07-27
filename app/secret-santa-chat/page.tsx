@@ -2,9 +2,14 @@
 
 import { useCallback, useEffect, useId, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
+import {
+  DEFAULT_EXCHANGE_TIME_ZONE,
+  formatExchangeDate,
+  getDaysUntilExchangeDate,
+} from "@/lib/exchange-date.mjs";
 import { createClient } from "@/lib/supabase/client";
 import { ChatSkeleton } from "@/app/components/PageSkeleton";
-import { isGroupInHistory } from "@/lib/groups/history";
+import { GROUP_HISTORY_GRACE_DAYS, isGroupInHistory } from "@/lib/groups/history";
 import {
   clearClientSnapshots,
   hasFreshClientSnapshotMetadata,
@@ -28,6 +33,7 @@ type Thread = {
   group_id: string;
   group_name: string;
   group_gift_date: string;
+  group_time_zone: string;
   giver_id: string | null;
   receiver_id: string;
   other_name: string;
@@ -52,6 +58,7 @@ type GroupRow = {
   id: string;
   name: string | null;
   event_date: string | null;
+  event_timezone: string | null;
 };
 
 type AssignmentRow = {
@@ -105,7 +112,6 @@ const CHAT_TEXT_SUBTLE = "#6f7a74";
 const CHAT_HEADER_TEXT = "#2e3432";
 const CHAT_GREEN = "#48664e";
 const CHAT_RED = "#a43c3f";
-const WRAP_UP_DAYS = 7;
 const CHAT_THREAD_MESSAGE_SCAN_LIMIT = 1000;
 const CHAT_ACTIVE_THREAD_MESSAGE_LIMIT = 250;
 const CHAT_THREAD_FALLBACK_POLL_MS = 5 * 60 * 1000;
@@ -133,6 +139,7 @@ function isThreadSnapshot(value: unknown): value is ThreadSnapshot {
     typeof value.group_id === "string" &&
     typeof value.group_name === "string" &&
     typeof value.group_gift_date === "string" &&
+    typeof value.group_time_zone === "string" &&
     isNullableString(value.giver_id) &&
     typeof value.receiver_id === "string" &&
     typeof value.other_name === "string" &&
@@ -158,6 +165,7 @@ function sanitizeThreadForChatSnapshot(thread: Thread): ThreadSnapshot {
   return {
     giver_id: thread.giver_id,
     group_gift_date: thread.group_gift_date,
+    group_time_zone: thread.group_time_zone,
     group_id: thread.group_id,
     group_name: thread.group_name,
     last_time: thread.last_time,
@@ -244,7 +252,11 @@ function pickDefaultThread(availableThreads: Thread[]): Thread | null {
 }
 
 function isCurrentChatThread(thread: Thread): boolean {
-  return !isGroupInHistory(thread.group_gift_date);
+  return !isGroupInHistory(
+    thread.group_gift_date,
+    Date.now(),
+    thread.group_time_zone
+  );
 }
 
 function formatThreadTime(value: string): string {
@@ -283,30 +295,19 @@ function createPreviewText(
 }
 
 function formatGroupDate(value: string): string {
-  if (!value.trim()) return "Date not set";
-
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return "Date not set";
-
-  return date.toLocaleDateString([], {
+  return formatExchangeDate(value, {
     month: "short",
     day: "numeric",
     year: "numeric",
-  });
+  }, "Date not set");
 }
 
-function getStartOfLocalDay(value: Date): number {
-  return new Date(value.getFullYear(), value.getMonth(), value.getDate()).getTime();
-}
-
-function getGiftTimingInfo(value: string): {
+function getGiftTimingInfo(value: string, eventTimeZone: string): {
   label: string;
   detail: string;
   chip: string;
   phase: "planning" | "gift-day" | "wrap-up" | "history" | "unknown";
 } {
-  const now = new Date();
-
   if (!value.trim()) {
     return {
       label: "Gift day not set",
@@ -316,8 +317,13 @@ function getGiftTimingInfo(value: string): {
     };
   }
 
-  const giftDate = new Date(value);
-  if (Number.isNaN(giftDate.getTime())) {
+  const daysUntil = getDaysUntilExchangeDate(
+    value,
+    Date.now(),
+    eventTimeZone
+  );
+
+  if (daysUntil === null) {
     return {
       label: "Gift day not set",
       detail: "Set a group gift day to show whether this chat is in planning, gift day, or wrap-up.",
@@ -326,9 +332,6 @@ function getGiftTimingInfo(value: string): {
     };
   }
 
-  const daysUntil = Math.round(
-    (getStartOfLocalDay(giftDate) - getStartOfLocalDay(now)) / 86400000
-  );
   if (daysUntil > 0) {
     return {
       label: "Planning time",
@@ -348,7 +351,7 @@ function getGiftTimingInfo(value: string): {
   }
 
   const daysPast = Math.abs(daysUntil);
-  const wrapUpDaysLeft = Math.max(WRAP_UP_DAYS - daysPast, 0);
+  const wrapUpDaysLeft = Math.max(GROUP_HISTORY_GRACE_DAYS - daysPast, 0);
 
   if (wrapUpDaysLeft > 0) {
     return {
@@ -1029,7 +1032,7 @@ export default function SecretSantaChatPage() {
           { data: allMessages, error: messagesError },
           { data: readTimestamps, error: readTimestampsError },
         ] = await Promise.all([
-          supabase.from("groups").select("id, name, event_date").in("id", groupIds),
+          supabase.from("groups").select("id, name, event_date, event_timezone").in("id", groupIds),
           supabase.from("assignments").select("group_id, giver_id, receiver_id").eq("giver_id", user.id).in("group_id", groupIds),
           loadReceiverChatThreads(),
           supabase
@@ -1090,9 +1093,22 @@ export default function SecretSantaChatPage() {
         const groupGiftDateById = new Map(
           ((groupsData || []) as GroupRow[]).map((group) => [group.id, group.event_date || ""])
         );
+        const groupTimeZoneById = new Map(
+          ((groupsData || []) as GroupRow[]).map((group) => [
+            group.id,
+            group.event_timezone || DEFAULT_EXCHANGE_TIME_ZONE,
+          ])
+        );
         const currentChatGroupIds = new Set(
           ((groupsData || []) as GroupRow[])
-            .filter((group) => !isGroupInHistory(group.event_date))
+            .filter(
+              (group) =>
+                !isGroupInHistory(
+                  group.event_date,
+                  Date.now(),
+                  group.event_timezone
+                )
+            )
             .map((group) => group.id)
         );
         const receiverNameByGroupUser = new Map(
@@ -1125,6 +1141,9 @@ export default function SecretSantaChatPage() {
             group_id: a.group_id,
             group_name: groupNameById.get(a.group_id) || "Unknown",
             group_gift_date: groupGiftDateById.get(a.group_id) || "",
+            group_time_zone:
+              groupTimeZoneById.get(a.group_id) ||
+              DEFAULT_EXCHANGE_TIME_ZONE,
             giver_id: a.giver_id,
             receiver_id: a.receiver_id,
             other_name: name,
@@ -1524,7 +1543,10 @@ export default function SecretSantaChatPage() {
   const selectedThread = activeThread;
   const hasThreads = threads.length > 0;
   const selectedIsGiver = selectedThread?.role === "giver";
-  const selectedTiming = getGiftTimingInfo(selectedThread?.group_gift_date || "");
+  const selectedTiming = getGiftTimingInfo(
+    selectedThread?.group_gift_date || "",
+    selectedThread?.group_time_zone || DEFAULT_EXCHANGE_TIME_ZONE
+  );
   const selectedThreadKey = selectedThread?.thread_id || "";
   const chatGridClass = selectedThread
     ? "grid gap-4 xl:grid-cols-[300px_minmax(0,1fr)_270px]"

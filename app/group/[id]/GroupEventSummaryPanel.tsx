@@ -1,3 +1,7 @@
+import {
+  formatExchangeDate,
+  getDaysUntilExchangeDate,
+} from "@/lib/exchange-date.mjs";
 import { type GroupData } from "./group-page-state";
 
 type GroupEventSummaryPanelProps = {
@@ -23,7 +27,10 @@ export function GroupEventSummaryPanel({
   const budgetLabel = groupData.budget
     ? `${currencySymbol}${formatBudgetAmount(groupData.budget)}`
     : "No limit";
-  const giftDay = getGiftDayMeta(groupData.event_date);
+  const giftDay = getGiftDayMeta(
+    groupData.event_date,
+    groupData.event_timezone
+  );
   const participationDash = 138 - (138 * participation) / 100;
   const summaryCards = [
     {
@@ -133,31 +140,26 @@ function formatBudgetAmount(value: number): string {
 }
 
 function formatEventDate(value: string): string {
-  const parsed = new Date(value);
-  if (Number.isNaN(parsed.getTime())) {
-    return value || "Not set";
-  }
-
-  return parsed.toLocaleDateString(undefined, {
+  return formatExchangeDate(value, {
     month: "short",
     day: "numeric",
     year: "numeric",
-  });
+  }, value || "Not set");
 }
 
-function getGiftDayMeta(value: string) {
-  const parsed = new Date(value);
-  if (Number.isNaN(parsed.getTime())) {
+function getGiftDayMeta(value: string, eventTimeZone: string) {
+  const daysUntil = getDaysUntilExchangeDate(
+    value,
+    Date.now(),
+    eventTimeZone
+  );
+
+  if (daysUntil === null) {
     return {
       helper: "Date not set",
       label: value || "Not set",
     };
   }
-
-  const today = new Date();
-  const parsedDay = new Date(parsed.getFullYear(), parsed.getMonth(), parsed.getDate());
-  const todayDay = new Date(today.getFullYear(), today.getMonth(), today.getDate());
-  const daysUntil = Math.round((parsedDay.getTime() - todayDay.getTime()) / 86400000);
 
   if (daysUntil > 0) {
     return {

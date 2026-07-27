@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { formatExchangeDate } from "@/lib/exchange-date.mjs";
 import { slugifyAsciiIdentifier } from "@/lib/validation/common";
 
 type ShareResultsCardProps = {
@@ -14,17 +15,11 @@ const CARD_WIDTH = 1200;
 const CARD_HEIGHT = 1500;
 
 function formatEventDate(value: string): string {
-  const parsed = new Date(value);
-
-  if (Number.isNaN(parsed.getTime())) {
-    return "Event day";
-  }
-
-  return parsed.toLocaleDateString(undefined, {
+  return formatExchangeDate(value, {
     month: "long",
     day: "numeric",
     year: "numeric",
-  });
+  }, "Event day");
 }
 
 function escapeXml(value: string): string {

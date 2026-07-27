@@ -23,6 +23,7 @@ export type GroupData = {
   name: string;
   description: string | null;
   event_date: string;
+  event_timezone: string;
   image_url: string | null;
   owner_id: string;
   budget: number | null;
@@ -116,6 +117,7 @@ function isSnapshotGroupData(value: unknown): value is GroupData {
     typeof value.name === "string" &&
     isNullableString(value.description) &&
     typeof value.event_date === "string" &&
+    typeof value.event_timezone === "string" &&
     isNullableString(value.image_url) &&
     typeof value.owner_id === "string" &&
     isNullableNumber(value.budget) &&
