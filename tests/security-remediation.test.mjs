@@ -2456,6 +2456,18 @@ test("history recaps render signed group pictures with a festive fallback", () =
   assert.match(historyMemoryBookSource, /src=\{selectedGroup\.image_url\}/);
   assert.match(historyMemoryBookSource, /alt=\{`\$\{selectedGroup\.name\} group picture`\}/);
   assert.match(historyMemoryBookSource, /<SantaMarkIcon size=\{78\} \/>/);
+  assert.match(
+    historyPageSource,
+    /giftProgressLabel: isCompleted \? "Completed" : "Concluded"/
+  );
+  assert.match(
+    historyMemoryBookSource,
+    /\{summary\?\.giftProgressLabel \|\| "Completed"\}/
+  );
+  assert.doesNotMatch(
+    historyMemoryBookSource,
+    /<span[^>]*>\s*Concluded\s*<\/span>/
+  );
 });
 
 test("lazada cards avoid untrusted remote image hosts and private redirect notes", () => {
