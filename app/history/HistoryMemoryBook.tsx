@@ -133,9 +133,6 @@ export function HistoryMemoryBook({
                     {selectedGroup.name}
                   </h2>
                   <div className="mt-2 flex flex-wrap gap-2">
-                    <span className="rounded-full bg-[#48664e]/10 px-3 py-1 text-xs font-black text-[#48664e]">
-                      Concluded
-                    </span>
                     <span className="rounded-full bg-[#fcce72]/22 px-3 py-1 text-xs font-black text-[#7b5902]">
                       {summary?.giftProgressLabel || "Completed"}
                     </span>
