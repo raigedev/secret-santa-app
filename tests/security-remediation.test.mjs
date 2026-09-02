@@ -1134,6 +1134,38 @@ test("invite responses do not reveal whether an email has an account", () => {
   assert.doesNotMatch(groupActionsSource, /Invite email sent/i);
 });
 
+test("invite recipient lookup is batched, unbounded by Auth pages, and server-only", () => {
+  const createGroupActionsSource = readFileSync("app/create-group/actions.ts", "utf8");
+  const inviteEmailSource = readFileSync("lib/groups/invite-email.ts", "utf8");
+  const migrationFile = readdirSync("supabase/migrations").find((fileName) =>
+    fileName.endsWith("_batch_invite_auth_recipient_lookup.sql")
+  );
+
+  assert.ok(migrationFile);
+
+  const migrationPath = ["supabase", "migrations", migrationFile].join("/");
+  // eslint-disable-next-line security/detect-non-literal-fs-filename -- Test only reads a repo-local migration selected by a stable suffix.
+  const migrationSource = readFileSync(migrationPath, "utf8");
+
+  assert.doesNotMatch(inviteEmailSource, /auth\.admin\.listUsers/);
+  assert.match(
+    inviteEmailSource,
+    /rpc\("lookup_invite_auth_recipients", \{[\s\S]{0,120}p_emails: normalizedEmails/
+  );
+  assert.match(createGroupActionsSource, /findInviteAuthRecipientsByEmail\(emails\)/);
+  assert.match(migrationSource, /create or replace function public\.lookup_invite_auth_recipients\(p_emails text\[\]\)/i);
+  assert.match(migrationSource, /security definer[\s\S]{0,80}set search_path = ''/i);
+  assert.match(migrationSource, /join auth\.users auth_user/i);
+  assert.match(
+    migrationSource,
+    /revoke all on function public\.lookup_invite_auth_recipients\(text\[\]\)[\s\S]{0,80}from public, anon, authenticated/i
+  );
+  assert.match(
+    migrationSource,
+    /grant execute on function public\.lookup_invite_auth_recipients\(text\[\]\)[\s\S]{0,60}to service_role/i
+  );
+});
+
 test("invite resend is owner-scoped, membership-targeted, and account-neutral", () => {
   const groupActionsSource = readFileSync("app/group/[id]/actions.ts", "utf8");
   const groupMembersSource = readFileSync("app/group/[id]/GroupMembersSection.tsx", "utf8");

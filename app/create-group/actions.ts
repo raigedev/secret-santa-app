@@ -14,7 +14,7 @@ import {
   validateAnonymousGroupNickname,
 } from "@/lib/groups/nickname";
 import {
-  findExistingInviteUserIdByEmail,
+  findInviteAuthRecipientsByEmail,
   sendGroupInviteEmail,
 } from "@/lib/groups/invite-email";
 import { createNotification } from "@/lib/notifications";
@@ -140,10 +140,33 @@ async function sendInviteEmails(
   let notifiedInviteCount = 0;
   let sentInviteCount = 0;
 
-  for (const email of emails) {
-    const existingUserId = await findExistingInviteUserIdByEmail(email);
+  let authRecipients: Awaited<ReturnType<typeof findInviteAuthRecipientsByEmail>>;
 
-    if (existingUserId) {
+  try {
+    authRecipients = await findInviteAuthRecipientsByEmail(emails);
+  } catch (lookupError) {
+    await recordServerFailure({
+      actorUserId,
+      details: { inviteCount: emails.length },
+      errorMessage:
+        lookupError instanceof Error ? lookupError.message : "Unknown invite recipient lookup error",
+      eventType: "group.invite_recipient_lookup",
+      resourceId: groupId,
+      resourceType: "group",
+    });
+
+    return {
+      failedCount: emails.length,
+      notifiedInviteCount,
+      sentInviteCount,
+    };
+  }
+
+  for (const email of emails) {
+    const authRecipient = authRecipients.get(email) || null;
+    const existingUserId = authRecipient?.userId || null;
+
+    if (existingUserId && !authRecipient?.canReceiveInviteEmail) {
       await createNotification({
         userId: existingUserId,
         type: "invite",

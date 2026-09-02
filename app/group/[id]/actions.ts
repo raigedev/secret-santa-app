@@ -17,7 +17,6 @@ import {
   isGroupInHistory,
 } from "@/lib/groups/history";
 import {
-  findExistingInviteUserIdByEmail,
   findInviteAuthRecipientByEmail,
   sendGroupInviteEmail,
 } from "@/lib/groups/invite-email";
@@ -334,7 +333,25 @@ export async function inviteUser(
     return { message: "Group not found." };
   }
 
-  const existingUserId = await findExistingInviteUserIdByEmail(cleanEmail);
+  let authRecipient: Awaited<ReturnType<typeof findInviteAuthRecipientByEmail>>;
+
+  try {
+    authRecipient = await findInviteAuthRecipientByEmail(cleanEmail);
+  } catch (lookupError) {
+    await recordServerFailure({
+      actorUserId: user.id,
+      details: { invitedEmail: cleanEmail },
+      errorMessage:
+        lookupError instanceof Error ? lookupError.message : "Unknown invite recipient lookup error",
+      eventType: "group.invite_user.lookup_recipient",
+      resourceId: groupId,
+      resourceType: "group",
+    });
+
+    return { message: "Failed to prepare the invite. Please try again." };
+  }
+
+  const existingUserId = authRecipient?.userId || null;
   const { data: memberships, error: membershipsError } = await supabaseAdmin
     .from("group_members")
     .select("id, status, user_id, email")
@@ -394,7 +411,7 @@ export async function inviteUser(
     return { message: "Failed to check the current group capacity." };
   }
 
-  if (!existingUserId) {
+  if (!authRecipient || authRecipient.canReceiveInviteEmail) {
     const inviteResult = await sendInviteEmail(
       cleanEmail,
       user.id,
@@ -646,7 +663,23 @@ export async function resendInvite(
     return { success: false, message: "Invite email is unavailable." };
   }
 
-  const authRecipient = await findInviteAuthRecipientByEmail(normalizedEmail);
+  let authRecipient: Awaited<ReturnType<typeof findInviteAuthRecipientByEmail>>;
+
+  try {
+    authRecipient = await findInviteAuthRecipientByEmail(normalizedEmail);
+  } catch (lookupError) {
+    await recordServerFailure({
+      actorUserId: user.id,
+      errorMessage:
+        lookupError instanceof Error ? lookupError.message : "Unknown invite recipient lookup error",
+      eventType: "group.resend_invite.lookup_recipient",
+      resourceId: membership.id,
+      resourceType: "group_membership",
+    });
+
+    return { success: false, message: "Failed to prepare the invite. Please try again." };
+  }
+
   const existingUserId = authRecipient?.userId || membership.user_id || null;
   const shouldSendEmail = authRecipient
     ? authRecipient.canReceiveInviteEmail
