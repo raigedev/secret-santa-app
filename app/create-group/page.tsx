@@ -407,6 +407,8 @@ export default function CreateGroupPage() {
       // The redirect is still the important path if session storage is blocked.
     }
 
+    // A full page load after creation is intentional (f4d2bc5); client navigation is guarded against by tests.
+    // eslint-disable-next-line @next/next/no-location-assign-relative-destination
     window.location.assign("/dashboard");
   };
 

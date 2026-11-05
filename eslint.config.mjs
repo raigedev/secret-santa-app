@@ -2,7 +2,6 @@
 import { defineConfig, globalIgnores } from "eslint/config";
 import eslintReact from "@eslint-react/eslint-plugin";
 import next from "@next/eslint-plugin-next";
-import importX from "eslint-plugin-import-x";
 import jsxA11y from "eslint-plugin-jsx-a11y-x";
 import noSecrets from "eslint-plugin-no-secrets";
 import reactHooks from "eslint-plugin-react-hooks";
@@ -31,7 +30,6 @@ const eslintConfig = defineConfig([
     },
     plugins: {
       "@eslint-react": eslintReact,
-      "import-x": importX,
       "jsx-a11y-x": jsxA11y,
       "no-secrets": noSecrets,
     },
@@ -50,7 +48,16 @@ const eslintConfig = defineConfig([
       "@eslint-react/no-unsafe-component-will-mount": "error",
       "@eslint-react/no-unsafe-component-will-receive-props": "error",
       "@eslint-react/no-unsafe-component-will-update": "error",
-      "import-x/no-anonymous-default-export": "warn",
+      // Built-in replacement for import-x/no-anonymous-default-export (default options).
+      // import-x was removed because it cannot load the patched minimatch 11 release.
+      "no-restricted-syntax": [
+        "warn",
+        {
+          selector:
+            "ExportDefaultDeclaration > :matches(ArrayExpression, ArrowFunctionExpression, ClassDeclaration:not([id]), ClassExpression:not([id]), FunctionDeclaration:not([id]), FunctionExpression:not([id]), Literal, NewExpression, ObjectExpression, TemplateLiteral)",
+          message: "Assign this value to a named variable before exporting it as the module default.",
+        },
+      ],
       "jsx-a11y-x/alt-text": [
         "warn",
         {

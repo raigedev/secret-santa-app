@@ -7,7 +7,10 @@ test.describe("protected route coverage", () => {
     test(`unauthenticated visitors are redirected away from ${path}`, async ({ page }) => {
       await page.goto(path);
 
-      await expect(page).toHaveURL(/\/login$/);
+      // Since 1347b11 the proxy keeps the requested app path in `next` for the post-login return.
+      await expect(page).toHaveURL(
+        (url) => url.pathname === "/login" && url.searchParams.get("next") === path
+      );
       await expect(page.getByRole("button", { name: /^log in$/i })).toBeVisible();
     });
   }

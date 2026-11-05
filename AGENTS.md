@@ -24,7 +24,7 @@ Use `sqlmap` only after the tool source is reviewed or verified. Do not execute 
 
 ## Project Stack
 
-- Next.js `16.2.12` App Router on Vercel.
+- Next.js `16.4.5` App Router on Vercel.
 - React `19.2.5`.
 - TypeScript `5` in strict mode.
 - Tailwind CSS `4.2.4`.
