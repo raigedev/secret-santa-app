@@ -17,7 +17,8 @@ import {
 } from "../lib/exchange-date.mjs";
 
 const RSC_SECURITY_PATCH_FLOORS = {
-  next: "16.0.10",
+  // 16.4.5 covers the 2026 Image Optimization, Server Actions, and `use cache` advisories.
+  next: "16.4.5",
   react: "19.2.4",
   "react-dom": "19.2.4",
 };

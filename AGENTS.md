@@ -24,15 +24,15 @@ Use `sqlmap` only after the tool source is reviewed or verified. Do not execute 
 
 ## Project Stack
 
-- Next.js `16.2.3` App Router on Vercel.
+- Next.js `16.4.5` App Router on Vercel.
 - React `19.2.5`.
 - TypeScript `5` in strict mode.
-- Tailwind CSS `4.2.2`.
+- Tailwind CSS `4.2.4`.
 - Supabase auth/database with `@supabase/ssr` and `@supabase/supabase-js`.
 - Vercel Cron jobs are configured in `vercel.json`.
 - Lazada affiliate features include feed/catalog matching, promo-link priming, click tracking, postback handling, report access, and health/test endpoints.
 - AI wishlist suggestions use configured provider keys, with deterministic local fallbacks where implemented.
-- ESLint 9 uses security and no-secrets plugins. Husky prepare script is present.
+- ESLint 10 uses security and no-secrets plugins. Husky prepare script is present.
 - Deployment is from GitHub `main` to Vercel. The user usually commits and pushes manually unless explicitly asking the agent to do it.
 
 ## Senior Engineering Standards

@@ -480,7 +480,13 @@ const AUTHENTICATED_SCREEN_CASES: ScreenCase[] = [
       await expect(page.getByRole("heading", { name: /^personal info$/i })).toBeVisible();
       await expect(page.getByRole("heading", { name: /^preferences$/i })).toBeVisible();
       await expect(page.getByRole("heading", { name: /^notifications$/i })).toBeVisible();
-      await expect(page.getByText(/reminder settings/i)).toBeVisible({ timeout: 45_000 });
+      // Reminder choices live only in Settings; Profile links there instead of duplicating them.
+      await expect(page.getByRole("link", { name: /open reminder settings/i })).toHaveAttribute(
+        "href",
+        "/settings"
+      );
+      await expect(page.getByRole("button", { name: /wishlist needed|gift date tomorrow/i })).toHaveCount(0);
+      await expect(page.getByRole("button", { name: /^(immediate|daily summary)/i })).toHaveCount(0);
       await expect(page.getByRole("button", { name: /save changes/i })).toBeVisible({
         timeout: 45_000,
       });
@@ -493,6 +499,8 @@ const AUTHENTICATED_SCREEN_CASES: ScreenCase[] = [
       await expect(page.getByTestId("settings-workspace")).toBeVisible();
       await expect(page.getByRole("heading", { name: /make the app feel right/i })).toBeVisible();
       await expect(page.getByRole("button", { name: /save settings/i })).toBeVisible();
+      await expect(page.getByRole("button", { name: /wishlist ideas needed/i })).toBeVisible();
+      await expect(page.getByRole("button", { name: /^daily summary/i })).toBeVisible();
       await expect(page.getByTestId("santa-assistant-preference-toggle")).toBeVisible();
       await expect(page.getByTestId("dashboard-theme-preference-toggle")).toBeVisible();
     },

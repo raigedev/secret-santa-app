@@ -121,7 +121,7 @@ Elevation:
 
 - Dashboard top nav is sticky and calm.
 - Notification access should prefer an in-place popover from the bell, with All and Unread filters.
-- Settings/preferences belong in Profile, not in the notifications inbox.
+- Reminder, Santa Buddy, and display preferences belong in Settings (`/settings`), not in the notifications inbox. Profile links to Settings for reminders instead of repeating the controls.
 - Preserve direct routes such as `/notifications` as fallbacks, but do not interrupt quick dashboard work with full page jumps when a popover is better.
 
 ### Loading And Empty States

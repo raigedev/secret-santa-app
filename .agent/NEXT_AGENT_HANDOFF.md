@@ -2,6 +2,8 @@
 
 Project: `C:\Users\kenda\secret-santa-app`
 
+> **Stale snapshot notice (2026-11-05):** The 2026-05-12 section below stopped at PR #106. As of 2026-11-05, `dev`, `main`, and both remotes were synced at the PR #213 merge commit `3efa2a0`. For current state, trust `git log`, `git status --short --branch`, and `.agent/CONTINUITY.md` (database milestones through the 2026-09-02 invite lookup migration). The workflow, validation, design, and safety rules below still apply.
+
 This top section supersedes older snapshot notes below. Keep the older history for context, but trust the current git/PR state here first.
 
 ## Read First
