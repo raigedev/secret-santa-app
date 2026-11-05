@@ -31,19 +31,30 @@ Public routes:
 - `/invite/[token]`
 - `/auth/callback`
 - `/cool-app`
+- `/.well-known/security.txt`
 
 Protected app routes:
 
 - `/dashboard`
+- `/groups` (launcher/summary)
 - `/create-group`
-- `/group/[id]`
+- `/group/[id]` (full group workspace)
 - `/group/[id]/reveal`
+- `/my-giftee`
 - `/wishlist`
-- `/secret-santa`
-- `/secret-santa-chat`
+- `/secret-santa` (Shopping Ideas)
+- `/secret-santa-chat` (Secret Messages)
+- `/gift-tracking` (Gift Progress)
+- `/history`
 - `/notifications`
+- `/settings`
 - `/profile`
 - `/dashboard/affiliate-report`
+
+Legacy routes kept for old links:
+
+- `/assignments` redirects to `/my-giftee`.
+- `/reminders` renders the same screen as `/settings`.
 
 API and redirect routes:
 
@@ -51,6 +62,9 @@ API and redirect routes:
 - `/api/notifications/process-reminders`
 - `/api/affiliate/lazada/*`
 - `/api/affiliate/report-access`
+- `/api/assignments/gift-prep`
+- `/api/dashboard/pending-email-invites`
+- `/api/groups/peer-profiles`
 - `/go/suggestion`
 - `/go/wishlist-link`
 
@@ -78,7 +92,7 @@ Do not show an exact product for search-style links until a provider report maps
 
 The dashboard notification bell owns the quick popover experience with All/Unread filters.
 
-`/notifications` remains as a direct inbox route. Reminder preferences live in `/profile`, not in the inbox.
+`/notifications` remains as a direct inbox route. Reminder preferences live only in `/settings`, not in the inbox. `/profile` links to `/settings` instead of repeating the reminder controls.
 
 Reminder processing runs through the Vercel Cron route and must keep secret validation strict.
 
