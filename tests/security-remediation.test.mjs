@@ -759,6 +759,8 @@ test("draw exclusion rules preserve assignment privacy", () => {
 
 test("anonymous receiver chat keeps giver identifiers server-side before reveal", () => {
   const pageSource = readFileSync("app/secret-santa-chat/page.tsx", "utf8");
+  const conversationSource = readFileSync("app/secret-santa-chat/ChatConversation.tsx", "utf8");
+  const clientSources = pageSource + conversationSource;
   const actionsSource = readFileSync("app/secret-santa-chat/chat-actions.ts", "utf8");
   const anonymousChatMigrationPath = [
     "supabase",
@@ -772,18 +774,21 @@ test("anonymous receiver chat keeps giver identifiers server-side before reveal"
   );
 
   assert.doesNotMatch(
-    pageSource,
+    clientSources,
     /from\("assignments"\)[\s\S]{0,160}\.eq\("receiver_id",\s*user\.id\)/i
   );
-  assert.doesNotMatch(pageSource, /const\s+receiverRows\s*=/);
+  assert.doesNotMatch(clientSources, /const\s+receiverRows\s*=/);
   assert.match(pageSource, /loadReceiverChatThreads/);
-  assert.match(pageSource, /loadReceiverThreadMessages/);
-  assert.match(pageSource, /sendReceiverMessage/);
-  assert.match(pageSource, /markReceiverThreadAsRead/);
+  assert.match(conversationSource, /loadReceiverThreadMessages\(threadId\)/);
+  assert.match(conversationSource, /sendReceiverMessage\(threadId, content\)/);
+  assert.match(conversationSource, /markReceiverThreadAsRead\(threadId\)/);
   assert.match(pageSource, /fetchMyAssignmentGiftPrep\(activeGroupIds\)/);
   assert.match(pageSource, /\.eq\("thread_giver_id",\s*user\.id\)/);
-  assert.doesNotMatch(pageSource, /table:\s*"messages"/);
-  assert.match(pageSource, /thread\.thread_id === currentActiveThread\.thread_id/);
+  assert.match(conversationSource, /\.eq\("group_id", groupId\)\s*\.eq\("thread_giver_id", userId\)\s*\.eq\("thread_receiver_id", receiverId\)/);
+  assert.doesNotMatch(clientSources, /table:\s*"messages"/);
+  assert.match(pageSource, /key=\{\`\$\{userId\}:\$\{exchange\.id\}\`\}/);
+  assert.match(pageSource, /key=\{exchange\.giver\?\.id/);
+  assert.match(pageSource, /key=\{exchange\.receiver\?\.id/);
 
   assert.match(actionsSource, /const RECEIVER_THREAD_PREFIX = "receiver:"/);
   assert.match(actionsSource, /export async function loadReceiverChatThreads/);
@@ -2092,6 +2097,7 @@ test("browser snapshots avoid gift names, chat previews, and invite bearer links
   const dashboardPageSource = readFileSync("app/dashboard/page.tsx", "utf8");
   const dashboardSnapshotSource = readFileSync("app/dashboard/dashboard-snapshot.ts", "utf8");
   const chatPageSource = readFileSync("app/secret-santa-chat/page.tsx", "utf8");
+  const conversationSource = readFileSync("app/secret-santa-chat/ChatConversation.tsx", "utf8");
   const inviteFormSource = readFileSync("app/group/[id]/InviteForm.tsx", "utf8");
 
   assert.match(dashboardPageSource, /recipientNames:\s*\[\]/);
@@ -2103,12 +2109,8 @@ test("browser snapshots avoid gift names, chat previews, and invite bearer links
   assert.match(dashboardSnapshotSource, /recipientName: null/);
   assert.match(dashboardSnapshotSource, /groupName: null/);
 
-  assert.match(chatPageSource, /type ThreadSnapshot = Omit<Thread, "last_message">/);
-  assert.match(chatPageSource, /CHAT_PAGE_SNAPSHOT_STORAGE_PREFIX = "ss_chat_page_snapshot_v2:"/);
-  assert.match(chatPageSource, /value\.snapshotVersion === CHAT_PAGE_SNAPSHOT_VERSION/);
-  assert.match(chatPageSource, /sanitizeThreadForChatSnapshot/);
-  assert.match(chatPageSource, /last_message: CHAT_SNAPSHOT_PREVIEW_MESSAGE/);
-  assert.doesNotMatch(chatPageSource, /threads:\s*buildThreads,\s*userId/);
+  assert.match(chatPageSource, /clearClientSnapshots\("ss_chat_page_snapshot_v2:"\)/);
+  assert.doesNotMatch(chatPageSource + conversationSource, /writeClientSnapshot|localStorage|sessionStorage/);
 
   assert.match(inviteFormSource, /removeLocalStorageItem/);
   assert.doesNotMatch(inviteFormSource, /writeLocalStorageItem/);
@@ -2754,10 +2756,11 @@ test("client snapshots do not restore assignment data after resets", () => {
 
 test("secret santa chat keeps a broader message window for unread state", () => {
   const chatPageSource = readFileSync("app/secret-santa-chat/page.tsx", "utf8");
+  const conversationSource = readFileSync("app/secret-santa-chat/ChatConversation.tsx", "utf8");
   const chatActionsSource = readFileSync("app/secret-santa-chat/chat-actions.ts", "utf8");
 
   assert.match(chatPageSource, /CHAT_THREAD_MESSAGE_SCAN_LIMIT = 1000/);
-  assert.match(chatPageSource, /CHAT_ACTIVE_THREAD_MESSAGE_LIMIT = 250/);
+  assert.match(conversationSource, /CHAT_ACTIVE_THREAD_MESSAGE_LIMIT = 250/);
   assert.match(chatActionsSource, /CHAT_THREAD_MESSAGE_SCAN_LIMIT = 1000/);
   assert.match(chatActionsSource, /CHAT_ACTIVE_THREAD_MESSAGE_LIMIT = 250/);
 });
