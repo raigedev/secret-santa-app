@@ -818,7 +818,7 @@ export default function GroupDetailsPage() {
       ? "Names drawn"
       : isHistorical
         ? "Not completed"
-        : "Ready soon";
+        : "Not drawn";
   const groupBudgetLabel = groupData.budget
     ? `${currencySymbol}${formatGroupBudgetAmount(groupData.budget)}`
     : "No limit";
@@ -954,7 +954,7 @@ export default function GroupDetailsPage() {
                   <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-2 text-[13px] font-bold text-[#5b605e]">
                     <span className="inline-flex items-center gap-1.5">
                       <HeaderMembersIcon />
-                      {members.length} members
+                      {members.length} {members.length === 1 ? "member" : "members"}
                     </span>
                     <span className="inline-flex items-center gap-1.5">
                       <HeaderCalendarIcon />
@@ -1053,7 +1053,7 @@ export default function GroupDetailsPage() {
                 drawDone={drawDone}
                 drawStatusLabel={drawStatusLabel}
                 groupData={groupData}
-                totalMemberCount={members.length}
+                totalMemberCount={isOwner ? members.length : null}
               />
 
             <div
@@ -1158,7 +1158,7 @@ export default function GroupDetailsPage() {
                     Secret Santa name draw
                   </div>
 
-                  {allAccepted ? (
+                  {isOwner && (allAccepted ? (
                     <div
                       className="inline-flex items-center gap-1.5 text-xs font-bold px-3 py-1.5 rounded-lg mb-3"
                       style={{ background: "#dcfce7", color: "#15803d" }}
@@ -1170,9 +1170,11 @@ export default function GroupDetailsPage() {
                       className="inline-flex items-center gap-1.5 text-xs font-bold px-3 py-1.5 rounded-lg mb-3"
                       style={{ background: "#fef3c7", color: "#92400e" }}
                     >
-                      Waiting for all members to accept.
+                      {acceptedMembers.length < 3
+                        ? "At least 3 members must join before names can be drawn."
+                        : "Waiting for all members to accept."}
                     </div>
-                  )}
+                  ))}
 
                   <div className="flex flex-wrap gap-2 justify-center my-4 px-4">
                     {acceptedMembers.map((member, index) => (

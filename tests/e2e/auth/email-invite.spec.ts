@@ -93,3 +93,39 @@ test("pending invitations appear in My Groups, not on the dashboard", async ({ p
   await invitations.getByRole("button", { name: "Accept invite" }).click();
   await expect(invitations.getByRole("alert")).toBeVisible();
 });
+
+test("My Groups opens while invitations retry a slow response", async ({ page }) => {
+  const credentials = getTestAuthCredentials();
+  test.skip(!credentials, AUTH_BLOCKED_MESSAGE);
+
+  await loginWithTestCredentials(page, credentials!);
+  let inviteRequests = 0;
+  await page.route("**/api/groups/pending-invites", async (route) => {
+    inviteRequests += 1;
+    if (inviteRequests === 1) {
+      await route.fulfill({ status: 503, json: { success: false, invites: [] } });
+      return;
+    }
+
+    await new Promise((resolve) => setTimeout(resolve, 4_000));
+    await route.fulfill({
+      json: {
+        success: true,
+        invites: [{
+          group_id: "22222222-2222-4222-8222-222222222222",
+          group_name: "Slow Gift Exchange",
+          group_description: "",
+          group_event_date: "2026-12-25",
+          require_anonymous_nickname: false,
+        }],
+      },
+    });
+  });
+
+  await page.goto("/groups");
+  await expect(page.getByRole("heading", { name: "Your Groups" })).toBeVisible();
+  await expect(page.getByText("Checking invitations...", { exact: true })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Slow Gift Exchange" })).toBeVisible();
+  await expect(page.getByText("Invitations are temporarily unavailable.")).toHaveCount(0);
+  expect(inviteRequests).toBe(2);
+});
