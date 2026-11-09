@@ -443,7 +443,7 @@ export default function CreateGroupPage() {
     {
       id: "3",
       label: "Privacy",
-      helper: requireAnonymousNickname ? "Nicknames on" : "Names visible",
+      helper: requireAnonymousNickname ? "Aliases on" : "Names visible",
       ready: privacyReady,
     },
     {
@@ -906,11 +906,10 @@ export default function CreateGroupPage() {
                   className="text-[13px] font-extrabold block"
                   style={{ color: "#1f2937" }}
                 >
-                  Use nicknames in this group
+                  Use Secret Santa aliases
                 </label>
                 <p className="mt-1 text-[12px] leading-5" style={{ color: "#64748b" }}>
-                  Everyone in the event, including you as the organizer, joins with a
-                  nickname so members do not see real names or emails inside this group.
+                  Everyone, including the organizer, uses an alias instead of their real name or email.
                 </p>
               </div>
               <button
@@ -918,11 +917,7 @@ export default function CreateGroupPage() {
                 disabled={!isHydrated}
                 onClick={() => setRequireAnonymousNickname((current) => !current)}
                 aria-pressed={requireAnonymousNickname}
-                aria-label={
-                  requireAnonymousNickname
-                    ? "Allow real names in this group"
-                    : "Use nicknames in this group"
-                }
+                aria-label="Use Secret Santa aliases"
                 className="inline-flex h-11 w-16 shrink-0 items-center rounded-full p-1 transition focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[#d9ae56]/25 disabled:cursor-not-allowed disabled:opacity-50"
                 style={{
                   background: requireAnonymousNickname ? "#48664e" : "#dce4de",
@@ -945,7 +940,7 @@ export default function CreateGroupPage() {
                   color: requireAnonymousNickname ? "#48664e" : "#475569",
                 }}
               >
-                {requireAnonymousNickname ? "Nicknames required" : "Names visible"}
+                {requireAnonymousNickname ? "Aliases required" : "Names visible"}
               </span>
               <span
                 className="inline-flex rounded-full px-3 py-1 text-[11px] font-bold"
@@ -958,12 +953,14 @@ export default function CreateGroupPage() {
             {requireAnonymousNickname && (
               <div className="mt-4">
                 <label
+                  htmlFor="organizer-alias"
                   className="text-[13px] font-extrabold mb-1.5 block"
                   style={{ color: "#1f2937" }}
                 >
-                  Your organizer nickname *
+                  Your Secret Santa alias *
                 </label>
                 <input
+                  id="organizer-alias"
                   type="text"
                   placeholder="e.g. Ribbon Keeper"
                   value={ownerCodename}

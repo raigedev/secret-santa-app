@@ -1599,8 +1599,8 @@ export default function GroupDetailsPage() {
                       >
                         Use the event reveal screen on the venue display first. Guests can also
                         open that same screen on their phones and it will stay in sync once you
-                        start the live reveal. It now walks through both nickname owners and the
-                        final Secret Santa pairings in one shared flow.
+                        start the live reveal. Reveal who is behind each alias, then show the
+                        final Secret Santa pairings.
                       </p>
 
                       <div className="mt-4 flex items-center gap-3 flex-wrap">
@@ -1945,7 +1945,7 @@ export default function GroupDetailsPage() {
                                 Final matches revealed: <strong style={{ color: "#166534" }}>{revealMatches.length}</strong>
                               </div>
                               <div>
-                                Nickname owners revealed: <strong style={{ color: "#166534" }}>{groupRecap.aliasRoster.length}</strong>
+                                Aliases revealed: <strong style={{ color: "#166534" }}>{groupRecap.aliasRoster.length}</strong>
                               </div>
                               <div>
                                 Wishlist gaps before reveal:{" "}

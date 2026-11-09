@@ -706,18 +706,18 @@ export default async function InviteLinkPage({
                     borderColor: "rgba(59,130,246,.16)",
                   }}
                 >
-                  <div className="text-[11px] font-extrabold uppercase tracking-[0.12em] text-sky-700">
-                    Choose a nickname for this group
-                  </div>
+                  <label htmlFor="invite-alias" className="text-[11px] font-extrabold uppercase tracking-[0.12em] text-sky-700">
+                    Secret Santa alias
+                  </label>
                   <p className="mt-2 text-[13px] leading-6 text-slate-600">
-                    This host wants members to join with an event alias instead of using a real
-                    name or email.
+                    Group members will see your alias instead of your name or email.
                   </p>
                   <input
+                    id="invite-alias"
                     type="text"
                     name="nickname"
                     maxLength={30}
-                    placeholder="Choose a group nickname"
+                    placeholder="e.g. Ribbon Keeper"
                     className="mt-3 w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-900 outline-none"
                   />
                 </div>
@@ -729,7 +729,7 @@ export default async function InviteLinkPage({
                 {preview.membershipStatus === "declined"
                   ? "Join Again"
                   : preview.requireAnonymousNickname
-                    ? "Join with Nickname"
+                    ? "Join with alias"
                     : "Join Group"}
               </button>
             </form>

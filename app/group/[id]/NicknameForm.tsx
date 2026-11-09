@@ -13,18 +13,18 @@ export default function NicknameForm({ groupId, currentNickname }: Props) {
   const [nickname, setNickname] = useState(currentNickname);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState("");
-  const displayNickname = currentNickname || nickname || "Set your nickname";
+  const displayNickname = currentNickname || nickname;
 
   const handleSave = async () => {
     setMessage("");
 
     if (!nickname || nickname.trim().length === 0) {
-      setMessage("Enter a nickname.");
+      setMessage("Enter an alias.");
       return;
     }
 
     if (nickname.trim().length > 30) {
-      setMessage("Use 30 characters or fewer for your nickname.");
+      setMessage("Use 30 characters or fewer for your alias.");
       return;
     }
 
@@ -52,9 +52,9 @@ export default function NicknameForm({ groupId, currentNickname }: Props) {
           type="button"
           onClick={() => setIsEditing(true)}
           className="gift-button gift-button-secondary gift-button-compact w-full text-xs"
-          title={`Change nickname: ${displayNickname}`}
+          title={displayNickname ? `Change alias: ${displayNickname}` : "Set your alias"}
         >
-          Change nickname
+          Change alias
         </button>
       ) : (
         <div className="flex min-w-0 flex-col gap-2">
@@ -63,7 +63,8 @@ export default function NicknameForm({ groupId, currentNickname }: Props) {
               type="text"
               value={nickname}
               onChange={(event) => setNickname(event.target.value)}
-              placeholder="Enter a nickname, like GiftNinja"
+              aria-label="Secret Santa alias"
+              placeholder="e.g. GiftNinja"
               maxLength={30}
               className="col-span-2 min-w-0 rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-black placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-green-500"
             />

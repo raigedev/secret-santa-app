@@ -86,7 +86,7 @@ function getPreviewNameTextStyle(value: string, variant: "hero" | "detail") {
 }
 
 function buildShareCaption(groupName: string, codename: string, recipientName: string): string {
-  return `I was ${recipientName}'s Secret Santa in ${groupName}. My nickname was ${codename}.`;
+  return `I was ${recipientName}'s Secret Santa in ${groupName}. My alias was ${codename}.`;
 }
 
 function buildCardSvg({
