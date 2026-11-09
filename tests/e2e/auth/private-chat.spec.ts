@@ -45,7 +45,7 @@ test("assignment lookups preserve the group after the first batch", async () => 
   }
 });
 
-test("private chat delivers both ways with 50 older exchanges before reveal", async ({ page, browser, baseURL }) => {
+test("separate chats deliver both ways and stay scoped to the selected exchange", async ({ page, browser, baseURL }, testInfo) => {
   const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
   const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
   test.skip(
@@ -64,6 +64,7 @@ test("private chat delivers both ways with 50 older exchanges before reveal", as
   const runId = randomUUID();
   const recipientContext = await browser.newContext({ baseURL, viewport: page.viewportSize() ?? undefined });
   let groupId: string | undefined;
+  let otherGroupId: string | undefined;
   let historicalGroupIds: string[] = [];
 
   try {
@@ -84,6 +85,16 @@ test("private chat delivers both ways with 50 older exchanges before reveal", as
     }).select("id").single();
     if (groupError || !group) throw new Error("Could not create the local chat group.");
     groupId = group.id;
+    const otherGroup = await admin.from("groups").insert({
+      owner_id: peer.id,
+      name: "Second exchange",
+      event_date: new Date(Date.now() + 10 * 86_400_000).toISOString().slice(0, 10),
+      event_timezone: "UTC",
+      require_anonymous_nickname: true,
+      revealed: false,
+    }).select("id").single();
+    if (otherGroup.error || !otherGroup.data) throw new Error("Could not create the second chat group.");
+    otherGroupId = otherGroup.data.id;
 
     const historicalDate = new Date(Date.now() - 14 * 86_400_000).toISOString().slice(0, 10);
     const historical = await admin.from("groups").insert(
@@ -103,6 +114,8 @@ test("private chat delivers both ways with 50 older exchanges before reveal", as
       { group_id: groupId, user_id: giver.id, email: giver.email, nickname: "Gift Captain", role: "member", status: "accepted" },
       { group_id: groupId, user_id: giftee.id, email: giftee.email, nickname: "Ribbon Keeper", role: "member", status: "accepted" },
       { group_id: groupId, user_id: peer.id, email: peer.email, nickname: "Snow Riddle", role: "owner", status: "accepted" },
+      { group_id: otherGroupId, user_id: giver.id, email: giver.email, nickname: "Gift Captain", role: "member", status: "accepted" },
+      { group_id: otherGroupId, user_id: peer.id, email: peer.email, nickname: "Holly", role: "owner", status: "accepted" },
       ...historicalGroupIds.map((oldGroupId) => ({
         group_id: oldGroupId, user_id: giver.id, email: giver.email,
         nickname: "Gift Captain", role: "member", status: "accepted",
@@ -113,8 +126,17 @@ test("private chat delivers both ways with 50 older exchanges before reveal", as
       { group_id: groupId, giver_id: giver.id, receiver_id: giftee.id },
       { group_id: groupId, giver_id: giftee.id, receiver_id: peer.id },
       { group_id: groupId, giver_id: peer.id, receiver_id: giver.id },
+      { group_id: otherGroupId, giver_id: giver.id, receiver_id: peer.id },
+      { group_id: otherGroupId, giver_id: peer.id, receiver_id: giver.id },
     ]);
     expect(assignmentError).toBeNull();
+    const otherMessage = "Do you prefer books or snacks?";
+    const { error: fixtureMessageError } = await admin.from("messages").insert({
+      group_id: groupId, sender_id: peer.id, thread_giver_id: peer.id,
+      thread_receiver_id: giver.id, content: otherMessage,
+      created_at: new Date(Date.now() - 86_400_000).toISOString(),
+    });
+    expect(fixtureMessageError).toBeNull();
 
     const recipientPage = await recipientContext.newPage();
     await loginWithTestCredentials(page, giver);
@@ -148,21 +170,56 @@ test("private chat delivers both ways with 50 older exchanges before reveal", as
 
     await page.goto("/secret-santa-chat");
     await recipientPage.goto("/secret-santa-chat");
-    await page.getByRole("button", { name: /To Ribbon Keeper/ }).click({ timeout: 10_000 });
-    expect(chatLookups[0]).toEqual([groupId]);
-    await recipientPage.getByRole("button", { name: /From your Secret Santa/ }).click({ timeout: 10_000 });
+    const giverBox = page.getByRole("region", { name: "The person you're gifting" });
+    const santaBox = page.getByRole("region", { name: "The person gifting you" });
+    const recipientSantaBox = recipientPage.getByRole("region", { name: "The person gifting you" });
+    await expect(giverBox.getByRole("heading", { name: "Ribbon Keeper" })).toBeVisible({ timeout: 10_000 });
+    await expect(santaBox.getByRole("heading", { name: "Your Secret Santa" })).toBeVisible();
+    await expect(santaBox.getByText(otherMessage, { exact: true })).toBeVisible();
+    expect(chatLookups[0]).toEqual([groupId, otherGroupId]);
+    const [giverBounds, santaBounds] = await Promise.all([giverBox.boundingBox(), santaBox.boundingBox()]);
+    expect(giverBounds).not.toBeNull();
+    expect(santaBounds).not.toBeNull();
+    const stacked = (page.viewportSize()?.width ?? 0) < 680;
+    if (stacked) {
+      expect(santaBounds!.y).toBeGreaterThanOrEqual(giverBounds!.y + giverBounds!.height);
+    } else {
+      expect(santaBounds!.x).toBeGreaterThanOrEqual(giverBounds!.x + giverBounds!.width);
+      expect(santaBounds!.y).toBe(giverBounds!.y);
+    }
+    expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(page.viewportSize()!.width);
+    await expect(recipientSantaBox.getByRole("textbox", { name: "Reply to your Santa" })).toBeVisible();
+    if (stacked) await recipientPage.setViewportSize({ width: 390, height: 680 });
 
-    await page.getByRole("textbox", { name: /message composer/i }).fill(firstMessage);
-    await page.getByRole("button", { name: "Send", exact: true }).click();
-    await expect(recipientPage.getByText(firstMessage, { exact: true })).toBeVisible({ timeout: 25_000 });
+    const santaDraft = santaBox.getByRole("textbox", { name: "Reply to your Santa" });
+    await santaDraft.fill("A separate draft");
+    await giverBox.getByRole("textbox", { name: "Message Ribbon Keeper" }).fill(firstMessage);
+    await giverBox.getByRole("button", { name: "Send", exact: true }).click();
+    await expect(santaDraft).toHaveValue("A separate draft");
+    await expect(santaBox.getByText(firstMessage, { exact: true })).toHaveCount(0);
+    await expect(recipientSantaBox.getByText(firstMessage, { exact: true })).toBeVisible({ timeout: 25_000 });
+    if (stacked) {
+      await expect(recipientSantaBox.getByText(firstMessage, { exact: true })).not.toBeInViewport();
+      await recipientPage.evaluate(() => window.dispatchEvent(new Event("focus")));
+      await expect(recipientSantaBox.getByText("1 new", { exact: true })).toBeVisible();
+    }
     await expect.poll(() => safePayload).toContain(firstMessage);
     expect(safePayload).not.toContain(giver.id);
     expect(safePayload).not.toContain(giver.email);
     expect(safePayload).not.toContain("Gift Captain");
 
-    await recipientPage.getByRole("textbox", { name: /message composer/i }).fill(replyMessage);
-    await recipientPage.getByRole("button", { name: "Send", exact: true }).click();
-    await expect(page.getByText(replyMessage, { exact: true })).toBeVisible({ timeout: 25_000 });
+    await recipientSantaBox.getByRole("textbox", { name: "Reply to your Santa" }).fill(replyMessage);
+    await recipientSantaBox.getByRole("button", { name: "Send", exact: true }).click();
+    await expect(giverBox.getByText(replyMessage, { exact: true })).toBeVisible({ timeout: 25_000 });
+    await expect(recipientSantaBox.getByText("1 new", { exact: true })).toHaveCount(0);
+    await santaDraft.clear();
+    await page.evaluate(() => window.scrollTo(0, 0));
+    await page.screenshot({ path: testInfo.outputPath("two-chat-boxes.png"), fullPage: true });
+    await page.getByRole("button", { name: "Second exchange", exact: true }).click();
+    await expect(giverBox.getByRole("heading", { name: "Holly" })).toBeVisible();
+    await expect(giverBox.getByText(replyMessage, { exact: true })).toHaveCount(0);
+    await page.getByRole("button", { name: "Private chat check", exact: true }).click();
+    await expect(giverBox.getByText(replyMessage, { exact: true })).toBeVisible();
 
     const client = createClient(LOCAL_SUPABASE_URL, anonKey!, { auth });
     const { error: signInError } = await client.auth.signInWithPassword(giftee);
@@ -173,9 +230,8 @@ test("private chat delivers both ways with 50 older exchanges before reveal", as
     expect(rawIncoming.data).toEqual([]);
 
     await recipientPage.reload();
-    await recipientPage.getByRole("button", { name: /From your Secret Santa/ }).click();
-    await expect(recipientPage.getByText(firstMessage, { exact: true })).toBeVisible();
-    await expect(recipientPage.getByText(replyMessage, { exact: true })).toBeVisible();
+    await expect(recipientSantaBox.getByText(firstMessage, { exact: true })).toBeVisible();
+    await expect(recipientSantaBox.getByText(replyMessage, { exact: true })).toBeVisible();
 
     const { error: membershipError } = await admin.from("group_members")
       .update({ status: "declined" }).eq("group_id", groupId).eq("user_id", giftee.id);
@@ -196,7 +252,7 @@ test("private chat delivers both ways with 50 older exchanges before reveal", as
     expect(saved.data).toEqual([]);
   } finally {
     await recipientContext.close();
-    const fixtureGroupIds = groupId ? [...historicalGroupIds, groupId] : historicalGroupIds;
+    const fixtureGroupIds = [...historicalGroupIds, groupId, otherGroupId].filter((id) => id !== undefined);
     if (fixtureGroupIds.length > 0) {
       await admin.from("groups").delete().in("id", fixtureGroupIds).eq("owner_id", accounts[2].id);
     }

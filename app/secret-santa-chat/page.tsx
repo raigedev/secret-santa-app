@@ -1,54 +1,19 @@
 "use client";
 
-import { useCallback, useEffect, useId, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { fetchMyAssignmentGiftPrep } from "@/lib/assignments/gift-prep-client";
+import { clearClientSnapshots } from "@/lib/client-snapshot";
 import {
-  DEFAULT_EXCHANGE_TIME_ZONE,
   formatExchangeDate,
   getDaysUntilExchangeDate,
+  resolveExchangeTimeZone,
 } from "@/lib/exchange-date.mjs";
+import { isGroupInHistory } from "@/lib/groups/history";
 import { createClient } from "@/lib/supabase/client";
-import { ChatSkeleton } from "@/app/components/PageSkeleton";
-import { GROUP_HISTORY_GRACE_DAYS, isGroupInHistory } from "@/lib/groups/history";
-import {
-  clearClientSnapshots,
-  hasFreshClientSnapshotMetadata,
-  readClientSnapshot,
-  writeClientSnapshot,
-  type ClientSnapshotMetadata,
-} from "@/lib/client-snapshot";
-import { isRecord, sanitizePlainText } from "@/lib/validation/common";
-import {
-  loadReceiverChatThreads,
-  loadReceiverThreadMessages,
-  markReceiverThreadAsRead,
-  sendGiverMessage,
-  sendReceiverMessage,
-  type ReceiverChatThread,
-} from "./chat-actions";
-
-type Thread = {
-  thread_id: string;
-  group_id: string;
-  group_name: string;
-  group_gift_date: string;
-  group_time_zone: string;
-  giver_id: string | null;
-  receiver_id: string;
-  other_name: string;
-  role: "giver" | "receiver";
-  last_message: string;
-  last_time: string;
-  unread: number;
-};
-
-type Message = {
-  content: string;
-  created_at: string;
-  from_current_user: boolean;
-  id: string;
-};
+import { loadReceiverChatThreads } from "./chat-actions";
+import { ChatConversation, type ChatThread } from "./ChatConversation";
+import styles from "./chat.module.css";
 
 type GroupRow = {
   id: string;
@@ -57,1709 +22,304 @@ type GroupRow = {
   event_timezone: string | null;
 };
 
-type MessageRow = {
-  group_id: string;
-  thread_giver_id: string;
-  thread_receiver_id: string;
-  sender_id: string;
-  content: string;
-  created_at: string;
-};
+type ChatExchange = GroupRow & { giver: ChatThread | null; receiver: ChatThread | null };
 
-type ThreadReadRow = {
-  group_id: string;
-  thread_giver_id: string;
-  thread_receiver_id: string;
-  last_read_at: string;
-};
-
-type FestiveTone = "gold" | "green" | "neutral";
-type ThreadFilter = "all" | "giver" | "receiver";
-type ThreadSnapshot = Omit<Thread, "last_message">;
-type ChatPageSnapshot = ClientSnapshotMetadata & {
-  snapshotVersion: 2;
-  threads: ThreadSnapshot[];
-};
-
-const CHAT_PAGE_SNAPSHOT_VERSION = 2;
-const CHAT_PAGE_SNAPSHOT_STORAGE_PREFIX = "ss_chat_page_snapshot_v2:";
-const CHAT_SNAPSHOT_PREVIEW_MESSAGE = "Open chat to load the latest message.";
-const CHAT_PAGE_BACKGROUND =
-  "repeating-linear-gradient(135deg,rgba(72,102,78,.04) 0 1px,transparent 1px 38px),radial-gradient(circle at 15% 0%,rgba(252,206,114,.18),transparent 30%),radial-gradient(circle at 95% 15%,rgba(164,60,63,.10),transparent 28%),linear-gradient(180deg,#fffefa 0%,#f9faf8 46%,#eff5ef 100%)";
-const CHAT_PANEL_BACKGROUND = "linear-gradient(145deg,rgba(255,255,255,.92),rgba(251,252,250,.96))";
-const CHAT_SURFACE_STRONG = "linear-gradient(180deg,rgba(255,255,255,.96),rgba(249,250,248,.98))";
-const CHAT_SURFACE_MUTED = "rgba(243,244,242,.9)";
-const CHAT_BORDER = "1px solid rgba(72,102,78,.14)";
-const CHAT_BORDER_SOFT = "1px solid rgba(72,102,78,.12)";
-const CHAT_TEXT_MUTED = "#64748b";
-const CHAT_TEXT_SUBTLE = "#6f7a74";
-const CHAT_HEADER_TEXT = "#2e3432";
-const CHAT_GREEN = "#48664e";
-const CHAT_RED = "#a43c3f";
 const CHAT_THREAD_MESSAGE_SCAN_LIMIT = 1000;
-const CHAT_ACTIVE_THREAD_MESSAGE_LIMIT = 250;
 const CHAT_THREAD_FALLBACK_POLL_MS = 45_000;
-const CHAT_ACTIVE_THREAD_FALLBACK_POLL_MS = 15_000;
 const CHAT_PAGE_LOAD_TIMEOUT_MS = 10_000;
-const CHAT_PAGE_LOAD_TIMEOUT_MESSAGE =
-  "Messages are taking longer than expected. Refresh the page or try another section.";
 
-function getChatPageSnapshotStorageKey(userId: string): string {
-  return `${CHAT_PAGE_SNAPSHOT_STORAGE_PREFIX}${userId}`;
-}
-
-function isThreadRole(value: unknown): value is Thread["role"] {
-  return value === "giver" || value === "receiver";
-}
-
-function isNullableString(value: unknown): value is string | null {
-  return value === null || typeof value === "string";
-}
-
-function isThreadSnapshot(value: unknown): value is ThreadSnapshot {
-  return (
-    isRecord(value) &&
-    typeof value.thread_id === "string" &&
-    typeof value.group_id === "string" &&
-    typeof value.group_name === "string" &&
-    typeof value.group_gift_date === "string" &&
-    typeof value.group_time_zone === "string" &&
-    isNullableString(value.giver_id) &&
-    typeof value.receiver_id === "string" &&
-    typeof value.other_name === "string" &&
-    isThreadRole(value.role) &&
-    typeof value.last_time === "string" &&
-    typeof value.unread === "number"
-  );
-}
-
-function isChatPageSnapshot(
-  value: unknown,
-  userId: string
-): value is ChatPageSnapshot {
-  return (
-    hasFreshClientSnapshotMetadata(value, userId) &&
-    value.snapshotVersion === CHAT_PAGE_SNAPSHOT_VERSION &&
-    Array.isArray(value.threads) &&
-    value.threads.every(isThreadSnapshot)
-  );
-}
-
-function sanitizeThreadForChatSnapshot(thread: Thread): ThreadSnapshot {
-  return {
-    giver_id: thread.giver_id,
-    group_gift_date: thread.group_gift_date,
-    group_time_zone: thread.group_time_zone,
-    group_id: thread.group_id,
-    group_name: thread.group_name,
-    last_time: thread.last_time,
-    other_name: thread.other_name,
-    receiver_id: thread.receiver_id,
-    role: thread.role,
-    thread_id: thread.thread_id,
-    unread: thread.unread,
-  };
-}
-
-function restoreThreadFromChatSnapshot(thread: ThreadSnapshot): Thread {
-  return {
-    ...thread,
-    last_message: CHAT_SNAPSHOT_PREVIEW_MESSAGE,
-  };
-}
-
-function ChatLineIcon({ className = "h-5 w-5" }: { className?: string }) {
-  return (
-    <svg viewBox="0 0 24 24" fill="none" className={className} aria-hidden="true">
-      <path
-        d="M5.5 6.75C5.5 5.78 6.28 5 7.25 5h9.5c.97 0 1.75.78 1.75 1.75v6.1c0 .97-.78 1.75-1.75 1.75h-5.6L7 18v-3.4h-.75c-.97 0-1.75-.78-1.75-1.75v-6.1Z"
-        stroke="currentColor"
-        strokeWidth="1.8"
-        strokeLinejoin="round"
-      />
-      <path d="M8 8.7h8M8 11.2h5.6" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
-    </svg>
-  );
-}
-
-function ArrowRightIcon({ className = "h-4 w-4" }: { className?: string }) {
-  return (
-    <svg viewBox="0 0 20 20" fill="none" className={className} aria-hidden="true">
-      <path d="M4 10h11M11 5.5 15.5 10 11 14.5" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
-    </svg>
-  );
-}
-
-function EnvelopeLineIcon({ className = "h-5 w-5" }: { className?: string }) {
-  return (
-    <svg viewBox="0 0 24 24" fill="none" className={className} aria-hidden="true">
-      <rect x="3.75" y="5.75" width="16.5" height="12.5" rx="2.5" stroke="currentColor" strokeWidth="1.7" />
-      <path d="m5.5 7.6 6.5 5.2 6.5-5.2" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" />
-      <path d="m5.7 16 4.1-3.4M18.3 16l-4.1-3.4" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" />
-    </svg>
-  );
-}
-
-function CalendarLineIcon({ className = "h-5 w-5" }: { className?: string }) {
-  return (
-    <svg viewBox="0 0 24 24" fill="none" className={className} aria-hidden="true">
-      <rect x="4" y="5.5" width="16" height="14.5" rx="3" stroke="currentColor" strokeWidth="1.7" />
-      <path d="M8 4v3M16 4v3M4.5 9.5h15" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" />
-      <path d="M8 13h.01M12 13h.01M16 13h.01M8 16.5h.01M12 16.5h.01" stroke="currentColor" strokeWidth="3" strokeLinecap="round" />
-    </svg>
-  );
-}
-
-function sanitize(input: string): string {
-  return sanitizePlainText(input, 500);
-}
-
-function createThreadKey(groupId: string, giverId: string, receiverId: string): string {
-  return `${groupId}:${giverId}:${receiverId}`;
-}
-
-function createGiverThreadId(groupId: string, giverId: string, receiverId: string): string {
-  return `giver:${createThreadKey(groupId, giverId, receiverId)}`;
-}
-
-function pickDefaultThread(availableThreads: Thread[]): Thread | null {
-  return (
-    availableThreads.find((thread) => thread.unread > 0) ||
-    availableThreads.find((thread) => thread.role === "giver") ||
-    availableThreads[0] ||
-    null
-  );
-}
-
-function isCurrentChatThread(thread: Thread): boolean {
-  return !isGroupInHistory(
-    thread.group_gift_date,
+function getGiftDayLabel(exchange: ChatExchange): string {
+  const days = getDaysUntilExchangeDate(
+    exchange.event_date,
     Date.now(),
-    thread.group_time_zone
+    resolveExchangeTimeZone(exchange.event_timezone)
   );
-}
+  if (days === null) return "Gift day not set";
 
-function formatThreadTime(value: string): string {
-  const trimmedValue = value.trim();
-
-  if (!trimmedValue) {
-    return "New";
-  }
-
-  const date = new Date(trimmedValue);
-
-  if (Number.isNaN(date.getTime())) {
-    return trimmedValue;
-  }
-
-  return date.toLocaleTimeString([], {
-    hour: "2-digit",
-    minute: "2-digit",
-  });
-}
-
-function createPreviewText(
-  senderId: string,
-  currentUserId: string,
-  otherName: string,
-  content: string
-): string {
-  const prefix =
-    senderId === currentUserId
-      ? "You: "
-      : otherName === "Secret Santa"
-        ? "Secret Santa: "
-        : `${otherName}: `;
-
-  return prefix + content.slice(0, 60);
-}
-
-function formatGroupDate(value: string): string {
-  return formatExchangeDate(value, {
-    month: "short",
-    day: "numeric",
-    year: "numeric",
-  }, "Date not set");
-}
-
-function getGiftTimingInfo(value: string, eventTimeZone: string): {
-  label: string;
-  detail: string;
-  chip: string;
-  phase: "planning" | "gift-day" | "wrap-up" | "history" | "unknown";
-} {
-  if (!value.trim()) {
-    return {
-      label: "Gift day not set",
-      detail: "Set a group gift day to show whether this chat is in planning, gift day, or wrap-up.",
-      chip: "Date needed",
-      phase: "unknown",
-    };
-  }
-
-  const daysUntil = getDaysUntilExchangeDate(
-    value,
-    Date.now(),
-    eventTimeZone
-  );
-
-  if (daysUntil === null) {
-    return {
-      label: "Gift day not set",
-      detail: "Set a group gift day to show whether this chat is in planning, gift day, or wrap-up.",
-      chip: "Date needed",
-      phase: "unknown",
-    };
-  }
-
-  if (daysUntil > 0) {
-    return {
-      label: "Planning time",
-      detail: "Ask about sizes, colors, delivery details, or hints while identities stay protected.",
-      chip: daysUntil === 1 ? "1d left" : `${daysUntil}d left`,
-      phase: "planning",
-    };
-  }
-
-  if (daysUntil === 0) {
-    return {
-      label: "Gift day",
-      detail: "It is gift day. Use this thread for delivery updates, quick replies, or thank-you notes.",
-      chip: "Gift day",
-      phase: "gift-day",
-    };
-  }
-
-  const daysPast = Math.abs(daysUntil);
-  const wrapUpDaysLeft = Math.max(GROUP_HISTORY_GRACE_DAYS - daysPast, 0);
-
-  if (wrapUpDaysLeft > 0) {
-    return {
-      label: "Wrap-up time",
-      detail: "Gift day has passed, but final thank-yous and delivery notes can still be sent.",
-      chip: wrapUpDaysLeft === 1 ? "1d left" : `${wrapUpDaysLeft}d left`,
-      phase: "wrap-up",
-    };
-  }
-
-  return {
-    label: "Ready for History",
-    detail: "This exchange has wrapped up. Save what you need, then keep the memories in History.",
-    chip: "History",
-    phase: "history",
-  };
-}
-
-function FestiveTrim({
-  tone,
-  withBells = false,
-  compact = false,
-}: {
-  tone: FestiveTone;
-  withBells?: boolean;
-  compact?: boolean;
-}) {
-  const palette =
-    tone === "gold"
-      ? {
-          rope: "#d8a93a",
-          ropeLight: "#f3d16a",
-          pine: "#327347",
-          pineLight: "#4d9760",
-          pineDark: "#1d4c2f",
-          berry: "#d44338",
-          berryDark: "#8e211a",
-          bell: "#dca730",
-          bellLight: "#f7db79",
-          bellDark: "#94630f",
-          bow: "#d03a34",
-          bowDark: "#8f1f24",
-          sparkle: "#fff1bf",
-          glow: "rgba(251,191,36,.32)",
-        }
-      : tone === "green"
-        ? {
-            rope: "#cea13a",
-            ropeLight: "#efcc6a",
-            pine: "#2d8950",
-            pineLight: "#48b16e",
-            pineDark: "#175333",
-            berry: "#d34139",
-            berryDark: "#8f1f1d",
-            bell: "#d8aa42",
-            bellLight: "#f4df89",
-            bellDark: "#8f6514",
-            bow: "#c23a33",
-            bowDark: "#8c2126",
-            sparkle: "#f0ffde",
-            glow: "rgba(34,197,94,.26)",
-          }
-        : {
-            rope: "#cca043",
-            ropeLight: "#f0d58a",
-            pine: "#386f4f",
-            pineLight: "#5ca27b",
-            pineDark: "#1d4533",
-            berry: "#c43c37",
-            berryDark: "#8d2620",
-            bell: "#d1a23c",
-            bellLight: "#f4dc8f",
-            bellDark: "#8b6216",
-            bow: "#bf3934",
-            bowDark: "#882127",
-            sparkle: "#fff6d5",
-            glow: "rgba(255,255,255,.18)",
-          };
-
-  const ids = {
-    rope: useId().replace(/:/g, ""),
-    pine: useId().replace(/:/g, ""),
-    pineAlt: useId().replace(/:/g, ""),
-    berry: useId().replace(/:/g, ""),
-    bow: useId().replace(/:/g, ""),
-    bell: useId().replace(/:/g, ""),
-    bellShine: useId().replace(/:/g, ""),
-  };
-
-  if (compact) {
-    return (
-      <div className="pointer-events-none absolute inset-x-4 top-0 h-10 overflow-visible" aria-hidden="true">
-        <div
-          className="absolute inset-x-4 top-5 h-px"
-          style={{
-            background: `linear-gradient(90deg, transparent, ${palette.ropeLight}, ${palette.rope}, ${palette.ropeLight}, transparent)`,
-            opacity: 0.9,
-          }}
-        />
-        {[0, 1, 2, 3, 4].map((index) => {
-          const left = `${8 + index * 22}%`;
-          const scale = index === 2 ? 1.05 : 0.9;
-
-          return (
-            <div
-              key={index}
-              className="absolute top-1"
-              style={{
-                left,
-                transform: `translateX(-50%) scale(${scale})`,
-                color: palette.ropeLight,
-              }}
-            >
-              <svg viewBox="0 0 48 20" className="h-7 w-12 drop-shadow-[0_6px_12px_rgba(0,0,0,.18)]">
-                <path
-                  d="M2 9.5 C10 4, 18 4.2, 24 9.5 C30 14.4, 38 14.8, 46 9.5"
-                  fill="none"
-                  stroke={palette.rope}
-                  strokeWidth="1.8"
-                  strokeLinecap="round"
-                />
-                <circle cx="12" cy="10" r="2.4" fill={palette.berry} />
-                <circle cx="24" cy="9" r="2.8" fill={palette.berryDark} />
-                <circle cx="35" cy="10" r="2.4" fill={palette.berry} />
-                <path
-                  d="M21 6.6 C22.5 4.4 25.5 4.4 27 6.6 C25 7.6 23 7.6 21 6.6 Z"
-                  fill={palette.pine}
-                />
-              </svg>
-            </div>
-          );
-        })}
-      </div>
-    );
-  }
-
-  const topHeight = compact ? 56 : 78;
-  const topOffset = compact ? -22 : -34;
-  const cornerSize = compact ? 62 : 84;
-  const bottomCornerSize = compact ? 38 : 48;
-  const frameInset = compact ? 4 : 6;
-  const frameRadius = compact ? 16 : 20;
-  const frameColor =
-    tone === "gold"
-      ? "rgba(251,191,36,.18)"
-      : tone === "green"
-        ? "rgba(34,197,94,.18)"
-        : "rgba(255,255,255,.14)";
-  const crestWidth = compact ? 104 : 144;
-  const crestHeight = compact ? 48 : 64;
-  const crestTop = compact ? -18 : -28;
-
-  const renderCornerCluster = (side: "left" | "right", bottom = false) => {
-    const flipX = side === "right" ? -1 : 1;
-    const flipY = bottom ? -1 : 1;
-
-    return (
-      <svg
-        className="absolute"
-        style={{
-          [side]: bottom ? -2 : -8,
-          [bottom ? "bottom" : "top"]: bottom ? -6 : compact ? -8 : -10,
-          width: bottom ? bottomCornerSize : cornerSize,
-          height: bottom ? bottomCornerSize : cornerSize,
-          transform: `scale(${flipX}, ${flipY})`,
-          transformOrigin: "center",
-          filter: `drop-shadow(0 4px 12px ${palette.glow})`,
-        }}
-        viewBox="0 0 96 96"
-      >
-        <defs>
-          <linearGradient id={`${ids.pine}-corner-${side}-${bottom ? "b" : "t"}`} x1="0%" y1="0%" x2="100%" y2="100%">
-            <stop offset="0%" stopColor={palette.pineLight} />
-            <stop offset="55%" stopColor={palette.pine} />
-            <stop offset="100%" stopColor={palette.pineDark} />
-          </linearGradient>
-          <radialGradient id={`${ids.berry}-corner-${side}-${bottom ? "b" : "t"}`} cx="35%" cy="35%" r="70%">
-            <stop offset="0%" stopColor="#ffb0a5" />
-            <stop offset="30%" stopColor={palette.berry} />
-            <stop offset="100%" stopColor={palette.berryDark} />
-          </radialGradient>
-          <linearGradient id={`${ids.bell}-corner-${side}-${bottom ? "b" : "t"}`} x1="0%" y1="0%" x2="50%" y2="100%">
-            <stop offset="0%" stopColor={palette.bellLight} />
-            <stop offset="55%" stopColor={palette.bell} />
-            <stop offset="100%" stopColor={palette.bellDark} />
-          </linearGradient>
-        </defs>
-        <ellipse cx="30" cy="28" rx="31" ry="11" fill={`url(#${ids.pine}-corner-${side}-${bottom ? "b" : "t"})`} transform="rotate(-28 30 28)" />
-        <ellipse cx="50" cy="22" rx="29" ry="10" fill={`url(#${ids.pine}-corner-${side}-${bottom ? "b" : "t"})`} transform="rotate(14 50 22)" />
-        <ellipse cx="26" cy="48" rx="23" ry="9" fill={`url(#${ids.pine}-corner-${side}-${bottom ? "b" : "t"})`} transform="rotate(42 26 48)" />
-        <ellipse cx="54" cy="44" rx="19" ry="7" fill={palette.pineDark} transform="rotate(-22 54 44)" opacity="0.9" />
-        <circle cx="40" cy="42" r="6.5" fill={`url(#${ids.berry}-corner-${side}-${bottom ? "b" : "t"})`} />
-        <circle cx="28" cy="50" r="5.5" fill={`url(#${ids.berry}-corner-${side}-${bottom ? "b" : "t"})`} />
-        <circle cx="54" cy="52" r="5.5" fill={`url(#${ids.berry}-corner-${side}-${bottom ? "b" : "t"})`} />
-        {!bottom && (
-          <>
-            <path
-              d="M58 34 C 65 33, 72 38, 72 46 C 72 54, 66 60, 58 60 C 50 60, 44 54, 44 46 C 44 39, 50 34, 58 34 Z"
-              fill={`url(#${ids.bell}-corner-${side}-${bottom ? "b" : "t"})`}
-            />
-            <path d="M48 40 Q58 46 68 40" stroke={palette.bellDark} strokeWidth="2.6" fill="none" opacity="0.5" />
-            <circle cx="58" cy="53" r="4.2" fill={palette.bellDark} />
-            <circle cx="54" cy="40" r="2.2" fill="rgba(255,255,255,.45)" />
-          </>
-        )}
-      </svg>
-    );
-  };
-
-  return (
-    <div className="pointer-events-none absolute inset-0 overflow-visible" aria-hidden="true">
-      <div
-        className="absolute"
-        style={{
-          inset: frameInset,
-          borderRadius: frameRadius,
-          border: `1px solid ${frameColor}`,
-          boxShadow: `inset 0 0 0 1px rgba(255,255,255,.025), 0 0 0 1px ${palette.glow}`,
-        }}
-      />
-
-      <svg
-        className="absolute"
-        style={{
-          left: 18,
-          right: 18,
-          top: topOffset,
-          width: "calc(100% - 36px)",
-          height: topHeight,
-          filter: `drop-shadow(0 4px 10px ${palette.glow})`,
-        }}
-        viewBox="0 0 1000 120"
-        preserveAspectRatio="none"
-      >
-        <defs>
-          <linearGradient id={`${ids.rope}-main`} x1="0%" y1="0%" x2="100%" y2="0%">
-            <stop offset="0%" stopColor={palette.ropeLight} />
-            <stop offset="50%" stopColor={palette.rope} />
-            <stop offset="100%" stopColor={palette.ropeLight} />
-          </linearGradient>
-          <linearGradient id={`${ids.pine}-main`} x1="10%" y1="0%" x2="90%" y2="100%">
-            <stop offset="0%" stopColor={palette.pineLight} />
-            <stop offset="45%" stopColor={palette.pine} />
-            <stop offset="100%" stopColor={palette.pineDark} />
-          </linearGradient>
-          <linearGradient id={`${ids.pineAlt}-main`} x1="0%" y1="0%" x2="100%" y2="100%">
-            <stop offset="0%" stopColor={palette.pineDark} />
-            <stop offset="100%" stopColor={palette.pineLight} />
-          </linearGradient>
-          <radialGradient id={`${ids.berry}-main`} cx="35%" cy="30%" r="70%">
-            <stop offset="0%" stopColor="#ffd2ca" />
-            <stop offset="28%" stopColor={palette.berry} />
-            <stop offset="100%" stopColor={palette.berryDark} />
-          </radialGradient>
-          <linearGradient id={`${ids.bow}-main`} x1="0%" y1="0%" x2="100%" y2="100%">
-            <stop offset="0%" stopColor={palette.bow} />
-            <stop offset="55%" stopColor="#e04a44" />
-            <stop offset="100%" stopColor={palette.bowDark} />
-          </linearGradient>
-          <linearGradient id={`${ids.bell}-main`} x1="0%" y1="0%" x2="40%" y2="100%">
-            <stop offset="0%" stopColor={palette.bellLight} />
-            <stop offset="45%" stopColor={palette.bell} />
-            <stop offset="100%" stopColor={palette.bellDark} />
-          </linearGradient>
-          <radialGradient id={`${ids.bellShine}-main`} cx="30%" cy="25%" r="75%">
-            <stop offset="0%" stopColor="rgba(255,255,255,.72)" />
-            <stop offset="25%" stopColor="rgba(255,255,255,.35)" />
-            <stop offset="100%" stopColor="rgba(255,255,255,0)" />
-          </radialGradient>
-        </defs>
-
-        <path
-          d="M78 56 C 210 16, 352 16, 500 56 C 648 96, 790 96, 922 56"
-          fill="none"
-          stroke={`url(#${ids.rope}-main)`}
-          strokeWidth="9"
-          strokeLinecap="round"
-        />
-        <path
-          d="M94 59 C 224 28, 355 28, 500 59 C 645 90, 776 90, 906 59"
-          fill="none"
-          stroke={`url(#${ids.pine}-main)`}
-          strokeWidth="18"
-          strokeLinecap="round"
-          opacity="0.98"
-        />
-        <path
-          d="M112 48 C 246 24, 366 24, 500 48 C 634 72, 754 72, 888 48"
-          fill="none"
-          stroke={`url(#${ids.pineAlt}-main)`}
-          strokeWidth="6"
-          strokeLinecap="round"
-          opacity="0.8"
-        />
-
-        {[180, 320, 680, 820].map((x, index) => (
-          <g key={x} transform={`translate(${x} ${index % 2 === 0 ? 44 : 52})`}>
-            <ellipse cx="-16" cy="0" rx="24" ry="8" fill={`url(#${ids.pine}-main)`} transform="rotate(-26)" />
-            <ellipse cx="2" cy="-4" rx="22" ry="8" fill={`url(#${ids.pine}-main)`} transform="rotate(12)" />
-            <ellipse cx="-2" cy="12" rx="18" ry="7" fill={`url(#${ids.pineAlt}-main)`} transform="rotate(38)" />
-            <circle cx="10" cy="14" r="5" fill={`url(#${ids.berry}-main)`} />
-            <circle cx="-6" cy="18" r="4" fill={`url(#${ids.berry}-main)`} />
-          </g>
-        ))}
-
-        <g transform="translate(120 42)">
-          <ellipse cx="0" cy="0" rx="27" ry="10" fill={`url(#${ids.pine}-main)`} transform="rotate(-28)" />
-          <ellipse cx="20" cy="1" rx="25" ry="10" fill={`url(#${ids.pineAlt}-main)`} transform="rotate(14)" />
-          <ellipse cx="-18" cy="12" rx="20" ry="8" fill={`url(#${ids.pine}-main)`} transform="rotate(42)" />
-          <ellipse cx="22" cy="20" rx="17" ry="7" fill={`url(#${ids.pineAlt}-main)`} transform="rotate(-18)" />
-          <circle cx="10" cy="18" r="6" fill={`url(#${ids.berry}-main)`} />
-          <circle cx="-4" cy="22" r="5" fill={`url(#${ids.berry}-main)`} />
-          <circle cx="22" cy="24" r="5" fill={`url(#${ids.berry}-main)`} />
-        </g>
-        <g transform="translate(880 42)">
-          <ellipse cx="0" cy="0" rx="27" ry="10" fill={`url(#${ids.pine}-main)`} transform="rotate(28)" />
-          <ellipse cx="-20" cy="1" rx="25" ry="10" fill={`url(#${ids.pineAlt}-main)`} transform="rotate(-14)" />
-          <ellipse cx="18" cy="12" rx="20" ry="8" fill={`url(#${ids.pine}-main)`} transform="rotate(-42)" />
-          <ellipse cx="-22" cy="20" rx="17" ry="7" fill={`url(#${ids.pineAlt}-main)`} transform="rotate(18)" />
-          <circle cx="-10" cy="18" r="6" fill={`url(#${ids.berry}-main)`} />
-          <circle cx="4" cy="22" r="5" fill={`url(#${ids.berry}-main)`} />
-          <circle cx="-22" cy="24" r="5" fill={`url(#${ids.berry}-main)`} />
-        </g>
-
-        <g transform={`translate(500 ${withBells ? 36 : 32})`}>
-          <ellipse cx="0" cy="12" rx="72" ry="10" fill="rgba(0,0,0,.12)" />
-          <path
-            d="M-42 -6 C -28 -26, -8 -22, 0 -2 C 8 -22, 28 -26, 42 -6 L 22 12 L 0 -2 L -22 12 Z"
-            fill={`url(#${ids.bow}-main)`}
-          />
-          <path d="M-10 12 L -18 28" stroke={palette.rope} strokeWidth="4" strokeLinecap="round" />
-          <path d="M10 12 L 18 28" stroke={palette.rope} strokeWidth="4" strokeLinecap="round" />
-          <circle cx="0" cy="8" r="7" fill={`url(#${ids.berry}-main)`} />
-          <ellipse cx="-24" cy="18" rx="17" ry="7" fill={`url(#${ids.pine}-main)`} transform="rotate(-18)" />
-          <ellipse cx="24" cy="18" rx="17" ry="7" fill={`url(#${ids.pine}-main)`} transform="rotate(18)" />
-          <ellipse cx="-14" cy="26" rx="14" ry="6" fill={`url(#${ids.pineAlt}-main)`} transform="rotate(22)" />
-          <ellipse cx="14" cy="26" rx="14" ry="6" fill={`url(#${ids.pineAlt}-main)`} transform="rotate(-22)" />
-          {withBells ? (
-            <g transform="translate(0 12)">
-              <path
-                d="M-26 14 C -36 14, -44 24, -44 36 C -44 49, -34 58, -22 58 C -10 58, -2 48, -2 36 C -2 24, -12 14, -22 14 Z"
-                fill={`url(#${ids.bell}-main)`}
-              />
-              <path
-                d="M26 14 C 36 14, 44 24, 44 36 C 44 49, 34 58, 22 58 C 10 58, 2 48, 2 36 C 2 24, 12 14, 22 14 Z"
-                fill={`url(#${ids.bell}-main)`}
-              />
-              <path d="M-30 22 Q-22 28 -14 22" stroke={palette.bellDark} strokeWidth="3" fill="none" opacity="0.55" />
-              <path d="M14 22 Q22 28 30 22" stroke={palette.bellDark} strokeWidth="3" fill="none" opacity="0.55" />
-              <circle cx="-22" cy="49" r="4.5" fill={palette.bellDark} />
-              <circle cx="22" cy="49" r="4.5" fill={palette.bellDark} />
-              <ellipse cx="-28" cy="24" rx="10" ry="12" fill={`url(#${ids.bellShine}-main)`} />
-              <ellipse cx="16" cy="24" rx="10" ry="12" fill={`url(#${ids.bellShine}-main)`} />
-            </g>
-          ) : (
-            <g transform="translate(0 30)">
-              <ellipse cx="-14" cy="0" rx="16" ry="7" fill={`url(#${ids.pine}-main)`} transform="rotate(18)" />
-              <ellipse cx="14" cy="0" rx="16" ry="7" fill={`url(#${ids.pine}-main)`} transform="rotate(-18)" />
-              <circle cx="-4" cy="2" r="4.5" fill={`url(#${ids.berry}-main)`} />
-              <circle cx="6" cy="2" r="4.5" fill={`url(#${ids.berry}-main)`} />
-            </g>
-          )}
-          <circle cx="-32" cy="-6" r="2.2" fill={palette.sparkle} opacity="0.8" />
-          <circle cx="36" cy="-2" r="1.8" fill={palette.sparkle} opacity="0.7" />
-        </g>
-      </svg>
-
-      <svg
-        className="absolute"
-        style={{
-          left: "50%",
-          top: crestTop,
-          width: crestWidth,
-          height: crestHeight,
-          transform: "translateX(-50%)",
-          filter: `drop-shadow(0 6px 16px ${palette.glow})`,
-        }}
-        viewBox="0 0 180 84"
-      >
-        <ellipse cx="90" cy="68" rx="44" ry="8" fill="rgba(0,0,0,.12)" />
-        <path d="M58 24 C 68 4, 84 6, 90 20 C 96 6, 112 4, 122 24 L 104 38 L 90 24 L 76 38 Z" fill={`url(#${ids.bow}-main)`} />
-        <circle cx="90" cy="29" r="7" fill={`url(#${ids.berry}-main)`} />
-        {withBells ? (
-          <>
-            <path
-              d="M72 38 C 60 38, 50 48, 50 60 C 50 73, 60 82, 74 82 C 88 82, 98 72, 98 60 C 98 48, 88 38, 76 38 Z"
-              fill={`url(#${ids.bell}-main)`}
-            />
-            <path
-              d="M108 38 C 120 38, 130 48, 130 60 C 130 73, 120 82, 106 82 C 92 82, 82 72, 82 60 C 82 48, 92 38, 104 38 Z"
-              fill={`url(#${ids.bell}-main)`}
-            />
-            <path d="M58 48 Q74 58 90 48" stroke={palette.bellDark} strokeWidth="3" fill="none" opacity="0.52" />
-            <path d="M90 48 Q106 58 122 48" stroke={palette.bellDark} strokeWidth="3" fill="none" opacity="0.52" />
-            <circle cx="74" cy="72" r="4.8" fill={palette.bellDark} />
-            <circle cx="106" cy="72" r="4.8" fill={palette.bellDark} />
-            <ellipse cx="68" cy="50" rx="10" ry="12" fill={`url(#${ids.bellShine}-main)`} />
-            <ellipse cx="98" cy="50" rx="10" ry="12" fill={`url(#${ids.bellShine}-main)`} />
-          </>
-        ) : (
-          <>
-            <ellipse cx="72" cy="53" rx="18" ry="7" fill={`url(#${ids.pine}-main)`} transform="rotate(16 72 53)" />
-            <ellipse cx="108" cy="53" rx="18" ry="7" fill={`url(#${ids.pine}-main)`} transform="rotate(-16 108 53)" />
-            <circle cx="86" cy="56" r="5" fill={`url(#${ids.berry}-main)`} />
-            <circle cx="96" cy="56" r="5" fill={`url(#${ids.berry}-main)`} />
-          </>
-        )}
-      </svg>
-
-      {renderCornerCluster("left")}
-      {renderCornerCluster("right")}
-      {renderCornerCluster("left", true)}
-      {renderCornerCluster("right", true)}
-    </div>
-  );
-}
-
-function buildThreadMetaMap(
-  messages: MessageRow[],
-  readRows: ThreadReadRow[],
-  currentUserId: string
-): Map<
-  string,
-  {
-    lastSenderId: string;
-    lastContent: string;
-    lastTime: string;
-    unread: number;
-  }
-> {
-  const lastReadByThread = new Map<string, number>();
-
-  for (const row of readRows) {
-    lastReadByThread.set(
-      createThreadKey(row.group_id, row.thread_giver_id, row.thread_receiver_id),
-      new Date(row.last_read_at).getTime()
-    );
-  }
-
-  const metaByThread = new Map<
-    string,
-    {
-      lastSenderId: string;
-      lastContent: string;
-      lastTime: string;
-      unread: number;
-    }
-  >();
-
-  for (const message of messages) {
-    const threadKey = createThreadKey(
-      message.group_id,
-      message.thread_giver_id,
-      message.thread_receiver_id
-    );
-    const lastReadAt = lastReadByThread.get(threadKey) ?? 0;
-    const messageTime = new Date(message.created_at).getTime();
-    const isUnread = message.sender_id !== currentUserId && messageTime > lastReadAt;
-    const existingMeta = metaByThread.get(threadKey);
-
-    // Messages are loaded newest-first, so the first entry becomes the preview.
-    if (!existingMeta) {
-      metaByThread.set(threadKey, {
-        lastSenderId: message.sender_id,
-        lastContent: message.content,
-        lastTime: formatThreadTime(message.created_at),
-        unread: isUnread ? 1 : 0,
-      });
-      continue;
-    }
-
-    if (isUnread) {
-      existingMeta.unread = Math.min(existingMeta.unread + 1, 9);
-    }
-  }
-
-  return metaByThread;
+  const date = formatExchangeDate(exchange.event_date, { month: "short", day: "numeric" });
+  if (days === 0) return `Gift day ${date} · Today`;
+  if (days < 0) return `Gift day ${date} · Passed`;
+  return `Gift day ${date} · ${days} ${days === 1 ? "day" : "days"} left`;
 }
 
 export default function SecretSantaChatPage() {
   const router = useRouter();
   const [supabase] = useState(() => createClient());
   const [userId, setUserId] = useState<string | null>(null);
-  const [threads, setThreads] = useState<Thread[]>([]);
+  const [exchanges, setExchanges] = useState<ChatExchange[]>([]);
+  const [selectedId, setSelectedId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
-  const [activeThread, setActiveThread] = useState<Thread | null>(null);
-  const [messages, setMessages] = useState<Message[]>([]);
-  const [messagesLoading, setMessagesLoading] = useState(false);
-  const [msgInput, setMsgInput] = useState("");
-  const [sending, setSending] = useState(false);
-  const [threadFilter, setThreadFilter] = useState<ThreadFilter>("all");
-  const [threadListMessage, setThreadListMessage] = useState<string | null>(null);
-  const [threadMessage, setThreadMessage] = useState<string | null>(null);
-  const messagesScrollRef = useRef<HTMLDivElement | null>(null);
-  const chatPanelRef = useRef<HTMLElement | null>(null);
-  const activeThreadRef = useRef<Thread | null>(null);
-  const loadThreadsRef = useRef<() => Promise<void>>(null);
-  const loadMessagesRef = useRef<() => Promise<void>>(null);
-  const loadThreadsVersionRef = useRef(0);
-  const hasLoadedThreadsRef = useRef(false);
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const [refreshVersion, setRefreshVersion] = useState(0);
+  const loadExchangesRef = useRef<() => void>(null);
 
-  useEffect(() => {
-    activeThreadRef.current = activeThread;
-  }, [activeThread]);
-
-  const scrollToBottom = useCallback(() => {
-    const scrollContainer = messagesScrollRef.current;
-
-    if (!scrollContainer) {
-      return;
-    }
-
-    scrollContainer.scrollTo({
-      behavior: "smooth",
-      top: scrollContainer.scrollHeight,
-    });
+  const refreshChats = useCallback(() => {
+    setRefreshVersion((version) => version + 1);
+    loadExchangesRef.current?.();
   }, []);
 
-  const markAsRead = useCallback(
-    async (thread: Thread, uid: string) => {
-      if (thread.role === "receiver") {
-        await markReceiverThreadAsRead(thread.thread_id);
-        return;
-      }
-
-      if (!thread.giver_id) {
-        return;
-      }
-
-      await supabase.from("thread_reads").upsert(
-        {
-          user_id: uid,
-          group_id: thread.group_id,
-          thread_giver_id: thread.giver_id,
-          thread_receiver_id: thread.receiver_id,
-          last_read_at: new Date().toISOString(),
-        },
-        { onConflict: "user_id,group_id,thread_giver_id,thread_receiver_id" }
-      );
-    },
-    [supabase]
-  );
-
-  // Load threads on mount and subscribe to live updates.
   useEffect(() => {
-    let isMounted = true;
-    let reloadTimer: ReturnType<typeof setTimeout> | null = null;
-    const activeLoadTimeouts = new Set<ReturnType<typeof setTimeout>>();
+    let disposed = false;
+    let version = 0;
+    let activeUserId: string | null = null;
+    let timeout: ReturnType<typeof setTimeout> | undefined;
 
-    const loadThreads = async () => {
-      const loadVersion = ++loadThreadsVersionRef.current;
-      const timeoutId = setTimeout(() => {
-        if (!isMounted || loadVersion !== loadThreadsVersionRef.current) {
-          return;
-        }
+    // Discard the legacy thread cache; every panel now starts from verified membership.
+    clearClientSnapshots("ss_chat_page_snapshot_v2:");
 
-        setThreadListMessage(CHAT_PAGE_LOAD_TIMEOUT_MESSAGE);
-        hasLoadedThreadsRef.current = true;
+    const loadExchanges = async () => {
+      const request = ++version;
+      const isCurrent = () => !disposed && request === version;
+      clearTimeout(timeout);
+      timeout = setTimeout(() => {
+        if (!isCurrent()) return;
+        setLoadError("Messages are taking longer than expected.");
         setLoading(false);
       }, CHAT_PAGE_LOAD_TIMEOUT_MS);
-      activeLoadTimeouts.add(timeoutId);
 
       try {
-        const {
-          data: { session },
-        } = await supabase.auth.getSession();
-        if (!isMounted || loadVersion !== loadThreadsVersionRef.current) {
-          return;
-        }
-
+        const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+        if (!isCurrent()) return;
+        if (sessionError) throw sessionError;
         if (!session) {
-          clearClientSnapshots(CHAT_PAGE_SNAPSHOT_STORAGE_PREFIX);
-          router.push("/login");
+          setExchanges([]);
+          setUserId(null);
+          router.replace("/login");
           return;
         }
+
         const user = session.user;
-        setUserId(user.id);
-
-        if (!hasLoadedThreadsRef.current) {
-          const cachedChat = readClientSnapshot(
-            getChatPageSnapshotStorageKey(user.id),
-            user.id,
-            isChatPageSnapshot
-          );
-
-          if (cachedChat) {
-            const cachedCurrentThreads = cachedChat.threads
-              .map(restoreThreadFromChatSnapshot)
-              .filter(isCurrentChatThread);
-            setThreads(cachedCurrentThreads);
-            if (!activeThreadRef.current) {
-              setActiveThread(pickDefaultThread(cachedCurrentThreads));
-            }
-            setThreadListMessage((message) =>
-              message === CHAT_PAGE_LOAD_TIMEOUT_MESSAGE ? null : message
-            );
-            hasLoadedThreadsRef.current = true;
-            setLoading(false);
-          }
+        if (user.id !== activeUserId) {
+          activeUserId = user.id;
+          setUserId(user.id);
+          setExchanges([]);
+          setSelectedId(null);
         }
 
-        const { data: groupsData, error: groupsError } = await supabase
+        const { data: groups, error: groupsError } = await supabase
           .from("groups")
           .select("id, name, event_date, event_timezone, group_members!inner(user_id)")
           .eq("group_members.user_id", user.id)
-          .eq("group_members.status", "accepted");
-        if (!isMounted || loadVersion !== loadThreadsVersionRef.current) {
-          return;
-        }
-
-        if (groupsError) {
-          setThreadListMessage("We could not load your chats. Please refresh the page.");
-          setThreads([]);
-          setActiveThread(null);
-          setMessages([]);
-          setMessagesLoading(false);
-          hasLoadedThreadsRef.current = true;
-          setLoading(false);
-          return;
-        }
+          .eq("group_members.status", "accepted")
+          .order("event_date")
+          .order("id");
+        if (!isCurrent()) return;
+        if (groupsError) throw groupsError;
 
         const now = Date.now();
-        const activeGroups = ((groupsData || []) as GroupRow[]).filter(
+        const activeGroups = ((groups || []) as GroupRow[]).filter(
           (group) => !isGroupInHistory(group.event_date, now, group.event_timezone)
         );
         const activeGroupIds = activeGroups.map((group) => group.id);
         if (activeGroupIds.length === 0) {
-          setThreadListMessage(null);
-          setThreads([]);
-          setActiveThread(null);
-          setMessages([]);
-          setMessagesLoading(false);
-          writeClientSnapshot(getChatPageSnapshotStorageKey(user.id), {
-            createdAt: Date.now(),
-            snapshotVersion: 2,
-            threads: [],
-            userId: user.id,
-          });
-          hasLoadedThreadsRef.current = true;
+          setExchanges([]);
+          setLoadError(null);
           setLoading(false);
           return;
         }
 
         const [
           { data: giverAssignments, error: giverAssignmentsError },
-          receiverThreadsResult,
-          { data: allMessages, error: messagesError },
+          receiverResult,
+          { data: incomingReplies, error: messagesError },
           { data: readTimestamps, error: readTimestampsError },
         ] = await Promise.all([
           fetchMyAssignmentGiftPrep(activeGroupIds),
           loadReceiverChatThreads(),
           supabase
             .from("messages")
-            .select("group_id, thread_giver_id, thread_receiver_id, sender_id, content, created_at")
+            .select("group_id, thread_receiver_id, created_at")
             .eq("thread_giver_id", user.id)
+            .neq("sender_id", user.id)
             .in("group_id", activeGroupIds)
             .order("created_at", { ascending: false })
             .limit(CHAT_THREAD_MESSAGE_SCAN_LIMIT),
           supabase
             .from("thread_reads")
-            .select("group_id, thread_giver_id, thread_receiver_id, last_read_at")
+            .select("group_id, thread_receiver_id, last_read_at")
             .eq("user_id", user.id)
             .eq("thread_giver_id", user.id)
             .in("group_id", activeGroupIds),
         ]);
-        if (!isMounted || loadVersion !== loadThreadsVersionRef.current) {
-          return;
+        if (!isCurrent()) return;
+        if (giverAssignmentsError || !receiverResult.success || messagesError || readTimestampsError) {
+          throw new Error("Could not load chats.");
         }
 
-        if (
-          giverAssignmentsError ||
-          !receiverThreadsResult.success ||
-          messagesError ||
-          readTimestampsError
-        ) {
-          setThreadListMessage("We could not load your chats. Please refresh the page.");
-          setThreads([]);
-          setActiveThread(null);
-          setMessages([]);
-          setMessagesLoading(false);
-          hasLoadedThreadsRef.current = true;
-          setLoading(false);
-          return;
-        }
-
-        const activeGroupById = new Map(activeGroups.map((group) => [group.id, group]));
-        const threadMetaByKey = buildThreadMetaMap(
-          ((allMessages || []) as MessageRow[]),
-          ((readTimestamps || []) as ThreadReadRow[]),
-          user.id
-        );
-
-        const buildThreads: Thread[] = [];
-
-        for (const a of giverAssignments) {
-          const group = activeGroupById.get(a.group_id);
-          if (!group) {
-            continue;
+        const readTimes = new Map((readTimestamps || []).map((row) => [
+          `${row.group_id}:${row.thread_receiver_id}`, Date.parse(row.last_read_at),
+        ]));
+        const unreadCounts = new Map<string, number>();
+        for (const reply of incomingReplies || []) {
+          const key = `${reply.group_id}:${reply.thread_receiver_id}`;
+          if (Date.parse(reply.created_at) > (readTimes.get(key) ?? 0)) {
+            unreadCounts.set(key, Math.min((unreadCounts.get(key) ?? 0) + 1, 9));
           }
+        }
 
-          const name = a.receiver_nickname || "your giftee";
-          const threadMeta = threadMetaByKey.get(
-            createThreadKey(a.group_id, user.id, a.receiver_id)
+        const byGroup = new Map<string, ChatExchange>(activeGroups.map((group) => [
+          group.id, { ...group, giver: null, receiver: null },
+        ]));
+        for (const assignment of giverAssignments) {
+          const exchange = byGroup.get(assignment.group_id);
+          if (!exchange) continue;
+
+          exchange.giver = {
+            id: `giver:${exchange.id}:${user.id}:${assignment.receiver_id}`,
+            receiverId: assignment.receiver_id,
+            name: assignment.receiver_nickname || "Your giftee",
+            unread: unreadCounts.get(`${exchange.id}:${assignment.receiver_id}`) ?? 0,
+          };
+        }
+        for (const thread of receiverResult.threads) {
+          const exchange = byGroup.get(thread.group_id);
+          if (!exchange) continue;
+
+          exchange.receiver = {
+            id: thread.thread_id,
+            receiverId: user.id,
+            name: "Your Secret Santa",
+            unread: thread.unread,
+          };
+        }
+
+        const nextExchanges = [...byGroup.values()];
+        setExchanges(nextExchanges);
+        setSelectedId((id) => {
+          if (id && byGroup.has(id)) return id;
+          return (
+            nextExchanges.find(({ giver, receiver }) => giver?.unread || receiver?.unread)?.id ??
+            nextExchanges.find(({ giver, receiver }) => giver || receiver)?.id ??
+            nextExchanges[0]?.id ??
+            null
           );
-          buildThreads.push({
-            thread_id: createGiverThreadId(a.group_id, user.id, a.receiver_id),
-            group_id: a.group_id,
-            group_name: group.name || "Unknown",
-            group_gift_date: group.event_date || "",
-            group_time_zone: group.event_timezone || DEFAULT_EXCHANGE_TIME_ZONE,
-            giver_id: user.id,
-            receiver_id: a.receiver_id,
-            other_name: name,
-            role: "giver",
-            last_message: threadMeta
-              ? createPreviewText(threadMeta.lastSenderId, user.id, name, threadMeta.lastContent)
-              : "No messages yet - say hi!",
-            last_time: threadMeta?.lastTime || "",
-            unread: threadMeta?.unread || 0,
-          });
-        }
-
-        for (const receiverThread of receiverThreadsResult.threads as ReceiverChatThread[]) {
-          if (!activeGroupById.has(receiverThread.group_id)) {
-            continue;
-          }
-
-          buildThreads.push({
-            ...receiverThread,
-            giver_id: null,
-            receiver_id: user.id,
-          });
-        }
-
-        const currentActiveThread = activeThreadRef.current;
-        const nextActiveThread = currentActiveThread
-          ? buildThreads.find(
-              (thread) => thread.thread_id === currentActiveThread.thread_id
-            ) || null
-          : null;
-
-        setThreads(buildThreads);
-        setThreadListMessage((message) =>
-          message === CHAT_PAGE_LOAD_TIMEOUT_MESSAGE ? null : message
-        );
-        hasLoadedThreadsRef.current = true;
-        writeClientSnapshot(getChatPageSnapshotStorageKey(user.id), {
-          createdAt: Date.now(),
-          snapshotVersion: 2,
-          threads: buildThreads.map(sanitizeThreadForChatSnapshot),
-          userId: user.id,
         });
-
-        if (currentActiveThread && !nextActiveThread) {
-          setActiveThread(pickDefaultThread(buildThreads));
-          setMessages([]);
-          setMsgInput("");
-        } else if (nextActiveThread) {
-          setActiveThread(nextActiveThread);
-        } else if (!currentActiveThread) {
-          setActiveThread(pickDefaultThread(buildThreads));
-        }
-
+        setLoadError(null);
         setLoading(false);
       } catch {
-        if (!isMounted || loadVersion !== loadThreadsVersionRef.current) {
-          return;
-        }
-
-        setThreadListMessage("We could not load your chats. Please refresh the page.");
-        setThreads([]);
-        setActiveThread(null);
-        setMessages([]);
-        setMessagesLoading(false);
-        hasLoadedThreadsRef.current = true;
+        if (!isCurrent()) return;
+        setExchanges([]);
+        setLoadError("We could not load your chats.");
         setLoading(false);
       } finally {
-        clearTimeout(timeoutId);
-        activeLoadTimeouts.delete(timeoutId);
+        if (isCurrent()) clearTimeout(timeout);
       }
     };
 
-    loadThreadsRef.current = loadThreads;
-
-    void loadThreads();
-
-    const scheduleThreadsReload = () => {
-      if (reloadTimer) {
-        clearTimeout(reloadTimer);
-      }
-
-      // Focus and visibility changes can arrive together.
-      reloadTimer = setTimeout(() => {
-        void loadThreadsRef.current?.();
-      }, 120);
+    let reloadTimer: ReturnType<typeof setTimeout> | undefined;
+    const scheduleLoad = () => {
+      clearTimeout(reloadTimer);
+      reloadTimer = setTimeout(() => void loadExchanges(), 120);
     };
+    loadExchangesRef.current = scheduleLoad;
+    void loadExchanges();
 
-    let pollInterval: ReturnType<typeof setInterval> | null = null;
-
-    const refreshThreadsIfVisible = () => {
-      if (document.visibilityState === "visible") {
-        scheduleThreadsReload();
-      }
+    const refreshIfVisible = () => {
+      if (document.visibilityState === "visible") scheduleLoad();
     };
-
-    window.addEventListener("focus", refreshThreadsIfVisible);
-    document.addEventListener("visibilitychange", refreshThreadsIfVisible);
-    pollInterval = setInterval(refreshThreadsIfVisible, CHAT_THREAD_FALLBACK_POLL_MS);
+    window.addEventListener("focus", refreshIfVisible);
+    document.addEventListener("visibilitychange", refreshIfVisible);
+    const poll = setInterval(refreshIfVisible, CHAT_THREAD_FALLBACK_POLL_MS);
 
     return () => {
-      isMounted = false;
-      if (reloadTimer) {
-        clearTimeout(reloadTimer);
-      }
-      activeLoadTimeouts.forEach((timeoutId) => clearTimeout(timeoutId));
-      if (pollInterval) {
-        clearInterval(pollInterval);
-      }
-      window.removeEventListener("focus", refreshThreadsIfVisible);
-      document.removeEventListener("visibilitychange", refreshThreadsIfVisible);
+      disposed = true;
+      loadExchangesRef.current = null;
+      clearTimeout(timeout);
+      clearTimeout(reloadTimer);
+      clearInterval(poll);
+      window.removeEventListener("focus", refreshIfVisible);
+      document.removeEventListener("visibilitychange", refreshIfVisible);
     };
-  }, [supabase, router]);
+  }, [router, supabase]);
 
   useEffect(() => {
     if (!userId) return;
-
     const channel = supabase.channel(`private-chat-notifications-${userId}`).on(
       "postgres_changes",
       { event: "INSERT", schema: "public", table: "notifications", filter: `user_id=eq.${userId}` },
       ({ new: notification }) => {
-        if (notification.type !== "chat" || document.visibilityState !== "visible") return;
-        void loadThreadsRef.current?.();
-        void loadMessagesRef.current?.();
+        if (notification.type === "chat" && document.visibilityState === "visible") refreshChats();
       }
     ).subscribe();
 
     return () => { void supabase.removeChannel(channel); };
-  }, [supabase, userId]);
+  }, [refreshChats, supabase, userId]);
 
-  const activeThreadId = activeThread?.thread_id;
-  // Poll authorized reads as a fallback when notifications are off or disconnected.
-  useEffect(() => {
-    const thread = activeThreadRef.current;
-    if (!thread || !activeThreadId || !userId) return;
-
-    let isMounted = true;
-    let loadVersion = 0;
-    let latestMessageId: string | undefined;
-    let latestReadId: string | undefined;
-
-    const loadMessages = async () => {
-      const version = ++loadVersion;
-      try {
-        let nextMessages: Message[];
-        if (thread.role === "receiver") {
-          const result = await loadReceiverThreadMessages(thread.thread_id);
-          if (!result.success) throw new Error(result.message);
-          nextMessages = result.messages;
-        } else {
-          if (!thread.giver_id) throw new Error("Choose a valid chat first.");
-          const { data, error } = await supabase
-            .from("messages")
-            .select("id, sender_id, content, created_at")
-            .eq("group_id", thread.group_id)
-            .eq("thread_giver_id", thread.giver_id)
-            .eq("thread_receiver_id", thread.receiver_id)
-            .order("created_at", { ascending: false })
-            .limit(CHAT_ACTIVE_THREAD_MESSAGE_LIMIT);
-          if (error) throw new Error();
-          nextMessages = (data || []).reverse().map((message) => ({
-            content: message.content,
-            created_at: message.created_at,
-            from_current_user: message.sender_id === userId,
-            id: message.id,
-          }));
-        }
-
-        if (!isMounted || version !== loadVersion) return;
-        setThreadMessage(null);
-        setMessages(nextMessages);
-        setMessagesLoading(false);
-
-        const nextLatestId = nextMessages.at(-1)?.id;
-        if (nextLatestId !== latestMessageId) {
-          latestMessageId = nextLatestId;
-          setTimeout(scrollToBottom, 50);
-        }
-
-        const incomingId = nextMessages.findLast((message) => !message.from_current_user)?.id;
-        if (incomingId && incomingId !== latestReadId && document.visibilityState === "visible") {
-          latestReadId = incomingId;
-          setThreads((items) => items.map((item) =>
-            item.thread_id === thread.thread_id ? { ...item, unread: 0 } : item
-          ));
-          void markAsRead(thread, userId);
-        }
-      } catch {
-        if (!isMounted || version !== loadVersion) return;
-        setMessages([]);
-        setThreadMessage("We could not load messages. Try reopening this chat.");
-        setMessagesLoading(false);
-      }
-    };
-
-    loadMessagesRef.current = loadMessages;
-    setMessagesLoading(true);
-    void loadMessages();
-
-    const refreshIfVisible = () => {
-      if (document.visibilityState === "visible") void loadMessages();
-    };
-    window.addEventListener("focus", refreshIfVisible);
-    document.addEventListener("visibilitychange", refreshIfVisible);
-    const pollInterval = setInterval(refreshIfVisible, CHAT_ACTIVE_THREAD_FALLBACK_POLL_MS);
-
-    return () => {
-      isMounted = false;
-      loadMessagesRef.current = null;
-      clearInterval(pollInterval);
-      window.removeEventListener("focus", refreshIfVisible);
-      document.removeEventListener("visibilitychange", refreshIfVisible);
-    };
-  }, [activeThreadId, supabase, scrollToBottom, markAsRead, userId]);
-
-  const handleSend = async () => {
-    if (!activeThread || !userId || sending) return;
-    const draft = msgInput;
-    const content = sanitize(draft);
-    if (!content) return;
-
-    const threadId = activeThread.thread_id;
-    setSending(true);
-    try {
-      const result = activeThread.role === "receiver"
-        ? await sendReceiverMessage(threadId, content)
-        : await sendGiverMessage(activeThread.group_id, activeThread.receiver_id, content);
-
-      if (activeThreadRef.current?.thread_id === threadId) {
-        if (result.success) {
-          setMsgInput((value) => value === draft ? "" : value);
-          setThreadMessage(null);
-          void loadMessagesRef.current?.();
-        } else {
-          setThreadMessage(result.message || "We could not send your message. Please try again.");
-        }
-      }
-      if (result.success) void loadThreadsRef.current?.();
-    } catch {
-      if (activeThreadRef.current?.thread_id === threadId) {
-        setThreadMessage("We could not send your message. Please try again.");
-      }
-    } finally {
-      setSending(false);
-    }
-  };
-
-  const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === "Enter" && !e.shiftKey) {
-      e.preventDefault();
-      void handleSend();
-    }
-  };
-
-  const openThread = (t: Thread) => {
-    if (window.innerWidth < 1280) {
-      window.setTimeout(() => {
-        chatPanelRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
-      }, 80);
-    }
-
-    if (t.thread_id === activeThread?.thread_id) return;
-    // Clear the previous thread immediately so we do not flash stale messages
-    // while the next conversation history is loading.
-    setMessages([]);
-    setMsgInput("");
-    setMessagesLoading(true);
-    setThreadMessage(null);
-    setActiveThread(t);
-    setThreads((currentThreads) =>
-      currentThreads.map((thread) =>
-        thread.thread_id === t.thread_id
-          ? { ...thread, unread: 0 }
-          : thread
-      )
-    );
-  };
-
-  const giverThreads = useMemo(() => threads.filter((t) => t.role === "giver"), [threads]);
-  const receiverThreads = useMemo(() => threads.filter((t) => t.role === "receiver"), [threads]);
-  if (loading) return <ChatSkeleton />;
-
-  const selectedThread = activeThread;
-  const hasThreads = threads.length > 0;
-  const selectedIsGiver = selectedThread?.role === "giver";
-  const selectedTiming = getGiftTimingInfo(
-    selectedThread?.group_gift_date || "",
-    selectedThread?.group_time_zone || DEFAULT_EXCHANGE_TIME_ZONE
-  );
-  const selectedThreadKey = selectedThread?.thread_id || "";
-  const chatGridClass = selectedThread
-    ? "grid gap-4 xl:grid-cols-[300px_minmax(0,1fr)_270px]"
-    : "grid gap-4 xl:grid-cols-[300px_minmax(0,1fr)]";
-  const showGiverThreads = threadFilter === "all" || threadFilter === "giver";
-  const showReceiverThreads = threadFilter === "all" || threadFilter === "receiver";
-  const promptChips = selectedIsGiver
-    ? ["Ask about size", "Ask about color", "Check delivery timing"]
-    : ["Share a preference", "Send thanks", "Clarify timing"];
-  const filterOptions: { label: string; value: ThreadFilter }[] = [
-    { label: "All", value: "all" },
-    { label: "My giftees", value: "giver" },
-    { label: "My Santa", value: "receiver" },
-  ];
-
-  const applyPromptChip = (chip: string) => {
-    setMsgInput((current) => {
-      const next = current.trim() ? `${current.trim()} ${chip.toLowerCase()}: ` : `${chip}: `;
-      return next.slice(0, 500);
-    });
-  };
-
-  const renderThreadButton = (thread: Thread) => {
-    const threadKey = thread.thread_id;
-    const isActive = threadKey === selectedThreadKey;
-    const isGiverThread = thread.role === "giver";
-    const accent = isGiverThread ? CHAT_GREEN : CHAT_RED;
-    const threadTitle = isGiverThread ? `To ${thread.other_name}` : "From your Secret Santa";
-    const threadLabel = isGiverThread ? "You are their Santa" : "Your Santa";
-
-    return (
-      <button
-        key={threadKey}
-        type="button"
-        onClick={() => openThread(thread)}
-        className="group w-full rounded-2xl p-3 text-left transition duration-200 hover:-translate-y-0.5 focus-visible:outline-2 focus-visible:outline-offset-2"
-        style={{
-          background: isActive
-            ? "linear-gradient(135deg,rgba(72,102,78,.12),rgba(255,255,255,.94))"
-            : "rgba(255,255,255,.78)",
-          border: isActive ? `1px solid ${accent}` : CHAT_BORDER_SOFT,
-          boxShadow: isActive ? "0 12px 28px rgba(72,102,78,.10)" : "0 8px 18px rgba(46,52,50,.035)",
-          color: CHAT_HEADER_TEXT,
-          outlineColor: accent,
-        }}
-      >
-        <div className="flex items-center gap-3">
-          <span
-            className="grid h-10 w-10 shrink-0 place-items-center rounded-full text-sm font-black"
-            style={{
-              background: isGiverThread ? "rgba(252,206,114,.26)" : "rgba(164,60,63,.10)",
-              color: accent,
-            }}
-          >
-            {isGiverThread ? thread.other_name.slice(0, 1).toUpperCase() : "?"}
-          </span>
-          <span className="min-w-0 flex-1">
-            <span className="flex items-center justify-between gap-2">
-              <span className="truncate text-sm font-black">{threadTitle}</span>
-              {thread.unread > 0 && (
-                <span className="grid h-5 min-w-5 place-items-center rounded-full px-1.5 text-[10px] font-black text-white" style={{ background: CHAT_RED }}>
-                  {thread.unread}
-                </span>
-              )}
-            </span>
-            <span className="mt-0.5 block truncate text-[11px] font-extrabold" style={{ color: CHAT_TEXT_SUBTLE }}>
-              Group: {thread.group_name}
-            </span>
-            <span className="mt-1 block truncate text-[11px] font-bold" style={{ color: CHAT_TEXT_MUTED }}>
-              {thread.last_message}
-            </span>
-            <span className="mt-2 inline-flex rounded-full px-2 py-1 text-[10px] font-black" style={{ background: `${accent}18`, color: accent }}>
-              {threadLabel}
-            </span>
-          </span>
-        </div>
-      </button>
-    );
-  };
+  const exchange = exchanges.find((item) => item.id === selectedId);
+  const onRead = useCallback((threadId: string) => {
+    setExchanges((items) => items.map((item) => {
+      if (item.giver?.id === threadId) return { ...item, giver: { ...item.giver, unread: 0 } };
+      if (item.receiver?.id === threadId) return { ...item, receiver: { ...item.receiver, unread: 0 } };
+      return item;
+    }));
+    loadExchangesRef.current?.();
+  }, []);
 
   return (
-    <main
-      data-testid="secret-santa-chat-page"
-      className="relative overflow-x-hidden rounded-none"
-      style={{
-        color: CHAT_HEADER_TEXT,
-        fontFamily: "'Be Vietnam Pro','Nunito',sans-serif",
-      }}
-    >
-      <style>{`
-        .chat-scrollbar::-webkit-scrollbar { width: 8px; }
-        .chat-scrollbar::-webkit-scrollbar-track { background: rgba(72,102,78,.08); border-radius: 999px; }
-        .chat-scrollbar::-webkit-scrollbar-thumb { background: rgba(72,102,78,.35); border-radius: 999px; }
-      `}</style>
-
-      <div className="relative mx-auto flex w-full max-w-376 flex-col gap-4">
-        <section
-          className="relative overflow-hidden rounded-4xl p-5 sm:p-6"
-          style={{
-            background: CHAT_SURFACE_STRONG,
-            border: CHAT_BORDER,
-            boxShadow: "0 24px 70px rgba(72,102,78,.10)",
-          }}
-        >
-          <FestiveTrim tone="neutral" compact />
-          <div
-            className="pointer-events-none absolute inset-0 opacity-70"
-            style={{ background: CHAT_PAGE_BACKGROUND }}
-            aria-hidden="true"
-          />
-          <div className="relative flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-            <div className="max-w-2xl">
-              <p className="text-[11px] font-black uppercase tracking-[0.18em]" style={{ color: "#7285a1" }}>
-                Private gift chats
-              </p>
-              <h2 className="mt-2 text-[2.3rem] font-black leading-none tracking-normal sm:text-[3.1rem]" style={{ color: CHAT_GREEN, fontFamily: "'Fredoka','Nunito',sans-serif" }}>
-                Secret Messages
-              </h2>
-              <p className="mt-2 text-sm font-extrabold" style={{ color: "#526174" }}>
-                Each thread shows the group and whether you are writing to your giftee or your Secret Santa.
-              </p>
-            </div>
+    <div className={styles.page} data-testid="secret-santa-chat-page" role="main">
+      <header className={styles.toolbar}>
+        <h1>Messages</h1>
+        {exchanges.length > 0 && (
+          <div className={styles.exchanges} role="group" aria-label="Gift exchanges">
+            {exchanges.map((item) => (
+              <button
+                type="button"
+                key={item.id}
+                aria-pressed={item.id === exchange?.id}
+                onClick={() => setSelectedId(item.id)}
+              >
+                {item.name || "Gift exchange"}
+                {item.id !== exchange?.id && Boolean(item.giver?.unread || item.receiver?.unread) && (
+                  <>
+                    <span className={styles.exchangeUnread} aria-hidden="true" />
+                    <span className="sr-only">New messages</span>
+                  </>
+                )}
+              </button>
+            ))}
           </div>
-        </section>
-
-        {threadListMessage && (
-          <section className="rounded-3xl px-5 py-4 text-sm font-bold" style={{ background: "rgba(164,60,63,.10)", border: "1px solid rgba(164,60,63,.18)", color: CHAT_RED }}>
-            {threadListMessage}
-          </section>
         )}
-
-        <section className={chatGridClass}>
-          <aside className="rounded-4xl p-4" style={{ background: CHAT_PANEL_BACKGROUND, border: CHAT_BORDER, boxShadow: "0 18px 44px rgba(46,52,50,.06)" }}>
-            <p className="text-[11px] font-black uppercase tracking-[0.18em]" style={{ color: "#7285a1" }}>
-              Mystery mailbox
-            </p>
-            <div className="mt-2 flex items-start gap-3">
-              <EnvelopeLineIcon className="mt-1 h-6 w-6 shrink-0" />
-              <div>
-                <h2 className="text-xl font-black">Gift chats</h2>
-                <p className="mt-1 text-xs font-bold leading-5" style={{ color: CHAT_TEXT_MUTED }}>
-                  Pick a thread and keep the group context visible while you chat.
-                </p>
-              </div>
-            </div>
-
-            {hasThreads && (
-              <div className="mt-4 flex flex-wrap gap-2">
-                {filterOptions.map((option) => {
-                  const active = threadFilter === option.value;
-                  return (
-                    <button
-                      key={option.value}
-                      type="button"
-                      aria-pressed={active}
-                      onClick={() => setThreadFilter(option.value)}
-                      className="inline-flex min-h-11 items-center rounded-full px-4 text-[11px] font-black transition hover:-translate-y-0.5 focus-visible:outline-2 focus-visible:outline-offset-2"
-                      style={{
-                        background: active ? CHAT_GREEN : "rgba(252,206,114,.20)",
-                        border: active ? "1px solid rgba(72,102,78,.22)" : "1px solid rgba(123,89,2,.12)",
-                        color: active ? "#fffefa" : "#7b5902",
-                        outlineColor: CHAT_GREEN,
-                      }}
-                    >
-                      {option.label}
-                    </button>
-                  );
-                })}
-              </div>
-            )}
-
-            <div className="chat-scrollbar mt-5 max-h-145 space-y-5 overflow-y-auto pr-1">
-              {!hasThreads ? (
-                <p
-                  className="rounded-3xl px-4 py-4 text-sm font-bold leading-6"
-                  style={{
-                    background: CHAT_SURFACE_MUTED,
-                    border: CHAT_BORDER_SOFT,
-                    color: CHAT_TEXT_MUTED,
-                  }}
-                >
-                  Private chats appear after names are drawn. You will see giftee and Santa
-                  threads here.
-                </p>
-              ) : (
-                <>
-                  {showGiverThreads && (
-                    <section>
-                      <div className="mb-2 flex items-center justify-between">
-                        <p className="text-[11px] font-black uppercase tracking-[0.18em]" style={{ color: CHAT_GREEN }}>
-                          My giftees
-                        </p>
-                        <span className="text-xs font-black">{giverThreads.length}</span>
-                      </div>
-                      <div className="space-y-2">
-                        {giverThreads.length > 0 ? (
-                          giverThreads.map(renderThreadButton)
-                        ) : (
-                          <p className="rounded-2xl px-3 py-3 text-xs font-bold leading-5" style={{ background: CHAT_SURFACE_MUTED, color: CHAT_TEXT_MUTED }}>
-                            Giftee chats appear after names are drawn.
-                          </p>
-                        )}
-                      </div>
-                    </section>
-                  )}
-
-                  {showReceiverThreads && (
-                    <section>
-                      <div className="mb-2 flex items-center justify-between">
-                        <p className="text-[11px] font-black uppercase tracking-[0.18em]" style={{ color: CHAT_RED }}>
-                          My Santa
-                        </p>
-                        <span className="text-xs font-black">{receiverThreads.length}</span>
-                      </div>
-                      <div className="space-y-2">
-                        {receiverThreads.length > 0 ? (
-                          receiverThreads.map(renderThreadButton)
-                        ) : (
-                          <p className="rounded-2xl px-3 py-3 text-xs font-bold leading-5" style={{ background: CHAT_SURFACE_MUTED, color: CHAT_TEXT_MUTED }}>
-                            Your Santa chat appears after names are drawn.
-                          </p>
-                        )}
-                      </div>
-                    </section>
-                  )}
-                </>
-              )}
-            </div>
-          </aside>
-
-          <section ref={chatPanelRef} className="flex min-h-162.5 flex-col overflow-hidden rounded-4xl" style={{ background: CHAT_PANEL_BACKGROUND, border: CHAT_BORDER, boxShadow: "0 18px 44px rgba(46,52,50,.06)" }}>
-              <div className="flex flex-col gap-4 border-b px-5 py-5 sm:flex-row sm:items-start sm:justify-between" style={{ borderColor: "rgba(72,102,78,.12)" }}>
-                <div className="flex min-w-0 gap-4">
-                  <div className="grid h-14 w-14 shrink-0 place-items-center rounded-full" style={{ background: "rgba(252,206,114,.28)", color: CHAT_RED }}>
-                    <EnvelopeLineIcon className="h-7 w-7" />
-                  </div>
-                  <div className="min-w-0">
-                    <h2 className="truncate text-2xl font-black" style={{ color: CHAT_GREEN, fontFamily: "'Fredoka','Nunito',sans-serif" }}>
-                      {selectedThread
-                        ? selectedIsGiver
-                          ? `To ${selectedThread.other_name}`
-                          : "From your Secret Santa"
-                        : "Choose a chat"}
-                    </h2>
-                    {selectedThread && (
-                      <p className="mt-1 text-xs font-black" style={{ color: CHAT_TEXT_MUTED }}>
-                        Group: {selectedThread.group_name}
-                      </p>
-                    )}
-                    {selectedThread && (
-                      <div className="mt-3 flex flex-wrap gap-2">
-                        <span className="rounded-full px-3 py-1.5 text-[11px] font-black text-white" style={{ background: selectedIsGiver ? CHAT_GREEN : CHAT_RED }}>
-                          {selectedIsGiver ? "You are their Secret Santa" : "Replying to your Secret Santa"}
-                        </span>
-                        <span className="rounded-full px-3 py-1.5 text-[11px] font-black" style={{ background: "rgba(72,102,78,.10)", color: CHAT_GREEN }}>
-                          Identity protected
-                        </span>
-                        <span className="rounded-full px-3 py-1.5 text-[11px] font-black" style={{ background: "rgba(164,60,63,.10)", color: CHAT_RED }}>
-                          {selectedTiming.label}
-                        </span>
-                      </div>
-                    )}
-                  </div>
-                </div>
-              </div>
-
-              <div ref={messagesScrollRef} className="chat-scrollbar flex min-h-105 flex-1 flex-col gap-3 overflow-y-auto p-4 sm:p-5" style={{ background: "linear-gradient(180deg,rgba(249,250,248,.78),rgba(255,255,255,.94))" }}>
-                {threadMessage && (
-                  <div className="rounded-2xl px-4 py-3 text-sm font-bold" style={{ background: "rgba(164,60,63,.10)", border: "1px solid rgba(164,60,63,.18)", color: CHAT_RED }}>
-                    {threadMessage}
-                  </div>
-                )}
-
-                {messagesLoading ? (
-                  <div className="m-auto w-full max-w-md space-y-3" aria-live="polite">
-                    <p className="text-center text-sm font-black" style={{ color: CHAT_TEXT_MUTED }}>
-                      Loading messages for {selectedThread?.group_name || "this thread"}...
-                    </p>
-                    <div className="h-16 rounded-3xl" style={{ background: "rgba(72,102,78,.08)" }} />
-                    <div className="ml-auto h-20 w-4/5 rounded-3xl" style={{ background: "rgba(72,102,78,.14)" }} />
-                    <div className="h-16 w-3/4 rounded-3xl" style={{ background: "rgba(72,102,78,.08)" }} />
-                  </div>
-                ) : !selectedThread ? (
-                  <div className="m-auto max-w-sm text-center">
-                    <ChatLineIcon className="mx-auto h-10 w-10" />
-                    <p className="mt-4 text-xl font-black">
-                      {hasThreads ? "Choose a gift chat" : "No private chats yet"}
-                    </p>
-                    <p className="mt-2 text-sm font-semibold leading-6" style={{ color: CHAT_TEXT_MUTED }}>
-                      {hasThreads
-                        ? "Pick a giftee chat or Santa thread to start messaging."
-                        : "Private chats appear after names are drawn."}
-                    </p>
-                  </div>
-                ) : messages.length === 0 ? (
-                  <div className="m-auto max-w-sm text-center">
-                    <EnvelopeLineIcon className="mx-auto h-12 w-12" />
-                    <p className="mt-4 text-xl font-black">No messages yet</p>
-                    <p className="mt-2 text-sm font-semibold leading-6" style={{ color: CHAT_TEXT_MUTED }}>
-                      {selectedIsGiver
-                        ? "Ask about sizes, colors, delivery, or hints while staying anonymous."
-                        : "Share preferences, answer questions, or send a thank-you note."}
-                    </p>
-                  </div>
-                ) : (
-                  messages.map((msg) => {
-                    const isMine = msg.from_current_user;
-                    const messageAuthor = isMine
-                      ? selectedIsGiver
-                        ? "You as their Santa"
-                        : "You"
-                      : selectedIsGiver
-                        ? selectedThread.other_name
-                        : "Your Secret Santa";
-
-                    return (
-                      <div
-                        key={msg.id}
-                        className={`flex max-w-[78%] flex-col rounded-3xl px-4 py-3 text-[14px] font-semibold leading-6 shadow-sm ${
-                          isMine ? "self-end rounded-br-md" : "self-start rounded-bl-md"
-                        }`}
-                        style={{
-                          background: isMine
-                            ? `linear-gradient(135deg,${CHAT_GREEN},#315741)`
-                            : "rgba(255,255,255,.95)",
-                          border: isMine ? "1px solid rgba(72,102,78,.18)" : CHAT_BORDER_SOFT,
-                          color: isMine ? "#fffefa" : CHAT_HEADER_TEXT,
-                        }}
-                      >
-                        <span className="mb-1 text-[10px] font-black uppercase tracking-[0.14em]" style={{ color: isMine ? "rgba(255,255,255,.78)" : CHAT_TEXT_SUBTLE }}>
-                          {messageAuthor}
-                        </span>
-                        <span style={{ wordBreak: "break-word" }}>{msg.content}</span>
-                        <span className="mt-2 text-[11px] font-bold" style={{ color: isMine ? "rgba(255,255,255,.65)" : CHAT_TEXT_MUTED }}>
-                          {new Date(msg.created_at).toLocaleTimeString([], {
-                            hour: "2-digit",
-                            minute: "2-digit",
-                          })}
-                        </span>
-                      </div>
-                    );
-                  })
-                )}
-              </div>
-
-              {selectedThread ? (
-                <div className="border-t p-4 sm:p-5" style={{ background: "rgba(255,255,255,.82)", borderColor: "rgba(72,102,78,.12)" }}>
-                  <div className="mb-3 flex flex-wrap gap-2">
-                    {promptChips.map((chip) => (
-                      <button
-                        key={chip}
-                        type="button"
-                        onClick={() => applyPromptChip(chip)}
-                        className="inline-flex min-h-11 items-center rounded-full px-4 text-[11px] font-black transition hover:-translate-y-0.5 focus-visible:outline-2 focus-visible:outline-offset-2"
-                        style={{ background: "rgba(72,102,78,.08)", color: CHAT_GREEN, border: "1px solid rgba(72,102,78,.10)", outlineColor: CHAT_GREEN }}
-                      >
-                        {chip}
-                      </button>
-                    ))}
-                  </div>
-                  <div className="flex flex-col gap-3 sm:flex-row">
-                    <input
-                      value={msgInput}
-                      onChange={(e) => setMsgInput(e.target.value)}
-                      onKeyDown={handleKeyDown}
-                      aria-label={`Message composer for ${selectedThread.group_name}`}
-                      placeholder={
-                        selectedIsGiver
-                          ? `Ask ${selectedThread.other_name} about their gift...`
-                          : `Reply to your Santa in ${selectedThread.group_name}...`
-                      }
-                      maxLength={500}
-                      className="min-h-12 w-full rounded-full px-5 text-[15px] font-semibold outline-none focus-visible:outline-2 focus-visible:outline-offset-2 sm:flex-1"
-                      style={{
-                        background: "#f9faf8",
-                        border: CHAT_BORDER_SOFT,
-                        color: CHAT_HEADER_TEXT,
-                        fontFamily: "inherit",
-                        outlineColor: CHAT_GREEN,
-                      }}
-                    />
-                    <button
-                      type="button"
-                      onClick={handleSend}
-                      disabled={sending || !msgInput.trim()}
-                      className="gift-button gift-button-primary gift-button-wide w-full text-sm sm:w-auto"
-                    >
-                      {sending ? "Sending..." : "Send"}
-                      <ArrowRightIcon />
-                    </button>
-                  </div>
-                </div>
-              ) : (
-                <div className="border-t px-5 py-4 text-sm font-bold" style={{ background: "rgba(255,255,255,.82)", borderColor: "rgba(72,102,78,.12)", color: CHAT_TEXT_MUTED }}>
-                  Select a private chat when one appears to start messaging.
-                </div>
-              )}
-          </section>
-
-          {selectedThread && (
-            <aside className="rounded-4xl p-4 xl:sticky xl:top-24 xl:self-start" style={{ background: CHAT_PANEL_BACKGROUND, border: CHAT_BORDER, boxShadow: "0 18px 44px rgba(46,52,50,.06)" }}>
-              <p className="text-[11px] font-black uppercase tracking-[0.18em]" style={{ color: "#7285a1" }}>
-                Gift timing
-              </p>
-              <div className="mt-2 flex items-start gap-3">
-                <CalendarLineIcon className="mt-1 h-6 w-6 shrink-0" />
-                <div>
-                  <h2 className="text-xl font-black" style={{ color: CHAT_GREEN }}>
-                    Chat timing
-                  </h2>
-                </div>
-              </div>
-
-              <div className="mt-5 rounded-3xl p-4" style={{ background: CHAT_SURFACE_MUTED, border: CHAT_BORDER_SOFT }}>
-                <p className="text-xs font-black uppercase tracking-[0.16em]" style={{ color: selectedTiming.phase === "wrap-up" ? CHAT_RED : CHAT_GREEN }}>
-                  {selectedTiming.chip}
-                </p>
-                <p className="mt-2 text-sm font-black">{selectedTiming.label}</p>
-                <p className="mt-1 text-xs font-bold leading-5" style={{ color: CHAT_TEXT_MUTED }}>
-                  {selectedTiming.detail}
-                </p>
-                <p className="mt-1 text-xs font-bold leading-5" style={{ color: CHAT_TEXT_MUTED }}>
-                  Gift date: {formatGroupDate(selectedThread?.group_gift_date || "")}
-                </p>
-              </div>
-            </aside>
-          )}
-        </section>
-      </div>
-    </main>
+        {exchange && <p className={styles.giftDay}>{getGiftDayLabel(exchange)}</p>}
+      </header>
+      {loadError && (
+        <div className={styles.notice} role="status">
+          {loadError}
+          <button type="button" onClick={refreshChats}>Try again</button>
+        </div>
+      )}
+      {loading ? (
+        <div className={styles.conversations} aria-busy="true" data-testid="chat-loading-shell">
+          <span className="sr-only" role="status">Loading chats...</span>
+          <div className={styles.loading} />
+          <div className={styles.loading} />
+        </div>
+      ) : exchange && userId ? (
+        <div className={styles.conversations} key={`${userId}:${exchange.id}`}>
+          <ChatConversation
+            key={exchange.giver?.id ?? "no-giftee"}
+            groupId={exchange.id}
+            role="giver"
+            thread={exchange.giver}
+            userId={userId}
+            supabase={supabase}
+            refreshVersion={refreshVersion}
+            onRead={onRead}
+          />
+          <ChatConversation
+            key={exchange.receiver?.id ?? "no-santa"}
+            groupId={exchange.id}
+            role="receiver"
+            thread={exchange.receiver}
+            userId={userId}
+            supabase={supabase}
+            refreshVersion={refreshVersion}
+            onRead={onRead}
+          />
+        </div>
+      ) : !loadError && (
+        <p className={styles.empty}>Private chats appear after names are drawn.</p>
+      )}
+    </div>
   );
 }
 

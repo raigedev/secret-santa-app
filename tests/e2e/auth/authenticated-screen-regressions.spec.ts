@@ -1063,7 +1063,7 @@ test.describe("authenticated screen regressions", () => {
     await loginWithTestCredentials(page, credentials!);
     await page.goto("/secret-santa-chat");
     await expect(page.getByTestId("secret-santa-chat-page")).toBeVisible();
-    await expect(page.getByRole("heading", { name: /^secret messages$/i }).first()).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Messages", exact: true })).toBeVisible();
     await expect
       .poll(() => page.evaluate(() => Math.round(window.scrollY)))
       .toBeLessThanOrEqual(24);
@@ -1072,11 +1072,11 @@ test.describe("authenticated screen regressions", () => {
   test("secret messages keeps the no-thread state quiet", async ({ page }) => {
     await page.setViewportSize({ width: 1440, height: 900 });
     await loginWithTestCredentials(page, credentials!);
-    await page.route("**/rest/v1/group_members?**", async (route) => {
+    await page.route("**/rest/v1/groups?**", async (route) => {
       const requestUrl = new URL(route.request().url());
-      const selectColumns = requestUrl.searchParams.get("select")?.replace(/\s/g, "");
       const isMembershipListRequest =
-        selectColumns === "group_id" && requestUrl.searchParams.get("status") === "eq.accepted";
+        requestUrl.searchParams.get("select")?.includes("group_members!inner(user_id)") &&
+        requestUrl.searchParams.get("group_members.status") === "eq.accepted";
 
       if (!isMembershipListRequest) {
         await route.continue();
@@ -1095,58 +1095,16 @@ test.describe("authenticated screen regressions", () => {
     await expect(page.getByTestId("secret-santa-chat-page")).toBeVisible();
     await expect(page.getByText(/private chats appear after names are drawn/i).first()).toBeVisible();
 
-    const snapshotKey = await page.evaluate(() => {
-      for (const key of Object.keys(sessionStorage)) {
-        if (key.startsWith("ss_chat_page_snapshot_v2:")) {
-          return key;
-        }
-      }
-
-      return null;
-    });
-
-    if (!snapshotKey) {
-      throw new Error("Chat page snapshot key was not found in session storage.");
-    }
-
-    await page.evaluate((storageKey) => {
-      const userId = storageKey.replace("ss_chat_page_snapshot_v2:", "");
-
-      sessionStorage.setItem(
-        storageKey,
-        JSON.stringify({
-          createdAt: Date.now(),
-          snapshotVersion: 2,
-          threads: [
-            {
-              giver_id: "stale-giver",
-              group_gift_date: "",
-              group_time_zone: "UTC",
-              group_id: "stale-group",
-              group_name: "Stale Exchange",
-              last_time: new Date().toISOString(),
-              other_name: "Stale recipient",
-              receiver_id: userId,
-              role: "receiver",
-              thread_id: "stale-thread",
-              unread: 1,
-            },
-          ],
-          userId,
-        })
-      );
-    }, snapshotKey);
+    const snapshotKey = "ss_chat_page_snapshot_v2:stale";
+    await page.evaluate((key) => sessionStorage.setItem(key, '{"threads":[{"group_name":"Stale Exchange"}]}'), snapshotKey);
 
     await page.reload();
     await expect(page.getByTestId("secret-santa-chat-page")).toBeVisible();
     await expect(page.getByText(/private chats appear after names are drawn/i).first()).toBeVisible();
-    await expect(page.getByText(/replying to your secret santa/i)).toHaveCount(0);
-    await expect(page.getByText(/identity protected/i)).toHaveCount(0);
-    await expect(page.getByText(/gift day not set/i)).toHaveCount(0);
-    await expect(page.getByRole("heading", { name: /^chat timing$/i })).toHaveCount(0);
-    await expect(page.getByRole("button", { name: /^all$/i })).toHaveCount(0);
-    await expect(page.getByText(/giftee chats appear after names are drawn/i)).toHaveCount(0);
-    await expect(page.getByText(/messages from your santa appear here/i)).toHaveCount(0);
+    await expect(page.getByText("Stale Exchange")).toHaveCount(0);
+    await expect(page.getByRole("group", { name: "Gift exchanges" })).toHaveCount(0);
+    await expect(page.getByRole("button", { name: "Send", exact: true })).toHaveCount(0);
+    expect(await page.evaluate((key) => sessionStorage.getItem(key), snapshotKey)).toBeNull();
   });
 
   test("dashboard keeps general unread notifications out of private message status", async ({ page }) => {
