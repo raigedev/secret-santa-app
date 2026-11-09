@@ -106,6 +106,11 @@ unrelated drift. Local data does not automatically sync to the cloud database.
 
 ## Invite Email Template
 
+Registered recipients receive a regular email from the app's existing welcome
+email SMTP configuration. Its **Open My Groups** link requires normal sign-in
+and does not grant access on its own. New recipients still receive the
+Supabase Auth email below. Test both paths with local inboxes.
+
 Deploy `/invite/confirm` to Vercel first, then update only the hosted **Invite
 user** email template from `supabase/templates/invite.html` in Supabase Auth.
 Keep the site's URL set to the production app origin. Verify with a new invite

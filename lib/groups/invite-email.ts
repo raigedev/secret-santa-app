@@ -1,6 +1,8 @@
 import "server-only";
 
+import { createSmtpTransport, readSmtpConfig } from "@/lib/email/smtp";
 import { resolveTrustedAppOrigin } from "@/lib/security/app-origin";
+import { enforceRateLimit } from "@/lib/security/rate-limit";
 import { normalizeSafePostAuthPath } from "@/lib/security/web";
 import { supabaseAdmin } from "@/lib/supabase/admin";
 
@@ -27,11 +29,17 @@ export async function sendGroupInviteEmail({
   email,
   groupId,
   groupName,
+  authRecipient,
 }: {
   email: string;
   groupId: string;
   groupName: string;
-}) {
+  authRecipient: InviteAuthRecipient | null;
+}): Promise<{ error: { message: string } | null }> {
+  if (authRecipient && !authRecipient.canReceiveInviteEmail) {
+    return sendRegisteredGroupInviteEmail(email, authRecipient.userId);
+  }
+
   return supabaseAdmin.auth.admin.inviteUserByEmail(email, {
     redirectTo: getGroupInviteRedirectUrl("/dashboard"),
     data: {
@@ -40,6 +48,43 @@ export async function sendGroupInviteEmail({
       source: "app",
     },
   });
+}
+
+async function sendRegisteredGroupInviteEmail(email: string, recipientId: string) {
+  const { config } = readSmtpConfig();
+  if (!config) {
+    return { error: { message: "Invite email SMTP configuration is incomplete." } };
+  }
+
+  const rateLimit = await enforceRateLimit({
+    action: "group.invite_email_recipient",
+    maxAttempts: 10,
+    resourceType: "email",
+    subject: recipientId,
+    windowSeconds: 3600,
+  });
+
+  if (!rateLimit.allowed) {
+    return { error: { message: "Invitation email delivery is temporarily limited." } };
+  }
+
+  const groupsUrl = new URL("/groups", resolveTrustedAppOrigin(null)).toString();
+  const introduction = "You have a pending Secret Santa group invitation.";
+  const instructions = "Open My Groups and sign in with this email address to accept or decline.";
+  const transport = createSmtpTransport(config);
+
+  try {
+    await transport.sendMail({
+      from: config.from,
+      to: { name: "", address: email },
+      subject: "You're invited to a Secret Santa group",
+      text: `${introduction}\n\n${instructions}\n${groupsUrl}`,
+      html: `<p>${introduction}</p><p>${instructions}</p><p><a href="${groupsUrl}">Open My Groups</a></p>`,
+    });
+    return { error: null };
+  } catch {
+    return { error: { message: "The mail server could not send the group invitation." } };
+  }
 }
 
 function normalizeInviteLookupEmails(emails: string[]): string[] {

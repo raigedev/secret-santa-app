@@ -19,6 +19,7 @@ import {
 import {
   findInviteAuthRecipientByEmail,
   sendGroupInviteEmail,
+  type InviteAuthRecipient,
 } from "@/lib/groups/invite-email";
 import { buildInviteLinkExpiresAt } from "@/lib/groups/invite-links.mjs";
 import {
@@ -99,31 +100,29 @@ async function sendInviteEmail(
   actorUserId: string,
   groupId: string,
   groupName: string,
+  authRecipient: InviteAuthRecipient | null,
   eventType: string
-): Promise<{ message?: string; success: boolean }> {
+): Promise<boolean> {
   const { error } = await sendGroupInviteEmail({
+    authRecipient,
     email,
     groupId,
     groupName,
   });
 
   if (!error) {
-    return { success: true };
+    return true;
   }
 
   await recordServerFailure({
     actorUserId,
-    details: { invitedEmail: email },
     errorMessage: error.message,
     eventType,
     resourceId: groupId,
     resourceType: "group",
   });
 
-  return {
-    success: false,
-    message: "Failed to send the invite email. Please try again.",
-  };
+  return false;
 }
 
 async function notifyInvitedUser(options: {
@@ -415,20 +414,6 @@ export async function inviteUser(
     return { message: "Failed to check the current group capacity." };
   }
 
-  if (!authRecipient || authRecipient.canReceiveInviteEmail) {
-    const inviteResult = await sendInviteEmail(
-      cleanEmail,
-      user.id,
-      groupId,
-      group.name,
-      "group.invite_user.send_email"
-    );
-
-    if (!inviteResult.success) {
-      return { message: inviteResult.message || "Failed to send the invite email." };
-    }
-  }
-
   const { error: insertError } = await supabaseAdmin.from("group_members").insert([
     {
       group_id: groupId,
@@ -459,9 +444,18 @@ export async function inviteUser(
     groupName: group.name,
   });
 
+  const emailSent = await sendInviteEmail(
+    cleanEmail,
+    user.id,
+    groupId,
+    group.name,
+    authRecipient,
+    "group.invite_user.send_email"
+  );
+
   await recordAuditEvent({
     actorUserId: user.id,
-    details: { invitedEmail: cleanEmail },
+    details: { emailSent },
     eventType: "group.invite_user",
     outcome: "success",
     resourceId: groupId,
@@ -469,7 +463,9 @@ export async function inviteUser(
   });
 
   return {
-    message: "Invite queued. They can accept it from the app or their email if delivery is needed.",
+    message: emailSent
+      ? "Invite queued. They can respond in My Groups."
+      : "Invitation saved, but the email could not be sent. Use Resend in the member list.",
   };
 }
 
@@ -684,27 +680,11 @@ export async function resendInvite(
     return { success: false, message: "Failed to prepare the invite. Please try again." };
   }
 
-  const existingUserId = authRecipient?.userId || membership.user_id || null;
-  const shouldSendEmail = authRecipient
-    ? authRecipient.canReceiveInviteEmail
-    : !membership.user_id;
-
-  if (shouldSendEmail) {
-    const inviteResult = await sendInviteEmail(
-      normalizedEmail,
-      user.id,
-      groupId,
-      group.name,
-      "group.resend_invite.send_email"
-    );
-
-    if (!inviteResult.success) {
-      return {
-        success: false,
-        message: inviteResult.message || "Failed to resend invite.",
-      };
-    }
+  if (membership.user_id && membership.user_id !== authRecipient?.userId) {
+    return { success: false, message: "Invite email is unavailable." };
   }
+
+  const existingUserId = authRecipient?.userId || null;
 
   const { data: updatedRows, error } = await supabaseAdmin
     .from("group_members")
@@ -736,10 +716,23 @@ export async function resendInvite(
     groupName: group.name,
   });
 
+  const emailSent = await sendInviteEmail(
+    normalizedEmail,
+    user.id,
+    groupId,
+    group.name,
+    authRecipient,
+    "group.resend_invite.send_email"
+  );
+
+  if (!emailSent) {
+    return { success: false, message: "The email could not be sent. The invitation is still pending." };
+  }
+
   await recordAuditEvent({
     actorUserId: user.id,
     details: {
-      delivery: shouldSendEmail ? "email" : "dashboard",
+      delivery: "email",
       previousStatus: membership.status,
     },
     eventType: "group.resend_invite",
