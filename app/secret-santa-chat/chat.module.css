@@ -178,6 +178,40 @@
   align-self: flex-end;
 }
 
+.message[data-outgoing="false"] {
+  display: grid;
+  grid-template-columns: 28px minmax(0, 1fr);
+  column-gap: 8px;
+}
+
+.messageBody {
+  grid-column: 2;
+  grid-row: 1;
+  min-width: 0;
+}
+
+.avatar {
+  display: grid;
+  grid-column: 1;
+  grid-row: 1;
+  align-self: end;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  overflow: hidden;
+  border-radius: 50%;
+  background: var(--chat-tint);
+  color: var(--chat-accent);
+  font-size: .75rem;
+  font-weight: 750;
+}
+
+.avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
 .sender {
   margin: 0 2px 4px;
   color: var(--chat-accent);
