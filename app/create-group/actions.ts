@@ -107,9 +107,8 @@ async function sendInviteEmails(
   actorUserId: string,
   groupId: string,
   groupName: string
-): Promise<{ failedCount: number; notifiedInviteCount: number; sentInviteCount: number }> {
+): Promise<{ failedCount: number; sentInviteCount: number }> {
   let failedCount = 0;
-  let notifiedInviteCount = 0;
   let sentInviteCount = 0;
 
   let authRecipients: Awaited<ReturnType<typeof findInviteAuthRecipientsByEmail>>;
@@ -129,7 +128,6 @@ async function sendInviteEmails(
 
     return {
       failedCount: emails.length,
-      notifiedInviteCount,
       sentInviteCount,
     };
   }
@@ -150,11 +148,10 @@ async function sendInviteEmails(
         },
         preferenceKey: "notify_invites",
       });
-      notifiedInviteCount += 1;
-      continue;
     }
 
     const { error } = await sendGroupInviteEmail({
+      authRecipient,
       email,
       groupId,
       groupName,
@@ -163,7 +160,6 @@ async function sendInviteEmails(
     if (error) {
       await recordServerFailure({
         actorUserId,
-        details: { invitedEmail: email },
         errorMessage: error.message,
         eventType: "group.invite_email",
         resourceId: groupId,
@@ -176,28 +172,22 @@ async function sendInviteEmails(
     sentInviteCount += 1;
   }
 
-  return { failedCount, notifiedInviteCount, sentInviteCount };
+  return { failedCount, sentInviteCount };
 }
 
 function getInviteDeliveryMessage(summary: {
+  failedCount: number;
   inviteCount: number;
 }): string {
   if (summary.inviteCount === 0) {
     return "Group created!";
   }
 
-  return `Group created. ${summary.inviteCount} invite(s) queued.`;
-}
+  if (summary.failedCount > 0) {
+    return "Group created, but some invite emails could not be sent. Use Resend in the member list.";
+  }
 
-function summarizeInviteDelivery(summary: {
-  failedCount: number;
-  notifiedInviteCount: number;
-  sentInviteCount: number;
-}) {
-  return {
-    failedCount: summary.failedCount,
-    preparedCount: summary.notifiedInviteCount + summary.sentInviteCount,
-  };
+  return `Group created. ${summary.inviteCount} invite(s) queued.`;
 }
 
 export async function createGroupWithInvitesFromFormData(
@@ -462,7 +452,6 @@ async function createGroupWithInvitesInternal(
     newGroup.id,
     newGroup.name
   );
-  const inviteDeliverySummary = summarizeInviteDelivery(inviteDelivery);
 
   await recordAuditEvent({
     actorUserId: user.id,
@@ -471,7 +460,7 @@ async function createGroupWithInvitesInternal(
       groupId: newGroup.id,
       hasGroupImage: Boolean(uploadedImagePath),
       inviteCount: inviteEmails.length,
-      sentInviteCount: inviteDeliverySummary.preparedCount,
+      sentInviteCount: inviteDelivery.sentInviteCount,
     },
     eventType: "group.create",
     outcome: "success",
@@ -482,6 +471,7 @@ async function createGroupWithInvitesInternal(
   return {
     success: true,
     message: getInviteDeliveryMessage({
+      failedCount: inviteDelivery.failedCount,
       inviteCount: inviteEmails.length,
     }),
   };

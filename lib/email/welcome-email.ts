@@ -1,6 +1,6 @@
 import "server-only";
 
-import nodemailer from "nodemailer";
+import { createSmtpTransport, readSmtpConfig } from "@/lib/email/smtp";
 import { recordAuditEvent, recordServerFailure } from "@/lib/security/audit";
 import { sanitizePlainText } from "@/lib/validation/common";
 
@@ -11,85 +11,10 @@ type WelcomeEmailInput = {
   userId: string;
 };
 
-type SmtpConfig = {
-  from: string;
-  host: string;
-  pass: string;
-  port: number;
-  secure: boolean;
-  user: string;
-};
-
-type SmtpConfigReadResult = {
-  config: SmtpConfig | null;
-  invalidPort: boolean;
-  missingKeys: string[];
-};
-
 type WelcomeEmailResult = "failed" | "sent" | "skipped";
 
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const EMAIL_ADDRESS_PATTERN = /[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/gi;
-const DEFAULT_SMTP_PORT = 465;
-const DEFAULT_SENDER_NAME = "My Secret Santa";
-
-function readTrimmedEnv(name: string): string {
-  return process.env[name]?.trim() || "";
-}
-
-function normalizeSmtpPassword(host: string, password: string): string {
-  if (host.toLowerCase() === "smtp.gmail.com") {
-    // Gmail app passwords are displayed in groups; SMTP auth expects the compact token.
-    return password.replace(/\s+/g, "");
-  }
-
-  return password;
-}
-
-function readSmtpConfig(): SmtpConfigReadResult {
-  const host = readTrimmedEnv("SMTP_HOST");
-  const user = readTrimmedEnv("SMTP_USER");
-  const rawPass =
-    readTrimmedEnv("SMTP_PASSWORD") ||
-    readTrimmedEnv("SMTP_PASS") ||
-    readTrimmedEnv("GMAIL_APP_PASSWORD");
-  const pass = normalizeSmtpPassword(host, rawPass);
-  const rawPort = readTrimmedEnv("SMTP_PORT");
-  const port = rawPort ? Number(rawPort) : DEFAULT_SMTP_PORT;
-  const invalidPort = !Number.isInteger(port) || port < 1 || port > 65535;
-  const senderName =
-    readTrimmedEnv("SMTP_FROM_NAME") ||
-    readTrimmedEnv("EMAIL_FROM_NAME") ||
-    DEFAULT_SENDER_NAME;
-  const explicitFrom =
-    readTrimmedEnv("SMTP_FROM") ||
-    readTrimmedEnv("EMAIL_FROM") ||
-    readTrimmedEnv("SMTP_FROM_EMAIL");
-  const from = explicitFrom || `${senderName} <${user}>`;
-  const missingKeys = [
-    !host ? "SMTP_HOST" : null,
-    !user ? "SMTP_USER" : null,
-    !rawPass ? "SMTP_PASSWORD" : null,
-  ].filter(Boolean) as string[];
-
-  if (missingKeys.length > 0 || !pass || !from || invalidPort) {
-    return { config: null, invalidPort, missingKeys };
-  }
-
-  return {
-    config: {
-      from,
-      host,
-      pass,
-      port,
-      secure: readTrimmedEnv("SMTP_SECURE") === "true" || port === DEFAULT_SMTP_PORT,
-      user,
-    },
-    invalidPort,
-    missingKeys,
-  };
-}
-
 function getGreetingName(displayName: string | null | undefined): string {
   const safeName = sanitizePlainText(displayName || "", 80);
 
@@ -279,15 +204,7 @@ export async function sendWelcomeEmail(input: WelcomeEmailInput): Promise<Welcom
     return "skipped";
   }
 
-  const transport = nodemailer.createTransport({
-    auth: {
-      pass: config.pass,
-      user: config.user,
-    },
-    host: config.host,
-    port: config.port,
-    secure: config.secure,
-  });
+  const transport = createSmtpTransport(config);
   const message = buildWelcomeEmail(input);
 
   try {

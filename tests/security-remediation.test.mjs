@@ -516,20 +516,24 @@ test("auth callback creates one-time welcome notifications and welcome email", (
     /if \(input\.ignoreDuplicate && error\.code === "23505"\) \{[\s\S]{0,80}return null;/
   );
   assert.match(welcomeEmailSource, /import "server-only";/);
-  assert.match(welcomeEmailSource, /import nodemailer from "nodemailer";/);
+  const smtpSource = readFileSync("lib/email/smtp.ts", "utf8");
+  assert.match(smtpSource, /import "server-only";/);
+  assert.match(smtpSource, /import nodemailer from "nodemailer";/);
+  assert.match(welcomeEmailSource, /createSmtpTransport\(config\)/);
   assert.match(welcomeEmailSource, /import \{ recordAuditEvent, recordServerFailure \} from "@\/lib\/security\/audit";/);
-  assert.match(welcomeEmailSource, /readTrimmedEnv\("SMTP_HOST"\)/);
-  assert.match(welcomeEmailSource, /readTrimmedEnv\("SMTP_PASSWORD"\)/);
-  assert.match(welcomeEmailSource, /readTrimmedEnv\("GMAIL_APP_PASSWORD"\)/);
-  assert.match(welcomeEmailSource, /function normalizeSmtpPassword\(host: string, password: string\): string/);
-  assert.match(welcomeEmailSource, /host\.toLowerCase\(\) === "smtp\.gmail\.com"/);
-  assert.match(welcomeEmailSource, /return password\.replace\(\/\\s\+\/g, ""\);/);
-  assert.match(welcomeEmailSource, /port < 1 \|\| port > 65535/);
+  assert.match(smtpSource, /readTrimmedEnv\("SMTP_HOST"\)/);
+  assert.match(smtpSource, /readTrimmedEnv\("SMTP_PASSWORD"\)/);
+  assert.match(smtpSource, /readTrimmedEnv\("GMAIL_APP_PASSWORD"\)/);
+  assert.match(smtpSource, /function normalizeSmtpPassword\(host: string, password: string\): string/);
+  assert.match(smtpSource, /host\.toLowerCase\(\) === "smtp\.gmail\.com"/);
+  assert.match(smtpSource, /return password\.replace\(\/\\s\+\/g, ""\);/);
+  assert.match(smtpSource, /port < 1 \|\| port > 65535/);
+  assert.match(smtpSource, /requireTLS: process\.env\.NODE_ENV === "production" && !config\.secure/);
   assert.match(welcomeEmailSource, /function getEmailAssetUrl\(baseUrl: string, path: string\): string/);
   assert.match(welcomeEmailSource, /secret-santa-logo\.png/);
   assert.match(welcomeEmailSource, /shhh, it's a secret/);
   assert.match(welcomeEmailSource, /Welcome Gift Tag/);
-  assert.match(welcomeEmailSource, /nodemailer\.createTransport\(/);
+  assert.match(smtpSource, /nodemailer\.createTransport\(/);
   assert.match(welcomeEmailSource, /eventType: "email\.welcome\.sent"/);
   assert.match(welcomeEmailSource, /outcome: "success"/);
   assert.match(welcomeEmailSource, /eventType: "email\.welcome\.send"/);
@@ -1166,6 +1170,33 @@ test("invite recipient lookup is batched, unbounded by Auth pages, and server-on
     migrationSource,
     /grant execute on function public\.lookup_invite_auth_recipients\(text\[\]\)[\s\S]{0,60}to service_role/i
   );
+});
+
+test("all invite actions email existing recipients without issuing an Auth token", () => {
+  const createGroupActions = readFileSync("app/create-group/actions.ts", "utf8");
+  const groupActions = readFileSync("app/group/[id]/actions.ts", "utf8");
+  const inviteEmail = readFileSync("lib/groups/invite-email.ts", "utf8");
+  const createDelivery = createGroupActions.split("async function sendInviteEmails")[1]
+    .split("function getInviteDeliveryMessage")[0];
+  const inviteAction = groupActions.split("export async function inviteUser")[1]
+    .split("export async function")[0];
+  const resendAction = groupActions.split("export async function resendInvite")[1]
+    .split("export async function")[0];
+  const registeredDelivery = inviteEmail.split("async function sendRegisteredGroupInviteEmail")[1]
+    .split("function normalizeInviteLookupEmails")[0];
+
+  assert.match(inviteEmail, /if \(authRecipient && !authRecipient\.canReceiveInviteEmail\) \{\s*return sendRegisteredGroupInviteEmail\(email, authRecipient\.userId\);\s*\}\s*return supabaseAdmin\.auth\.admin\.inviteUserByEmail/);
+  assert.match(registeredDelivery, /new URL\("\/groups", resolveTrustedAppOrigin\(null\)\)/);
+  assert.match(registeredDelivery, /await enforceRateLimit\(\{[\s\S]{0,200}subject: recipientId,[\s\S]{0,80}windowSeconds: 3600/);
+  assert.match(registeredDelivery, /await transport\.sendMail\(\{/);
+  assert.match(registeredDelivery, /to: \{ name: "", address: email \}/);
+  assert.doesNotMatch(registeredDelivery, /groupId|groupName|token_hash|generateLink|inviteUserByEmail/);
+  assert.match(createDelivery, /await createNotification\(\{[\s\S]+await sendGroupInviteEmail\(\{\s*authRecipient,/);
+  assert.doesNotMatch(createDelivery.split("await createNotification")[1].split("await sendGroupInviteEmail")[0], /continue;/);
+  assert.match(inviteAction, /if \(insertError\) \{[\s\S]+await sendInviteEmail\(/);
+  assert.match(resendAction, /if \(!updatedRows \|\| updatedRows\.length === 0\) \{[\s\S]+await sendInviteEmail\(/);
+  assert.match(resendAction, /membership\.user_id && membership\.user_id !== authRecipient\?\.userId/);
+  assert.doesNotMatch(resendAction, /shouldSendEmail|canReceiveInviteEmail/);
 });
 
 test("invite resend is owner-scoped, membership-targeted, and account-neutral", () => {
