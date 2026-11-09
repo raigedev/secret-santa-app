@@ -1910,6 +1910,18 @@ test("group detail page limits member data and avoids sensitive realtime rows", 
   assert.doesNotMatch(groupPageSource, /group-\$\{id\}-realtime/);
 });
 
+test("private group rosters show only safe aliases to joined members", () => {
+  const source = readFileSync("app/group/[id]/actions.ts", "utf8")
+    .split("export async function getGroupMembersForViewer")[1]
+    .split("async function prepareInviteLinkAction")[0];
+
+  assert.match(source, /!isUserEmailVerified\(user\)/);
+  assert.match(source, /const hidePeerIdentity = !isOwner && Boolean\(group\.require_anonymous_nickname\)/);
+  assert.match(source, /hidePeerIdentity\s*\?\s*await supabaseAdmin[\s\S]{0,200}\.eq\("group_id", groupId\)\s*\.eq\("status", "accepted"\)/);
+  assert.match(source, /!isOwner && !members\.some\(\(member\) => member\.user_id === user\.id && member\.status === "accepted"\)[\s\S]{0,180}members: \[\]/);
+  assert.match(source, /if \(hidePeerIdentity && member\.user_id !== user\.id\)[\s\S]{0,180}user_id: null,[\s\S]{0,220}validateAnonymousGroupNickname\(\{ nickname, email: member\.email \}\)[\s\S]{0,80}email: null,\s*role: "member"/);
+});
+
 test("group detail clears stale owner insights before applying fresh group data", () => {
   const groupPageSource = readFileSync("app/group/[id]/page.tsx", "utf8");
   const freshGroupApplyBlock = groupPageSource.match(
@@ -1990,7 +2002,10 @@ test("dashboard optional loading and route panels cannot block navigation", () =
   const secretSantaPageSource = readFileSync("app/secret-santa/page.tsx", "utf8");
   const wishlistPageSource = readFileSync("app/wishlist/page.tsx", "utf8");
 
-  assert.match(groupsPageSource, /AbortSignal\.timeout\(3_500\)/);
+  assert.match(groupsPageSource, /INVITE_REQUEST_TIMEOUT_MS = 8_000/);
+  assert.match(groupsPageSource, /AbortSignal\.any\(\[signal, AbortSignal\.timeout\(INVITE_REQUEST_TIMEOUT_MS\)\]\)/);
+  assert.match(groupsPageSource, /void refreshInvites\(user\.id, restartInvites\);/);
+  assert.doesNotMatch(groupsPageSource, /Promise\.allSettled\(\[[\s\S]{0,140}loadPendingInvites\(/);
   assert.match(groupsPageSource, /cache: "no-store"/);
   assert.doesNotMatch(dashboardPageSource, /useDashboardRoutePrefetch/);
   assert.doesNotMatch(dashboardPageSource, /router\.prefetch\(/);

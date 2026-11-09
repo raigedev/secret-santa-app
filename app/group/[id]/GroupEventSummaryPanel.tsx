@@ -10,7 +10,7 @@ type GroupEventSummaryPanelProps = {
   drawDone: boolean;
   drawStatusLabel: string;
   groupData: GroupData;
-  totalMemberCount: number;
+  totalMemberCount: number | null;
 };
 
 export function GroupEventSummaryPanel({
@@ -21,7 +21,7 @@ export function GroupEventSummaryPanel({
   groupData,
   totalMemberCount,
 }: GroupEventSummaryPanelProps) {
-  const participation = totalMemberCount > 0
+  const participation = totalMemberCount !== null && totalMemberCount > 0
     ? Math.round((acceptedCount / totalMemberCount) * 100)
     : 0;
   const budgetLabel = groupData.budget
@@ -84,49 +84,57 @@ export function GroupEventSummaryPanel({
           </div>
         ))}
         <div className="holiday-panel-row rounded-2xl p-4">
-          <p className="text-[11px] font-black text-[#5b605e]">Participation</p>
-          <div className="mt-2 flex items-center justify-between gap-3">
-            <div>
-              <p className="text-[18px] font-black leading-tight text-[#48664e]">
-                {acceptedCount} / {totalMemberCount}
-              </p>
-              <p className="mt-2 text-xs font-semibold text-[#64748b]">
-                {participation}% joined
-              </p>
+          <p className="text-[11px] font-black text-[#5b605e]">
+            {totalMemberCount === null ? "Joined members" : "Participation"}
+          </p>
+          {totalMemberCount === null ? (
+            <p className="mt-2 text-[18px] font-black leading-tight text-[#48664e]">
+              {acceptedCount}
+            </p>
+          ) : (
+            <div className="mt-2 flex items-center justify-between gap-3">
+              <div>
+                <p className="text-[18px] font-black leading-tight text-[#48664e]">
+                  {acceptedCount} / {totalMemberCount}
+                </p>
+                <p className="mt-2 text-xs font-semibold text-[#64748b]">
+                  {participation}% joined
+                </p>
+              </div>
+              <svg viewBox="0 0 52 52" className="h-13 w-13 shrink-0" aria-hidden="true">
+                <circle
+                  cx="26"
+                  cy="26"
+                  r="22"
+                  fill="none"
+                  stroke="rgba(72,102,78,.14)"
+                  strokeWidth="6"
+                />
+                <circle
+                  cx="26"
+                  cy="26"
+                  r="22"
+                  fill="none"
+                  stroke="#48664e"
+                  strokeDasharray="138"
+                  strokeDashoffset={participationDash}
+                  strokeLinecap="round"
+                  strokeWidth="6"
+                  transform="rotate(-90 26 26)"
+                />
+                <text
+                  x="26"
+                  y="30"
+                  fill="#48664e"
+                  fontSize="11"
+                  fontWeight="900"
+                  textAnchor="middle"
+                >
+                  {participation}%
+                </text>
+              </svg>
             </div>
-            <svg viewBox="0 0 52 52" className="h-13 w-13 shrink-0" aria-hidden="true">
-              <circle
-                cx="26"
-                cy="26"
-                r="22"
-                fill="none"
-                stroke="rgba(72,102,78,.14)"
-                strokeWidth="6"
-              />
-              <circle
-                cx="26"
-                cy="26"
-                r="22"
-                fill="none"
-                stroke="#48664e"
-                strokeDasharray="138"
-                strokeDashoffset={participationDash}
-                strokeLinecap="round"
-                strokeWidth="6"
-                transform="rotate(-90 26 26)"
-              />
-              <text
-                x="26"
-                y="30"
-                fill="#48664e"
-                fontSize="11"
-                fontWeight="900"
-                textAnchor="middle"
-              >
-                {participation}%
-              </text>
-            </svg>
-          </div>
+          )}
         </div>
       </div>
     </section>

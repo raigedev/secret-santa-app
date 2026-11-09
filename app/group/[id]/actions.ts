@@ -11,6 +11,7 @@ import {
   MAX_GROUP_MEMBERS,
 } from "@/lib/groups/capacity";
 import { getServerActionContext, requireRateLimitedAction } from "@/lib/auth/server-action-context";
+import { getEmailVerificationMessage, isUserEmailVerified } from "@/lib/auth/user-status";
 import { groupHasDrawStarted } from "@/lib/groups/draw-state";
 import {
   GROUP_HISTORY_READ_ONLY_MESSAGE,
@@ -193,9 +194,13 @@ export async function getGroupMembersForViewer(groupId: string): Promise<{
   }
 
   const { supabase, user } = context;
+  if (!isUserEmailVerified(user)) {
+    return { success: false, isOwner: false, members: [], message: getEmailVerificationMessage() };
+  }
+
   const { data: group, error: groupError } = await supabase
     .from("groups")
-    .select("owner_id")
+    .select("owner_id, require_anonymous_nickname")
     .eq("id", groupId)
     .maybeSingle();
 
@@ -204,16 +209,24 @@ export async function getGroupMembersForViewer(groupId: string): Promise<{
   }
 
   const isOwner = group.owner_id === user.id;
+  const hidePeerIdentity = !isOwner && Boolean(group.require_anonymous_nickname);
   const membersResult = isOwner
     ? await supabaseAdmin
         .from("group_members")
         .select("id, user_id, nickname, email, role, status")
         .eq("group_id", groupId)
-    : await supabase
-        .from("group_members")
-        .select("id, user_id, nickname, role, status")
-        .eq("group_id", groupId)
-        .eq("status", "accepted");
+    : hidePeerIdentity
+      ? await supabaseAdmin
+          .from("group_members")
+          .select("id, user_id, nickname, email, role, status")
+          .eq("group_id", groupId)
+          .eq("status", "accepted")
+          .order("id")
+      : await supabase
+          .from("group_members")
+          .select("id, user_id, nickname, role, status")
+          .eq("group_id", groupId)
+          .eq("status", "accepted");
 
   if (membersResult.error) {
     await recordServerFailure({
@@ -227,19 +240,44 @@ export async function getGroupMembersForViewer(groupId: string): Promise<{
     return { success: false, isOwner, members: [], message: "Error loading members." };
   }
 
+  const members = (membersResult.data || []) as Array<Partial<GroupMemberForViewer>>;
+
+  // Group visibility alone also includes pending invitees. Only joined members
+  // can receive the roster, based on the same rows used to build the response.
+  if (!isOwner && !members.some((member) => member.user_id === user.id && member.status === "accepted")) {
+    return {
+      success: false,
+      isOwner,
+      members: [],
+      message: "Accept your invitation in My Groups to see the members.",
+    };
+  }
+
   return {
     success: true,
     isOwner,
-    members: ((membersResult.data || []) as Array<Partial<GroupMemberForViewer>>).map(
-      (member) => ({
+    members: members.map((member, index) => {
+      if (hidePeerIdentity && member.user_id !== user.id) {
+        const nickname = member.nickname || "";
+        return {
+          id: `participant-${index + 1}`,
+          user_id: null,
+          nickname: validateAnonymousGroupNickname({ nickname, email: member.email }) ? null : nickname,
+          email: null,
+          role: "member",
+          status: "accepted",
+        };
+      }
+
+      return {
         id: member.id || "",
         user_id: member.user_id || null,
         nickname: member.nickname || null,
         email: isOwner ? member.email || null : null,
         role: member.role || "member",
         status: member.status || "accepted",
-      })
-    ),
+      };
+    }),
   };
 }
 
