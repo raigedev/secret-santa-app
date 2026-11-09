@@ -6,6 +6,9 @@ import { loginWithTestCredentials } from "../helpers/auth";
 
 const LOCAL_SUPABASE_URL = "http://127.0.0.1:54321";
 
+// The local avatar image is intercepted over loopback HTTP; production photos use HTTPS.
+test.use({ bypassCSP: true });
+
 test("assignment lookups preserve the group after the first batch", async () => {
   const ids: string[] = Array.from({ length: 51 }, () => randomUUID());
   const assignedGroupIds = [ids[0], ids[50]];
@@ -75,6 +78,11 @@ test("separate chats deliver both ways and stay scoped to the selected exchange"
       accounts.push({ id: data.user.id, email, password });
     }
     const [giver, giftee, peer] = accounts;
+    const profiles = await admin.from("profiles").upsert([
+      { user_id: giftee.id, display_name: "Private fixture profile" },
+      { user_id: peer.id, display_name: "Visible fixture profile" },
+    ], { onConflict: "user_id" });
+    expect(profiles.error).toBeNull();
     const { data: group, error: groupError } = await admin.from("groups").insert({
       owner_id: peer.id,
       name: "Private chat check",
@@ -90,7 +98,7 @@ test("separate chats deliver both ways and stay scoped to the selected exchange"
       name: "Second exchange",
       event_date: new Date(Date.now() + 10 * 86_400_000).toISOString().slice(0, 10),
       event_timezone: "UTC",
-      require_anonymous_nickname: true,
+      require_anonymous_nickname: false,
       revealed: false,
     }).select("id").single();
     if (otherGroup.error || !otherGroup.data) throw new Error("Could not create the second chat group.");
@@ -142,18 +150,47 @@ test("separate chats deliver both ways and stay scoped to the selected exchange"
       }))
     );
     expect(fixtureMessageError).toBeNull();
+    const { error: visibleMessageError } = await admin.from("messages").insert([
+      {
+        group_id: otherGroupId, sender_id: peer.id, thread_giver_id: giver.id,
+        thread_receiver_id: peer.id, content: "I would love a board game.",
+      },
+      {
+        group_id: otherGroupId, sender_id: peer.id, thread_giver_id: peer.id,
+        thread_receiver_id: giver.id, content: "What games do you like?",
+      },
+    ]);
+    expect(visibleMessageError).toBeNull();
 
     const recipientPage = await recipientContext.newPage();
     await loginWithTestCredentials(page, giver);
     await loginWithTestCredentials(recipientPage, giftee);
 
+    const profileResponse = await page.request.post("/api/groups/peer-profiles", {
+      data: { groupIds: [groupId, otherGroupId] },
+      headers: { origin: baseURL! },
+    });
+    expect(profileResponse.ok()).toBeTruthy();
+    const { profilesByGroup } = await profileResponse.json() as { profilesByGroup: Record<string, unknown> };
+    expect(profilesByGroup[groupId!]).toBeUndefined();
+    expect(profilesByGroup[otherGroupId!]).toEqual(expect.arrayContaining([
+      expect.objectContaining({ user_id: peer.id }),
+    ]));
+
+    const fixturePhoto = `${LOCAL_SUPABASE_URL}/storage/v1/object/public/profile-avatars/${peer.id}/avatar-fixture-chat.png`;
+    await page.route(fixturePhoto, (route) => route.fulfill({ path: "public/gifts.png", contentType: "image/png" }));
+    await page.route("**/api/groups/peer-profiles", (route) => route.fulfill({
+      json: { profilesByGroup: { [otherGroupId!]: [{ user_id: peer.id, avatar_url: fixturePhoto }] } },
+    }));
+
     const chatLookups: string[][] = [];
+    const avatarLookups: string[][] = [];
     page.on("request", (request) => {
-      if (request.method() === "POST" && new URL(request.url()).pathname === "/api/assignments/gift-prep" &&
-          new URL(page.url()).pathname === "/secret-santa-chat") {
-        const { groupIds } = request.postDataJSON() as { groupIds: string[] };
-        chatLookups.push(groupIds);
-      }
+      if (request.method() !== "POST" || new URL(page.url()).pathname !== "/secret-santa-chat") return;
+      const path = new URL(request.url()).pathname;
+      if (path !== "/api/assignments/gift-prep" && path !== "/api/groups/peer-profiles") return;
+      const { groupIds } = request.postDataJSON() as { groupIds: string[] };
+      (path === "/api/assignments/gift-prep" ? chatLookups : avatarLookups).push(groupIds);
     });
 
     const firstMessage = "Any favorite colors for wrapping?";
@@ -186,6 +223,7 @@ test("separate chats deliver both ways and stay scoped to the selected exchange"
     await expect(santaLabels).toHaveCount(1);
     await expect(santaLabels).toBeVisible();
     await expect(santaBox.getByRole("log").getByText("Snow Riddle", { exact: true })).toHaveCount(0);
+    await expect(santaBox.getByTestId("chat-sender-avatar")).toHaveCount(1);
     expect(chatLookups[0]).toEqual([groupId, otherGroupId]);
     const [giverBounds, santaBounds] = await Promise.all([giverBox.boundingBox(), santaBox.boundingBox()]);
     expect(giverBounds).not.toBeNull();
@@ -224,14 +262,24 @@ test("separate chats deliver both ways and stay scoped to the selected exchange"
     await recipientSantaBox.getByRole("button", { name: "Send", exact: true }).click();
     await expect(giverBox.getByText(replyMessage, { exact: true })).toBeVisible({ timeout: 25_000 });
     await expect(giverBox.getByRole("log").getByText("Ribbon Keeper", { exact: true })).toBeVisible();
+    await expect(giverBox.getByTestId("chat-sender-avatar")).toHaveText("R");
+    expect(avatarLookups).toEqual([]);
     await expect(recipientSantaBox.getByText("1 new", { exact: true })).toHaveCount(0);
     await santaDraft.clear();
     await page.evaluate(() => window.scrollTo(0, 0));
     await page.screenshot({ path: testInfo.outputPath("two-chat-boxes.png"), fullPage: true });
-    await page.getByRole("button", { name: "Second exchange", exact: true }).click();
+    await page.getByRole("button", { name: /^Second exchange(?: New messages)?$/ }).click({ timeout: 10_000 });
     await expect(giverBox.getByRole("heading", { name: "Holly" })).toBeVisible();
     await expect(giverBox.getByText(replyMessage, { exact: true })).toHaveCount(0);
-    await page.getByRole("button", { name: "Private chat check", exact: true }).click();
+    const gifteePhoto = giverBox.getByTestId("chat-sender-avatar").locator("img");
+    await expect(gifteePhoto).toHaveAttribute("src", fixturePhoto);
+    await expect.poll(() => gifteePhoto.evaluate((image: HTMLImageElement) => image.naturalWidth)).toBeGreaterThan(0);
+    await expect(santaBox.getByTestId("chat-sender-avatar").locator("img")).toHaveAttribute("src", /secret-santa-logo\.png/);
+    expect(avatarLookups.length).toBeGreaterThan(0);
+    expect(avatarLookups.every((ids) => ids.length === 1 && ids[0] === otherGroupId)).toBeTruthy();
+    await page.evaluate(() => window.scrollTo(0, 0));
+    await page.screenshot({ path: testInfo.outputPath("profile-photo-chat.png"), fullPage: true });
+    await page.getByRole("button", { name: /^Private chat check(?: New messages)?$/ }).click({ timeout: 10_000 });
     await expect(giverBox.getByText(replyMessage, { exact: true })).toBeVisible();
 
     const client = createClient(LOCAL_SUPABASE_URL, anonKey!, { auth });

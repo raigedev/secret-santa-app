@@ -20,6 +20,7 @@ type GroupRow = {
   name: string | null;
   event_date: string | null;
   event_timezone: string | null;
+  require_anonymous_nickname: boolean | null;
 };
 
 type ChatExchange = GroupRow & { giver: ChatThread | null; receiver: ChatThread | null };
@@ -98,7 +99,7 @@ export default function SecretSantaChatPage() {
 
         const { data: groups, error: groupsError } = await supabase
           .from("groups")
-          .select("id, name, event_date, event_timezone, group_members!inner(user_id)")
+          .select("id, name, event_date, event_timezone, require_anonymous_nickname, group_members!inner(user_id)")
           .eq("group_members.user_id", user.id)
           .eq("group_members.status", "accepted")
           .order("event_date")
@@ -300,6 +301,7 @@ export default function SecretSantaChatPage() {
             groupId={exchange.id}
             role="giver"
             thread={exchange.giver}
+            allowProfilePhoto={exchange.require_anonymous_nickname === false || exchange.require_anonymous_nickname === null}
             userId={userId}
             supabase={supabase}
             refreshVersion={refreshVersion}

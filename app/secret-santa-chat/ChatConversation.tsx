@@ -1,8 +1,10 @@
 "use client";
 
 import { Fragment, useEffect, useLayoutEffect, useRef, useState, type FormEvent } from "react";
+import Image from "next/image";
+import { normalizeProfileAvatarUrlForUser } from "@/lib/profile/avatar";
 import type { createClient } from "@/lib/supabase/client";
-import { sanitizePlainText } from "@/lib/validation/common";
+import { isRecord, sanitizePlainText } from "@/lib/validation/common";
 import {
   loadReceiverThreadMessages,
   markReceiverThreadAsRead,
@@ -23,6 +25,7 @@ type ChatConversationProps = {
   groupId: string;
   role: "giver" | "receiver";
   thread: ChatThread | null;
+  allowProfilePhoto?: boolean;
   userId: string;
   supabase: ReturnType<typeof createClient>;
   refreshVersion: number;
@@ -43,13 +46,43 @@ function formatDay(date: Date) {
   return dayFormat.format(date);
 }
 
+function startsChatPeriod(previous: SafeChatMessage | undefined, date: Date) {
+  if (!previous) return true;
+  const previousDate = new Date(previous.created_at);
+  return date.toDateString() !== previousDate.toDateString() ||
+    date.getTime() - previousDate.getTime() >= 30 * 60_000;
+}
+
+async function loadGifteePhoto(groupId: string, receiverId: string, signal: AbortSignal) {
+  const response = await fetch("/api/groups/peer-profiles", {
+    method: "POST",
+    cache: "no-store",
+    credentials: "same-origin",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ groupIds: [groupId] }),
+    signal,
+  });
+  if (!response.ok) return null;
+
+  const payload: unknown = await response.json();
+  if (!isRecord(payload) || !isRecord(payload.profilesByGroup)) return null;
+  const groupProfiles = payload.profilesByGroup[groupId];
+  if (!Array.isArray(groupProfiles)) return null;
+  const profile: unknown = groupProfiles.find((row: unknown) => isRecord(row) && row.user_id === receiverId);
+  return isRecord(profile) && typeof profile.avatar_url === "string"
+    ? normalizeProfileAvatarUrlForUser(receiverId, profile.avatar_url)
+    : null;
+}
+
 export function ChatConversation({
-  groupId, role, thread, userId, supabase, refreshVersion, onRead,
+  groupId, role, thread, allowProfilePhoto = false, userId, supabase, refreshVersion, onRead,
 }: ChatConversationProps) {
   const isGiver = role === "giver";
   const threadId = thread?.id;
   const receiverId = thread?.receiverId;
   const unread = thread?.unread ?? 0;
+  const canLoadPhoto = isGiver && allowProfilePhoto;
+  const [profilePhoto, setProfilePhoto] = useState<string | null>(null);
   const [messages, setMessages] = useState<SafeChatMessage[] | null>(null);
   const [draft, setDraft] = useState("");
   const [sending, setSending] = useState(false);
@@ -62,6 +95,17 @@ export function ChatConversation({
   const nearBottom = useRef(true);
   const lastReadId = useRef<string | null>(null);
   const readPending = useRef(false);
+
+  useEffect(() => {
+    if (!canLoadPhoto || !receiverId) return;
+    const controller = new AbortController();
+    void loadGifteePhoto(groupId, receiverId, controller.signal)
+      .catch(() => null)
+      .then((url) => {
+        if (!controller.signal.aborted) setProfilePhoto(url);
+      });
+    return () => controller.abort();
+  }, [canLoadPhoto, groupId, receiverId]);
 
   useEffect(() => {
     if (!threadId || !receiverId) return;
@@ -220,6 +264,8 @@ export function ChatConversation({
 
   const label = isGiver ? "The person you're gifting" : "The person gifting you";
   const name = thread?.name ?? (isGiver ? "Your giftee" : "Your Secret Santa");
+  const avatarUrl = canLoadPhoto ? profilePhoto : null;
+  const avatarInitial = Array.from(name.trim())[0]?.toUpperCase() || "?";
   const composerLabel = isGiver ? `Message ${name}` : "Reply to your Santa";
   return (
     <section className={styles.conversation} data-chat-role={role} aria-label={label}>
@@ -260,10 +306,11 @@ export function ChatConversation({
         ) : messages.map((message, index) => {
           const date = new Date(message.created_at);
           const previous = messages[index - 1];
-          const previousDate = previous && new Date(previous.created_at);
-          const newDay = !previousDate || date.toDateString() !== previousDate.toDateString();
-          const showTimestamp = newDay || date.getTime() - previousDate.getTime() >= 30 * 60_000;
+          const next = messages[index + 1];
+          const showTimestamp = startsChatPeriod(previous, date);
           const showSender = !message.from_current_user && (showTimestamp || previous?.from_current_user);
+          const showAvatar = !message.from_current_user &&
+            (!next || next.from_current_user || startsChatPeriod(message, new Date(next.created_at)));
           const time = timeFormat.format(date);
           return (
             <Fragment key={message.id}>
@@ -273,12 +320,30 @@ export function ChatConversation({
                 </time>
               )}
               <div className={styles.message} data-outgoing={message.from_current_user}>
-                {showSender && <p className={styles.sender} aria-hidden="true">{name}</p>}
-                <p className={message.from_current_user ? styles.sent : styles.received} title={time}>
-                  <span className="sr-only">{message.from_current_user ? "You: " : `${name}: `}</span>
-                  <span>{message.content}</span>
-                  <span className="sr-only"> {time}</span>
-                </p>
+                {showAvatar && (
+                  <span className={styles.avatar} data-testid="chat-sender-avatar" aria-hidden="true">
+                    {avatarUrl ? (
+                      <Image
+                        alt=""
+                        src={avatarUrl}
+                        width={28}
+                        height={28}
+                        unoptimized
+                        onError={() => setProfilePhoto((current) => current === avatarUrl ? null : current)}
+                      />
+                    ) : isGiver ? avatarInitial : (
+                      <Image alt="" src="/secret-santa-logo.png" width={28} height={28} />
+                    )}
+                  </span>
+                )}
+                <div className={styles.messageBody}>
+                  {showSender && <p className={styles.sender} aria-hidden="true">{name}</p>}
+                  <p className={message.from_current_user ? styles.sent : styles.received} title={time}>
+                    <span className="sr-only">{message.from_current_user ? "You: " : `${name}: `}</span>
+                    <span>{message.content}</span>
+                    <span className="sr-only"> {time}</span>
+                  </p>
+                </div>
               </div>
             </Fragment>
           );
