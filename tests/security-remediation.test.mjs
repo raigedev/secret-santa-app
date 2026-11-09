@@ -503,8 +503,9 @@ test("auth callback creates one-time welcome notifications and welcome email", (
     callbackSource,
     /const welcomeNotification = await ensureWelcomeNotification\(user\.id\);[\s\S]{0,120}const welcomeEmailReceiptState = await getWelcomeEmailReceiptState\(user\.id\);[\s\S]{0,220}if \(welcomeNotification && welcomeEmailReceiptState === "missing"\)/
   );
-  assert.match(callbackSource, /const welcomeEmailResult = await sendWelcomeEmail\(\{[\s\S]{0,120}dashboardUrl: new URL\("\/dashboard", origin\)\.toString\(\)[\s\S]{0,160}email: user\.email/);
-  assert.match(callbackSource, /if \(welcomeEmailResult === "sent"\) \{[\s\S]{0,80}await recordWelcomeEmailReceipt\(\{[\s\S]{0,80}email: user\.email[\s\S]{0,80}notificationId: welcomeNotification\.id[\s\S]{0,80}userId: user\.id/);
+  assert.match(callbackSource, /await finishSignIn\(user, email, origin\)/);
+  assert.match(callbackSource, /const welcomeEmailResult = await sendWelcomeEmail\(\{[\s\S]{0,120}dashboardUrl: new URL\("\/dashboard", origin\)\.toString\(\)[\s\S]{0,160}\bemail,/);
+  assert.match(callbackSource, /if \(welcomeEmailResult === "sent"\) \{[\s\S]{0,80}await recordWelcomeEmailReceipt\(\{[\s\S]{0,80}\bemail,[\s\S]{0,80}notificationId: welcomeNotification\.id[\s\S]{0,80}userId: user\.id/);
   assert.doesNotMatch(callbackSource, /welcomeEmailSentAt/);
   assert.doesNotMatch(callbackSource, /markWelcomeEmailSent/);
   assert.match(notificationsSource, /id\?: string;/);
