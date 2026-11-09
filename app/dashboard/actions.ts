@@ -5,10 +5,8 @@ import {
   sanitizeGroupNickname,
   validateAnonymousGroupNickname,
 } from "@/lib/groups/nickname";
-import { loadPendingEmailInvitesForUser } from "@/lib/groups/pending-email-invites";
 import { createNotification } from "@/lib/notifications";
 import {
-  getServerActionContext,
   requireRateLimitedAction,
   type ServerActionUser,
   type ServerSupabaseClient,
@@ -19,7 +17,6 @@ import {
   isGroupInHistory,
 } from "@/lib/groups/history";
 import { isUuid } from "@/lib/validation/common";
-import type { PendingInvite } from "./dashboard-types";
 
 type MembershipActionResult = {
   success: boolean;
@@ -118,21 +115,6 @@ async function notifyOwnerAboutInviteResponse(options: {
     },
     preferenceKey: "notify_invites",
   });
-}
-
-export async function getPendingEmailInvites(): Promise<{
-  invites: PendingInvite[];
-  success: boolean;
-}> {
-  const context = await getServerActionContext();
-
-  const email = context.ok ? context.user.email : null;
-
-  if (!context.ok || !email) {
-    return { success: false, invites: [] };
-  }
-
-  return loadPendingEmailInvitesForUser(context.user);
 }
 
 export async function acceptInvite(

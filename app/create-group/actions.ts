@@ -143,8 +143,8 @@ async function sendInviteEmails(
         userId: existingUserId,
         type: "invite",
         title: `New group invite: ${groupName}`,
-        body: "You have a pending group invitation. Open your dashboard to accept or decline it.",
-        linkPath: "/dashboard",
+        body: "Open My Groups to accept or decline your invitation.",
+        linkPath: "/groups",
         metadata: {
           groupId,
         },

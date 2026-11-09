@@ -1,4 +1,5 @@
-import { loadPendingEmailInvitesForUser } from "@/lib/groups/pending-email-invites";
+import { isUserEmailVerified } from "@/lib/auth/user-status";
+import { loadPendingInvitesForUser } from "@/lib/groups/pending-invites";
 import { noStoreJson } from "@/lib/security/no-store-response";
 import { createClient } from "@/lib/supabase/server";
 
@@ -10,11 +11,11 @@ export async function GET() {
     data: { user },
   } = await supabase.auth.getUser();
 
-  if (!user?.email) {
+  if (!user || !isUserEmailVerified(user)) {
     return noStoreJson({ success: false, invites: [] });
   }
 
-  const result = await loadPendingEmailInvitesForUser({
+  const result = await loadPendingInvitesForUser({
     email: user.email,
     id: user.id,
   });

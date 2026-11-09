@@ -22,6 +22,7 @@ import { DashboardStatusMessage } from "./DashboardStatusMessage";
 import { TipJarSupportCard } from "@/app/components/TipJarSupport";
 import { fetchMyAssignmentGiftPrep } from "@/lib/assignments/gift-prep-client";
 import { normalizeSafeAppPath } from "@/lib/security/safe-app-path";
+import { isIncomingGroupInvite } from "@/app/notifications/notification-display";
 import {
   clearDashboardSnapshots,
   readDashboardSnapshot,
@@ -56,8 +57,6 @@ import type {
   MembershipRow,
   MyAssignmentRow,
   NotificationFeedRow,
-  PendingGroupRow,
-  PendingInvite,
   WishlistSummaryRow,
 } from "./dashboard-types";
 import { getActivityFeedVisual } from "./dashboard-visuals";
@@ -78,7 +77,6 @@ const DASHBOARD_THEME_CHANGED_EVENT = "ss-dashboard-theme-changed";
 const DASHBOARD_NOTIFICATION_PREVIEW_LIMIT = 3;
 const DASHBOARD_FALLBACK_POLL_MS = 5 * 60 * 1000;
 const NOTIFICATION_BADGE_COUNT_LIMIT = 100;
-const OPTIONAL_DASHBOARD_REQUEST_TIMEOUT_MS = 3_500;
 
 type DashboardNotificationPreviewGroup = {
   count: number;
@@ -215,65 +213,6 @@ function readStoredDashboardTheme(): DashboardTheme {
   }
 }
 
-type PendingEmailInvitesResult = {
-  invites: PendingInvite[];
-  success: boolean;
-};
-
-function isPendingInvite(value: unknown): value is PendingInvite {
-  if (!value || typeof value !== "object") {
-    return false;
-  }
-
-  const invite = value as Record<string, unknown>;
-  return (
-    typeof invite.group_id === "string" &&
-    typeof invite.group_name === "string" &&
-    typeof invite.group_description === "string" &&
-    typeof invite.group_event_date === "string" &&
-    typeof invite.require_anonymous_nickname === "boolean"
-  );
-}
-
-function normalizePendingEmailInvitesResult(value: unknown): PendingEmailInvitesResult {
-  if (!value || typeof value !== "object") {
-    return { success: false, invites: [] };
-  }
-
-  const result = value as Record<string, unknown>;
-  const invites = Array.isArray(result.invites) ? result.invites.filter(isPendingInvite) : [];
-
-  return {
-    invites,
-    success: result.success === true,
-  };
-}
-
-async function fetchPendingEmailInvites(): Promise<PendingEmailInvitesResult> {
-  const controller = new AbortController();
-  const timeoutId = setTimeout(() => {
-    controller.abort();
-  }, OPTIONAL_DASHBOARD_REQUEST_TIMEOUT_MS);
-
-  try {
-    const response = await fetch("/api/dashboard/pending-email-invites", {
-      cache: "no-store",
-      credentials: "same-origin",
-      signal: controller.signal,
-    });
-
-    if (!response.ok) {
-      return { success: false, invites: [] };
-    }
-
-    return normalizePendingEmailInvitesResult(await response.json());
-  } catch {
-    return { success: false, invites: [] };
-  } finally {
-    clearTimeout(timeoutId);
-  }
-}
-
 export default function DashboardPage() {
   const router = useRouter();
   const [supabase] = useState(() => createClient());
@@ -281,7 +220,6 @@ export default function DashboardPage() {
   const [userName, setUserName] = useState("");
   const [ownedGroups, setOwnedGroups] = useState<Group[]>([]);
   const [invitedGroups, setInvitedGroups] = useState<Group[]>([]);
-  const [pendingInvites, setPendingInvites] = useState<PendingInvite[]>([]);
   const [recipientNames, setRecipientNames] = useState<string[]>([]);
   const [unreadPrivateUpdateCount, setUnreadPrivateUpdateCount] = useState(0);
   const [wishlistItemCount, setWishlistItemCount] = useState(0);
@@ -408,7 +346,6 @@ export default function DashboardPage() {
       }
       setOwnedGroups(activeOwnedGroups);
       setInvitedGroups(activeInvitedGroups);
-      setPendingInvites(snapshot.pendingInvites);
       setRecipientNames(snapshot.recipientNames);
       setUnreadPrivateUpdateCount(snapshot.unreadPrivateUpdateCount);
       setWishlistItemCount(snapshot.wishlistItemCount);
@@ -466,8 +403,6 @@ export default function DashboardPage() {
           throw ownedGroupLookupRes.error;
         }
 
-        const emailInviteResult = await fetchPendingEmailInvites();
-        const emailPendingInvites = emailInviteResult.success ? emailInviteResult.invites : [];
         const memberRows = (membershipRes.data || []) as MembershipRow[];
         const ownedGroupIds = [...new Set((ownedGroupLookupRes.data || []).map((group) => group.id))];
 
@@ -475,17 +410,12 @@ export default function DashboardPage() {
           return;
         }
 
-        if (
-          (!memberRows || memberRows.length === 0) &&
-          ownedGroupIds.length === 0 &&
-          emailPendingInvites.length === 0
-        ) {
+        if (!memberRows.length && !ownedGroupIds.length) {
           const defaultDisplayName = email.split("@")[0];
           const snapshotUserName = readStoredViewerName(user.id) || defaultDisplayName;
 
           setOwnedGroups([]);
           setInvitedGroups([]);
-          setPendingInvites([]);
           setRecipientNames([]);
           activeNotificationGroupIdsRef.current = new Set();
           setUnreadPrivateUpdateCount(0);
@@ -499,7 +429,6 @@ export default function DashboardPage() {
             userName: snapshotUserName,
             ownedGroups: [],
             invitedGroups: [],
-            pendingInvites: [],
             recipientNames: [],
             unreadNotificationCount: 0,
             unreadPrivateUpdateCount: 0,
@@ -514,9 +443,7 @@ export default function DashboardPage() {
         }
 
         const acceptedRows = memberRows.filter((row) => row.status === "accepted");
-        const pendingRows = memberRows.filter((row) => row.status === "pending");
         const acceptedGroupIds = [...new Set([...acceptedRows.map((row) => row.group_id), ...ownedGroupIds])];
-        const pendingGroupIds = [...new Set(pendingRows.map((row) => row.group_id))];
         const roleMap: Record<string, string> = {};
 
         for (const ownedGroupId of ownedGroupIds) {
@@ -532,7 +459,6 @@ export default function DashboardPage() {
           membersRes,
           assignmentsRes,
           myAssignRes,
-          pendingRes,
           wishlistSummaryRes,
           activityNotificationsRes,
         ] =
@@ -556,12 +482,6 @@ export default function DashboardPage() {
             acceptedGroupIds.length > 0
               ? fetchMyAssignmentGiftPrep(acceptedGroupIds)
               : createEmptyQueryResult<MyAssignmentRow>(),
-            pendingGroupIds.length > 0
-              ? supabase
-                  .from("groups")
-                  .select("id, name, description, event_date, event_timezone, require_anonymous_nickname")
-                  .in("id", pendingGroupIds)
-              : createEmptyQueryResult<PendingGroupRow>(),
             acceptedGroupIds.length > 0
               ? supabase
                   .from("wishlists")
@@ -594,10 +514,6 @@ export default function DashboardPage() {
           throw myAssignRes.error;
         }
 
-        if (pendingRes.error) {
-          throw pendingRes.error;
-        }
-
         if (wishlistSummaryRes.error) {
           throw wishlistSummaryRes.error;
         }
@@ -625,14 +541,6 @@ export default function DashboardPage() {
         );
         const myAssignments = ((myAssignRes.data || []) as MyAssignmentRow[]).filter((assignment) =>
           activeGroupIds.has(assignment.group_id)
-        );
-        const pendingGroups = (pendingRes.data || []).filter(
-          (group) =>
-            !isGroupInHistory(
-              group.event_date,
-              Date.now(),
-              group.event_timezone
-            )
         );
         const wishlistSummary = ((wishlistSummaryRes.data || []) as WishlistSummaryRow[]).filter(
           (row) => activeGroupIds.has(row.group_id)
@@ -760,7 +668,9 @@ export default function DashboardPage() {
 
         setGiftProgressSummary(nextGiftProgressSummary);
 
-        const nextNotificationPreviewItems = buildNotificationPreviewItems(recentNotifications);
+        const nextNotificationPreviewItems = buildNotificationPreviewItems(
+          recentNotifications.filter((notification) => !isIncomingGroupInvite(notification))
+        );
 
         // The dashboard feed combines "what changed around me" notifications
         // with the user's own gift-progress actions so the home page feels alive
@@ -804,23 +714,7 @@ export default function DashboardPage() {
           .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
           .slice(0, 5);
 
-        const linkedPendingInvites = pendingGroups.map((group) => ({
-          group_id: group.id,
-          group_name: group.name,
-          group_description: group.description || "",
-          group_event_date: group.event_date,
-          require_anonymous_nickname: Boolean(group.require_anonymous_nickname),
-        }));
-        const pendingInviteByGroupId = new Map<string, PendingInvite>();
-
-        for (const invite of [...linkedPendingInvites, ...emailPendingInvites]) {
-          pendingInviteByGroupId.set(invite.group_id, invite);
-        }
-
-        const nextPendingInvites = [...pendingInviteByGroupId.values()];
-
         setActivityFeedItems(feedItems);
-        setPendingInvites(nextPendingInvites);
 
         const defaultDisplayName = email.split("@")[0];
         const snapshotUserName = readStoredViewerName(user.id) || defaultDisplayName;
@@ -832,7 +726,6 @@ export default function DashboardPage() {
           userName: snapshotUserName,
           ownedGroups: sanitizeGroupsForDashboardSnapshot(nextOwnedGroups),
           invitedGroups: sanitizeGroupsForDashboardSnapshot(nextInvitedGroups),
-          pendingInvites: nextPendingInvites,
           recipientNames: [],
           unreadNotificationCount: 0,
           unreadPrivateUpdateCount: 0,
@@ -1092,7 +985,6 @@ export default function DashboardPage() {
           giftProgressSummary={giftProgressSummary}
           groups={allDashboardGroups}
           isDarkTheme={isDarkTheme}
-          pendingInvites={pendingInvites}
           recipientCount={recipientNames.length}
           revealMessage={revealMessage}
           unreadPrivateUpdateCount={unreadPrivateUpdateCount}

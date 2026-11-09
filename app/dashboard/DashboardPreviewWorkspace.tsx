@@ -2,14 +2,13 @@
 import { buildExchangeLifecycleSummary } from "@/lib/exchange-lifecycle";
 import { getExchangeDateUtcTimestamp } from "@/lib/exchange-date.mjs";
 import { DashboardCommandDesk } from "./DashboardCommandDesk";
-import type { DashboardActivityItem, GiftProgressSummary, Group, PendingInvite } from "./dashboard-types";
+import type { DashboardActivityItem, GiftProgressSummary, Group } from "./dashboard-types";
 type DashboardPreviewWorkspaceProps = {
   activityFeedItems: DashboardActivityItem[];
   countdownNow: number;
   giftProgressSummary: GiftProgressSummary | null;
   groups: Group[];
   isDarkTheme: boolean;
-  pendingInvites: PendingInvite[];
   recipientCount: number;
   revealMessage: string;
   unreadPrivateUpdateCount: number;
@@ -37,7 +36,6 @@ export function DashboardPreviewWorkspace({
   giftProgressSummary,
   groups,
   isDarkTheme,
-  pendingInvites,
   recipientCount,
   revealMessage,
   unreadPrivateUpdateCount,
@@ -62,7 +60,7 @@ export function DashboardPreviewWorkspace({
       hasDrawn: Boolean(focusGroup?.hasDrawn || recipientCount > 0),
       isOwner: Boolean(focusGroup?.isOwner),
       memberCount,
-      pendingInviteCount: pendingInvites.length,
+      pendingInviteCount: 0,
       readyGiftCount,
       recipientCount,
       wishlistItemCount,
@@ -76,11 +74,9 @@ export function DashboardPreviewWorkspace({
   const nextActionHref = focusGroup ? lifecycle.nextAction.href : "/create-group";
   const missionSummary = !focusGroup
     ? "Create a group, set the gift day and budget, then invite members."
-    : pendingInvites.length > 0
-      ? "Finish invite confirmations so everyone is ready for the draw."
-      : focusGroup.hasDrawn
-        ? "Names are drawn. Keep wishlist, shopping, and gift progress moving."
-        : "Review the setup, wishlists, and draw readiness for this exchange.";
+    : focusGroup.hasDrawn
+      ? "Names are drawn. Keep wishlist, shopping, and gift progress moving."
+      : "Review the setup, wishlists, and draw readiness for this exchange.";
   return (
     <DashboardCommandDesk
       activityFeedItems={activityFeedItems}
@@ -93,7 +89,6 @@ export function DashboardPreviewWorkspace({
       missionSummary={missionSummary}
       nextActionHref={nextActionHref}
       nextActionLabel={nextActionLabel}
-      pendingInvites={pendingInvites}
       readinessPercent={lifecycle.readinessPercent}
       readyGiftCount={readyGiftCount}
       revealMessage={revealMessage}

@@ -110,7 +110,7 @@ Deploy `/invite/confirm` to Vercel first, then update only the hosted **Invite
 user** email template from `supabase/templates/invite.html` in Supabase Auth.
 Keep the site's URL set to the production app origin. Verify with a new invite
 for a test recipient in a fresh browser. The email opens a confirmation page,
-and clicking **Continue to invitation** opens the dashboard with the pending
+and clicking **Continue to invitation** opens **My Groups** with the pending
 group invite. Links already sent still use the previous flow. Send a fresh
 invite where eligible, or have the recipient log in with the invited address
 and use **Forgot password** if they need to set a password.

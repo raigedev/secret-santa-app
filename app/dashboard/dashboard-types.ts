@@ -25,14 +25,6 @@ export type Group = {
   hasDrawn: boolean;
 };
 
-export type PendingInvite = {
-  group_id: string;
-  group_name: string;
-  group_description: string;
-  group_event_date: string;
-  require_anonymous_nickname: boolean;
-};
-
 export type ActionMessage = {
   type: "success" | "error";
   text: string;
@@ -76,15 +68,6 @@ export type MyAssignmentRow = {
   receiver_id: string;
   gift_prep_status: string | null;
   gift_prep_updated_at: string | null;
-};
-
-export type PendingGroupRow = {
-  id: string;
-  name: string;
-  description: string;
-  event_date: string;
-  event_timezone: string;
-  require_anonymous_nickname: boolean;
 };
 
 export type WishlistSummaryRow = {
@@ -139,7 +122,6 @@ export type DashboardSnapshot = {
   userName: string;
   ownedGroups: Group[];
   invitedGroups: Group[];
-  pendingInvites: PendingInvite[];
   recipientNames: string[];
   unreadNotificationCount: number;
   unreadPrivateUpdateCount: number;

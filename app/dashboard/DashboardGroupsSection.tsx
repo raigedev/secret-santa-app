@@ -8,6 +8,7 @@ import type { Group } from "./dashboard-types";
 type DashboardGroupsSectionProps = {
   countdownNow: number;
   deletingGroupId: string | null;
+  invitations?: ReactNode;
   invitedGroups: Group[];
   isDarkTheme: boolean;
   ownedGroups: Group[];
@@ -20,6 +21,7 @@ type DashboardGroupsSectionProps = {
 export function DashboardGroupsSection({
   countdownNow,
   deletingGroupId,
+  invitations,
   invitedGroups,
   isDarkTheme,
   ownedGroups,
@@ -67,10 +69,12 @@ export function DashboardGroupsSection({
                 data-testid="groups-section-intro"
                 className={`mt-1 max-w-2xl text-sm leading-6 ${dashboardPanelTextClass}`}
               >
-                Choose an exchange to manage members, wishlists, matches, messages, and settings.
+                {invitations
+                  ? "Review your invitations and open the groups you have joined."
+                  : "Choose an exchange to manage members, wishlists, matches, messages, and settings."}
               </p>
             </div>
-            {hasGroups && (
+            {(hasGroups || invitations) && (
               <button
                 data-testid="new-group-button"
                 type="button"
@@ -89,7 +93,8 @@ export function DashboardGroupsSection({
         </div>
       </div>
 
-      {!hasGroups ? (
+      {invitations}
+      {!hasGroups && !invitations ? (
         <section
           className={`relative overflow-hidden rounded-[30px] p-6 sm:p-8 ${
             isDarkTheme ? "holiday-panel-dark text-slate-100" : "holiday-panel-strong text-[#2e3432]"
@@ -154,7 +159,7 @@ export function DashboardGroupsSection({
             </aside>
           </div>
         </section>
-      ) : (
+      ) : hasGroups && (
         <DashboardGroupsWorkspace
           countdownNow={countdownNow}
           deletingGroupId={deletingGroupId}

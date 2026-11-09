@@ -49,7 +49,7 @@ export default function ConfirmEmailInvitePage() {
             </button>
           </form>
         )}
-        <Link href="/login" className="mt-4 inline-flex min-h-11 items-center text-sm font-bold text-[#48664e] underline-offset-4 hover:underline">
+        <Link href="/login?next=%2Fgroups" className="mt-4 inline-flex min-h-11 items-center text-sm font-bold text-[#48664e] underline-offset-4 hover:underline">
           Log in
         </Link>
       </section>

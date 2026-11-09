@@ -63,7 +63,7 @@ API and redirect routes:
 - `/api/affiliate/lazada/*`
 - `/api/affiliate/report-access`
 - `/api/assignments/gift-prep`
-- `/api/dashboard/pending-email-invites`
+- `/api/groups/pending-invites`
 - `/api/groups/peer-profiles`
 - `/go/suggestion`
 - `/go/wishlist-link`
