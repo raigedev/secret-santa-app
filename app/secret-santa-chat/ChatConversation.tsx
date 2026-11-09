@@ -263,6 +263,7 @@ export function ChatConversation({
           const previousDate = previous && new Date(previous.created_at);
           const newDay = !previousDate || date.toDateString() !== previousDate.toDateString();
           const showTimestamp = newDay || date.getTime() - previousDate.getTime() >= 30 * 60_000;
+          const showSender = !message.from_current_user && (showTimestamp || previous?.from_current_user);
           const time = timeFormat.format(date);
           return (
             <Fragment key={message.id}>
@@ -271,11 +272,14 @@ export function ChatConversation({
                   {formatDay(date)}{index > 0 ? `, ${time}` : ""}
                 </time>
               )}
-              <p className={message.from_current_user ? styles.sent : styles.received} title={time}>
-                <span className="sr-only">{message.from_current_user ? "You: " : `${name}: `}</span>
-                <span>{message.content}</span>
-                <span className="sr-only"> {time}</span>
-              </p>
+              <div className={styles.message} data-outgoing={message.from_current_user}>
+                {showSender && <p className={styles.sender} aria-hidden="true">{name}</p>}
+                <p className={message.from_current_user ? styles.sent : styles.received} title={time}>
+                  <span className="sr-only">{message.from_current_user ? "You: " : `${name}: `}</span>
+                  <span>{message.content}</span>
+                  <span className="sr-only"> {time}</span>
+                </p>
+              </div>
             </Fragment>
           );
         })}

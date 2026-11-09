@@ -168,9 +168,28 @@
   font-weight: 650;
 }
 
+.message {
+  align-self: flex-start;
+  min-width: 0;
+  max-width: min(85%, 52ch);
+}
+
+.message[data-outgoing="true"] {
+  align-self: flex-end;
+}
+
+.sender {
+  margin: 0 2px 4px;
+  color: var(--chat-accent);
+  font-size: .75rem;
+  font-weight: 700;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+}
+
 .sent,
 .received {
-  max-width: min(85%, 52ch);
+  width: fit-content;
   padding: 8px 12px;
   border: 1px solid transparent;
   border-radius: 16px;
@@ -181,14 +200,12 @@
 }
 
 .sent {
-  align-self: flex-end;
   border-end-end-radius: 3px;
   background: var(--chat-accent);
   color: white;
 }
 
 .received {
-  align-self: flex-start;
   border-color: var(--chat-line);
   border-end-start-radius: 3px;
   background: white;

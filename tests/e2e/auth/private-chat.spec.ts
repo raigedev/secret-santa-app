@@ -131,11 +131,16 @@ test("separate chats deliver both ways and stay scoped to the selected exchange"
     ]);
     expect(assignmentError).toBeNull();
     const otherMessage = "Do you prefer books or snacks?";
-    const { error: fixtureMessageError } = await admin.from("messages").insert({
-      group_id: groupId, sender_id: peer.id, thread_giver_id: peer.id,
-      thread_receiver_id: giver.id, content: otherMessage,
-      created_at: new Date(Date.now() - 86_400_000).toISOString(),
-    });
+    const followUpMessage = "Any allergies I should know about?";
+    const yesterday = new Date(Date.now() - 86_400_000);
+    yesterday.setHours(12, 0, 0, 0);
+    const { error: fixtureMessageError } = await admin.from("messages").insert(
+      [otherMessage, followUpMessage].map((content, index) => ({
+        group_id: groupId, sender_id: peer.id, thread_giver_id: peer.id,
+        thread_receiver_id: giver.id, content,
+        created_at: new Date(yesterday.getTime() + index * 60_000).toISOString(),
+      }))
+    );
     expect(fixtureMessageError).toBeNull();
 
     const recipientPage = await recipientContext.newPage();
@@ -176,6 +181,11 @@ test("separate chats deliver both ways and stay scoped to the selected exchange"
     await expect(giverBox.getByRole("heading", { name: "Ribbon Keeper" })).toBeVisible({ timeout: 10_000 });
     await expect(santaBox.getByRole("heading", { name: "Your Secret Santa" })).toBeVisible();
     await expect(santaBox.getByText(otherMessage, { exact: true })).toBeVisible();
+    await expect(santaBox.getByText(followUpMessage, { exact: true })).toBeVisible();
+    const santaLabels = santaBox.getByRole("log").getByText("Your Secret Santa", { exact: true });
+    await expect(santaLabels).toHaveCount(1);
+    await expect(santaLabels).toBeVisible();
+    await expect(santaBox.getByRole("log").getByText("Snow Riddle", { exact: true })).toHaveCount(0);
     expect(chatLookups[0]).toEqual([groupId, otherGroupId]);
     const [giverBounds, santaBounds] = await Promise.all([giverBox.boundingBox(), santaBox.boundingBox()]);
     expect(giverBounds).not.toBeNull();
@@ -198,6 +208,8 @@ test("separate chats deliver both ways and stay scoped to the selected exchange"
     await expect(santaDraft).toHaveValue("A separate draft");
     await expect(santaBox.getByText(firstMessage, { exact: true })).toHaveCount(0);
     await expect(recipientSantaBox.getByText(firstMessage, { exact: true })).toBeVisible({ timeout: 25_000 });
+    await expect(recipientSantaBox.getByRole("log").getByText("Your Secret Santa", { exact: true })).toBeVisible();
+    await expect(giverBox.getByRole("log").getByText("Ribbon Keeper", { exact: true })).toHaveCount(0);
     if (stacked) {
       await expect(recipientSantaBox.getByText(firstMessage, { exact: true })).not.toBeInViewport();
       await recipientPage.evaluate(() => window.dispatchEvent(new Event("focus")));
@@ -211,6 +223,7 @@ test("separate chats deliver both ways and stay scoped to the selected exchange"
     await recipientSantaBox.getByRole("textbox", { name: "Reply to your Santa" }).fill(replyMessage);
     await recipientSantaBox.getByRole("button", { name: "Send", exact: true }).click();
     await expect(giverBox.getByText(replyMessage, { exact: true })).toBeVisible({ timeout: 25_000 });
+    await expect(giverBox.getByRole("log").getByText("Ribbon Keeper", { exact: true })).toBeVisible();
     await expect(recipientSantaBox.getByText("1 new", { exact: true })).toHaveCount(0);
     await santaDraft.clear();
     await page.evaluate(() => window.scrollTo(0, 0));
