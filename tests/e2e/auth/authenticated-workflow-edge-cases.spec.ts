@@ -578,14 +578,15 @@ test.describe("authenticated workflow edge cases", () => {
     const futureDate = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
       .toISOString()
       .slice(0, 10);
-    await page.getByRole("button", { name: /^use nicknames in this group$/i }).click();
+    await page.getByRole("button", { name: "Use Secret Santa aliases", exact: true }).click();
+    await expect(createGroupForm.getByRole("textbox", { name: /your secret santa alias/i })).toBeVisible();
     await groupNameInput.fill("Playwright validation check");
     await eventDateInput.fill(futureDate);
     await expect(groupNameInput).toHaveValue("Playwright validation check");
     await expect(eventDateInput).toHaveValue(futureDate);
     await page.getByRole("button", { name: /^create exchange$/i }).click();
 
-    await expect(page.getByText(/enter a group nickname to continue/i)).toBeVisible();
+    await expect(page.getByText(/enter a secret santa alias to continue/i)).toBeVisible();
     await expect(page).toHaveURL(/\/create-group$/);
     expect(dataWriteRequests).toEqual([]);
   });

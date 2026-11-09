@@ -514,7 +514,7 @@ export async function updateNickname(
   const cleanNick = sanitizeGroupNickname(nickname);
 
   if (cleanNick.length === 0) {
-    return { success: false, message: "Nickname cannot be empty." };
+    return { success: false, message: "Enter an alias." };
   }
 
   if (!isUuid(groupId)) {
@@ -572,7 +572,7 @@ export async function updateNickname(
       resourceType: "group_membership",
     });
 
-    return { success: false, message: "Failed to update nickname." };
+    return { success: false, message: "Could not update your alias." };
   }
 
   if (!groupResult.data) {
@@ -619,10 +619,10 @@ export async function updateNickname(
       resourceType: "group_membership",
     });
 
-    return { success: false, message: "Failed to update nickname." };
+    return { success: false, message: "Could not update your alias." };
   }
 
-  return { success: true, message: `Nickname updated to "${cleanNick}"!` };
+  return { success: true, message: `Alias updated to "${cleanNick}"!` };
 }
 
 export async function resendInvite(

@@ -788,7 +788,7 @@ export async function drawSecretSanta(
     if (hasInvalidCodename) {
       return {
         success: false,
-        message: "Every member, including the organizer, needs a nickname before names can be drawn.",
+        message: "Every member, including the organizer, needs an alias before names can be drawn.",
       };
     }
   }

@@ -462,7 +462,7 @@ export default function GroupRevealPage() {
       : "Secret Santa match"
     : revealedCard
       ? "Identity revealed"
-      : "Mystery nickname";
+      : "Mystery alias";
   const activeCardBadgeLabel = isMatchPhase
     ? revealedCard
       ? "Match"
@@ -476,18 +476,18 @@ export default function GroupRevealPage() {
       : "Who gets who?"
     : revealedCard
       ? activeAliasEntry?.realName || activeAliasEntry?.alias || "Member"
-      : activeAliasEntry?.alias || "Mystery nickname";
+      : activeAliasEntry?.alias || "Mystery alias";
   const activeCardDescription = isMatchPhase
     ? revealedCard
       ? `${activeMatchEntry?.giver || "Member"} is giving to ${activeMatchEntry?.receiver || "Member"}.`
       : "Reveal the next Secret Santa pairing when the room is ready."
     : revealedCard
-      ? `Nickname: ${activeAliasEntry?.alias || "Unknown"}`
-      : "Keep the nickname on screen first, then flip when the room is ready.";
+      ? `Alias: ${activeAliasEntry?.alias || "Unknown"}`
+      : "Keep the alias on screen first, then flip when the room is ready.";
   const revealToggleLabel = revealedCard
     ? isMatchPhase
       ? "Hide match"
-      : "Show nickname again"
+      : "Show alias again"
     : isMatchPhase
       ? "Reveal match"
       : "Reveal owner";
@@ -497,7 +497,7 @@ export default function GroupRevealPage() {
       : "Owner revealed"
     : isMatchPhase
       ? "Match hidden"
-      : "Nickname hidden";
+      : "Alias hidden";
   const activeMatchGiver = activeMatchEntry?.giver || "Member";
   const activeMatchReceiver = activeMatchEntry?.receiver || "Member";
   const activeMatchGiverLabel = revealedCard ? activeMatchGiver : "???";
@@ -1228,7 +1228,7 @@ export default function GroupRevealPage() {
                 >
                   <div className="text-[22px] font-bold text-white mb-2">No reveal data yet</div>
                   <p className="text-[14px] font-semibold" style={{ color: "#cbd5e1" }}>
-                    Accepted members need nicknames and a completed draw before this reveal screen can be used.
+                    Accepted members need aliases and a completed draw before the reveal.
                   </p>
                 </div>
               )}
@@ -1249,13 +1249,13 @@ export default function GroupRevealPage() {
                     style={{ color: "#cbd5e1" }}
                   >
                     {isPublishedPresentation
-                      ? "The full reveal is already public. These controls now replay both nickname reveals and final matches for the room."
+                      ? "The full reveal is already public. Replay the alias reveals and final matches for the room."
                       : presentation.session.status === "waiting"
                       ? "The room is open. Start the countdown when everyone is looking at the screen."
                       : showCountdown
                         ? "The countdown is live now. Controls unlock again as soon as it finishes."
                         : usesSharedSession
-                          ? "The TV and any joined phones stay in sync while you move from nickname reveals into the final matches."
+                          ? "The TV and any joined phones stay in sync during alias reveals and final matches."
                           : "You are still in private preview mode. Start the live reveal when you want other devices to follow along."}
                   </div>
 
@@ -1278,7 +1278,7 @@ export default function GroupRevealPage() {
                     : showCountdown
                       ? "Countdown is running. Stay on this page and the first event reveal card will appear here automatically."
                       : usesSharedSession
-                        ? "The owner is controlling the live reveal. This page will keep updating automatically through both nickname and match phases."
+                        ? "The owner is controlling the live reveal. This page stays in sync during alias reveals and final matches."
                         : "You can leave this page open on your phone. It will change automatically once the owner starts the live reveal."}
                 </div>
               )}

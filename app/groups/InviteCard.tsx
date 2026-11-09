@@ -66,7 +66,7 @@ export function InviteCard({
         {requiresNickname && (
           <div className="mb-4">
             <label htmlFor={nicknameId} className="block text-sm font-bold text-[#2e3432]">
-              Group nickname
+              Secret Santa alias
             </label>
             <input
               id={nicknameId}
@@ -79,7 +79,7 @@ export function InviteCard({
               className="mt-1.5 min-h-11 w-full rounded-lg border border-[#48664e]/20 bg-white px-3 text-sm text-[#2e3432] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#48664e]"
             />
             <p id={`${nicknameId}-hint`} className="mt-1.5 text-xs text-slate-600">
-              Group members will see your nickname instead of your name or email.
+              Group members will see your alias instead of your name or email.
             </p>
           </div>
         )}

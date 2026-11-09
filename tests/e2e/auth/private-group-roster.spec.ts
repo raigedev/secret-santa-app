@@ -89,6 +89,9 @@ test("joined members see the private roster without peer identities", async ({ p
     await expect(roster.getByRole("heading", { name: "Members (2)" })).toBeVisible();
     await expect(roster.getByText("Gift Captain", { exact: true })).toBeVisible();
     await expect(roster.getByText("Snow Riddle", { exact: true })).toBeVisible();
+    await roster.getByRole("button", { name: "Change alias", exact: true }).click();
+    await expect(roster.getByRole("textbox", { name: "Secret Santa alias" })).toHaveValue("Snow Riddle");
+    await roster.getByRole("button", { name: "Cancel", exact: true }).click();
     const summary = page.getByRole("region", { name: "Event summary" });
     await expect(summary.getByText("Joined members", { exact: true })).toBeVisible();
     await expect(summary.getByText("2", { exact: true })).toBeVisible();
