@@ -780,7 +780,7 @@ test("anonymous receiver chat keeps giver identifiers server-side before reveal"
   assert.match(pageSource, /loadReceiverThreadMessages/);
   assert.match(pageSource, /sendReceiverMessage/);
   assert.match(pageSource, /markReceiverThreadAsRead/);
-  assert.match(pageSource, /fetchMyAssignmentGiftPrep\(groupIds\)/);
+  assert.match(pageSource, /fetchMyAssignmentGiftPrep\(activeGroupIds\)/);
   assert.match(pageSource, /\.eq\("thread_giver_id",\s*user\.id\)/);
   assert.doesNotMatch(pageSource, /table:\s*"messages"/);
   assert.match(pageSource, /thread\.thread_id === currentActiveThread\.thread_id/);

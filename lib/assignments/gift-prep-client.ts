@@ -1,4 +1,5 @@
 import { isNullableString, isRecord, isUuid } from "@/lib/validation/common";
+import { MAX_GIFT_PREP_GROUP_IDS } from "./gift-prep-contract";
 
 type MyAssignmentGiftPrepRow = {
   gift_prep_status: string | null;
@@ -75,34 +76,31 @@ export async function fetchMyAssignmentGiftPrep(
 ): Promise<MyAssignmentGiftPrepResult> {
   const safeGroupIds = Array.from(new Set(groupIds.filter(isUuid)));
 
-  if (safeGroupIds.length === 0) {
-    return { data: [], error: null };
-  }
-
   try {
-    const response = await fetch("/api/assignments/gift-prep", {
-      body: JSON.stringify({ groupIds: safeGroupIds }),
-      cache: "no-store",
-      credentials: "same-origin",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      method: "POST",
-    });
+    const rows: MyAssignmentGiftPrepRow[] = [];
 
-    if (!response.ok) {
-      return {
-        data: [],
-        error: new Error("Failed to load gift progress."),
-      };
+    for (let offset = 0; offset < safeGroupIds.length; offset += MAX_GIFT_PREP_GROUP_IDS) {
+      const response = await fetch("/api/assignments/gift-prep", {
+        body: JSON.stringify({
+          groupIds: safeGroupIds.slice(offset, offset + MAX_GIFT_PREP_GROUP_IDS),
+        }),
+        cache: "no-store",
+        credentials: "same-origin",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        method: "POST",
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to load gift progress.");
+      }
+
+      const payload = (await response.json()) as GiftPrepResponsePayload;
+      rows.push(...parseGiftPrepRows(payload));
     }
 
-    const payload = (await response.json()) as GiftPrepResponsePayload;
-
-    return {
-      data: parseGiftPrepRows(payload),
-      error: null,
-    };
+    return { data: rows, error: null };
   } catch (error) {
     return {
       data: [],

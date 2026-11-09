@@ -50,10 +50,6 @@ type Message = {
   id: string;
 };
 
-type MembershipRow = {
-  group_id: string;
-};
-
 type GroupRow = {
   id: string;
   name: string | null;
@@ -937,14 +933,16 @@ export default function SecretSantaChatPage() {
           }
         }
 
-        const { data: memberRows, error: membershipsError } = await supabase
-          .from("group_members").select("group_id")
-          .eq("user_id", user.id).eq("status", "accepted");
+        const { data: groupsData, error: groupsError } = await supabase
+          .from("groups")
+          .select("id, name, event_date, event_timezone, group_members!inner(user_id)")
+          .eq("group_members.user_id", user.id)
+          .eq("group_members.status", "accepted");
         if (!isMounted || loadVersion !== loadThreadsVersionRef.current) {
           return;
         }
 
-        if (membershipsError) {
+        if (groupsError) {
           setThreadListMessage("We could not load your chats. Please refresh the page.");
           setThreads([]);
           setActiveThread(null);
@@ -955,9 +953,12 @@ export default function SecretSantaChatPage() {
           return;
         }
 
-        const memberships = (memberRows || []) as MembershipRow[];
-        const groupIds = [...new Set(memberships.map((row) => row.group_id))];
-        if (groupIds.length === 0) {
+        const now = Date.now();
+        const activeGroups = ((groupsData || []) as GroupRow[]).filter(
+          (group) => !isGroupInHistory(group.event_date, now, group.event_timezone)
+        );
+        const activeGroupIds = activeGroups.map((group) => group.id);
+        if (activeGroupIds.length === 0) {
           setThreadListMessage(null);
           setThreads([]);
           setActiveThread(null);
@@ -975,20 +976,18 @@ export default function SecretSantaChatPage() {
         }
 
         const [
-          { data: groupsData, error: groupsError },
           { data: giverAssignments, error: giverAssignmentsError },
           receiverThreadsResult,
           { data: allMessages, error: messagesError },
           { data: readTimestamps, error: readTimestampsError },
         ] = await Promise.all([
-          supabase.from("groups").select("id, name, event_date, event_timezone").in("id", groupIds),
-          fetchMyAssignmentGiftPrep(groupIds),
+          fetchMyAssignmentGiftPrep(activeGroupIds),
           loadReceiverChatThreads(),
           supabase
             .from("messages")
             .select("group_id, thread_giver_id, thread_receiver_id, sender_id, content, created_at")
             .eq("thread_giver_id", user.id)
-            .in("group_id", groupIds)
+            .in("group_id", activeGroupIds)
             .order("created_at", { ascending: false })
             .limit(CHAT_THREAD_MESSAGE_SCAN_LIMIT),
           supabase
@@ -996,14 +995,13 @@ export default function SecretSantaChatPage() {
             .select("group_id, thread_giver_id, thread_receiver_id, last_read_at")
             .eq("user_id", user.id)
             .eq("thread_giver_id", user.id)
-            .in("group_id", groupIds),
+            .in("group_id", activeGroupIds),
         ]);
         if (!isMounted || loadVersion !== loadThreadsVersionRef.current) {
           return;
         }
 
         if (
-          groupsError ||
           giverAssignmentsError ||
           !receiverThreadsResult.success ||
           messagesError ||
@@ -1019,30 +1017,7 @@ export default function SecretSantaChatPage() {
           return;
         }
 
-        const groupNameById = new Map(
-          ((groupsData || []) as GroupRow[]).map((group) => [group.id, group.name || "Unknown"])
-        );
-        const groupGiftDateById = new Map(
-          ((groupsData || []) as GroupRow[]).map((group) => [group.id, group.event_date || ""])
-        );
-        const groupTimeZoneById = new Map(
-          ((groupsData || []) as GroupRow[]).map((group) => [
-            group.id,
-            group.event_timezone || DEFAULT_EXCHANGE_TIME_ZONE,
-          ])
-        );
-        const currentChatGroupIds = new Set(
-          ((groupsData || []) as GroupRow[])
-            .filter(
-              (group) =>
-                !isGroupInHistory(
-                  group.event_date,
-                  Date.now(),
-                  group.event_timezone
-                )
-            )
-            .map((group) => group.id)
-        );
+        const activeGroupById = new Map(activeGroups.map((group) => [group.id, group]));
         const threadMetaByKey = buildThreadMetaMap(
           ((allMessages || []) as MessageRow[]),
           ((readTimestamps || []) as ThreadReadRow[]),
@@ -1052,7 +1027,8 @@ export default function SecretSantaChatPage() {
         const buildThreads: Thread[] = [];
 
         for (const a of giverAssignments) {
-          if (!currentChatGroupIds.has(a.group_id)) {
+          const group = activeGroupById.get(a.group_id);
+          if (!group) {
             continue;
           }
 
@@ -1063,11 +1039,9 @@ export default function SecretSantaChatPage() {
           buildThreads.push({
             thread_id: createGiverThreadId(a.group_id, user.id, a.receiver_id),
             group_id: a.group_id,
-            group_name: groupNameById.get(a.group_id) || "Unknown",
-            group_gift_date: groupGiftDateById.get(a.group_id) || "",
-            group_time_zone:
-              groupTimeZoneById.get(a.group_id) ||
-              DEFAULT_EXCHANGE_TIME_ZONE,
+            group_name: group.name || "Unknown",
+            group_gift_date: group.event_date || "",
+            group_time_zone: group.event_timezone || DEFAULT_EXCHANGE_TIME_ZONE,
             giver_id: user.id,
             receiver_id: a.receiver_id,
             other_name: name,
@@ -1081,7 +1055,7 @@ export default function SecretSantaChatPage() {
         }
 
         for (const receiverThread of receiverThreadsResult.threads as ReceiverChatThread[]) {
-          if (!currentChatGroupIds.has(receiverThread.group_id)) {
+          if (!activeGroupById.has(receiverThread.group_id)) {
             continue;
           }
 

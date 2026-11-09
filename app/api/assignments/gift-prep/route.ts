@@ -1,3 +1,4 @@
+import { MAX_GIFT_PREP_GROUP_IDS } from "@/lib/assignments/gift-prep-contract";
 import {
   isEmailDerivedGroupNickname,
   sanitizeGroupNickname,
@@ -11,7 +12,6 @@ import { supabaseAdmin } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 import { isRecord, isUuid } from "@/lib/validation/common";
 
-const MAX_GIFT_PREP_GROUP_IDS = 50;
 const GIFT_PREP_BODY_LIMIT_BYTES = 8 * 1024;
 // This authenticated read path is shared by dashboard, history, and gift screens.
 // Keep it bounded, but high enough for normal navigation and full browser smoke runs.
