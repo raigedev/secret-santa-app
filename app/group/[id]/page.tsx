@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import dynamic from "next/dynamic";
 import { useParams, useRouter } from "next/navigation";
 import { formatExchangeDate } from "@/lib/exchange-date.mjs";
+import { fetchMyAssignmentGiftPrep } from "@/lib/assignments/gift-prep-client";
 import { createClient } from "@/lib/supabase/client";
 import {
   addDrawExclusion,
@@ -241,12 +242,20 @@ export default function GroupDetailsPage() {
         group.event_timezone
       );
       const canLoadOwnerManagement = isCurrentUserOwner && !isHistoricalGroup;
-      const membersResult = await getGroupMembersForViewer(id);
+      const [membersResult, assignmentResult] = await Promise.all([
+        getGroupMembersForViewer(id),
+        fetchMyAssignmentGiftPrep([id]),
+      ]);
 
       if (!isMounted || currentLoadVersion !== loadVersion) return;
 
       if (!membersResult.success) {
         setError(membersResult.message || "Error loading members.");
+        setLoading(false);
+        return;
+      }
+      if (assignmentResult.error) {
+        setError("Could not load your draw result. Refresh this page to try again.");
         setLoading(false);
         return;
       }
@@ -274,25 +283,11 @@ export default function GroupDetailsPage() {
       }));
       setMembers(safeMembers);
 
-      const { data: myAssignment } = await supabase
-        .from("assignments")
-        .select("receiver_id")
-        .eq("group_id", id)
-        .eq("giver_id", user.id)
-        .maybeSingle();
-
-      if (!isMounted || currentLoadVersion !== loadVersion) return;
-
-      if (myAssignment) {
-        setDrawDone(true);
-        const receiver = safeMembers.find((member) => member.user_id === myAssignment.receiver_id);
-        setAssignment({
-          receiver_nickname: receiver?.nickname || "Secret Member",
-        });
-      } else {
-        setDrawDone(false);
-        setAssignment(null);
-      }
+      const myAssignment = assignmentResult.data.find((row) => row.group_id === id);
+      setDrawDone(Boolean(myAssignment));
+      setAssignment(myAssignment ? {
+        receiver_nickname: myAssignment.receiver_nickname || "Secret Member",
+      } : null);
 
       setGroupDataFresh(true);
       writeGroupPageSnapshot({

@@ -120,6 +120,7 @@ type GroupRow = {
 type AssignmentRow = {
   group_id: string;
   receiver_id: string;
+  receiver_nickname: string | null;
   gift_prep_status: GiftPrepStatus | null;
   gift_prep_updated_at: string | null;
   gift_received: boolean | null;
@@ -130,12 +131,6 @@ type ReceivedAssignmentRow = {
   group_id: string;
   gift_received: boolean | null;
   gift_received_at: string | null;
-};
-
-type MemberRow = {
-  group_id: string;
-  user_id: string;
-  nickname: string | null;
 };
 
 type WishlistRow = {
@@ -2483,16 +2478,9 @@ function buildAvailableGroups(groups: GroupRow[]): GroupOption[] {
 function buildRecipientData(
   assignments: AssignmentRow[],
   groups: GroupOption[],
-  receiverMembers: MemberRow[],
   receiverWishlists: WishlistRow[]
 ): RecipientData[] {
   const groupsById = new Map(groups.map((group) => [group.id, group]));
-  const membersByKey = new Map(
-    receiverMembers.map((member) => [
-      createGroupUserKey(member.group_id, member.user_id),
-      member,
-    ])
-  );
   const wishlistsByKey = new Map<string, WishlistItem[]>();
   const groupOrder = new Map(groups.map((group, index) => [group.id, index]));
 
@@ -2506,10 +2494,6 @@ function buildRecipientData(
   return assignments
     .map((assignment) => {
       const group = groupsById.get(assignment.group_id);
-      const receiver = membersByKey.get(
-        createGroupUserKey(assignment.group_id, assignment.receiver_id)
-      );
-
       return {
         group_id: assignment.group_id,
         group_name: group?.name || "Unknown Group",
@@ -2518,7 +2502,7 @@ function buildRecipientData(
           group?.eventTimeZone || DEFAULT_EXCHANGE_TIME_ZONE,
         group_budget: group?.budget ?? null,
         group_currency: group?.currency ?? null,
-        receiver_nickname: receiver?.nickname || "Secret Member",
+        receiver_nickname: assignment.receiver_nickname || "Secret Member",
         receiver_wishlist: sortWishlistItems(
           wishlistsByKey.get(
             createGroupUserKey(assignment.group_id, assignment.receiver_id)
@@ -3544,33 +3528,21 @@ function SecretSantaExperience({ mode = "shopping" }: SecretSantaExperienceProps
           ];
           const activeGroupIdList = Array.from(activeGroupIds);
 
-          const [
-            { data: receiverMembers, error: receiverMembersError },
-            { data: receiverWishlists, error: receiverWishlistsError },
-          ] = await Promise.all([
-            supabase
-              .from("group_members")
-              .select("group_id, user_id, nickname")
-              .in("user_id", receiverIds)
-              .in("group_id", activeGroupIdList)
-              .eq("status", "accepted"),
-            supabase
-              .from("wishlists")
-              .select(
-                "id, group_id, user_id, item_name, item_category, item_link, item_note, preferred_price_min, preferred_price_max, priority"
-              )
-              .in("user_id", receiverIds)
-              .in("group_id", activeGroupIdList),
-          ]);
+          const { data: receiverWishlists, error: receiverWishlistsError } = await supabase
+            .from("wishlists")
+            .select(
+              "id, group_id, user_id, item_name, item_category, item_link, item_note, preferred_price_min, preferred_price_max, priority"
+            )
+            .in("user_id", receiverIds)
+            .in("group_id", activeGroupIdList);
 
-          if (receiverMembersError || receiverWishlistsError) {
-            throw receiverMembersError || receiverWishlistsError;
+          if (receiverWishlistsError) {
+            throw receiverWishlistsError;
           }
 
           recipientData = buildRecipientData(
             activeAssignments,
             groupOptions,
-            (receiverMembers || []) as MemberRow[],
             (receiverWishlists || []) as WishlistRow[]
           );
         }

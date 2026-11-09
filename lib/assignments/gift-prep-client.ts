@@ -7,6 +7,7 @@ type MyAssignmentGiftPrepRow = {
   gift_received_at: string | null;
   group_id: string;
   receiver_id: string;
+  receiver_nickname: string | null;
 };
 
 type GiftPrepResponsePayload = {
@@ -55,6 +56,7 @@ function parseGiftPrepRow(value: unknown): MyAssignmentGiftPrepRow | null {
     gift_received_at: value.gift_received_at,
     group_id: groupId,
     receiver_id: receiverId,
+    receiver_nickname: isNullableString(value.receiver_nickname) ? value.receiver_nickname : null,
   };
 }
 

@@ -65,7 +65,7 @@ export type AssignmentRow = {
 
 export type MyAssignmentRow = {
   group_id: string;
-  receiver_id: string;
+  receiver_nickname: string | null;
   gift_prep_status: string | null;
   gift_prep_updated_at: string | null;
 };
