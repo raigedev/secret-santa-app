@@ -21,23 +21,12 @@ import {
 } from "@/app/history/HistoryMemoryBook";
 import { isGroupInHistory } from "@/lib/groups/history";
 import { createClient } from "@/lib/supabase/client";
-import {
-  createGroupUserKey,
-  getDashboardMemberLabel,
-} from "@/app/dashboard/dashboard-formatters";
 import { fetchMyAssignmentGiftPrep } from "@/lib/assignments/gift-prep-client";
 import { normalizeOptionalWishlistUrl } from "@/lib/wishlist/url";
 
 type HistoryPageUser = {
   id: string;
   email?: string | null;
-};
-
-type HistoryAssignmentRow = {
-  gift_prep_status: string | null;
-  gift_received: boolean | null;
-  group_id: string;
-  receiver_id: string;
 };
 
 const HISTORY_PAGE_FALLBACK_POLL_MS = 5 * 60 * 1000;
@@ -126,34 +115,15 @@ export default function HistoryPage() {
           return groupsById;
         }, {});
 
-        const memberNameByGroupUser = new Map<string, string>();
-
-        for (const group of historical.allGroups) {
-          for (const member of group.members) {
-            if (!member.userId) {
-              continue;
-            }
-
-            memberNameByGroupUser.set(
-              createGroupUserKey(group.id, member.userId),
-              getDashboardMemberLabel(member, group.require_anonymous_nickname)
-            );
-          }
-        }
-
-        const summariesByGroupId = ((assignmentRes.data || []) as HistoryAssignmentRow[]).reduce<
+        const summariesByGroupId = assignmentRes.data.reduce<
           Record<string, HistoryAssignmentSummary>
         >((summaries, assignment) => {
-          const receiverName =
-            memberNameByGroupUser.get(
-              createGroupUserKey(assignment.group_id, assignment.receiver_id)
-            ) || "Secret Member";
           const isCompleted =
             assignment.gift_received || assignment.gift_prep_status === "ready_to_give";
 
           summaries[assignment.group_id] = {
             giftProgressLabel: isCompleted ? "Completed" : "Concluded",
-            receiverName,
+            receiverName: assignment.receiver_nickname,
           };
 
           return summaries;

@@ -12,7 +12,6 @@ import FadeIn from "@/app/components/FadeIn";
 import {
   buildDashboardRevealMessage,
   createEmptyQueryResult,
-  createGroupUserKey,
   formatGiftPrepStatusLabel,
   getNotificationPreviewTitle,
   normalizeGiftProgressStep,
@@ -593,27 +592,10 @@ export default function DashboardPage() {
 
         void loadDashboardPeerProfiles(groupsWithMembers, currentLoadVersion);
 
-        const receiverNameByGroupUser = new Map<string, string>();
         const groupNameById = new Map(activeGroupsData.map((group) => [group.id, group.name]));
-
-        for (const member of allMembers) {
-          if (!member.user_id) {
-            continue;
-          }
-
-          receiverNameByGroupUser.set(
-            createGroupUserKey(member.group_id, member.user_id),
-            member.nickname || "Secret Member"
-          );
-        }
-
-        const nextRecipientNames = myAssignments.map((assignment) => {
-          return (
-            receiverNameByGroupUser.get(
-              createGroupUserKey(assignment.group_id, assignment.receiver_id)
-            ) || "Secret Member"
-          );
-        });
+        const nextRecipientNames = myAssignments.map(
+          (assignment) => assignment.receiver_nickname || "Secret Member"
+        );
 
         setRecipientNames(nextRecipientNames);
         setWishlistItemCount(wishlistSummary.length);
@@ -623,10 +605,7 @@ export default function DashboardPage() {
         if (myAssignments.length > 0) {
           const normalizedAssignments = myAssignments.map((assignment) => ({
             step: normalizeGiftProgressStep(assignment.gift_prep_status),
-            recipientName:
-              receiverNameByGroupUser.get(
-                createGroupUserKey(assignment.group_id, assignment.receiver_id)
-              ) || "your recipient",
+            recipientName: assignment.receiver_nickname || "your recipient",
             groupName: groupNameById.get(assignment.group_id) || "your group",
             updatedAt: assignment.gift_prep_updated_at
               ? new Date(assignment.gift_prep_updated_at).getTime()
@@ -681,10 +660,7 @@ export default function DashboardPage() {
               (assignment) => assignment.gift_prep_status && assignment.gift_prep_updated_at
             )
             .map((assignment) => {
-              const receiverName =
-                receiverNameByGroupUser.get(
-                  createGroupUserKey(assignment.group_id, assignment.receiver_id)
-                ) || "your recipient";
+              const receiverName = assignment.receiver_nickname || "your recipient";
               const groupName = groupNameById.get(assignment.group_id) || "your group";
               const statusLabel = formatGiftPrepStatusLabel(assignment.gift_prep_status);
               const visual = getActivityFeedVisual("gift_progress");
