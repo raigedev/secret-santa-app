@@ -108,7 +108,7 @@ export default function InviteForm({ groupId }: { groupId: string }) {
               Invite by email
             </div>
             <p className="mt-1 text-xs font-bold leading-5 text-[#64748b]">
-              Send a private invite to new members. Existing users also see the invite on their dashboard.
+              Send a private invite to new members. They can respond in My Groups.
             </p>
           </div>
 

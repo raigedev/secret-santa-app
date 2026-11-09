@@ -14,7 +14,9 @@ import { DashboardStatusMessage } from "@/app/dashboard/DashboardStatusMessage";
 import type { ActionMessage, Group } from "@/app/dashboard/dashboard-types";
 import { deleteGroup } from "@/app/group/[id]/actions";
 import { GroupDeleteDialog, type DeleteGroupTarget } from "@/app/groups/GroupDeleteDialog";
+import { InviteCard } from "@/app/groups/InviteCard";
 import { isGroupInHistory } from "@/lib/groups/history";
+import type { PendingInvite } from "@/lib/groups/pending-invites";
 import { createClient } from "@/lib/supabase/client";
 
 type GroupsPageUser = {
@@ -26,6 +28,17 @@ const GROUPS_PAGE_FALLBACK_POLL_MS = 5 * 60 * 1000;
 const GROUPS_PAGE_LOAD_TIMEOUT_MS = 10_000;
 const GROUPS_PAGE_LOAD_TIMEOUT_MESSAGE =
   "Your groups are taking longer than expected. Refresh the page or try another section.";
+
+async function loadPendingInvites(): Promise<PendingInvite[]> {
+  const response = await fetch("/api/groups/pending-invites", {
+    cache: "no-store",
+    signal: AbortSignal.timeout(3_500),
+  });
+  if (!response.ok) throw new Error("Could not load invitations.");
+  const result: { success: boolean; invites: PendingInvite[] } = await response.json();
+  if (!result.success) throw new Error("Could not load invitations.");
+  return result.invites;
+}
 
 function splitActiveGroups(groups: Group[]) {
   return splitDashboardGroups(
@@ -46,6 +59,8 @@ export default function GroupsPage() {
   const [countdownNow, setCountdownNow] = useState(() => Date.now());
   const [ownedGroups, setOwnedGroups] = useState<Group[]>([]);
   const [invitedGroups, setInvitedGroups] = useState<Group[]>([]);
+  const [pendingInvites, setPendingInvites] = useState<PendingInvite[]>([]);
+  const [invitesUnavailable, setInvitesUnavailable] = useState(false);
   const [loading, setLoading] = useState(true);
   const [actionMessage, setActionMessage] = useState<ActionMessage>(null);
   const [deletingGroupId, setDeletingGroupId] = useState<string | null>(null);
@@ -93,12 +108,20 @@ export default function GroupsPage() {
       }, GROUPS_PAGE_LOAD_TIMEOUT_MS);
 
       try {
-        const groups = await loadDashboardGroups(supabase, user);
+        const [groupResult, inviteResult] = await Promise.allSettled([
+          loadDashboardGroups(supabase, user),
+          loadPendingInvites(),
+        ]);
 
         if (!mountedRef.current || loadVersion !== loadVersionRef.current) {
           return;
         }
 
+        setInvitesUnavailable(inviteResult.status === "rejected");
+        if (inviteResult.status === "fulfilled") setPendingInvites(inviteResult.value);
+        if (groupResult.status === "rejected") throw groupResult.reason;
+
+        const groups = groupResult.value;
         const activeGroups = splitActiveGroups(groups.allGroups);
         setOwnedGroups(activeGroups.ownedGroups);
         setInvitedGroups(activeGroups.invitedGroups);
@@ -223,6 +246,16 @@ export default function GroupsPage() {
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (sessionUserRef.current && sessionUserRef.current.id !== session?.user.id) {
+        loadVersionRef.current++;
+        sessionUserRef.current = null;
+        setPendingInvites([]);
+        setInvitesUnavailable(false);
+        setOwnedGroups([]);
+        setInvitedGroups([]);
+        setActionMessage(null);
+        setLoading(true);
+      }
       if (!session) {
         router.push("/login");
         return;
@@ -245,6 +278,16 @@ export default function GroupsPage() {
       subscription.unsubscribe();
     };
   }, [loadGroups, router, supabase]);
+
+  const handleInviteResponse = (groupId: string, message: string) => {
+    const sessionUser = sessionUserRef.current;
+    if (!sessionUser) return;
+
+    setPendingInvites((invites) => invites.filter((invite) => invite.group_id !== groupId));
+    setActionMessage({ type: "success", text: message });
+    clearDashboardSnapshots();
+    void loadGroups(sessionUser);
+  };
 
   const handleDeleteGroup = async (groupId: string, groupName: string) => {
     if (deletingGroupId) {
@@ -319,6 +362,32 @@ export default function GroupsPage() {
   }
 
   const totalDashboardGroupCount = ownedGroups.length + invitedGroups.length;
+  const invitations = pendingInvites.length > 0 || invitesUnavailable ? (
+    <section aria-labelledby="pending-invitations-heading" className="mb-6">
+      <h2 id="pending-invitations-heading" className="mb-3 text-lg font-black text-[#2e3432]">
+        Pending invitations
+      </h2>
+      {invitesUnavailable && (
+        <div className="mb-3 flex flex-wrap items-center gap-3">
+          <p role="status" className="text-sm font-semibold text-slate-600">Could not load invitations.</p>
+          <button
+            type="button"
+            className="gift-button gift-button-secondary gift-button-compact"
+            onClick={() => {
+              if (sessionUserRef.current) void loadGroups(sessionUserRef.current);
+            }}
+          >
+            Try again
+          </button>
+        </div>
+      )}
+      <div className="grid gap-3 lg:grid-cols-2">
+        {pendingInvites.map((invite) => (
+          <InviteCard key={invite.group_id} invite={invite} onRespond={handleInviteResponse} />
+        ))}
+      </div>
+    </section>
+  ) : null;
 
   return (
     <main className="min-h-screen px-4 py-8 sm:px-6 lg:px-8">
@@ -327,6 +396,7 @@ export default function GroupsPage() {
         <DashboardGroupsSection
           countdownNow={countdownNow}
           deletingGroupId={deletingGroupId}
+          invitations={invitations}
           invitedGroups={invitedGroups}
           isDarkTheme={false}
           ownedGroups={ownedGroups}

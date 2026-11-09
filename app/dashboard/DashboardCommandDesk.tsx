@@ -5,13 +5,11 @@ import {
   ArrowRightIcon,
   ChatIcon,
   GiftIcon,
-  UserOutlineIcon,
   WishlistIcon,
 } from "./dashboard-icons";
 import {
   AttentionRail,
   ExchangeLedger,
-  SectionTitle,
   StatusChip,
   plural,
   type DashboardAttentionItem,
@@ -20,8 +18,7 @@ import {
   formatDashboardBudget,
   formatDashboardDate,
 } from "./dashboard-formatters";
-import InviteCard from "./InviteCard";
-import type { DashboardActivityItem, Group, PendingInvite } from "./dashboard-types";
+import type { DashboardActivityItem, Group } from "./dashboard-types";
 
 type DeskStep = {
   helper: string;
@@ -41,7 +38,6 @@ type DashboardCommandDeskProps = {
   missionSummary: string;
   nextActionHref: string;
   nextActionLabel: string;
-  pendingInvites: PendingInvite[];
   readinessPercent: number;
   readyGiftCount: number;
   revealMessage: string;
@@ -90,7 +86,6 @@ export function DashboardCommandDesk({
   missionSummary,
   nextActionHref,
   nextActionLabel,
-  pendingInvites,
   readinessPercent,
   readyGiftCount,
   revealMessage,
@@ -123,33 +118,17 @@ export function DashboardCommandDesk({
   const remainingGiftUpdates = Math.max(giftProgressTotal - readyGiftCount, 0);
   const nextActionDetail = !focusGroup
     ? "Set the gift day and budget, then invite your first members."
-    : pendingInvites.length > 0
-      ? `${plural(pendingInvites.length, "invite")} still need a response.`
-      : wishlistNeedsClues
-        ? wishlistItemCount === 0
-          ? "Add at least one wishlist clue so your Santa has an idea to start with."
-          : `Add ${plural(wishlistCluesNeeded, "more clue")} to make gift planning easier.`
-        : !focusGroup.hasDrawn
-          ? "Review the group and draw names when everyone is ready."
-          : remainingGiftUpdates > 0
-            ? `${plural(remainingGiftUpdates, "gift")} still need a progress update.`
-            : "Your exchange is on track. Open it whenever you want the full details.";
+    : wishlistNeedsClues
+      ? wishlistItemCount === 0
+        ? "Add at least one wishlist clue so your Santa has an idea to start with."
+        : `Add ${plural(wishlistCluesNeeded, "more clue")} to make gift planning easier.`
+      : !focusGroup.hasDrawn
+        ? "Review the group and draw names when everyone is ready."
+        : remainingGiftUpdates > 0
+          ? `${plural(remainingGiftUpdates, "gift")} still need a progress update.`
+          : "Your exchange is on track. Open it whenever you want the full details.";
 
   const attentionItems: DashboardAttentionItem[] = [];
-
-  if (pendingInvites.length > 0) {
-    attentionItems.push({
-      actionLabel: "Review",
-      detail: "Accept or decline from the invite section.",
-      icon: <UserOutlineIcon className="h-5 w-5" />,
-      label: `${plural(pendingInvites.length, "invite")} waiting`,
-      onAction: () =>
-        document
-          .getElementById("dashboard-pending-invites")
-          ?.scrollIntoView({ behavior: "smooth", block: "start" }),
-      tone: "red",
-    });
-  }
 
   if (focusGroup && wishlistNeedsClues) {
     attentionItems.push({
@@ -343,29 +322,6 @@ export function DashboardCommandDesk({
               </ol>
             </section>
           </article>
-
-          {pendingInvites.length > 0 ? (
-            <section id="dashboard-pending-invites" className="scroll-mt-24">
-              <SectionTitle
-                isDarkTheme={isDarkTheme}
-                kicker="Respond here without exposing private email details."
-              >
-                Invites waiting for you
-              </SectionTitle>
-              <div className="mt-4 grid gap-4 md:grid-cols-2">
-                {pendingInvites.map((invite) => (
-                  <InviteCard
-                    key={invite.group_id}
-                    description={invite.group_description}
-                    eventDate={invite.group_event_date}
-                    groupId={invite.group_id}
-                    groupName={invite.group_name}
-                    requiresAnonymousNickname={invite.require_anonymous_nickname}
-                  />
-                ))}
-              </div>
-            </section>
-          ) : null}
 
           <ExchangeLedger
             groups={nextGroups}

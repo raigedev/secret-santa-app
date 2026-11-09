@@ -6,7 +6,6 @@ import type {
   GiftProgressSummary,
   Group,
   GroupMember,
-  PendingInvite,
 } from "./dashboard-types";
 import {
   forEachSessionStorageKey,
@@ -83,20 +82,6 @@ function isDashboardGroup(value: unknown): value is Group {
   );
 }
 
-function isPendingInvite(value: unknown): value is PendingInvite {
-  if (!isRecord(value)) {
-    return false;
-  }
-
-  return (
-    typeof value.group_id === "string" &&
-    typeof value.group_name === "string" &&
-    typeof value.group_description === "string" &&
-    typeof value.group_event_date === "string" &&
-    typeof value.require_anonymous_nickname === "boolean"
-  );
-}
-
 function isGiftProgressSummary(value: unknown): value is GiftProgressSummary {
   if (!isRecord(value)) {
     return false;
@@ -167,8 +152,6 @@ function isDashboardSnapshot(value: unknown, userId: string): value is Dashboard
     value.ownedGroups.every(isDashboardGroup) &&
     Array.isArray(value.invitedGroups) &&
     value.invitedGroups.every(isDashboardGroup) &&
-    Array.isArray(value.pendingInvites) &&
-    value.pendingInvites.every(isPendingInvite) &&
     Array.isArray(value.recipientNames) &&
     value.recipientNames.every((recipientName) => typeof recipientName === "string") &&
     typeof value.unreadNotificationCount === "number" &&

@@ -71,7 +71,18 @@ export function getNotificationActionLabel(notification: NotificationItem): stri
   }
 }
 
+export function isIncomingGroupInvite(
+  notification: Pick<NotificationItem, "type" | "link_path">
+): boolean {
+  const path = notification.link_path?.trim();
+  return notification.type === "invite" && (path === "/groups" || path === "/dashboard");
+}
+
 export function getNotificationTargetPath(notification: NotificationItem): string | null {
+  if (isIncomingGroupInvite(notification)) {
+    return "/groups";
+  }
+
   if (notification.type === "reminder_wishlist_incomplete") {
     return "/wishlist";
   }

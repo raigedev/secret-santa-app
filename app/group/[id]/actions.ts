@@ -139,8 +139,8 @@ async function notifyInvitedUser(options: {
     userId: options.userId,
     type: "invite",
     title: `New group invite: ${options.groupName}`,
-    body: "You have a pending group invitation. Open your dashboard to accept or decline it.",
-    linkPath: "/dashboard",
+    body: "Open My Groups to accept or decline your invitation.",
+    linkPath: "/groups",
     metadata: {
       groupId: options.groupId,
     },
@@ -750,7 +750,7 @@ export async function resendInvite(
 
   return {
     success: true,
-    message: "Invite resent. Ask them to check their email or dashboard.",
+    message: "Invite resent. Ask them to check their email or My Groups.",
   };
 }
 

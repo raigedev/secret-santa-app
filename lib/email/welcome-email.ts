@@ -131,7 +131,7 @@ function buildWelcomeEmail(input: WelcomeEmailInput): { html: string; text: stri
   return {
     html: `
       <div style="display:none;max-height:0;overflow:hidden;opacity:0;color:transparent;">
-        Your My Secret Santa account is ready. Start a group, add wishlist ideas, or check invites from your dashboard.
+        Your My Secret Santa account is ready. Start a group, add wishlist ideas, or check invites in My Groups.
       </div>
       <div style="margin:0;padding:0;background:#f9faf8;font-family:Nunito,Arial,Helvetica,sans-serif;color:#2e3432;">
         <table role="presentation" width="100%" cellSpacing="0" cellPadding="0" style="background:#f9faf8;padding:28px 12px;">
@@ -170,7 +170,7 @@ function buildWelcomeEmail(input: WelcomeEmailInput): { html: string; text: stri
                             Welcome in, ${safeGreetingName}.
                           </h1>
                           <p style="margin:0;color:#4f5d55;font-size:15px;line-height:1.65;font-weight:700;">
-                            Your account is ready. Create a group, add wishlist ideas, or open any invites waiting on your dashboard.
+                            Your account is ready. Create a group, add wishlist ideas, or review invitations in My Groups.
                           </p>
                         </td>
                       </tr>
@@ -239,7 +239,7 @@ function buildWelcomeEmail(input: WelcomeEmailInput): { html: string; text: stri
       `Hi ${greetingName},`,
       "",
       "Welcome to My Secret Santa. Your account is ready.",
-      "Create a group, add wishlist ideas, or open any invites waiting on your dashboard.",
+      "Create a group, add wishlist ideas, or review invitations in My Groups.",
       "Your exchange details stay private until the group is ready.",
       "",
       `Open your dashboard: ${input.dashboardUrl}`,

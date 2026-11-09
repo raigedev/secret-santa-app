@@ -1184,7 +1184,7 @@ test("invite resend is owner-scoped, membership-targeted, and account-neutral", 
   assert.match(groupActionsSource, /eventType: "group\.resend_invite"[\s\S]{0,180}outcome: "success"/);
   assert.match(
     groupActionsSource,
-    /message: "Invite resent\. Ask them to check their email or dashboard\."/
+    /message: "Invite resent\. Ask them to check their email or My Groups\."/
   );
   assert.doesNotMatch(groupActionsSource, /They will see it on their dashboard/);
   assert.match(groupMembersSource, /status === "pending" \|\| status === "declined"/);
@@ -1898,30 +1898,38 @@ test("group detail clears stale owner insights before applying fresh group data"
   );
 });
 
-test("dashboard shows email invites without auto-claiming memberships", () => {
+test("My Groups shows scoped pending invitations without accepting memberships", () => {
   const dashboardPageSource = readFileSync("app/dashboard/page.tsx", "utf8");
+  const groupsPageSource = readFileSync("app/groups/page.tsx", "utf8");
+  const callbackSource = readFileSync("app/auth/callback/route.ts", "utf8");
+  const notificationSource = readFileSync("app/notifications/notification-display.ts", "utf8");
   const dashboardGroupsDataSource = readFileSync("app/dashboard/dashboard-groups-data.ts", "utf8");
   const dashboardActionsSource = readFileSync("app/dashboard/actions.ts", "utf8");
   const pendingInvitesHelperSource = readFileSync(
-    "lib/groups/pending-email-invites.ts",
+    "lib/groups/pending-invites.ts",
     "utf8"
   );
   const pendingInvitesRouteSource = readFileSync(
-    "app/api/dashboard/pending-email-invites/route.ts",
+    "app/api/groups/pending-invites/route.ts",
     "utf8"
   );
   const dashboardLayoutSource = readFileSync("app/dashboard/layout.tsx", "utf8");
   const proxySource = readFileSync("proxy.ts", "utf8");
 
-  assert.match(dashboardActionsSource, /export async function getPendingEmailInvites/);
-  assert.match(dashboardActionsSource, /loadPendingEmailInvitesForUser\(context\.user\)/);
-  assert.match(pendingInvitesHelperSource, /\.is\("user_id", null\)/);
+  assert.match(pendingInvitesHelperSource, /\.eq\("user_id", user\.id\)/);
+  assert.match(pendingInvitesHelperSource, /\.eq\("email", email\)\.is\("user_id", null\)/);
   assert.match(pendingInvitesHelperSource, /\.eq\("status", "pending"\)/);
+  assert.match(pendingInvitesHelperSource, /\.in\("id", groupIds\)/);
+  assert.doesNotMatch(pendingInvitesHelperSource, /\.(update|insert|delete|upsert)\(/);
   assert.match(pendingInvitesRouteSource, /export const dynamic = "force-dynamic"/);
+  assert.match(pendingInvitesRouteSource, /await supabase\.auth\.getUser\(\)/);
+  assert.match(pendingInvitesRouteSource, /!user \|\| !isUserEmailVerified\(user\)/);
   assert.match(pendingInvitesRouteSource, /noStoreJson\(result\)/);
   assert.doesNotMatch(dashboardActionsSource, /claimInvitedMemberships/);
-  assert.match(dashboardPageSource, /fetchPendingEmailInvites\(\)/);
-  assert.match(dashboardPageSource, /\/api\/dashboard\/pending-email-invites/);
+  assert.match(groupsPageSource, /\/api\/groups\/pending-invites/);
+  assert.doesNotMatch(dashboardPageSource, /pendingInvites|pending-email-invites/);
+  assert.match(callbackSource.split("export async function POST")[1], /new URL\("\/groups", origin\)/);
+  assert.match(notificationSource, /notification\.type === "invite" && \(path === "\/groups" \|\| path === "\/dashboard"\)/);
   assert.doesNotMatch(dashboardPageSource, /claimInvitedMemberships\(/);
   assert.doesNotMatch(dashboardPageSource, /ss_mc/);
   assert.match(dashboardPageSource, /\.select\("group_id, user_id, nickname, role"\)/);
@@ -1951,12 +1959,8 @@ test("dashboard optional loading and route panels cannot block navigation", () =
   const secretSantaPageSource = readFileSync("app/secret-santa/page.tsx", "utf8");
   const wishlistPageSource = readFileSync("app/wishlist/page.tsx", "utf8");
 
-  assert.match(dashboardPageSource, /OPTIONAL_DASHBOARD_REQUEST_TIMEOUT_MS = 3_500/);
-  assert.match(dashboardPageSource, /new AbortController\(\)/);
-  assert.match(dashboardPageSource, /controller\.abort\(\)/);
-  assert.match(dashboardPageSource, /credentials: "same-origin"/);
-  assert.match(dashboardPageSource, /cache: "no-store"/);
-  assert.doesNotMatch(dashboardPageSource, /getPendingEmailInvites\(\)/);
+  assert.match(groupsPageSource, /AbortSignal\.timeout\(3_500\)/);
+  assert.match(groupsPageSource, /cache: "no-store"/);
   assert.doesNotMatch(dashboardPageSource, /useDashboardRoutePrefetch/);
   assert.doesNotMatch(dashboardPageSource, /router\.prefetch\(/);
   assert.equal(existsSync("app/dashboard/useDashboardRoutePrefetch.ts"), false);
@@ -2815,7 +2819,7 @@ test("browser-invoked server mutations share trusted origin context", () => {
   assert.match(createGroupActionsSource, /const context = await getServerActionContext\(\)/);
   assert.match(createGroupActionsSource, /enforceRateLimit\(\{[\s\S]{0,220}action: "group\.create"/);
   assert.doesNotMatch(createGroupActionsSource, /supabase\.auth\.getUser\(\)/);
-  assert.match(dashboardActionsSource, /const context = await getServerActionContext\(\)/);
+  assert.match(dashboardActionsSource, /const context = await requireRateLimitedAction\(\{/);
   assert.doesNotMatch(dashboardActionsSource, /supabase\.auth\.getUser\(\)/);
   assert.match(groupActionsSource, /getServerActionContext\(\)/);
   assert.doesNotMatch(groupActionsSource, /supabase\.auth\.getUser\(\)/);

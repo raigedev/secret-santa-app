@@ -79,7 +79,7 @@ async function ensureWelcomeNotification(userId: string): Promise<WelcomeNotific
   const welcomeNotificationId = buildWelcomeNotificationId(userId);
 
   await createNotification({
-    body: "Your account is ready. Create a group, add wishlist ideas, or open any invites waiting on your dashboard.",
+    body: "Your account is ready. Create a group, add wishlist ideas, or review invitations in My Groups.",
     id: welcomeNotificationId,
     ignoreDuplicate: true,
     linkPath: "/dashboard",
@@ -264,7 +264,7 @@ export async function POST(request: Request) {
     return failure();
   }
 
-  const response = NextResponse.redirect(new URL("/dashboard", origin), redirectOptions);
+  const response = NextResponse.redirect(new URL("/groups", origin), redirectOptions);
   response.cookies.set("post_login_next", "", { path: "/", maxAge: 0 });
   const supabase = createCallbackClient(await cookies(), response);
   const { data, error } = await supabase.auth.verifyOtp({ type: "invite", token_hash: tokenHash });
