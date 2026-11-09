@@ -22,6 +22,8 @@ import {
   validateAnonymousGroupNickname,
 } from "@/lib/groups/nickname";
 import { sanitizePlainText } from "@/lib/validation/common";
+import { getGroupCreationInvites } from "@/lib/groups/invite-addresses";
+import { createClient } from "@/lib/supabase/client";
 import { GROUP_CREATED_TIP_PROMPT_STORAGE_KEY } from "@/lib/support/tip-jar";
 import {
   formatCurrencyOptionLabel,
@@ -41,13 +43,6 @@ const ALLOWED_GROUP_IMAGE_TYPES = new Set(["image/jpeg", "image/png", "image/web
 
 function sanitize(input: string, max: number): string {
   return sanitizePlainText(input, max);
-}
-
-function getInviteEmailCount(value: string): number {
-  return value
-    .split(",")
-    .map((email) => email.trim())
-    .filter((email) => email.length > 0 && email.includes("@")).length;
 }
 
 function validateGroupImageFile(file: File): string | null {
@@ -192,6 +187,7 @@ export default function CreateGroupPage() {
   const [eventDate, setEventDate] = useState("");
   const [eventTimeZone, setEventTimeZone] = useState(DEFAULT_EXCHANGE_TIME_ZONE);
   const [inviteEmails, setInviteEmails] = useState("");
+  const [organizerEmail, setOrganizerEmail] = useState<string | null>(null);
   const [budget, setBudget] = useState(25);
   const [currency, setCurrency] = useState("USD");
   const [customBudget, setCustomBudget] = useState(false);
@@ -207,6 +203,10 @@ export default function CreateGroupPage() {
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState("");
   const [statusMsg, setStatusMsg] = useState("");
+  const { addresses: inviteRecipients, includesOrganizer } = getGroupCreationInvites(
+    inviteEmails.split(","),
+    organizerEmail
+  );
 
   useEffect(() => {
     setIsHydrated(true);
@@ -218,6 +218,13 @@ export default function CreateGroupPage() {
       groupImagePreviewBitmapRef.current?.close();
       groupImagePreviewBitmapRef.current = null;
     };
+  }, []);
+
+  useEffect(() => {
+    const { data: { subscription } } = createClient().auth.onAuthStateChange((_event, session) => {
+      setOrganizerEmail(session?.user.email ?? null);
+    });
+    return () => subscription.unsubscribe();
   }, []);
 
   const handleBack = () => {
@@ -368,17 +375,12 @@ export default function CreateGroupPage() {
       }
     }
 
-    const emailList = inviteEmails
-      .split(",")
-      .map((email) => sanitize(email, 100).toLowerCase())
-      .filter((email) => email.length > 0 && email.includes("@"));
-
     const formData = new FormData();
     formData.set("name", cleanName);
     formData.set("description", cleanDesc);
     formData.set("eventDate", eventDate);
     formData.set("eventTimeZone", eventTimeZone);
-    formData.set("inviteEmailsJson", JSON.stringify(emailList));
+    formData.set("inviteEmailsJson", JSON.stringify(inviteRecipients));
     formData.set("budget", cleanBudget.toString());
     formData.set("currency", currency);
     formData.set("requireAnonymousNickname", String(requireAnonymousNickname));
@@ -413,7 +415,7 @@ export default function CreateGroupPage() {
   };
 
   const currencySymbol = getCurrencySymbol(currency);
-  const inviteEmailCount = getInviteEmailCount(inviteEmails);
+  const inviteEmailCount = inviteRecipients.length;
   const eventDateLabel = eventDate
     ? formatExchangeDate(eventDate, undefined, "Choose date")
     : "Choose date";
@@ -447,7 +449,7 @@ export default function CreateGroupPage() {
     {
       id: "4",
       label: "Invites",
-      helper: inviteEmailCount > 0 ? `${inviteEmailCount} invited` : "Optional",
+      helper: inviteEmailCount > 0 ? `${inviteEmailCount} to invite` : "Optional",
       ready: inviteEmailCount > 0,
     },
     {
@@ -584,7 +586,7 @@ export default function CreateGroupPage() {
               ["Gift date", eventDateLabel],
               ["Time zone", formatExchangeTimeZoneLabel(eventTimeZone)],
               ["Group budget", `${currencySymbol}${budget || 0} per person`],
-              ["Members", `${inviteEmailCount} invited`],
+              ["Invites", `${inviteEmailCount} to send`],
             ].map(([label, value]) => (
               <div key={label} className="flex items-center justify-between gap-4 text-sm">
                 <span className="font-bold text-[#64748b]">{label}</span>
@@ -864,22 +866,26 @@ export default function CreateGroupPage() {
           </div>
 
           <div>
-            <label className={labelClassName}>
+            <label htmlFor="invite-emails" className={labelClassName}>
               Invite members{" "}
               <span className="text-[11px] font-semibold" style={{ color: "#9ca3af" }}>
                 (optional)
               </span>
             </label>
             <input
+              id="invite-emails"
               type="text"
+              aria-describedby="invite-emails-help"
               placeholder="email1@example.com, email2@example.com"
               value={inviteEmails}
               onChange={(e) => setInviteEmails(e.target.value)}
               className={fieldClassName}
               style={{ fontFamily: "inherit" }}
             />
-            <p className="text-[11px] mt-1" style={{ color: "#9ca3af" }}>
-              Add more than one email by separating them with commas.
+            <p id="invite-emails-help" className="mt-1 text-xs text-[#64748b]" aria-live="polite">
+              {includesOrganizer
+                ? "You're already the organizer. Your email won't be invited."
+                : "Separate email addresses with commas."}
             </p>
           </div>
 

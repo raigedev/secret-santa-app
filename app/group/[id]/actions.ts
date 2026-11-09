@@ -323,6 +323,10 @@ export async function inviteUser(
     return { message: "Enter a valid email address." };
   }
 
+  if (cleanEmail === user.email?.trim().toLowerCase()) {
+    return { message: "You're already the organizer of this exchange." };
+  }
+
   const { data: group } = await supabase
     .from("groups")
     .select("name, require_anonymous_nickname")

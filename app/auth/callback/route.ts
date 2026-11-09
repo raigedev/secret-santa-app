@@ -3,6 +3,8 @@ import { NextResponse } from "next/server";
 import { createServerClient } from "@supabase/ssr";
 import type { User } from "@supabase/supabase-js";
 import { cookies } from "next/headers";
+import { isInviteTokenHash } from "@/lib/auth/invite-token";
+import { isUserEmailVerified } from "@/lib/auth/user-status";
 import { sendWelcomeEmail } from "@/lib/email/welcome-email";
 import { createNotification } from "@/lib/notifications";
 import { recordServerFailure } from "@/lib/security/audit";
@@ -12,7 +14,8 @@ import {
   hasOAuthCallbackError,
 } from "@/lib/auth/oauth-callback-errors";
 import { ELIGIBLE_EMAIL_INVITE_STATUSES } from "@/lib/groups/invite-claim.mjs";
-import { normalizeSafePostAuthPath, resolveTrustedAppOrigin } from "@/lib/security/web";
+import { readLimitedTextBody } from "@/lib/security/request-body";
+import { isTrustedRequestOrigin, normalizeSafePostAuthPath, resolveTrustedAppOrigin } from "@/lib/security/web";
 import { supabaseAdmin } from "@/lib/supabase/admin";
 
 const WELCOME_NOTIFICATION_TYPE = "welcome";
@@ -149,6 +152,21 @@ async function recordWelcomeEmailReceipt(input: {
   }
 }
 
+function createCallbackClient(cookieStore: Awaited<ReturnType<typeof cookies>>, response: NextResponse) {
+  return createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      cookies: {
+        getAll: () => cookieStore.getAll(),
+        setAll: (cookiesToSet) => {
+          cookiesToSet.forEach(({ name, value, options }) => response.cookies.set(name, value, options));
+        },
+      },
+    }
+  );
+}
+
 export async function GET(request: Request) {
   const requestUrl = new URL(request.url);
   const code = requestUrl.searchParams.get("code");
@@ -188,20 +206,7 @@ export async function GET(request: Request) {
     maxAge: 0,
   });
 
-  const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {
-      cookies: {
-        getAll: () => cookieStore.getAll(),
-        setAll: (cookiesToSet) => {
-          cookiesToSet.forEach(({ name, value, options }) => {
-            redirectResponse.cookies.set(name, value, options);
-          });
-        },
-      },
-    }
-  );
+  const supabase = createCallbackClient(cookieStore, redirectResponse);
 
   const { data: authData, error } = await supabase.auth.exchangeCodeForSession(code);
 
@@ -227,7 +232,8 @@ export async function GET(request: Request) {
     return NextResponse.redirect(new URL("/login?error=auth_failed", origin));
   }
 
-  if (!user.email) {
+  const email = user.email;
+  if (!email) {
     await recordServerFailure({
       actorUserId: user.id,
       errorMessage: "OAuth user did not include an email address",
@@ -239,12 +245,45 @@ export async function GET(request: Request) {
     return NextResponse.redirect(new URL("/login?error=missing_email", origin));
   }
 
+  await finishSignIn(user, email, origin);
+  return redirectResponse;
+}
+
+export async function POST(request: Request) {
+  const origin = resolveTrustedAppOrigin(new URL(request.url));
+  const redirectOptions = { status: 303, headers: { "Cache-Control": "no-store" } };
+  const failure = () => NextResponse.redirect(new URL("/invite/confirm?error=unavailable", origin), redirectOptions);
+
+  if (!isTrustedRequestOrigin(request)) {
+    return new Response(null, { status: 403, headers: redirectOptions.headers });
+  }
+
+  const body = await readLimitedTextBody(request, 256);
+  const tokenHash = body.ok ? new URLSearchParams(body.text).get("token_hash") : null;
+  if (!isInviteTokenHash(tokenHash)) {
+    return failure();
+  }
+
+  const response = NextResponse.redirect(new URL("/dashboard", origin), redirectOptions);
+  response.cookies.set("post_login_next", "", { path: "/", maxAge: 0 });
+  const supabase = createCallbackClient(await cookies(), response);
+  const { data, error } = await supabase.auth.verifyOtp({ type: "invite", token_hash: tokenHash });
+
+  if (error || !data.session || !data.user?.email || !isUserEmailVerified(data.user)) {
+    return failure();
+  }
+
+  await finishSignIn(data.user, data.user.email, origin);
+  return response;
+}
+
+async function finishSignIn(user: User, email: string, origin: string) {
   // Preserve the old behavior that links a freshly authenticated account to
   // any email-based pending invites that already existed for that address.
   const { error: linkMembershipsError } = await supabaseAdmin
     .from("group_members")
     .update({ user_id: user.id })
-    .eq("email", user.email.toLowerCase())
+    .eq("email", email.toLowerCase())
     .is("user_id", null)
     .in("status", ELIGIBLE_EMAIL_INVITE_STATUSES);
 
@@ -266,18 +305,16 @@ export async function GET(request: Request) {
     const welcomeEmailResult = await sendWelcomeEmail({
       dashboardUrl: new URL("/dashboard", origin).toString(),
       displayName: getWelcomeEmailDisplayName(user),
-      email: user.email,
+      email,
       userId: user.id,
     });
 
     if (welcomeEmailResult === "sent") {
       await recordWelcomeEmailReceipt({
-        email: user.email,
+        email,
         notificationId: welcomeNotification.id,
         userId: user.id,
       });
     }
   }
-
-  return redirectResponse;
 }

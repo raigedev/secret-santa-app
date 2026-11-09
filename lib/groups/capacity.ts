@@ -1,9 +1,9 @@
 import "server-only";
 
 import { supabaseAdmin } from "@/lib/supabase/admin";
+import { MAX_GROUP_MEMBERS } from "@/lib/groups/invite-addresses";
 
-export const MAX_GROUP_MEMBERS = 26;
-export const MAX_GROUP_CREATION_INVITES = MAX_GROUP_MEMBERS - 1;
+export { MAX_GROUP_MEMBERS };
 
 export async function countActiveGroupSlots(groupId: string): Promise<number> {
   const { count, error } = await supabaseAdmin

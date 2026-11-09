@@ -20,7 +20,7 @@ import {
 import { createNotification } from "@/lib/notifications";
 import { getEmailVerificationMessage, isUserEmailVerified } from "@/lib/auth/user-status";
 import { recordAuditEvent, recordServerFailure } from "@/lib/security/audit";
-import { MAX_GROUP_CREATION_INVITES } from "@/lib/groups/capacity";
+import { getGroupCreationInvites } from "@/lib/groups/invite-addresses";
 import { getServerActionContext } from "@/lib/auth/server-action-context";
 import { enforceRateLimit } from "@/lib/security/rate-limit";
 import { supabaseAdmin } from "@/lib/supabase/admin";
@@ -30,10 +30,7 @@ import { sanitizePlainText } from "@/lib/validation/common";
 const GROUP_NAME_MAX_LENGTH = 100;
 const GROUP_DESCRIPTION_MAX_LENGTH = 300;
 const GROUP_CURRENCY_MAX_LENGTH = 5;
-const MAX_INVITES_PER_GROUP = MAX_GROUP_CREATION_INVITES;
-const EMAIL_MAX_LENGTH = 100;
 const INVITE_EMAILS_JSON_MAX_LENGTH = 8 * 1024;
-const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 type CreateGroupInput = {
   budget: number;
@@ -59,31 +56,6 @@ function sanitizeText(input: string, maxLength: number): string {
 function isPastDate(value: string, timeZone: string): boolean {
   const daysUntilEvent = getDaysUntilExchangeDate(value, Date.now(), timeZone);
   return daysUntilEvent === null || daysUntilEvent < 0;
-}
-
-function normalizeInviteEmails(rawEmails: string[], ownerEmail: string | null | undefined): string[] {
-  const ownerEmailLower = ownerEmail?.toLowerCase() || "";
-  const uniqueEmails = new Set<string>();
-
-  for (const rawEmail of rawEmails) {
-    const normalizedEmail = sanitizeText(rawEmail, EMAIL_MAX_LENGTH).toLowerCase();
-
-    if (!normalizedEmail || normalizedEmail === ownerEmailLower) {
-      continue;
-    }
-
-    if (!EMAIL_PATTERN.test(normalizedEmail)) {
-      continue;
-    }
-
-    uniqueEmails.add(normalizedEmail);
-
-    if (uniqueEmails.size >= MAX_INVITES_PER_GROUP) {
-      break;
-    }
-  }
-
-  return [...uniqueEmails];
 }
 
 function parseInviteEmailsJson(rawValue: FormDataEntryValue | null): string[] {
@@ -292,7 +264,7 @@ async function createGroupWithInvitesInternal(
   const cleanCurrency = sanitizeText(input.currency, GROUP_CURRENCY_MAX_LENGTH).toUpperCase();
   const cleanEventTimeZone = normalizeExchangeTimeZone(input.eventTimeZone);
   const cleanBudget = Math.min(Math.max(Math.floor(input.budget || 0), 0), 100000);
-  const inviteEmails = normalizeInviteEmails(input.inviteEmails || [], user.email);
+  const { addresses: inviteEmails } = getGroupCreationInvites(input.inviteEmails, user.email);
   const requireAnonymousNickname = Boolean(input.requireAnonymousNickname);
   const cleanOwnerCodename = sanitizeGroupNickname(input.ownerCodename || "");
 
