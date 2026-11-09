@@ -17,7 +17,7 @@ import { isUuid, sanitizePlainText } from "@/lib/validation/common";
 const RECEIVER_THREAD_PREFIX = "receiver:";
 const CHAT_THREAD_MESSAGE_SCAN_LIMIT = 1000;
 const CHAT_ACTIVE_THREAD_MESSAGE_LIMIT = 250;
-const RECEIVER_THREAD_HIDDEN_MESSAGE = "This chat is hidden until the reveal is published.";
+const CHAT_UNAVAILABLE_MESSAGE = "This chat is no longer available.";
 
 type ReceiverAssignmentRow = {
   giver_id: string;
@@ -30,14 +30,13 @@ type ReceiverGroupRow = {
   event_timezone: string | null;
   id: string;
   name: string | null;
-  revealed: boolean | null;
 };
 
 type ReceiverMessageRow = {
   content: string;
   created_at: string;
   group_id: string;
-  id?: string;
+  id: string;
   sender_id: string;
   thread_giver_id: string;
   thread_receiver_id: string;
@@ -217,21 +216,35 @@ async function resolveReceiverAssignment(
   return data as ReceiverAssignmentRow;
 }
 
-async function requireRevealedReceiverThreadAccess(
+async function loadJoinedChatGroups(groupIds: string[], userId: string) {
+  const { data, error } = await supabaseAdmin
+    .from("groups")
+    .select("id, name, event_date, event_timezone, group_members!inner(user_id)")
+    .in("id", groupIds)
+    .eq("group_members.user_id", userId)
+    .eq("group_members.status", "accepted");
+
+  const now = Date.now();
+  return {
+    error,
+    groups: ((data || []) as ReceiverGroupRow[]).filter(
+      (group) => !isGroupInHistory(group.event_date, now, group.event_timezone)
+    ),
+  };
+}
+
+async function requireReceiverThreadAccess(
   groupId: string,
   receiverId: string
 ): Promise<ReceiverThreadAccess> {
-  const assignment = await resolveReceiverAssignment(groupId, receiverId);
+  const [assignment, { groups, error: groupError }] = await Promise.all([
+    resolveReceiverAssignment(groupId, receiverId),
+    loadJoinedChatGroups([groupId], receiverId),
+  ]);
 
   if (!assignment) {
     return { message: "You are not part of this conversation.", ok: false };
   }
-
-  const { data: group, error: groupError } = await supabaseAdmin
-    .from("groups")
-    .select("revealed")
-    .eq("id", groupId)
-    .maybeSingle();
 
   if (groupError) {
     return {
@@ -241,35 +254,37 @@ async function requireRevealedReceiverThreadAccess(
     };
   }
 
-  if (!group?.revealed) {
-    return { message: RECEIVER_THREAD_HIDDEN_MESSAGE, ok: false };
+  if (groups.length === 0) {
+    return { message: CHAT_UNAVAILABLE_MESSAGE, ok: false };
   }
 
   return { assignment, ok: true };
 }
 
-async function validateThreadSendAccess({
+async function validateGiverThreadSendAccess({
   groupId,
   threadGiverId,
   threadReceiverId,
-  userId,
 }: {
   groupId: string;
   threadGiverId: string;
   threadReceiverId: string;
-  userId: string;
 }): Promise<ThreadSendAccess> {
-  const { data: assignment, error: assignmentError } = await supabaseAdmin
-    .from("assignments")
-    .select("id")
-    .eq("group_id", groupId)
-    .eq("giver_id", threadGiverId)
-    .eq("receiver_id", threadReceiverId)
-    .maybeSingle();
+  const [{ data: assignment, error: assignmentError }, { groups, error: groupError }] =
+    await Promise.all([
+      supabaseAdmin
+        .from("assignments")
+        .select("id")
+        .eq("group_id", groupId)
+        .eq("giver_id", threadGiverId)
+        .eq("receiver_id", threadReceiverId)
+        .maybeSingle(),
+      loadJoinedChatGroups([groupId], threadGiverId),
+    ]);
 
-  if (assignmentError) {
+  if (assignmentError || groupError) {
     return {
-      auditMessage: assignmentError.message,
+      auditMessage: (assignmentError || groupError)?.message,
       message: "We could not open this chat. Try reopening it.",
       ok: false,
     };
@@ -279,29 +294,8 @@ async function validateThreadSendAccess({
     return { message: "You are not part of this conversation.", ok: false };
   }
 
-  if (userId !== threadReceiverId) {
-    return { ok: true };
-  }
-
-  const { data: group, error: groupError } = await supabaseAdmin
-    .from("groups")
-    .select("revealed")
-    .eq("id", groupId)
-    .maybeSingle();
-
-  if (groupError) {
-    return {
-      auditMessage: groupError.message,
-      message: "We could not open this chat. Try reopening it.",
-      ok: false,
-    };
-  }
-
-  if (!group?.revealed) {
-    return {
-      message: RECEIVER_THREAD_HIDDEN_MESSAGE,
-      ok: false,
-    };
+  if (groups.length === 0) {
+    return { message: CHAT_UNAVAILABLE_MESSAGE, ok: false };
   }
 
   return { ok: true };
@@ -348,10 +342,7 @@ export async function loadReceiverChatThreads(): Promise<{
     return { success: true, message: "", threads: [] };
   }
 
-  const { data: groups, error: groupsError } = await supabaseAdmin
-    .from("groups")
-    .select("id, name, event_date, event_timezone, revealed")
-    .in("id", groupIds);
+  const { groups: activeGroups, error: groupsError } = await loadJoinedChatGroups(groupIds, userId);
 
   if (groupsError) {
     await recordServerFailure({
@@ -363,15 +354,6 @@ export async function loadReceiverChatThreads(): Promise<{
     return { success: false, message: "We could not load your Santa chats.", threads: [] };
   }
 
-  const activeGroups = ((groups || []) as ReceiverGroupRow[]).filter(
-    (group) =>
-      Boolean(group.revealed) &&
-      !isGroupInHistory(
-        group.event_date,
-        Date.now(),
-        group.event_timezone
-      )
-  );
   const activeGroupIds = new Set(activeGroups.map((group) => group.id));
   const activeAssignments = receiverAssignments.filter((assignment) =>
     activeGroupIds.has(assignment.group_id)
@@ -462,7 +444,7 @@ export async function loadReceiverThreadMessages(threadId: string): Promise<{
 
   const userId = context.user.id;
 
-  const receiverAccess = await requireRevealedReceiverThreadAccess(groupId, userId);
+  const receiverAccess = await requireReceiverThreadAccess(groupId, userId);
 
   if (!receiverAccess.ok) {
     if (receiverAccess.auditMessage) {
@@ -507,7 +489,7 @@ export async function loadReceiverThreadMessages(threadId: string): Promise<{
       content: message.content,
       created_at: message.created_at,
       from_current_user: message.sender_id === userId,
-      id: message.id || `${message.created_at}:${message.sender_id}`,
+      id: message.id,
     })),
   };
 }
@@ -530,7 +512,7 @@ export async function markReceiverThreadAsRead(threadId: string): Promise<{
 
   const userId = context.user.id;
 
-  const receiverAccess = await requireRevealedReceiverThreadAccess(groupId, userId);
+  const receiverAccess = await requireReceiverThreadAccess(groupId, userId);
 
   if (!receiverAccess.ok) {
     if (receiverAccess.auditMessage) {
@@ -604,7 +586,7 @@ export async function sendReceiverMessage(
 
   const userId = context.user.id;
 
-  const receiverAccess = await requireRevealedReceiverThreadAccess(groupId, userId);
+  const receiverAccess = await requireReceiverThreadAccess(groupId, userId);
 
   if (!receiverAccess.ok) {
     if (receiverAccess.auditMessage) {
@@ -656,16 +638,14 @@ export async function sendReceiverMessage(
   return { success: true, message: "" };
 }
 
-export async function sendMessage(
+export async function sendGiverMessage(
   groupId: string,
-  threadGiverId: string,
   threadReceiverId: string,
   content: string
 ): Promise<{ success: boolean; message: string }> {
 
   if (
     !isUuid(groupId) ||
-    !isUuid(threadGiverId) ||
     !isUuid(threadReceiverId)
   ) {
     return { success: false, message: "Choose a valid chat first." };
@@ -692,15 +672,10 @@ export async function sendMessage(
 
   const { user } = context;
 
-  if (user.id !== threadGiverId && user.id !== threadReceiverId) {
-    return { success: false, message: "You are not part of this conversation." };
-  }
-
-  const threadAccess = await validateThreadSendAccess({
+  const threadAccess = await validateGiverThreadSendAccess({
     groupId,
-    threadGiverId,
+    threadGiverId: user.id,
     threadReceiverId,
-    userId: user.id,
   });
 
   if (!threadAccess.ok) {
@@ -708,7 +683,7 @@ export async function sendMessage(
       await recordServerFailure({
         actorUserId: user.id,
         details: {
-          threadGiverId,
+          threadGiverId: user.id,
           threadReceiverId,
         },
         errorMessage: threadAccess.auditMessage,
@@ -726,7 +701,7 @@ export async function sendMessage(
     .insert({
       group_id: groupId,
       sender_id: user.id,
-      thread_giver_id: threadGiverId,
+      thread_giver_id: user.id,
       thread_receiver_id: threadReceiverId,
       content: cleanContent,
     });
@@ -739,20 +714,15 @@ export async function sendMessage(
       resourceId: groupId,
       resourceType: "message_thread",
       details: {
-        threadGiverId,
+        threadGiverId: user.id,
         threadReceiverId,
       },
     });
     return { success: false, message: "We could not send your message. Please try again." };
   }
 
-  const otherUserId = user.id === threadGiverId ? threadReceiverId : threadGiverId;
-
-  // The message itself is already persisted above, and the UI shows it
-  // optimistically. Waiting for this lightweight notification insert keeps the
-  // recipient's unread badge timely without the extra group lookup we removed.
   await createNotification({
-    userId: otherUserId,
+    userId: threadReceiverId,
     type: "chat",
     title: "New private gift message",
     body: "You have a new message in one of your Secret Santa chats.",

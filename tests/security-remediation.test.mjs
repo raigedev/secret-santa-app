@@ -780,7 +780,9 @@ test("anonymous receiver chat keeps giver identifiers server-side before reveal"
   assert.match(pageSource, /loadReceiverThreadMessages/);
   assert.match(pageSource, /sendReceiverMessage/);
   assert.match(pageSource, /markReceiverThreadAsRead/);
+  assert.match(pageSource, /fetchMyAssignmentGiftPrep\(groupIds\)/);
   assert.match(pageSource, /\.eq\("thread_giver_id",\s*user\.id\)/);
+  assert.doesNotMatch(pageSource, /table:\s*"messages"/);
   assert.match(pageSource, /thread\.thread_id === currentActiveThread\.thread_id/);
 
   assert.match(actionsSource, /const RECEIVER_THREAD_PREFIX = "receiver:"/);
@@ -788,22 +790,22 @@ test("anonymous receiver chat keeps giver identifiers server-side before reveal"
   assert.match(actionsSource, /export async function loadReceiverThreadMessages/);
   assert.match(actionsSource, /export async function sendReceiverMessage/);
   assert.match(actionsSource, /\.from\("assignments"\)[\s\S]*\.eq\("receiver_id", receiverId\)/);
-  assert.match(actionsSource, /async function validateThreadSendAccess/);
+  assert.match(actionsSource, /async function validateGiverThreadSendAccess/);
   assert.match(actionsSource, /\.eq\("giver_id", threadGiverId\)/);
   assert.match(actionsSource, /\.eq\("receiver_id", threadReceiverId\)/);
-  assert.match(actionsSource, /userId !== threadReceiverId/);
-  assert.match(actionsSource, /!group\?\.revealed/);
-  assert.match(actionsSource, /const threadAccess = await validateThreadSendAccess/);
-  assert.match(actionsSource, /const RECEIVER_THREAD_HIDDEN_MESSAGE/);
-  assert.match(actionsSource, /async function requireRevealedReceiverThreadAccess/);
+  assert.match(actionsSource, /validateGiverThreadSendAccess\(\{\s*groupId,\s*threadGiverId: user\.id,/);
+  assert.match(actionsSource, /async function requireReceiverThreadAccess/);
+  assert.match(actionsSource, /loadJoinedChatGroups\(groupIds, userId\)/);
+  assert.match(actionsSource, /loadJoinedChatGroups\(\[groupId\], receiverId\)/);
   assert.match(
     actionsSource,
-    /\.select\("id, name, event_date, event_timezone, revealed"\)/
+    /\.eq\("group_members\.user_id", userId\)\s*\.eq\("group_members\.status", "accepted"\)/
   );
   assert.match(
     actionsSource,
-    /Boolean\(group\.revealed\)\s*&&\s*!isGroupInHistory\(\s*group\.event_date,\s*Date\.now\(\),\s*group\.event_timezone\s*\)/
+    /!isGroupInHistory\(group\.event_date, now, group\.event_timezone\)/
   );
+  assert.match(actionsSource, /from_current_user: message\.sender_id === userId,\s*id: message\.id,/);
 
   for (const functionName of [
     "loadReceiverThreadMessages",
@@ -814,7 +816,7 @@ test("anonymous receiver chat keeps giver identifiers server-side before reveal"
     assert.notEqual(functionStart, -1, `Expected ${functionName} to be exported.`);
     const functionBody = actionsSource.slice(functionStart, functionStart + 1600);
 
-    assert.match(functionBody, /requireRevealedReceiverThreadAccess\(groupId, userId\)/);
+    assert.match(functionBody, /requireReceiverThreadAccess\(groupId, userId\)/);
     assert.doesNotMatch(functionBody, /resolveReceiverAssignment\(groupId, userId\)/);
   }
 
