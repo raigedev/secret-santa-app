@@ -1,6 +1,12 @@
 import { randomUUID } from "node:crypto";
 import { expect, test } from "@playwright/test";
 import { createClient } from "@supabase/supabase-js";
+import {
+  CHAT_ACTIVE_MESSAGE_POLL_MS,
+  CHAT_EXCHANGE_POLL_MS,
+  CHAT_IDLE_MESSAGE_POLL_MS,
+  nextChatMessagePollDelay,
+} from "../../../app/secret-santa-chat/chat-polling";
 import { fetchMyAssignmentGiftPrep } from "../../../lib/assignments/gift-prep-client";
 import { loginWithTestCredentials } from "../helpers/auth";
 
@@ -8,6 +14,16 @@ const LOCAL_SUPABASE_URL = "http://127.0.0.1:54321";
 
 // The local avatar image is intercepted over loopback HTTP; production photos use HTTPS.
 test.use({ bypassCSP: true });
+
+test("quiet chats back off without delaying active-message checks", () => {
+  expect(nextChatMessagePollDelay(CHAT_ACTIVE_MESSAGE_POLL_MS, 59_999)).toBe(15_000);
+  const firstIdleDelay = nextChatMessagePollDelay(CHAT_ACTIVE_MESSAGE_POLL_MS, 60_000);
+  expect(firstIdleDelay).toBe(30_000);
+  expect(nextChatMessagePollDelay(firstIdleDelay, 90_000)).toBe(CHAT_IDLE_MESSAGE_POLL_MS);
+  expect(nextChatMessagePollDelay(CHAT_IDLE_MESSAGE_POLL_MS, 150_000)).toBe(60_000);
+  expect(nextChatMessagePollDelay(CHAT_IDLE_MESSAGE_POLL_MS, 0)).toBe(15_000);
+  expect(CHAT_EXCHANGE_POLL_MS).toBe(180_000);
+});
 
 test("assignment lookups preserve the group after the first batch", async () => {
   const ids: string[] = Array.from({ length: 51 }, () => randomUUID());
