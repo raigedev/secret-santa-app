@@ -81,10 +81,55 @@
   font-weight: 600;
 }
 
+.viewControl {
+  display: inline-flex;
+  max-width: 100%;
+  padding: 2px;
+  border: 1px solid var(--chat-line);
+  border-radius: 8px;
+  background: #eef2ee;
+}
+
+.viewControl button {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
+  padding: 4px 10px;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  color: var(--chat-muted);
+  cursor: pointer;
+  font-size: .75rem;
+  font-weight: 700;
+}
+
+.viewControl .exchangeUnread {
+  position: absolute;
+  inset-block-start: 4px;
+  inset-inline-end: 4px;
+}
+
+.viewControl button:hover {
+  color: var(--chat-green);
+  background: #e2eae2;
+}
+
+.viewControl button[aria-pressed="true"] {
+  border-color: var(--chat-line);
+  background: white;
+  color: var(--chat-green);
+}
+
 .conversations {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 14px;
+}
+
+.conversations[data-view]:not([data-view="both"]) {
+  grid-template-columns: minmax(0, 1fr);
 }
 
 .conversation {
@@ -103,6 +148,10 @@
 .conversation[data-chat-role="receiver"] {
   --chat-accent: var(--chat-red);
   --chat-tint: #f7e9e9;
+}
+
+.conversation[hidden] {
+  display: none;
 }
 
 .conversationHeader {
@@ -237,6 +286,13 @@
   border-end-end-radius: 3px;
   background: var(--chat-accent);
   color: white;
+}
+
+.pending {
+  margin-top: 3px;
+  color: var(--chat-muted);
+  font-size: .75rem;
+  text-align: end;
 }
 
 .received {

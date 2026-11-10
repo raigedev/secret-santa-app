@@ -25,6 +25,7 @@ export type ChatThread = {
 type ChatConversationProps = {
   groupId: string;
   role: "giver" | "receiver";
+  visible: boolean;
   thread: ChatThread | null;
   allowProfilePhoto?: boolean;
   userId: string;
@@ -37,6 +38,13 @@ type ChatConversationProps = {
 const CHAT_ACTIVE_THREAD_MESSAGE_LIMIT = 250;
 const timeFormat = new Intl.DateTimeFormat(undefined, { hour: "numeric", minute: "2-digit" });
 const dayFormat = new Intl.DateTimeFormat(undefined, { month: "short", day: "numeric", year: "numeric" });
+
+function mergeSentMessages(history: SafeChatMessage[], sent: SafeChatMessage[]) {
+  const byId = new Map([...history, ...sent].map((message) => [message.id, message]));
+  return [...byId.values()]
+    .sort((a, b) => Date.parse(a.created_at) - Date.parse(b.created_at) || a.id.localeCompare(b.id))
+    .slice(-CHAT_ACTIVE_THREAD_MESSAGE_LIMIT);
+}
 
 function formatDay(date: Date) {
   const today = new Date();
@@ -76,7 +84,7 @@ async function loadGifteePhoto(groupId: string, receiverId: string, signal: Abor
 }
 
 export function ChatConversation({
-  groupId, role, thread, allowProfilePhoto = false, userId, supabase, refreshVersion, onRead, onPollChange,
+  groupId, role, visible, thread, allowProfilePhoto = false, userId, supabase, refreshVersion, onRead, onPollChange,
 }: ChatConversationProps) {
   const isGiver = role === "giver";
   const threadId = thread?.id;
@@ -86,10 +94,11 @@ export function ChatConversation({
   const [profilePhoto, setProfilePhoto] = useState<string | null>(null);
   const [messages, setMessages] = useState<SafeChatMessage[] | null>(null);
   const [draft, setDraft] = useState("");
-  const [sending, setSending] = useState(false);
+  const [pendingContent, setPendingContent] = useState<string | null>(null);
   const [loadError, setLoadError] = useState(false);
   const [sendError, setSendError] = useState<string | null>(null);
   const loadMessagesRef = useRef<() => Promise<void>>(null);
+  const noteSendRef = useRef<(message: SafeChatMessage) => void>(null);
   const sendPending = useRef(false);
   const logRef = useRef<HTMLDivElement>(null);
   const endRef = useRef<HTMLDivElement>(null);
@@ -98,7 +107,7 @@ export function ChatConversation({
   const readPending = useRef(false);
 
   useEffect(() => {
-    if (!canLoadPhoto || !receiverId) return;
+    if (!visible || !canLoadPhoto || !receiverId) return;
     const controller = new AbortController();
     void loadGifteePhoto(groupId, receiverId, controller.signal)
       .catch(() => null)
@@ -106,10 +115,10 @@ export function ChatConversation({
         if (!controller.signal.aborted) setProfilePhoto(url);
       });
     return () => controller.abort();
-  }, [canLoadPhoto, groupId, receiverId]);
+  }, [canLoadPhoto, groupId, receiverId, visible]);
 
   useEffect(() => {
-    if (!threadId || !receiverId) return;
+    if (!visible || !threadId || !receiverId) return;
     let disposed = false;
     let version = 0;
     let pollDelay = CHAT_ACTIVE_MESSAGE_POLL_MS;
@@ -118,12 +127,23 @@ export function ChatConversation({
     let foregroundTimer: ReturnType<typeof setTimeout> | undefined;
     let previousCount: number | undefined;
     let previousLatestId: string | undefined;
+    let sendsDuringRead: SafeChatMessage[] | undefined;
+
+    const schedulePoll = () => {
+      clearTimeout(pollTimer);
+      if (document.visibilityState === "visible") {
+        pollDelay = nextChatMessagePollDelay(pollDelay, performance.now() - lastActivityAt);
+        pollTimer = setTimeout(() => void loadMessages(true), pollDelay);
+      }
+    };
 
     const loadMessages = async (fromPoll = false) => {
       if (fromPoll && document.visibilityState !== "visible") return;
       clearTimeout(pollTimer);
       if (!fromPoll) lastActivityAt = performance.now();
       const request = ++version;
+      const overlappingSends: SafeChatMessage[] = [];
+      sendsDuringRead = overlappingSends;
       try {
         let nextMessages: SafeChatMessage[];
         if (role === "receiver") {
@@ -150,6 +170,7 @@ export function ChatConversation({
         }
 
         if (disposed || request !== version) return;
+        if (overlappingSends.length) nextMessages = mergeSentMessages(nextMessages, overlappingSends);
         const latestId = nextMessages.at(-1)?.id;
         const changed = previousCount !== nextMessages.length || previousLatestId !== latestId;
         if (changed) {
@@ -165,14 +186,20 @@ export function ChatConversation({
         setLoadError(true);
         setMessages(null);
       } finally {
-        if (!disposed && request === version && document.visibilityState === "visible") {
-          pollDelay = nextChatMessagePollDelay(pollDelay, performance.now() - lastActivityAt);
-          pollTimer = setTimeout(() => void loadMessages(true), pollDelay);
+        if (!disposed && request === version) {
+          sendsDuringRead = undefined;
+          schedulePoll();
         }
       }
     };
 
     loadMessagesRef.current = loadMessages;
+    noteSendRef.current = (message) => {
+      lastActivityAt = performance.now();
+      // Keep a confirmed send visible if a history request was already in flight.
+      if (sendsDuringRead) sendsDuringRead.push(message);
+      else schedulePoll();
+    };
     const refreshOnForeground = () => {
       clearTimeout(pollTimer);
       clearTimeout(foregroundTimer);
@@ -186,32 +213,33 @@ export function ChatConversation({
     return () => {
       disposed = true;
       loadMessagesRef.current = null;
+      noteSendRef.current = null;
       clearTimeout(pollTimer);
       clearTimeout(foregroundTimer);
       document.removeEventListener("visibilitychange", refreshOnForeground);
       window.removeEventListener("focus", refreshOnForeground);
     };
-  }, [groupId, onPollChange, receiverId, role, supabase, threadId, userId]);
+  }, [groupId, onPollChange, receiverId, role, supabase, threadId, userId, visible]);
 
   useEffect(() => {
     void loadMessagesRef.current?.();
-  }, [refreshVersion, threadId]);
+  }, [refreshVersion, threadId, visible]);
 
-  const latestMessageId = messages?.at(-1)?.id;
+  const latestMessageId = pendingContent !== null ? "pending" : messages?.at(-1)?.id;
   useLayoutEffect(() => {
     const log = logRef.current;
-    if (latestMessageId && log && nearBottom.current) log.scrollTop = log.scrollHeight;
-  }, [latestMessageId]);
+    if (visible && latestMessageId && log && nearBottom.current) log.scrollTop = log.scrollHeight;
+  }, [latestMessageId, visible]);
 
   useEffect(() => {
     const end = endRef.current;
     const incoming = messages?.findLast((message) => !message.from_current_user);
-    if (!threadId || !receiverId || !unread || !end || !incoming) return;
+    if (!visible || !threadId || !receiverId || !unread || !end || !incoming) return;
     let disposed = false;
     let endVisible = false;
 
     const markAsRead = async () => {
-      if (!endVisible || document.visibilityState !== "visible" ||
+      if (disposed || !endVisible || document.visibilityState !== "visible" ||
           lastReadId.current === incoming.id || readPending.current) return;
       readPending.current = true;
       try {
@@ -259,7 +287,7 @@ export function ChatConversation({
       resize.disconnect();
       document.removeEventListener("visibilitychange", markAsRead);
     };
-  }, [groupId, messages, onRead, receiverId, role, supabase, threadId, unread, userId]);
+  }, [groupId, messages, onRead, receiverId, role, supabase, threadId, unread, userId, visible]);
 
   const handleSend = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -268,24 +296,28 @@ export function ChatConversation({
     if (!content) return;
 
     sendPending.current = true;
-    setSending(true);
+    nearBottom.current = true;
+    setDraft("");
+    setPendingContent(content);
     setSendError(null);
     try {
       const result = role === "receiver"
         ? await sendReceiverMessage(threadId, content)
         : await sendGiverMessage(groupId, receiverId, content);
       if (!result.success) {
+        setDraft(draft);
         setSendError(result.message || "We could not send your message. Try again.");
         return;
       }
-      setDraft((value) => value === draft ? "" : value);
-      nearBottom.current = true;
-      void loadMessagesRef.current?.();
+      noteSendRef.current?.(result.sentMessage);
+      setLoadError(false);
+      setMessages((history) => mergeSentMessages(history ?? [], [result.sentMessage]));
     } catch {
+      setDraft(draft);
       setSendError("We could not send your message. Try again.");
     } finally {
       sendPending.current = false;
-      setSending(false);
+      setPendingContent(null);
     }
   };
 
@@ -295,7 +327,7 @@ export function ChatConversation({
   const avatarInitial = Array.from(name.trim())[0]?.toUpperCase() || "?";
   const composerLabel = isGiver ? `Message ${name}` : "Reply to your Santa";
   return (
-    <section className={styles.conversation} data-chat-role={role} aria-label={label}>
+    <section className={styles.conversation} data-chat-role={role} aria-label={label} hidden={!visible}>
       <header className={styles.conversationHeader}>
         <div className={styles.conversationHeading}>
           <p className={styles.role}>{label}</p>
@@ -329,7 +361,7 @@ export function ChatConversation({
         ) : !messages ? (
           <p className={styles.empty}>Loading messages...</p>
         ) : messages.length === 0 ? (
-          <p className={styles.empty}>No messages yet.</p>
+          pendingContent === null && <p className={styles.empty}>No messages yet.</p>
         ) : messages.map((message, index) => {
           const date = new Date(message.created_at);
           const previous = messages[index - 1];
@@ -375,6 +407,14 @@ export function ChatConversation({
             </Fragment>
           );
         })}
+        {pendingContent !== null && (
+          <div className={styles.message} data-outgoing="true">
+            <div className={styles.messageBody}>
+              <p className={styles.sent}><span className="sr-only">You: </span><span>{pendingContent}</span></p>
+              <p className={styles.pending} role="status">Sending...</p>
+            </div>
+          </div>
+        )}
         <div ref={endRef} className={styles.logEnd} aria-hidden="true" />
       </div>
       {thread && (
@@ -386,6 +426,7 @@ export function ChatConversation({
             rows={1}
             maxLength={500}
             value={draft}
+            readOnly={pendingContent !== null}
             onChange={(event) => setDraft(event.target.value)}
             onKeyDown={(event) => {
               if (event.key !== "Enter" || event.shiftKey || event.nativeEvent.isComposing) return;
@@ -393,9 +434,7 @@ export function ChatConversation({
               event.currentTarget.form?.requestSubmit();
             }}
           />
-          <button type="submit" disabled={sending || !draft.trim()}>
-            {sending ? "Sending" : "Send"}
-          </button>
+          <button type="submit" disabled={pendingContent !== null || !draft.trim()}>Send</button>
         </form>
       )}
     </section>

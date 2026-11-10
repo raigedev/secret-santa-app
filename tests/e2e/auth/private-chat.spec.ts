@@ -257,8 +257,48 @@ test("separate chats deliver both ways and stay scoped to the selected exchange"
 
     const santaDraft = santaBox.getByRole("textbox", { name: "Reply to your Santa" });
     await santaDraft.fill("A separate draft");
-    await giverBox.getByRole("textbox", { name: "Message Ribbon Keeper" }).fill(firstMessage);
-    await giverBox.getByRole("button", { name: "Send", exact: true }).click();
+    const viewControl = page.getByRole("group", { name: "Chat view" });
+    await expect(viewControl.getByRole("button", { name: "Both" })).toHaveAttribute("aria-pressed", "true");
+    await viewControl.getByRole("button", { name: /^My giftee/ }).click();
+    await expect(santaBox).toBeHidden();
+    if (!stacked) expect((await giverBox.boundingBox())!.width).toBeGreaterThan(giverBounds!.width);
+    await page.screenshot({ path: testInfo.outputPath("giftee-focus.png"), fullPage: true });
+    await viewControl.getByRole("button", { name: /^My Santa/ }).click();
+    await expect(giverBox).toBeHidden();
+    await expect(santaDraft).toHaveValue("A separate draft");
+    await viewControl.getByRole("button", { name: "Both" }).click();
+
+    const giverDraft = giverBox.getByRole("textbox", { name: "Message Ribbon Keeper" });
+    const send = giverBox.getByRole("button", { name: "Send", exact: true });
+    const failedMessage = "Keep this draft if sending fails.";
+    const heldSend = Promise.withResolvers<void>();
+    await page.route("**/secret-santa-chat", async (route) => {
+      const body = route.request().postData();
+      if (body?.includes(failedMessage)) {
+        await route.abort();
+        return;
+      }
+      if (body?.includes(firstMessage)) await heldSend.promise;
+      await route.continue();
+    });
+    await giverDraft.fill(failedMessage);
+    await send.click();
+    await expect(giverBox.getByRole("alert")).toHaveText(/could not send/);
+    await expect(giverDraft).toHaveValue(failedMessage);
+    await expect(giverBox.getByRole("log").getByText(failedMessage, { exact: true })).toHaveCount(0);
+
+    try {
+      await giverDraft.fill(firstMessage);
+      await send.click();
+      await expect(giverBox.getByText(firstMessage, { exact: true })).toBeVisible();
+      await expect(giverBox.getByText("Sending...", { exact: true })).toBeVisible();
+      await expect(send).toBeDisabled();
+    } finally {
+      heldSend.resolve();
+    }
+    await expect(giverBox.getByText("Sending...", { exact: true })).toHaveCount(0);
+    await expect(giverBox.getByText(firstMessage, { exact: true })).toHaveCount(1);
+    await expect(giverDraft).toHaveValue("");
     await expect(santaDraft).toHaveValue("A separate draft");
     await expect(santaBox.getByText(firstMessage, { exact: true })).toHaveCount(0);
     await expect(recipientSantaBox.getByText(firstMessage, { exact: true })).toBeVisible({ timeout: 25_000 });

@@ -26,6 +26,12 @@ type GroupRow = {
 
 type ChatExchange = GroupRow & { giver: ChatThread | null; receiver: ChatThread | null };
 
+const CHAT_VIEWS = [
+  { value: "both", label: "Both" },
+  { value: "giver", label: "My giftee" },
+  { value: "receiver", label: "My Santa" },
+] as const;
+
 const CHAT_THREAD_MESSAGE_SCAN_LIMIT = 1000;
 const CHAT_PAGE_LOAD_TIMEOUT_MS = 10_000;
 
@@ -49,6 +55,7 @@ export default function SecretSantaChatPage() {
   const [userId, setUserId] = useState<string | null>(null);
   const [exchanges, setExchanges] = useState<ChatExchange[]>([]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [view, setView] = useState<(typeof CHAT_VIEWS)[number]["value"]>("both");
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [refreshVersion, setRefreshVersion] = useState(0);
@@ -285,6 +292,26 @@ export default function SecretSantaChatPage() {
           </div>
         )}
         {exchange && <p className={styles.giftDay}>{getGiftDayLabel(exchange)}</p>}
+        {exchange && (
+          <div className={styles.viewControl} role="group" aria-label="Chat view">
+            {CHAT_VIEWS.map(({ value, label }) => (
+              <button
+                type="button"
+                key={value}
+                aria-pressed={view === value}
+                onClick={() => setView(value)}
+              >
+                {label}
+                {value !== "both" && view !== "both" && view !== value && Boolean(exchange[value]?.unread) && (
+                  <>
+                    <span className={styles.exchangeUnread} aria-hidden="true" />
+                    <span className="sr-only">New messages</span>
+                  </>
+                )}
+              </button>
+            ))}
+          </div>
+        )}
       </header>
       {loadError && (
         <div className={styles.notice} role="status">
@@ -299,11 +326,12 @@ export default function SecretSantaChatPage() {
           <div className={styles.loading} />
         </div>
       ) : exchange && userId ? (
-        <div className={styles.conversations} key={`${userId}:${exchange.id}`}>
+        <div className={styles.conversations} data-view={view} key={`${userId}:${exchange.id}`}>
           <ChatConversation
             key={exchange.giver?.id ?? "no-giftee"}
             groupId={exchange.id}
             role="giver"
+            visible={view !== "receiver"}
             thread={exchange.giver}
             allowProfilePhoto={exchange.require_anonymous_nickname === false || exchange.require_anonymous_nickname === null}
             userId={userId}
@@ -316,6 +344,7 @@ export default function SecretSantaChatPage() {
             key={exchange.receiver?.id ?? "no-santa"}
             groupId={exchange.id}
             role="receiver"
+            visible={view !== "giver"}
             thread={exchange.receiver}
             userId={userId}
             supabase={supabase}
