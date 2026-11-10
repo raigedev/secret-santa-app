@@ -3,6 +3,7 @@
 // Private chat reads and writes stay server-side so thread participant checks
 // can run before any assignment or message data is returned.
 
+import { after } from "next/server";
 import { recordServerFailure } from "@/lib/security/audit";
 import { DEFAULT_EXCHANGE_TIME_ZONE } from "@/lib/exchange-date.mjs";
 import { createNotification } from "@/lib/notifications";
@@ -89,6 +90,34 @@ export type SafeChatMessage = {
   from_current_user: boolean;
   id: string;
 };
+
+type SendChatResult =
+  | { success: true; sentMessage: SafeChatMessage }
+  | { success: false; message: string };
+
+function confirmChatSend(
+  row: Omit<SafeChatMessage, "from_current_user">,
+  groupId: string,
+  recipientId: string,
+): SendChatResult {
+  // The message is committed; notification preferences and delivery need not block its acknowledgment.
+  after(async () => {
+    await createNotification({
+      userId: recipientId,
+      type: "chat",
+      title: "New private gift message",
+      body: "You have a new message in one of your Secret Santa chats.",
+      linkPath: "/secret-santa-chat",
+      metadata: { groupId },
+      preferenceKey: "notify_chat",
+    });
+  });
+
+  return {
+    success: true,
+    sentMessage: { id: row.id, content: row.content, created_at: row.created_at, from_current_user: true },
+  };
+}
 
 // Core#1: Strip HTML tags, trim, enforce max length
 function sanitizeMessage(input: string): string {
@@ -558,7 +587,7 @@ export async function markReceiverThreadAsRead(threadId: string): Promise<{
 export async function sendReceiverMessage(
   threadId: string,
   content: string
-): Promise<{ success: boolean; message: string }> {
+): Promise<SendChatResult> {
   const groupId = parseReceiverThreadId(threadId);
 
   if (!groupId) {
@@ -604,13 +633,13 @@ export async function sendReceiverMessage(
 
   const { assignment } = receiverAccess;
 
-  const { error } = await supabaseAdmin.from("messages").insert({
+  const { data, error } = await supabaseAdmin.from("messages").insert({
     content: cleanContent,
     group_id: assignment.group_id,
     sender_id: userId,
     thread_giver_id: assignment.giver_id,
     thread_receiver_id: assignment.receiver_id,
-  });
+  }).select("id, content, created_at").single();
 
   if (error) {
     await recordServerFailure({
@@ -623,26 +652,14 @@ export async function sendReceiverMessage(
     return { success: false, message: "We could not send your message. Please try again." };
   }
 
-  await createNotification({
-    userId: assignment.giver_id,
-    type: "chat",
-    title: "New private gift message",
-    body: "You have a new message in one of your Secret Santa chats.",
-    linkPath: "/secret-santa-chat",
-    metadata: {
-      groupId,
-    },
-    preferenceKey: "notify_chat",
-  });
-
-  return { success: true, message: "" };
+  return confirmChatSend(data, groupId, assignment.giver_id);
 }
 
 export async function sendGiverMessage(
   groupId: string,
   threadReceiverId: string,
   content: string
-): Promise<{ success: boolean; message: string }> {
+): Promise<SendChatResult> {
 
   if (
     !isUuid(groupId) ||
@@ -696,7 +713,7 @@ export async function sendGiverMessage(
     return { success: false, message: threadAccess.message };
   }
 
-  const { error } = await supabaseAdmin
+  const { data, error } = await supabaseAdmin
     .from("messages")
     .insert({
       group_id: groupId,
@@ -704,7 +721,9 @@ export async function sendGiverMessage(
       thread_giver_id: user.id,
       thread_receiver_id: threadReceiverId,
       content: cleanContent,
-    });
+    })
+    .select("id, content, created_at")
+    .single();
 
   if (error) {
     await recordServerFailure({
@@ -721,17 +740,5 @@ export async function sendGiverMessage(
     return { success: false, message: "We could not send your message. Please try again." };
   }
 
-  await createNotification({
-    userId: threadReceiverId,
-    type: "chat",
-    title: "New private gift message",
-    body: "You have a new message in one of your Secret Santa chats.",
-    linkPath: "/secret-santa-chat",
-    metadata: {
-      groupId,
-    },
-    preferenceKey: "notify_chat",
-  });
-
-  return { success: true, message: "" };
+  return confirmChatSend(data, groupId, threadReceiverId);
 }

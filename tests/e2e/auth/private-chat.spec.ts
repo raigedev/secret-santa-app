@@ -6,6 +6,7 @@ import {
   CHAT_EXCHANGE_POLL_MS,
   CHAT_IDLE_MESSAGE_POLL_MS,
   nextChatMessagePollDelay,
+  planChatMessagePoll,
 } from "../../../app/secret-santa-chat/chat-polling";
 import { fetchMyAssignmentGiftPrep } from "../../../lib/assignments/gift-prep-client";
 import { loginWithTestCredentials } from "../helpers/auth";
@@ -23,6 +24,19 @@ test("quiet chats back off without delaying active-message checks", () => {
   expect(nextChatMessagePollDelay(CHAT_IDLE_MESSAGE_POLL_MS, 150_000)).toBe(60_000);
   expect(nextChatMessagePollDelay(CHAT_IDLE_MESSAGE_POLL_MS, 0)).toBe(15_000);
   expect(CHAT_EXCHANGE_POLL_MS).toBe(180_000);
+});
+
+test("repeated sends preserve an earlier reply check and can wake an idle poll", () => {
+  const activePoll = planChatMessagePoll(CHAT_ACTIVE_MESSAGE_POLL_MS, 1_000, 1_000);
+  expect(activePoll).toEqual({ delay: 15_000, dueAt: 16_000 });
+  for (const sendAt of [5_000, 10_000, 15_000]) {
+    expect(planChatMessagePoll(activePoll!.delay, sendAt, sendAt, activePoll!.dueAt)).toBeNull();
+  }
+
+  const idleDeadline = 61_000;
+  expect(planChatMessagePoll(CHAT_IDLE_MESSAGE_POLL_MS, 6_000, 6_000, idleDeadline))
+    .toEqual({ delay: 15_000, dueAt: 21_000 });
+  expect(planChatMessagePoll(CHAT_IDLE_MESSAGE_POLL_MS, 55_000, 55_000, idleDeadline)).toBeNull();
 });
 
 test("assignment lookups preserve the group after the first batch", async () => {
@@ -257,8 +271,48 @@ test("separate chats deliver both ways and stay scoped to the selected exchange"
 
     const santaDraft = santaBox.getByRole("textbox", { name: "Reply to your Santa" });
     await santaDraft.fill("A separate draft");
-    await giverBox.getByRole("textbox", { name: "Message Ribbon Keeper" }).fill(firstMessage);
-    await giverBox.getByRole("button", { name: "Send", exact: true }).click();
+    const viewControl = page.getByRole("group", { name: "Chat view" });
+    await expect(viewControl.getByRole("button", { name: "Both" })).toHaveAttribute("aria-pressed", "true");
+    await viewControl.getByRole("button", { name: /^My giftee/ }).click();
+    await expect(santaBox).toBeHidden();
+    if (!stacked) expect((await giverBox.boundingBox())!.width).toBeGreaterThan(giverBounds!.width);
+    await page.screenshot({ path: testInfo.outputPath("giftee-focus.png"), fullPage: true });
+    await viewControl.getByRole("button", { name: /^My Santa/ }).click();
+    await expect(giverBox).toBeHidden();
+    await expect(santaDraft).toHaveValue("A separate draft");
+    await viewControl.getByRole("button", { name: "Both" }).click();
+
+    const giverDraft = giverBox.getByRole("textbox", { name: "Message Ribbon Keeper" });
+    const send = giverBox.getByRole("button", { name: "Send", exact: true });
+    const failedMessage = "Keep this draft if sending fails.";
+    const heldSend = Promise.withResolvers<void>();
+    await page.route("**/secret-santa-chat", async (route) => {
+      const body = route.request().postData();
+      if (body?.includes(failedMessage)) {
+        await route.abort();
+        return;
+      }
+      if (body?.includes(firstMessage)) await heldSend.promise;
+      await route.continue();
+    });
+    await giverDraft.fill(failedMessage);
+    await send.click();
+    await expect(giverBox.getByRole("alert")).toHaveText(/could not send/);
+    await expect(giverDraft).toHaveValue(failedMessage);
+    await expect(giverBox.getByRole("log").getByText(failedMessage, { exact: true })).toHaveCount(0);
+
+    try {
+      await giverDraft.fill(firstMessage);
+      await send.click();
+      await expect(giverBox.getByText(firstMessage, { exact: true })).toBeVisible();
+      await expect(giverBox.getByText("Sending...", { exact: true })).toBeVisible();
+      await expect(send).toBeDisabled();
+    } finally {
+      heldSend.resolve();
+    }
+    await expect(giverBox.getByText("Sending...", { exact: true })).toHaveCount(0);
+    await expect(giverBox.getByText(firstMessage, { exact: true })).toHaveCount(1);
+    await expect(giverDraft).toHaveValue("");
     await expect(santaDraft).toHaveValue("A separate draft");
     await expect(santaBox.getByText(firstMessage, { exact: true })).toHaveCount(0);
     await expect(recipientSantaBox.getByText(firstMessage, { exact: true })).toBeVisible({ timeout: 25_000 });

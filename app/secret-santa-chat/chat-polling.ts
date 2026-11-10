@@ -8,3 +8,15 @@ export function nextChatMessagePollDelay(currentDelay: number, quietForMs: numbe
     ? CHAT_ACTIVE_MESSAGE_POLL_MS
     : Math.min(currentDelay * 2, CHAT_IDLE_MESSAGE_POLL_MS);
 }
+
+export function planChatMessagePoll(
+  currentDelay: number,
+  now: number,
+  lastActivityAt: number,
+  scheduledAt?: number,
+) {
+  const delay = nextChatMessagePollDelay(currentDelay, now - lastActivityAt);
+  const dueAt = now + delay;
+  // New activity can wake an idle poll sooner, but must never postpone a pending check.
+  return scheduledAt !== undefined && scheduledAt <= dueAt ? null : { delay, dueAt };
+}
