@@ -13,6 +13,7 @@ import { isGroupInHistory } from "@/lib/groups/history";
 import { createClient } from "@/lib/supabase/client";
 import { loadReceiverChatThreads } from "./chat-actions";
 import { ChatConversation, type ChatThread } from "./ChatConversation";
+import { CHAT_EXCHANGE_POLL_MS } from "./chat-polling";
 import styles from "./chat.module.css";
 
 type GroupRow = {
@@ -26,7 +27,6 @@ type GroupRow = {
 type ChatExchange = GroupRow & { giver: ChatThread | null; receiver: ChatThread | null };
 
 const CHAT_THREAD_MESSAGE_SCAN_LIMIT = 1000;
-const CHAT_THREAD_FALLBACK_POLL_MS = 45_000;
 const CHAT_PAGE_LOAD_TIMEOUT_MS = 10_000;
 
 function getGiftDayLabel(exchange: ChatExchange): string {
@@ -54,10 +54,14 @@ export default function SecretSantaChatPage() {
   const [refreshVersion, setRefreshVersion] = useState(0);
   const loadExchangesRef = useRef<() => void>(null);
 
-  const refreshChats = useCallback(() => {
-    setRefreshVersion((version) => version + 1);
+  const refreshExchanges = useCallback(() => {
     loadExchangesRef.current?.();
   }, []);
+
+  const refreshChats = useCallback(() => {
+    setRefreshVersion((version) => version + 1);
+    refreshExchanges();
+  }, [refreshExchanges]);
 
   useEffect(() => {
     let disposed = false;
@@ -220,7 +224,7 @@ export default function SecretSantaChatPage() {
     };
     window.addEventListener("focus", refreshIfVisible);
     document.addEventListener("visibilitychange", refreshIfVisible);
-    const poll = setInterval(refreshIfVisible, CHAT_THREAD_FALLBACK_POLL_MS);
+    const poll = setInterval(refreshIfVisible, CHAT_EXCHANGE_POLL_MS);
 
     return () => {
       disposed = true;
@@ -306,6 +310,7 @@ export default function SecretSantaChatPage() {
             supabase={supabase}
             refreshVersion={refreshVersion}
             onRead={onRead}
+            onPollChange={refreshExchanges}
           />
           <ChatConversation
             key={exchange.receiver?.id ?? "no-santa"}
@@ -316,6 +321,7 @@ export default function SecretSantaChatPage() {
             supabase={supabase}
             refreshVersion={refreshVersion}
             onRead={onRead}
+            onPollChange={refreshExchanges}
           />
         </div>
       ) : !loadError && (

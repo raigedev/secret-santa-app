@@ -12,6 +12,7 @@ import {
   sendReceiverMessage,
   type SafeChatMessage,
 } from "./chat-actions";
+import { CHAT_ACTIVE_MESSAGE_POLL_MS, nextChatMessagePollDelay } from "./chat-polling";
 import styles from "./chat.module.css";
 
 export type ChatThread = {
@@ -30,10 +31,10 @@ type ChatConversationProps = {
   supabase: ReturnType<typeof createClient>;
   refreshVersion: number;
   onRead: (threadId: string) => void;
+  onPollChange: () => void;
 };
 
 const CHAT_ACTIVE_THREAD_MESSAGE_LIMIT = 250;
-const CHAT_ACTIVE_THREAD_FALLBACK_POLL_MS = 15_000;
 const timeFormat = new Intl.DateTimeFormat(undefined, { hour: "numeric", minute: "2-digit" });
 const dayFormat = new Intl.DateTimeFormat(undefined, { month: "short", day: "numeric", year: "numeric" });
 
@@ -75,7 +76,7 @@ async function loadGifteePhoto(groupId: string, receiverId: string, signal: Abor
 }
 
 export function ChatConversation({
-  groupId, role, thread, allowProfilePhoto = false, userId, supabase, refreshVersion, onRead,
+  groupId, role, thread, allowProfilePhoto = false, userId, supabase, refreshVersion, onRead, onPollChange,
 }: ChatConversationProps) {
   const isGiver = role === "giver";
   const threadId = thread?.id;
@@ -111,8 +112,17 @@ export function ChatConversation({
     if (!threadId || !receiverId) return;
     let disposed = false;
     let version = 0;
+    let pollDelay = CHAT_ACTIVE_MESSAGE_POLL_MS;
+    let lastActivityAt = performance.now();
+    let pollTimer: ReturnType<typeof setTimeout> | undefined;
+    let foregroundTimer: ReturnType<typeof setTimeout> | undefined;
+    let previousCount: number | undefined;
+    let previousLatestId: string | undefined;
 
-    const loadMessages = async () => {
+    const loadMessages = async (fromPoll = false) => {
+      if (fromPoll && document.visibilityState !== "visible") return;
+      clearTimeout(pollTimer);
+      if (!fromPoll) lastActivityAt = performance.now();
       const request = ++version;
       try {
         let nextMessages: SafeChatMessage[];
@@ -140,31 +150,48 @@ export function ChatConversation({
         }
 
         if (disposed || request !== version) return;
+        const latestId = nextMessages.at(-1)?.id;
+        const changed = previousCount !== nextMessages.length || previousLatestId !== latestId;
+        if (changed) {
+          lastActivityAt = performance.now();
+          if (fromPoll && previousCount !== undefined) onPollChange();
+        }
+        previousCount = nextMessages.length;
+        previousLatestId = latestId;
         setLoadError(false);
         setMessages(nextMessages);
       } catch {
         if (disposed || request !== version) return;
         setLoadError(true);
         setMessages(null);
+      } finally {
+        if (!disposed && request === version && document.visibilityState === "visible") {
+          pollDelay = nextChatMessagePollDelay(pollDelay, performance.now() - lastActivityAt);
+          pollTimer = setTimeout(() => void loadMessages(true), pollDelay);
+        }
       }
     };
 
     loadMessagesRef.current = loadMessages;
-    const refreshIfVisible = () => {
-      if (document.visibilityState === "visible") void loadMessages();
+    const refreshOnForeground = () => {
+      clearTimeout(pollTimer);
+      clearTimeout(foregroundTimer);
+      if (document.visibilityState === "visible") {
+        foregroundTimer = setTimeout(() => void loadMessages(), 120);
+      }
     };
-    const poll = setInterval(refreshIfVisible, CHAT_ACTIVE_THREAD_FALLBACK_POLL_MS);
-    document.addEventListener("visibilitychange", refreshIfVisible);
-    window.addEventListener("focus", refreshIfVisible);
+    document.addEventListener("visibilitychange", refreshOnForeground);
+    window.addEventListener("focus", refreshOnForeground);
 
     return () => {
       disposed = true;
       loadMessagesRef.current = null;
-      clearInterval(poll);
-      document.removeEventListener("visibilitychange", refreshIfVisible);
-      window.removeEventListener("focus", refreshIfVisible);
+      clearTimeout(pollTimer);
+      clearTimeout(foregroundTimer);
+      document.removeEventListener("visibilitychange", refreshOnForeground);
+      window.removeEventListener("focus", refreshOnForeground);
     };
-  }, [groupId, receiverId, role, supabase, threadId, userId]);
+  }, [groupId, onPollChange, receiverId, role, supabase, threadId, userId]);
 
   useEffect(() => {
     void loadMessagesRef.current?.();
