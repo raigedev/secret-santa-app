@@ -6,6 +6,7 @@ import {
   CHAT_EXCHANGE_POLL_MS,
   CHAT_IDLE_MESSAGE_POLL_MS,
   nextChatMessagePollDelay,
+  planChatMessagePoll,
 } from "../../../app/secret-santa-chat/chat-polling";
 import { fetchMyAssignmentGiftPrep } from "../../../lib/assignments/gift-prep-client";
 import { loginWithTestCredentials } from "../helpers/auth";
@@ -23,6 +24,19 @@ test("quiet chats back off without delaying active-message checks", () => {
   expect(nextChatMessagePollDelay(CHAT_IDLE_MESSAGE_POLL_MS, 150_000)).toBe(60_000);
   expect(nextChatMessagePollDelay(CHAT_IDLE_MESSAGE_POLL_MS, 0)).toBe(15_000);
   expect(CHAT_EXCHANGE_POLL_MS).toBe(180_000);
+});
+
+test("repeated sends preserve an earlier reply check and can wake an idle poll", () => {
+  const activePoll = planChatMessagePoll(CHAT_ACTIVE_MESSAGE_POLL_MS, 1_000, 1_000);
+  expect(activePoll).toEqual({ delay: 15_000, dueAt: 16_000 });
+  for (const sendAt of [5_000, 10_000, 15_000]) {
+    expect(planChatMessagePoll(activePoll!.delay, sendAt, sendAt, activePoll!.dueAt)).toBeNull();
+  }
+
+  const idleDeadline = 61_000;
+  expect(planChatMessagePoll(CHAT_IDLE_MESSAGE_POLL_MS, 6_000, 6_000, idleDeadline))
+    .toEqual({ delay: 15_000, dueAt: 21_000 });
+  expect(planChatMessagePoll(CHAT_IDLE_MESSAGE_POLL_MS, 55_000, 55_000, idleDeadline)).toBeNull();
 });
 
 test("assignment lookups preserve the group after the first batch", async () => {

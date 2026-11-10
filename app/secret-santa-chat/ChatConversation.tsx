@@ -12,7 +12,7 @@ import {
   sendReceiverMessage,
   type SafeChatMessage,
 } from "./chat-actions";
-import { CHAT_ACTIVE_MESSAGE_POLL_MS, nextChatMessagePollDelay } from "./chat-polling";
+import { CHAT_ACTIVE_MESSAGE_POLL_MS, planChatMessagePoll } from "./chat-polling";
 import styles from "./chat.module.css";
 
 export type ChatThread = {
@@ -124,22 +124,30 @@ export function ChatConversation({
     let pollDelay = CHAT_ACTIVE_MESSAGE_POLL_MS;
     let lastActivityAt = performance.now();
     let pollTimer: ReturnType<typeof setTimeout> | undefined;
+    let pollDueAt: number | undefined;
     let foregroundTimer: ReturnType<typeof setTimeout> | undefined;
     let previousCount: number | undefined;
     let previousLatestId: string | undefined;
     let sendsDuringRead: SafeChatMessage[] | undefined;
 
-    const schedulePoll = () => {
+    const cancelPoll = () => {
       clearTimeout(pollTimer);
-      if (document.visibilityState === "visible") {
-        pollDelay = nextChatMessagePollDelay(pollDelay, performance.now() - lastActivityAt);
-        pollTimer = setTimeout(() => void loadMessages(true), pollDelay);
-      }
+      pollDueAt = undefined;
+    };
+
+    const schedulePoll = () => {
+      if (document.visibilityState !== "visible") return;
+      const nextPoll = planChatMessagePoll(pollDelay, performance.now(), lastActivityAt, pollDueAt);
+      if (!nextPoll) return;
+      cancelPoll();
+      pollDelay = nextPoll.delay;
+      pollDueAt = nextPoll.dueAt;
+      pollTimer = setTimeout(() => void loadMessages(true), pollDelay);
     };
 
     const loadMessages = async (fromPoll = false) => {
+      cancelPoll();
       if (fromPoll && document.visibilityState !== "visible") return;
-      clearTimeout(pollTimer);
       if (!fromPoll) lastActivityAt = performance.now();
       const request = ++version;
       const overlappingSends: SafeChatMessage[] = [];
@@ -201,7 +209,7 @@ export function ChatConversation({
       else schedulePoll();
     };
     const refreshOnForeground = () => {
-      clearTimeout(pollTimer);
+      cancelPoll();
       clearTimeout(foregroundTimer);
       if (document.visibilityState === "visible") {
         foregroundTimer = setTimeout(() => void loadMessages(), 120);
@@ -214,7 +222,7 @@ export function ChatConversation({
       disposed = true;
       loadMessagesRef.current = null;
       noteSendRef.current = null;
-      clearTimeout(pollTimer);
+      cancelPoll();
       clearTimeout(foregroundTimer);
       document.removeEventListener("visibilitychange", refreshOnForeground);
       window.removeEventListener("focus", refreshOnForeground);
