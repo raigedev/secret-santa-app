@@ -97,6 +97,10 @@ After pushing and waiting for Vercel to show Ready:
 
 Test desktop and mobile width for UI changes.
 
+## Function Region
+
+`vercel.json` pins Vercel Functions to `sin1` (Singapore) so server rendering, server actions, API routes, and cron jobs run next to the Supabase project in `ap-southeast-1`. Vercel's default is `iad1` (Washington, D.C.), which made every server-side Supabase call cross the Pacific twice. If the Supabase project ever moves, move this region with it. A response header like `X-Vercel-Id: sin1::sin1::...` confirms both the edge and the function run in Singapore.
+
 ## Cron Jobs
 
 Configured in `vercel.json`:

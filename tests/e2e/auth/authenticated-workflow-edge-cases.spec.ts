@@ -78,7 +78,7 @@ const SHARED_NAVIGATION_CASES: NavigationCase[] = [
     expectedUrl: /\/secret-santa-chat$/,
     ready: async (page) => {
       await expect(page.getByTestId("secret-santa-chat-page")).toBeVisible();
-      await expect(page.getByRole("heading", { name: /^secret messages$/i }).first()).toBeVisible();
+      await expect(page.getByRole("heading", { name: /^messages$/i, level: 1 })).toBeVisible();
     },
   },
   {
@@ -465,14 +465,11 @@ test.describe("authenticated workflow edge cases", () => {
     await expect(page.getByTestId("shopping-region-budget-control")).toHaveCount(0);
     await expect(page.getByTestId("shopping-region-header-control")).toHaveCount(0);
     await expect(sidebar.locator('select[aria-label="Online shop region"]')).toHaveCount(0);
-    await expect(page.getByTestId("shopping-sidebar-current-group")).toContainText(
-      /current exchange/i
-    );
-    await expect(
-      page.getByTestId("shopping-sidebar-current-group").getByRole("link", {
-        name: /^open group$/i,
-      })
-    ).toBeVisible();
+    // Since 8460888 the whole "Current group" row is the link to the group workspace.
+    const currentGroupLink = page.getByTestId("shopping-sidebar-current-group");
+    await expect(currentGroupLink).toContainText(/current group/i);
+    await expect(currentGroupLink).toHaveAccessibleName(/^open .+ group$/i);
+    await expect(currentGroupLink).toHaveAttribute("href", /\/group\/[0-9a-f-]{36}$/);
     await expect(sidebar.getByRole("link", { name: /^dashboard$/i })).toHaveAttribute(
       "href",
       /\/dashboard$/

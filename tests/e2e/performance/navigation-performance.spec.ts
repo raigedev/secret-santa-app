@@ -81,7 +81,7 @@ test.describe("navigation performance smoke coverage", () => {
       "login to dashboard ready",
       () => loginWithTestCredentials(page, credentials!),
       async () => {
-        await expect(page.getByRole("heading", { name: /exchange at a glance/i })).toBeVisible();
+        await expect(page.getByRole("heading", { name: /your exchange today/i, level: 1 })).toBeVisible();
       }
     );
 
@@ -140,7 +140,7 @@ test.describe("navigation performance smoke coverage", () => {
       "secret santa chat ready",
       () => page.goto("/secret-santa-chat"),
       async () => {
-        await expect(page.getByRole("heading", { name: /secret messages/i }).first()).toBeVisible();
+        await expect(page.getByRole("heading", { name: /^messages$/i, level: 1 })).toBeVisible();
       }
     );
 
@@ -178,7 +178,7 @@ test.describe("navigation performance smoke coverage", () => {
       "logout to login ready",
       async () => {
         await page.goto("/dashboard");
-        await expect(page.getByRole("heading", { name: /exchange at a glance/i })).toBeVisible();
+        await expect(page.getByRole("heading", { name: /your exchange today/i, level: 1 })).toBeVisible();
         const profileMenuButton = getVisibleProfileMenuButton(page);
         await expect(profileMenuButton).toBeVisible();
         await profileMenuButton.click();
