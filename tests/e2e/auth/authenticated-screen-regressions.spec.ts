@@ -593,16 +593,20 @@ const AUTHENTICATED_SCREEN_CASES: ScreenCase[] = [
     name: "secret-santa-chat",
     path: "/secret-santa-chat",
     assertVisible: async (page) => {
+      // Since b5e37db each exchange shows two separate chats: the person you're
+      // gifting and the person gifting you, each with its own reply box.
       const chatPage = page.getByTestId("secret-santa-chat-page");
-      const secretMessagesHeadings = page.getByRole("heading", { name: /^secret messages$/i });
-      const pageHeading = secretMessagesHeadings.first();
+      const messagesHeadings = page.getByRole("heading", { name: /^messages$/i, level: 1 });
+      const pageHeading = messagesHeadings.first();
       await expect(chatPage).toBeVisible();
       await expect(pageHeading).toBeVisible();
-      await expect(secretMessagesHeadings).toHaveCount(1);
-      await expect(page.getByText(/writing to your giftee or your Secret Santa/i)).toBeVisible();
+      await expect(messagesHeadings).toHaveCount(1);
+      await expect(page.getByRole("group", { name: /^chat view$/i })).toBeVisible();
+      await expect(page.getByRole("region", { name: /^the person you're gifting$/i })).toBeVisible();
+      await expect(page.getByRole("region", { name: /^the person gifting you$/i })).toBeVisible();
+      await expect(page.getByRole("form", { name: /^reply to your santa$/i })).toBeVisible();
       await expect(page.getByText(/^to giftees:/i)).toHaveCount(0);
       await expect(page.getByText(/^from my santa:/i)).toHaveCount(0);
-      await expect(page.getByRole("heading", { name: /gift chats/i })).toBeVisible();
       await page.waitForTimeout(1000);
       await expect(page.getByText(/we could not load your chats/i)).toHaveCount(0);
       await expect(page.getByText(/history ready/i)).toHaveCount(0);
@@ -614,7 +618,8 @@ const AUTHENTICATED_SCREEN_CASES: ScreenCase[] = [
       const headingColor = await pageHeading.evaluate(
         (heading) => window.getComputedStyle(heading).color
       );
-      expect(headingColor).toBe("rgb(72, 102, 78)");
+      // The rebuilt chat uses its own --chat-green token (#43604a).
+      expect(headingColor).toBe("rgb(67, 96, 74)");
     },
   },
 ];

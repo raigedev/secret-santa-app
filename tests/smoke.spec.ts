@@ -25,7 +25,10 @@ test.describe("public smoke coverage", () => {
   test("dashboard redirects unauthenticated visitors to login", async ({ page }) => {
     await page.goto("/dashboard");
 
-    await expect(page).toHaveURL(/\/login$/);
+    // Since 1347b11 the proxy keeps the requested app path in `next` for the post-login return.
+    await expect(page).toHaveURL(
+      (url) => url.pathname === "/login" && url.searchParams.get("next") === "/dashboard"
+    );
     await expect(page.getByRole("button", { name: /^log in$/i })).toBeVisible();
   });
 

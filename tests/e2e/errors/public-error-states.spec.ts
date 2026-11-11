@@ -13,7 +13,10 @@ test.describe("public error and edge states", () => {
   test("unknown routes currently redirect guests to login", async ({ page }) => {
     await page.goto(UNKNOWN_ROUTE_PATH);
 
-    await expect(page).toHaveURL(/\/login$/);
+    // Since 1347b11 the proxy keeps the requested app path in `next` for the post-login return.
+    await expect(page).toHaveURL(
+      (url) => url.pathname === "/login" && url.searchParams.get("next") === UNKNOWN_ROUTE_PATH
+    );
     await expect(page.getByRole("button", { name: /^log in$/i })).toBeVisible();
   });
 });

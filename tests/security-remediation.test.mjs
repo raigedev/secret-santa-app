@@ -2631,6 +2631,36 @@ test("wishlist AI provider calls exclude private item notes", () => {
   );
 });
 
+test("wishlist AI suggestion cache is read only after login, rate limit, and access checks", () => {
+  const aiSuggestionsSource = readFileSync("app/api/ai/wishlist-suggestions/route.ts", "utf8");
+  const cacheSource = readFileSync("lib/ai/wishlist-suggestion-cache.ts", "utf8");
+  const loginIndex = aiSuggestionsSource.indexOf("await supabase.auth.getUser()");
+  const rateLimitIndex = aiSuggestionsSource.indexOf("await enforceRateLimit(");
+  const accessIndex = aiSuggestionsSource.indexOf("await canAccessRecipientWishlistItem(");
+  const cacheReadIndex = aiSuggestionsSource.indexOf("readCachedWishlistSuggestionDrafts<");
+
+  assert.ok(loginIndex > 0 && rateLimitIndex > loginIndex);
+  assert.ok(accessIndex > rateLimitIndex, "Recipient access must be checked after the rate limit.");
+  assert.ok(cacheReadIndex > accessIndex, "Cached ideas must never be served before the access check.");
+  assert.match(
+    aiSuggestionsSource,
+    /buildWishlistSuggestionCacheKey\(providerSuggestionInput\)/
+  );
+  assert.match(aiSuggestionsSource, /if \(!cachedDrafts && aiDrafts\.length > 0\) \{\s*storeWishlistSuggestionDrafts/);
+  assert.match(cacheSource, /^import "server-only";/);
+  assert.match(cacheSource, /const WISHLIST_SUGGESTION_CACHE_TTL_MS = /);
+  assert.match(cacheSource, /const WISHLIST_SUGGESTION_CACHE_MAX_ENTRIES = /);
+  assert.doesNotMatch(cacheSource, /itemNote/);
+});
+
+test("Vercel functions stay in Singapore next to the Supabase project", () => {
+  const vercelConfig = JSON.parse(readFileSync("vercel.json", "utf8"));
+
+  // Supabase runs in ap-southeast-1. Running functions in the default iad1 region
+  // made every server-side Supabase call cross the Pacific twice.
+  assert.deepEqual(vercelConfig.regions, ["sin1"]);
+});
+
 test("lazada postback setup keeps auth material out of URL query strings", () => {
   const lazadaPostbackSource = readFileSync("app/api/affiliate/lazada/postback/route.ts", "utf8");
   const affiliateReportSource = readFileSync("app/dashboard/affiliate-report/page.tsx", "utf8");

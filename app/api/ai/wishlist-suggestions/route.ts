@@ -5,6 +5,11 @@ import {
   generateOpenRouterWishlistSuggestionDrafts,
   isOpenRouterWishlistConfigured,
 } from "@/lib/ai/openrouter";
+import {
+  buildWishlistSuggestionCacheKey,
+  readCachedWishlistSuggestionDrafts,
+  storeWishlistSuggestionDrafts,
+} from "@/lib/ai/wishlist-suggestion-cache";
 import { enforceRateLimit } from "@/lib/security/rate-limit";
 import { noStoreJson } from "@/lib/security/no-store-response";
 import { recordServerFailure } from "@/lib/security/audit";
@@ -100,6 +105,8 @@ async function generateWishlistSuggestionDrafts(input: {
 
   return { drafts: [], provider: null };
 }
+
+type WishlistDraftResult = Awaited<ReturnType<typeof generateWishlistSuggestionDrafts>>;
 
 export async function POST(request: NextRequest) {
   if (!isTrustedRequestOrigin(request)) {
@@ -202,10 +209,18 @@ export async function POST(request: NextRequest) {
   const baseOptions = buildWishlistSuggestionOptions(suggestionInput);
   const providerSuggestionInput = buildProviderSuggestionInput(suggestionInput);
   const providerBaseOptions = buildWishlistSuggestionOptions(providerSuggestionInput);
-  const { drafts: aiDrafts, provider: aiProvider } = await generateWishlistSuggestionDrafts({
-    suggestionInput: providerSuggestionInput,
-    baseOptions: providerBaseOptions,
-  }).catch(() => ({ drafts: [], provider: null }));
+  const cacheKey = buildWishlistSuggestionCacheKey(providerSuggestionInput);
+  const cachedDrafts = readCachedWishlistSuggestionDrafts<WishlistDraftResult>(cacheKey);
+  const { drafts: aiDrafts, provider: aiProvider } =
+    cachedDrafts ||
+    (await generateWishlistSuggestionDrafts({
+      suggestionInput: providerSuggestionInput,
+      baseOptions: providerBaseOptions,
+    }).catch((): WishlistDraftResult => ({ drafts: [], provider: null })));
+
+  if (!cachedDrafts && aiDrafts.length > 0) {
+    storeWishlistSuggestionDrafts(cacheKey, { drafts: aiDrafts, provider: aiProvider });
+  }
   const aiSuggestions = buildAiWishlistSuggestionOptions(providerSuggestionInput, aiDrafts);
   const suggestions = aiSuggestions.length > 0 ? aiSuggestions : baseOptions;
 
