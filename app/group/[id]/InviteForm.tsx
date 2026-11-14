@@ -8,9 +8,11 @@ import {
   revokeInviteLink,
 } from "./actions";
 import { removeLocalStorageItem } from "@/lib/client-snapshot";
+import { MAX_INVITE_EMAIL_LIST_LENGTH } from "@/lib/groups/invite-addresses";
 
 type State = {
   message: string;
+  success: boolean;
 };
 
 function isSuccessMessage(message: string): boolean {
@@ -23,7 +25,12 @@ function isSuccessMessage(message: string): boolean {
 }
 
 export default function InviteForm({ groupId }: { groupId: string }) {
-  const [state, formAction] = useActionState<State, FormData>(inviteUser, { message: "" });
+  const [emails, setEmails] = useState("");
+  const [state, formAction, inviting] = useActionState<State, FormData>(async (previous, formData) => {
+    const result = await inviteUser(previous, formData);
+    if (result.success) setEmails("");
+    return result;
+  }, { message: "", success: false });
   const [linkMessage, setLinkMessage] = useState("");
   const [inviteLink, setInviteLink] = useState("");
   const [hasActiveLink, setHasActiveLink] = useState(false);
@@ -114,28 +121,39 @@ export default function InviteForm({ groupId }: { groupId: string }) {
 
           <div className="grid gap-2 sm:grid-cols-[minmax(0,1fr)_auto]">
             <label className="sr-only" htmlFor="member-email">
-              Member email address
+              Member email addresses
             </label>
             <input
               id="member-email"
               type="email"
               name="email"
-              placeholder="Enter an email address"
+              multiple
+              maxLength={MAX_INVITE_EMAIL_LIST_LENGTH}
+              value={emails}
+              onChange={(event) => setEmails(event.target.value)}
+              readOnly={inviting}
+              aria-describedby="member-email-help"
+              placeholder="Enter email addresses"
               className="min-h-11 min-w-0 rounded-2xl border border-[rgba(72,102,78,.14)] bg-white px-4 text-sm font-bold text-[#2e3432] outline-none placeholder:text-slate-400 focus:border-[#48664e] focus:ring-4 focus:ring-[#48664e]/12"
               required
             />
             <button
               type="submit"
+              disabled={inviting || !emails.trim()}
               className="gift-button gift-button-primary gift-button-compact text-sm"
             >
-              Invite
+              {inviting ? "Inviting..." : "Invite"}
             </button>
           </div>
+          <p id="member-email-help" className="mt-2 text-xs text-slate-600">
+            Separate email addresses with commas.
+          </p>
 
           {state.message && (
             <p
+              role={state.success ? "status" : "alert"}
               className={`mt-3 rounded-2xl px-3 py-2 text-sm font-bold ${
-                isSuccessMessage(state.message)
+                state.success
                   ? "bg-[#eef7ef] text-[#48664e]"
                   : "bg-[#fff7f6] text-[#a43c3f]"
               }`}
