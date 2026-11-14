@@ -51,6 +51,7 @@ export function validateAnonymousGroupNickname(options: {
   nickname: string;
   displayName?: string | null;
   email?: string | null;
+  revealName?: string | null;
 }): string | null {
   const cleanNickname = sanitizeGroupNickname(options.nickname);
 
@@ -77,6 +78,10 @@ export function validateAnonymousGroupNickname(options: {
 
   if (normalizedNickname && normalizedNickname === normalizedEmailName) {
     return "Choose an alias different from your email name.";
+  }
+
+  if (normalizedNickname === normalizeComparableValue(options.revealName)) {
+    return "Choose an alias different from your name for the reveal.";
   }
 
   if (normalizedDisplayName && normalizedNickname === normalizedDisplayName) {

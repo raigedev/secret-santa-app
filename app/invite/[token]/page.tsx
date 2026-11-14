@@ -1,11 +1,13 @@
 import Link from "next/link";
 import { createHash } from "crypto";
 import { redirect } from "next/navigation";
+import { RevealNameField } from "@/app/components/RevealNameField";
 import { getEmailVerificationMessage, isUserEmailVerified } from "@/lib/auth/user-status";
 import {
   sanitizeGroupNickname,
   validateAnonymousGroupNickname,
 } from "@/lib/groups/nickname";
+import { validateRevealName } from "@/lib/groups/reveal-name";
 import {
   countActiveGroupSlots,
   getGroupCapacityMessage,
@@ -254,7 +256,8 @@ async function loadInvitePreview(
 
 async function joinGroupViaInviteToken(
   token: string,
-  nickname?: string
+  nickname: string,
+  revealNameInput: FormDataEntryValue | null
 ): Promise<{ success: boolean; message: string; groupId?: string }> {
   const normalizedToken = normalizeToken(token);
   if (!normalizedToken) {
@@ -332,6 +335,11 @@ async function joinGroupViaInviteToken(
 
   const requiresAnonymousNickname = Boolean(groupSettings.require_anonymous_nickname);
   const cleanNickname = sanitizeGroupNickname(nickname || "");
+  const revealName = requiresAnonymousNickname ? validateRevealName(revealNameInput) : null;
+
+  if (revealName?.error) {
+    return { success: false, message: revealName.error };
+  }
 
   if (requiresAnonymousNickname) {
     const { data: profile } = await supabase
@@ -344,6 +352,7 @@ async function joinGroupViaInviteToken(
       nickname: cleanNickname,
       displayName: profile?.display_name || null,
       email: normalizedEmail,
+      revealName: revealName?.name,
     });
 
     if (nicknameMessage) {
@@ -421,6 +430,7 @@ async function joinGroupViaInviteToken(
         nickname: requiresAnonymousNickname
           ? cleanNickname
           : reusableMembership.nickname,
+        ...(revealName?.name ? { reveal_name: revealName.name } : {}),
         status: "accepted",
       })
       .eq("id", reusableMembership.id);
@@ -450,6 +460,7 @@ async function joinGroupViaInviteToken(
       user_id: user.id,
       email: normalizedEmail,
       nickname: requiresAnonymousNickname ? cleanNickname : null,
+      ...(revealName?.name ? { reveal_name: revealName.name } : {}),
       role: "member",
       status: "accepted",
     });
@@ -519,8 +530,10 @@ export default async function InviteLinkPage({
   async function handleJoinInvite(formData: FormData) {
     "use server";
 
-    const nickname = (formData.get("nickname") as string | null) || "";
-    const result = await joinGroupViaInviteToken(token, nickname);
+    const nickname = formData.get("nickname");
+    const result = await joinGroupViaInviteToken(
+      token, typeof nickname === "string" ? nickname : "", formData.get("revealName"),
+    );
 
     if (result.success && result.groupId) {
       redirect(`/group/${result.groupId}`);
@@ -700,26 +713,35 @@ export default async function InviteLinkPage({
               </p>
               {preview.requireAnonymousNickname && (
                 <div
-                  className="rounded-xl border px-4 py-3"
+                  className="space-y-4 rounded-lg border px-4 py-3"
                   style={{
-                    background: "rgba(239,246,255,.9)",
-                    borderColor: "rgba(59,130,246,.16)",
+                    background: "rgba(72,102,78,.08)",
+                    borderColor: "rgba(72,102,78,.18)",
                   }}
                 >
-                  <label htmlFor="invite-alias" className="text-[11px] font-extrabold uppercase tracking-[0.12em] text-sky-700">
-                    Secret Santa alias
-                  </label>
-                  <p className="mt-2 text-[13px] leading-6 text-slate-600">
-                    Group members will see your alias instead of your name or email.
-                  </p>
-                  <input
-                    id="invite-alias"
-                    type="text"
-                    name="nickname"
-                    maxLength={30}
-                    placeholder="e.g. Ribbon Keeper"
-                    className="mt-3 w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-900 outline-none"
+                  <RevealNameField
+                    id="invite-reveal-name"
+                    required
+                    inputClassName="min-h-11 w-full rounded-lg border border-slate-200 bg-white px-3 text-sm text-slate-900"
                   />
+                  <div>
+                    <label htmlFor="invite-alias" className="mb-1.5 block text-sm font-bold text-[#2e3432]">
+                      Secret Santa alias <span aria-hidden="true">*</span>
+                    </label>
+                    <input
+                      id="invite-alias"
+                      type="text"
+                      name="nickname"
+                      maxLength={30}
+                      required
+                      aria-describedby="invite-alias-hint"
+                      placeholder="e.g. Ribbon Keeper"
+                      className="min-h-11 w-full rounded-lg border border-slate-200 bg-white px-3 text-sm text-slate-900"
+                    />
+                    <p id="invite-alias-hint" className="mt-1.5 text-xs text-slate-600">
+                      This is what members see before the reveal.
+                    </p>
+                  </div>
                 </div>
               )}
               <button
@@ -728,9 +750,7 @@ export default async function InviteLinkPage({
               >
                 {preview.membershipStatus === "declined"
                   ? "Join Again"
-                  : preview.requireAnonymousNickname
-                    ? "Join with alias"
-                    : "Join Group"}
+                  : "Join Group"}
               </button>
             </form>
           )}

@@ -13,6 +13,7 @@ import {
   sanitizeGroupNickname,
   validateAnonymousGroupNickname,
 } from "@/lib/groups/nickname";
+import { validateRevealName } from "@/lib/groups/reveal-name";
 import {
   findInviteAuthRecipientsByEmail,
   sendGroupInviteEmail,
@@ -41,6 +42,7 @@ type CreateGroupInput = {
   inviteEmails: string[];
   name: string;
   ownerCodename?: string;
+  revealName: unknown;
   requireAnonymousNickname: boolean;
 };
 
@@ -215,6 +217,7 @@ export async function createGroupWithInvitesFromFormData(
       currency: getFormString(formData, "currency"),
       requireAnonymousNickname: getFormString(formData, "requireAnonymousNickname") === "true",
       ownerCodename: getFormString(formData, "ownerCodename"),
+      revealName: formData.get("revealName"),
     },
     groupImage
   );
@@ -257,6 +260,11 @@ async function createGroupWithInvitesInternal(
   const { addresses: inviteEmails } = getGroupCreationInvites(input.inviteEmails, user.email);
   const requireAnonymousNickname = Boolean(input.requireAnonymousNickname);
   const cleanOwnerCodename = sanitizeGroupNickname(input.ownerCodename || "");
+  const revealName = requireAnonymousNickname ? validateRevealName(input.revealName) : null;
+
+  if (revealName?.error) {
+    return { success: false, message: revealName.error };
+  }
 
   if (!cleanName) {
     return { success: false, message: "Enter a group name." };
@@ -291,6 +299,7 @@ async function createGroupWithInvitesInternal(
       nickname: cleanOwnerCodename,
       displayName: profile?.display_name || null,
       email: user.email || null,
+      revealName: revealName?.name,
     });
 
     if (ownerCodenameMessage) {
@@ -383,6 +392,7 @@ async function createGroupWithInvitesInternal(
       user_id: user.id,
       email: ownerEmail,
       nickname: ownerNickname,
+      ...(revealName?.name ? { reveal_name: revealName.name } : {}),
       role: "owner",
       status: "accepted",
     },

@@ -21,6 +21,8 @@ import {
   sanitizeGroupNickname,
   validateAnonymousGroupNickname,
 } from "@/lib/groups/nickname";
+import { validateRevealName } from "@/lib/groups/reveal-name";
+import { RevealNameField } from "@/app/components/RevealNameField";
 import { sanitizePlainText } from "@/lib/validation/common";
 import { getGroupCreationInvites } from "@/lib/groups/invite-addresses";
 import { createClient } from "@/lib/supabase/client";
@@ -193,6 +195,7 @@ export default function CreateGroupPage() {
   const [customBudget, setCustomBudget] = useState(false);
   const [budgetReviewed, setBudgetReviewed] = useState(false);
   const [requireAnonymousNickname, setRequireAnonymousNickname] = useState(false);
+  const [revealName, setRevealName] = useState("");
   const [ownerCodename, setOwnerCodename] = useState("");
   const [groupImageFile, setGroupImageFile] = useState<File | null>(null);
   const [groupImagePreviewBitmap, setGroupImagePreviewBitmap] = useState<ImageBitmap | null>(null);
@@ -366,10 +369,18 @@ export default function CreateGroupPage() {
     if (requireAnonymousNickname) {
       const codenameMessage = validateAnonymousGroupNickname({
         nickname: cleanOwnerCodename,
+        revealName,
       });
 
       if (codenameMessage) {
         setErrorMsg(codenameMessage);
+        setLoading(false);
+        return;
+      }
+
+      const nameMessage = validateRevealName(revealName).error;
+      if (nameMessage) {
+        setErrorMsg(nameMessage);
         setLoading(false);
         return;
       }
@@ -385,6 +396,7 @@ export default function CreateGroupPage() {
     formData.set("currency", currency);
     formData.set("requireAnonymousNickname", String(requireAnonymousNickname));
     formData.set("ownerCodename", cleanOwnerCodename);
+    if (requireAnonymousNickname) formData.set("revealName", revealName);
 
     if (groupImageFile) {
       formData.set("groupImage", groupImageFile);
@@ -424,9 +436,10 @@ export default function CreateGroupPage() {
   const rawBudgetReady = budget > 0 && currency.length > 0;
   const budgetStepReady = budgetReviewed && rawBudgetReady;
   const ownerNicknameMessage = requireAnonymousNickname
-    ? validateAnonymousGroupNickname({ nickname: sanitizeGroupNickname(ownerCodename) })
+    ? validateAnonymousGroupNickname({ nickname: ownerCodename, revealName })
     : null;
-  const privacyReady = ownerNicknameMessage === null;
+  const privacyReady = ownerNicknameMessage === null &&
+    (!requireAnonymousNickname || validateRevealName(revealName).error === null);
   const setupSteps: SetupStep[] = [
     {
       id: "1",
@@ -909,7 +922,7 @@ export default function CreateGroupPage() {
                   Use Secret Santa aliases
                 </label>
                 <p className="mt-1 text-[12px] leading-5" style={{ color: "#64748b" }}>
-                  Everyone, including the organizer, uses an alias instead of their real name or email.
+                  Members use aliases before the reveal.
                 </p>
               </div>
               <button
@@ -932,55 +945,46 @@ export default function CreateGroupPage() {
                 />
               </button>
             </div>
-            <div className="mt-3 flex flex-wrap gap-2">
-              <span
-                className="inline-flex rounded-full px-3 py-1 text-[11px] font-bold"
-                style={{
-                  background: requireAnonymousNickname ? "#dbeafe" : "#e2e8f0",
-                  color: requireAnonymousNickname ? "#48664e" : "#475569",
-                }}
-              >
-                {requireAnonymousNickname ? "Aliases required" : "Names visible"}
-              </span>
-              <span
-                className="inline-flex rounded-full px-3 py-1 text-[11px] font-bold"
-                style={{ background: "#ffffff", color: "#64748b", border: "1px solid rgba(148,163,184,.16)" }}
-              >
-                Members can still change it later
-              </span>
-            </div>
-
             {requireAnonymousNickname && (
-              <div className="mt-4">
-                <label
-                  htmlFor="organizer-alias"
-                  className="text-[13px] font-extrabold mb-1.5 block"
-                  style={{ color: "#1f2937" }}
-                >
-                  Your Secret Santa alias *
-                </label>
-                <input
-                  id="organizer-alias"
-                  type="text"
-                  placeholder="e.g. Ribbon Keeper"
-                  value={ownerCodename}
-                  onChange={(e) => setOwnerCodename(e.target.value)}
-                  maxLength={30}
-                  autoComplete="off"
-                  className={fieldClassName}
-                  style={{
-                    fontFamily: "inherit",
+              <div className="mt-4 space-y-4">
+                <RevealNameField
+                  id="organizer-reveal-name"
+                  inputClassName={fieldClassName}
+                  value={revealName}
+                  onChange={(value) => {
+                    setRevealName(value);
+                    setErrorMsg("");
                   }}
                 />
-                <p className="mt-1 text-[11px]" style={{ color: "#64748b" }}>
-                  This is the name other members will see for you inside this group.
-                </p>
+                <div>
+                  <label htmlFor="organizer-alias" className="mb-1.5 block text-sm font-bold text-[#2e3432]">
+                    Your Secret Santa alias <span aria-hidden="true">*</span>
+                  </label>
+                  <input
+                    id="organizer-alias"
+                    type="text"
+                    placeholder="e.g. Ribbon Keeper"
+                    value={ownerCodename}
+                    onChange={(event) => {
+                      setOwnerCodename(event.target.value);
+                      setErrorMsg("");
+                    }}
+                    maxLength={30}
+                    autoComplete="off"
+                    aria-required="true"
+                    aria-describedby="organizer-alias-hint"
+                    className={fieldClassName}
+                  />
+                  <p id="organizer-alias-hint" className="mt-1.5 text-xs text-slate-600">
+                    This is what members see before the reveal.
+                  </p>
+                </div>
               </div>
             )}
           </div>
 
           {errorMsg && (
-            <p className="text-[13px] font-bold text-center" style={{ color: "#dc2626" }}>
+            <p role="alert" className="text-[13px] font-bold text-center" style={{ color: "#dc2626" }}>
               {errorMsg}
             </p>
           )}

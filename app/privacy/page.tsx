@@ -21,6 +21,7 @@ const policySections = [
     copy: [
       "We collect the account details you provide, such as your name, email address, profile settings, avatar, notification choices, and sign-in details from Google or email authentication.",
       "When you use the app, we store group details, invitations, wishlist items, gift assignments, private group messages, gift progress, reminders, notifications, and activity needed to run the exchange.",
+      "In groups that use Secret Santa aliases, we store the name you provide for that group's reveal. Other participants don't see it until the reveal.",
       "We use cookies and limited browser storage to keep you signed in, remember safe app preferences, and restore recent page state. We do not use these tools to sell your personal data.",
     ],
   },

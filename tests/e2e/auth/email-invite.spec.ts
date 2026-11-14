@@ -88,10 +88,14 @@ test("pending invitations appear in My Groups, not on the dashboard", async ({ p
   const invitations = page.getByRole("region", { name: "Pending invitations" });
   await expect(invitations.getByRole("heading", { name: inviteName })).toBeVisible();
   await expect(page.getByRole("heading", { name: "Create your first exchange" })).toHaveCount(0);
+  await expect(invitations.getByRole("textbox", { name: "Your name for the reveal" })).toBeVisible();
   await expect(invitations.getByRole("textbox", { name: "Secret Santa alias" })).toBeVisible();
   await expect(invitations.getByRole("button", { name: "Decline", exact: true })).toBeEnabled();
   await invitations.getByRole("button", { name: "Accept invite" }).click();
   await expect(invitations.getByRole("alert")).toHaveText("Enter a Secret Santa alias to continue.");
+  await invitations.getByRole("textbox", { name: "Secret Santa alias" }).fill("Ribbon Keeper");
+  await invitations.getByRole("button", { name: "Accept invite" }).click();
+  await expect(invitations.getByRole("alert")).toHaveText("Enter your name for the reveal.");
 });
 
 test("My Groups opens while invitations retry a slow response", async ({ page }) => {
