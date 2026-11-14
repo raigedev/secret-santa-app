@@ -29,6 +29,7 @@ import {
   validateAnonymousGroupNickname,
 } from "@/lib/groups/nickname";
 import { isInviteStatusEligibleForResend } from "@/lib/groups/resend-invite.mjs";
+import { validateRevealName } from "@/lib/groups/reveal-name";
 import { recordAuditEvent, recordServerFailure } from "@/lib/security/audit";
 import { createNotification, createNotifications } from "@/lib/notifications";
 import {
@@ -543,11 +544,12 @@ export async function updateNickname(
   }
 
   const [membershipResult, groupResult, profileResult] = await Promise.all([
-    supabase
+    supabaseAdmin
       .from("group_members")
-      .select("id")
+      .select("id, reveal_name")
       .eq("group_id", groupId)
       .eq("user_id", user.id)
+      .eq("status", "accepted")
       .maybeSingle(),
     supabase
       .from("groups")
@@ -594,6 +596,7 @@ export async function updateNickname(
       nickname: cleanNick,
       displayName: profileResult.data?.display_name || null,
       email: user.email || null,
+      revealName: membership?.reveal_name,
     });
 
     if (nicknameMessage) {
@@ -608,7 +611,9 @@ export async function updateNickname(
   const { error } = await supabaseAdmin
     .from("group_members")
     .update({ nickname: cleanNick })
-    .eq("id", membership.id);
+    .eq("id", membership.id)
+    .eq("user_id", user.id)
+    .eq("status", "accepted");
 
   if (error) {
     await recordServerFailure({
@@ -1748,7 +1753,7 @@ async function loadRevealSourceData(groupId: string): Promise<RevealSourceData> 
     supabaseAdmin.from("assignments").select("giver_id, receiver_id").eq("group_id", groupId),
     supabaseAdmin
       .from("group_members")
-      .select("user_id, nickname, email")
+      .select("user_id, nickname, email, reveal_name")
       .eq("group_id", groupId)
       .eq("status", "accepted"),
   ]);
@@ -1790,7 +1795,9 @@ async function loadRevealSourceData(groupId: string): Promise<RevealSourceData> 
         nickname: member.nickname,
       });
       const realName =
-        getSafeMemberDisplayValue(profile?.displayName, member.email) || alias;
+        validateRevealName(member.reveal_name).name ||
+        getSafeMemberDisplayValue(profile?.displayName, member.email) ||
+        alias;
 
       participants.push({
         userId: member.user_id,

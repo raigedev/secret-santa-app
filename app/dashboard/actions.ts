@@ -5,6 +5,7 @@ import {
   sanitizeGroupNickname,
   validateAnonymousGroupNickname,
 } from "@/lib/groups/nickname";
+import { validateRevealName } from "@/lib/groups/reveal-name";
 import { createNotification } from "@/lib/notifications";
 import {
   requireRateLimitedAction,
@@ -119,7 +120,8 @@ async function notifyOwnerAboutInviteResponse(options: {
 
 export async function acceptInvite(
   groupId: string,
-  nickname?: string
+  nickname?: string,
+  revealNameInput?: string
 ): Promise<MembershipActionResult> {
   const preparedAction = await prepareInviteResponseAction(groupId, "dashboard.accept_invite");
 
@@ -167,12 +169,18 @@ export async function acceptInvite(
 
   const requiresAnonymousNickname = group.requireAnonymousNickname;
   const cleanNickname = sanitizeGroupNickname(nickname || "");
+  const revealName = requiresAnonymousNickname ? validateRevealName(revealNameInput) : null;
+
+  if (revealName?.error) {
+    return { success: false, message: revealName.error };
+  }
 
   if (requiresAnonymousNickname) {
     const nicknameMessage = validateAnonymousGroupNickname({
       nickname: cleanNickname,
       displayName: profileResult.data?.display_name || null,
       email: normalizedEmail,
+      revealName: revealName?.name,
     });
 
     if (nicknameMessage) {
@@ -182,6 +190,7 @@ export async function acceptInvite(
 
   const membershipUpdate: {
     nickname?: string;
+    reveal_name?: string;
     status: "accepted";
     user_id: string;
   } = {
@@ -189,8 +198,9 @@ export async function acceptInvite(
     user_id: user.id,
   };
 
-  if (requiresAnonymousNickname) {
+  if (revealName?.name) {
     membershipUpdate.nickname = cleanNickname;
+    membershipUpdate.reveal_name = revealName.name;
   }
 
   const { error } = await supabaseAdmin

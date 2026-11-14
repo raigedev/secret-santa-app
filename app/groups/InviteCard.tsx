@@ -1,9 +1,11 @@
 "use client";
 
 import { useId, useState } from "react";
+import { RevealNameField } from "@/app/components/RevealNameField";
 import { acceptInvite, declineInvite } from "@/app/dashboard/actions";
 import { formatExchangeDate } from "@/lib/exchange-date.mjs";
 import { sanitizeGroupNickname, validateAnonymousGroupNickname } from "@/lib/groups/nickname";
+import { validateRevealName } from "@/lib/groups/reveal-name";
 import type { PendingInvite } from "@/lib/groups/pending-invites";
 
 export function InviteCard({
@@ -15,6 +17,7 @@ export function InviteCard({
 }) {
   const nicknameId = useId();
   const [nickname, setNickname] = useState("");
+  const [revealName, setRevealName] = useState("");
   const [message, setMessage] = useState("");
   const [busy, setBusy] = useState<"accept" | "decline" | null>(null);
   const requiresNickname = invite.require_anonymous_nickname;
@@ -24,7 +27,8 @@ export function InviteCard({
 
     setMessage("");
     if (response === "accept" && requiresNickname) {
-      const error = validateAnonymousGroupNickname({ nickname });
+      const error = validateAnonymousGroupNickname({ nickname, revealName }) ??
+        validateRevealName(revealName).error;
       if (error) {
         setMessage(error);
         return;
@@ -34,7 +38,11 @@ export function InviteCard({
     setBusy(response);
     try {
       const result = response === "accept"
-        ? await acceptInvite(invite.group_id, requiresNickname ? sanitizeGroupNickname(nickname) : undefined)
+        ? await acceptInvite(
+            invite.group_id,
+            requiresNickname ? sanitizeGroupNickname(nickname) : undefined,
+            requiresNickname ? revealName : undefined,
+          )
         : await declineInvite(invite.group_id);
       if (result.success) {
         onRespond(invite.group_id, result.message);
@@ -64,23 +72,39 @@ export function InviteCard({
         void respond("accept");
       }}>
         {requiresNickname && (
-          <div className="mb-4">
-            <label htmlFor={nicknameId} className="block text-sm font-bold text-[#2e3432]">
-              Secret Santa alias
-            </label>
-            <input
-              id={nicknameId}
-              value={nickname}
-              onChange={(event) => setNickname(event.target.value)}
+          <div className="mb-4 space-y-4">
+            <RevealNameField
+              id={`${nicknameId}-reveal-name`}
+              value={revealName}
+              onChange={(value) => {
+                setRevealName(value);
+                setMessage("");
+              }}
               disabled={busy !== null}
-              maxLength={30}
-              placeholder="e.g. GiftFox"
-              aria-describedby={`${nicknameId}-hint`}
-              className="mt-1.5 min-h-11 w-full rounded-lg border border-[#48664e]/20 bg-white px-3 text-sm text-[#2e3432] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#48664e]"
+              inputClassName="min-h-11 w-full rounded-lg border border-[#48664e]/20 bg-white px-3 text-sm text-[#2e3432] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#48664e]"
             />
-            <p id={`${nicknameId}-hint`} className="mt-1.5 text-xs text-slate-600">
-              Group members will see your alias instead of your name or email.
-            </p>
+            <div>
+              <label htmlFor={nicknameId} className="mb-1.5 block text-sm font-bold text-[#2e3432]">
+                Secret Santa alias <span aria-hidden="true">*</span>
+              </label>
+              <input
+                id={nicknameId}
+                value={nickname}
+                onChange={(event) => {
+                  setNickname(event.target.value);
+                  setMessage("");
+                }}
+                disabled={busy !== null}
+                maxLength={30}
+                aria-required="true"
+                placeholder="e.g. GiftFox"
+                aria-describedby={`${nicknameId}-hint`}
+                className="min-h-11 w-full rounded-lg border border-[#48664e]/20 bg-white px-3 text-sm text-[#2e3432] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#48664e]"
+              />
+              <p id={`${nicknameId}-hint`} className="mt-1.5 text-xs text-slate-600">
+                This is what members see before the reveal.
+              </p>
+            </div>
           </div>
         )}
         {message && <p role="alert" className="mb-3 text-sm font-semibold text-rose-700">{message}</p>}
