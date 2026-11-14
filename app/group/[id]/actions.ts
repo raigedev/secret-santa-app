@@ -13,12 +13,14 @@ import {
 import { getServerActionContext, requireRateLimitedAction } from "@/lib/auth/server-action-context";
 import { getEmailVerificationMessage, isUserEmailVerified } from "@/lib/auth/user-status";
 import { groupHasDrawStarted } from "@/lib/groups/draw-state";
+import { parseGroupInviteEmails } from "@/lib/groups/invite-addresses";
 import {
   GROUP_HISTORY_READ_ONLY_MESSAGE,
   isGroupInHistory,
 } from "@/lib/groups/history";
 import {
   findInviteAuthRecipientByEmail,
+  findInviteAuthRecipientsByEmail,
   sendGroupInviteEmail,
   type InviteAuthRecipient,
 } from "@/lib/groups/invite-email";
@@ -36,7 +38,7 @@ import {
   getGroupImageStoragePathForOwnedGroup,
   GROUP_IMAGE_BUCKET,
 } from "@/lib/groups/group-image";
-import { enforceRateLimit } from "@/lib/security/rate-limit";
+import { enforceRateLimit, reserveGroupInviteQuota } from "@/lib/security/rate-limit";
 import { supabaseAdmin } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 import { isSupportedCurrencyCode } from "@/lib/currency";
@@ -320,69 +322,56 @@ async function prepareInviteLinkAction(
 }
 
 export async function inviteUser(
-  prevState: { message: string },
+  _prevState: { message: string; success: boolean },
   formData: FormData
-): Promise<{ message: string }> {
-  const groupId = formData.get("id") as string;
-  const email = formData.get("email") as string;
-
-  if (!isUuid(groupId) || !email) {
-    return { message: "Missing group ID or email." };
+): Promise<{ message: string; success: boolean }> {
+  const groupId = formData.get("id");
+  if (typeof groupId !== "string" || !isUuid(groupId)) {
+    return { message: "Invalid group ID.", success: false };
+  }
+  const { addresses, error: validationError } = parseGroupInviteEmails(formData.get("email"));
+  if (validationError) {
+    return { message: validationError, success: false };
   }
 
   const context = await getServerActionContext();
 
   if (!context.ok) {
-    return { message: context.message };
+    return { message: context.message, success: false };
   }
 
   const { supabase, user } = context;
-  const rateLimit = await enforceRateLimit({
-    action: "group.invite_user",
-    actorUserId: user.id,
-    maxAttempts: 15,
-    resourceId: groupId,
-    resourceType: "group",
-    subject: `${user.id}:${groupId}`,
-    windowSeconds: 3600,
-  });
-
-  if (!rateLimit.allowed) {
-    return { message: rateLimit.message };
+  const organizerEmail = user.email?.trim().toLowerCase();
+  const emails = addresses.filter((email) => email !== organizerEmail);
+  if (emails.length === 0) {
+    return { message: "You're already the organizer of this exchange.", success: false };
   }
+
+  const rateLimit = await reserveGroupInviteQuota(user.id, groupId, emails.length);
+  if (!rateLimit.allowed) return { message: rateLimit.message, success: false };
 
   const permission = await assertOwnerCanManageInvites(supabase, groupId, user.id);
   if (!permission.ok) {
-    return { message: permission.message || "Invite unavailable." };
-  }
-
-  const cleanEmail = sanitize(email, 100).toLowerCase();
-  if (!EMAIL_PATTERN.test(cleanEmail)) {
-    return { message: "Enter a valid email address." };
-  }
-
-  if (cleanEmail === user.email?.trim().toLowerCase()) {
-    return { message: "You're already the organizer of this exchange." };
+    return { message: permission.message || "Invite unavailable.", success: false };
   }
 
   const { data: group } = await supabase
     .from("groups")
-    .select("name, require_anonymous_nickname")
+    .select("name")
     .eq("id", groupId)
     .maybeSingle();
 
   if (!group) {
-    return { message: "Group not found." };
+    return { message: "Group not found.", success: false };
   }
 
-  let authRecipient: Awaited<ReturnType<typeof findInviteAuthRecipientByEmail>>;
+  let recipients: Awaited<ReturnType<typeof findInviteAuthRecipientsByEmail>>;
 
   try {
-    authRecipient = await findInviteAuthRecipientByEmail(cleanEmail);
+    recipients = await findInviteAuthRecipientsByEmail(emails);
   } catch (lookupError) {
     await recordServerFailure({
       actorUserId: user.id,
-      details: { invitedEmail: cleanEmail },
       errorMessage:
         lookupError instanceof Error ? lookupError.message : "Unknown invite recipient lookup error",
       eventType: "group.invite_user.lookup_recipient",
@@ -390,52 +379,70 @@ export async function inviteUser(
       resourceType: "group",
     });
 
-    return { message: "Failed to prepare the invite. Please try again." };
+    return { message: "Failed to prepare the invitation. Please try again.", success: false };
   }
 
-  const existingUserId = authRecipient?.userId || null;
-  const { data: memberships, error: membershipsError } = await supabaseAdmin
+  const membershipQuery = () => supabaseAdmin
     .from("group_members")
-    .select("id, status, user_id, email")
-    .eq("group_id", groupId)
-    .limit(100);
+    .select("status, user_id, email")
+    .eq("group_id", groupId);
+  const recipientIds = [...new Set([...recipients.values()].map(({ userId }) => userId))];
+  const [byEmail, byUserId] = await Promise.all([
+    membershipQuery().in("email", emails),
+    recipientIds.length ? membershipQuery().in("user_id", recipientIds) : null,
+  ]);
+  const membershipsError = byEmail.error ?? byUserId?.error;
 
   if (membershipsError) {
     await recordServerFailure({
       actorUserId: user.id,
-      details: { invitedEmail: cleanEmail },
       errorMessage: membershipsError.message,
       eventType: "group.invite_user.lookup_memberships",
       resourceId: groupId,
       resourceType: "group",
     });
 
-    return { message: "Failed to check the current group members." };
+    return { message: "Failed to check the current group members.", success: false };
   }
 
-  const matchingMembership =
-    (memberships || []).find(
+  const memberships = [...(byEmail.data ?? []), ...(byUserId?.data ?? [])];
+  const eligible: { email: string; authRecipient: InviteAuthRecipient | null }[] = [];
+  let skipped = addresses.length - emails.length;
+  let declined = 0;
+  for (const email of emails) {
+    const authRecipient = recipients.get(email) ?? null;
+    const matchingMembership = memberships.find(
       (membership) =>
-        (existingUserId ? membership.user_id === existingUserId : false) ||
-        (membership.email || "").toLowerCase() === cleanEmail
-    ) || null;
-
-  if (matchingMembership?.status === "accepted") {
-    return { message: "That person is already in the group." };
+        (!!authRecipient && membership.user_id === authRecipient.userId) ||
+        (membership.email || "").toLowerCase() === email
+    );
+    if (matchingMembership) {
+      if (matchingMembership.status === "declined") declined += 1;
+      else skipped += 1;
+    } else {
+      eligible.push({ email, authRecipient });
+    }
   }
-
-  if (matchingMembership?.status === "pending") {
-    return { message: "That person already has a pending invite." };
-  }
-
-  if (matchingMembership?.status === "declined") {
-    return { message: "That invite was declined. Use Resend to invite them again." };
+  if (eligible.length === 0) {
+    return {
+      message: declined
+        ? "No new invitations. Use Resend in the member list for declined invitations."
+        : "No new invitations. These people are already members or have pending invitations.",
+      success: false,
+    };
   }
 
   try {
     const activeSlotCount = await countActiveGroupSlots(groupId);
     if (activeSlotCount >= MAX_GROUP_MEMBERS) {
-      return { message: getGroupCapacityMessage() };
+      return { message: getGroupCapacityMessage(), success: false };
+    }
+    if (activeSlotCount + eligible.length > MAX_GROUP_MEMBERS) {
+      const available = MAX_GROUP_MEMBERS - activeSlotCount;
+      return {
+        message: `Only ${available} ${available === 1 ? "spot is" : "spots are"} available. Remove some addresses and try again.`,
+        success: false,
+      };
     }
   } catch (capacityError) {
     const errorMessage =
@@ -443,69 +450,69 @@ export async function inviteUser(
 
     await recordServerFailure({
       actorUserId: user.id,
-      details: { invitedEmail: cleanEmail },
       errorMessage,
       eventType: "group.invite_user.capacity_check",
       resourceId: groupId,
       resourceType: "group",
     });
 
-    return { message: "Failed to check the current group capacity." };
+    return { message: "Failed to check the current group capacity.", success: false };
   }
 
-  const { error: insertError } = await supabaseAdmin.from("group_members").insert([
-    {
+  const { error: insertError } = await supabaseAdmin.from("group_members").insert(
+    eligible.map(({ email, authRecipient }) => ({
       group_id: groupId,
-      user_id: existingUserId,
-      email: cleanEmail,
+      user_id: authRecipient?.userId ?? null,
+      email,
       nickname: null,
       role: "member",
       status: "pending",
-    },
-  ]);
+    })),
+  );
 
   if (insertError) {
     await recordServerFailure({
       actorUserId: user.id,
-      details: { invitedEmail: cleanEmail },
       errorMessage: insertError.message,
       eventType: "group.invite_user.insert_member",
       resourceId: groupId,
       resourceType: "group",
     });
 
-    return { message: "Failed to add member. They may already be in the group." };
+    return { message: "Failed to save invitations. Please try again.", success: false };
   }
 
-  await notifyInvitedUser({
-    userId: existingUserId,
-    groupId,
-    groupName: group.name,
-  });
-
-  const emailSent = await sendInviteEmail(
-    cleanEmail,
-    user.id,
-    groupId,
-    group.name,
-    authRecipient,
-    "group.invite_user.send_email"
-  );
+  const [deliveryResults] = await Promise.all([
+    Promise.allSettled(eligible.map(async ({ email, authRecipient }) =>
+      await sendInviteEmail(email, user.id, groupId, group.name, authRecipient, "group.invite_user.send_email"),
+    )),
+    Promise.allSettled(eligible.map(({ authRecipient }) =>
+      notifyInvitedUser({ userId: authRecipient?.userId ?? null, groupId, groupName: group.name }),
+    )),
+  ]);
+  const emailFailures = deliveryResults.filter((result) => result.status === "rejected" || !result.value).length;
 
   await recordAuditEvent({
     actorUserId: user.id,
-    details: { emailSent },
+    details: { inviteCount: eligible.length, emailFailures, skipped, declined },
     eventType: "group.invite_user",
     outcome: "success",
     resourceId: groupId,
     resourceType: "group",
   });
 
-  return {
-    message: emailSent
-      ? "Invite queued. They can respond in My Groups."
-      : "Invitation saved, but the email could not be sent. Use Resend in the member list.",
-  };
+  if (eligible.length === 1 && !emailFailures && !skipped && !declined) {
+    return { message: "Invite queued. They can respond in My Groups.", success: true };
+  }
+
+  const saved = eligible.length === 1 ? "1 invitation saved." : `${eligible.length} invitations saved.`;
+  const delivery = emailFailures
+    ? ` ${emailFailures} ${emailFailures === 1 ? "email" : "emails"} could not be sent.`
+    : " They can respond in My Groups.";
+  const existing = skipped ? ` Skipped ${skipped} already in the group or invited.` : "";
+  const declinedMessage = declined ? ` Skipped ${declined} previously declined.` : "";
+  const resend = declined || emailFailures ? " Use Resend in the member list." : "";
+  return { message: saved + delivery + existing + declinedMessage + resend, success: true };
 }
 
 export async function updateNickname(

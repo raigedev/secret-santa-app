@@ -26,6 +26,48 @@ type RateLimitResult = {
   retryAfterSeconds: number;
 };
 
+export async function reserveGroupInviteQuota(
+  actorId: string,
+  groupId: string,
+  inviteCount: number,
+): Promise<RateLimitResult> {
+  const { data, error } = await supabaseAdmin.rpc("reserve_group_invite_quota", {
+    p_actor_id: actorId,
+    p_group_id: groupId,
+    p_invite_count: inviteCount,
+  });
+  const result = Array.isArray(data) ? (data[0] as RateLimitRow | undefined) : undefined;
+  if (error || !result) {
+    await recordServerFailure({
+      actorUserId: actorId,
+      errorMessage: error?.message || "No invite quota result returned",
+      eventType: "group.invite_user.rate_limit_error",
+      resourceId: groupId,
+      resourceType: "group",
+    });
+    return { allowed: false, message: "Could not check the invite limit. Try again shortly.", remaining: 0, retryAfterSeconds: 60 };
+  }
+
+  const { allowed, remaining, retry_after_seconds: retryAfterSeconds } = result;
+  if (!allowed) {
+    await recordAuditEvent({
+      actorUserId: actorId,
+      details: { inviteCount, remaining },
+      eventType: "group.invite_user.rate_limited",
+      outcome: "rate_limited",
+      resourceId: groupId,
+      resourceType: "group",
+    });
+  }
+
+  const message = allowed
+    ? ""
+    : remaining > 0
+      ? `You can send ${remaining} more ${remaining === 1 ? "invite" : "invites"} right now. Remove some addresses and try again.`
+      : "You've reached the hourly invite limit. Try again later.";
+  return { allowed, message, remaining, retryAfterSeconds };
+}
+
 export async function enforceRateLimit(options: RateLimitOptions): Promise<RateLimitResult> {
   const fallbackResult: RateLimitResult = {
     allowed: false,
