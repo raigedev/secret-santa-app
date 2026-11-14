@@ -17,7 +17,7 @@ test("group invite email lists normalize, deduplicate, and reject invalid submis
     .toMatchObject({ addresses: [], error: "Enter up to 5 email addresses at a time." });
 });
 
-test("the group invite form accepts two addresses and skips duplicate and existing invites", async ({
+test("the group invite form saves multiple addresses and preserves quota on rejection", async ({
   page, baseURL,
 }, testInfo) => {
   const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -34,7 +34,7 @@ test("the group invite form accepts two addresses and skips duplicate and existi
   });
   const tag = randomUUID().slice(0, 8);
   const password = randomUUID();
-  const accounts = ["host", "one", "two"].map((role) => ({
+  const accounts = ["host", "one", "two", "three", "four"].map((role) => ({
     email: `group-invite-${role}-${tag}@example.com`, password,
   }));
   const users: string[] = [];
@@ -45,7 +45,7 @@ test("the group invite form accepts two addresses and skips duplicate and existi
       expect(error).toBeNull();
       users.push(data.user!.id);
     }
-    const [host, first, second] = accounts;
+    const [host, first, second, third, fourth] = accounts;
     const group = await admin.from("groups").insert({
       owner_id: users[0],
       name: "Group email invitations",
@@ -86,8 +86,29 @@ test("the group invite form accepts two addresses and skips duplicate and existi
       .toEqual([first.email, second.email]);
     const afterRetry = await admin.from("group_members").select("id", { count: "exact", head: true }).eq("group_id", groupId);
     expect(afterRetry.count).toBe(3);
+
+    // Two submissions of two addresses used four attempts. Set up exactly two remaining.
+    const usage = await admin.from("security_rate_limits").insert(
+      Array.from({ length: 9 }, () => ({ action: "group.invite_user", subject: `${users[0]}:${groupId}` })),
+    );
+    expect(usage.error).toBeNull();
+    await emails.fill(`${third.email}, ${fourth.email}, extra-${tag}@example.com`);
+    await invite.click();
+    await expect(page.getByRole("alert").filter({ hasText: "You can send 2 more invites right now." })).toBeVisible();
+    const afterRejection = await admin.from("group_members").select("id", { count: "exact", head: true }).eq("group_id", groupId);
+    expect(afterRejection.count).toBe(3);
+
+    await emails.fill(`${third.email}, ${fourth.email}`);
+    await invite.click();
+    await expect(page.getByText(/2 invitations saved\./)).toBeVisible();
+    const quota = await admin.from("security_rate_limits").select("id", { count: "exact", head: true })
+      .eq("action", "group.invite_user").eq("subject", `${users[0]}:${groupId}`);
+    expect(quota.count).toBe(15);
   } finally {
-    if (groupId) await admin.from("groups").delete().eq("id", groupId);
+    if (groupId) {
+      await admin.from("security_rate_limits").delete().eq("action", "group.invite_user").eq("subject", `${users[0]}:${groupId}`);
+      await admin.from("groups").delete().eq("id", groupId);
+    }
     for (const userId of users) await admin.auth.admin.deleteUser(userId);
   }
 });

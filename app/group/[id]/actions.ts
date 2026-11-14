@@ -38,7 +38,7 @@ import {
   getGroupImageStoragePathForOwnedGroup,
   GROUP_IMAGE_BUCKET,
 } from "@/lib/groups/group-image";
-import { enforceRateLimit } from "@/lib/security/rate-limit";
+import { enforceRateLimit, reserveGroupInviteQuota } from "@/lib/security/rate-limit";
 import { supabaseAdmin } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 import { isSupportedCurrencyCode } from "@/lib/currency";
@@ -347,19 +347,8 @@ export async function inviteUser(
     return { message: "You're already the organizer of this exchange.", success: false };
   }
 
-  // Consume the same quota per address as a series of single invitations.
-  for (let attempt = 0; attempt < emails.length; attempt += 1) {
-    const rateLimit = await enforceRateLimit({
-      action: "group.invite_user",
-      actorUserId: user.id,
-      maxAttempts: 15,
-      resourceId: groupId,
-      resourceType: "group",
-      subject: `${user.id}:${groupId}`,
-      windowSeconds: 3600,
-    });
-    if (!rateLimit.allowed) return { message: rateLimit.message, success: false };
-  }
+  const rateLimit = await reserveGroupInviteQuota(user.id, groupId, emails.length);
+  if (!rateLimit.allowed) return { message: rateLimit.message, success: false };
 
   const permission = await assertOwnerCanManageInvites(supabase, groupId, user.id);
   if (!permission.ok) {
