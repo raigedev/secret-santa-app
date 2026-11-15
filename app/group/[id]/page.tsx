@@ -1651,11 +1651,12 @@ export default function GroupDetailsPage() {
                   )
                 ) : revealMatches.length > 0 ? (
                   <>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  <div data-testid="revealed-match-board" className="grid grid-cols-1 md:grid-cols-2 gap-3">
                     {revealMatches.map((match, index) => (
                       <div
                         key={`${match.giver}-${match.receiver}-${index}`}
-                        className="rounded-2xl p-4"
+                        data-testid="revealed-match-card"
+                        className="@container rounded-2xl p-4"
                         style={{
                           background: "rgba(255,255,255,.8)",
                           border: "1px solid rgba(34,197,94,.12)",
@@ -1667,13 +1668,13 @@ export default function GroupDetailsPage() {
                         >
                           Match {index + 1}
                         </div>
-                        <div className="flex items-center justify-between gap-3">
-                          <div>
-                            <div className="text-[11px] font-extrabold" style={{ color: "#64748b" }}>
+                        <div className="grid items-start gap-2 sm:gap-3 @min-[14rem]:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)]">
+                          <div className="min-w-0">
+                            <div className="text-[11px] leading-4 font-extrabold" style={{ color: "#64748b" }}>
                               Giver
                             </div>
                             <div
-                              className="text-[18px] font-bold"
+                              className="mt-1 text-base leading-tight font-bold wrap-anywhere sm:text-lg"
                               style={{ fontFamily: "'Fredoka', sans-serif", color: "#14532d" }}
                             >
                               {match.giver}
@@ -1682,18 +1683,18 @@ export default function GroupDetailsPage() {
 
                           <div
                             aria-hidden="true"
-                            className="text-[12px] font-extrabold uppercase tracking-normal"
-                            style={{ color: "#f59e0b" }}
+                            className="text-[11px] leading-5 font-extrabold uppercase tracking-normal sm:text-xs @min-[14rem]:mt-5"
+                            style={{ color: "#7b5902" }}
                           >
                             gives
                           </div>
 
-                          <div className="text-right">
-                            <div className="text-[11px] font-extrabold" style={{ color: "#64748b" }}>
+                          <div className="min-w-0 @min-[14rem]:text-right">
+                            <div className="text-[11px] leading-4 font-extrabold" style={{ color: "#64748b" }}>
                               Receiver
                             </div>
                             <div
-                              className="text-[18px] font-bold"
+                              className="mt-1 text-base leading-tight font-bold wrap-anywhere sm:text-lg"
                               style={{ fontFamily: "'Fredoka', sans-serif", color: "#991b1b" }}
                             >
                               {match.receiver}
