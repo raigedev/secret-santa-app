@@ -1149,6 +1149,46 @@ test.describe("authenticated screen regressions", () => {
     await expect(page.getByRole("button", { name: /open private message threads/i })).toHaveCount(0);
   });
 
+  test("dashboard reads private updates once per refresh", async ({ page }) => {
+    test.skip(!groupId, GROUP_BLOCKED_MESSAGE);
+    await loginWithTestCredentials(page, credentials!);
+
+    let unreadRequests = 0;
+    await page.route("**/rest/v1/notifications?**", async (route) => {
+      const params = new URL(route.request().url()).searchParams;
+      if (params.get("select") !== "id,type,metadata" || params.get("read_at") !== "is.null") {
+        await route.continue();
+        return;
+      }
+
+      unreadRequests++;
+      await route.fulfill({
+        json: Array.from({ length: unreadRequests }, (_, index) => ({
+          id: `chat-update-${index}`,
+          metadata: { groupId },
+          type: "chat",
+        })),
+      });
+    });
+
+    await page.clock.install();
+    await page.goto("/dashboard");
+    const attentionRail = page.getByTestId("dashboard-attention-rail");
+    await expect(attentionRail.getByText("1 message waiting", { exact: true })).toBeVisible();
+    expect(unreadRequests).toBe(1);
+
+    await page.evaluate(() => {
+      window.dispatchEvent(new Event("focus"));
+      document.dispatchEvent(new Event("visibilitychange"));
+    });
+    await expect(attentionRail.getByText("2 messages waiting", { exact: true })).toBeVisible();
+    expect(unreadRequests).toBe(2);
+
+    await page.clock.fastForward(5 * 60 * 1000);
+    await expect(attentionRail.getByText("3 messages waiting", { exact: true })).toBeVisible();
+    expect(unreadRequests).toBe(3);
+  });
+
   test("sidebar my giftee navigation keeps a light loading surface", async ({ page }) => {
     await page.setViewportSize({ width: 1440, height: 900 });
     await loginWithTestCredentials(page, credentials!);

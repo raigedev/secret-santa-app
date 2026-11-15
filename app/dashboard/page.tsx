@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
@@ -98,7 +98,7 @@ function getNotificationMetadataGroupId(
 
 function countUnreadPrivateUpdates(
   notifications: DashboardUnreadNotificationRow[],
-  activeGroupIds: Set<string>
+  activeGroupIds: ReadonlySet<string>
 ): number {
   if (activeGroupIds.size === 0) {
     return 0;
@@ -230,12 +230,6 @@ export default function DashboardPage() {
   const [showProfileSetup, setShowProfileSetup] = useState(false);
   const [showGroupCreatedTipPrompt, setShowGroupCreatedTipPrompt] = useState(false);
   const [actionMessage, setActionMessage] = useState<ActionMessage>(null);
-  const loadDashboardDataRef = useRef<
-    ((user: { id: string; email?: string | null }) => Promise<void>) | null
-  >(null);
-  const loadNotificationCountRef = useRef<((userId: string) => Promise<void>) | null>(null);
-  const activeNotificationGroupIdsRef = useRef<Set<string>>(new Set());
-
   useEffect(() => {
     return addViewerProfileChangedListener((event) => {
       applyViewerProfileChangedEvent(event, {
@@ -312,9 +306,9 @@ export default function DashboardPage() {
   useEffect(() => {
     let isMounted = true;
     let dashboardReloadTimer: ReturnType<typeof setTimeout> | null = null;
-    let notificationPollInterval: ReturnType<typeof setInterval> | null = null;
     let dashboardPollInterval: ReturnType<typeof setInterval> | null = null;
     let dashboardLoadVersion = 0;
+    let dashboardLoadInFlight = false;
     let sessionUser:
       | {
           id: string;
@@ -376,9 +370,38 @@ export default function DashboardPage() {
       );
     };
 
-    // Reload the dashboard cards and lists without repeating one-time setup like
-    // profile bootstrap or invited-membership claiming on every realtime event.
+    const loadNotificationCount = async (
+      userId: string,
+      activeGroupIds: ReadonlySet<string>,
+      loadVersion: number
+    ) => {
+      if (activeGroupIds.size === 0) {
+        setUnreadPrivateUpdateCount(0);
+        return;
+      }
+
+      const { data, error } = await supabase
+        .from("notifications")
+        .select("id, type, metadata")
+        .eq("user_id", userId)
+        .is("read_at", null)
+        .limit(NOTIFICATION_BADGE_COUNT_LIMIT);
+
+      if (!isMounted || loadVersion !== dashboardLoadVersion || error) {
+        return;
+      }
+
+      setUnreadPrivateUpdateCount(
+        countUnreadPrivateUpdates((data || []) as DashboardUnreadNotificationRow[], activeGroupIds)
+      );
+    };
+
     const loadDashboardData = async (user: { id: string; email?: string | null }) => {
+      if (dashboardLoadInFlight) {
+        return;
+      }
+
+      dashboardLoadInFlight = true;
       const currentLoadVersion = ++dashboardLoadVersion;
 
       try {
@@ -416,7 +439,6 @@ export default function DashboardPage() {
           setOwnedGroups([]);
           setInvitedGroups([]);
           setRecipientNames([]);
-          activeNotificationGroupIdsRef.current = new Set();
           setUnreadPrivateUpdateCount(0);
           setWishlistItemCount(0);
           setGiftProgressSummary(null);
@@ -531,7 +553,6 @@ export default function DashboardPage() {
             )
         );
         const activeGroupIds = new Set(activeGroupsData.map((group) => group.id));
-        activeNotificationGroupIdsRef.current = activeGroupIds;
         const allMembers = (membersRes.data || []).filter((member) =>
           activeGroupIds.has(member.group_id)
         );
@@ -713,8 +734,13 @@ export default function DashboardPage() {
           notificationPreviewItems: nextNotificationPreviewItems,
         });
 
-        if (loadNotificationCountRef.current) {
-          void loadNotificationCountRef.current(user.id);
+        // The private-message count needs the active group set, but the cards don't
+        // need to wait for that count to render.
+        setLoading(false);
+        try {
+          await loadNotificationCount(user.id, activeGroupIds, currentLoadVersion);
+        } catch {
+          // Keep the last known count when notifications are temporarily unavailable.
         }
       } catch {
         if (!isMounted) {
@@ -726,13 +752,12 @@ export default function DashboardPage() {
           text: "Failed to load the dashboard. Please refresh and try again.",
         });
       } finally {
+        dashboardLoadInFlight = false;
         if (isMounted) {
           setLoading(false);
         }
       }
     };
-
-    loadDashboardDataRef.current = loadDashboardData;
 
     const loadProfileData = async () => {
       const profileData = await getProfile();
@@ -756,31 +781,6 @@ export default function DashboardPage() {
       }
     };
 
-    const loadNotificationCount = async (targetUserId: string) => {
-      const { data, error } = await supabase
-        .from("notifications")
-        .select("id, type, metadata")
-        .eq("user_id", targetUserId)
-        .is("read_at", null)
-        .limit(NOTIFICATION_BADGE_COUNT_LIMIT);
-
-      if (!isMounted) {
-        return;
-      }
-
-      if (error) {
-        return;
-      }
-
-      const notifications = (data || []) as DashboardUnreadNotificationRow[];
-
-      setUnreadPrivateUpdateCount(
-        countUnreadPrivateUpdates(notifications, activeNotificationGroupIdsRef.current)
-      );
-    };
-
-    loadNotificationCountRef.current = loadNotificationCount;
-
     const scheduleDashboardReload = () => {
       if (!sessionUser) {
         return;
@@ -790,31 +790,13 @@ export default function DashboardPage() {
         clearTimeout(dashboardReloadTimer);
       }
 
-      // Group actions often touch several related rows. Debouncing the reload
-      // keeps the dashboard from flashing through multiple intermediate states.
+      // A tab becoming visible can emit both focus and visibility events.
       dashboardReloadTimer = setTimeout(() => {
-        if (sessionUser && loadDashboardDataRef.current) {
-          void loadDashboardDataRef.current(sessionUser);
+        dashboardReloadTimer = null;
+        if (sessionUser) {
+          void loadDashboardData(sessionUser);
         }
       }, 120);
-    };
-
-    const scheduleNotificationsReload = () => {
-      if (!sessionUser) {
-        return;
-      }
-
-      if (loadNotificationCountRef.current) {
-        void loadNotificationCountRef.current(sessionUser.id);
-      }
-    };
-
-    const refreshNotificationsIfVisible = () => {
-      if (document.visibilityState !== "visible") {
-        return;
-      }
-
-      scheduleNotificationsReload();
     };
 
     const refreshDashboardIfVisible = () => {
@@ -823,7 +805,6 @@ export default function DashboardPage() {
       }
 
       scheduleDashboardReload();
-      scheduleNotificationsReload();
     };
 
     const bootstrapDashboard = async () => {
@@ -850,31 +831,9 @@ export default function DashboardPage() {
           applyDashboardSnapshot(cachedDashboard);
         }
 
-        // The main dashboard content should not wait on secondary polish like
-        // the unread bell count.
-        // Kick those off in the background so the cards can render as soon as
-        // the core data is ready.
         void loadProfileData();
-        void loadNotificationCount(session.user.id);
-
+        dashboardPollInterval = setInterval(refreshDashboardIfVisible, DASHBOARD_FALLBACK_POLL_MS);
         await loadDashboardData(session.user);
-
-        if (!isMounted) {
-          return;
-        }
-
-        if (notificationPollInterval) {
-          clearInterval(notificationPollInterval);
-        }
-
-        // Realtime is the primary path, but a light polling fallback keeps the
-        // bell accurate if the browser misses a websocket event or resumes from sleep.
-        notificationPollInterval = setInterval(() => {
-          refreshNotificationsIfVisible();
-        }, DASHBOARD_FALLBACK_POLL_MS);
-        dashboardPollInterval = setInterval(() => {
-          refreshDashboardIfVisible();
-        }, DASHBOARD_FALLBACK_POLL_MS);
       } catch {
         if (!isMounted) {
           return;
@@ -906,9 +865,6 @@ export default function DashboardPage() {
       isMounted = false;
       if (dashboardReloadTimer) {
         clearTimeout(dashboardReloadTimer);
-      }
-      if (notificationPollInterval) {
-        clearInterval(notificationPollInterval);
       }
       if (dashboardPollInterval) {
         clearInterval(dashboardPollInterval);
