@@ -58,18 +58,20 @@ export default function ResetPasswordPage() {
   };
 
   return (
-    <AuthPageFrame>
-      <AuthHeroPanel
-        badge="Password reset"
-        title="Choose your new password."
-        titleClassName="lg:text-[3.2rem]"
-        description="Set a strong password, then sign in again with the new one."
-        supportingCopy="This page only works from a valid reset email link."
-        detailEyebrow="Account safety"
-        detailTitle="A longer password phrase is easier to remember and harder to guess."
-        markers={RESET_PASSWORD_MARKERS}
-      />
-
+    <AuthPageFrame
+      hero={
+        <AuthHeroPanel
+          badge="Password reset"
+          title="Choose your new password."
+          titleClassName="lg:text-[3.2rem]"
+          description="Set a strong password, then sign in again with the new one."
+          supportingCopy="This page only works from a valid reset email link."
+          detailEyebrow="Account safety"
+          detailTitle="A longer password phrase is easier to remember and harder to guess."
+          markers={RESET_PASSWORD_MARKERS}
+        />
+      }
+    >
       <section className="rounded-[1.9rem] bg-white px-5 py-6 sm:px-8 sm:py-8 lg:px-10 lg:py-10">
         <div className="mx-auto w-full max-w-xl">
           <div className="inline-flex items-center gap-2 rounded-full bg-[#fcce72]/28 px-3 py-1.5 text-sm font-semibold text-[#5f4500]">

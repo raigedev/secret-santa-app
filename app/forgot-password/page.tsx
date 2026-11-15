@@ -33,18 +33,20 @@ function ForgotPasswordLayout({
   supportingCopy: string;
 }) {
   return (
-    <AuthPageFrame>
-      <AuthHeroPanel
-        badge="Password help"
-        title="Get back into your account."
-        titleClassName="lg:text-[3.2rem]"
-        description="Enter your account email. We will send a reset link so you can choose a new password."
-        supportingCopy={supportingCopy}
-        detailEyebrow="What happens next"
-        detailTitle="Use the link in your email, then sign in with your new password."
-        markers={RESET_MARKERS}
-      />
-
+    <AuthPageFrame
+      hero={
+        <AuthHeroPanel
+          badge="Password help"
+          title="Get back into your account."
+          titleClassName="lg:text-[3.2rem]"
+          description="Enter your account email. We will send a reset link so you can choose a new password."
+          supportingCopy={supportingCopy}
+          detailEyebrow="What happens next"
+          detailTitle="Use the link in your email, then sign in with your new password."
+          markers={RESET_MARKERS}
+        />
+      }
+    >
       <section className="rounded-[1.9rem] bg-white px-5 py-6 sm:px-8 sm:py-8 lg:px-10 lg:py-10">
         {children}
       </section>

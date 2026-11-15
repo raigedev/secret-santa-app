@@ -999,14 +999,14 @@ export default function GroupDetailsPage() {
 
           <nav
             aria-label="Group sections"
-            className="flex gap-8 overflow-x-auto border-b border-[rgba(72,102,78,.12)] text-sm font-black text-[#64748b]"
+            className="flex flex-wrap gap-x-5 border-b border-[rgba(72,102,78,.12)] text-sm font-black text-[#64748b] sm:gap-x-8"
           >
             {groupTabs.map((tab, index) => (
               <a
                 key={tab.label}
                 href={tab.href}
                 aria-current={index === 0 ? "page" : undefined}
-                className="shrink-0 pb-3"
+                className="inline-flex min-h-11 items-center pb-1 sm:pb-3"
                 style={{
                   color: index === 0 ? "#48664e" : "#64748b",
                   borderBottom: index === 0 ? "3px solid #48664e" : "3px solid transparent",

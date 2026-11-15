@@ -161,9 +161,7 @@ function AuthHeading({ description }: { description: string }) {
 
 function LoginLayout({ children }: { children: ReactNode }) {
   return (
-    <AuthPageFrame gridClassName="lg:grid-cols-[1.08fr_0.92fr]" showDecorativeBlobs={false}>
-      <LoginGiftTagHero />
-
+    <AuthPageFrame gridClassName="lg:grid-cols-[1.08fr_0.92fr]" hero={<LoginGiftTagHero />}>
       <section
         className="flex items-center rounded-[1.9rem] bg-white/95 px-5 py-8 sm:px-8 sm:py-9 lg:px-10 lg:py-10"
         style={LOGIN_FORM_BACKGROUND_STYLE}
@@ -272,7 +270,6 @@ function LoginGiftTagHero() {
               alt="Wrapped Christmas gifts"
               width={964}
               height={395}
-              priority
               className="relative mx-auto h-auto w-full max-w-124 select-none"
             />
           </div>

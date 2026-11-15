@@ -310,11 +310,12 @@ export default function Landing() {
           .nav-tip-jar-eyebrow{display:none;}
           .nav-tip-jar-label{font-size:12px;}
           .hero{min-height:auto;padding:120px 0 64px;}
-          .hero-inner{flex-direction:column;text-align:center;gap:28px;}
+          .hero-inner{flex-direction:column;align-items:center;text-align:center;gap:28px;}
+          .hero-text{width:100%;min-width:0;max-width:480px;}
           .hero-title{font-size:38px;}
           .hero-desc{margin:0 auto 24px;font-size:16px;}
           .hero-buttons{justify-content:center;width:100%;flex-direction:column;align-items:stretch;}
-          .btn-primary,.btn-secondary,.btn-cta{justify-content:center;width:100%;}
+          .btn-primary,.btn-secondary,.btn-cta{justify-content:center;width:100%;min-width:0;white-space:normal;}
           .hero-stats{justify-content:center;gap:18px;flex-wrap:wrap;}
           .hero-visual{display:none;}
           .steps{flex-direction:column;}
