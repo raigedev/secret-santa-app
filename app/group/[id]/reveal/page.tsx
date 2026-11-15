@@ -107,47 +107,8 @@ function formatRevealTime(value: string | null): string {
   });
 }
 
-function getRevealNameTextStyle(value: string, variant: "alias" | "match") {
+function getRevealMatchNameTextStyle(value: string) {
   const length = value.trim().length || 1;
-
-  // The reveal screen should keep names fully visible in one clean line.
-  // Instead of wrapping or truncating, we size the text down more aggressively
-  // as names get longer so the venue screen still looks deliberate.
-  if (variant === "alias") {
-    if (length <= 8) {
-      return {
-        fontSize: "clamp(2.75rem, 8vw, 4.5rem)",
-        whiteSpace: "nowrap" as const,
-        overflow: "visible" as const,
-        letterSpacing: "-0.01em",
-      };
-    }
-
-    if (length <= 11) {
-      return {
-        fontSize: "clamp(2.25rem, 6vw, 3.35rem)",
-        whiteSpace: "nowrap" as const,
-        overflow: "visible" as const,
-        letterSpacing: "-0.02em",
-      };
-    }
-
-    if (length <= 14) {
-      return {
-        fontSize: "clamp(1.9rem, 4.8vw, 2.65rem)",
-        whiteSpace: "nowrap" as const,
-        overflow: "visible" as const,
-        letterSpacing: "-0.03em",
-      };
-    }
-
-    return {
-      fontSize: "clamp(1.45rem, 4vw, 2.1rem)",
-      whiteSpace: "nowrap" as const,
-      overflow: "visible" as const,
-      letterSpacing: "-0.04em",
-    };
-  }
 
   if (length <= 8) {
     return {
@@ -456,45 +417,37 @@ export default function GroupRevealPage() {
 
     return `${safeIndex + 1} of ${totalRevealSteps}`;
   }, [safeIndex, totalRevealSteps]);
+  const displayAlias = activeAliasEntry?.alias || "Mystery alias";
+  const revealedIdentityName = revealedCard ? activeAliasEntry?.realName : null;
+  const identityTitle = revealedIdentityName || displayAlias;
+  const aliasSubtitle =
+    revealedIdentityName &&
+    activeAliasEntry?.alias &&
+    activeAliasEntry.alias.toLowerCase() !== revealedIdentityName.toLowerCase()
+      ? activeAliasEntry.alias
+      : null;
   const activeCardHeading = isMatchPhase
     ? revealedCard
       ? "Match revealed"
       : "Secret Santa match"
     : revealedCard
-      ? "Identity revealed"
+      ? revealedIdentityName
+        ? "Identity revealed"
+        : "Alias only"
       : "Mystery alias";
-  const activeCardBadgeLabel = isMatchPhase
-    ? revealedCard
-      ? "Match"
-      : "Draw"
-    : revealedCard
-      ? "Name"
-      : "Alias";
-  const activeCardTitle = isMatchPhase
-    ? revealedCard
-      ? `${activeMatchEntry?.giver || "Member"} gives to ${activeMatchEntry?.receiver || "Member"}`
-      : "Who gets who?"
-    : revealedCard
-      ? activeAliasEntry?.realName || activeAliasEntry?.alias || "Member"
-      : activeAliasEntry?.alias || "Mystery alias";
-  const activeCardDescription = isMatchPhase
-    ? revealedCard
-      ? `${activeMatchEntry?.giver || "Member"} is giving to ${activeMatchEntry?.receiver || "Member"}.`
-      : "Reveal the next Secret Santa pairing when the room is ready."
-    : revealedCard
-      ? `Alias: ${activeAliasEntry?.alias || "Unknown"}`
-      : "Keep the alias on screen first, then flip when the room is ready.";
   const revealToggleLabel = revealedCard
     ? isMatchPhase
       ? "Hide match"
       : "Show alias again"
     : isMatchPhase
       ? "Reveal match"
-      : "Reveal owner";
+      : "Reveal name";
   const activeVisibilityBadgeLabel = revealedCard
     ? isMatchPhase
       ? "Match revealed"
-      : "Owner revealed"
+      : revealedIdentityName
+        ? "Name shown"
+        : "Alias only"
     : isMatchPhase
       ? "Match hidden"
       : "Alias hidden";
@@ -502,9 +455,11 @@ export default function GroupRevealPage() {
   const activeMatchReceiver = activeMatchEntry?.receiver || "Member";
   const activeMatchGiverLabel = revealedCard ? activeMatchGiver : "???";
   const activeMatchReceiverLabel = revealedCard ? activeMatchReceiver : "???";
-  const activeAliasTitleStyle = getRevealNameTextStyle(activeCardTitle, "alias");
-  const activeMatchGiverStyle = getRevealNameTextStyle(activeMatchGiverLabel, "match");
-  const activeMatchReceiverStyle = getRevealNameTextStyle(activeMatchReceiverLabel, "match");
+  const activeMatchGiverStyle = getRevealMatchNameTextStyle(activeMatchGiverLabel);
+  const activeMatchReceiverStyle = getRevealMatchNameTextStyle(activeMatchReceiverLabel);
+  const activeMatchDescription = revealedCard
+    ? `${activeMatchGiver} is giving to ${activeMatchReceiver}.`
+    : "Reveal the next Secret Santa pairing when the room is ready.";
 
   const applySharedSession = (nextSession: RevealSession | undefined) => {
     if (!nextSession) {
@@ -1059,7 +1014,10 @@ export default function GroupRevealPage() {
                 </div>
               ) : activeAliasEntry || activeMatchEntry ? (
                 <div
-                  className="rounded-4xl px-6 py-8 md:px-10 md:py-10 min-h-130 flex flex-col justify-between"
+                  data-testid="reveal-stage"
+                  className={`rounded-4xl px-6 py-8 md:px-10 md:py-10 flex flex-col justify-between ${
+                    isMatchPhase ? "min-h-130" : "min-h-104 gap-8 md:min-h-130"
+                  }`}
                   style={{
                     background: revealedCard
                       ? "linear-gradient(145deg,rgba(34,197,94,.24),rgba(15,23,42,.74))"
@@ -1073,7 +1031,7 @@ export default function GroupRevealPage() {
                       className="text-[14px] font-extrabold uppercase tracking-[0.18em]"
                       style={{ color: revealedCard ? "#bbf7d0" : "#bfdbfe" }}
                     >
-                    {activeCardHeading}
+                      {activeCardHeading}
                     </div>
 
                     <div
@@ -1086,9 +1044,9 @@ export default function GroupRevealPage() {
                     >
                       {presentation.isOwner
                         ? isPublishedPresentation
-                          ? "Published presentation controls"
+                          ? "Replay controls"
                           : usesSharedSession
-                            ? "Live owner controls"
+                            ? "Host controls"
                             : "Private owner preview"
                         : "Audience view"}
                     </div>
@@ -1107,7 +1065,7 @@ export default function GroupRevealPage() {
                             color: revealedCard ? "#422006" : "#1e3a8a",
                           }}
                         >
-                          {activeCardBadgeLabel}
+                          {revealedCard ? "Match" : "Draw"}
                         </div>
 
                         {/* Match reveals need a structured layout so long names wrap cleanly
@@ -1168,40 +1126,23 @@ export default function GroupRevealPage() {
                           className="text-[16px] md:text-[22px] font-semibold mt-6"
                           style={{ color: "#dbeafe" }}
                         >
-                          {activeCardDescription}
+                          {activeMatchDescription}
                         </div>
                       </div>
                     ) : (
-                      <>
-                        <div
-                          className="mx-auto mb-6 flex h-20 w-20 items-center justify-center rounded-[28px] text-[13px] font-extrabold uppercase tracking-normal md:h-24 md:w-24"
-                          style={{
-                            background: revealedCard
-                              ? "linear-gradient(145deg, rgba(252,211,77,.96), rgba(251,146,60,.88))"
-                              : "linear-gradient(145deg, rgba(219,234,254,.94), rgba(147,197,253,.82))",
-                            boxShadow: "inset 0 1px 0 rgba(255,255,255,.45), 0 18px 40px rgba(15,23,42,.18)",
-                            color: revealedCard ? "#422006" : "#1e3a8a",
-                          }}
+                      <div className="mx-auto max-w-180 text-center" aria-live="polite" aria-atomic="true">
+                        <h2
+                          className="text-4xl leading-tight font-bold text-white wrap-anywhere sm:text-5xl lg:text-6xl 2xl:text-7xl"
+                          style={{ fontFamily: "'Fredoka', sans-serif" }}
                         >
-                          {activeCardBadgeLabel}
-                        </div>
-                        <div
-                          className="leading-[0.95] font-bold text-white max-w-full"
-                          style={{
-                            fontFamily: "'Fredoka', sans-serif",
-                            ...activeAliasTitleStyle,
-                          }}
-                          title={activeCardTitle}
-                        >
-                          {activeCardTitle}
-                        </div>
-                        <div
-                          className="text-[16px] md:text-[22px] font-semibold mt-5"
-                          style={{ color: "#dbeafe" }}
-                        >
-                          {activeCardDescription}
-                        </div>
-                      </>
+                          {identityTitle}
+                        </h2>
+                        {aliasSubtitle && (
+                          <p className="mt-3 text-base leading-snug font-semibold text-[#fcce72] wrap-anywhere md:text-xl">
+                            Alias: {aliasSubtitle}
+                          </p>
+                        )}
+                      </div>
                     )}
                   </div>
 
@@ -1211,7 +1152,11 @@ export default function GroupRevealPage() {
                         type="button"
                         onClick={handleToggleReveal}
                         disabled={sessionLoading || showCountdown}
-                        className="gift-button gift-button-red gift-button-wide text-sm"
+                        className={
+                          revealedCard && !isMatchPhase
+                            ? "min-h-11 rounded-full border border-white/25 px-5 py-2 text-sm font-bold text-white transition-colors hover:bg-white/10 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-white disabled:cursor-not-allowed disabled:opacity-60"
+                            : "gift-button gift-button-red gift-button-wide text-sm"
+                        }
                       >
                         {revealToggleLabel}
                       </button>
