@@ -113,6 +113,41 @@ test("reveal replay shows one name with a separate alias only when revealed", as
     await expect(stage.getByText("Identity revealed", { exact: true })).toBeVisible();
     await expect(heading).toHaveText(member.realName);
     await expect(stage.getByText(`Alias: ${member.alias}`, { exact: true })).toHaveCount(0);
+
+    await test.step("published match cards can align or stack without clipping long names", async () => {
+      await page.setViewportSize({ width: 320, height: 740 });
+      await page.goto(`/group/${groupId}`);
+      const board = page.getByTestId("revealed-match-board");
+      const cards = board.getByTestId("revealed-match-card");
+      await expect(cards).toHaveCount(2);
+      for (const width of [320, 393]) {
+        await page.setViewportSize({ width, height: 740 });
+        for (const card of await cards.all()) {
+          const giver = card.getByText("Giver", { exact: true });
+          const receiver = card.getByText("Receiver", { exact: true });
+          const connector = card.getByText("gives", { exact: true });
+          await expect.poll(async () => {
+            const [cardBox, giverBox, receiverBox, connectorBox] = await Promise.all([
+              card.boundingBox(), giver.boundingBox(), receiver.boundingBox(), connector.boundingBox(),
+            ]);
+            if (!cardBox || !giverBox || !receiverBox || !connectorBox) {
+              return false;
+            }
+            if (width === 320) {
+              return giverBox.y < connectorBox.y && connectorBox.y < receiverBox.y;
+            }
+            const center = connectorBox.x + connectorBox.width / 2;
+            return Math.abs(center - (cardBox.x + cardBox.width / 2)) <= 1
+              && Math.abs(giverBox.y - receiverBox.y) <= 1;
+          }).toBe(true);
+          const longName = card.getByText(host.realName, { exact: true });
+          await expect.poll(() => longName.evaluate((element) => element.scrollWidth <= element.clientWidth + 1))
+            .toBe(true);
+        }
+        await board.evaluate((element) => element.scrollIntoView({ block: "center" }));
+        await board.screenshot({ path: testInfo.outputPath(`mobile-revealed-matches-${width}.png`) });
+      }
+    });
   } finally {
     await admin.from("groups").delete().eq("id", groupId);
     for (const userId of users) {

@@ -1981,6 +1981,43 @@ test.describe("authenticated screen regressions", () => {
 test.describe("group-scoped authenticated regressions", () => {
   test.skip(!credentials || !groupId, !credentials ? AUTH_BLOCKED_MESSAGE : GROUP_BLOCKED_MESSAGE);
 
+  test("mobile group actions stay tappable above the exchange status panel", async ({ page, hasTouch }, testInfo) => {
+    await page.setViewportSize({ width: 393, height: 727 });
+    await loginWithTestCredentials(page, credentials!);
+    await page.goto("/groups");
+
+    const trigger = page.getByRole("button", { name: /more actions for/i });
+    await trigger.click();
+    const deleteItem = page.getByRole("menuitem", { name: "Delete group" });
+    await expect(deleteItem).toBeVisible();
+    await deleteItem.evaluate((element) => element.scrollIntoView({ block: "center" }));
+    await expect.poll(() => deleteItem.evaluate((element) => {
+      const bounds = element.getBoundingClientRect();
+      return [0.25, 0.5, 0.75].every((fraction) => element.contains(document.elementFromPoint(
+        bounds.left + bounds.width / 2,
+        bounds.top + bounds.height * fraction,
+      )));
+    })).toBe(true);
+    await page.screenshot({ path: testInfo.outputPath("mobile-group-actions.png") });
+
+    if (hasTouch) {
+      await deleteItem.tap();
+    } else {
+      await deleteItem.click();
+    }
+    const dialog = page.getByRole("dialog", { name: /delete .+\?/i });
+    await expect(dialog).toBeVisible();
+    await expect(dialog.getByRole("button", { name: /delete forever/i })).toBeDisabled();
+    await dialog.getByRole("button", { name: /keep group/i }).click();
+    await expect(dialog).toHaveCount(0);
+    await expect(trigger).toBeFocused();
+
+    await trigger.click();
+    await expect(deleteItem).toBeVisible();
+    await page.getByRole("heading", { name: /^your groups$/i }).click();
+    await expect(deleteItem).toHaveCount(0);
+  });
+
   test("group navigation shows every section without sideways scrolling on a narrow phone", async ({ page }) => {
     await page.setViewportSize({ width: 320, height: 568 });
     await loginWithTestCredentials(page, credentials!);

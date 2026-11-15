@@ -149,7 +149,7 @@ function GroupWorkspacePreview({
     <section className="min-w-0 space-y-5" aria-label={`${group.name} exchange preview`}>
       <div
         data-testid="group-workspace-card"
-        className={`rounded-3xl p-4 ${
+        className={`relative z-10 rounded-3xl p-4 ${
           isDarkTheme ? "holiday-panel-dark text-slate-100" : "holiday-panel-strong text-[#2e3432]"
         }`}
       >
@@ -302,7 +302,8 @@ function GroupActionsMenu({
       ref={menuRef}
       className="relative shrink-0"
       onBlur={(event) => {
-        if (!event.currentTarget.contains(event.relatedTarget as Node | null)) {
+        // WebKit can blur a tapped button before click without moving focus to another element.
+        if (event.relatedTarget && !event.currentTarget.contains(event.relatedTarget)) {
           setOpen(false);
         }
       }}
