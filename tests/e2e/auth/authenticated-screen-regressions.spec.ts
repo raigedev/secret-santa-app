@@ -1981,6 +1981,23 @@ test.describe("authenticated screen regressions", () => {
 test.describe("group-scoped authenticated regressions", () => {
   test.skip(!credentials || !groupId, !credentials ? AUTH_BLOCKED_MESSAGE : GROUP_BLOCKED_MESSAGE);
 
+  test("group navigation shows every section without sideways scrolling on a narrow phone", async ({ page }) => {
+    await page.setViewportSize({ width: 320, height: 568 });
+    await loginWithTestCredentials(page, credentials!);
+    await page.goto(`/group/${groupId}`);
+
+    const navigation = page.getByRole("navigation", { name: "Group sections" });
+    await expect(navigation.getByRole("link", { name: "Settings", exact: true })).toBeVisible();
+    await expect(navigation.getByRole("link")).toHaveCount(5);
+    await expect.poll(() => navigation.evaluate((element) => {
+      const bounds = element.getBoundingClientRect();
+      return [...element.querySelectorAll("a")].every((link) => {
+        const box = link.getBoundingClientRect();
+        return box.left >= bounds.left && box.right <= bounds.right + 1 && box.height >= 44;
+      });
+    })).toBe(true);
+  });
+
   test("group details route renders for a seeded member", async ({ page }) => {
     await loginWithTestCredentials(page, credentials!);
     await page.goto(`/group/${groupId}`);

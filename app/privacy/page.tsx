@@ -91,7 +91,7 @@ const policySections = [
 export default function PrivacyPage() {
   return (
     <main className="min-h-screen bg-[#f8faf7] px-5 py-10 text-[#2e3432] sm:px-8 lg:px-12">
-      <section className="mx-auto max-w-4xl rounded-3xl border border-[#dbe5dc] bg-white px-5 py-8 shadow-[0_28px_80px_rgba(54,79,61,0.12)] sm:px-8 sm:py-10 lg:px-12">
+      <section className="mx-auto max-w-4xl rounded-3xl border border-[#dbe5dc] bg-white px-5 py-8 shadow-[0_28px_80px_rgba(54,79,61,0.12)] wrap-anywhere sm:px-8 sm:py-10 lg:px-12">
         <div className="inline-flex rounded-full bg-[#e8f1ea] px-3 py-1 text-xs font-bold uppercase tracking-[0.18em] text-[#496d53]">
           Privacy
         </div>

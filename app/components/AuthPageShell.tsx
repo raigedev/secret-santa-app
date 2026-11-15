@@ -7,7 +7,7 @@ type AuthPageMarker = {
 };
 
 export const AUTH_FIELD_CLASS_NAME =
-  "gift-field mt-2 w-full px-4 py-3.5 text-[15px] font-semibold";
+  "gift-field mt-2 w-full px-4 py-3.5 text-base font-semibold lg:text-[15px]";
 
 const AUTH_PAGE_BACKGROUND_IMAGE =
   "radial-gradient(circle at top left, rgba(252,206,114,0.32), transparent 34%), radial-gradient(circle at bottom right, rgba(164,60,63,0.16), transparent 32%), linear-gradient(180deg, #fbfcfa 0%, #f2f4f2 100%)";
@@ -43,20 +43,31 @@ function AuthPageBackground({
 
 export function AuthPageFrame({
   children,
+  hero,
   gridClassName = "lg:grid-cols-[1.02fr_0.98fr]",
   showDecorativeBlobs = false,
 }: {
   children: ReactNode;
+  hero?: ReactNode;
   gridClassName?: string;
   showDecorativeBlobs?: boolean;
 }) {
   return (
-    <main className="relative min-h-screen overflow-hidden bg-[#f9faf8] px-4 py-6 sm:px-6 lg:px-8">
+    <main className={`relative min-h-screen overflow-hidden bg-[#f9faf8] px-4 py-6 sm:px-6 lg:px-8 ${hero ? "max-lg:landscape:py-2" : ""}`}>
       <AuthPageBackground showDecorativeBlobs={showDecorativeBlobs} />
       <div className="relative mx-auto flex min-h-[calc(100vh-3rem)] max-w-6xl flex-col items-center justify-center gap-4">
         <div
-          className={`grid w-full gap-4 rounded-[2.25rem] bg-white/72 p-3 shadow-[0_32px_90px_rgba(46,52,50,0.08)] backdrop-blur-xl ${gridClassName} lg:p-4`}
+          className={`grid w-full gap-4 rounded-[2.25rem] bg-white/72 p-3 shadow-[0_32px_90px_rgba(46,52,50,0.08)] backdrop-blur-xl ${hero ? "max-w-xl max-lg:landscape:gap-1 max-lg:landscape:[&>section]:py-3 lg:max-w-none" : ""} ${gridClassName} lg:p-4`}
         >
+          {hero && (
+            <>
+              <div className="flex items-center gap-2.5 px-3 pt-1.5 text-sm font-black text-[#334d39] landscape:pt-0 lg:hidden">
+                <Image src="/secret-santa-logo.png" alt="" width={36} height={36} />
+                <span>My Secret Santa</span>
+              </div>
+              <div className="hidden lg:contents">{hero}</div>
+            </>
+          )}
           {children}
         </div>
         <p className="text-center text-xs font-semibold leading-5 text-[#6a706d]">
@@ -78,33 +89,26 @@ export function AuthPageFrame({
 export function AuthHeroPanel({
   badge,
   title,
-  titleAs = "h2",
   titleClassName = "lg:text-[3.3rem]",
   description,
   supportingCopy,
   detailEyebrow,
   detailTitle,
-  detailTitleAs = "h3",
   markers,
   imageSize = 160,
   showBottomAccent = false,
 }: {
   badge: string;
   title: string;
-  titleAs?: "h1" | "h2";
   titleClassName?: string;
   description: string;
   supportingCopy: string;
   detailEyebrow: string;
   detailTitle: string;
-  detailTitleAs?: "h2" | "h3";
   markers: readonly AuthPageMarker[];
   imageSize?: number;
   showBottomAccent?: boolean;
 }) {
-  const Heading = titleAs;
-  const DetailHeading = detailTitleAs;
-
   return (
     <section className="relative overflow-hidden rounded-[1.9rem] bg-[#ecefec] px-6 py-8 sm:px-8 sm:py-10 lg:px-10 lg:py-12">
       <div className="absolute inset-0" style={AUTH_HERO_BACKGROUND_STYLE} />
@@ -118,11 +122,11 @@ export function AuthHeroPanel({
           <div className="inline-flex items-center gap-2 rounded-full bg-white/85 px-4 py-2 text-[11px] font-semibold uppercase tracking-[0.24em] text-[#7b5902] shadow-[0_16px_32px_rgba(123,89,2,0.08)]">
             {badge}
           </div>
-          <Heading
+          <h2
             className={`mt-6 max-w-xl font-[Plus_Jakarta_Sans] text-4xl font-black tracking-normal text-[#2e3432] sm:text-5xl ${titleClassName} lg:leading-[1.02]`}
           >
             {title}
-          </Heading>
+          </h2>
           <p className="mt-4 max-w-xl text-base leading-7 text-[#5b605e] sm:text-lg">
             {description}
           </p>
@@ -141,16 +145,15 @@ export function AuthHeroPanel({
               <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-[#7b5902]">
                 {detailEyebrow}
               </p>
-              <DetailHeading className="mt-2 font-[Plus_Jakarta_Sans] text-2xl font-black tracking-normal text-[#2e3432]">
+              <h3 className="mt-2 font-[Plus_Jakarta_Sans] text-2xl font-black tracking-normal text-[#2e3432]">
                 {detailTitle}
-              </DetailHeading>
+              </h3>
             </div>
             <Image
               src="/bells-holly.svg"
               alt="Holiday greenery"
               width={imageSize}
               height={imageSize}
-              loading="eager"
               className="hidden w-24 shrink-0 drop-shadow-[0_18px_30px_rgba(123,89,2,0.16)] sm:block"
             />
           </div>

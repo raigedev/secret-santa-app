@@ -68,22 +68,23 @@ function CreateAccountLayout({
   supportingCopy: string;
 }) {
   return (
-    <AuthPageFrame gridClassName="lg:grid-cols-[1.06fr_0.94fr]">
-      <AuthHeroPanel
-        badge="New account"
-        title="Join your Secret Santa group."
-        titleAs="h1"
-        titleClassName="lg:text-[3.4rem]"
-        description="Create an account so you can join groups, add wishlist ideas, and see your Secret Santa details when names are drawn."
-        supportingCopy={supportingCopy}
-        detailEyebrow="Before names are drawn"
-        detailTitle="Add gift ideas now so your Santa has helpful clues later."
-        detailTitleAs="h2"
-        markers={TRUST_MARKERS}
-        imageSize={144}
-        showBottomAccent
-      />
-
+    <AuthPageFrame
+      gridClassName="lg:grid-cols-[1.06fr_0.94fr]"
+      hero={
+        <AuthHeroPanel
+          badge="New account"
+          title="Join your Secret Santa group."
+          titleClassName="lg:text-[3.4rem]"
+          description="Create an account so you can join groups, add wishlist ideas, and see your Secret Santa details when names are drawn."
+          supportingCopy={supportingCopy}
+          detailEyebrow="Before names are drawn"
+          detailTitle="Add gift ideas now so your Santa has helpful clues later."
+          markers={TRUST_MARKERS}
+          imageSize={144}
+          showBottomAccent
+        />
+      }
+    >
       <section className="rounded-[1.9rem] bg-white px-5 py-6 sm:px-8 sm:py-8 lg:px-10 lg:py-10">
         {children}
       </section>
@@ -180,9 +181,9 @@ function CreateAccountPageInner() {
         <div className="inline-flex items-center gap-2 rounded-full bg-[#fcce72]/28 px-3 py-1.5 text-sm font-semibold text-[#5f4500]">
           New account
         </div>
-        <h2 className="mt-4 font-[Plus_Jakarta_Sans] text-3xl font-black tracking-normal text-[#2e3432] sm:text-4xl">
+        <h1 className="mt-4 font-[Plus_Jakarta_Sans] text-3xl font-black tracking-normal text-[#2e3432] sm:text-4xl">
           {confirmation ? "Check your inbox" : "Create your account"}
-        </h2>
+        </h1>
         <p className="mt-3 text-[15px] leading-7 text-[#5b605e] sm:text-base">
           {confirmation
             ? "We sent a confirmation link to your email address. Verify it first, then sign in to continue into the app."
@@ -337,9 +338,9 @@ function CreateAccountFallback() {
         <div className="inline-flex items-center gap-2 rounded-full bg-[#fcce72]/28 px-3 py-1.5 text-sm font-semibold text-[#5f4500]">
           New account
         </div>
-        <h2 className="mt-4 font-[Plus_Jakarta_Sans] text-3xl font-black tracking-normal text-[#2e3432] sm:text-4xl">
+        <h1 className="mt-4 font-[Plus_Jakarta_Sans] text-3xl font-black tracking-normal text-[#2e3432] sm:text-4xl">
           Create your account
-        </h2>
+        </h1>
         <p className="mt-3 text-[15px] leading-7 text-[#5b605e] sm:text-base">Loading account setup...</p>
       </div>
     </CreateAccountLayout>

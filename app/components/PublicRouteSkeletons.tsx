@@ -6,17 +6,20 @@ function SkeletonBlock({ className }: { className: string }) {
 
 export function AuthRouteSkeleton() {
   return (
-    <AuthPageFrame showDecorativeBlobs={false}>
-      <section className="rounded-[1.9rem] bg-[#ecefec] px-6 py-8 sm:px-8 sm:py-10 lg:px-10 lg:py-12">
-        <SkeletonBlock className="h-8 w-36 rounded-full bg-white/90" />
-        <SkeletonBlock className="mt-6 h-12 w-10/12 max-w-xl rounded-2xl" />
-        <SkeletonBlock className="mt-3 h-12 w-8/12 max-w-md rounded-2xl" />
-        <SkeletonBlock className="mt-5 h-24 w-full max-w-xl rounded-[1.75rem] bg-white/82" />
-        <SkeletonBlock className="mt-8 h-44 w-full rounded-4xl bg-white/82" />
-      </section>
+    <AuthPageFrame
+      hero={
+        <section className="rounded-[1.9rem] bg-[#ecefec] px-6 py-8 sm:px-8 sm:py-10 lg:px-10 lg:py-12">
+          <SkeletonBlock className="h-8 w-36 rounded-full bg-white/90" />
+          <SkeletonBlock className="mt-6 h-12 w-10/12 max-w-xl rounded-2xl" />
+          <SkeletonBlock className="mt-3 h-12 w-8/12 max-w-md rounded-2xl" />
+          <SkeletonBlock className="mt-5 h-24 w-full max-w-xl rounded-[1.75rem] bg-white/82" />
+          <SkeletonBlock className="mt-8 h-44 w-full rounded-4xl bg-white/82" />
+        </section>
+      }
+    >
       <section className="rounded-[1.9rem] bg-white px-5 py-6 sm:px-8 sm:py-8 lg:px-10 lg:py-10">
         <SkeletonBlock className="h-8 w-32 rounded-full bg-[#fcce72]/28" />
-        <SkeletonBlock className="mt-5 h-10 w-64 rounded-2xl" />
+        <SkeletonBlock className="mt-5 h-10 w-full max-w-64 rounded-2xl" />
         <SkeletonBlock className="mt-3 h-5 w-full rounded-full" />
         <SkeletonBlock className="mt-2 h-5 w-9/12 rounded-full" />
         <div className="mt-8 space-y-5">
