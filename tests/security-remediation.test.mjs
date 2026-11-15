@@ -1039,11 +1039,11 @@ test("hidden reveal match cards keep DOM labels redacted", () => {
   );
   assert.match(
     revealPageSource,
-    /getRevealNameTextStyle\(activeMatchGiverLabel, "match"\)/
+    /getRevealMatchNameTextStyle\(activeMatchGiverLabel\)/
   );
   assert.match(
     revealPageSource,
-    /getRevealNameTextStyle\(activeMatchReceiverLabel, "match"\)/
+    /getRevealMatchNameTextStyle\(activeMatchReceiverLabel\)/
   );
   assert.doesNotMatch(revealPageSource, /title=\{activeMatchGiver\}/);
   assert.doesNotMatch(revealPageSource, /title=\{activeMatchReceiver\}/);
