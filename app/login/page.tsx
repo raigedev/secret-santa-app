@@ -15,6 +15,7 @@ import {
   AUTH_FIELD_CLASS_NAME,
   AuthPageFrame,
 } from "@/app/components/AuthPageShell";
+import { BOT_CHECK_ENABLED, BOT_CHECK_PENDING_MESSAGE, BotCheck } from "@/app/components/BotCheck";
 import { OAUTH_CALLBACK_FAILED_ERROR } from "@/lib/auth/oauth-callback-errors";
 import { buildPostLoginNextCookie } from "@/lib/auth/post-login-next-cookie";
 import { normalizeSafePostAuthPath } from "@/lib/security/safe-app-path";
@@ -297,6 +298,8 @@ function LoginPageInner() {
   const searchParams = useSearchParams();
   const supabase = createClient();
   const emailLoginAttemptIdRef = useRef(0);
+  const [captchaToken, setCaptchaToken] = useState<string | null>(null);
+  const [captchaResetKey, setCaptchaResetKey] = useState(0);
   const oauthAttemptLeftPageRef = useRef(false);
   const oauthAttemptIdRef = useRef(0);
   const oauthRecoveryTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -471,6 +474,11 @@ function LoginPageInner() {
       return;
     }
 
+    if (BOT_CHECK_ENABLED && !captchaToken) {
+      setError(BOT_CHECK_PENDING_MESSAGE);
+      return;
+    }
+
     const attemptId = emailLoginAttemptIdRef.current + 1;
     emailLoginAttemptIdRef.current = attemptId;
     setLoading(true);
@@ -481,6 +489,7 @@ function LoginPageInner() {
         .signInWithPassword({
           email: trimmedEmail,
           password,
+          options: captchaToken ? { captchaToken } : undefined,
         })
         .then(({ error: signInError }) => ({
           signInError,
@@ -496,6 +505,10 @@ function LoginPageInner() {
 
     if (timeoutId) {
       clearTimeout(timeoutId);
+    }
+
+    if (BOT_CHECK_ENABLED) {
+      setCaptchaResetKey((key) => key + 1);
     }
 
     if (emailLoginAttemptIdRef.current !== attemptId) {
@@ -622,6 +635,8 @@ function LoginPageInner() {
               className={AUTH_FIELD_CLASS_NAME}
             />
           </div>
+
+          <BotCheck onTokenChange={setCaptchaToken} resetKey={captchaResetKey} />
 
           {activeError ? (
             <div

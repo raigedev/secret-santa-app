@@ -79,6 +79,25 @@ Do not use a plain Shopee search URL here and expect commission; the value must 
 
 Never paste real values into screenshots, docs, test fixtures, logs, or final answers.
 
+## Bot Check (Cloudflare Turnstile)
+
+Sign-up, login, and password reset can require a Cloudflare Turnstile check that Supabase verifies. The code stays off until `NEXT_PUBLIC_TURNSTILE_SITE_KEY` is set, and only then adds `https://challenges.cloudflare.com` to the page security policy. Turn it on in this order, or logins will fail while the app is not yet sending tokens:
+
+1. In the Cloudflare dashboard, open Turnstile and add a widget for the production domain (managed mode). Copy the site key and secret key.
+2. In Vercel, set `NEXT_PUBLIC_TURNSTILE_SITE_KEY` for Production and Preview, then redeploy and confirm the login page shows the check.
+3. In Supabase, open Authentication, then Attack Protection, enable CAPTCHA protection, choose Turnstile, and paste the secret key.
+
+For local testing, Cloudflare's always-pass test site key `1x00000000000000000000AA` and test secret `1x0000000000000000000000000000000AA` work on localhost.
+
+## Security Alert Digest
+
+The daily `/api/affiliate/lazada/health-check` cron also emails a summary of the last 24 hours of security failures and rate-limited requests from `security_audit_logs`. It sends only event names and counts, at most once per 20 hours, and only when both are configured:
+
+- `SECURITY_ALERT_EMAIL`: the maintainer address that receives the summary.
+- The existing `SMTP_*` settings used for welcome emails.
+
+The cron response reports `securityDigest` as `sent`, `nothing_to_report`, `already_sent`, `not_configured`, or `failed`.
+
 ## Vercel Manual Smoke Test
 
 After pushing and waiting for Vercel to show Ready:

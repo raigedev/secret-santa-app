@@ -1,8 +1,12 @@
 type ContentSecurityPolicyOptions = {
+  botCheckEnabled?: boolean;
   isDevelopment?: boolean;
   nonce?: string;
   supabaseUrl?: string;
 };
+
+// Cloudflare Turnstile needs its script and challenge frame, and only when the site key is set.
+const TURNSTILE_ORIGIN = "https://challenges.cloudflare.com";
 
 function usesLocalSupabaseUrl(supabaseUrl: string): boolean {
   return (
@@ -31,12 +35,15 @@ export function buildContentSecurityPolicy(options: ContentSecurityPolicyOptions
   const isDevelopment = options.isDevelopment ?? process.env.NODE_ENV === "development";
   const nonce = options.nonce?.trim();
   const supabaseUrl = options.supabaseUrl ?? process.env.NEXT_PUBLIC_SUPABASE_URL ?? "";
+  const botCheckEnabled =
+    options.botCheckEnabled ?? Boolean(process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY?.trim());
   const scriptSource = [
     "script-src",
     "'self'",
     ...(nonce ? [`'nonce-${nonce}'`] : []),
     ...(isDevelopment && !nonce ? ["'unsafe-inline'"] : []),
     ...(isDevelopment ? ["'unsafe-eval'"] : []),
+    ...(botCheckEnabled ? [TURNSTILE_ORIGIN] : []),
   ].join(" ");
   const connectSource = [
     "connect-src",
@@ -66,7 +73,7 @@ export function buildContentSecurityPolicy(options: ContentSecurityPolicyOptions
     "img-src 'self' data: blob: https:",
     connectSource,
     "object-src 'none'",
-    "frame-src 'none'",
+    botCheckEnabled ? `frame-src ${TURNSTILE_ORIGIN}` : "frame-src 'none'",
     "frame-ancestors 'none'",
     "base-uri 'self'",
     "form-action 'self'",

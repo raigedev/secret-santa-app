@@ -2661,6 +2661,64 @@ test("Vercel functions stay in Singapore next to the Supabase project", () => {
   assert.deepEqual(vercelConfig.regions, ["sin1"]);
 });
 
+test("browser roles lose unused table privileges that row-level security does not cover", () => {
+  const migrationPath = [
+    "supabase",
+    "migrations",
+    ["20261116070000", "revoke", "unused", "browser", "table", "privileges.sql"].join("_"),
+  ].join("/");
+  // eslint-disable-next-line security/detect-non-literal-fs-filename -- Security test reads one pinned repo-local migration path assembled to avoid secret false positives.
+  const migrationSource = readFileSync(migrationPath, "utf8");
+
+  assert.match(
+    migrationSource,
+    /^revoke truncate, trigger, references on all tables in schema public from anon, authenticated;$/m
+  );
+  assert.doesNotMatch(migrationSource, /^\s*(drop|delete|update|insert|alter|grant)\b/im);
+});
+
+test("bot check stays off without a site key and passes one-time tokens to Supabase auth", () => {
+  const botCheckSource = readFileSync("app/components/BotCheck.tsx", "utf8");
+  const cspSource = readFileSync("lib/security/content-security-policy.ts", "utf8");
+  const loginSource = readFileSync("app/login/page.tsx", "utf8");
+  const createAccountSource = readFileSync("app/create-account/page.tsx", "utf8");
+  const forgotPasswordSource = readFileSync("app/forgot-password/page.tsx", "utf8");
+
+  assert.match(botCheckSource, /BOT_CHECK_ENABLED = BOT_CHECK_SITE_KEY\.length > 0/);
+  assert.match(botCheckSource, /if \(!BOT_CHECK_ENABLED\) \{\s*return null;\s*\}/);
+  assert.match(cspSource, /const TURNSTILE_ORIGIN = "https:\/\/challenges\.cloudflare\.com";/);
+  assert.match(cspSource, /botCheckEnabled \? `frame-src \$\{TURNSTILE_ORIGIN\}` : "frame-src 'none'"/);
+  assert.match(cspSource, /\.\.\.\(botCheckEnabled \? \[TURNSTILE_ORIGIN\] : \[\]\)/);
+
+  for (const [path, source] of [
+    ["app/login/page.tsx", loginSource],
+    ["app/create-account/page.tsx", createAccountSource],
+    ["app/forgot-password/page.tsx", forgotPasswordSource],
+  ]) {
+    assert.match(source, /if \(BOT_CHECK_ENABLED && !captchaToken\)/, path);
+    assert.match(source, /captchaToken \? \{ captchaToken \}/, path);
+    assert.match(source, /setCaptchaResetKey\(\(key\) => key \+ 1\)/, path);
+    assert.match(source, /<BotCheck onTokenChange=\{setCaptchaToken\} resetKey=\{captchaResetKey\} \/>/, path);
+  }
+});
+
+test("security alert digest emails only event counts and cannot hide the health check", () => {
+  const digestSource = readFileSync("lib/security/security-alert-digest.ts", "utf8");
+  const healthCheckSource = readFileSync("app/api/affiliate/lazada/health-check/route.ts", "utf8");
+
+  assert.match(digestSource, /^import "server-only";/);
+  assert.match(digestSource, /\.select\("event_type, outcome"\)/);
+  assert.doesNotMatch(digestSource, /\.select\([^)]*(actor_user_id|details|resource_id)/);
+  assert.match(digestSource, /const DIGEST_RESEND_GUARD_MS = 20 \* 60 \* 60 \* 1000;/);
+  assert.match(digestSource, /if \(!recipient \|\| !config\) \{\s*return "not_configured";/);
+  assert.ok(
+    healthCheckSource.indexOf("await runSecurityAlertDigest(now)") <
+      healthCheckSource.indexOf("await loadLazadaHealthStatus(now)"),
+    "The digest must run before the health check so a Lazada failure cannot skip it."
+  );
+  assert.match(healthCheckSource, /eventType: "security\.alert_digest"/);
+});
+
 test("group error screens never show raw error messages", () => {
   const groupRouteErrorSource = readFileSync("app/group/[id]/GroupRouteError.tsx", "utf8");
 

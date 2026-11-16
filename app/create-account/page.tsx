@@ -7,6 +7,7 @@ import {
   AuthHeroPanel,
   AuthPageFrame,
 } from "@/app/components/AuthPageShell";
+import { BOT_CHECK_ENABLED, BOT_CHECK_PENDING_MESSAGE, BotCheck } from "@/app/components/BotCheck";
 import { getPasswordPolicyMessage, PASSWORD_POLICY_HELP_TEXT } from "@/lib/auth/password-policy";
 import { buildPostLoginNextCookie } from "@/lib/auth/post-login-next-cookie";
 import { normalizeSafePostAuthPath } from "@/lib/security/safe-app-path";
@@ -103,6 +104,8 @@ function CreateAccountPageInner() {
   const [confirmation, setConfirmation] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [formReady, setFormReady] = useState(false);
+  const [captchaToken, setCaptchaToken] = useState<string | null>(null);
+  const [captchaResetKey, setCaptchaResetKey] = useState(0);
 
   const nextPath = (() => {
     const candidate = searchParams.get("next") || "/dashboard";
@@ -149,6 +152,11 @@ function CreateAccountPageInner() {
       return;
     }
 
+    if (BOT_CHECK_ENABLED && !captchaToken) {
+      setError(BOT_CHECK_PENDING_MESSAGE);
+      return;
+    }
+
     setIsSubmitting(true);
 
     try {
@@ -159,6 +167,7 @@ function CreateAccountPageInner() {
         email: trimmedEmail,
         password,
         options: {
+          ...(captchaToken ? { captchaToken } : {}),
           data: { name: trimmedName },
           emailRedirectTo: redirectUrl.toString(),
         },
@@ -172,6 +181,10 @@ function CreateAccountPageInner() {
       setConfirmation(true);
     } finally {
       setIsSubmitting(false);
+
+      if (BOT_CHECK_ENABLED) {
+        setCaptchaResetKey((key) => key + 1);
+      }
     }
   };
 
@@ -253,6 +266,8 @@ function CreateAccountPageInner() {
               {PASSWORD_POLICY_HELP_TEXT} A short phrase is usually easier to remember and harder
               to guess.
             </div>
+
+            <BotCheck onTokenChange={setCaptchaToken} resetKey={captchaResetKey} />
 
             {error ? (
               <div role="alert" className="gift-alert gift-alert-error text-sm">
