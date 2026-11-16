@@ -62,8 +62,9 @@ const GROUP_ROUTE_ERROR_COPY: Record<
   },
 };
 
+// Always show the friendly copy: raw error text can expose technical or database
+// details, and Next.js only redacts errors thrown on the server.
 export function GroupRouteError({
-  error,
   reset,
   variant,
 }: {
@@ -106,7 +107,7 @@ export function GroupRouteError({
           {copy.heading}
         </h1>
         <p className="text-[14px] font-semibold leading-relaxed" style={{ color: copy.messageColor }}>
-          {error.message || copy.fallbackMessage}
+          {copy.fallbackMessage}
         </p>
 
         <div className="mt-6 flex items-center justify-center gap-3 flex-wrap">

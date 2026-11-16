@@ -282,7 +282,11 @@ export default function GroupsPage() {
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((_event, session) => {
-      if (sessionUserRef.current && sessionUserRef.current.id !== session?.user.id) {
+      const userChanged = Boolean(
+        sessionUserRef.current && sessionUserRef.current.id !== session?.user.id
+      );
+
+      if (userChanged) {
         loadVersionRef.current++;
         sessionUserRef.current = null;
         inviteRequestRef.current?.abort();
@@ -300,7 +304,12 @@ export default function GroupsPage() {
       }
 
       sessionUserRef.current = { email: session.user.email, id: session.user.id };
-      scheduleGroupsReload();
+      // On startup Supabase replays the stored session (INITIAL_SESSION, then SIGNED_IN for
+      // the same user), and it fires TOKEN_REFRESHED later. The first page load already covers
+      // this user, so only reload when a different account signs in.
+      if (userChanged) {
+        scheduleGroupsReload();
+      }
     });
 
     return () => {

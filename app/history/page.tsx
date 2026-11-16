@@ -227,8 +227,14 @@ export default function HistoryPage() {
         return;
       }
 
+      const previousUserId = sessionUserRef.current?.id;
       sessionUserRef.current = { email: session.user.email, id: session.user.id };
-      scheduleReload();
+      // On startup Supabase replays the stored session (INITIAL_SESSION, then SIGNED_IN for
+      // the same user), and it fires TOKEN_REFRESHED later. bootstrap() already loads this
+      // user, so only reload when a different account signs in.
+      if (previousUserId && previousUserId !== session.user.id) {
+        scheduleReload();
+      }
     });
 
     return () => {

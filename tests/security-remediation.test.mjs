@@ -2661,6 +2661,26 @@ test("Vercel functions stay in Singapore next to the Supabase project", () => {
   assert.deepEqual(vercelConfig.regions, ["sin1"]);
 });
 
+test("group error screens never show raw error messages", () => {
+  const groupRouteErrorSource = readFileSync("app/group/[id]/GroupRouteError.tsx", "utf8");
+
+  assert.doesNotMatch(groupRouteErrorSource, /error\.message/);
+  assert.match(groupRouteErrorSource, /\{copy\.fallbackMessage\}/);
+});
+
+test("history and groups only reload on auth events when a different account signs in", () => {
+  const historySource = readFileSync("app/history/page.tsx", "utf8");
+  const groupsSource = readFileSync("app/groups/page.tsx", "utf8");
+
+  // Supabase replays the stored session (INITIAL_SESSION + SIGNED_IN) on every page open,
+  // which used to trigger a second full data load 120ms after the first one.
+  assert.match(
+    historySource,
+    /if \(previousUserId && previousUserId !== session\.user\.id\) \{\s*scheduleReload\(\);\s*\}/
+  );
+  assert.match(groupsSource, /if \(userChanged\) \{\s*scheduleGroupsReload\(\);\s*\}/);
+});
+
 test("lazada postback setup keeps auth material out of URL query strings", () => {
   const lazadaPostbackSource = readFileSync("app/api/affiliate/lazada/postback/route.ts", "utf8");
   const affiliateReportSource = readFileSync("app/dashboard/affiliate-report/page.tsx", "utf8");
@@ -2807,16 +2827,22 @@ test("sqlmap guidance does not trust ignored local tooling by default", () => {
   assert.match(agentsSource, /prefer a reviewed pinned copy or official release/);
 });
 
-test("done-push workflow requires explicit current release intent and safety gates", () => {
+test("agent-run release workflow keeps its safety gates", () => {
   const branchWorkflowSource = readFileSync(".agent/BRANCH_WORKFLOW.md", "utf8");
   const continuitySource = readFileSync(".agent/CONTINUITY.md", "utf8");
 
-  assert.match(branchWorkflowSource, /explicitly says `done push` or `done pushing`/);
+  // Since 2026-11-16 the agent commits and releases, so the gates must stay explicit.
+  assert.match(branchWorkflowSource, /Stage only the files for that task/);
+  assert.match(branchWorkflowSource, /Check the exact PR diff and confirm it matches the requested change/);
+  assert.match(branchWorkflowSource, /Wait for GitHub CI \(Validate\), CodeQL, Dependency Review, and the Vercel preview/);
+  assert.match(branchWorkflowSource, /database state is unclear, stop and explain why instead of merging/);
+  assert.match(branchWorkflowSource, /--match-head-commit <verified-sha>/);
+  assert.match(branchWorkflowSource, /A discussion, review, audit, or proposal alone does not trigger a release/);
+  assert.match(branchWorkflowSource, /`keep this local`/);
   assert.match(branchWorkflowSource, /Do not treat quoted text/);
-  assert.match(branchWorkflowSource, /verify the reported issue or requested change is present on `dev`/);
-  assert.match(branchWorkflowSource, /required migration\/live-state work is unresolved/);
-  assert.match(continuitySource, /only an explicit current `done push` \/ `done pushing` release message/);
-  assert.match(continuitySource, /verify the actual fix/);
+  assert.match(branchWorkflowSource, /Merging app code does not apply database migrations/);
+  assert.match(continuitySource, /verify the actual fix in the exact diff/);
+  assert.match(continuitySource, /`keep this local` means do not commit or push/);
 });
 
 test("github workflow actions are pinned to immutable commit SHAs", () => {
