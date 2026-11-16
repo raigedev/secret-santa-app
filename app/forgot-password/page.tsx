@@ -8,6 +8,7 @@ import {
   AuthHeroPanel,
   AuthPageFrame,
 } from "@/app/components/AuthPageShell";
+import { BOT_CHECK_ENABLED, BOT_CHECK_PENDING_MESSAGE, BotCheck } from "@/app/components/BotCheck";
 import { createClient } from "@/lib/supabase/client";
 
 const RESET_MARKERS = [
@@ -60,6 +61,8 @@ export default function ForgotPasswordPage() {
   const [message, setMessage] = useState("");
   const [messageTone, setMessageTone] = useState<"idle" | "error" | "success">("idle");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [captchaToken, setCaptchaToken] = useState<string | null>(null);
+  const [captchaResetKey, setCaptchaResetKey] = useState(0);
 
   const handleReset = async () => {
     if (isSubmitting) {
@@ -76,11 +79,22 @@ export default function ForgotPasswordPage() {
       return;
     }
 
+    if (BOT_CHECK_ENABLED && !captchaToken) {
+      setMessage(BOT_CHECK_PENDING_MESSAGE);
+      setMessageTone("error");
+      return;
+    }
+
     setIsSubmitting(true);
 
     const { error } = await supabase.auth.resetPasswordForEmail(trimmedEmail, {
+      ...(captchaToken ? { captchaToken } : {}),
       redirectTo: `${window.location.origin}/reset-password`,
     });
+
+    if (BOT_CHECK_ENABLED) {
+      setCaptchaResetKey((key) => key + 1);
+    }
 
     if (error) {
       setMessage("We could not send the reset email right now. Please try again.");
@@ -132,6 +146,8 @@ export default function ForgotPasswordPage() {
               className={AUTH_FIELD_CLASS_NAME}
             />
           </div>
+
+          <BotCheck onTokenChange={setCaptchaToken} resetKey={captchaResetKey} />
 
           {message ? (
             <div

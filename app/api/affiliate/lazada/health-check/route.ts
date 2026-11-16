@@ -6,6 +6,10 @@ import { createNotification } from "@/lib/notifications";
 import { recordServerFailure } from "@/lib/security/audit";
 import { isLocalCronBypassAllowed } from "@/lib/security/deployed-runtime";
 import { noStoreJson } from "@/lib/security/no-store-response";
+import {
+  sendSecurityAlertDigest,
+  type SecurityAlertDigestResult,
+} from "@/lib/security/security-alert-digest";
 import { extractBearerToken, safeEqualSecret } from "@/lib/security/web";
 import { supabaseAdmin } from "@/lib/supabase/admin";
 
@@ -179,12 +183,32 @@ async function notifyOwnersIfNeeded(health: LazadaHealthStatus, now: Date): Prom
   return created;
 }
 
+// This daily cron also sends the security alert digest. A digest problem is recorded and
+// reported, but must not hide or block the Lazada health result.
+async function runSecurityAlertDigest(now: Date): Promise<SecurityAlertDigestResult | "failed"> {
+  try {
+    return await sendSecurityAlertDigest(now);
+  } catch (error) {
+    await recordServerFailure({
+      details: {
+        path: "/api/affiliate/lazada/health-check",
+      },
+      errorMessage: error instanceof Error ? error.message : "Unknown security alert digest error.",
+      eventType: "security.alert_digest",
+      resourceType: "security_alert_digest",
+    });
+
+    return "failed";
+  }
+}
+
 async function handleRequest(request: NextRequest) {
   if (!isAuthorizedRequest(request)) {
     return noStoreJson({ error: "Unauthorized" }, { status: 401 });
   }
 
   const now = new Date();
+  const securityDigest = await runSecurityAlertDigest(now);
 
   try {
     const health = await loadLazadaHealthStatus(now);
@@ -196,6 +220,7 @@ async function handleRequest(request: NextRequest) {
         health,
         notificationsCreated,
         ok: true,
+        securityDigest,
       },
       { status: 200 }
     );
@@ -215,6 +240,7 @@ async function handleRequest(request: NextRequest) {
       {
         error: "Lazada health check failed.",
         ok: false,
+        securityDigest,
       },
       { status: 500 }
     );

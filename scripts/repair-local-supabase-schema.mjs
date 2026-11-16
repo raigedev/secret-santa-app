@@ -9,6 +9,9 @@ const PUBLIC_SCHEMA_PATH = join("supabase", "public-schema.sql");
 const MIGRATIONS_DIR = join("supabase", "migrations");
 const LATER_MIGRATION_START = "202604060001";
 const RLS_POLICY_MIGRATION_VERSION = "202604300003";
+const MIGRATION_FILE_NAME = /^(\d{12,14})_([a-z0-9_]+)\.sql$/;
+// duplicate_column, duplicate_table, duplicate_object, duplicate_function, duplicate_schema
+const ALREADY_APPLIED_ERROR = /ERROR:\s+(42701|42P07|42710|42723|42P06):/;
 
 const LOCAL_COMPAT_SQL = `
 do $$
@@ -147,8 +150,8 @@ function getProjectId() {
   return match?.[1] || basename(process.cwd());
 }
 
-function runDockerPsql(containerName, input, label, quiet = false) {
-  const result = spawnSync(
+function spawnDockerPsql(containerName, input, { quiet = false, singleTransaction = false } = {}) {
+  return spawnSync(
     "docker",
     [
       "exec",
@@ -161,6 +164,7 @@ function runDockerPsql(containerName, input, label, quiet = false) {
       "postgres",
       "-v",
       "ON_ERROR_STOP=1",
+      ...(singleTransaction ? ["--single-transaction"] : []),
       ...(quiet ? ["-q", "-t", "-A"] : []),
     ],
     {
@@ -169,9 +173,17 @@ function runDockerPsql(containerName, input, label, quiet = false) {
       maxBuffer: 20 * 1024 * 1024,
     }
   );
+}
+
+function getPsqlOutput(result) {
+  return `${result.stderr || ""}${result.stdout || ""}`.trim();
+}
+
+function runDockerPsql(containerName, input, label, quiet = false) {
+  const result = spawnDockerPsql(containerName, input, { quiet });
 
   if (result.error || result.status !== 0) {
-    const output = `${result.stderr || ""}${result.stdout || ""}`.trim();
+    const output = getPsqlOutput(result);
     throw new Error(`${label} failed. ${output || result.error?.message || ""}`.trim());
   }
 
@@ -207,17 +219,102 @@ function applySqlFile(containerName, path) {
   runDockerPsql(containerName, readFileSync(path, "utf8"), `Apply ${path}`, true);
 }
 
+function parseMigrationFileName(migrationName) {
+  const match = migrationName.match(MIGRATION_FILE_NAME);
+
+  if (!match) {
+    throw new Error(`Unexpected migration file name: ${migrationName}`);
+  }
+
+  return { name: match[2], version: match[1] };
+}
+
+// Local databases built from the schema snapshot have no migration history, so the
+// script records each migration it replays and skips recorded ones on later runs.
+function readRecordedMigrationVersions(containerName) {
+  runDockerPsql(
+    containerName,
+    `create schema if not exists supabase_migrations;
+     create table if not exists supabase_migrations.schema_migrations (
+       version text primary key,
+       statements text[],
+       name text
+     );`,
+    "Prepare local migration history",
+    true
+  );
+
+  return new Set(
+    runDockerPsql(
+      containerName,
+      "select version from supabase_migrations.schema_migrations;",
+      "Read local migration history",
+      true
+    )
+      .split(/\r?\n/)
+      .map((line) => line.trim())
+      .filter(Boolean)
+  );
+}
+
+function recordMigration(containerName, { name, version }) {
+  // version and name are validated by MIGRATION_FILE_NAME before reaching SQL.
+  runDockerPsql(
+    containerName,
+    `insert into supabase_migrations.schema_migrations (version, name)
+     values ('${version}', '${name}') on conflict (version) do nothing;`,
+    `Record migration ${version}`,
+    true
+  );
+}
+
+function applyMigrationFile(containerName, path) {
+  // eslint-disable-next-line security/detect-non-literal-fs-filename -- Path is restricted to repo-local migration files.
+  const sql = readFileSync(path, "utf8");
+  const result = spawnDockerPsql(containerName, `\\set VERBOSITY verbose\n${sql}`, {
+    quiet: true,
+    singleTransaction: true,
+  });
+
+  if (!result.error && result.status === 0) {
+    return "applied";
+  }
+
+  const output = getPsqlOutput(result);
+
+  // Databases replayed by older versions of this script already contain these objects.
+  // The single transaction rolled back, so nothing was half-applied.
+  if (ALREADY_APPLIED_ERROR.test(output)) {
+    return "already-present";
+  }
+
+  throw new Error(`Apply ${path} failed. ${output || result.error?.message || ""}`.trim());
+}
+
 function applyLaterMigrations(containerName) {
   const migrationNames = readdirSync(MIGRATIONS_DIR)
     .filter((name) => name.endsWith(".sql") && name >= LATER_MIGRATION_START)
     .sort();
+  const recordedVersions = readRecordedMigrationVersions(containerName);
 
   for (const migrationName of migrationNames) {
+    const migration = parseMigrationFileName(migrationName);
+
+    if (recordedVersions.has(migration.version)) {
+      continue;
+    }
+
     if (migrationName.startsWith(RLS_POLICY_MIGRATION_VERSION)) {
       runDockerPsql(containerName, LOCAL_COMPAT_SQL, "Apply local RLS policy compatibility");
     }
 
-    applySqlFile(containerName, join(MIGRATIONS_DIR, migrationName));
+    const outcome = applyMigrationFile(containerName, join(MIGRATIONS_DIR, migrationName));
+
+    if (outcome === "already-present") {
+      console.log(`Recorded ${migrationName} as already applied: its objects already exist locally.`);
+    }
+
+    recordMigration(containerName, migration);
   }
 }
 
